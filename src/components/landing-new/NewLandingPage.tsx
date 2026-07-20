@@ -1,64 +1,35 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  ChatsCircle,
-  ClockCounterClockwise,
-  FileXls,
-} from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo, ArchestimatorLogoMark } from "@/components/brand/ArchestimatorLogo";
-import { EstimateFixtureSheet } from "./EstimateFixtureSheet";
-import { LivingEstimatePoster } from "./LivingEstimatePoster";
-import { LivingEstimateSceneLoader } from "./LivingEstimateSceneLoader";
-import { NewLandingMotion } from "./NewLandingMotion";
-import {
-  audienceLine,
-  contrast,
-  costKnowledge,
-  faq,
-  finalCta,
-  fixture,
-  footer,
-  hero,
-  nav,
-  proofChapters,
-  trust,
-} from "./landing-content";
+import { CostThreadJourney } from "./CostThreadJourney";
+import { finalCta, footer, handoff, hero, journey, knowledge, nav, trust } from "./landing-content";
 import styles from "./new-landing.module.css";
 
 function PrimaryCta({ location }: { location: string }) {
   return (
     <Link
       href={nav.cta.href}
-      className={styles.ctaPrimary}
+      className={styles.primaryCta}
       data-new-landing-cta="primary"
       data-new-landing-location={location}
     >
       <span>{nav.cta.label}</span>
-      <span className={styles.ctaIconOrb} aria-hidden="true">
-        <ArrowRight size={14} weight="bold" />
-      </span>
+      <ArrowUpRight size={17} weight="bold" aria-hidden="true" />
     </Link>
   );
 }
 
-function NewLandingNav() {
+function LandingNav() {
   return (
-    <header className={styles.nav} data-nav>
+    <header className={styles.nav}>
       <a href="#new-main" className={styles.skipLink}>
         Skip to content
       </a>
       <div className={styles.navInner}>
-        <Link href="/" className={styles.navBrand} aria-label="Archestimator home">
-          <ArchestimatorLogo
-            tone="dark"
-            markSize={28}
-            markClassName={styles.logoMark}
-            separatorClassName={styles.logoSeparator}
-            wordmarkClassName={styles.logoWordmark}
-            priority
-          />
+        <Link href="/" className={styles.brand} aria-label="Archestimator home">
+          <ArchestimatorLogo tone="dark" markSize={27} priority />
         </Link>
-        <nav className={styles.navLinks} aria-label="Primary">
+        <nav className={styles.desktopLinks} aria-label="Primary">
           {nav.links.map((item) => (
             <Link key={item.label} href={item.href}>
               {item.label}
@@ -66,15 +37,13 @@ function NewLandingNav() {
           ))}
         </nav>
         <div className={styles.navActions}>
-          <Link href={nav.signIn.href} className={styles.signInLink}>
+          <Link href={nav.signIn.href} className={styles.signIn}>
             {nav.signIn.label}
           </Link>
           <PrimaryCta location="nav" />
         </div>
         <details className={styles.mobileMenu}>
-          <summary aria-label="Open navigation">
-            <span>Menu</span>
-          </summary>
+          <summary>Menu</summary>
           <nav aria-label="Mobile primary">
             {nav.links.map((item) => (
               <Link key={item.label} href={item.href}>
@@ -82,7 +51,9 @@ function NewLandingNav() {
               </Link>
             ))}
             <Link href={nav.signIn.href}>{nav.signIn.label}</Link>
-            <Link href={nav.cta.href}>{nav.cta.label}</Link>
+            <Link href={nav.cta.href} className={styles.mobileCta}>
+              {nav.cta.label}
+            </Link>
           </nav>
         </details>
       </div>
@@ -90,125 +61,42 @@ function NewLandingNav() {
   );
 }
 
-function HeroSection() {
+function Hero() {
   return (
-    <section className={styles.hero} aria-labelledby="new-hero-title" data-hero-root>
+    <section className={styles.hero} aria-labelledby="new-hero-title">
       <div className={styles.heroInner}>
-        <div className={styles.heroCopy}>
-          <p className={styles.eyebrow} data-hero="eyebrow">{hero.definition}</p>
-          <h1 id="new-hero-title" className={styles.heroTitle} data-hero="title">{hero.title}</h1>
-          <p className={styles.heroSub} data-hero="sub">
-            {hero.sub}
-          </p>
-          <div className={styles.heroCtas} data-hero="ctas">
-            <PrimaryCta location="hero" />
-          </div>
-          <ol className={styles.heroTrail} aria-label="Connected product workflow">
-            {hero.trail.map((item) => <li key={item}>{item}</li>)}
-          </ol>
+        <p className={styles.kicker}>{hero.kicker}</p>
+        <h1 id="new-hero-title">{hero.title}</h1>
+        <p className={styles.heroBody}>{hero.body}</p>
+        <div className={styles.heroAction}>
+          <PrimaryCta location="hero" />
+          <span>{hero.note}</span>
         </div>
-        <div className={styles.heroStage}>
-          <div className={styles.sceneSlot} data-hero-scene-slot>
-            <LivingEstimatePoster />
-            <LivingEstimateSceneLoader />
-          </div>
-        </div>
+      </div>
+      <div className={styles.heroEdge} aria-hidden="true">
+        <span>Build</span>
+        <span>Present</span>
+        <span>Respond</span>
+        <span>Remember</span>
       </div>
     </section>
   );
 }
 
-function ProposalEvidence() {
+function HandoffSection() {
   return (
-    <div className={styles.evidenceBlock}>
-      <FileXls size={22} weight="regular" aria-hidden="true" />
-      <div>
-        <span className={styles.evidenceLabel}>{proofChapters.proposalPreviewLabel}</span>
-        <strong>{fixture.proposal.title}</strong>
-        <p>{fixture.proposal.summary.join(" · ")}</p>
-      </div>
-      <span className={styles.evidenceTag}>{proofChapters.excelChip}</span>
-    </div>
-  );
-}
-
-function ResponseEvidence() {
-  const joinery = fixture.groups
-    .flatMap((group) => group.items)
-    .find((item) => item.source);
-  if (!joinery) return null;
-  return (
-    <div className={styles.evidenceBlock}>
-      <ChatsCircle size={22} weight="regular" aria-hidden="true" />
-      <div>
-        <span className={styles.evidenceLabel}>{fixture.comment.label}</span>
-        <strong>{joinery.name}</strong>
-        <p>“{fixture.comment.quote}”</p>
-        <div className={styles.respondActions}>
-          {proofChapters.respondActions.map((action) => (
-            <span key={action}>{action}</span>
-          ))}
+    <section className={styles.handoff} aria-labelledby="handoff-title">
+      <div className={styles.sectionInner}>
+        <p className={styles.inverseKicker}>{handoff.kicker}</p>
+        <div className={styles.handoffGrid}>
+          <h2 id="handoff-title">{handoff.title}</h2>
+          <p>{handoff.body}</p>
         </div>
-      </div>
-      <span className={styles.evidenceTag}>{proofChapters.respondDecisionNote}</span>
-    </div>
-  );
-}
-
-function RevisionEvidence() {
-  return (
-    <div className={styles.evidenceBlock}>
-      <ClockCounterClockwise size={22} weight="regular" aria-hidden="true" />
-      <div>
-        <span className={styles.evidenceLabel}>Activity and revision context</span>
-        <strong>{proofChapters.activity[0].label}</strong>
-        <p>
-          <s>{proofChapters.activity[0].prior}</s>
-          <span aria-hidden="true"> → </span>
-          {proofChapters.activity[0].current}
-        </p>
-        <p>{proofChapters.activity.slice(1).map((entry) => entry.label).join(" · ")}</p>
-      </div>
-      <span className={styles.evidenceTag}>Current activity record</span>
-    </div>
-  );
-}
-
-function ProofSection() {
-  return (
-    <section
-      className={styles.proofSection}
-      id="product"
-      aria-labelledby="product-title"
-      data-proof-root
-    >
-      <div className={styles.sectionInner} id="how-it-works">
-        <header className={styles.proofIntro}>
-          <h2 id="product-title">{proofChapters.title}</h2>
-          <div>
-            <p>{proofChapters.intro}</p>
-            <p className={styles.proofContrast}>{contrast}</p>
-          </div>
-        </header>
-        <div className={styles.proofLedger}>
-          <div className={styles.estimateStage}>
-            <div className={styles.estimateStageHead}>
-              <span>Working estimate</span>
-              <span>{proofChapters.caption}</span>
-            </div>
-            <EstimateFixtureSheet />
-          </div>
-          <div className={styles.evidenceRail}>
-            <ProposalEvidence />
-            <ResponseEvidence />
-            <RevisionEvidence />
-          </div>
-        </div>
-        <ol className={styles.workflowSummary}>
-          {proofChapters.chapters.map((chapter) => (
-            <li key={chapter.key}>
-              <h3>{chapter.title}</h3>
-              <p>{chapter.body}</p>
+        <ol className={styles.handoffWords}>
+          {handoff.words.map((word, index) => (
+            <li key={word}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{word}</strong>
             </li>
           ))}
         </ol>
@@ -217,21 +105,19 @@ function ProofSection() {
   );
 }
 
-function CostKnowledgeSection() {
+function KnowledgeSection() {
   return (
-    <section className={styles.costSection} id="cost-knowledge" aria-labelledby="cost-knowledge-title">
+    <section className={styles.knowledge} id="cost-knowledge" aria-labelledby="knowledge-title">
       <div className={styles.sectionInner}>
-        <div className={styles.costSplit}>
-          <div className={styles.costCopy}>
-            <h2 id="cost-knowledge-title">{costKnowledge.title}</h2>
-            <p>{costKnowledge.body}</p>
-            <p className={styles.dataLine}>{costKnowledge.dataLine}</p>
-          </div>
-          <div className={styles.knowledgeRecord}>
-            <span>Reusable cost record</span>
-            <strong>{costKnowledge.detail.name}</strong>
-            <p>{costKnowledge.detail.meta}</p>
-          </div>
+        <p className={styles.kicker}>{knowledge.kicker}</p>
+        <h2 id="knowledge-title">{knowledge.title}</h2>
+        <div className={styles.knowledgeLower}>
+          <p>{knowledge.body}</p>
+          <ul aria-label="Reusable cost knowledge">
+            {knowledge.parts.map((part) => (
+              <li key={part}>{part}</li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
@@ -240,62 +126,30 @@ function CostKnowledgeSection() {
 
 function TrustSection() {
   return (
-    <section className={styles.trustSection} id="trust" aria-labelledby="trust-title">
+    <section className={styles.trust} aria-labelledby="trust-title">
       <div className={styles.sectionInner}>
-        <div className={styles.trustGrid}>
-          <p className={styles.audienceLine}>{audienceLine}</p>
-          <div>
-            <h2 id="trust-title">{trust.title}</h2>
-            <p className={styles.trustFounder}>{trust.founder}</p>
-          </div>
-          <ul className={styles.trustStrip}>
-            {trust.facts.map((fact) => <li key={fact}>{fact}</li>)}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FaqSection() {
-  return (
-    <section className={styles.faqSection} id="faq" aria-labelledby="faq-title">
-      <div className={styles.sectionInner}>
-        <div className={styles.faqGrid}>
-          <h2 id="faq-title">{faq.title}</h2>
-          <div className={styles.faqList}>
-          {faq.items.map((item) => (
-            <details key={item.question} className={styles.faqItem}>
-              <summary>{item.question}</summary>
-              <p>{item.answer}</p>
-            </details>
+        <h2 id="trust-title">{trust.title}</h2>
+        <ul>
+          {trust.facts.map((fact, index) => (
+            <li key={fact}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <p>{fact}</p>
+            </li>
           ))}
-          </div>
-        </div>
+        </ul>
       </div>
     </section>
   );
 }
 
-function FinalCtaSection() {
+function FinalSection() {
   return (
-    <section className={styles.final} id="early-access" aria-labelledby="final-cta-title">
-      <div className={styles.sectionInner}>
-        <h2 id="final-cta-title">{finalCta.title}</h2>
-        <p className={styles.finalLine}>{finalCta.line}</p>
-        <div className={styles.finalCtas}>
-          <Link
-            href={finalCta.cta.href}
-            className={styles.ctaPrimary}
-            data-new-landing-cta="primary"
-            data-new-landing-location="final"
-          >
-            <span>{finalCta.cta.label}</span>
-            <span className={styles.ctaIconOrb} aria-hidden="true">
-              <ArrowRight size={14} weight="bold" />
-            </span>
-          </Link>
-        </div>
+    <section className={styles.final} id="early-access" aria-labelledby="final-title">
+      <div className={styles.finalInner}>
+        <p className={styles.kicker}>{finalCta.kicker}</p>
+        <h2 id="final-title">{finalCta.title}</h2>
+        <p>{finalCta.body}</p>
+        <PrimaryCta location="final" />
       </div>
     </section>
   );
@@ -304,23 +158,21 @@ function FinalCtaSection() {
 function LandingFooter() {
   return (
     <footer className={styles.footer}>
-      <div className={styles.sectionInner}>
+      <div className={styles.footerInner}>
+        <Link href="/" className={styles.footerBrand} aria-label="Archestimator home">
+          <ArchestimatorLogoMark tone="dark" size={21} />
+          <span>archestimator</span>
+        </Link>
+        <nav aria-label="Footer">
+          {footer.links.map((item) => (
+            <Link key={item.label} href={item.href}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
         <div className={styles.footerMeta}>
-          <Link href="/" className={styles.footerBrand} aria-label="Archestimator home">
-            <ArchestimatorLogoMark tone="dark" size={22} />
-            <span aria-hidden="true">archestimator</span>
-          </Link>
-          <nav aria-label="Footer">
-            {footer.links.map((link) => (
-              <Link key={link.label} href={link.href}>
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-          <div className={styles.footerMetaRight}>
-            <span className={styles.footerStatus}>{footer.status}</span>
-            <span>{footer.copyright}</span>
-          </div>
+          <span>{footer.status}</span>
+          <span>{footer.copyright}</span>
         </div>
       </div>
     </footer>
@@ -329,19 +181,17 @@ function LandingFooter() {
 
 export function NewLandingPage() {
   return (
-    <NewLandingMotion>
-      <div className={styles.page}>
-        <NewLandingNav />
-        <main id="new-main">
-          <HeroSection />
-          <ProofSection />
-          <CostKnowledgeSection />
-          <TrustSection />
-          <FaqSection />
-          <FinalCtaSection />
-        </main>
-        <LandingFooter />
-      </div>
-    </NewLandingMotion>
+    <div className={styles.page}>
+      <LandingNav />
+      <main id="new-main">
+        <Hero />
+        <CostThreadJourney content={journey} />
+        <HandoffSection />
+        <KnowledgeSection />
+        <TrustSection />
+        <FinalSection />
+      </main>
+      <LandingFooter />
+    </div>
   );
 }
