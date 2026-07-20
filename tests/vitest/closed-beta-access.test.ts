@@ -25,6 +25,25 @@ describe("closed beta access helper", () => {
     expect(checkAccess).not.toHaveBeenCalled();
   });
 
+  it("fails closed on Cloudflare runtime when the flag is unset", async () => {
+    const { isClosedBetaAccessEnabled } = await import("@/lib/auth/closed-beta-access");
+
+    expect(isClosedBetaAccessEnabled({})).toBe(false);
+    expect(isClosedBetaAccessEnabled({ ARCHESTIMATOR_CF_RUNTIME: "1" })).toBe(true);
+    expect(
+      isClosedBetaAccessEnabled({
+        ARCHESTIMATOR_CF_RUNTIME: "1",
+        CLOSED_BETA_ACCESS_ENABLED: "false",
+      }),
+    ).toBe(false);
+    expect(
+      isClosedBetaAccessEnabled({
+        ARCHESTIMATOR_CF_RUNTIME: "1",
+        ARCHESTIMATOR_ALLOW_OPEN_BETA: "1",
+      }),
+    ).toBe(false);
+  });
+
   it("uses the D1 access store for enabled access decisions", async () => {
     const checkAccess = vi.fn(async () => ({
       allowed: true,

@@ -29,8 +29,42 @@ export function normalizeClosedBetaEmail(email: string | null | undefined) {
   return (email ?? "").trim().toLowerCase();
 }
 
+/**
+ * Resolve closed-beta env with Cloudflare Worker bindings preferred over
+ * process.env. Worker secrets are often present on `getCloudflareContext().env`
+ * even when Node process.env is incomplete.
+ */
+export async function resolveClosedBetaRuntimeEnv(
+  env: ClosedBetaEnv = process.env,
+): Promise<ClosedBetaEnv> {
+  const merged: ClosedBetaEnv = { ...env };
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const context = (await getCloudflareContext({ async: true })) as unknown as {
+      env?: Record<string, unknown>;
+    };
+    const flag = context.env?.CLOSED_BETA_ACCESS_ENABLED;
+    if (typeof flag === "string" && flag.trim().length > 0) {
+      merged.CLOSED_BETA_ACCESS_ENABLED = flag.trim();
+    }
+    // Marker: Worker binding surface is live — used for fail-closed default.
+    if (context.env && typeof context.env === "object") {
+      merged.ARCHESTIMATOR_CF_RUNTIME = "1";
+    }
+  } catch {
+    // Local Node / tests without OpenNext context.
+  }
+  return merged;
+}
+
 export function isClosedBetaAccessEnabled(env: ClosedBetaEnv = process.env) {
-  return env.CLOSED_BETA_ACCESS_ENABLED === "true";
+  if (env.ARCHESTIMATOR_ALLOW_OPEN_BETA === "1") return false;
+  const raw = env.CLOSED_BETA_ACCESS_ENABLED;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  // Unset on Cloudflare Worker runtime: fail closed (close beta).
+  // Unset in local Node: remain open for dogfooding (explicit true required to gate).
+  return env.ARCHESTIMATOR_CF_RUNTIME === "1";
 }
 
 function normalizeRpcRow(data: ClosedBetaRpcRow | ClosedBetaRpcRow[] | null): ClosedBetaRpcRow | null {

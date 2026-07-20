@@ -2,7 +2,11 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { isCloudflareBetterAuthProviderEnabled } from "@/lib/auth/auth-provider-selection";
-import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
+import {
+  buildClosedBetaAccessPath,
+  getClosedBetaAccessForEmail,
+  resolveClosedBetaRuntimeEnv,
+} from "@/lib/auth/closed-beta-access";
 import { getClosedBetaAccessFromCloudflareD1 } from "@/lib/auth/closed-beta-d1-store";
 import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
 import { getProfileByEmailFromCloudflareD1, type AppRole, type CurrentUserProfile } from "@/lib/auth/profile-d1-store";
@@ -62,14 +66,16 @@ async function getBetterAuthCurrentUserContext(): Promise<CurrentUserContext | n
   );
   if (!identity) return null;
 
-  const access = await traced("current-user.better-auth-closed-beta-access", () =>
-    getClosedBetaAccessForEmail({
+  const access = await traced("current-user.better-auth-closed-beta-access", async () => {
+    const env = await resolveClosedBetaRuntimeEnv();
+    return getClosedBetaAccessForEmail({
       email: identity.email,
+      env,
       store: {
         checkAccess: getClosedBetaAccessFromCloudflareD1,
       },
-    }),
-  );
+    });
+  });
   if (!access.allowed) redirect(buildClosedBetaAccessPath(access.status));
 
   const profile = await traced("current-user.better-auth-d1-profile-lookup", () =>

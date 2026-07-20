@@ -5,6 +5,7 @@ import { APIError } from "better-auth";
 import {
   getClosedBetaAccessForEmail,
   normalizeClosedBetaEmail,
+  resolveClosedBetaRuntimeEnv,
   type ClosedBetaAccessResult,
 } from "@/lib/auth/closed-beta-access";
 import { getClosedBetaAccessFromD1 } from "@/lib/auth/closed-beta-d1-store";
@@ -28,8 +29,10 @@ export async function resolveClosedBetaAccessForEmailAgainstD1(
   d1Database: D1DatabaseLike,
   email: string | null | undefined,
 ): Promise<ClosedBetaAccessResult> {
+  const env = await resolveClosedBetaRuntimeEnv();
   return getClosedBetaAccessForEmail({
     email,
+    env,
     store: {
       checkAccess: (normalizedEmail) => getClosedBetaAccessFromD1(d1Database, normalizedEmail),
     },

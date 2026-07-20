@@ -190,25 +190,21 @@ async function loadBetterAuthRuntime(): Promise<BetterAuthRuntime> {
   };
 }
 
-function isD1DatabaseLike(value: unknown): value is {
-  prepare: (sql: string) => {
-    bind: (...values: Array<string | number | null>) => {
-      first: <T>() => Promise<T | null>;
-    };
-  };
-} {
-  return Boolean(value && typeof (value as { prepare?: unknown }).prepare === "function");
+function asD1DatabaseLike(value: unknown): import("@/lib/cloudflare/d1").D1DatabaseLike | null {
+  if (!value || typeof (value as { prepare?: unknown }).prepare !== "function") return null;
+  return value as import("@/lib/cloudflare/d1").D1DatabaseLike;
 }
 
 function createClosedBetaDatabaseHooks(d1Database: CloudflareD1DatabaseOption): BetterAuthDatabaseHooks | undefined {
-  if (!isD1DatabaseLike(d1Database)) return undefined;
+  const db = asD1DatabaseLike(d1Database);
+  if (!db) return undefined;
 
   return {
     user: {
       create: {
         before: async (user) => {
           const { assertClosedBetaEmailAllowedForAuth } = await import("@/lib/auth/closed-beta-auth-gate");
-          await assertClosedBetaEmailAllowedForAuth(d1Database, user.email);
+          await assertClosedBetaEmailAllowedForAuth(db, user.email);
         },
       },
     },
@@ -216,7 +212,7 @@ function createClosedBetaDatabaseHooks(d1Database: CloudflareD1DatabaseOption): 
       create: {
         before: async (session) => {
           const { assertClosedBetaUserIdAllowedForAuth } = await import("@/lib/auth/closed-beta-auth-gate");
-          await assertClosedBetaUserIdAllowedForAuth(d1Database, session.userId);
+          await assertClosedBetaUserIdAllowedForAuth(db, session.userId);
         },
       },
     },
@@ -322,9 +318,10 @@ export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
       max: 10,
     },
     sendMagicLink: async ({ email, url }: SendBetterAuthMagicLinkEmailInput) => {
-      if (options?.d1Database && isD1DatabaseLike(options.d1Database)) {
+      const db = asD1DatabaseLike(options?.d1Database);
+      if (db) {
         const { assertClosedBetaEmailAllowedForAuth } = await import("@/lib/auth/closed-beta-auth-gate");
-        await assertClosedBetaEmailAllowedForAuth(options.d1Database, email);
+        await assertClosedBetaEmailAllowedForAuth(db, email);
       }
 
       if (options?.sendMagicLinkEmail) {

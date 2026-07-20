@@ -25,6 +25,7 @@ type CloudflareBetterAuthEnv = Record<string, unknown> & {
   BETTER_AUTH_GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  CLOSED_BETA_ACCESS_ENABLED?: string;
 };
 
 type CloudflareBetterAuthContext = {
@@ -124,6 +125,13 @@ async function resolveOptions(input: RuntimeRequestInput): Promise<CreateCloudfl
 
   const d1Database = context?.env?.ARCH_DB;
   if (!d1Database) return null;
+
+  // Prefer Worker secret / binding for closed-beta so auth hooks see the live flag.
+  const closedBetaFlag = readRuntimeEnvString(context, "CLOSED_BETA_ACCESS_ENABLED");
+  if (closedBetaFlag) {
+    process.env.CLOSED_BETA_ACCESS_ENABLED = closedBetaFlag;
+  }
+  process.env.ARCHESTIMATOR_CF_RUNTIME = "1";
 
   const baseURL = resolveBaseURL(input, context);
   const magicLinkPlugin = await createCloudflareBetterAuthMagicLinkPlugin({
