@@ -11,7 +11,7 @@
 
 - **Baseline HEAD:** `b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab` (2026-07-20)
 - **Suite version:** `2026-07-12`
-- **Profile:** `focused` (seven independent small-scope correctness/security fixes)
+- **Profile:** `focused` (seven independent small-scope correctness/security fixes; one rejected after reconcile)
 - **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` at authoring; implementation awaits separate execution authorization)
 - **Exact next unit:** `UNIT-001` (Client Portal re-verification lockout — highest user impact, no dependencies)
 
@@ -30,9 +30,12 @@ The seven findings, ordered by user impact:
    `last_verified_at IS NULL`, so the second login changes zero rows and
    `resolveClientPortalRecipientActor` returns null forever. This is a real
    user-lockout bug on a public-facing surface.
-2. **The closed-beta gate fails open** when `CLOSED_BETA_ACCESS_ENABLED` is
-   unset or misconfigured. The gate's purpose is restriction; the default must
-   fail closed.
+2. ~~**The closed-beta gate fails open**~~ — **REJECTED (DEC-AUTO-001).**
+   Implemented independently in the shared worktree between authoring and the
+   Improve-Plan reconcile with a superior runtime-aware design
+   (`ARCHESTIMATOR_CF_RUNTIME` marker, Worker-fail-closed / Node-stay-open split,
+   `ARCHESTIMATOR_ALLOW_OPEN_BETA` kill-switch, plus a test). See UNIT-002 and
+   DEC-AUTO-001. Do not execute.
 3. **Publication/share passwords allow a 4-character minimum** with no
    complexity check. These passwords gate client names, project locations, and
    pricing.
@@ -52,11 +55,13 @@ The seven findings, ordered by user impact:
 
 ## 2. Task Contract
 
-- **Objective:** implement the seven fixes as seven independent units. Each unit
-  is self-contained and ships its own verification.
-- **Scope:** the specific files named in each unit's "Owned paths" section. No
-  broad architectural change; no migration of the parallel write paths (that is
-  Pack D).
+- **Objective:** implement the seven fixes as seven independent units. Six
+  remain active; UNIT-002 was rejected during Improve-Plan reconcile
+  (DEC-AUTO-001) because the in-tree implementation supersedes it. Each active
+  unit is self-contained and ships its own verification.
+- **Scope:** the specific files named in each active unit's "Owned paths"
+  section. No broad architectural change; no migration of the parallel write
+  paths (that is Pack D).
 - **Exclusions:** the integrity-layer unification (finding #11), the D1 runtime
   consolidation (#14/#15), the God-component decomposition (#12), and the test
   baselines (#20/#21) — those live in packs B, C, D. Do not expand scope into
