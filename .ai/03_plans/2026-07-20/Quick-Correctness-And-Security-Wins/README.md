@@ -36,6 +36,20 @@ Status values: READY | IN PROGRESS | DONE | VERIFIED | BLOCKED | SUPERSEDED | RE
   `ARCHESTIMATOR_ALLOW_OPEN_BETA=1` kill-switch; plus a vitest at
   `tests/vitest/closed-beta-access.test.ts`). Recorded as DEC-AUTO-001. Do not
   re-implement.
+- **ARCH-05 (component-library `load*` actions lack object-level authz)** —
+  FALSE POSITIVE, closed in the 2026-07-21 deep authz trace. The action layer
+  is thin (`requireCurrentUserContext()` only) but every `load*` action
+  delegates into a repository function that scopes by `WHERE workspace_id = ?`
+  bound from `ensureDefaultWorkspace()`. Verified proof chain:
+  `loadCostLibraryComponentRowDetail(itemId)` → `getCurrentWorkspaceComponentRowDetail`
+  → `getCurrentWorkspaceComponentRowsLibrary` → `loadWorkspaceCostLibraryItemRows`
+  (`component-library-repository.ts:538-541`, SQL `WHERE workspace_id = ? AND id IN (...)`).
+  An unscoped client `itemId` from another workspace returns 0 rows. No IDOR;
+  no new unit needed. A non-blocking defense-in-depth observation: the
+  convention-by-SQL-WHERE pattern is fragile if a future contributor adds a
+  repo function that forgets the clause; an optional
+  `assertWorkspaceComponentItem` probe at the action layer would convert this
+  to type-enforced safety. Not required for correctness today.
 - **Timing-safe comparison for the closed-beta allowlist RPC** — the allowlist
   check is a D1 lookup, not a string comparison. Not applicable.
 - **Rate-limiting the publication password endpoint** — already rate-limited via
