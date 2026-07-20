@@ -87,6 +87,22 @@ describe("account membership D1 lookup", () => {
     ]);
   });
 
+  it("only resolves memberships for workspaces with active linked corporate accounts", async () => {
+    const database = new FakeD1Database();
+    database.workspaceMembership = { workspace_id: "workspace-1", role: "owner" };
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { readFirstAccountWorkspaceMembership } = await import("@/lib/auth/account-membership");
+    await expect(readFirstAccountWorkspaceMembership("user-1")).resolves.toEqual({
+      source: "workspace",
+      workspaceId: "workspace-1",
+      role: "owner",
+    });
+
+    expect(database.prepared[0].sql).toContain("LEFT JOIN corporate_accounts corporate_account");
+    expect(database.prepared[0].sql).toContain("workspace.corporate_account_id IS NULL OR corporate_account.status = 'active'");
+  });
+
   it("resolves an estimate membership through the parent project workspace", async () => {
     const database = new FakeD1Database();
     database.estimateMembership = { project_id: "project-1", role: "viewer" };

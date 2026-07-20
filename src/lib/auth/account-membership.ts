@@ -47,10 +47,13 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
 
   const workspaceMembership = await db
     .prepare<WorkspaceMembershipD1Row>(`
-      SELECT workspace_id, role
-      FROM workspace_members
-      WHERE user_id = ?
-      ORDER BY created_at ASC
+      SELECT workspace_member.workspace_id, workspace_member.role
+      FROM workspace_members workspace_member
+      JOIN workspaces workspace ON workspace.id = workspace_member.workspace_id
+      LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
+      WHERE workspace_member.user_id = ?
+        AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
+      ORDER BY workspace_member.created_at ASC
       LIMIT 1
     `)
     .bind(userId)
@@ -67,10 +70,13 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
   const projectMembership = await firstOptional<ProjectMembershipD1Row>(
     db,
     `
-      SELECT workspace_id, role
-      FROM project_members
-      WHERE user_id = ?
-      ORDER BY created_at ASC
+      SELECT project_member.workspace_id, project_member.role
+      FROM project_members project_member
+      JOIN workspaces workspace ON workspace.id = project_member.workspace_id
+      LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
+      WHERE project_member.user_id = ?
+        AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
+      ORDER BY project_member.created_at ASC
       LIMIT 1
     `,
     userId,
@@ -98,7 +104,15 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
   if (!estimateMembership?.project_id) return null;
 
   const project = await db
-    .prepare<{ workspace_id: string | null }>("SELECT workspace_id FROM projects WHERE id = ? LIMIT 1")
+    .prepare<{ workspace_id: string | null }>(`
+      SELECT project.workspace_id
+      FROM projects project
+      JOIN workspaces workspace ON workspace.id = project.workspace_id
+      LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
+      WHERE project.id = ?
+        AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
+      LIMIT 1
+    `)
     .bind(estimateMembership.project_id)
     .first<{ workspace_id: string | null }>();
   if (!project?.workspace_id) {

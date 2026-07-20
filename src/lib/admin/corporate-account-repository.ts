@@ -225,7 +225,7 @@ export async function listUserCorporateAccounts(
                 m.role, m.job_title
          FROM corporate_account_members m
          JOIN corporate_accounts a ON a.id = m.corporate_account_id
-         WHERE m.user_id = ? AND a.status != 'archived'
+         WHERE m.user_id = ? AND a.status = 'active'
          ORDER BY a.name ASC`,
       )
       .bind(userId)

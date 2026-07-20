@@ -178,6 +178,29 @@ describe("D1 access role boundaries", () => {
     await expect(canAccessEstimateInD1(inheritDisabledProbe.db, "estimate-1", user)).resolves.toBe(false);
   });
 
+  it("requires linked corporate accounts to be active for project and estimate access", async () => {
+    const projectProbe = createAuthzRoleDatabase({ allowWhen: () => false });
+    const estimateProbe = createAuthzRoleDatabase({ allowWhen: () => false });
+
+    await expect(canAccessProjectInD1(projectProbe.db, "project-1", user)).resolves.toBe(false);
+    await expect(canAccessEstimateInD1(estimateProbe.db, "estimate-1", user)).resolves.toBe(false);
+
+    expect(projectProbe.queries[0]?.sql).toContain("JOIN corporate_accounts corporate_account");
+    expect(projectProbe.queries[0]?.sql).toContain("corporate_account.status = 'active'");
+    expect(estimateProbe.queries[0]?.sql).toContain("JOIN corporate_accounts corporate_account");
+    expect(estimateProbe.queries[0]?.sql).toContain("corporate_account.status = 'active'");
+  });
+
+  it("requires linked corporate accounts to be active for workspace access", async () => {
+    const workspaceProbe = createAuthzRoleDatabase({ allowWhen: () => false });
+
+    await expect(isWorkspaceMemberInD1(workspaceProbe.db, "workspace-1", user)).resolves.toBe(false);
+
+    const sql = workspaceProbe.queries[0]?.sql ?? "";
+    expect(sql).toContain("LEFT JOIN corporate_accounts corporate_account");
+    expect(sql).toContain("workspace.corporate_account_id IS NULL OR corporate_account.status = 'active'");
+  });
+
   it("fails closed when D1 read probes throw", async () => {
     const db = createThrowingDatabase();
 

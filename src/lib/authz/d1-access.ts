@@ -25,6 +25,24 @@ function isPlatformAdmin(user: CurrentUserAccessContext) {
   return isPlatformAdminRole(user.role);
 }
 
+const ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE = `
+          AND (
+            NOT EXISTS (
+              SELECT 1
+              FROM workspaces workspace
+              WHERE workspace.id = project.workspace_id
+                AND workspace.corporate_account_id IS NOT NULL
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM workspaces workspace
+              JOIN corporate_accounts corporate_account
+                ON corporate_account.id = workspace.corporate_account_id
+              WHERE workspace.id = project.workspace_id
+                AND corporate_account.status = 'active'
+            )
+          )`;
+
 function readAllowed(row: { allowed: number | boolean | null } | null) {
   return row?.allowed === true || row?.allowed === 1;
 }
@@ -109,6 +127,7 @@ export async function canAccessProjectInD1(
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -150,6 +169,7 @@ export async function canAccessWholeProjectInD1(
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -185,6 +205,7 @@ export async function canEditProjectInD1(
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -225,6 +246,7 @@ export async function canAccessEstimateInD1(
         LEFT JOIN estimate_sheet_access_settings access
           ON access.estimate_id = estimate.id
         WHERE estimate.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -274,6 +296,7 @@ export async function canEditEstimateInD1(
         LEFT JOIN estimate_sheet_access_settings access
           ON access.estimate_id = estimate.id
         WHERE estimate.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -322,9 +345,12 @@ export async function isWorkspaceEditorInD1(
         `
         SELECT 1 AS allowed
         FROM workspace_members workspace_member
+        JOIN workspaces workspace ON workspace.id = workspace_member.workspace_id
+        LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
         WHERE workspace_member.workspace_id = ?
           AND workspace_member.user_id = ?
           AND workspace_member.role IN ('owner', 'admin', 'member')
+          AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
         LIMIT 1
       `,
       )
@@ -344,9 +370,12 @@ export async function isWorkspaceMemberInD1(
         `
         SELECT 1 AS allowed
         FROM workspace_members workspace_member
+        JOIN workspaces workspace ON workspace.id = workspace_member.workspace_id
+        LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
         WHERE workspace_member.workspace_id = ?
           AND workspace_member.user_id = ?
           AND workspace_member.role IN ('owner', 'admin', 'member')
+          AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
         LIMIT 1
       `,
       )
