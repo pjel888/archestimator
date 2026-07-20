@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo, ArchestimatorLogoMark } from "@/components/brand/ArchestimatorLogo";
+import { ConnectedProductProof } from "./ConnectedProductProof";
 import { EstimateFixtureSheet } from "./EstimateFixtureSheet";
 import { LivingEstimatePoster } from "./LivingEstimatePoster";
 import { LivingEstimateSceneLoader } from "./LivingEstimateSceneLoader";
@@ -397,6 +398,28 @@ function ChapterVisual({ chapterKey }: { chapterKey: string }) {
   }
 }
 
+function ProofStickyFrame() {
+  return (
+    <div className={styles.proofSticky} data-proof-frame>
+      <span className={styles.proofThread} aria-hidden="true">
+        <span className={styles.proofThreadNode} />
+      </span>
+      {proofChapters.chapters.map((chapter, index) => (
+        <div
+          key={chapter.key}
+          className={styles.proofStickySlot}
+          data-proof-slot
+          data-chapter={chapter.key}
+          data-active={index === 0 ? "" : undefined}
+        >
+          <ChapterVisual chapterKey={chapter.key} />
+        </div>
+      ))}
+      <span className={styles.proofStickyCaption}>{proofChapters.caption}</span>
+    </div>
+  );
+}
+
 function ProofSection() {
   return (
     <section
@@ -410,31 +433,32 @@ function ProofSection() {
           <h2 id="product-title">{proofChapters.title}</h2>
           <p>{proofChapters.intro}</p>
         </header>
-        <div className={styles.proofChapters}>
-          {proofChapters.chapters.map((chapter) => (
-            <article
-              key={chapter.key}
-              className={styles.chapter}
-              data-proof-chapter
-              data-chapter={chapter.key}
-              data-reveal
-            >
-              <div className={styles.chapterCopy}>
-                <span className={styles.chapterIndex} aria-hidden="true">
-                  {chapter.index}
-                </span>
-                <h3>{chapter.title}</h3>
-                <p>{chapter.body}</p>
-              </div>
-              <div>
-                <div className={styles.proofFrame} data-proof-frame>
-                  <ChapterVisual chapterKey={chapter.key} />
+        <ConnectedProductProof frame={<ProofStickyFrame />}>
+          <div className={styles.proofChapters}>
+            {proofChapters.chapters.map((chapter) => (
+              <article
+                key={chapter.key}
+                className={styles.chapter}
+                data-proof-chapter
+                data-chapter={chapter.key}
+              >
+                <div className={styles.chapterCopy}>
+                  <span className={styles.chapterIndex} aria-hidden="true">
+                    {chapter.index}
+                  </span>
+                  <h3>{chapter.title}</h3>
+                  <p>{chapter.body}</p>
                 </div>
-                <span className={styles.proofCaption}>{proofChapters.caption}</span>
-              </div>
-            </article>
-          ))}
-        </div>
+                <div className={styles.chapterVisualInline}>
+                  <div className={styles.proofFrame}>
+                    <ChapterVisual chapterKey={chapter.key} />
+                  </div>
+                  <span className={styles.proofCaption}>{proofChapters.caption}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </ConnectedProductProof>
       </div>
     </section>
   );
