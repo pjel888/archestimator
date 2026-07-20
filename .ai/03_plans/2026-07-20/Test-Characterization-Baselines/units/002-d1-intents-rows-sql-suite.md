@@ -103,6 +103,37 @@ The pure-math exemplar: `tests/vitest/estimate-row-total.test.ts`.
 - Reuse `tests/vitest/fixtures/` estimate-row fixtures rather than building new
   ones where possible.
 
+## Reuse map (from 2026-07-21 test-infra trace)
+
+The D1 stub pattern already exists and is **inlined per-test** in the one
+existing D1-intent test. There is NO exported reusable stub — copy the shape.
+UNIT-002 is pure Node (no jsdom, no React), so it shares nothing with UNIT-001
+except the `server-only` alias in `vitest.config.ts:22`.
+
+| Pack B needs | Reuse this (file:line) | Not that |
+|---|---|---|
+| `D1DatabaseLike` / `D1PreparedStatementLike` / `D1Result` / `D1Value` types | `src/lib/cloudflare/d1.ts:3-26` | Don't import the real `@cloudflare/workers-types` `D1Database`. |
+| Full fake DB stub (heavy path) | `tests/vitest/estimate-record-d1-intents.test.ts:77-249` (`FakeStatement` class + `EstimateRecordDatabase` class) | Don't write a new stub. |
+| Lightweight inline `prepare`/`batch` stub (when only `first`/`run` matter) | `tests/vitest/estimate-record-d1-intents.test.ts:372-419` (3rd + 4th tests, ~40 lines) | Don't use this lightweight variant if the test needs `all()` or `batch()` ledger — use the heavy class. |
+| `{sql, values}` capture mechanism | `tests/vitest/estimate-record-d1-intents.test.ts:78` (`values: D1Value[] = []`) + `:83` (`readonly sql`) + `:69-75` (`insertedRecord` column/value zipper between `(` and `)`) | — |
+| Write-phase ordering ledger | `tests/vitest/estimate-record-d1-intents.test.ts:222` (`writePhases: Array<{kind:"returning"\|"run"\|"batch"; statements}>`) + `:335-343` (assertion `expect(database.writePhases.map(p=>p.kind)).toEqual([...])`) | This is the proven pattern for pinning the `returning`/`batch`/`run` sequence. |
+| `vi.mock("server-only", () => ({}))` | `tests/vitest/estimate-record-d1-intents.test.ts:14` | Not strictly required (vitest.config.ts:22 aliases it) but harmless; belt-and-braces. |
+| `d1-intents/rows.ts` actual exports to target | `src/lib/estimates/d1-intents/rows.ts` — imports `allD1Rows`, `firstD1Row`, `runD1Batch`, `runPreparedD1Batch`, `D1IntentStatement` from `./database`; exports the `*WithHistory` builders | Import the specific builder functions and assert their `{sql, values}` outputs against the captured stub. |
+
+**Key extension needed (not a copy):** the existing `FakeStatement.applyMutation()`
+(`:176-209`) dispatches on `INSERT INTO estimate_tabs`, `INSERT INTO estimate_nodes`,
+`INSERT INTO estimate_row_items`. The substring dispatch already handles the
+`estimate_row_items` table `rows.ts` targets, but UNIT-002 must extend it to
+cover `UPDATE estimate_row_items` and the revision-guard `UPDATE projects` /
+`estimate_sheet_events` INSERT shapes that `rows.ts`'s builders generate.
+Pattern is identical (`this.sql.includes("...")`); add branches.
+
+**Snapshot discipline (cross-unit):** the codebase has only 2 `toMatchSnapshot`
+call-sites in the whole suite (`tests/vitest/estimate-unification-oracle.test.ts:48,130`).
+Prefer the explicit `expect(...).toEqual({...})` and `mock.calls.map(...)`
+patterns. For the big SQL builders, assert structural properties (table name,
+SET columns, WHERE columns, bind-value count) rather than full-string snapshots.
+
 ## Scope
 
 **In scope:** the new test file only.

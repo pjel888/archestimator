@@ -104,6 +104,34 @@ prop-drilling (~40 props on `EstimateSheetContentProps`, type at
 - The existing `tests/vitest/setup.ts` (per `vitest.config.ts`) configures jsdom
   globals; reuse it.
 
+## Reuse map (from 2026-07-21 test-infra trace)
+
+Pack B does NOT need to build new harness — both units are 80%+ copyable from
+existing files. `tests/vitest/setup.ts` is only 54 lines and installs NO
+providers, NO server-action mocks, NO React Query — the test must do all of
+that per-file.
+
+| Pack B needs | Reuse this (file:line) | Not that |
+|---|---|---|
+| React Query + component render | `tests/vitest/estimate-sheet-library-insert.test.tsx:510-555` (`makeQueryClient` + `renderPersistedEstimateSheet`) | Don't write a new wrapper; don't import from `setup.ts` (it has none). |
+| Server-action mock registry (17 actions) | `tests/vitest/estimate-sheet-library-insert.test.tsx:18-59` (`actionMocks` via `vi.hoisted` + `vi.mock("@/lib/estimates/actions", () => actionMocks)`) | Don't use the perf baseline's 9-action subset (`perf/estimate-sheet-render-baseline.test.tsx:22-32`) — too small for characterization. |
+| `next/navigation` mock | `tests/vitest/perf/estimate-sheet-render-baseline.test.tsx:34-37` | — (the 3803-line component likely calls `useRouter`/`usePathname`; include this from the start) |
+| Tree + row synthesis | `tests/vitest/perf/estimate-sheet-render-baseline.test.tsx:86-128` (`makeRow` + `makeSheetTree`) | Don't hand-roll `EstimateRowItem` literals. |
+| Library row fixtures | `tests/vitest/fixtures/estimate-library-items.ts:22-32` (`estimateLibraryItems: EstimateRowItem[]`) | Don't invent new IKEA/Mandaue fixtures. |
+| DOM querying | `tests/vitest/perf/estimate-sheet-render-baseline.test.tsx:153-175` (`querySelector` + `fireEvent` + `document.activeElement`) | — |
+| **Action-call-sequence pinning** (the unit's whole point) | `tests/vitest/estimate-sheet-library-insert.test.tsx:1707` (`actionMocks.X.mock.calls.map(([input]) => input.Y)`) and `:1199,1244,1259` (call-count progression) | Don't use `toMatchSnapshot` — only 2 call-sites in the whole suite do; the codebase prefers explicit `toHaveBeenCalledWith`/`mock.calls` maps (200 files). |
+| `afterEach` cleanup | `tests/vitest/estimate-sheet-library-insert.test.tsx:564-570` (`cleanup()` + `resetEstimateWorkspaceState()` from `@/hooks/use-estimate-workspace-state` + `vi.clearAllMocks()` + `window.localStorage.clear()`) | The `resetEstimateWorkspaceState` import is load-bearing — every slice test calls it. |
+| Optional re-render probe | `src/components/workshop/estimate-sheet-render-probe.ts` `setEstimateSheetRenderProbe` (used at `perf/estimate-sheet-render-baseline.test.tsx:133`) | — |
+
+**Do NOT reuse:**
+- `tests/vitest/fixtures/estimate-health-golden-fixture.ts` — it is an
+  evaluator-input shape (`EstimateHealthFixtureRow`), not an `EstimateRowItem`.
+  Field names differ (`amount` vs `subTotal`, `pricingProvenanceOrigin` is a
+  string enum vs the row's nested `sourceSnapshot`).
+- A shared render helper across both units — UNIT-002 is pure Node; UNIT-001 is
+  jsdom. They share nothing except the `server-only` stub alias (already in
+  `vitest.config.ts:22`).
+
 ## Scope
 
 **In scope:** the new test file only.
