@@ -159,7 +159,6 @@
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.185.1",
     "zustand": "5.0.14"
   },
   "devDependencies": {
@@ -177,7 +176,6 @@
     "@types/node": "^25.9.5",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.185.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.6",
     "jsdom": "^29.1.1",
