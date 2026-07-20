@@ -16,6 +16,7 @@ export type SendEmailInput = {
   text?: string;
   from?: string;
   replyTo?: string;
+  headers?: Record<string, string>;
   tags?: Array<{ name: string; value: string }>;
 };
 
@@ -144,6 +145,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     text: input.text,
     from: input.from,
     replyTo: input.replyTo,
+    headers: input.headers,
   });
   if (!result.ok) recordEmailFail(Date.now());
   return result;

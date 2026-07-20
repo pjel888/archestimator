@@ -1,5 +1,10 @@
 import { gateAdminApiGet, NO_STORE_HEADERS } from "@/lib/admin/require-admin";
-import { listSupportMessages } from "@/lib/repositories/support-conversations-repository";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import {
+  listSupportAttachmentsForConversationInD1,
+  listSupportMessages,
+  markSupportConversationReadForAdminInD1,
+} from "@/lib/repositories/support-conversations-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +16,22 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const { id } = await context.params;
 
-  // Defense-in-depth: validate the conversation ID is a UUID before querying.
-  // The SQL is parameterized so this isn't about injection — it's about
-  // rejecting invalid input early and preventing unbounded enumeration.
   if (!UUID_PATTERN.test(id)) {
     return Response.json({ error: "Invalid conversation ID." }, { status: 400, headers: NO_STORE_HEADERS });
   }
 
+  const db = await getCloudflareD1Database();
+  if (db) {
+    await markSupportConversationReadForAdminInD1(db, id).catch(() => undefined);
+  }
+
   const result = await listSupportMessages(id, { limit: 200 });
+  const attachments = db ? await listSupportAttachmentsForConversationInD1(db, id).catch(() => []) : [];
+
   return Response.json(
     {
       messages: result.data,
+      attachments,
       degraded: Boolean(result.error),
       error: result.error,
     },

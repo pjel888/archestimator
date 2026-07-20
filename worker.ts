@@ -37,6 +37,10 @@ import {
   routeSupportInboxRequest,
 } from "./src/lib/cloudflare/support-inbox-router";
 import {
+  handleInboundSupportEmail,
+  type InboundSupportEmailEnv,
+} from "./src/lib/email/inbound-support-email";
+import {
   type CloudflareProtectedProofEnv,
   routeCloudflareProtectedProofRequest,
 } from "./src/lib/cloudflare/protected-proof-routes";
@@ -68,9 +72,20 @@ type CloudflareWorkerEnv = Record<string, unknown>
   & CloudflareSupportInboxEnv
   & CloudflareProtectedProofEnv
   & ClientPortalNotificationQueueEnv
+  & InboundSupportEmailEnv
   & {
     ARCH_DB?: RetentionD1DatabaseLike;
   };
+
+type ForwardableEmailMessageLike = {
+  from: string;
+  to: string;
+  headers: Headers;
+  raw: ReadableStream<Uint8Array>;
+  rawSize: number;
+  setReject(reason: string): void;
+  forward(rcptTo: string, headers?: Headers): Promise<void>;
+};
 
 type ExecutionContextLike = {
   waitUntil(promise: Promise<unknown>): void;
@@ -317,5 +332,9 @@ export default {
         console.log("Cloudflare upload job queue batch completed", JSON.stringify(summary));
       }),
     );
+  },
+
+  async email(message: ForwardableEmailMessageLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
+    await handleInboundSupportEmail({ message, env, ctx });
   },
 };

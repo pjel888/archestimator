@@ -40,6 +40,15 @@ ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email
 CLOUDFLARE_EMAIL_FROM=
 CLOUDFLARE_EMAIL_REPLY_TO=support@archestimator.com
 
+# Support mailbox inbound/outbound (fail-closed). No secret values.
+ARCHESTIMATOR_INBOUND_EMAIL_ENABLED=false
+ARCHESTIMATOR_SUPPORT_MAILBOX=support@archestimator.com
+ARCHESTIMATOR_INBOUND_EMAIL_ALIASES=support@archestimator.com
+ARCHESTIMATOR_SUPPORT_EMAIL_FROM=support@archestimator.com
+ARCHESTIMATOR_SUPPORT_EMAIL_FROM_NAME=Archestimator Support
+ARCHESTIMATOR_SUPPORT_FORWARD_ENABLED=false
+ARCHESTIMATOR_SUPPORT_FORWARD_TO=
+
 # Local preview-only placeholders. Use real Worker secrets for deployed proof.
 PUBLICATION_TOKEN_ENCRYPTION_SECRET=
 PUBLICATION_TOKEN_HASH_SECRET=

@@ -7,6 +7,7 @@ export type SendEmailInput = {
   text?: string;
   from?: string;
   replyTo?: string;
+  headers?: Record<string, string>;
 };
 
 export type SendEmailResult =
@@ -26,6 +27,7 @@ type CloudflareSendEmailBinding = {
     replyTo?: string | EmailAddress;
     text?: string;
     html?: string;
+    headers?: Record<string, string>;
   }) => Promise<{
     messageId?: string;
   }>;
@@ -155,6 +157,7 @@ export async function sendCloudflareEmail(
       text: input.text,
       html: input.html,
       ...(replyTo ? { replyTo } : {}),
+      ...(input.headers && Object.keys(input.headers).length > 0 ? { headers: input.headers } : {}),
     });
     return {
       ok: true,
