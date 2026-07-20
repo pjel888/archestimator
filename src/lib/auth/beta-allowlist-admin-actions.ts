@@ -4,24 +4,33 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  createClosedBetaAllowlistEntriesInD1,
   createClosedBetaAllowlistEntryInD1,
   updateClosedBetaAllowlistEntryInD1,
 } from "@/lib/auth/closed-beta-d1-store";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import {
   canManageClosedBetaAllowlist,
+  CLOSED_BETA_ALLOWLIST_ADMIN_PATH,
+  CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH,
+  parseClosedBetaAllowlistBulkCreate,
   parseClosedBetaAllowlistCreate,
   parseClosedBetaAllowlistUpdate,
+  resolveClosedBetaAllowlistReturnPath,
 } from "@/lib/auth/beta-allowlist-admin";
 
-const betaUsersPath = "/workshop/settings/users";
+function revalidateAllowlistPaths() {
+  revalidatePath(CLOSED_BETA_ALLOWLIST_ADMIN_PATH);
+  revalidatePath(CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH);
+}
 
 export async function createClosedBetaAllowlistEntry(formData: FormData) {
+  const returnPath = resolveClosedBetaAllowlistReturnPath(formData);
   const parsed = parseClosedBetaAllowlistCreate(formData);
-  if (!parsed.ok) redirect(`${betaUsersPath}?error=invalid`);
+  if (!parsed.ok) redirect(`${returnPath}?error=invalid`);
 
   const context = await requireCurrentUserContext();
-  if (!canManageClosedBetaAllowlist(context.role)) redirect(`${betaUsersPath}?error=forbidden`);
+  if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
 
   try {
     await createClosedBetaAllowlistEntryInD1({
@@ -31,19 +40,43 @@ export async function createClosedBetaAllowlistEntry(formData: FormData) {
       status: parsed.status,
     });
   } catch {
-    redirect(`${betaUsersPath}?error=save`);
+    redirect(`${returnPath}?error=save`);
   }
 
-  revalidatePath(betaUsersPath);
-  redirect(`${betaUsersPath}?created=1`);
+  revalidateAllowlistPaths();
+  redirect(`${returnPath}?created=1`);
+}
+
+export async function createClosedBetaAllowlistEntries(formData: FormData) {
+  const returnPath = resolveClosedBetaAllowlistReturnPath(formData);
+  const parsed = parseClosedBetaAllowlistBulkCreate(formData);
+  if (!parsed.ok) redirect(`${returnPath}?error=invalid`);
+
+  const context = await requireCurrentUserContext();
+  if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
+
+  try {
+    const result = await createClosedBetaAllowlistEntriesInD1({
+      actorUserId: context.userId,
+      emails: parsed.emails,
+      notes: parsed.notes,
+      status: parsed.status,
+    });
+    revalidateAllowlistPaths();
+    if (result.created === 0) redirect(`${returnPath}?error=duplicate`);
+    redirect(`${returnPath}?created=${result.created}`);
+  } catch {
+    redirect(`${returnPath}?error=save`);
+  }
 }
 
 export async function updateClosedBetaAllowlistEntry(formData: FormData) {
+  const returnPath = resolveClosedBetaAllowlistReturnPath(formData);
   const parsed = parseClosedBetaAllowlistUpdate(formData);
-  if (!parsed.ok) redirect(`${betaUsersPath}?error=invalid`);
+  if (!parsed.ok) redirect(`${returnPath}?error=invalid`);
 
   const context = await requireCurrentUserContext();
-  if (!canManageClosedBetaAllowlist(context.role)) redirect(`${betaUsersPath}?error=forbidden`);
+  if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
 
   try {
     await updateClosedBetaAllowlistEntryInD1({
@@ -53,9 +86,9 @@ export async function updateClosedBetaAllowlistEntry(formData: FormData) {
       status: parsed.status,
     });
   } catch {
-    redirect(`${betaUsersPath}?error=save`);
+    redirect(`${returnPath}?error=save`);
   }
 
-  revalidatePath(betaUsersPath);
-  redirect(`${betaUsersPath}?saved=1`);
+  revalidateAllowlistPaths();
+  redirect(`${returnPath}?saved=1`);
 }

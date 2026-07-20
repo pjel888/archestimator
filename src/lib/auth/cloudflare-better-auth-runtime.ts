@@ -126,7 +126,9 @@ async function resolveOptions(input: RuntimeRequestInput): Promise<CreateCloudfl
   if (!d1Database) return null;
 
   const baseURL = resolveBaseURL(input, context);
-  const magicLinkPlugin = await createCloudflareBetterAuthMagicLinkPlugin();
+  const magicLinkPlugin = await createCloudflareBetterAuthMagicLinkPlugin({
+    d1Database,
+  });
 
   return {
     d1Database,

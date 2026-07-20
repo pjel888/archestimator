@@ -198,12 +198,12 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(migrationText).toContain("20260602090000_harden_beta_allowlist_admin");
     expect(migrationText).toContain("revoke all on table public.closed_beta_allowed_emails from anon, authenticated");
     expect(allowlistAdmin).toContain("requireCurrentUserContext()");
-    expect(allowlistAdmin).toContain("canManageClosedBetaAllowlist(context.role)");
+    expect(allowlistAdmin).toContain("canManageClosedBetaAllowlist(context)");
     expect(allowlistAdmin).toContain("readClosedBetaAllowlistQueueFromD1(requestedStatus)");
     expect(allowlistActions).toContain("createClosedBetaAllowlistEntryInD1({");
     expect(allowlistActions).toContain("actorUserId: context.userId");
     expect(allowlistActions).toContain("updateClosedBetaAllowlistEntryInD1({");
-    expect(allowlistD1Store).toContain("INSERT INTO closed_beta_allowed_emails");
+    expect(allowlistD1Store).toContain("INSERT OR IGNORE INTO closed_beta_allowed_emails");
     expect(allowlistD1Store).toContain("INSERT INTO closed_beta_allowlist_audit_events");
   });
 

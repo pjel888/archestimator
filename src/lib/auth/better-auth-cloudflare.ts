@@ -4,6 +4,19 @@ export const BETTER_AUTH_CLOUDFLARE_D1_ROUTE_GATE_PROOF_MARKER =
 
 type CloudflareD1DatabaseOption = unknown;
 
+type BetterAuthDatabaseHooks = {
+  user?: {
+    create?: {
+      before?: (user: { email?: string | null } & Record<string, unknown>) => Promise<boolean | void>;
+    };
+  };
+  session?: {
+    create?: {
+      before?: (session: { userId?: string | null } & Record<string, unknown>) => Promise<boolean | void>;
+    };
+  };
+};
+
 type BetterAuthConfig = {
   appName: string;
   basePath: string;
@@ -29,6 +42,7 @@ type BetterAuthConfig = {
       enabled: false;
     };
   };
+  databaseHooks?: BetterAuthDatabaseHooks;
   rateLimit?: {
     enabled: boolean;
     window: number;
@@ -176,6 +190,39 @@ async function loadBetterAuthRuntime(): Promise<BetterAuthRuntime> {
   };
 }
 
+function isD1DatabaseLike(value: unknown): value is {
+  prepare: (sql: string) => {
+    bind: (...values: Array<string | number | null>) => {
+      first: <T>() => Promise<T | null>;
+    };
+  };
+} {
+  return Boolean(value && typeof (value as { prepare?: unknown }).prepare === "function");
+}
+
+function createClosedBetaDatabaseHooks(d1Database: CloudflareD1DatabaseOption): BetterAuthDatabaseHooks | undefined {
+  if (!isD1DatabaseLike(d1Database)) return undefined;
+
+  return {
+    user: {
+      create: {
+        before: async (user) => {
+          const { assertClosedBetaEmailAllowedForAuth } = await import("@/lib/auth/closed-beta-auth-gate");
+          await assertClosedBetaEmailAllowedForAuth(d1Database, user.email);
+        },
+      },
+    },
+    session: {
+      create: {
+        before: async (session) => {
+          const { assertClosedBetaUserIdAllowedForAuth } = await import("@/lib/auth/closed-beta-auth-gate");
+          await assertClosedBetaUserIdAllowedForAuth(d1Database, session.userId);
+        },
+      },
+    },
+  };
+}
+
 function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOptions, runtime: BetterAuthRuntime) {
   const config: BetterAuthConfig = {
     appName: "Archestimator",
@@ -202,6 +249,9 @@ function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOp
         enabled: false,
       },
     },
+    // Close-beta: deny user/session creation for non-allowlisted emails at the auth boundary
+    // (Google OAuth + magic-link share this gate). App session reads remain a second layer.
+    databaseHooks: createClosedBetaDatabaseHooks(options.d1Database),
     // SEC-5: durable D1-backed rate limits (not isolate memory on Workers).
     rateLimit: {
       enabled: true,
@@ -254,6 +304,7 @@ function escapeHtml(value: string) {
 }
 
 export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
+  d1Database?: CloudflareD1DatabaseOption;
   sendMagicLinkEmail?: (input: SendBetterAuthMagicLinkEmailInput) => Promise<unknown>;
 }) {
   const [{ magicLink }, { sendCloudflareEmail }] = await Promise.all([
@@ -271,6 +322,11 @@ export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
       max: 10,
     },
     sendMagicLink: async ({ email, url }: SendBetterAuthMagicLinkEmailInput) => {
+      if (options?.d1Database && isD1DatabaseLike(options.d1Database)) {
+        const { assertClosedBetaEmailAllowedForAuth } = await import("@/lib/auth/closed-beta-auth-gate");
+        await assertClosedBetaEmailAllowedForAuth(options.d1Database, email);
+      }
+
       if (options?.sendMagicLinkEmail) {
         await options.sendMagicLinkEmail({ email, url });
         return;

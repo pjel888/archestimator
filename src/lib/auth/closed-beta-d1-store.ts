@@ -111,50 +111,80 @@ export async function createClosedBetaAllowlistEntryInD1({
   notes: string | null;
   status: ClosedBetaAllowlistStatus;
 }) {
+  const result = await createClosedBetaAllowlistEntriesInD1({
+    actorUserId,
+    emails: [email],
+    notes,
+    status,
+  });
+  if (result.created === 0) {
+    throw new Error("Closed beta allowlist entry already exists or was not created.");
+  }
+}
+
+export async function createClosedBetaAllowlistEntriesInD1({
+  actorUserId,
+  emails,
+  notes,
+  status,
+}: {
+  actorUserId: string;
+  emails: string[];
+  notes: string | null;
+  status: ClosedBetaAllowlistStatus;
+}) {
   const db = await getCloudflareD1Database();
   if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist writes.");
 
-  const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  let created = 0;
 
-  await db
-    .prepare(
-      `
-        INSERT INTO closed_beta_allowed_emails (
-          id,
-          normalized_email,
-          status,
-          invited_by,
-          invited_at,
-          accepted_at,
-          notes,
-          metadata_json,
-          created_at,
-          updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, NULL, ?, '{}', ?, ?)
-      `,
-    )
-    .bind(id, email, status, actorUserId, now, notes, now, now)
-    .run();
+  for (const email of emails) {
+    const id = crypto.randomUUID();
+    const insert = await db
+      .prepare(
+        `
+          INSERT OR IGNORE INTO closed_beta_allowed_emails (
+            id,
+            normalized_email,
+            status,
+            invited_by,
+            invited_at,
+            accepted_at,
+            notes,
+            metadata_json,
+            created_at,
+            updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, NULL, ?, '{}', ?, ?)
+        `,
+      )
+      .bind(id, email, status, actorUserId, now, notes, now, now)
+      .run();
 
-  await db
-    .prepare(
-      `
-        INSERT INTO closed_beta_allowlist_audit_events (
-          id,
-          allowlist_entry_id,
-          actor_user_id,
-          event_type,
-          metadata_json,
-          created_at
-        )
-        VALUES (?, ?, ?, 'created', ?, ?)
-        ON CONFLICT(allowlist_entry_id, event_type, actor_user_id, metadata_json) DO NOTHING
-      `,
-    )
-    .bind(crypto.randomUUID(), id, actorUserId, metadataJson({ status }), now)
-    .run();
+    if ((insert.meta?.changes ?? 0) === 0) continue;
+    created += 1;
+
+    await db
+      .prepare(
+        `
+          INSERT INTO closed_beta_allowlist_audit_events (
+            id,
+            allowlist_entry_id,
+            actor_user_id,
+            event_type,
+            metadata_json,
+            created_at
+          )
+          VALUES (?, ?, ?, 'created', ?, ?)
+          ON CONFLICT(allowlist_entry_id, event_type, actor_user_id, metadata_json) DO NOTHING
+        `,
+      )
+      .bind(crypto.randomUUID(), id, actorUserId, metadataJson({ status }), now)
+      .run();
+  }
+
+  return { created, requested: emails.length };
 }
 
 export async function updateClosedBetaAllowlistEntryInD1({

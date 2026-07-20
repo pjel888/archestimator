@@ -63,3 +63,6 @@ ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS=3
 ARCH_UPLOAD_STORAGE_LATENCY_P95_MS=250
 # Set to cloudflare-images only when the local/preview IMAGES binding is ready to prove.
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
+
+# Closed beta (production sync sets true)
+CLOSED_BETA_ACCESS_ENABLED=false

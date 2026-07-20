@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import {
   CLOSED_BETA_ALLOWLIST_STATUSES,
   isClosedBetaAllowlistStatus,
+  parseClosedBetaAllowlistBulkCreate,
   parseClosedBetaAllowlistCreate,
+  parseClosedBetaAllowlistEmails,
   parseClosedBetaAllowlistUpdate,
 } from "@/lib/auth/beta-allowlist-admin";
 
@@ -67,7 +69,7 @@ describe("closed beta allowlist admin", () => {
   });
 
   it("keeps app management platform-admin scoped and route-backed", () => {
-    expect(helperSource).toContain("isPlatformAdminRole(role)");
+    expect(helperSource).toContain("isPlatformAdmin(context)");
     expect(helperSource).toContain("readClosedBetaAllowlistQueueFromD1");
     expect(actionSource).toContain("canManageClosedBetaAllowlist");
     expect(actionSource).toContain("createClosedBetaAllowlistEntryInD1");
@@ -77,5 +79,20 @@ describe("closed beta allowlist admin", () => {
     expect(pageSource).toContain("Showing {queue.rows.length} latest allowlist rows.");
     expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS closed_beta_allowed_emails");
     expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS closed_beta_allowlist_audit_events");
+  });
+
+  it("parses pasted bulk emails with normalization and dedupe", () => {
+    const form = new FormData();
+    form.set("emails", "  Alpha@Example.com , beta+pilot@example.com\nALPHA@example.com;bad");
+    form.set("status", "invited");
+    form.set("notes", "Cohort");
+
+    expect(parseClosedBetaAllowlistEmails("a@x.com, b@x.com\na@x.com")).toEqual(["a@x.com", "b@x.com"]);
+    expect(parseClosedBetaAllowlistBulkCreate(form)).toEqual({
+      ok: true,
+      emails: ["alpha@example.com", "beta+pilot@example.com"],
+      notes: "Cohort",
+      status: "invited",
+    });
   });
 });
