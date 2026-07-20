@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-07-20T16:37:46.971Z",
+  "mode": "cloudflare-email-readiness",
+  "targetDomain": "archestimator.com",
+  "workerName": "archestimator-proof",
+  "sources": {
+    "wranglerConfig": "wrangler.jsonc",
+    "envExample": ".env.example",
+    "devVarsExample": ".dev.vars.example",
+    "cloudflareDocs": [
+      "https://developers.cloudflare.com/email-service/get-started/send-emails/",
+      "https://developers.cloudflare.com/email-service/api/send-emails/workers-api/",
+      "https://developers.cloudflare.com/email-service/observability/metrics-analytics/"
+    ]
+  },
+  "wranglerSendEmailBinding": {
+    "requiredBinding": "EMAIL",
+    "present": true,
+    "ready": true
+  },
+  "envExample": {
+    "required": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "present": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "devVarsExample": {
+    "required": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "present": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "workerSecretReadback": {
+    "checked": true,
+    "command": [
+      "bunx",
+      "wrangler",
+      "secret",
+      "list",
+      "--name",
+      "archestimator-proof",
+      "--format",
+      "json"
+    ],
+    "ok": false,
+    "workerName": "archestimator-proof",
+    "names": [
+      "CLOUDFLARE_API_TOKEN"
+    ],
+    "requiredEmailSecrets": {
+      "required": [
+        "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+        "ARCHESTIMATOR_EMAIL_PROVIDER",
+        "CLOUDFLARE_EMAIL_FROM",
+        "CLOUDFLARE_EMAIL_REPLY_TO"
+      ],
+      "present": [],
+      "missing": [
+        "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+        "ARCHESTIMATOR_EMAIL_PROVIDER",
+        "CLOUDFLARE_EMAIL_FROM",
+        "CLOUDFLARE_EMAIL_REPLY_TO"
+      ],
+      "ready": false
+    }
+  },
+  "emailSendingList": {
+    "checked": true,
+    "command": [
+      "bunx",
+      "wrangler",
+      "email",
+      "sending",
+      "list"
+    ],
+    "ok": false,
+    "noSendingDomainsMessagePresent": false,
+    "targetDomainPresent": false,
+    "discoveredTargetDomains": [],
+    "sanitizedOutput": " ⛅️ wrangler 4.112.0\n────────────────────\n▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose\n✘ [ERROR] In a non-interactive environment, it's necessary to set a CLOUDFLARE_API_TOKEN environment variable for wrangler to work. Please go to https://developers.cloudflare.com/fundamentals/api/get-started/create-token/ for instructions on how to create an api token, and assign its value to CLOUDFLARE_API_TOKEN.\n✘ [ERROR] Failed to write to log file Error: EPERM: operation not permitted, open '/Users/philiplewis/Library/Preferences/.wrangler/logs/wrangler-2026-07-20_16-37-45_387.log'\n      at async open (node:internal/fs/promises:640:25)\n      at async writeFile (node:internal/fs/promises:1260:14)\n      at async /Users/philiplewis/archestimator/node_modules/wrangler/wrangler-dist/cli.js:59866:7\n      at async Mutex.runWith (/Users/philiplewis/archestimator/node_modules/miniflare/dist/src/index.js:71860:48)\n      at async appendToDebugLogFile (/Users/philiplewis/archestimator/node_modules/wrangler/wrangler-dist/cli.js:59863:3) {\n    errno: -1,\n    code: 'EPERM',\n    syscall: 'open',\n    path: '/Users/philiplewis/Library/Preferences/.wrangler/logs/wrangler-2026-07-20_16-37-45_387.log'\n  }\n✘ [ERROR] Would have written:\n  --- 2026-07-20T16:37:45.665Z debug\n  🪵  Writing logs to \"/Users/philiplewis/Library/Preferences/.wrangler/logs/wrangler-2026-07-20_16-37-45_387.log\"\n  ---\n🪵  Logs were written to \"/Users/philiplewis/Library/Preferences/.wrangler/logs/wrangler-2026-07-20_16-37-45_387.log\""
+  },
+  "productionEmailReady": false,
+  "blockers": [
+    "Worker archestimator-proof missing email secrets ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED, ARCHESTIMATOR_EMAIL_PROVIDER, CLOUDFLARE_EMAIL_FROM, CLOUDFLARE_EMAIL_REPLY_TO.",
+    "Email Sending domain archestimator.com is not onboarded/readable."
+  ],
+  "note": "Readiness check records secret names only, never secret values. Cloudflare docs require a send_email Worker binding plus an onboarded sending domain on Cloudflare DNS before production email can be claimed."
+}
