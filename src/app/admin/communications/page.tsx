@@ -24,8 +24,12 @@ export default async function AdminCommunicationsPage() {
         <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
         <h1 className="text-[12px] font-medium leading-5 text-ink">Communications</h1>
         <p className="text-[10px] leading-4 text-tertiary">
-          In-app broadcast history with delivery counts. The email channel is unavailable until an
-          email provider is connected.{" "}
+          In-app broadcast history with delivery counts. Bulk campaign email remains intentionally
+          unavailable; one-to-one support email lives in{" "}
+          <Link href="/admin/support" className="text-ink underline">
+            Support
+          </Link>
+          .{" "}
           <Link href="/admin/notifications" className="text-ink underline">
             Create a broadcast →
           </Link>

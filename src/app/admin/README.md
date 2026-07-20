@@ -10,7 +10,8 @@
 
 - `ADMIN_DASHBOARD_ENABLED`: optional env override for the `/admin` master switch.
 - `PLATFORM_ADMIN_EMAILS`: comma-separated platform admin email allowlist.
-- `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED`, `ARCHESTIMATOR_EMAIL_PROVIDER`, `CLOUDFLARE_EMAIL_FROM`, `CLOUDFLARE_EMAIL_REPLY_TO`: support reply delivery via Cloudflare Email Service.
+- `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED`, `ARCHESTIMATOR_EMAIL_PROVIDER`, `CLOUDFLARE_EMAIL_FROM`, `CLOUDFLARE_EMAIL_REPLY_TO`: transactional outbound via Cloudflare Email Service.
+- `ARCHESTIMATOR_INBOUND_EMAIL_ENABLED`, `ARCHESTIMATOR_SUPPORT_MAILBOX`, `ARCHESTIMATOR_SUPPORT_EMAIL_FROM`, optional forward vars: support inbox inbound/outbound (see `docs/support-email-operator-runbook.md`).
 - Analytics env (`NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN`, `NEXT_PUBLIC_CLARITY_PROJECT_ID`, `NEXT_PUBLIC_GA4_MEASUREMENT_ID`) only controls link-out/configured labels. Server-side provider pulls remain deferred.
 
 ## Flags
@@ -37,6 +38,6 @@
 
 - Cloudflare Access / OTP in front of `/admin`.
 - Server-side GA4, Clarity, and Cloudflare Analytics pulls.
-- Email-to-ticket ingestion.
+- Email-to-ticket ingestion is implemented in `/admin/support` + Worker `email()`; live routing/DNS still require operator activation.
 - Workshop mutation enforcement for `admin_maintenance_mode`.
 - Hosted observability proof and alert-readiness evidence.
