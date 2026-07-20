@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/beta-allowlist-admin-actions";
 import {
   CLOSED_BETA_ALLOWLIST_STATUSES,
+  CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH,
   isClosedBetaAllowlistStatus,
   readClosedBetaAllowlistQueue,
   type ClosedBetaAllowlistStatus,
@@ -90,8 +91,9 @@ export default async function BetaUsersPage({
             <section className="border border-hairline bg-white p-2">
               <h2 className="text-[11px] font-medium leading-4 text-ink">Add user</h2>
               <form action={createClosedBetaAllowlistEntry} className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)_auto] md:items-end">
+                <input type="hidden" name="returnPath" value={CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH} />
                 <label htmlFor="beta-allowlist-email" className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
-                  Google email
+                  Email
                   <input
                     id="beta-allowlist-email"
                     name="email"
@@ -175,6 +177,7 @@ export default async function BetaUsersPage({
                           <td className="border-b border-hairline px-2 py-2 text-tertiary">{formatDate(row.accepted_at)}</td>
                           <td className="border-b border-hairline px-2 py-2">
                             <form action={updateClosedBetaAllowlistEntry} className="flex items-center gap-1">
+                              <input type="hidden" name="returnPath" value={CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH} />
                               <input type="hidden" name="id" value={row.id} />
                               <input type="hidden" name="notes" value={row.notes ?? ""} />
                               <AdminStatusSelect
@@ -191,6 +194,7 @@ export default async function BetaUsersPage({
                           </td>
                           <td className="max-w-sm border-b border-hairline px-2 py-2">
                             <form action={updateClosedBetaAllowlistEntry} className="flex items-center gap-1">
+                              <input type="hidden" name="returnPath" value={CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH} />
                               <input type="hidden" name="id" value={row.id} />
                               <input type="hidden" name="status" value={row.status} />
                               <input

@@ -9,6 +9,7 @@ import {
   Coins,
   ClipboardText,
   Database,
+  EnvelopeSimple,
   Flag,
   FolderOpen,
   Gauge,
@@ -43,6 +44,7 @@ export const ADMIN_NAV_GROUPS = [
     label: "Customers",
     items: [
       { href: "/admin/users", label: "Users", icon: Users },
+      { href: "/admin/allowlist", label: "Allowlist", icon: EnvelopeSimple },
       { href: "/admin/accounts", label: "Accounts", icon: Buildings },
       { href: "/admin/support", label: "Support", icon: Headset },
       { href: "/admin/saved-replies", label: "Saved Replies", icon: Notepad },
