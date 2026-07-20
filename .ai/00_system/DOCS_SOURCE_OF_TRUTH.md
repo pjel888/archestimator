@@ -44,7 +44,13 @@ These docs are the first stops for the current MVP codebase surface:
 - Component variants/assets/cost: `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
 - UI componentization: `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md`
 - Route transition performance: `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-slice-1/`
-- Landing page improvement: `.ai/09_archive/store/2026-05-28-landing-page-below-hero-complete/`
+- Public-page visual design: no repository design document is authoritative.
+  Follow the current user request and live public-route source; `/`, `/new`, and
+  every route that renders without a valid session are unrestricted. Landing
+  plans, including `.ai/03_plans/landing-page-improvement/` and
+  `.ai/09_archive/store/2026-05-28-landing-page-below-hero-complete/`, are
+  functional/copy/analytics context or implementation history only and must not
+  constrain a new public visual design.
 
 Do not treat an older plan as active if these docs or `.ai/10_state/*` say the implementation has moved on.
 
@@ -68,7 +74,9 @@ Do not treat an older plan as active if these docs or `.ai/10_state/*` say the i
 - Tasks/boards: `.ai/04_tasks/`
 - Handoff logs: `.ai/05_logs/`
 - Specs: `.ai/06_specs/`
-- Brand, narrative, positioning, messaging, and voice: `.ai/06_specs/brand/`
+- Brand, narrative, positioning, messaging, and voice references:
+  `.ai/06_specs/brand/`. They may inform product truth or copy when relevant but
+  are never public-page visual design constraints.
 - Skills/playbooks: `.ai/11_skills/`
 - Agent contracts/model routing: `.ai/12_agents/`
 - Research: `.ai/13_research/`

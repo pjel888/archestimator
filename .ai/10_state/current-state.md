@@ -30,6 +30,13 @@ task-specific history. Do not linear-read the detailed history below.
 - **Shared worktree:** preserve unfamiliar changes, stay on the current branch,
   and do not create/switch branches or worktrees unless explicitly requested or
   required by an approved plan.
+- **Public design freedom:** design-system rules apply only to routes that
+  require a valid authenticated session. `/`, `/new`, marketing/auth/legal,
+  invite, public share/client-portal, and every other unauthenticated route have
+  no repository visual-design constraints; current user direction and live
+  public-route source are the only design authority. Public files are excluded
+  from design-system and Impeccable validation scope. Accessibility, security,
+  truthful content, framework correctness, and performance still apply.
 - **Agent bootstrap:** run `bun run supermemory:ensure` before meaningful work
   and search relevant memory before broad/non-trivial/recovery work. Canonical
   `.ai` state is durable; unavailable or unsearchable memory sync is a degraded
@@ -78,6 +85,19 @@ task-specific history. Do not linear-read the detailed history below.
   any future implementation requires a new active execution surface.
 
 <!-- FAST PATH:END -->
+
+### 2026-07-21 - Public Design Constraints Removed
+
+- `AGENTS.md` now scopes all repository visual-design constraints to routes that
+  require a valid authenticated session. `/`, `/new`, and all other public
+  routes may use any visual language directed by the current user.
+- `DESIGN.md`, project design skills, model/Cursor adapters, active or archived
+  landing plans, brand references, shared authenticated primitives, and design
+  rubrics are optional inspiration only for public work and cannot impose
+  requirements.
+- `scripts/enforce-app-design-system.mjs` and `lint:design` now scan only
+  authenticated-owned route/component roots; public route files, public-owned
+  components, and global public styling are outside design enforcement.
 
 ### 2026-07-17 - Master Codebase Architecture Deepening Complete
 
@@ -9946,7 +9966,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 1. begin with a narrow screen/workflow brief or an existing active plan;
 2. state exact user job, route scope, non-goals, and deletion criteria;
 3. avoid fake SaaS maturity and broad module restoration;
-4. preserve the enforced product design system outside landing pages: SF Pro system stack, regular/medium weights only, compact `12px` maximum font-size scale, xs-only radius, zero tracking, neutral reference colors, and regular-outline icon weight;
+4. superseded by the 2026-07-21 public-design directive: preserve these product design defaults only on routes that require a valid authenticated session; no public route inherits the SF Pro, weight, size, radius, tracking, color, or icon constraints;
 5. use the shared UI primitives first; if no reusable primitive exists for a repeated UI pattern, create or extend a shared primitive before adding feature-local controls;
 6. keep data/persistence minimal until the UX earns a stable data boundary.
 

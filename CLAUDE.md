@@ -20,7 +20,9 @@ or edits.
 Run `bun run supermemory:ensure` before meaningful work. Current source and `.ai`
 override memory, plugins, and tool defaults.
 
-Keep plans executable and minimal, preserve the shared worktree, use `DESIGN.md`
-as alpha guidance rather than law, and return bounded decisions or findings.
+Keep plans executable and minimal, preserve the shared worktree, and use
+`DESIGN.md` only as authenticated-route alpha guidance rather than law. Public
+and otherwise unauthenticated routes, including `/` and `/new`, have no repo
+design constraints; follow `AGENTS.md` Public Design Freedom instead.
 Graph-use policy is inherited from `AGENTS.md`; do not duplicate canonical
 policy here.

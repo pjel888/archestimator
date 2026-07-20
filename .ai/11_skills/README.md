@@ -1,12 +1,15 @@
 # Archestimator Playbooks And Payloads
 
 This folder contains reusable project procedures. It does not override current
-source, `AGENTS.md`, `DESIGN.md`, or canonical `.ai/00_system` policy.
+source, `AGENTS.md`, authenticated-route `DESIGN.md`, or canonical
+`.ai/00_system` policy. No playbook may impose visual-design constraints on a
+public or otherwise unauthenticated route.
 
 ## Authority
 
 1. Current source, `wrangler.jsonc`, and active `migrations/`
-2. `AGENTS.md`, `DESIGN.md`, and relevant `.ai/00_system` protocols
+2. `AGENTS.md`, authenticated-route `DESIGN.md`, and relevant `.ai/00_system`
+   protocols
 3. `.ai/10_state/current-state.md` and active specs/plans
 4. These playbooks and payloads
 5. Archived plans and dated research, as historical context only
@@ -36,7 +39,9 @@ source, `AGENTS.md`, `DESIGN.md`, or canonical `.ai/00_system` policy.
 
 - `.agents/skills/archestimator-design/` is the active thin adapter to the
   tracked `claude-design-reference/` asset library. Current source,
-  `DESIGN.md`, and `.ai` policy remain authoritative over that reference set.
+  authenticated-route `DESIGN.md`, and `.ai` policy remain authoritative over
+  that reference set. The skill and reference set have no design authority over
+  public routes, including `/` and `/new`.
 
 Automated product tests, builds-as-tests, browser automation, screenshots,
 Storybook, and visual QA run only for an explicit current-task `TEST_TASK`.

@@ -394,7 +394,8 @@ All tables have RLS enabled. Browser roles (`anon`, `authenticated`) have limite
 
 ## 10. Key Constraints
 
-1. **No font above 12px** in app/workshop (landing pages exempt)
+1. **No font above 12px** in authenticated-owned app/workshop surfaces; every
+   public route and public-owned component is outside design enforcement
 2. **No non-xs border radius** in app/workshop
 3. **No bold/fill icon weights** — use regular 1px outline Phosphor icons
 4. **No duplicated controls** — always use/reuse `src/components/ui/` primitives

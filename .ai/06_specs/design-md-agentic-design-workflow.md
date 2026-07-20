@@ -2,8 +2,19 @@
 
 **Date accessed:** 2026-05-16
 **Subject:** Google's DESIGN.md spec and CLI
-**Purpose:** Define how Archestimator should use DESIGN.md to guide agentic UI development.
+**Purpose:** Define how Archestimator may use `DESIGN.md` to guide
+authenticated-route agentic UI development.
 **Status:** Research and workflow recommendation.
+
+## Current scope override
+
+`DESIGN.md` applies only to routes and components owned by pages that require a
+valid authenticated session. It has no authority over `/`, `/new`, marketing,
+auth entry, legal/trust/security, invite, public share/client-portal, or any
+other route that renders without a session. Public design follows the current
+user request and live route source without repository visual constraints. The
+historical research and recommendations below must not be used as public design
+requirements.
 
 ## Sources reviewed
 
@@ -143,11 +154,11 @@ Archestimator will likely involve multiple AI agents across planning, design, im
 - proposal preview styling;
 - layout rhythm.
 
-DESIGN.md gives the project a repo-level contract.
+`DESIGN.md` gives authenticated product routes a repo-level visual reference.
 
 ## Recommended Archestimator agentic workflow
 
-### Step 1 — Create root DESIGN.md before UI implementation
+### Step 1 — Create root DESIGN.md before authenticated UI implementation
 
 Place at:
 
@@ -157,7 +168,7 @@ This should sit beside future app source files, not buried only in `.ai`.
 
 ### Step 2 — Keep expanded rationale in `.ai`
 
-Use root `DESIGN.md` as the canonical agent-readable spec.
+Use root `DESIGN.md` as the canonical agent-readable authenticated-route spec.
 
 Use `.ai/06_specs/` for deeper supporting rationale, such as:
 
@@ -165,9 +176,9 @@ Use `.ai/06_specs/` for deeper supporting rationale, such as:
 - estimate sheet density;
 - version history UI;
 - library panel behavior;
-- marketing/landing direction.
+- authenticated admin and workshop direction.
 
-### Step 3 — Lint every material design-token change
+### Step 3 — Lint every material authenticated design-token change
 
 Run:
 
@@ -198,7 +209,7 @@ npx -y @google/design.md export DESIGN.md --format dtcg > tokens.dtcg.json
 
 If using Tailwind v4, prefer `css-tailwind` if the app setup supports it.
 
-## Recommended first DESIGN.md direction for Archestimator
+## Recommended first authenticated-route DESIGN.md direction for Archestimator
 
 These are not final tokens yet, but they are the direction to test.
 
@@ -234,10 +245,9 @@ These are not final tokens yet, but they are the direction to test.
 
 The root file should eventually define:
 
-1. brand overview;
+1. authenticated product overview;
 2. color tokens;
 3. typography tokens for:
-   - display/marketing;
    - app headings;
    - estimate sheet cells;
    - tabular numbers;
@@ -294,8 +304,13 @@ The root file should eventually define:
 
 ## Important caution
 
-DESIGN.md is not a replacement for UX specs. It should not carry detailed product workflows. It should define reusable visual identity and design rules, while `.ai/06_specs/` defines feature behavior.
+`DESIGN.md` is not a replacement for UX specs. It should not carry detailed
+product workflows. It may define reusable visual identity and design rules for
+authenticated product routes only, while `.ai/06_specs/` defines feature
+behavior. It must not define public-page visual rules.
 
 ## Recommended next action
 
-Before MVP screen architecture, create an initial root `DESIGN.md` for Archestimator and lint it. This gives future agents a visual contract before they produce UI plans or code.
+Before authenticated MVP screen architecture, create an initial root
+`DESIGN.md` for Archestimator and lint it. This gives future agents an
+authenticated-product visual reference without constraining public routes.

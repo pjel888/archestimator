@@ -9,7 +9,8 @@ All durable project-management, audit, planning, state, prompt, agent, skill, ar
 Repo-level entrypoints outside `.ai` still matter:
 
 - `AGENTS.md` — top-level agent operating contract and current tool/graph rules.
-- `DESIGN.md` — visual/design direction.
+- `DESIGN.md` — authenticated-route visual/design direction only; it has no
+  authority over `/`, `/new`, or any route that renders without a valid session.
 - Source files, migrations, package scripts, and tests — live implementation evidence when docs drift.
 
 ## Top-level canonical folders
@@ -74,7 +75,9 @@ Repo-level entrypoints outside `.ai` still matter:
 These predate the current numbering and are superseded. Do not add new files; use the canonical home:
 
 - `05_decisions/` → superseded by `10_state/decisions.md` (durable decisions live there).
-- `07_design/` → superseded by `DESIGN.md` and `06_specs/brand/`.
+- `07_design/` → superseded for authenticated-route design by `DESIGN.md` and
+  retained as history. Neither it nor `06_specs/brand/` constrains public-page
+  visual design.
 
 ## Anti-drift rule
 

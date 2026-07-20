@@ -636,7 +636,9 @@ The implementation uses a robust three-tier state architecture with server actio
 
 This feature must obey the current Archestimator design rules:
 
-- Outside landing page, visible UI text must not exceed `12px`; normal controls/body/table/input/button text should stay around `10px`.
+- On authenticated app/workshop routes, visible UI text should not exceed `12px`;
+  normal controls/body/table/input/button text should stay around `10px`. This
+  requirement has no authority over public or otherwise unauthenticated routes.
 - App/workshop typography uses SF Pro system stack, regular/medium weights only, and zero tracking.
 - App/workshop radius is xs-only (`3px`), with neutral reference colors and regular-outline icon weight.
 - Buttons and icon buttons should use `src/components/ui/button.tsx` or a shared wrapper built on it.

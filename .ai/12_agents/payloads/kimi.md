@@ -14,5 +14,8 @@ test execution or edits.
 
 ## Role Notes
 
-Use `DESIGN.md` as alpha guidance and current UI primitives where practical.
-Do not block Philip-directed design decisions on design-system ceremony.
+Use `DESIGN.md` as alpha guidance and current UI primitives where practical only
+for authenticated product routes. Public and otherwise unauthenticated routes,
+including `/` and `/new`, have no repo design constraints; do not load design
+rules, primitives, references, or lint as requirements for them. Do not block
+Philip-directed design decisions on design-system ceremony.

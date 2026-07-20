@@ -13,7 +13,7 @@ Assess whether contractors, estimators, collaborators, recipients, and administr
 ## Current context
 
 - Archestimator runs on Next.js 16, React 19, Bun, TypeScript, Tailwind v4, and OpenNext on Cloudflare Workers, using D1, R2, Durable Objects, Queues/Cron, Email, Images, and Better Auth.
-- `AGENTS.md`, `.ai/00_system`, current source, `DESIGN.md` as alpha-stage guidance, and `.ai/12_agents/payloads/commandcode.md` are authoritative. Retired-provider artifacts are historical, read-only archaeology.
+- `AGENTS.md`, `.ai/00_system`, current source, `DESIGN.md` as authenticated-route alpha guidance, and `.ai/12_agents/payloads/commandcode.md` are authoritative. `DESIGN.md` and this role's visual-consistency preferences have no authority over public or otherwise unauthenticated routes, including `/` and `/new`; those surfaces follow the current user direction freely. Retired-provider artifacts are historical, read-only archaeology.
 - This role is read-only and advisory by default. Do not mutate source, styles, designs, data, Git, or external systems unless the lead assigns a bounded implementation scope. The lead owns design decisions, integration, verification, and the final claim.
 
 ## Review focus

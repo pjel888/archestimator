@@ -147,10 +147,44 @@ gated actions, and out-of-scope systems remain real authorization boundaries.
 - Agent framework/payload/proof work: read
   `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 - Validation choices: read `.ai/00_system/VALIDATION_MATRIX.md`.
-- UI: use `DESIGN.md` as alpha guidance, not law; do not block Philip-directed
-  design changes on design-system ceremony.
+- UI on authenticated routes: use `DESIGN.md` as alpha guidance, not law; do
+  not block Philip-directed design changes on design-system ceremony.
 - GitHub security work: use live GitHub state, redact evidence, and never claim
   hosted controls from local checks.
+
+## Public Design Freedom
+
+Design-system constraints apply only to routes that require a valid
+authenticated session. A route is public when it can render without a signed-in
+session, regardless of its pathname or whether it later offers sign-in.
+
+- `/`, `/new`, every marketing/about/features/pricing/contact page, auth entry
+  page, legal/trust/security page, invite route, public share/client-portal
+  route, and every future unauthenticated route are unrestricted design
+  surfaces. Treat `/new` as public whenever it exists.
+- For public surfaces, the current user request and live route source are the
+  only design authority. Agents may freely replace the visual language,
+  composition, typography, scale, palette, spacing, radii, imagery, motion,
+  component strategy, and responsive treatment.
+- `DESIGN.md`, `.ai` design or brand documents, active or archived landing
+  plans, project skills, model payloads, Cursor rules, external references,
+  existing landing conventions, shared authenticated primitives, design
+  linters, review rubrics, and prior screenshots may supply optional ideas only.
+  They must never impose
+  requirements, ceilings, reuse obligations, approval gates, or warnings on a
+  public design task unless the current user explicitly asks for that exact
+  constraint.
+- Public work does not need to match authenticated UI, reuse authenticated
+  components, preserve the current brand system, update `DESIGN.md`, or satisfy
+  authenticated-route design lint. Agents may create public-owned components
+  and styles whenever that best serves the requested direction.
+- Design enforcement scripts and design-quality gates must exclude public route
+  files and public-owned components. The alpha product design system may still
+  govern authenticated-owned routes and components.
+
+This freedom removes aesthetic and brand constraints, not functional duties.
+Accessibility, security, privacy, truthful content, framework correctness, and
+performance requirements still apply to public implementation.
 
 ## Completion
 
