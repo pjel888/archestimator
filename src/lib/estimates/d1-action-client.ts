@@ -1621,6 +1621,7 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
   projectId: string;
   sourceRow: EstimateRowItemRow;
   rowPatch: Record<string, unknown>;
+  currentUser: CurrentUserContext;
 }) {
   const sharedPatch = pickSharedProjectComponentPatch(input.rowPatch);
   const sharedColumns = updateValuesForRowPatch(sharedPatch);
@@ -1659,7 +1660,12 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
   const statements: Array<{ sql: string; values?: unknown[] }> = [];
   let totalDelta = 0;
 
+  const propagatedRowIds: string[] = [];
   for (const row of siblingRows) {
+    const canEditSiblingEstimate = row.estimate_id === input.sourceRow.estimate_id
+      || await canEditEstimateInD1(database, String(row.estimate_id ?? ""), input.currentUser);
+    if (!canEditSiblingEstimate) continue;
+
     const nextRevision = readNumber(row.row_revision, 1) + 1;
     const columns = sharedColumns.map(([column, value]) => [column, value] as [string, unknown]);
     if (Object.prototype.hasOwnProperty.call(sharedPatch, "sourceSnapshot")) {
@@ -1685,16 +1691,17 @@ async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input
       sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`,
       values,
     });
+    propagatedRowIds.push(row.id);
   }
 
   await runBatch(database, statements);
   return {
-    rowIds: siblingRows.map((row) => row.id),
+    rowIds: propagatedRowIds,
     totalDelta,
   };
 }
 
-async function patchRowItem(database: D1DatabaseLike, args: Record<string, unknown>, eventType: string, rowPatch: Record<string, unknown>) {
+async function patchRowItem(database: D1DatabaseLike, args: Record<string, unknown>, eventType: string, rowPatch: Record<string, unknown>, currentUser?: CurrentUserContext | null) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
@@ -1719,8 +1726,8 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   await run(database, `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`, values);
   const updated = await readRowById(database, estimateId, rowId);
   if (!updated) throw new Error("Estimate row item was not found after update.");
-  const propagation = eventType === "row_updated"
-    ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch })
+  const propagation = eventType === "row_updated" && currentUser
+    ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch, currentUser })
     : { rowIds: [] as string[], totalDelta: 0 };
   const eventId = await insertHistoryEvent(database, {
     projectId,
@@ -2175,7 +2182,7 @@ async function callEstimateAction<T>(
   if (name === "reorder_estimate_nodes_with_history") return await reorderEstimateNodes(database, args) as T;
   if (name === "delete_estimate_node_with_history" || name === "delete_estimate_nodes_bulk_with_history") return await deleteEstimateNodes(database, args) as T;
   if (name === "insert_estimate_row_item_with_history") return await insertRowItem(database, args) as T;
-  if (name === "update_estimate_row_item_with_history") return await patchRowItem(database, args, "row_updated", readJsonRecord(args.row_patch)) as T;
+  if (name === "update_estimate_row_item_with_history") return await patchRowItem(database, args, "row_updated", readJsonRecord(args.row_patch), currentUser) as T;
   if (name === "replace_estimate_row_item_with_history") return await patchRowItem(database, args, "row_replaced", readJsonRecord(args.replacement_payload)) as T;
   if (name === "unlink_estimate_row_item_from_library_with_history") {
     return await patchRowItem(database, args, "row_unlinked", {
