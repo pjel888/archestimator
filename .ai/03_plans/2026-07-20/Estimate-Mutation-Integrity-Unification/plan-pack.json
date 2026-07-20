@@ -10,7 +10,7 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T21:30:00.000Z",
+  "updated_at": "2026-07-20T23:45:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -45,7 +45,7 @@
       "id": "ART-003",
       "role": "unit",
       "path": "units/001-extract-mutation-intent-primitives.md",
-      "sha256": "d3f7584caf5f30dce443bbbf9926c86f44d287edcbca21d7894da7e2af8017be"
+      "sha256": "ff939812993163fc6331b970d8381a6010201b7f0b3084936e21e3e5dfceea0e"
     },
     {
       "id": "ART-004",
@@ -336,7 +336,7 @@
         "AC-001"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "d3f7584caf5f30dce443bbbf9926c86f44d287edcbca21d7894da7e2af8017be",
+      "sha256": "ff939812993163fc6331b970d8381a6010201b7f0b3084936e21e3e5dfceea0e",
       "valid_until": null
     },
     {
@@ -384,5 +384,5 @@
       ]
     }
   ],
-  "manifest_sha256": "d8eb20a94f714531c23293ee7ba9d0ff2e367e521590584b203a85c48be767a2"
+  "manifest_sha256": "c8456efe736a6fd05a58c887a799141559a5d87616d860cca8fa8bf9522d5797"
 }

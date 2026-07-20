@@ -21,24 +21,32 @@ acquisition layer a single touchpoint.
 
 ## Current state
 
-The 20 sites (run `rg -n "async function require[A-Za-z]*D1Database\(\)" src/lib`
-to enumerate; the list from the audit):
+Verified during the Improve-Plan reconcile: `rg "async function require[A-Za-z]*D1Database\(\)" src/lib/`
+returns **21 sites** (the count is stable as of the reconcile; re-run the grep
+at execution time to confirm, since files may drift):
 
-1. `src/lib/repositories/workspace-repository.ts:417`
-2. `src/lib/repositories/component-library-repository.ts:364`
-3. `src/lib/component-library/actions.ts:162`
-4. `src/lib/estimates/express-promotion-actions.ts:821`
-5. `src/lib/ai/package-builder/apply.ts:204`
-6. `src/lib/ai/package-builder/read-tools.ts:565`
-7. `src/lib/workshop/actions.ts:32`
-8. `src/lib/workshop/group-actions.ts:94`
-9. `src/lib/reusable-sources/actions.ts:166`
-10. `src/lib/auth/account-actions.ts:323`
-11. `src/lib/projects/actions.ts:295`
-12. `src/lib/publisher/activity-repository.ts`
-13. `src/lib/publisher/roster-repository.ts`
-14. `src/lib/estimates/d1-intents/database.ts:36` (`requireEstimateD1Database` — already aliased to the canonical in UNIT-002; this unit confirms it)
-15-20. Seven more in `src/lib/repositories/` (run the grep to enumerate).
+1. `src/lib/ai/package-builder/apply.ts`
+2. `src/lib/ai/package-builder/read-tools.ts`
+3. `src/lib/ai/read-context.ts`
+4. `src/lib/auth/account-actions.ts`
+5. `src/lib/component-library/actions.ts`
+6. `src/lib/component-library/project-component-projection.ts`
+7. `src/lib/component-library/template-editor-actions.ts`
+8. `src/lib/estimates/d1-intents/database.ts` (`requireEstimateD1Database` —
+   already aliased to the canonical after UNIT-002; this unit confirms it)
+9. `src/lib/estimates/express-promotion-actions.ts`
+10. `src/lib/projects/actions.ts`
+11. `src/lib/publisher/activity-repository.ts`
+12. `src/lib/publisher/roster-repository.ts`
+13. `src/lib/repositories/component-library-repository.ts`
+14. `src/lib/repositories/project-activity-feed-repository.ts`
+15. `src/lib/repositories/project-activity-repository.ts`
+16. `src/lib/repositories/project-charts-repository.ts`
+17. `src/lib/repositories/project-estimate-sheets-repository.ts`
+18. `src/lib/repositories/workspace-repository.ts`
+19. `src/lib/reusable-sources/actions.ts`
+20. `src/lib/workshop/actions.ts`
+21. `src/lib/workshop/group-actions.ts`
 
 The canonical replacement: `requireCloudflareD1Database` from
 `@/lib/cloudflare/d1-runtime` (created in UNIT-001).
@@ -113,7 +121,7 @@ The ~20 files listed above. One sub-step per file.
 
 - [ ] `bun run type-check` exits 0
 - [ ] `bun run lint` exits 0
-- [ ] `rg "async function require[A-Za-z]*D1Database\(\)" src/lib` returns at most one match (the `requireEstimateD1Database` alias), or zero if fully collapsed
+- [ ] `rg "async function require[A-Za-z]*D1Database\(\)" src/lib` returns at most one match (the `requireEstimateD1Database` alias in `d1-intents/database.ts`), or zero if fully collapsed
 - [ ] Every deleted wrapper's call sites use `requireCloudflareD1Database` from `@/lib/cloudflare/d1-runtime`
 - [ ] No error-message-string parsing broken (verified by grep)
 - [ ] Non-trivial wrappers migrated, not deleted (RISK-002)

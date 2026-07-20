@@ -10,7 +10,7 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T21:30:00.000Z",
+  "updated_at": "2026-07-20T23:45:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -54,7 +54,7 @@
       "id": "ART-005",
       "role": "unit",
       "path": "units/003-collapse-require-d1-database-wrappers.md",
-      "sha256": "aa395de36f5af8ce88fecce641c95233435623daeef205f048dc0385e1462bb4"
+      "sha256": "bf8985e6bd55cdb4206f687ddda4e3cfa35a25b0560aeaf9ca2e2af0f4adcb19"
     }
   ],
   "sources": [
@@ -261,7 +261,7 @@
         "AC-002"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "aa395de36f5af8ce88fecce641c95233435623daeef205f048dc0385e1462bb4",
+      "sha256": "bf8985e6bd55cdb4206f687ddda4e3cfa35a25b0560aeaf9ca2e2af0f4adcb19",
       "valid_until": null
     }
   ],
@@ -273,5 +273,5 @@
       ]
     }
   ],
-  "manifest_sha256": "21acd59c7a2d4f96b16a539c3a871a5551d88ee18eafa99e40e3283a2560107b"
+  "manifest_sha256": "176af1e8dae3fcdec313f054855563db4405504fae025bfb3a3ebb115c2033da"
 }

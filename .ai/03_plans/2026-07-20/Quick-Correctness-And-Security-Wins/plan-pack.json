@@ -10,17 +10,17 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T21:30:00.000Z",
+  "updated_at": "2026-07-20T23:45:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
     "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-    "scoped_status_sha256": "62e536812ea02824528fabff7695c6756ab74f711d3bf946082aab558965315d",
-    "scoped_diff_sha256": "62e536812ea02824528fabff7695c6756ab74f711d3bf946082aab558965315d"
+    "scoped_status_sha256": "2fb3702b41ecfdd74fa670da43813f0287c52e460f7a162a397349d031cdeedc",
+    "scoped_diff_sha256": "2fb3702b41ecfdd74fa670da43813f0287c52e460f7a162a397349d031cdeedc"
   },
   "stale_triggers": [
     "baseline HEAD changes on src/lib/client-portal/public-repository.ts (UNIT-001)",
-    "baseline HEAD changes on src/lib/auth/closed-beta-access.ts (UNIT-002)",
+    "baseline HEAD changes on src/lib/auth/closed-beta-access.ts — already implemented in worktree; UNIT-002 SUPERSEDED (DEC-AUTO-001)",
     "baseline HEAD changes on src/lib/publication/security.ts (UNIT-003)",
     "any of the seven src/lib/cloudflare/*-proof-router.ts files change (UNIT-004)",
     "baseline HEAD changes on src/lib/estimates/actions.ts (UNIT-005)",
@@ -34,13 +34,13 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "62e536812ea02824528fabff7695c6756ab74f711d3bf946082aab558965315d"
+      "sha256": "2fb3702b41ecfdd74fa670da43813f0287c52e460f7a162a397349d031cdeedc"
     },
     {
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "de67fbe36d968df75908de15490698d1bb00606e79b020350f85c65230c63e43"
+      "sha256": "693b55c30ac0caa11316b2915fcd9f1e057c5ee67d535ed018da7c53da6ebabe"
     },
     {
       "id": "ART-003",
@@ -52,7 +52,7 @@
       "id": "ART-004",
       "role": "unit",
       "path": "units/002-closed-beta-fail-closed.md",
-      "sha256": "968c301b37caa5b904a17677199fdc724c084e579ffec2b240df531ef309bd2d"
+      "sha256": "48018e2f2a221d12f2766748f90e28f32d287a668e165c8b42e022f222ddc714"
     },
     {
       "id": "ART-005",
@@ -119,7 +119,7 @@
     },
     {
       "id": "SEC-002",
-      "status": "ACCEPTED",
+      "status": "REJECTED",
       "completion_role": "CORE",
       "source_ids": [
         "SRC-001"
@@ -212,7 +212,7 @@
   "risks": [
     {
       "id": "RISK-001",
-      "status": "OPEN",
+      "status": "CLOSED",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
         "UNIT-002"
@@ -248,6 +248,7 @@
     {
       "id": "AC-001",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "SEC-001"
       ],
@@ -258,28 +259,28 @@
       "evidence_ids": [
         "EVID-001"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-002",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "SEC-002"
       ],
       "test_requirement": "NOT_REQUIRED",
       "test_trigger": "NONE",
-      "test_rationale": "Tristate resolver verified by type-check and source inspection; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_rationale": "Criterion N/A: SEC-002 is REJECTED (DEC-AUTO-001); the in-tree implementation supersedes UNIT-002. No active test or evidence obligation.",
       "test_ids": [],
       "evidence_ids": [
         "EVID-002"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-003",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "SEC-003"
       ],
@@ -290,12 +291,12 @@
       "evidence_ids": [
         "EVID-003"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-004",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "SEC-004"
       ],
@@ -306,12 +307,12 @@
       "evidence_ids": [
         "EVID-004"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-005",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "DATA-001"
       ],
@@ -322,12 +323,12 @@
       "evidence_ids": [
         "EVID-005"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-006",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "DATA-002"
       ],
@@ -338,12 +339,12 @@
       "evidence_ids": [
         "EVID-006"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     },
     {
       "id": "AC-007",
       "status": "N/A",
+      "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "OPS-001"
       ],
@@ -354,8 +355,7 @@
       "evidence_ids": [
         "EVID-007"
       ],
-      "authorization_boundary_id": null,
-      "artifact_path": "00-PLAN.md"
+      "authorization_boundary_id": null
     }
   ],
   "tests": [],
@@ -366,7 +366,6 @@
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-001",
-        "AC-002",
         "AC-003",
         "AC-004",
         "AC-005",
@@ -393,7 +392,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/002-closed-beta-fail-closed.md",
       "depends_on": [],
       "requirement_ids": [
@@ -476,7 +475,20 @@
       ]
     }
   ],
-  "decisions": [],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "units/002-closed-beta-fail-closed.md",
+      "affected_ids": [
+        "SEC-002",
+        "UNIT-002",
+        "RISK-001",
+        "AC-002"
+      ],
+      "rationale": "Closed-beta fail-closed finding was implemented independently in the shared worktree between plan authoring and the Improve-Plan reconcile (src/lib/auth/closed-beta-access.ts:60-68 + resolveClosedBetaRuntimeEnv helper + tests/vitest/closed-beta-access.test.ts). The in-tree design supersedes the planned unit: it separates Cloudflare Worker runtime (fail closed via ARCHESTIMATOR_CF_RUNTIME marker) from local Node (stay open for dogfooding), adds an explicit ARCHESTIMATOR_ALLOW_OPEN_BETA=1 kill-switch, and is test-covered. Executing the original UNIT-002 would clobber a superior in-flight implementation. SEC-002 → REJECTED, UNIT-002 → SUPERSEDED, RISK-001 → CLOSED, EVID-002 → STALE. Do not re-implement; if the in-tree implementation regresses, open a new plan against the current baseline."
+    }
+  ],
   "authorization_boundaries": [],
   "evidence_index": [
     {
@@ -493,14 +505,15 @@
     },
     {
       "id": "EVID-002",
-      "status": "PLANNED",
+      "status": "STALE",
       "artifact_path": "units/002-closed-beta-fail-closed.md",
       "claim_ids": [
         "UNIT-002",
-        "AC-002"
+        "AC-002",
+        "DEC-AUTO-001"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "968c301b37caa5b904a17677199fdc724c084e579ffec2b240df531ef309bd2d",
+      "sha256": "48018e2f2a221d12f2766748f90e28f32d287a668e165c8b42e022f222ddc714",
       "valid_until": null
     },
     {
@@ -569,7 +582,6 @@
       "id": "SLICE-001",
       "unit_ids": [
         "UNIT-001",
-        "UNIT-002",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
@@ -578,5 +590,5 @@
       ]
     }
   ],
-  "manifest_sha256": "6b2b8fa9be3e62d61fd713dc02b89d3dfe830b74419ed00c839dd6a653edf77d"
+  "manifest_sha256": "995b7321911a7034714039ecd7d258d6fc963568bf0eacc2f6589ed4cd117e67"
 }

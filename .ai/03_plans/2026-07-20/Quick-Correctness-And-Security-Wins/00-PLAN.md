@@ -105,7 +105,7 @@ The seven findings, ordered by user impact:
 | REQ | Title | Units | Evidence |
 |-----|-------|-------|----------|
 | SEC-001 | Client Portal recipients can log in more than once | UNIT-001 | EVID-001 |
-| SEC-002 | Closed-beta gate fails closed when misconfigured | UNIT-002 | EVID-002 |
+| SEC-002 | Closed-beta gate fails closed when misconfigured | UNIT-002 (SUPERSEDED) | EVID-002 (STALE) — resolved in-tree, see DEC-AUTO-001 |
 | SEC-003 | Publication password minimum length raised | UNIT-003 | EVID-003 |
 | SEC-004 | Proof routers use timing-safe bearer comparison | UNIT-004 | EVID-004 |
 | DATA-001 | Library link state only flips on library-derived field edits | UNIT-005 | EVID-005 |
@@ -114,18 +114,17 @@ The seven findings, ordered by user impact:
 
 ## 5. Dependency order
 
-All seven units are independent (no inter-unit dependencies). Suggested order is
-by user impact: UNIT-001 (lockout) first, then UNIT-002 (fail-open), UNIT-003
-(password), UNIT-004 (timing), UNIT-005 (link state), UNIT-006 (atomicity),
-UNIT-007 (observability). Any order validates.
+All units are independent (no inter-unit dependencies). UNIT-002 is SUPERSEDED;
+the remaining six are READY. Suggested order by user impact: UNIT-001 (lockout),
+UNIT-003 (password), UNIT-004 (timing), UNIT-005 (link state), UNIT-006
+(atomicity), UNIT-007 (observability). Any order validates.
 
 ## 6. Risks
 
-- **RISK-001** (UNIT-002): flipping the closed-beta default to fail-closed could
-  lock users out if the production Worker env genuinely lacks the flag. Mitigation:
-  the unit treats the flag as tristate (`enabled`/`disabled`/`unset`) and surfaces
-  `unset` loudly rather than silently denying; coordinate with the deploy pipeline
-  before merging.
+- **RISK-001** (UNIT-002, CLOSED): resolved in-tree — the in-tree implementation
+  addresses the deploy-coordination concern by separating Worker runtime
+ (fail-closed) from local Node (stay-open for dogfooding) via the
+  `ARCHESTIMATOR_CF_RUNTIME` marker. See DEC-AUTO-001.
 - **RISK-002** (UNIT-005): the link-state rule touches a data-model invariant.
   Mitigation: the unit only changes the condition under which `linked-overridden`
   is set, scoped to the keys actually present in the patch; library-sync

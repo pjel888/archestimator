@@ -34,8 +34,11 @@ The canonical path: `src/lib/estimates/d1-intents/rows.ts`, specifically:
 - The mutation-receipt write (`mutation-receipts.ts`)
 - The attachment-retention builder
   (`buildProjectComponentAttachmentDeleteRetentionStatements`, already extracted
-  and imported by the AI Apply fork at `apply.ts:1470` — proof the team half-wants
-  this extraction)
+  and shared across **5 modules** per the Improve-Plan reconcile: `d1-intents/rows.ts:27,2605,2720`,
+  `d1-intents/tabs.ts:10,767`, `d1-intents/bulk-sheets.ts:6,150`,
+  `d1-intents/nodes.ts:9`, and `ai/package-builder/apply.ts:8,1470`. This is
+  concrete evidence the team has already started the extraction this unit
+  generalizes — the other three rules are the remaining inline surface.)
 
 Read `rows.ts:2496-2920` end-to-end before starting. Identify the four rule
 boundaries (revision guard, history event, receipt, retention).

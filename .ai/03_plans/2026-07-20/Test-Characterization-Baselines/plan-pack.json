@@ -10,7 +10,7 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T21:30:00.000Z",
+  "updated_at": "2026-07-20T23:45:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -264,5 +264,5 @@
       ]
     }
   ],
-  "manifest_sha256": "0ef77cd550d718c729af656161cba0f5d60b84101be977de0b44ba6f844a680d"
+  "manifest_sha256": "bdbc3ac6b18c445259bc085e6911df9f250d5434d0e0558bbc8acd673612767d"
 }
