@@ -55,12 +55,12 @@ async function runActionInboxMutation(
   return { ok: true };
 }
 
-export function snoozeActionItem(itemId: string): Promise<ActionInboxActionResult> {
+export async function snoozeActionItem(itemId: string): Promise<ActionInboxActionResult> {
   return runActionInboxMutation(itemId, "snooze");
 }
-export function resolveActionItem(itemId: string): Promise<ActionInboxActionResult> {
+export async function resolveActionItem(itemId: string): Promise<ActionInboxActionResult> {
   return runActionInboxMutation(itemId, "resolve");
 }
-export function dismissActionItem(itemId: string): Promise<ActionInboxActionResult> {
+export async function dismissActionItem(itemId: string): Promise<ActionInboxActionResult> {
   return runActionInboxMutation(itemId, "dismiss");
 }
