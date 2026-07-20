@@ -171,7 +171,6 @@ const nextConfig: NextConfig = {
       "/features",
       "/pricing",
       "/contact",
-      "/new",
     ].map((source) => ({
       source,
       headers: [
