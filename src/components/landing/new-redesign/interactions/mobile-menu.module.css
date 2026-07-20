@@ -1,0 +1,6 @@
+.menu { position: relative; }
+.menu > button { min-width: 52px; min-height: 40px; border: 1px solid #d4d5d1; border-radius: 10px; background: #fff; color: #111214; font: inherit; font-size: 14px; font-weight: 500; }
+.panel { position: absolute; top: calc(100% + 7px); right: 0; width: min(280px, calc(100vw - 32px)); display: grid; border: 1px solid #d4d5d1; border-radius: 10px; background: #fff; box-shadow: 0 16px 38px rgba(17,18,20,.12); }
+.panel a { min-height: 48px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #e6e6e3; color: #111214; font-size: 14px; text-decoration: none; }
+.panel a:last-child { border: 0; background: #fff1ea; color: #9b2e05; font-weight: 600; }
+@media (min-width: 992px) { .menu { display: none; } }

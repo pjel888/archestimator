@@ -24,7 +24,6 @@ const landingAllowlist = new Set([
 const landingAllowlistPrefixes = [
   "src/components/landing/",
   "src/components/landing-v3/",
-  "src/components/landing-new/",
   "src/components/auth/",
   "src/components/frontdoor/",
 ];

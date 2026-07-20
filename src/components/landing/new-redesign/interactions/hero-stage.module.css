@@ -1,0 +1,4 @@
+.stage { --hero-copy-opacity: 1; --hero-copy-blur: 0px; --hero-product-scale: 1; }
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .stage[data-scrolled] { --hero-copy-opacity: 0; --hero-copy-blur: 2.5px; --hero-product-scale: .852; }
+}
