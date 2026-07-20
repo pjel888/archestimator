@@ -1,0 +1,388 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-20-estimate-mutation-integrity-unification",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-20T21:30:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+    "scoped_status_sha256": "7611d298f480b0fdb0f620ee9c98d24176e8305426cb99652ec36239fa2da8f4",
+    "scoped_diff_sha256": "7611d298f480b0fdb0f620ee9c98d24176e8305426cb99652ec36239fa2da8f4"
+  },
+  "stale_triggers": [
+    "Pack B UNIT-002 (d1-intents-rows-sql characterization suite) is not VERIFIED before starting UNIT-001 — it is the regression net for zero observable behavior change",
+    "Pack C UNIT-001 and UNIT-002 (shared D1 runtime) are not VERIFIED before starting UNIT-001 — the primitives compose runD1Batch from d1-runtime",
+    "Pack A UNIT-006 (AI Apply atomicity) is not landed before starting UNIT-002 — UNIT-002 builds on its runBatch pattern",
+    "baseline HEAD changes on src/lib/estimates/d1-intents/rows.ts (UNIT-001 refactor surface)",
+    "baseline HEAD changes on src/lib/ai/package-builder/apply.ts (UNIT-002 target)",
+    "baseline HEAD changes on src/lib/estimates/express-promotion-actions.ts (UNIT-003 target)",
+    "baseline HEAD changes on src/lib/component-library/component-mutation-d1.ts (UNIT-004 target)",
+    "the optimistic-concurrency fingerprint string estimate_sheet_row_revision_conflict changes (load-bearing for clients)"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "7611d298f480b0fdb0f620ee9c98d24176e8305426cb99652ec36239fa2da8f4"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "8ebbe7adc2be1e9f049ec8bd099795ae42b43b57e2979a3c9d3bd80777a74b53"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit",
+      "path": "units/001-extract-mutation-intent-primitives.md",
+      "sha256": "d3f7584caf5f30dce443bbbf9926c86f44d287edcbca21d7894da7e2af8017be"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/002-route-ai-apply-through-primitives.md",
+      "sha256": "34c8f3b2f3930c465d0bf249c17511741c0bd4436f37a85129bd80b99d6dbfbd"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit",
+      "path": "units/003-route-express-promotion-through-primitives.md",
+      "sha256": "4bbfd1cf3aa877c2a4ecdf43e3c119ac2d7159b86d4821038187d3787ab87a6f"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/004-route-component-mutation-through-primitives.md",
+      "sha256": "0931b8eafbe9eae7e100ee916b7ae788debb73dbaefcfc1ca933074fcaa45d3f"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "DATA-002",
+        "DATA-003",
+        "DATA-004"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "DATA-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Zero-observable-behavior-change refactor gated by Pack B UNIT-002 characterization suite (a cross-pack TEST_TASK baseline); this unit itself adds no new tests under NOT_REQUIRED, but MUST keep the Pack B suite green.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavior-preserving routing verified by type-check and grep audit; NOT_REQUIRED under the User Test Authorization Gate, with the Pack B suite as the cross-pack regression net.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavior-preserving routing verified by type-check and grep audit; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Behavior-preserving routing verified by type-check, grep audit, and the existing component-library-actions-revalidation test under NOT_REQUIRED.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-extract-mutation-intent-primitives.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-route-ai-apply-through-primitives.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-route-express-promotion-through-primitives.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-route-component-mutation-through-primitives.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-004"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    }
+  ],
+  "decisions": [],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-extract-mutation-intent-primitives.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "d3f7584caf5f30dce443bbbf9926c86f44d287edcbca21d7894da7e2af8017be",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-route-ai-apply-through-primitives.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "34c8f3b2f3930c465d0bf249c17511741c0bd4436f37a85129bd80b99d6dbfbd",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-route-express-promotion-through-primitives.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-003"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "4bbfd1cf3aa877c2a4ecdf43e3c119ac2d7159b86d4821038187d3787ab87a6f",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/004-route-component-mutation-through-primitives.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-004"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "0931b8eafbe9eae7e100ee916b7ae788debb73dbaefcfc1ca933074fcaa45d3f",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "manifest_sha256": "d8eb20a94f714531c23293ee7ba9d0ff2e367e521590584b203a85c48be767a2"
+}

@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-07-20T13:01:12.948Z",
+  "mode": "cloudflare-wrangler-auth",
+  "source": "wrangler-whoami",
+  "command": {
+    "executable": "bunx",
+    "args": [
+      "wrangler",
+      "whoami",
+      "--json"
+    ],
+    "exitCode": 1,
+    "signal": null,
+    "timedOut": false
+  },
+  "wranglerVersion": null,
+  "auth": {
+    "checked": true,
+    "authenticated": false,
+    "method": null,
+    "accountEmailPresent": false,
+    "accountNames": [],
+    "accountIds": [],
+    "notAuthenticatedReason": "wrangler-login-required"
+  },
+  "sanitizedMessages": [],
+  "readiness": {
+    "wranglerCliAvailable": true,
+    "wranglerAuthCheckCompleted": true,
+    "wranglerApiAuthenticated": false,
+    "providerReadbackReady": false,
+    "productionDeployReady": false
+  },
+  "blockers": [
+    "Wrangler is not authenticated; run `wrangler login` or provide a scoped token outside the repo."
+  ],
+  "note": "Runs `wrangler whoami --json` as a read-only CLI authentication check. It records only sanitized auth/account metadata, does not read env files, does not print tokens or secrets, does not create Cloudflare resources, does not deploy Workers, does not change DNS, does not purchase plans, and does not make production cutover ready."
+}

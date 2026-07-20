@@ -1,0 +1,277 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-20-d1-runtime-consolidation",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-20T21:30:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+    "scoped_status_sha256": "6a2297c5669b20bbc734afc5eb5ef979ae2cb92370962b8433e843824ae689b1",
+    "scoped_diff_sha256": "6a2297c5669b20bbc734afc5eb5ef979ae2cb92370962b8433e843824ae689b1"
+  },
+  "stale_triggers": [
+    "baseline HEAD changes on src/lib/cloudflare/d1.ts (UNIT-001 composes it)",
+    "baseline HEAD changes on src/lib/estimates/d1-intents/database.ts (UNIT-001 source, UNIT-002 re-export target)",
+    "any of the ~14 files listed in UNIT-002 change (helper-copy migration surface)",
+    "the count of requireXD1Database wrappers in src/lib changes (UNIT-003 enumeration)",
+    "Pack D begins rewriting src/lib/ai/package-builder/apply.ts (UNIT-003 defers its helpers but does not block Pack D)"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "6a2297c5669b20bbc734afc5eb5ef979ae2cb92370962b8433e843824ae689b1"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "33dce5aed0181b34726d92fb3806ca82017528f19b3181a09145ecfb0b9307d3"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit",
+      "path": "units/001-create-shared-d1-runtime.md",
+      "sha256": "e7a724ea701241a0af964bdc0c6294c3b180d76341be9c6118c74c7d83bfb76b"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/002-migrate-repositories-to-shared-module.md",
+      "sha256": "8045719b8bca75e1acfb68651b114bb64ec3f3ba7675f8b44f61e7328fdc27c7"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit",
+      "path": "units/003-collapse-require-d1-database-wrappers.md",
+      "sha256": "aa395de36f5af8ce88fecce641c95233435623daeef205f048dc0385e1462bb4"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "DATA-002"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Mechanical migration verified by type-check and grep audit; the User Test Authorization Gate is NOT_REQUIRED for refactors with no behavior change.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Mechanical wrapper collapse verified by type-check and grep enumeration; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-create-shared-d1-runtime.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-migrate-repositories-to-shared-module.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-collapse-require-d1-database-wrappers.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    }
+  ],
+  "decisions": [],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-create-shared-d1-runtime.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "e7a724ea701241a0af964bdc0c6294c3b180d76341be9c6118c74c7d83bfb76b",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-migrate-repositories-to-shared-module.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-001"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "8045719b8bca75e1acfb68651b114bb64ec3f3ba7675f8b44f61e7328fdc27c7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-collapse-require-d1-database-wrappers.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-002"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "aa395de36f5af8ce88fecce641c95233435623daeef205f048dc0385e1462bb4",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "manifest_sha256": "21acd59c7a2d4f96b16a539c3a871a5551d88ee18eafa99e40e3283a2560107b"
+}

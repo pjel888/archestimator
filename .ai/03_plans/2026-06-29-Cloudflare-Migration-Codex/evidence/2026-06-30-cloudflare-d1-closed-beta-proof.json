@@ -1,0 +1,149 @@
+{
+  "generatedAt": "2026-07-20T12:54:37.600Z",
+  "mode": "cloudflare-d1-closed-beta-proof",
+  "sources": {
+    "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/23_D1_AUTH_REALTIME_REDESIGN_PLAN.md",
+    "currentAppFiles": [
+      "src/lib/auth/closed-beta-access.ts",
+      "src/lib/auth/beta-allowlist-admin.ts",
+      "src/lib/auth/beta-allowlist-admin-actions.ts",
+      "src/app/workshop/settings/users/page.tsx"
+    ],
+    "currentSupabaseMigrations": [
+      "supabase/migrations/20260601182522_closed_beta_allowed_emails.sql",
+      "supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql"
+    ],
+    "d1DatabaseApi": "Cloudflare D1 prepared statements and batch/transaction semantics, modeled locally with SQLite"
+  },
+  "affectedRpcNames": [
+    "check_closed_beta_access",
+    "read_closed_beta_allowlist_queue",
+    "create_closed_beta_allowlist_entry",
+    "update_closed_beta_allowlist_entry"
+  ],
+  "readiness": {
+    "schemaReady": true,
+    "statusContractReady": true,
+    "appLayerAdminGuardReady": true,
+    "accessCheckReady": true,
+    "queueReadReady": true,
+    "createMutationReady": true,
+    "updateMutationReady": true,
+    "nonAdminDenied": true,
+    "invalidStatusDenied": true,
+    "rollbackReady": true,
+    "idempotencyReady": true,
+    "queryBudgetReady": true,
+    "restoreFixtureReady": true,
+    "localClosedBetaD1SliceReady": true,
+    "productionClosedBetaD1Ready": false
+  },
+  "localOnly": true,
+  "providerBacked": false,
+  "fixture": {
+    "sqliteVersion": "3.54.0",
+    "fixtureTables": 3,
+    "rowsSeeded": 9,
+    "invitedAccessAllowed": true,
+    "activeAccessAllowed": true,
+    "revokedAccessAllowed": false,
+    "wrongEmailAccessAllowed": false,
+    "missingEmailAccessAllowed": false,
+    "adminQueueRows": 3,
+    "nonAdminQueueRows": 0,
+    "createRows": 1,
+    "normalizedCreatedEmail": "newpilot@example.test",
+    "duplicateCreateRows": 0,
+    "nonAdminCreateRows": 0,
+    "invalidCreateCommandFailed": true,
+    "invalidCreateRows": 0,
+    "adminStatusAfterUpdate": "active",
+    "nonAdminStatusAfterDeniedUpdate": "active",
+    "invalidUpdateCommandFailed": true,
+    "invalidUpdateStatusAfterDenied": "active",
+    "rollbackCommandFailed": true,
+    "rollbackResidueRows": 0,
+    "restoredAllowlistRows": 4,
+    "restoredAuditRows": 2,
+    "accessLookupPlanUsesIndex": true,
+    "queuePlanUsesIndex": true,
+    "updatePlanUsesPrimaryKey": true,
+    "planDetails": [
+      "`--SEARCH closed_beta_allowed_emails USING INDEX sqlite_autoindex_closed_beta_allowed_emails_2 (normalized_email=?)",
+      "`--SEARCH closed_beta_allowed_emails USING INDEX idx_closed_beta_allowed_emails_status_created_at (status=?)",
+      "`--SEARCH closed_beta_allowed_emails USING INDEX sqlite_autoindex_closed_beta_allowed_emails_1 (id=?)"
+    ],
+    "tempArtifactsRemoved": true
+  },
+  "queryProof": {
+    "rows": [
+      {
+        "surface": "check_closed_beta_access_email_lookup",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 3.18,
+        "rowsReturned": 1,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "The beta access gate remains a single normalized-email lookup with caller-email equality enforced by the service."
+      },
+      {
+        "surface": "read_closed_beta_allowlist_queue_by_status",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 3.06,
+        "rowsReturned": 2,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Admin queue reads use the status/created-at index and keep direct table enumeration unavailable to non-admins."
+      },
+      {
+        "surface": "create_closed_beta_allowlist_entry_unique_email",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 3.16,
+        "rowsReturned": 1,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Create retries are naturally bounded by the normalized-email unique index."
+      },
+      {
+        "surface": "update_closed_beta_allowlist_entry_by_id",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 3.05,
+        "rowsReturned": 1,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Admin status updates target a single row by primary key after the app-layer role guard."
+      }
+    ]
+  },
+  "d1RewriteStrategy": {
+    "typeStrategy": "Model closed-beta allowlist rows as a D1 table with normalized-email uniqueness, status CHECK constraints, app-layer platform-admin guards derived from Better Auth identity, and repository-only access for the sensitive queue.",
+    "preparedStatementPatterns": [
+      "SELECT status FROM closed_beta_allowed_emails WHERE normalized_email = ? LIMIT 1",
+      "SELECT ... FROM closed_beta_allowed_emails WHERE status = ? ORDER BY created_at DESC LIMIT 100",
+      "INSERT INTO closed_beta_allowed_emails (...) SELECT ... FROM users WHERE actor.role IN ('admin', 'ceo') ON CONFLICT(normalized_email) DO NOTHING",
+      "UPDATE closed_beta_allowed_emails SET status = ?, notes = ?, updated_at = ? WHERE id = ? AND EXISTS (SELECT 1 FROM users WHERE role IN ('admin', 'ceo'))",
+      "INSERT INTO closed_beta_allowlist_audit_events (...) ON CONFLICT(allowlist_entry_id, event_type, actor_user_id, metadata_json) DO NOTHING"
+    ]
+  },
+  "productionProofRequirements": [
+    "Implement the closed-beta D1 repository behind Better Auth request identity and app-layer platform-admin checks.",
+    "Run check, queue-read, create, duplicate-create, update, non-admin denial, invalid-status, rollback, and restore tests inside the Worker runtime.",
+    "Capture hosted Worker+D1 query count, p95 duration, rows read/written, and denial telemetry for beta access checks and allowlist admin actions.",
+    "Keep direct allowlist table enumeration blocked; only repository methods with server-derived identity should reach D1.",
+    "Run a provider-backed D1 export/restore rehearsal for closed-beta allowlist rows before treating D1 as the source of truth."
+  ],
+  "blockers": [
+    "Hosted Worker+D1 closed-beta allowlist proof is still missing.",
+    "Better Auth production identity handoff is still missing; keep current Supabase-backed closed-beta gates live.",
+    "Provider-backed D1 export/restore proof for closed-beta allowlist rows is still missing."
+  ],
+  "note": "Local D1 closed-beta allowlist proof only. It uses sanitized temporary SQLite data and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live auth gates, or make production D1/Auth ready."
+}

@@ -1,0 +1,582 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-20-quick-correctness-and-security-wins",
+  "profile": "focused",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-20T21:30:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+    "scoped_status_sha256": "62e536812ea02824528fabff7695c6756ab74f711d3bf946082aab558965315d",
+    "scoped_diff_sha256": "62e536812ea02824528fabff7695c6756ab74f711d3bf946082aab558965315d"
+  },
+  "stale_triggers": [
+    "baseline HEAD changes on src/lib/client-portal/public-repository.ts (UNIT-001)",
+    "baseline HEAD changes on src/lib/auth/closed-beta-access.ts (UNIT-002)",
+    "baseline HEAD changes on src/lib/publication/security.ts (UNIT-003)",
+    "any of the seven src/lib/cloudflare/*-proof-router.ts files change (UNIT-004)",
+    "baseline HEAD changes on src/lib/estimates/actions.ts (UNIT-005)",
+    "baseline HEAD changes on src/lib/ai/package-builder/apply.ts (UNIT-006)",
+    "baseline HEAD changes on worker.ts (UNIT-007)",
+    "src/lib/security/bearer-auth.ts authorizeBearerRequest signature changes (UNIT-004 dependency)",
+    "User Test Authorization Gate changes from NOT_REQUIRED to TEST_TASK for any unit"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "62e536812ea02824528fabff7695c6756ab74f711d3bf946082aab558965315d"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "de67fbe36d968df75908de15490698d1bb00606e79b020350f85c65230c63e43"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit",
+      "path": "units/001-client-portal-reverification-lockout.md",
+      "sha256": "4e94bd5bb2fc509791e0f309708f1374e6a74f4bf96bd5da7a7fc88ef475e7eb"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/002-closed-beta-fail-closed.md",
+      "sha256": "968c301b37caa5b904a17677199fdc724c084e579ffec2b240df531ef309bd2d"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit",
+      "path": "units/003-publication-password-min-length.md",
+      "sha256": "5bf6af5d7bf4098a48bac28c1ee970f10c253550dc8fe430d44e2dce8b65c8ae"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/004-timing-safe-proof-routers.md",
+      "sha256": "568064a6b1a32fa40c47e904d8077e92ac61208a3c77b058b5acacd9bd7a84f2"
+    },
+    {
+      "id": "ART-007",
+      "role": "unit",
+      "path": "units/005-link-state-benign-edit.md",
+      "sha256": "13b35cd666af133b919633ee9445d47243a83daf1d609cd0d92e6ee568699fd3"
+    },
+    {
+      "id": "ART-008",
+      "role": "unit",
+      "path": "units/006-ai-apply-atomic-row-event.md",
+      "sha256": "0d55a386b3e6d38efada1e1714ba00b15bd98c81d57a70bcf0a7c38d7f0690f2"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "units/007-queue-failure-observability.md",
+      "sha256": "74d5d0fe488fc6e35f246dfcc715834f03e9f84aff4a08e2ca75a5636a8f476e"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "SEC-004",
+        "DATA-001",
+        "DATA-002",
+        "OPS-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SEC-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SEC-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "artifact_path": "00-PLAN.md"
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Assertion-line edit verified by type-check and diff inspection; the User Test Authorization Gate is NOT_REQUIRED.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Tristate resolver verified by type-check and source inspection; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Constant bump and class-check verified by type-check; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Drop-in replacement of the comparison primitive verified by grep audit and type-check; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Conditional spread verified by source inspection; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "runBatch pairing verified by grep audit; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Catch-block addition verified by type-check and diff inspection; NOT_REQUIRED under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "00-PLAN.md"
+    }
+  ],
+  "tests": [],
+  "gates": [
+    {
+      "id": "GATE-TYPECHECK",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-client-portal-reverification-lockout.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-closed-beta-fail-closed.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-publication-password-min-length.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-timing-safe-proof-routers.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-004"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-link-state-benign-edit.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-ai-apply-atomic-row-event.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-queue-failure-observability.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "decisions": [],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-client-portal-reverification-lockout.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "4e94bd5bb2fc509791e0f309708f1374e6a74f4bf96bd5da7a7fc88ef475e7eb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-closed-beta-fail-closed.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "968c301b37caa5b904a17677199fdc724c084e579ffec2b240df531ef309bd2d",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-publication-password-min-length.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-003"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "5bf6af5d7bf4098a48bac28c1ee970f10c253550dc8fe430d44e2dce8b65c8ae",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/004-timing-safe-proof-routers.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-004"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "568064a6b1a32fa40c47e904d8077e92ac61208a3c77b058b5acacd9bd7a84f2",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "units/005-link-state-benign-edit.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-005"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "13b35cd666af133b919633ee9445d47243a83daf1d609cd0d92e6ee568699fd3",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "units/006-ai-apply-atomic-row-event.md",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-006"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "0d55a386b3e6d38efada1e1714ba00b15bd98c81d57a70bcf0a7c38d7f0690f2",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "units/007-queue-failure-observability.md",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-007"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "74d5d0fe488fc6e35f246dfcc715834f03e9f84aff4a08e2ca75a5636a8f476e",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ]
+    }
+  ],
+  "manifest_sha256": "6b2b8fa9be3e62d61fd713dc02b89d3dfe830b74419ed00c839dd6a653edf77d"
+}

@@ -1,0 +1,268 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-20-test-characterization-baselines",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-20T21:30:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+    "scoped_status_sha256": "31b622ebd002f0f946cc022dc50593869f63518931086b3230c9f261a3913213",
+    "scoped_diff_sha256": "31b622ebd002f0f946cc022dc50593869f63518931086b3230c9f261a3913213"
+  },
+  "stale_triggers": [
+    "baseline HEAD changes on src/components/workshop/EstimateSheetContent.tsx (UNIT-001 fixture surface)",
+    "baseline HEAD changes on src/lib/estimates/d1-intents/rows.ts (UNIT-002 target)",
+    "the existing exemplar tests/vitest/estimate-record-d1-intents.test.ts D1-stub pattern changes (UNIT-002 reuses it)",
+    "vitest.config.ts fileParallelism or timeout changes (both units depend on serial 30s config)"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "31b622ebd002f0f946cc022dc50593869f63518931086b3230c9f261a3913213"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "a320bd0ddb14a9c501e6d6dd4a8a8b15a211b7ee2a4323ff06cef46d660e6ced"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit",
+      "path": "units/001-estimate-sheet-characterization.md",
+      "sha256": "7fba185ad0cfcd1b2f3a2c1a019b511bf0aa48720035dac1e938e2ff46e83fd3"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/002-d1-intents-rows-sql-suite.md",
+      "sha256": "af5f2cf3d962edc5ef9d1e95ced653e23e3467c152ea175e2116280108c3d15f"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "DATA-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "This unit IS a test; the pack's TEST_TASK authorization covers writing and running the characterization harness under bunx vitest.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "This unit IS a test; the pack's TEST_TASK authorization covers writing and running the SQL intent suite under bunx vitest.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-estimate-sheet-characterization.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-d1-intents-rows-sql-suite.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    }
+  ],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-estimate-sheet-characterization.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-d1-intents-rows-sql-suite.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    }
+  ],
+  "decisions": [],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-estimate-sheet-characterization.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001",
+        "TEST-001"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "7fba185ad0cfcd1b2f3a2c1a019b511bf0aa48720035dac1e938e2ff46e83fd3",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-d1-intents-rows-sql-suite.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "TEST-002"
+      ],
+      "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
+      "sha256": "af5f2cf3d962edc5ef9d1e95ced653e23e3467c152ea175e2116280108c3d15f",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ]
+    }
+  ],
+  "manifest_sha256": "0ef77cd550d718c729af656161cba0f5d60b84101be977de0b44ba6f844a680d"
+}
