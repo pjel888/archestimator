@@ -1,5 +1,13 @@
 import { emitLogRecord } from "@/lib/observability/logger";
 
+export type EmailAttachmentInput = {
+  filename: string;
+  content: ArrayBuffer | Uint8Array | string;
+  type?: string;
+  disposition?: "attachment" | "inline";
+  contentId?: string;
+};
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
@@ -8,6 +16,7 @@ export type SendEmailInput = {
   from?: string;
   replyTo?: string;
   headers?: Record<string, string>;
+  attachments?: EmailAttachmentInput[];
 };
 
 export type SendEmailResult =
@@ -28,6 +37,13 @@ type CloudflareSendEmailBinding = {
     text?: string;
     html?: string;
     headers?: Record<string, string>;
+    attachments?: Array<{
+      filename: string;
+      content: ArrayBuffer | Uint8Array | string;
+      type?: string;
+      disposition?: "attachment" | "inline";
+      contentId?: string;
+    }>;
   }) => Promise<{
     messageId?: string;
   }>;
@@ -158,6 +174,7 @@ export async function sendCloudflareEmail(
       html: input.html,
       ...(replyTo ? { replyTo } : {}),
       ...(input.headers && Object.keys(input.headers).length > 0 ? { headers: input.headers } : {}),
+      ...(input.attachments && input.attachments.length > 0 ? { attachments: input.attachments } : {}),
     });
     return {
       ok: true,

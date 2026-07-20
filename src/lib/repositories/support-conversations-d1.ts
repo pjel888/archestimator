@@ -101,7 +101,7 @@ type ProfileRow = {
   display_name: string | null;
 };
 
-const SUPPORT_BODY_MAX = 8_000;
+const SUPPORT_BODY_MAX = 40_000;
 const SUPPORT_SUBJECT_MAX = 160;
 const SUPPORT_CLIENT_MESSAGE_ID_MAX = 128;
 

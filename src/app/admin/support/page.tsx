@@ -35,21 +35,23 @@ export default async function AdminSupportPage({
   const firstConversationId = selectedId && conversations.data.some((row) => row.id === selectedId)
     ? selectedId
     : conversations.data[0]?.id;
-  const initialMessages = firstConversationId ? await listSupportMessages(firstConversationId) : { data: [], error: null };
   const db = await getCloudflareD1Database();
-  const initialAttachments = firstConversationId && db
-    ? await listSupportAttachmentsForConversationInD1(db, firstConversationId).catch(() => [])
-    : [];
-  const savedReplies = await listSavedReplies(50);
+  const [initialMessages, initialAttachments, savedReplies] = await Promise.all([
+    firstConversationId ? listSupportMessages(firstConversationId) : Promise.resolve({ data: [], error: null }),
+    firstConversationId && db
+      ? listSupportAttachmentsForConversationInD1(db, firstConversationId).catch(() => [])
+      : Promise.resolve([] as Awaited<ReturnType<typeof listSupportAttachmentsForConversationInD1>>),
+    listSavedReplies(50),
+  ]);
   const supportConfig = readSupportEmailConfig();
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-2">
-      <div>
+    <div className="mx-auto flex h-[calc(100dvh-2.75rem)] w-full max-w-[1400px] flex-col gap-1.5 overflow-hidden">
+      <div className="shrink-0">
         <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
         <h1 className="text-[12px] font-medium leading-5 text-ink">Support</h1>
         <p className="text-[10px] leading-4 text-tertiary">
-          Unified in-app and email support inbox. D1 is canonical; Cloudflare acceptance is not final delivery.
+          Unified in-app and email inbox with rich compose, attachments, and Cloudflare acceptance states.
         </p>
       </div>
       {conversations.error && <p className="text-[10px] leading-4 text-tertiary">{conversations.error}</p>}

@@ -6,7 +6,10 @@
  * Cloudflare Email Service only.
  */
 
-import { sendCloudflareEmail } from "@/lib/email/cloudflare-email-client";
+import {
+  sendCloudflareEmail,
+  type EmailAttachmentInput,
+} from "@/lib/email/cloudflare-email-client";
 import { emitLogRecord } from "@/lib/observability/logger";
 
 export type SendEmailInput = {
@@ -17,6 +20,7 @@ export type SendEmailInput = {
   from?: string;
   replyTo?: string;
   headers?: Record<string, string>;
+  attachments?: EmailAttachmentInput[];
   tags?: Array<{ name: string; value: string }>;
 };
 
@@ -146,6 +150,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     from: input.from,
     replyTo: input.replyTo,
     headers: input.headers,
+    attachments: input.attachments,
   });
   if (!result.ok) recordEmailFail(Date.now());
   return result;

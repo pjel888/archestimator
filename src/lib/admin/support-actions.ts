@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { writeAdminAuditEvent } from "@/lib/admin/audit";
 import { requireAdminContext } from "@/lib/admin/require-admin";
@@ -12,6 +13,13 @@ import {
   readSupportEmailConfig,
   supportOutboundConfigured,
 } from "@/lib/email/support-email-config";
+import type { EmailAttachmentInput } from "@/lib/email/cloudflare-email-client";
+import { htmlToPlainText, sanitizeSupportHtml, wrapSupportEmailHtml } from "@/lib/email/support-email-html";
+import {
+  getSupportUploadsR2,
+  materializeDraftAttachmentsForMessage,
+  type SupportDraftAttachmentMeta,
+} from "@/lib/email/support-outbound-attachments";
 import { sendEmail } from "@/lib/email/transactional-email-client";
 import {
   createExternalSupportConversationInD1,
@@ -26,6 +34,7 @@ import {
   markSupportMessageSendStatusInD1,
   normalizeSupportConversationStatus,
   updateSupportConversationStatus,
+  type SupportAttachmentRow,
   type SupportConversationRow,
   type SupportConversationStatus,
   type SupportMessageRow,
@@ -61,6 +70,37 @@ function plainTextToMinimalHtml(text: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
   return `<pre style="font-family:ui-sans-serif,system-ui,sans-serif;white-space:pre-wrap;">${escaped}</pre>`;
+}
+
+function resolveOutboundBodies(input: { body?: string; html?: string | null }) {
+  const rawHtml = input.html?.trim() ? sanitizeSupportHtml(input.html) : "";
+  if (rawHtml) {
+    const textFromHtml = htmlToPlainText(rawHtml);
+    const bodyText = (textFromHtml || input.body || "").trim();
+    if (!bodyText) throw new Error("body is required.");
+    return {
+      bodyText: bodyText.slice(0, 40_000),
+      bodyHtml: rawHtml,
+      emailHtml: wrapSupportEmailHtml(rawHtml),
+    };
+  }
+  const bodyText = normalizeActionText(input.body ?? "", "body", 40_000);
+  return {
+    bodyText,
+    bodyHtml: null as string | null,
+    emailHtml: plainTextToMinimalHtml(bodyText),
+  };
+}
+
+function normalizeDraftAttachments(raw: SupportDraftAttachmentMeta[] | undefined) {
+  if (!raw?.length) return [] as SupportDraftAttachmentMeta[];
+  return raw.slice(0, 10).map((draft) => ({
+    draftId: normalizeActionText(draft.draftId, "draftId", 128),
+    r2Key: normalizeActionText(draft.r2Key, "r2Key", 512),
+    filename: normalizeActionText(draft.filename, "filename", 180),
+    contentType: normalizeActionText(draft.contentType || "application/octet-stream", "contentType", 180),
+    sizeBytes: Math.max(0, Math.floor(Number(draft.sizeBytes) || 0)),
+  }));
 }
 
 async function writeSupportAudit(input: {
@@ -108,8 +148,10 @@ async function dispatchSupportEmail(input: {
   to: string;
   subject: string;
   text: string;
+  html: string;
   replyTo: string;
   headers?: Record<string, string>;
+  attachments?: EmailAttachmentInput[];
 }) {
   if (!supportOutboundConfigured()) {
     return {
@@ -123,10 +165,11 @@ async function dispatchSupportEmail(input: {
     to: input.to,
     subject: input.subject,
     text: input.text,
-    html: plainTextToMinimalHtml(input.text),
+    html: input.html,
     from: `${identity.fromName} <${identity.fromAddress}>`,
     replyTo: input.replyTo,
     headers: input.headers,
+    attachments: input.attachments,
   });
 }
 
@@ -146,7 +189,8 @@ async function retrySupportReplyEmail(input: {
   }
 
   let finalMessage: SupportMessageRow | null = claimedMessage;
-  const recipient = conversation.requester_email;
+  const shouldEmail = conversation.channel === "email" && Boolean(conversation.requester_email);
+  const recipient = shouldEmail ? conversation.requester_email : null;
 
   if (recipient) {
     const identity = resolveSupportSendIdentity();
@@ -158,6 +202,9 @@ async function retrySupportReplyEmail(input: {
       to: recipient,
       subject: formatReplySubject(conversation.subject),
       text: existingMessage.body_text,
+      html: existingMessage.body_html
+        ? wrapSupportEmailHtml(existingMessage.body_html)
+        : plainTextToMinimalHtml(existingMessage.body_text),
       replyTo,
       headers,
     });
@@ -204,13 +251,25 @@ async function retrySupportReplyEmail(input: {
 
 export async function sendSupportReply(input: {
   conversationId: string;
-  body: string;
+  body?: string;
+  html?: string | null;
   clientMessageId: string;
-}): Promise<SupportActionResult<{ message: SupportMessageRow; conversation: SupportConversationRow }>> {
+  drafts?: SupportDraftAttachmentMeta[];
+}): Promise<SupportActionResult<{
+  message: SupportMessageRow;
+  conversation: SupportConversationRow;
+  attachments: SupportAttachmentRow[];
+}>> {
   const admin = await requireAdminContext();
   const conversationId = normalizeActionText(input.conversationId, "conversationId", 128);
-  const body = normalizeActionText(input.body, "body", 8_000);
   const clientMessageId = normalizeActionText(input.clientMessageId, "clientMessageId", 128);
+  const drafts = normalizeDraftAttachments(input.drafts);
+  let bodies;
+  try {
+    bodies = resolveOutboundBodies({ body: input.body, html: input.html });
+  } catch {
+    return { ok: false, error: "validation" };
+  }
   const db = await getCloudflareD1Database();
   if (!db) return { ok: false, error: "d1_unavailable" };
 
@@ -218,34 +277,70 @@ export async function sendSupportReply(input: {
   if (!conversation) return { ok: false, error: "not_found" };
 
   const identity = resolveSupportSendIdentity();
+  const isEmailChannel = conversation.channel === "email";
   const inserted = await insertSupportMessageIfNewInD1(db, {
     conversationId,
     senderRole: "admin",
     authorUserId: admin.userId,
-    bodyText: body,
+    bodyText: bodies.bodyText,
+    bodyHtml: bodies.bodyHtml,
     clientMessageId,
     sendStatus: "pending",
     direction: "outbound",
-    transport: conversation.requester_email ? "email" : "in_app",
-    mailboxAddress: conversation.mailbox_address ?? identity.mailbox,
-    fromAddress: identity.fromAddress,
-    fromName: identity.fromName,
-    toJson: conversation.requester_email ? JSON.stringify([{ email: conversation.requester_email }]) : null,
-    providerName: conversation.requester_email ? "cloudflare-email" : null,
+    transport: isEmailChannel ? "email" : "in_app",
+    mailboxAddress: isEmailChannel ? (conversation.mailbox_address ?? identity.mailbox) : null,
+    fromAddress: isEmailChannel ? identity.fromAddress : null,
+    fromName: isEmailChannel ? identity.fromName : null,
+    toJson: isEmailChannel && conversation.requester_email
+      ? JSON.stringify([{ email: conversation.requester_email }])
+      : null,
+    providerName: isEmailChannel ? "cloudflare-email" : null,
+    attachmentCount: drafts.length,
   });
 
   if (!inserted.inserted) {
     if (inserted.message.send_status === "send_failed") {
-      return retrySupportReplyEmail({ admin, conversation, existingMessage: inserted.message, db });
+      if (!isEmailChannel) {
+        const recovered = await markSupportMessageSendStatusInD1(db, {
+          messageId: inserted.message.id,
+          sendStatus: "sent",
+        });
+        if (!recovered) return { ok: false, error: "delivery_uncertain", message: inserted.message };
+        return { ok: true, data: { message: recovered, conversation, attachments: [] } };
+      }
+      const retry = await retrySupportReplyEmail({ admin, conversation, existingMessage: inserted.message, db });
+      if (!retry.ok) return retry;
+      return { ok: true, data: { ...retry.data, attachments: [] } };
     }
     if (inserted.message.send_status === "pending") {
       return { ok: false, error: "delivery_pending", message: inserted.message };
     }
-    return { ok: true, data: { message: inserted.message, conversation } };
+    return { ok: true, data: { message: inserted.message, conversation, attachments: [] } };
+  }
+
+  let emailAttachments: EmailAttachmentInput[] = [];
+  let storedAttachments: SupportAttachmentRow[] = [];
+  if (drafts.length > 0) {
+    const r2 = await getSupportUploadsR2();
+    if (!r2) return { ok: false, error: "failed", message: inserted.message };
+    try {
+      const materialized = await materializeDraftAttachmentsForMessage({
+        db,
+        r2,
+        adminUserId: admin.userId,
+        conversationId,
+        messageId: inserted.message.id,
+        drafts,
+      });
+      emailAttachments = materialized.emailAttachments;
+      storedAttachments = materialized.attachments;
+    } catch {
+      return { ok: false, error: "validation", message: inserted.message };
+    }
   }
 
   let finalMessage: SupportMessageRow | null = inserted.message;
-  if (conversation.requester_email) {
+  if (isEmailChannel && conversation.requester_email) {
     const replyTo = conversation.routing_token
       ? buildPlusAddress(identity.mailbox, conversation.routing_token)
       : identity.fromAddress;
@@ -253,9 +348,11 @@ export async function sendSupportReply(input: {
     const result = await dispatchSupportEmail({
       to: conversation.requester_email,
       subject: formatReplySubject(conversation.subject),
-      text: body,
+      text: bodies.bodyText,
+      html: bodies.emailHtml,
       replyTo,
       headers,
+      attachments: emailAttachments,
     });
     if (!result.ok) {
       finalMessage = await markSupportMessageSendStatusInD1(db, {
@@ -292,32 +389,45 @@ export async function sendSupportReply(input: {
     actorEmail: admin.email,
     action: "support.reply_sent",
     targetId: conversationId,
-    summary: { messageId: finalMessage.id, providerAccepted: Boolean(conversation.requester_email) },
+    summary: {
+      messageId: finalMessage.id,
+      providerAccepted: isEmailChannel && Boolean(conversation.requester_email),
+      channel: conversation.channel,
+      attachmentCount: storedAttachments.length,
+    },
   });
   revalidatePath("/admin/support");
-  return { ok: true, data: { message: finalMessage, conversation } };
+  return { ok: true, data: { message: finalMessage, conversation, attachments: storedAttachments } };
 }
 
 export async function createSupportEmailConversationAndSend(input: {
   to: string;
   subject: string;
-  body: string;
+  body?: string;
+  html?: string | null;
   clientMessageId: string;
   recipientName?: string | null;
-}): Promise<SupportActionResult<{ conversation: SupportConversationRow; message: SupportMessageRow }>> {
+  drafts?: SupportDraftAttachmentMeta[];
+}): Promise<SupportActionResult<{
+  conversation: SupportConversationRow;
+  message: SupportMessageRow;
+  attachments: SupportAttachmentRow[];
+}>> {
   const admin = await requireAdminContext();
   let recipient;
+  let bodies;
+  let drafts: SupportDraftAttachmentMeta[];
   try {
     recipient = normalizeEmailAddress(input.to);
     sanitizeHeaderText(input.subject, 160);
-    normalizeActionText(input.body, "body", 8_000);
+    bodies = resolveOutboundBodies({ body: input.body, html: input.html });
     normalizeActionText(input.clientMessageId, "clientMessageId", 128);
+    drafts = normalizeDraftAttachments(input.drafts);
   } catch {
     return { ok: false, error: "validation" };
   }
 
   const subject = sanitizeHeaderText(input.subject, 160) ?? "Archestimator support";
-  const body = normalizeActionText(input.body, "body", 8_000);
   const clientMessageId = normalizeActionText(input.clientMessageId, "clientMessageId", 128);
   const recipientName = input.recipientName ? sanitizeHeaderText(input.recipientName, 120) : recipient.name;
 
@@ -329,17 +439,19 @@ export async function createSupportEmailConversationAndSend(input: {
     const existingConversation = await getSupportConversationInD1(db, existingMessage.conversation_id);
     if (!existingConversation) return { ok: false, error: "not_found" };
     if (existingMessage.send_status === "send_failed") {
-      return retrySupportReplyEmail({
+      const retry = await retrySupportReplyEmail({
         admin,
         conversation: existingConversation,
         existingMessage,
         db,
       });
+      if (!retry.ok) return retry;
+      return { ok: true, data: { conversation: retry.data.conversation, message: retry.data.message, attachments: [] } };
     }
     if (existingMessage.send_status === "pending") {
       return { ok: false, error: "delivery_pending", message: existingMessage };
     }
-    return { ok: true, data: { conversation: existingConversation, message: existingMessage } };
+    return { ok: true, data: { conversation: existingConversation, message: existingMessage, attachments: [] } };
   }
 
   const identity = resolveSupportSendIdentity();
@@ -355,7 +467,8 @@ export async function createSupportEmailConversationAndSend(input: {
     conversationId: conversation.id,
     senderRole: "admin",
     authorUserId: admin.userId,
-    bodyText: body,
+    bodyText: bodies.bodyText,
+    bodyHtml: bodies.bodyHtml,
     clientMessageId,
     sendStatus: "pending",
     direction: "outbound",
@@ -365,19 +478,41 @@ export async function createSupportEmailConversationAndSend(input: {
     fromName: identity.fromName,
     toJson: JSON.stringify([{ email: recipient.email, name: recipientName }]),
     providerName: "cloudflare-email",
+    attachmentCount: drafts.length,
   });
 
   if (!inserted.inserted && inserted.message.send_status !== "send_failed") {
     if (inserted.message.send_status === "pending") {
       return { ok: false, error: "delivery_pending", message: inserted.message };
     }
-    return { ok: true, data: { conversation, message: inserted.message } };
+    return { ok: true, data: { conversation, message: inserted.message, attachments: [] } };
   }
 
   const messageToSend =
     !inserted.inserted && inserted.message.send_status === "send_failed"
       ? (await claimFailedSupportMessageRetryInD1(db, inserted.message.id)) ?? inserted.message
       : inserted.message;
+
+  let emailAttachments: EmailAttachmentInput[] = [];
+  let storedAttachments: SupportAttachmentRow[] = [];
+  if (drafts.length > 0 && inserted.inserted) {
+    const r2 = await getSupportUploadsR2();
+    if (!r2) return { ok: false, error: "failed", message: messageToSend };
+    try {
+      const materialized = await materializeDraftAttachmentsForMessage({
+        db,
+        r2,
+        adminUserId: admin.userId,
+        conversationId: conversation.id,
+        messageId: messageToSend.id,
+        drafts,
+      });
+      emailAttachments = materialized.emailAttachments;
+      storedAttachments = materialized.attachments;
+    } catch {
+      return { ok: false, error: "validation", message: messageToSend };
+    }
+  }
 
   const replyTo = conversation.routing_token
     ? buildPlusAddress(identity.mailbox, conversation.routing_token)
@@ -386,8 +521,10 @@ export async function createSupportEmailConversationAndSend(input: {
   const result = await dispatchSupportEmail({
     to: recipient.email,
     subject,
-    text: body,
+    text: bodies.bodyText,
+    html: bodies.emailHtml,
     replyTo,
+    attachments: emailAttachments,
   });
 
   if (!result.ok) {
@@ -419,10 +556,10 @@ export async function createSupportEmailConversationAndSend(input: {
     actorEmail: admin.email,
     action: "support.email_conversation_created",
     targetId: conversation.id,
-    summary: { messageId: finalMessage.id, providerAccepted: true },
+    summary: { messageId: finalMessage.id, providerAccepted: true, attachmentCount: storedAttachments.length },
   });
   revalidatePath("/admin/support");
-  return { ok: true, data: { conversation, message: finalMessage } };
+  return { ok: true, data: { conversation, message: finalMessage, attachments: storedAttachments } };
 }
 
 export async function setConversationStatus(input: {
@@ -456,7 +593,6 @@ export async function markSupportConversationRead(input: {
   if (!db) return { ok: false, error: "d1_unavailable" };
   const conversation = await markSupportConversationReadForAdminInD1(db, conversationId);
   if (!conversation) return { ok: false, error: "not_found" };
-  revalidatePath("/admin/support");
   return { ok: true, data: { conversation } };
 }
 
@@ -488,7 +624,8 @@ export async function startConversation(input: {
     summary: { source: "support_widget" },
   });
   revalidatePath("/workshop/feedback");
-  return { ok: true, data: result.data };
+  revalidatePath("/admin/support");
+  redirect("/workshop/feedback?support=1");
 }
 
 export async function getSupportMessageForAdmin(messageId: string) {
