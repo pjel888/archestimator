@@ -11,12 +11,30 @@ import {
   TreeStructure,
 } from "@phosphor-icons/react/dist/ssr";
 
+import { SUPPORT_EMAIL } from "@/components/landing/contact-mailto";
+
 /**
  * Single source of truth for every visible string on the `/new` preview route.
  * Copy is transcribed from the plan-pack copy deck; change it there first.
  */
 
-export const EARLY_ACCESS_HREF = "/contact?intent=beta-request";
+export const BETA_ACCESS_EMAIL = SUPPORT_EMAIL;
+export const BETA_ACCESS_MAILTO_HREF = `mailto:${BETA_ACCESS_EMAIL}?subject=${encodeURIComponent(
+  "Archestimator beta access request",
+)}&body=${encodeURIComponent(
+  [
+    "Hello Archestimator support,",
+    "",
+    "I would like to request beta access.",
+    "",
+    "Account email:",
+    "Company or team:",
+    "Current estimating workflow:",
+    "",
+    "Thank you.",
+  ].join("\n"),
+)}`;
+export const EARLY_ACCESS_HREF = BETA_ACCESS_MAILTO_HREF;
 export const WORKSPACE_HREF = "/workshop";
 export const LOGIN_HREF = "/login?next=/workshop/projects";
 
@@ -193,7 +211,7 @@ export const principlesCopy = {
     {
       id: "scope",
       title: "Structured around real scope",
-      body: "Organize the estimate around locations, phases, packages, trades, rooms, or another hierarchy that matches the project—not one flat sheet.",
+      body: "Organize the estimate around locations, phases, packages, trades, rooms, or another hierarchy that matches the project, not one flat sheet.",
       icon: TreeStructure,
     },
     {

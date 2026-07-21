@@ -7,8 +7,8 @@ import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
  *
  * Allow: the indexable marketing routes.
  * Disallow: auth routes (/login, /signup), the app (/workshop), the access
- * gate (/access-required), the preview (/newdesign), the rollback host
- * (/legacy), the API. These are noindex,nofollow anyway (per-route metadata),
+ * gate (/access-required), the legacy landing reference (/new), the API. These
+ * are noindex,nofollow anyway (per-route metadata),
  * but robots.txt is the belt; the per-route meta is the suspenders (doc 23 §7).
  */
 export default function robots(): MetadataRoute.Robots {
@@ -24,6 +24,8 @@ export default function robots(): MetadataRoute.Robots {
           "/workshop/",
           "/access-required",
           "/access-required/",
+          "/new",
+          "/new/",
           "/newdesign",
           "/newdesign/",
           "/legacy",

@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/ui/cn";
 
 /**
- * BrandComposition — pure-presentational RSC that hints at the app's
+ * BrandComposition - pure-presentational RSC that hints at the app's
  * liquid-glass material without ever faking a product screenshot (D-2,
  * `23-AUTH-EXPERIENCE.md` §1.2, doc 03 §1.1).
  *
@@ -11,7 +11,7 @@ import { cn } from "@/lib/ui/cn";
  * tile (zero raster). It is the "tasteful brand composition" D-2 mandates
  * for the hero material panel and the auth left panel.
  *
- * RSC-safe: no hooks, no "use client". `aria-hidden` by default — it is
+ * RSC-safe: no hooks, no "use client". `aria-hidden` by default - it is
  * decorative brand, not information.
  *
  * Variants:
@@ -63,7 +63,7 @@ export function BrandComposition({
         } satisfies CSSProperties
       }
     >
-      {/* Material-frost tile — abstract grid hinting at the estimate tree +
+      {/* Material-frost tile - abstract grid hinting at the estimate tree +
           component-library dock + activity rails. Pure SVG, zero raster,
           no feTurbulence/feDisplacementMap (Hallmark/AI-slop ban, doc 04 §4.1). */}
       <svg
@@ -90,12 +90,12 @@ export function BrandComposition({
           </pattern>
         </defs>
         <rect width="360" height="360" fill="url(#landing-brand-grid)" />
-        {/* Three abstract "rails" — the estimate tree / library / proposal handoff,
+        {/* Three abstract "rails" - the estimate tree / library / proposal handoff,
             hinted not labelled. Signal-orange presence mark on the active rail (D-3). */}
         <rect x="32" y="64" width="6" height="232" rx="3" fill="var(--brand-orange)" opacity="0.85" />
         <rect x="78" y="104" width="6" height="168" rx="3" fill="var(--ink)" opacity="0.18" />
         <rect x="124" y="88" width="6" height="200" rx="3" fill="var(--ink)" opacity="0.18" />
-        {/* A faint node cluster — the "commercial graph" without naming it. */}
+        {/* A faint node cluster - the "commercial graph" without naming it. */}
         <circle cx="172" cy="132" r="5" fill="var(--brand-orange-dark)" opacity="0.55" />
         <circle cx="200" cy="180" r="4" fill="var(--ink)" opacity="0.22" />
         <circle cx="232" cy="220" r="4" fill="var(--ink)" opacity="0.22" />
@@ -103,7 +103,7 @@ export function BrandComposition({
         <line x1="200" y1="180" x2="232" y2="220" stroke="var(--ink)" strokeOpacity="0.16" strokeWidth="1" />
       </svg>
       {/* Soft top-down wash so text-on-glass keeps AA contrast over the gradient peak
-          (doc 03 §4.5 — worst-case backdrop is the amber peak). */}
+          (doc 03 §4.5 - worst-case backdrop is the amber peak). */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.42)_0%,rgba(255,255,255,0.12)_42%,rgba(255,255,255,0)_100%)]"

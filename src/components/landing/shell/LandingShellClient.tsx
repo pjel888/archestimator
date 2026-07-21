@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 
 /**
- * LandingShellClient — the single client boundary for each marketing route
+ * LandingShellClient - the single client boundary for each marketing route
  * (MASTER-IMPLEMENTATION-PLAN §C-10; mirrors src/components/workshop/dashboard's
  * WorkshopHomebaseClient pattern). It takes the server-rendered marketing tree as
  * `children` and owns the ONE IntersectionObserver scroll-reveal driver (sections

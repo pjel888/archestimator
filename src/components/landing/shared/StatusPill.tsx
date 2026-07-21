@@ -1,27 +1,27 @@
 import { cn } from "@/lib/ui/cn";
 
 /**
- * StatusPill — the ONE shared claim-status component (keystone decision D-4).
+ * StatusPill - the ONE shared claim-status component (keystone decision D-4).
  *
  * Defines the single `ClaimStatus` type consumed by the commercial-graph plate (which
  * narrows to the Live|Building|Planned subset at its call site) and by the ClaimsLedger.
- * Do NOT redefine this type elsewhere — `tests/unit/claim-status-narrowing.test.ts` grep-enforces it.
+ * Do NOT redefine this type elsewhere - `tests/unit/claim-status-narrowing.test.ts` grep-enforces it.
  *
  * Color map (MASTER-IMPLEMENTATION-PLAN §C-1):
  *   Live     → --success #15803d
  *   Building → --warning #b45309
  *   Planned  → --ink #3D3D3D
- *   NotUs    → --muted-foreground #6b6b6b   (#7F7F7F is NEVER used — it fails WCAG AA)
+ *   NotUs    → --muted-foreground #6b6b6b   (#7F7F7F is NEVER used - it fails WCAG AA)
  * Font: Roboto Mono (--font-numeric). The component renders the status LABEL, not color alone
  * (color-only fails WCAG 1.4.1). A `redline` accent dot marks load-bearing claims.
  *
- * RSC-safe: no hooks, no "use client" — renders on the server.
+ * RSC-safe: no hooks, no "use client" - renders on the server.
  */
 export type ClaimStatus = "Live" | "Building" | "Planned" | "NotUs";
 
 export interface StatusPillProps {
   status: ClaimStatus;
-  /** Load-bearing claim — renders the signal-orange accent dot. */
+  /** Load-bearing claim - renders the signal-orange accent dot. */
   redline?: boolean;
   size?: "sm" | "md";
 }

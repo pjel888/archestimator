@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CaretDown, CheckCircle, List } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CheckCircle, List } from "@phosphor-icons/react/dist/ssr";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { stringifyJsonLd } from "@/lib/landing/json-ld";
@@ -8,6 +8,7 @@ import { EarlyAccessCta, AuthUtilityLink } from "./NewLandingAuthCta";
 import { NewLandingHeroDemo } from "./NewLandingHeroDemo";
 import { NewLandingMotionController } from "./NewLandingMotionController";
 import { BentoMiniVisual, LandingContainer, SectionHeading } from "./NewLandingPrimitives";
+import { PreReleaseBetaBanner } from "./PreReleaseBetaBanner";
 import styles from "./new-landing.module.css";
 import {
   activityCopy,
@@ -62,7 +63,7 @@ export function ArchestimatorNewLandingPage() {
         {headerCopy.skipLink}
       </a>
       <NewLandingHeader />
-      <BetaAnnouncement />
+      <PreReleaseBetaBanner />
       <main id="main-content">
         <HeroSection />
         <OutcomeSection />
@@ -127,23 +128,6 @@ function NewLandingHeader() {
         </div>
       </div>
     </header>
-  );
-}
-
-function BetaAnnouncement() {
-  return (
-    <aside className={styles.betaBanner} aria-label="Pre-release beta announcement">
-      <LandingContainer className={styles.betaBannerInner}>
-        <p className={styles.betaBannerMessage}>
-          <span className={styles.betaBannerEyebrow}>Now on pre-release beta</span>
-          <span>Built with hands-on AEC teams shaping the estimating workflow.</span>
-        </p>
-        <a href="#early-access" className={styles.betaBannerLink}>
-          See how access works
-          <ArrowRight size={15} weight="bold" aria-hidden="true" />
-        </a>
-      </LandingContainer>
-    </aside>
   );
 }
 

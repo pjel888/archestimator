@@ -9,19 +9,19 @@ import { ClaimRow } from "./ClaimRow";
 import { ClaimFilter } from "./ClaimFilter";
 
 /**
- * ClaimsLedger — the radical-honesty proof engine (doc 06 §2 / doc 13 §3 / doc 12 §6).
+ * ClaimsLedger - the radical-honesty proof engine (doc 06 §2 / doc 13 §3 / doc 12 §6).
  *
  * Renders the claims matrix from `claims-data.ts` as a real, crawlable semantic
  * structure: each status group is a `<section aria-labelledby>` whose body is a
  * `<dl>` of `<dt>` (claim) + `<dd>` (status pill + §source). Footer variant renders
- * only the 3-row `FOOTER_CLAIM_ROWS` abbreviation flat — no group headings, no filter
+ * only the 3-row `FOOTER_CLAIM_ROWS` abbreviation flat - no group headings, no filter
  * (doc 06 §2.4).
  *
  * The container carries `data-claims-ledger`; the ClaimFilter island flips an ancestor
- * `data-claims-filter` attribute and the rows stay in the DOM (SEO + a11y) — only
+ * `data-claims-filter` attribute and the rows stay in the DOM (SEO + a11y) - only
  * visibility toggles via CSS, no React re-render of the rows (doc 06 §2.1).
  *
- * The "not-us" group is rendered as a clearly-delimited "What we are NOT" block — it
+ * The "not-us" group is rendered as a clearly-delimited "What we are NOT" block - it
  * is NOT a fourth status bucket competing with Live/Building/Planned (doc 06 §3.4).
  *
  * RSC-safe: no hooks, no "use client".
@@ -33,7 +33,7 @@ export interface ClaimsLedgerProps {
   groups?: ClaimGroup[];
   /** Section heading; renders as an `<h2>`. Defaults to "What is real today".
    *  Pass `null` to suppress the heading entirely (used when the section
-   *  wrapper already provides the heading — e.g. homepage Section 7). */
+   *  wrapper already provides the heading - e.g. homepage Section 7). */
   title?: string | null;
   /** Render the ClaimFilter island (homepage Section 7 + /trust). Footer never does. */
   enableFilter?: boolean;

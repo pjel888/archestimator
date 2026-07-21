@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------------
-   /new preview landing — scoped light visual system.
+   /new preview landing - scoped light visual system.
    All route visuals live here; global tokens and other routes are untouched.
    Product-frame scaling note: the reused workspace demo renders at 1780x900
    and scales by container width (see landing-v3.module.css). Below 821px we
@@ -445,6 +445,12 @@
 /* ---------------------------------- beta announcement ---------------------------------- */
 
 .betaBanner {
+  --ae-gutter: clamp(1rem, 3vw, 2.5rem);
+  --ae-max: 1220px;
+  --ae-ink: #1d1d1b;
+  --ae-signal: var(--brand-orange);
+  --ae-ease-out: cubic-bezier(0.21, 0.47, 0.32, 0.98);
+  --ae-ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   z-index: 10;
   background: var(--ae-ink);

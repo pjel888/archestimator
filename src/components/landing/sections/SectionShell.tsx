@@ -2,7 +2,7 @@ import { type ElementType, type ReactNode } from "react";
 import { cn } from "@/lib/ui/cn";
 
 /**
- * SectionShell — the shared wrapper for every homepage section. Encodes the
+ * SectionShell - the shared wrapper for every homepage section. Encodes the
  * section rhythm (doc 03 §3.5 `--landing-section-pad-y/x`) + the optional
  * accent rail (D-3 presence mark on section openers) + the `data-reveal`
  * marker the LandingShellClient reveals on scroll. RSC-safe.

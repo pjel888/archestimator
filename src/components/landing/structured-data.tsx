@@ -2,7 +2,7 @@ import { stringifyJsonLd } from "@/lib/landing/json-ld";
 import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
 
 /**
- * structured-data.tsx — JSON-LD structured data for the landing surface
+ * structured-data.tsx - JSON-LD structured data for the landing surface
  * (doc 13 §4). Sits in the root layout so Organization + WebSite schema
  * apply sitewide. Per-route WebPage/Breadcrumb/ItemList can be added by
  * individual routes (not required for the MVP slice).

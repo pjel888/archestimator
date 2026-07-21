@@ -7,7 +7,8 @@ import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
  * (doc 13 §4). Includes ONLY the indexable marketing routes.
  *
  * Excluded (per doc 23 §7 + doc 13 §4): /login, /signup (noindex,nofollow
- * conversion dead-ends), /newdesign/** (preview), /legacy (rollback host),
+ * conversion dead-ends), /new (legacy reference), /newdesign/** (preview),
+ * /legacy (rollback host),
  * /workshop/** (auth-gated app), /access-required (auth-gated).
  *
  * L-SEO-1 GATED: the origin is a placeholder until the production domain is

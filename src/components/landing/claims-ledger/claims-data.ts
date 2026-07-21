@@ -2,7 +2,7 @@ import type { ClaimStatus } from "@/components/landing/shared/StatusPill";
 //   ↑ D-4 HARD CONTRACT: single shared type. This file does NOT redefine ClaimStatus.
 
 /**
- * claims-data.ts — the single source the ClaimsLedger renders from
+ * claims-data.ts - the single source the ClaimsLedger renders from
  * (doc 06 §3 CLAIMS MATRIX). Compiled from MASTER §7.2 + §15.
  *
  * If a public claim is not in this matrix, it cannot appear on the site.
@@ -18,7 +18,7 @@ export interface ClaimRowData {
   /** Public wording, short. */
   claim: string;
   status: ClaimStatus;
-  /** "§7.2" — points back to MASTER for the audit trail. */
+  /** "§7.2" - points back to MASTER for the audit trail. */
   source: string;
   /** Optional honest qualifier, rendered in --secondary under the claim. */
   note?: string;
@@ -39,7 +39,7 @@ export interface ClaimGroup {
 export const CLAIM_GROUPS: readonly ClaimGroup[] = [
   {
     id: "live",
-    heading: "Live — ships today",
+    heading: "Live - ships today",
     lead: "Present tense. Each of these is in the MVP and safe to claim as current.",
     rows: [
       {
@@ -63,7 +63,7 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
         source: "§7.2",
       },
       {
-        claim: "Activity, Node Activity, and row Version History — what changed, when, why.",
+        claim: "Activity, Node Activity, and row Version History - what changed, when, why.",
         status: "Live",
         source: "§7.2",
       },
@@ -90,7 +90,7 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
         note: "A working document today; not an immutable issued record.",
       },
       {
-        claim: "Private by design — your data is yours, never pooled or anonymized across customers.",
+        claim: "Private by design - your data is yours, never pooled or anonymized across customers.",
         status: "Live",
         source: "§4.4 #4, R10, §3.3",
         redline: true,
@@ -104,16 +104,16 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
   },
   {
     id: "building",
-    heading: "Building — partial today, improving",
+    heading: "Building - partial today, improving",
     lead: "Phrased as in-progress, never as fully shipped.",
     rows: [
       {
-        claim: "Activity rollups and action taxonomy — improving.",
+        claim: "Activity rollups and action taxonomy - improving.",
         status: "Building",
         source: "§7.2",
       },
       {
-        claim: "Proposal export policy — preview and download exist; an issued, immutable snapshot is an open decision.",
+        claim: "Proposal export policy - preview and download exist; an issued, immutable snapshot is an open decision.",
         status: "Building",
         source: "§7.2, §16.2",
       },
@@ -121,11 +121,11 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
   },
   {
     id: "planned",
-    heading: "Planned — on the roadmap, not yet shipped",
+    heading: "Planned - on the roadmap, not yet shipped",
     lead: "Direction only. Never phrased as current.",
     rows: [
       {
-        claim: "Surfacing your own accumulated history by client, project type, and supplier — the payoff the hook commits to.",
+        claim: "Surfacing your own accumulated history by client, project type, and supplier - the payoff the hook commits to.",
         status: "Planned",
         source: "§3.3, §7.2, §17 #13",
         redline: true,
@@ -201,12 +201,12 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
         source: "§7.4, §8.6",
       },
       {
-        claim: "No logos, testimonials, adoption metrics, or partner names — none exist yet, and we do not invent them.",
+        claim: "No logos, testimonials, adoption metrics, or partner names - none exist yet, and we do not invent them.",
         status: "NotUs",
         source: "§12.8, §14.1, §15",
       },
       {
-        claim: "No compliance badges (SOC2/GDPR/HIPAA/DPA) — entity and DPA work are not done.",
+        claim: "No compliance badges (SOC2/GDPR/HIPAA/DPA) - entity and DPA work are not done.",
         status: "NotUs",
         source: "§4.4, §17 #2/#4, §18.2",
       },
@@ -214,7 +214,7 @@ export const CLAIM_GROUPS: readonly ClaimGroup[] = [
   },
 ] as const;
 
-/** Flat list of all rows — used by the homepage footer abbreviation + the filter. */
+/** Flat list of all rows - used by the homepage footer abbreviation + the filter. */
 export const ALL_CLAIM_ROWS: readonly ClaimRowData[] = CLAIM_GROUPS.flatMap((g) => g.rows);
 
 /** The 3-row footer abbreviation (doc 06 §2.4). */

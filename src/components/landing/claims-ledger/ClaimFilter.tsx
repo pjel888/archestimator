@@ -6,13 +6,13 @@ import type { ClaimStatus } from "@/components/landing/shared/StatusPill";
 //   ↑ D-4 HARD CONTRACT: consume the shared ClaimStatus type. Not redefined here.
 
 /**
- * ClaimFilter — the All/Live/Building/Planned filter island for the ClaimsLedger
+ * ClaimFilter - the All/Live/Building/Planned filter island for the ClaimsLedger
  * (doc 06 §2.1).
  *
  * Contract: the rows stay in the DOM (SEO + a11y). Clicking a chip flips a single
  * `data-claims-filter` attribute on the nearest `[data-claims-ledger]` ancestor; the
  * scoped `<style>` block below then shows/hides rows (and their empty group sections)
- * via pure CSS attribute selectors. NO React state re-render of the rows — only the
+ * via pure CSS attribute selectors. NO React state re-render of the rows - only the
  * chip `aria-pressed` state is React-owned (for the presence mark).
  *
  * Accessibility (doc 12 §6):
@@ -56,7 +56,7 @@ export function ClaimFilter({ className }: ClaimFilterProps) {
   const handleSelect = useCallback(
     (value: ClaimsFilterValue, event: MouseEvent<HTMLButtonElement>) => {
       setActive(value);
-      // Flip the ancestor attribute — CSS does the show/hide. No row re-render.
+      // Flip the ancestor attribute - CSS does the show/hide. No row re-render.
       const ledger = event.currentTarget.closest("[data-claims-ledger]");
       if (ledger) {
         ledger.setAttribute("data-claims-filter", value);
@@ -76,7 +76,7 @@ export function ClaimFilter({ className }: ClaimFilterProps) {
       )}
     >
       {/*
-        Scoped show/hide stylesheet — one rule per status (doc 06 §2.1). Rendered once
+        Scoped show/hide stylesheet - one rule per status (doc 06 §2.1). Rendered once
         per island; selectors are attribute-based and idempotent if multiple land.
       */}
       <style>{FILTER_STYLE}</style>

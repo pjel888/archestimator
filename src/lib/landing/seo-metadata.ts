@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 /**
- * seo-metadata.ts — per-route metadata factory for the landing surface
+ * seo-metadata.ts - per-route metadata factory for the landing surface
  * (doc 13 §3 / §4). Keeps title/description/canonical/OG shaping consistent
  * across every marketing route. The route supplies the content; this factory
  * shapes it.
@@ -12,7 +12,7 @@ import type { Metadata } from "next";
  * are the working assumption.
  */
 
-// L-SEO-1 GATED — placeholder until domain confirmed.
+// L-SEO-1 GATED - placeholder until domain confirmed.
 export const LANDING_SITE_ORIGIN = "https://archestimator.com";
 
 const BRAND_SUFFIX = "Archestimator";
@@ -20,7 +20,7 @@ const BRAND_SUFFIX = "Archestimator";
 function withBrand(title: string): string {
   // Avoid double-branding when the route title already includes "Archestimator".
   if (title.toLowerCase().includes(BRAND_SUFFIX.toLowerCase())) return title;
-  return `${title} — ${BRAND_SUFFIX}`;
+  return `${title} | ${BRAND_SUFFIX}`;
 }
 
 export interface LandingRouteMeta {
