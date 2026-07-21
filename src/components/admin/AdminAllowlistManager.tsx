@@ -34,6 +34,8 @@ export type AdminAllowlistRow = {
   status: AdminAllowlistStatus;
   notes: string | null;
   invited_at: string | null;
+  accepted_at: string | null;
+  invite_email_sent_at: string | null;
 };
 
 export type AdminAllowlistNotice = {
@@ -130,7 +132,7 @@ function AllowlistAddForm() {
             Add emails
           </h2>
           <p className="mt-0.5 text-[10px] leading-4 text-tertiary">
-            Paste one or many addresses. Separators: comma, space, semicolon, or new line.
+            Paste one or many addresses. Separators: comma, space, semicolon, or new line. Each new invite gets a beta thank-you email.
           </p>
         </div>
         <Badge tone="neutral" size="xs" className="min-w-0 px-1 normal-case">
@@ -268,7 +270,11 @@ function AllowlistRowEditor({ row }: { row: AdminAllowlistRow }) {
         <td className="border-b border-hairline px-2 py-2">
           <div className="min-w-0">
             <p className="truncate text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
-            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">Invited {formatDate(row.invited_at)}</p>
+            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
+              Invited {formatDate(row.invited_at)}
+              {row.accepted_at ? ` · Signed in ${formatDate(row.accepted_at)}` : ""}
+              {row.invite_email_sent_at ? ` · Email sent ${formatDate(row.invite_email_sent_at)}` : " · Email pending"}
+            </p>
           </div>
         </td>
         <td className="border-b border-hairline px-2 py-2">

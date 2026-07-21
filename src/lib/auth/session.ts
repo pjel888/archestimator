@@ -7,9 +7,13 @@ import {
   getClosedBetaAccessForEmail,
   resolveClosedBetaRuntimeEnv,
 } from "@/lib/auth/closed-beta-access";
-import { getClosedBetaAccessFromCloudflareD1 } from "@/lib/auth/closed-beta-d1-store";
+import {
+  getClosedBetaAccessFromCloudflareD1,
+  markClosedBetaAllowlistAcceptedInD1,
+} from "@/lib/auth/closed-beta-d1-store";
 import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
 import { getProfileByEmailFromCloudflareD1, type AppRole, type CurrentUserProfile } from "@/lib/auth/profile-d1-store";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { traced } from "@/lib/perf/server-timing";
 
 export type CurrentUserContext = {
@@ -77,6 +81,18 @@ async function getBetterAuthCurrentUserContext(): Promise<CurrentUserContext | n
     });
   });
   if (!access.allowed) redirect(buildClosedBetaAccessPath(access.status));
+
+  if (access.status === "invited") {
+    await traced("current-user.better-auth-closed-beta-promote", async () => {
+      const db = await getCloudflareD1Database();
+      if (!db) return;
+      try {
+        await markClosedBetaAllowlistAcceptedInD1(db, access.normalizedEmail);
+      } catch {
+        // Session remains valid; allowlist reconcile will retry.
+      }
+    });
+  }
 
   const profile = await traced("current-user.better-auth-d1-profile-lookup", () =>
     getProfileByEmailFromCloudflareD1(identity.email),

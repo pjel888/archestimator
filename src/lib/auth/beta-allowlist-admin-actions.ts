@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import {
   createClosedBetaAllowlistEntriesInD1,
   createClosedBetaAllowlistEntryInD1,
+  deliverPendingClosedBetaInviteEmailsFromD1,
+  sendClosedBetaInviteEmailsForCreatedEntriesInD1,
   updateClosedBetaAllowlistEntryInD1,
 } from "@/lib/auth/closed-beta-d1-store";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -43,6 +45,12 @@ export async function createClosedBetaAllowlistEntry(formData: FormData) {
     redirect(`${returnPath}?error=save`);
   }
 
+  try {
+    await sendClosedBetaInviteEmailsForCreatedEntriesInD1({ emails: [parsed.email] });
+  } catch {
+    // Allowlist write already succeeded; pending cron/page delivery will retry.
+  }
+
   revalidateAllowlistPaths();
   redirect(`${returnPath}?created=1`);
 }
@@ -55,6 +63,8 @@ export async function createClosedBetaAllowlistEntries(formData: FormData) {
   const context = await requireCurrentUserContext();
   if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
 
+  let createdEmails: string[] = [];
+  let created = 0;
   try {
     const result = await createClosedBetaAllowlistEntriesInD1({
       actorUserId: context.userId,
@@ -62,12 +72,25 @@ export async function createClosedBetaAllowlistEntries(formData: FormData) {
       notes: parsed.notes,
       status: parsed.status,
     });
-    revalidateAllowlistPaths();
-    if (result.created === 0) redirect(`${returnPath}?error=duplicate`);
-    redirect(`${returnPath}?created=${result.created}`);
+    created = result.created;
+    createdEmails = result.createdEmails;
   } catch {
     redirect(`${returnPath}?error=save`);
   }
+
+  if (created === 0) {
+    revalidateAllowlistPaths();
+    redirect(`${returnPath}?error=duplicate`);
+  }
+
+  try {
+    await sendClosedBetaInviteEmailsForCreatedEntriesInD1({ emails: createdEmails });
+  } catch {
+    // Allowlist write already succeeded; pending cron/page delivery will retry.
+  }
+
+  revalidateAllowlistPaths();
+  redirect(`${returnPath}?created=${created}`);
 }
 
 export async function updateClosedBetaAllowlistEntry(formData: FormData) {
@@ -91,4 +114,19 @@ export async function updateClosedBetaAllowlistEntry(formData: FormData) {
 
   revalidateAllowlistPaths();
   redirect(`${returnPath}?saved=1`);
+}
+
+export async function deliverPendingClosedBetaInviteEmails() {
+  const context = await requireCurrentUserContext();
+  if (!canManageClosedBetaAllowlist(context)) {
+    return { authorized: false as const, attempted: 0, sent: 0, failed: 0 };
+  }
+
+  try {
+    const result = await deliverPendingClosedBetaInviteEmailsFromD1();
+    revalidateAllowlistPaths();
+    return { authorized: true as const, ...result };
+  } catch {
+    return { authorized: true as const, attempted: 0, sent: 0, failed: 0 };
+  }
 }

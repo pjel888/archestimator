@@ -45,6 +45,10 @@ import {
   routeCloudflareProtectedProofRequest,
 } from "./src/lib/cloudflare/protected-proof-routes";
 import {
+  type ClosedBetaAllowlistMaintenanceEnv,
+  runClosedBetaAllowlistMaintenance,
+} from "./src/lib/auth/closed-beta-allowlist-maintenance";
+import {
   normalizeAuthStateMismatchRedirectResponse,
   routeAuthCallbackStateMismatchRetry,
   routeAuthStateMismatchRetry,
@@ -73,6 +77,7 @@ type CloudflareWorkerEnv = Record<string, unknown>
   & CloudflareProtectedProofEnv
   & ClientPortalNotificationQueueEnv
   & InboundSupportEmailEnv
+  & ClosedBetaAllowlistMaintenanceEnv
   & {
     ARCH_DB?: RetentionD1DatabaseLike;
   };
@@ -223,11 +228,18 @@ export default {
           enqueuePendingClientPortalNotifications(env),
           reconcileExpiredTemplateMutationIntents(env.ARCH_DB),
           reconcileTemplatePropagationJobs(env.ARCH_DB),
-        ]).then(([notificationSummary, templateIntentSummary, templatePropagationSummary]) => {
+          runClosedBetaAllowlistMaintenance(env),
+        ]).then(([notificationSummary, templateIntentSummary, templatePropagationSummary, closedBetaSummary]) => {
           console.log("Client Portal notification outbox enqueue completed", JSON.stringify(notificationSummary));
           console.log("Template mutation intent reconciliation completed", JSON.stringify(templateIntentSummary));
           console.log("Template propagation reconciliation completed", JSON.stringify(templatePropagationSummary));
-          const summary = { notificationSummary, templateIntentSummary, templatePropagationSummary };
+          console.log("Closed beta allowlist maintenance completed", JSON.stringify(closedBetaSummary));
+          const summary = {
+            notificationSummary,
+            templateIntentSummary,
+            templatePropagationSummary,
+            closedBetaSummary,
+          };
           return recordCronRunEvent({
             cronName: `five-minute-drain:${cronName}`,
             startedAt,

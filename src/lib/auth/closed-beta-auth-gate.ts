@@ -8,7 +8,10 @@ import {
   resolveClosedBetaRuntimeEnv,
   type ClosedBetaAccessResult,
 } from "@/lib/auth/closed-beta-access";
-import { getClosedBetaAccessFromD1 } from "@/lib/auth/closed-beta-d1-store";
+import {
+  getClosedBetaAccessFromD1,
+  markClosedBetaAllowlistAcceptedInD1,
+} from "@/lib/auth/closed-beta-d1-store";
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 const CLOSED_BETA_DENIED_CODE = "CLOSED_BETA_DENIED";
@@ -39,12 +42,25 @@ export async function resolveClosedBetaAccessForEmailAgainstD1(
   });
 }
 
+async function promoteInvitedAllowlistOnSuccessfulAccess(
+  d1Database: D1DatabaseLike,
+  access: ClosedBetaAccessResult,
+) {
+  if (!access.allowed || access.status !== "invited") return;
+  try {
+    await markClosedBetaAllowlistAcceptedInD1(d1Database, access.normalizedEmail);
+  } catch {
+    // Access remains allowed even if status promotion fails; reconcile later.
+  }
+}
+
 export async function assertClosedBetaEmailAllowedForAuth(
   d1Database: D1DatabaseLike,
   email: string | null | undefined,
 ): Promise<void> {
   const access = await resolveClosedBetaAccessForEmailAgainstD1(d1Database, email);
   if (!access.allowed) throwClosedBetaDenied();
+  await promoteInvitedAllowlistOnSuccessfulAccess(d1Database, access);
 }
 
 export async function assertClosedBetaUserIdAllowedForAuth(
