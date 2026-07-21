@@ -9,6 +9,7 @@ import {
   Lifebuoy,
   ShieldCheck,
   SignOut,
+  Trash,
   UserCircle,
   UsersThree,
   Wrench,
@@ -69,6 +70,20 @@ const accountSettings = [
     notes: ["Clears this authenticated session", "Returns focus to the workshop shell after closing"],
     title: "Sign out",
   },
+  {
+    category: "Account",
+    description: "Close your account. Sole-owned work stays retained internally and will not return on signup.",
+    href: "/workshop/settings/profile#delete-account",
+    icon: <Trash size={15} weight="regular" aria-hidden="true" />,
+    id: "delete-account",
+    notes: [
+      "Closes solely owned workspaces",
+      "Leaves shared workspaces",
+      "Revokes public links on closed workspaces",
+      "Fresh signup starts empty",
+    ],
+    title: "Delete account",
+  },
 ] as const satisfies readonly SettingsPage[];
 
 const supportSettings = [
@@ -83,11 +98,11 @@ const supportSettings = [
   },
   {
     category: "Support",
-    description: "Request account deletion, data export, or support follow-up.",
+    description: "Request data export or support follow-up.",
     href: "mailto:support@archestimator.com",
     icon: <Lifebuoy size={15} weight="regular" aria-hidden="true" />,
     id: "data-requests",
-    notes: ["Data export", "Account deletion", "Support follow-up"],
+    notes: ["Data export", "Support follow-up"],
     title: "Data requests",
   },
   {

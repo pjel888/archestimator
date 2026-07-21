@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ProfileSettingsFields } from "@/components/workshop/AccountSettingsFormFields";
+import { DeleteAccountDangerZone } from "@/components/workshop/DeleteAccountDangerZone";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import {
   getAccountSetupState,
@@ -24,29 +25,32 @@ export default async function ProfileSettingsPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+      <div className="max-w-3xl space-y-3">
+        <form action={updateProfileSettings} className="space-y-3">
+          {params.saved ? (
+            <div className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
+              Profile settings saved.
+            </div>
+          ) : null}
+          {params.error ? (
+            <div className="rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
+              Complete the required fields before saving.
+            </div>
+          ) : null}
 
-      <form action={updateProfileSettings} className="max-w-3xl space-y-3">
-        {params.saved ? (
-          <div className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
-            Profile settings saved.
+          <section className="space-y-2 border border-hairline bg-white p-2">
+            <ProfileSettingsFields initial={state.profile ?? undefined} />
+          </section>
+
+          <div className="flex justify-end">
+            <Button type="submit" variant="primary" size="md">
+              Save profile
+            </Button>
           </div>
-        ) : null}
-        {params.error ? (
-          <div className="rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
-            Complete the required fields before saving.
-          </div>
-        ) : null}
+        </form>
 
-        <section className="space-y-2 border border-hairline bg-white p-2">
-          <ProfileSettingsFields initial={state.profile ?? undefined} />
-        </section>
-
-        <div className="flex justify-end">
-          <Button type="submit" variant="primary" size="md">
-            Save profile
-          </Button>
-        </div>
-      </form>
+        <DeleteAccountDangerZone />
+      </div>
     </WorkshopRouteHeader>
   );
 }

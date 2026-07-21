@@ -102,7 +102,7 @@ import {
 } from "@/lib/estimates/d1-intents/templates";
 import type { EstimateRow as EstimateDatabaseRow, ProjectRow as ProjectDatabaseRow } from "@/lib/types/database";
 import type { Json } from "@/lib/types/json";
-import { throwUserFacingError } from "@/lib/observability/user-facing-error";
+import { throwUserFacingError } from "@/lib/observability/server-user-facing-error";
 
 type EstimateActionTables = {
   projects: ProjectDatabaseRow;

@@ -1,4 +1,4 @@
-import { throwUserFacingError } from "@/lib/observability/user-facing-error";
+import { throwUserFacingError } from "@/lib/observability/server-user-facing-error";
 
 // Library Optimization Plan P3 T20 (F25): server actions previously interpolated raw
 // database `error.message` into thrown errors, which can surface DB internals
