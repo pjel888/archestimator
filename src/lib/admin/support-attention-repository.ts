@@ -35,13 +35,15 @@ export async function listOpenSupportConversations(limit = 25): Promise<SupportA
       .prepare<SupportAttentionRow>(
         `
           SELECT id, user_id, subject, status, last_message_at, unread_for_admin, created_at
-          FROM support_conversations
+          FROM support_conversations c
+          LEFT JOIN support_conversation_triage t ON t.conversation_id = c.id
           WHERE status IN ('open', 'pending')
+            AND (t.snoozed_until IS NULL OR t.snoozed_until <= ?)
           ORDER BY unread_for_admin DESC, last_message_at ASC
           LIMIT ?
         `,
       )
-      .bind(limit)
+      .bind(new Date().toISOString(), limit)
       .all<SupportAttentionRow>();
     return result.results ?? [];
   } catch (error) {

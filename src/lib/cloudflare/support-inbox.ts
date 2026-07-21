@@ -51,8 +51,15 @@ function parseClientMessage(message: string) {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+function parseInvalidation(value: Record<string, unknown>, conversationId: string) {
+  if (
+    value.type !== "support_message_created"
+    || value.conversationId !== conversationId
+    || typeof value.messageId !== "string"
+    || !value.messageId.trim()
+    || value.messageId.length > 200
+  ) return null;
+  return { type: "support_message_created" as const, conversationId, messageId: value.messageId.trim() };
 }
 
 function readBearerToken(request: Request) {
@@ -159,16 +166,7 @@ export class SupportInbox {
       return;
     }
 
-    if (parsed.type === "message") {
-      if (!isRecord(parsed.message)) {
-        sendJson(ws, { type: "error", code: "invalid_message" });
-        return;
-      }
-      this.broadcastMessage(parsed.message);
-      return;
-    }
-
-    sendJson(ws, { type: "error", code: "unsupported_message" });
+    sendJson(ws, { type: "error", code: "client_messages_not_supported" });
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string) {
@@ -201,19 +199,19 @@ export class SupportInbox {
     }
 
     const parsed = parseClientMessage(bodyText);
-    const message = isRecord(parsed?.message) ? parsed.message : null;
-    if (!parsed || parsed.type !== "fanout" || !message) {
+    if (!parsed) {
       return Response.json({ ok: false, error: "invalid_message" }, { status: 400 });
     }
-
-    this.broadcastMessage(message);
+    const invalidation = parseInvalidation(parsed, conversationId);
+    if (!invalidation) return Response.json({ ok: false, error: "invalid_message" }, { status: 400 });
+    this.broadcastMessage(invalidation);
     return Response.json({ ok: true });
   }
 
-  private broadcastMessage(message: Record<string, unknown>) {
+  private broadcastMessage(message: { type: "support_message_created"; conversationId: string; messageId: string }) {
     for (const peer of this.ctx.getWebSockets()) {
       if (!this.isSocketAuthorized(peer as WebSocketWithAttachment)) continue;
-      sendJson(peer, { type: "message", message });
+      sendJson(peer, message);
     }
   }
 

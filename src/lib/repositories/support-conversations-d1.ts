@@ -30,6 +30,30 @@ export type SupportMessageDirection = "inbound" | "outbound" | "internal";
 export type SupportMessageTransport = "in_app" | "email";
 export type SupportAttachmentStorageStatus = "stored" | "failed" | "blocked" | "quarantined";
 export type SupportChannelFilter = "in_app" | "email" | "all";
+export type SupportMailboxFolder = "inbox" | "sent" | "archive" | "all" | "starred" | "snoozed";
+
+export type SupportMailboxFilters = {
+  folder: SupportMailboxFolder;
+  status: SupportConversationStatus | null;
+  channel: SupportChannelFilter;
+  unreadOnly: boolean;
+  search: string;
+  label: string | null;
+  assigneeUserId: string | null;
+  limit: number;
+  cursor: SupportMailboxCursor | null;
+};
+
+export type SupportMailboxCursor = {
+  timestamp: string;
+  id: string;
+};
+
+export type SupportMailboxPage = {
+  conversations: SupportConversationRow[];
+  counts: Record<SupportMailboxFolder, number>;
+  nextCursor: string | null;
+};
 
 export type SupportConversationRow = {
   id: string;
@@ -88,6 +112,16 @@ export type SupportAttachmentRow = {
   sha256: string | null;
   storage_status: SupportAttachmentStorageStatus;
   created_at: string;
+};
+
+export type SupportConversationTriageRow = {
+  conversation_id: string;
+  assignee_user_id: string | null;
+  snoozed_until: string | null;
+  starred_for_admin: number;
+  revision: number;
+  updated_at: string;
+  labels: string[];
 };
 
 export type SupportQueryResult<T> = {
@@ -159,6 +193,89 @@ function normalizeClientMessageId(value: string): string {
 
 function isSupportConversationStatus(value: string): value is SupportConversationStatus {
   return value === "open" || value === "pending" || value === "resolved" || value === "archived";
+}
+
+function isSupportMailboxFolder(value: string): value is SupportMailboxFolder {
+  return value === "inbox" || value === "sent" || value === "archive" || value === "all" || value === "starred" || value === "snoozed";
+}
+
+function isSupportChannelFilter(value: string): value is SupportChannelFilter {
+  return value === "all" || value === "email" || value === "in_app";
+}
+
+function decodeSupportMailboxCursor(value: string): SupportMailboxCursor {
+  try {
+    const parsed = JSON.parse(atob(value.replace(/-/g, "+").replace(/_/g, "/"))) as unknown;
+    if (
+      !parsed
+      || typeof parsed !== "object"
+      || typeof (parsed as SupportMailboxCursor).timestamp !== "string"
+      || typeof (parsed as SupportMailboxCursor).id !== "string"
+      || !(parsed as SupportMailboxCursor).timestamp
+      || !(parsed as SupportMailboxCursor).id
+    ) {
+      throw new Error("Invalid cursor.");
+    }
+    return parsed as SupportMailboxCursor;
+  } catch {
+    throw new Error("Invalid support mailbox cursor.");
+  }
+}
+
+function encodeSupportMailboxCursor(cursor: SupportMailboxCursor) {
+  return btoa(JSON.stringify(cursor)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+export function normalizeSupportMailboxFilters(input: {
+  folder?: string | null;
+  status?: string | null;
+  channel?: string | null;
+  unreadOnly?: boolean | null;
+  search?: string | null;
+  label?: string | null;
+  assigneeUserId?: string | null;
+  limit?: number | null;
+  cursor?: string | null;
+} = {}): SupportMailboxFilters {
+  const folder = input.folder ?? "inbox";
+  if (!isSupportMailboxFolder(folder)) throw new Error("Invalid support mailbox folder.");
+
+  const status = input.status ?? null;
+  if (status !== null && !isSupportConversationStatus(status)) {
+    throw new Error("Invalid support conversation status.");
+  }
+
+  const channel = input.channel ?? "all";
+  if (!isSupportChannelFilter(channel)) throw new Error("Invalid support channel filter.");
+
+  const search = input.search?.trim() ?? "";
+  if (search.length > 160) throw new Error("Support search must be 160 characters or fewer.");
+
+  const rawLabel = input.label?.trim().toLowerCase() ?? "";
+  if (rawLabel && (rawLabel.length > 48 || /[\u0000-\u001f\u007f]/.test(rawLabel))) {
+    throw new Error("Invalid support label filter.");
+  }
+  const assigneeUserId = input.assigneeUserId?.trim() ?? "";
+  if (assigneeUserId.length > 128 || /[\u0000-\u001f\u007f]/.test(assigneeUserId)) {
+    throw new Error("Invalid support assignee filter.");
+  }
+
+  const requestedLimit = input.limit ?? 50;
+  if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 100) {
+    throw new Error("Support mailbox limit must be between 1 and 100.");
+  }
+
+  return {
+    folder,
+    status,
+    channel,
+    unreadOnly: Boolean(input.unreadOnly),
+    search,
+    label: rawLabel || null,
+    assigneeUserId: assigneeUserId || null,
+    limit: requestedLimit,
+    cursor: input.cursor ? decodeSupportMailboxCursor(input.cursor) : null,
+  };
 }
 
 export function normalizeSupportConversationStatus(value: string): SupportConversationStatus {
@@ -274,70 +391,161 @@ export async function findSupportMessageByIngestKeyInD1(
     .first<SupportMessageRow>();
 }
 
+function buildSupportMailboxCommonClauses(filters: SupportMailboxFilters) {
+  const clauses: string[] = [];
+  const binds: Array<string | number> = [];
+
+  if (filters.status) {
+    clauses.push("c.status = ?");
+    binds.push(filters.status);
+  }
+  if (filters.channel !== "all") {
+    clauses.push("c.channel = ?");
+    binds.push(filters.channel);
+  }
+  if (filters.unreadOnly) clauses.push("c.unread_for_admin = 1");
+  if (filters.search) {
+    const like = `%${filters.search.toLowerCase().replace(/[%_]/g, "")}%`;
+    clauses.push(
+      `(lower(COALESCE(c.requester_email, p.email, '')) LIKE ? OR lower(COALESCE(c.requester_name, p.display_name, '')) LIKE ? OR lower(COALESCE(c.subject, '')) LIKE ?)`,
+    );
+    binds.push(like, like, like);
+  }
+  if (filters.label) {
+    clauses.push("EXISTS (SELECT 1 FROM support_conversation_labels label_filter WHERE label_filter.conversation_id = c.id AND label_filter.label = ?)");
+    binds.push(filters.label);
+  }
+  if (filters.assigneeUserId) {
+    clauses.push("EXISTS (SELECT 1 FROM support_conversation_triage assignee_filter WHERE assignee_filter.conversation_id = c.id AND assignee_filter.assignee_user_id = ?)");
+    binds.push(filters.assigneeUserId);
+  }
+
+  return { clauses, binds };
+}
+
+function supportMailboxFolderClause(folder: SupportMailboxFolder) {
+  if (folder === "inbox") return { clause: "(c.status <> 'archived' AND NOT EXISTS (SELECT 1 FROM support_conversation_triage inbox_triage WHERE inbox_triage.conversation_id = c.id AND inbox_triage.snoozed_until > ?))", needsNow: true };
+  if (folder === "archive") return { clause: "c.status = 'archived'", needsNow: false };
+  if (folder === "sent") {
+    return { clause: "EXISTS (SELECT 1 FROM support_messages sent_message WHERE sent_message.conversation_id = c.id AND sent_message.direction = 'outbound')", needsNow: false };
+  }
+  if (folder === "starred") return { clause: "EXISTS (SELECT 1 FROM support_conversation_triage starred_triage WHERE starred_triage.conversation_id = c.id AND starred_triage.starred_for_admin = 1)", needsNow: false };
+  if (folder === "snoozed") return { clause: "EXISTS (SELECT 1 FROM support_conversation_triage snoozed_triage WHERE snoozed_triage.conversation_id = c.id AND snoozed_triage.snoozed_until > ?)", needsNow: true };
+  return { clause: "1 = 1", needsNow: false };
+}
+
+function supportMailboxSortExpression(folder: SupportMailboxFolder) {
+  if (folder === "sent") {
+    return "COALESCE((SELECT MAX(sent_message.created_at) FROM support_messages sent_message WHERE sent_message.conversation_id = c.id AND sent_message.direction = 'outbound'), c.last_message_at)";
+  }
+  return "c.last_message_at";
+}
+
+function coerceMailboxCounts(row: Partial<Record<SupportMailboxFolder, number>> | null): Record<SupportMailboxFolder, number> {
+  return {
+    inbox: Number(row?.inbox ?? 0),
+    sent: Number(row?.sent ?? 0),
+    archive: Number(row?.archive ?? 0),
+    all: Number(row?.all ?? 0),
+    starred: Number(row?.starred ?? 0),
+    snoozed: Number(row?.snoozed ?? 0),
+  };
+}
+
+export async function listSupportMailbox(
+  input: Parameters<typeof normalizeSupportMailboxFilters>[0] = {},
+  dbOverride?: D1DatabaseLike,
+): Promise<SupportQueryResult<SupportMailboxPage>> {
+  try {
+    const db = await resolveSupportDb(dbOverride);
+    const filters = normalizeSupportMailboxFilters(input);
+    const { clauses: commonClauses, binds: commonBinds } = buildSupportMailboxCommonClauses(filters);
+    const now = new Date().toISOString();
+    const folder = supportMailboxFolderClause(filters.folder);
+    const sortExpression = supportMailboxSortExpression(filters.folder);
+    const rowClauses = [...commonClauses, folder.clause];
+    const rowBinds = [...commonBinds, ...(folder.needsNow ? [now] : [])];
+
+    if (filters.cursor) {
+      rowClauses.push(`(${sortExpression} < ? OR (${sortExpression} = ? AND c.id < ?))`);
+      rowBinds.push(filters.cursor.timestamp, filters.cursor.timestamp, filters.cursor.id);
+    }
+
+    const where = `WHERE ${rowClauses.join(" AND ")}`;
+    const countWhere = commonClauses.length > 0 ? `WHERE ${commonClauses.join(" AND ")}` : "";
+    const [rows, counts] = await Promise.all([
+      db
+        .prepare<SupportConversationRow & { sort_timestamp: string }>(
+          `
+            SELECT ${CONVERSATION_SELECT}, ${sortExpression} AS sort_timestamp
+            FROM support_conversations c
+            LEFT JOIN profiles p ON p.id = c.user_id
+            ${where}
+            ORDER BY sort_timestamp DESC, c.id DESC
+            LIMIT ?
+          `,
+        )
+        .bind(...rowBinds, filters.limit + 1)
+        .all<SupportConversationRow & { sort_timestamp: string }>(),
+      db
+        .prepare<Record<SupportMailboxFolder, number>>(
+          `
+            SELECT
+              SUM(CASE WHEN c.status <> 'archived' AND NOT EXISTS (SELECT 1 FROM support_conversation_triage inbox_triage WHERE inbox_triage.conversation_id = c.id AND inbox_triage.snoozed_until > ?) THEN 1 ELSE 0 END) AS inbox,
+              SUM(CASE WHEN EXISTS (SELECT 1 FROM support_messages sent_message WHERE sent_message.conversation_id = c.id AND sent_message.direction = 'outbound') THEN 1 ELSE 0 END) AS sent,
+              SUM(CASE WHEN c.status = 'archived' THEN 1 ELSE 0 END) AS archive,
+              SUM(CASE WHEN EXISTS (SELECT 1 FROM support_conversation_triage starred_triage WHERE starred_triage.conversation_id = c.id AND starred_triage.starred_for_admin = 1) THEN 1 ELSE 0 END) AS starred,
+              SUM(CASE WHEN EXISTS (SELECT 1 FROM support_conversation_triage snoozed_triage WHERE snoozed_triage.conversation_id = c.id AND snoozed_triage.snoozed_until > ?) THEN 1 ELSE 0 END) AS snoozed,
+              COUNT(*) AS all
+            FROM support_conversations c
+            LEFT JOIN profiles p ON p.id = c.user_id
+            ${countWhere}
+          `,
+        )
+        .bind(now, now, ...commonBinds)
+        .first<Record<SupportMailboxFolder, number>>(),
+    ]);
+
+    const page = (rows.results ?? []).slice(0, filters.limit);
+    const last = page.at(-1);
+    const hasMore = (rows.results ?? []).length > page.length;
+    return {
+      data: {
+        conversations: page,
+        counts: coerceMailboxCounts(counts),
+        nextCursor: hasMore && last
+          ? encodeSupportMailboxCursor({ timestamp: last.sort_timestamp, id: last.id })
+          : null,
+      },
+      error: null,
+    };
+  } catch {
+    return {
+      data: {
+        conversations: [],
+        counts: { inbox: 0, sent: 0, archive: 0, all: 0, starred: 0, snoozed: 0 },
+        nextCursor: null,
+      },
+      error: "Support conversations could not be read.",
+    };
+  }
+}
+
 export async function listSupportConversations(
   input: {
     status?: SupportConversationStatus | null;
     channel?: SupportChannelFilter | null;
     unreadOnly?: boolean;
     search?: string | null;
+    label?: string | null;
+    assigneeUserId?: string | null;
     limit?: number;
     cursor?: string | null;
   } = {},
   dbOverride?: D1DatabaseLike,
 ): Promise<SupportQueryResult<SupportConversationRow[]>> {
-  try {
-    const db = await resolveSupportDb(dbOverride);
-    const limit = Math.max(1, Math.min(input.limit ?? 50, 100));
-    const status = input.status ?? null;
-    const channel = input.channel && input.channel !== "all" ? input.channel : null;
-    const unreadOnly = Boolean(input.unreadOnly);
-    const search = input.search?.trim().toLowerCase() ?? "";
-    const cursor = input.cursor?.trim() || null;
-
-    const clauses: string[] = [];
-    const binds: Array<string | number> = [];
-
-    if (status) {
-      clauses.push("c.status = ?");
-      binds.push(status);
-    }
-    if (channel) {
-      clauses.push("c.channel = ?");
-      binds.push(channel);
-    }
-    if (unreadOnly) {
-      clauses.push("c.unread_for_admin = 1");
-    }
-    if (search) {
-      clauses.push(
-        `(lower(COALESCE(c.requester_email, p.email, '')) LIKE ? OR lower(COALESCE(c.requester_name, p.display_name, '')) LIKE ? OR lower(COALESCE(c.subject, '')) LIKE ?)`,
-      );
-      const like = `%${search.replace(/[%_]/g, "")}%`;
-      binds.push(like, like, like);
-    }
-    if (cursor) {
-      clauses.push("c.last_message_at < ?");
-      binds.push(cursor);
-    }
-
-    const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
-    const rows = await db
-      .prepare<SupportConversationRow>(
-        `
-          SELECT ${CONVERSATION_SELECT}
-          FROM support_conversations c
-          LEFT JOIN profiles p ON p.id = c.user_id
-          ${where}
-          ORDER BY c.last_message_at DESC
-          LIMIT ?
-        `,
-      )
-      .bind(...binds, limit)
-      .all<SupportConversationRow>();
-    return { data: rows.results ?? [], error: null };
-  } catch {
-    return { data: [], error: "Support conversations could not be read." };
-  }
+  const result = await listSupportMailbox({ ...input, folder: "all" }, dbOverride);
+  return { data: result.data.conversations, error: result.error };
 }
 
 export async function canAccessSupportConversationInD1({
@@ -360,6 +568,27 @@ export async function canAccessSupportConversationInD1({
     .first<SupportConversationAccessRow>();
 
   return Boolean(row?.user_id && row.user_id === userId);
+}
+
+export async function listSupportConversationsForUserInD1(
+  db: D1DatabaseLike,
+  userId: string,
+  limit = 50,
+) {
+  const rows = await db
+    .prepare<SupportConversationRow>(
+      `
+        SELECT ${CONVERSATION_SELECT}
+        FROM support_conversations c
+        LEFT JOIN profiles p ON p.id = c.user_id
+        WHERE c.user_id = ? AND c.channel = 'in_app'
+        ORDER BY c.last_message_at DESC, c.id DESC
+        LIMIT ?
+      `,
+    )
+    .bind(userId, Math.max(1, Math.min(100, Math.floor(limit))))
+    .all<SupportConversationRow>();
+  return rows.results ?? [];
 }
 
 export async function listSupportMessages(
@@ -469,6 +698,24 @@ export async function listSupportAttachmentsInD1(
     .bind(messageId)
     .all<SupportAttachmentRow>();
   return rows.results ?? [];
+}
+
+export async function listSupportAttachmentsForMessageInD1(db: D1DatabaseLike, messageId: string) {
+  const rows = await db.prepare<SupportAttachmentRow>(
+    `SELECT id, message_id, r2_key, filename, content_type, size_bytes, content_id,
+            disposition, sha256, storage_status, created_at
+     FROM support_message_attachments
+     WHERE message_id = ? AND storage_status = 'stored'
+     ORDER BY created_at ASC`,
+  ).bind(messageId).all<SupportAttachmentRow>();
+  return rows.results ?? [];
+}
+
+export async function deleteSupportAttachmentsForMessageInD1(db: D1DatabaseLike, messageId: string) {
+  const attachments = await listSupportAttachmentsForMessageInD1(db, messageId);
+  await db.prepare(`DELETE FROM support_message_attachments WHERE message_id = ?`).bind(messageId).run();
+  await updateSupportMessageAttachmentCountInD1(db, messageId, 0);
+  return attachments;
 }
 
 export async function listSupportAttachmentsForConversationInD1(
@@ -654,6 +901,7 @@ export async function insertSupportMessageIfNewInD1(
     fromAddress?: string | null;
     fromName?: string | null;
     toJson?: string | null;
+    ccJson?: string | null;
     emailMessageId?: string | null;
     internetMessageId?: string | null;
     inReplyTo?: string | null;
@@ -689,11 +937,11 @@ export async function insertSupportMessageIfNewInD1(
         INSERT OR IGNORE INTO support_messages (
           id, conversation_id, sender_role, author_user_id, body_text,
           body_html, email_message_id, client_message_id, send_status,
-          direction, transport, mailbox_address, from_address, from_name, to_json,
+          direction, transport, mailbox_address, from_address, from_name, to_json, cc_json,
           internet_message_id, in_reply_to, references_json, ingest_key,
           attachment_count, provider_name, received_at, warning_flags_json, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
     .bind(
@@ -712,6 +960,7 @@ export async function insertSupportMessageIfNewInD1(
       input.fromAddress ?? null,
       input.fromName ?? null,
       input.toJson ?? null,
+      input.ccJson ?? null,
       input.internetMessageId ?? null,
       input.inReplyTo ?? null,
       input.referencesJson ?? null,
@@ -840,6 +1089,87 @@ export async function markSupportConversationReadForAdminInD1(
   return getSupportConversationInD1(db, conversationId);
 }
 
+export async function markSupportConversationReadForUserInD1(
+  db: D1DatabaseLike,
+  conversationId: string,
+  userId: string,
+): Promise<SupportConversationRow | null> {
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `
+        UPDATE support_conversations
+        SET unread_for_user = 0, updated_at = ?
+        WHERE id = ? AND user_id = ? AND channel = 'in_app'
+      `,
+    )
+    .bind(now, conversationId, userId)
+    .run();
+  if ((result.meta?.changes ?? 0) !== 1) return null;
+  return getSupportConversationInD1(db, conversationId);
+}
+
+export async function getSupportConversationTriageInD1(db: D1DatabaseLike, conversationId: string) {
+  const triage = await db.prepare<Omit<SupportConversationTriageRow, "labels">>(
+    `SELECT conversation_id, assignee_user_id, snoozed_until, starred_for_admin, revision, updated_at
+     FROM support_conversation_triage WHERE conversation_id = ? LIMIT 1`,
+  ).bind(conversationId).first<Omit<SupportConversationTriageRow, "labels">>();
+  const labels = await db.prepare<{ label: string }>(
+    `SELECT label FROM support_conversation_labels WHERE conversation_id = ? ORDER BY label ASC`,
+  ).bind(conversationId).all<{ label: string }>();
+  return triage ? { ...triage, labels: (labels.results ?? []).map((row) => row.label) } : null;
+}
+
+export async function updateSupportConversationTriageInD1(input: {
+  db: D1DatabaseLike;
+  conversationId: string;
+  expectedRevision: number;
+  assigneeUserId?: string | null;
+  snoozedUntil?: string | null;
+  starredForAdmin?: boolean;
+}) {
+  const existing = await getSupportConversationTriageInD1(input.db, input.conversationId);
+  const now = new Date().toISOString();
+  if (!existing) {
+    if (input.expectedRevision !== 0) return { updated: false, triage: null };
+    await input.db.prepare(
+      `INSERT INTO support_conversation_triage (conversation_id, assignee_user_id, snoozed_until, starred_for_admin, revision, updated_at)
+       VALUES (?, ?, ?, ?, 1, ?)`,
+    ).bind(input.conversationId, input.assigneeUserId ?? null, input.snoozedUntil ?? null, input.starredForAdmin ? 1 : 0, now).run();
+    return { updated: true, triage: await getSupportConversationTriageInD1(input.db, input.conversationId) };
+  }
+  const result = await input.db.prepare(
+    `UPDATE support_conversation_triage
+     SET assignee_user_id = ?, snoozed_until = ?, starred_for_admin = ?, revision = revision + 1, updated_at = ?
+     WHERE conversation_id = ? AND revision = ?`,
+  ).bind(
+    input.assigneeUserId === undefined ? existing.assignee_user_id : input.assigneeUserId,
+    input.snoozedUntil === undefined ? existing.snoozed_until : input.snoozedUntil,
+    input.starredForAdmin === undefined ? existing.starred_for_admin : input.starredForAdmin ? 1 : 0,
+    now, input.conversationId, input.expectedRevision,
+  ).run();
+  return { updated: Boolean(result.meta?.changes), triage: await getSupportConversationTriageInD1(input.db, input.conversationId) };
+}
+
+export async function replaceSupportConversationLabelsInD1(input: {
+  db: D1DatabaseLike;
+  conversationId: string;
+  labels: string[];
+}) {
+  const labels = [...new Set(input.labels.map((label) => label.trim().toLowerCase()).filter(Boolean))];
+  if (labels.length > 12 || labels.some((label) => label.length > 48 || /[\u0000-\u001f\u007f]/.test(label))) {
+    throw new Error("Invalid support labels.");
+  }
+  await input.db.prepare(`DELETE FROM support_conversation_labels WHERE conversation_id = ?`).bind(input.conversationId).run();
+  const now = new Date().toISOString();
+  for (const label of labels) {
+    await input.db.prepare(
+      `INSERT INTO support_conversation_labels (conversation_id, label, created_at) VALUES (?, ?, ?)`,
+    ).bind(input.conversationId, label, now).run();
+  }
+  return getSupportConversationTriageInD1(input.db, input.conversationId);
+}
+
 export async function markSupportMessageSendStatusInD1(
   db: D1DatabaseLike,
   input: { messageId: string; sendStatus: SupportMessageSendStatus; emailMessageId?: string | null },
@@ -908,7 +1238,21 @@ export async function updateSupportConversationStatus(
 export async function listSupportDataForPrivacyRequest(
   requesterUserId: string,
   dbOverride?: D1DatabaseLike,
-): Promise<SupportQueryResult<{ conversations: SupportConversationRow[]; messages: SupportMessageRow[] }>> {
+): Promise<SupportQueryResult<{
+  conversations: SupportConversationRow[];
+  messages: SupportMessageRow[];
+  drafts: Array<{
+    id: string;
+    conversation_id: string | null;
+    kind: string;
+    to_json: string | null;
+    cc_json: string | null;
+    subject: string | null;
+    body_text: string | null;
+    body_html: string | null;
+    updated_at: string;
+  }>;
+}>> {
   try {
     const db = await resolveSupportDb(dbOverride);
     const conversations = await db
@@ -939,16 +1283,35 @@ export async function listSupportDataForPrivacyRequest(
       )
       .bind(requesterUserId)
       .all<SupportMessageRow>();
+    const drafts = await db.prepare<{
+      id: string;
+      conversation_id: string | null;
+      kind: string;
+      to_json: string | null;
+      cc_json: string | null;
+      subject: string | null;
+      body_text: string | null;
+      body_html: string | null;
+      updated_at: string;
+    }>(
+      `SELECT draft.id, draft.conversation_id, draft.kind, draft.to_json, draft.cc_json,
+              draft.subject, draft.body_text, draft.body_html, draft.updated_at
+       FROM support_drafts draft
+       INNER JOIN support_conversations conversation ON conversation.id = draft.conversation_id
+       WHERE conversation.user_id = ?
+       ORDER BY draft.updated_at ASC, draft.id ASC`,
+    ).bind(requesterUserId).all();
 
     return {
       data: {
         conversations: conversations.results ?? [],
         messages: messages.results ?? [],
+        drafts: drafts.results ?? [],
       },
       error: null,
     };
   } catch {
-    return { data: { conversations: [], messages: [] }, error: "Support data could not be read for privacy request." };
+    return { data: { conversations: [], messages: [], drafts: [] }, error: "Support data could not be read for privacy request." };
   }
 }
 
@@ -970,6 +1333,7 @@ export async function eraseSupportDataForPrivacyRequest(
               from_address = NULL,
               from_name = NULL,
               to_json = NULL,
+              cc_json = NULL,
               internet_message_id = NULL,
               ingest_key = NULL
           WHERE conversation_id IN (
