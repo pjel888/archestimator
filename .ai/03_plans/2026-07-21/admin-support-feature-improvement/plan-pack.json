@@ -10,11 +10,11 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-21T06:23:36.000Z",
+  "updated_at": "2026-07-21T06:30:16.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
-    "head": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+    "head": "e84cca794fdf3149205c850d32241354375d5672",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
@@ -775,7 +775,7 @@
         "UNIT-001",
         "AC-001"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "2e518ff6de779a17503fbbc46f9a8513a9adfd3c1178888d3a864c0b0f647801",
       "valid_until": null
     },
@@ -788,7 +788,7 @@
         "AC-001",
         "AC-004"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "60f6612736799646b32ff964a8c21062e691d0b3b0c72fc12c878d5f937ffb6e",
       "valid_until": null
     },
@@ -801,7 +801,7 @@
         "AC-002",
         "AC-005"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "454aef43eeda9f7cb1143cd7b787444114952e59fbaf4934b32845873d2c9851",
       "valid_until": null
     },
@@ -814,7 +814,7 @@
         "AC-002",
         "AC-005"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "6a75d13bc79199a643fbcd6bacf87bd45199162c946b5257cf542f7f7b3720e4",
       "valid_until": null
     },
@@ -826,7 +826,7 @@
         "UNIT-005",
         "AC-003"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "57f2c8a9181b30fceb1e2e971cd39e4dfc2013183c76753beeb808f1693fb4b0",
       "valid_until": null
     },
@@ -838,7 +838,7 @@
         "UNIT-006",
         "AC-003"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "b8865c0d3043da8f15825eeb125c938fafcb44f9a1dccb0587761778467f157a",
       "valid_until": null
     },
@@ -850,7 +850,7 @@
         "UNIT-007",
         "AC-004"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "0e8ae60718becc79e8affd691efd04a97799e0a93938e02b175282866a37f882",
       "valid_until": null
     },
@@ -863,7 +863,7 @@
         "AC-006",
         "AC-007"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "4d140320d0cf4bc3a9087bfeb889047e85b3d94bd625091fbafc27ba7cb663f2",
       "valid_until": null
     },
@@ -875,7 +875,7 @@
         "UNIT-009",
         "AC-009"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "23411c3000a661f9fab0330c12546dbc81d690200d709f88654f0ad33bb01d18",
       "valid_until": null
     },
@@ -889,7 +889,7 @@
         "AC-007",
         "AC-008"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "ff2610b5cc6874753a94b7f0f4ed551acedc9838be3336e4c3da5b7c37910072",
       "valid_until": null
     },
@@ -901,7 +901,7 @@
         "UNIT-011",
         "AC-009"
       ],
-      "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "source_revision": "e84cca794fdf3149205c850d32241354375d5672",
       "sha256": "92ecda51b2d900726be2dabf6817c4c61e4ab16e336543c1d9a2931ed355c9e4",
       "valid_until": null
     }
@@ -926,5 +926,5 @@
       ]
     }
   ],
-  "manifest_sha256": "826d945df6b16a0027b90d2610ca6a507ac77743d1348524e55d1fcb11b6068e"
+  "manifest_sha256": "8948b56ac9a6b152ff791bb47ad33b92ce8a8edac05676dd9b6a784997995750"
 }
