@@ -51,6 +51,8 @@ function createSyntheticBetterAuthProfile({
     avatar_url: avatarUrl,
     created_at: now,
     default_workspace_id: null,
+    deleted_at: null,
+    deletion_id: null,
     display_name: displayName,
     email,
     id,
@@ -99,7 +101,10 @@ async function getBetterAuthCurrentUserContext(): Promise<CurrentUserContext | n
   );
   const resolvedProfile = profile ?? createSyntheticBetterAuthProfile(identity);
 
-  // Enforce account_status: banned/suspended users are blocked from the app.
+  // Enforce account lifecycle: deleted/banned/suspended users are blocked.
+  if (resolvedProfile.deleted_at) {
+    redirect("/access-required?reason=deleted");
+  }
   if (resolvedProfile.account_status === "banned") {
     redirect("/access-required?reason=banned");
   }

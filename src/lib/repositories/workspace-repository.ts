@@ -65,6 +65,7 @@ type WorkspaceRow = {
   created_by: string | null;
   name: string;
   slug: string | null;
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -484,7 +485,7 @@ function normalizeEstimateRow(estimate: EstimateRecordWithLegacy & { metadata?: 
 async function readWorkspaceById(database: D1DatabaseLike, workspaceId: string): Promise<WorkspaceRow | null> {
   return first<WorkspaceRow>(
     database,
-    `SELECT id, created_by, name, slug, created_at, updated_at
+    `SELECT id, created_by, name, slug, closed_at, created_at, updated_at
      FROM workspaces
      WHERE id = ?
      LIMIT 1`,
@@ -1265,6 +1266,7 @@ async function canUseWorkspaceAsDefault(
   workspace: WorkspaceRow,
   context: Pick<CurrentUserContext, "role" | "userId">,
 ) {
+  if (workspace.closed_at) return false;
   if (isPlatformAdminContext(context)) return true;
   if (workspace.created_by === context.userId) return true;
 
@@ -1441,6 +1443,7 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
     name: defaultName,
     slug: null,
     created_by: context.userId,
+    closed_at: null,
     created_at: now,
     updated_at: now,
   };

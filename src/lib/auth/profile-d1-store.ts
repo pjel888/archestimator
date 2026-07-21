@@ -15,6 +15,8 @@ export type CurrentUserProfile = {
   avatar_url: string | null;
   created_at: string;
   default_workspace_id: string | null;
+  deleted_at: string | null;
+  deletion_id: string | null;
   display_name: string | null;
   email: string;
   id: string;
@@ -27,6 +29,8 @@ type ProfileD1Row = {
   avatar_url: string | null;
   created_at: string;
   default_workspace_id: string | null;
+  deleted_at: string | null;
+  deletion_id: string | null;
   display_name: string | null;
   email: string;
   id: string;
@@ -43,6 +47,8 @@ function toCurrentUserProfile(row: ProfileD1Row | null): CurrentUserProfile | nu
     avatar_url: row.avatar_url,
     created_at: row.created_at,
     default_workspace_id: row.default_workspace_id,
+    deleted_at: row.deleted_at ?? null,
+    deletion_id: row.deletion_id ?? null,
     display_name: row.display_name,
     email: row.email,
     id: row.id,
@@ -61,9 +67,11 @@ export async function getProfileByEmailFromD1(
   const row = await db
     .prepare<ProfileD1Row>(
       `
-        SELECT id, email, display_name, role, account_status, default_workspace_id, avatar_url, created_at, updated_at
+        SELECT id, email, display_name, role, account_status, default_workspace_id, avatar_url,
+               deleted_at, deletion_id, created_at, updated_at
         FROM profiles
         WHERE email = ?
+          AND deleted_at IS NULL
         LIMIT 1
       `,
     )

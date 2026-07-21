@@ -47,10 +47,13 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
 
   const workspaceMembership = await db
     .prepare<WorkspaceMembershipD1Row>(`
-      SELECT workspace_id, role
-      FROM workspace_members
-      WHERE user_id = ?
-      ORDER BY created_at ASC
+      SELECT membership.workspace_id AS workspace_id, membership.role AS role
+      FROM workspace_members AS membership
+      INNER JOIN workspaces AS workspace
+        ON workspace.id = membership.workspace_id
+      WHERE membership.user_id = ?
+        AND workspace.closed_at IS NULL
+      ORDER BY membership.created_at ASC
       LIMIT 1
     `)
     .bind(userId)
@@ -67,10 +70,13 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
   const projectMembership = await firstOptional<ProjectMembershipD1Row>(
     db,
     `
-      SELECT workspace_id, role
-      FROM project_members
-      WHERE user_id = ?
-      ORDER BY created_at ASC
+      SELECT project_member.workspace_id AS workspace_id, project_member.role AS role
+      FROM project_members AS project_member
+      INNER JOIN workspaces AS workspace
+        ON workspace.id = project_member.workspace_id
+      WHERE project_member.user_id = ?
+        AND workspace.closed_at IS NULL
+      ORDER BY project_member.created_at ASC
       LIMIT 1
     `,
     userId,
@@ -98,7 +104,17 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
   if (!estimateMembership?.project_id) return null;
 
   const project = await db
-    .prepare<{ workspace_id: string | null }>("SELECT workspace_id FROM projects WHERE id = ? LIMIT 1")
+    .prepare<{ workspace_id: string | null }>(
+      `
+        SELECT project.workspace_id AS workspace_id
+        FROM projects AS project
+        INNER JOIN workspaces AS workspace
+          ON workspace.id = project.workspace_id
+        WHERE project.id = ?
+          AND workspace.closed_at IS NULL
+        LIMIT 1
+      `,
+    )
     .bind(estimateMembership.project_id)
     .first<{ workspace_id: string | null }>();
   if (!project?.workspace_id) {

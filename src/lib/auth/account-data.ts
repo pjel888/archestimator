@@ -115,7 +115,8 @@ export type AccountSecurityEventType =
   | "auth_callback_beta_access_denied"
   | "onboarding_completed"
   | "profile_settings_updated"
-  | "workspace_settings_updated";
+  | "workspace_settings_updated"
+  | "account_deleted";
 
 export function sanitizeAccountSecurityMetadata(
   metadata: Record<string, unknown> | null | undefined,

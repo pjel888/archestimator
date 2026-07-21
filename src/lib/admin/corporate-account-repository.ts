@@ -347,7 +347,8 @@ export async function listCorporateAccountReadOnlyViewsInD1(
     .prepare<WorkspaceWithCorporateAccountIdRow>(
       `SELECT w.corporate_account_id, w.id, w.name, w.slug, w.created_by, w.created_at
        FROM workspaces w
-       WHERE EXISTS (
+       WHERE w.closed_at IS NULL
+         AND EXISTS (
          SELECT 1
          FROM corporate_account_members eligible
          JOIN corporate_accounts a ON a.id = eligible.corporate_account_id
