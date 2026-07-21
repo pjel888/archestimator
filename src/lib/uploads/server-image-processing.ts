@@ -55,6 +55,18 @@ export function isCloudflareWorkersProofBuild() {
     : process.env.ARCHESTIMATOR_CLOUDFLARE_BUILD === "1";
 }
 
+/**
+ * Workers proof builds cannot run sharp. Prefer Cloudflare Images whenever the
+ * build is Workers-shaped, or when the provider is explicitly selected.
+ * `node-sharp` remains the Node/local default only.
+ */
+export function shouldUseCloudflareImagesProcessing() {
+  const provider = process.env[IMAGE_PROCESSING_PROVIDER_ENV];
+  if (provider === "cloudflare-images") return true;
+  if (provider === "node-sharp" && !isCloudflareWorkersProofBuild()) return false;
+  return isCloudflareWorkersProofBuild();
+}
+
 function isAllowedSharpFormat(format: string | undefined, magicMime: string) {
   if (!format) return false;
   if (format === "heif" && magicMime === "image/avif") return true;
@@ -188,7 +200,7 @@ export async function processUploadImageToWebp({
   thumbnailEdge: number;
   cloudflareImagesBinding?: CloudflareImagesBindingLike | null;
 }): Promise<ProcessUploadImageResult> {
-  if (process.env[IMAGE_PROCESSING_PROVIDER_ENV] === "cloudflare-images") {
+  if (shouldUseCloudflareImagesProcessing()) {
     return processUploadImageWithCloudflareImages({
       sourceBuffer,
       magicMime,
