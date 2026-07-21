@@ -1,0 +1,800 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-21-admin-support-feature-improvement",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-21T06:15:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "98eb869db99f598de02f685f83da3fd6a94ec733",
+    "scoped_status_sha256": "f14a80911aaf7747714b024c22b121c1aa8b7e9bc61a3d9a908d541d03a721ff",
+    "scoped_diff_sha256": "1c57b70e7ae0973255c70ea55da34986a213cfb23d9f51a4137e99130f0e19b6"
+  },
+  "stale_triggers": [
+    "src/lib/repositories/support-conversations-d1.ts changes (UNIT-001/009 base)",
+    "src/lib/admin/support-actions.ts changes (UNIT-004/007/008 base)",
+    "src/components/admin/AdminSupportInbox.tsx changes (UNIT-002/004/006/007/008/009 base)",
+    "wrangler.jsonc send_email/EMAIL or SUPPORT_INBOX binding changes",
+    "a new migration beyond 0096 lands (UNIT-005 draft 0096; UNIT-009 triage 0097 numbering)",
+    "src/lib/cloudflare/support-inbox.ts or SUPPORT_INBOX protocol/binding changes (UNIT-008 base)",
+    "src/components/support/SupportChatWidget.tsx changes (UNIT-008 base)"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "96e235a87d51d8272051c3e7dd9ebe028d8b14efee5e5df18142dd9e339ed9e0"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "b2126de564f368d21fa750f7d517c632496d0391d9549323790fba14089ca99a"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit",
+      "path": "units/001-folder-view-query-layer.md",
+      "sha256": "6bab84dd2a2110279edd87abc542ad1c7f2f8669cd10b18d9eaed744460329f8"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/002-folder-rail-ui.md",
+      "sha256": "25485993c3ac3df706def74d090977af932a5c0ef225ec9f9a3e263130ee0307"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit",
+      "path": "units/003-send-identity-registry.md",
+      "sha256": "764d7ede85c83f2426b2796aee54996d9f4d69a074d89048549ac06a32e05738"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/004-from-identity-actions-ui.md",
+      "sha256": "22c0adeb071591b817ab08e08915b5ed474c02abfdda582e388722e8a9e033d2"
+    },
+    {
+      "id": "ART-007",
+      "role": "unit",
+      "path": "units/005-drafts-schema-repository.md",
+      "sha256": "6e19b3fbcb36d2232ee7c250e8ef4eeb194705ee8c829ebe1681470dad82334f"
+    },
+    {
+      "id": "ART-008",
+      "role": "unit",
+      "path": "units/006-drafts-autosave-ui.md",
+      "sha256": "27810ce579a75f00354e49da38c5ab5990baa90798724df962d4248d21cb41e1"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "units/007-reply-all-forward-triage.md",
+      "sha256": "ca5f44553dcb732b8b19bb541381244e89e0fdc1157fb642ec38a6b481436ca5"
+    },
+    {
+      "id": "ART-010",
+      "role": "unit",
+      "path": "units/008-live-chat.md",
+      "sha256": "db31c4b6f8a93337a41cb7dd2116ae60b409972f2cf14bf4803cfc9d6cf0a9d6"
+    },
+    {
+      "id": "ART-011",
+      "role": "unit",
+      "path": "units/009-triage-labels-assignment-snooze-star.md",
+      "sha256": "81bd7fcca6100b3650519a74c4836cd4201e6866c216eecd9d7568b6aec3fa99"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "DATA-002",
+        "DATA-003",
+        "UX-001",
+        "SEC-001",
+        "DATA-004",
+        "SEC-002",
+        "UX-002",
+        "DATA-005",
+        "UX-003"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DATA-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "DATA-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Sent/folder query is verified by source review and type-check; a Sent-predicate unit test is recorded as a TEST_PROPOSAL and not run under the User Test Authorization Gate.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Multi-From resolution and persistence are verified by source/diff review and type-check; deliverability is an external ops boundary, not a local test.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Additive migration and draft CRUD are verified by migration inspection and type-check; a draft idempotency test is recorded as a TEST_PROPOSAL and not run without authorization.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Folder rail, reply-all/forward, and keyboard triage are verified by source review and type-check; browser proof is only taken if Philip authorizes a TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Fail-closed identity allowlist, header-injection safety, and admin gating are verified by source review and type-check; an allowlist rejection test is recorded as a TEST_PROPOSAL and not run without authorization.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "In-app chat persistence (D1 as source of truth) and best-effort DO fanout are verified by source/diff review and type-check; a realtime round-trip test is recorded as a TEST_PROPOSAL and not run without authorization.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Fail-closed room-token minting (participant-only, conversation-scoped, TTL-bounded) is verified by source review and type-check; a non-participant rejection test is recorded as a TEST_PROPOSAL and not run without authorization.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Chat message list, composer, unread, live receive, and thread continuity on both sides are verified by source review and type-check; browser proof is only taken if Philip authorizes a TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-005",
+        "UX-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The additive triage migration and folder-predicate composition (labels/assignee/star + snooze visibility) plus the rail/triage UI are verified by migration inspection, source review, and type-check; a predicate test is recorded as a TEST_PROPOSAL and not run without authorization.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-folder-view-query-layer.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-folder-rail-ui.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "UX-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-send-identity-registry.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-002",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-from-identity-actions-ui.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "DATA-002",
+        "SEC-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-drafts-schema-repository.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-drafts-autosave-ui.md",
+      "depends_on": [
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-reply-all-forward-triage.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "risk_ids": [
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "units/008-live-chat.md",
+      "depends_on": [
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "DATA-004",
+        "SEC-002",
+        "UX-002"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "artifact_path": "units/009-triage-labels-assignment-snooze-star.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-008"
+      ],
+      "requirement_ids": [
+        "DATA-005",
+        "UX-003"
+      ],
+      "risk_ids": [
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    }
+  ],
+  "decisions": [],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-folder-view-query-layer.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "6bab84dd2a2110279edd87abc542ad1c7f2f8669cd10b18d9eaed744460329f8",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-folder-rail-ui.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-001",
+        "AC-004"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "25485993c3ac3df706def74d090977af932a5c0ef225ec9f9a3e263130ee0307",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-send-identity-registry.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-002",
+        "AC-005"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "764d7ede85c83f2426b2796aee54996d9f4d69a074d89048549ac06a32e05738",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/004-from-identity-actions-ui.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-002",
+        "AC-005"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "22c0adeb071591b817ab08e08915b5ed474c02abfdda582e388722e8a9e033d2",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "units/005-drafts-schema-repository.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-003"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "6e19b3fbcb36d2232ee7c250e8ef4eeb194705ee8c829ebe1681470dad82334f",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "units/006-drafts-autosave-ui.md",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-003"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "27810ce579a75f00354e49da38c5ab5990baa90798724df962d4248d21cb41e1",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "units/007-reply-all-forward-triage.md",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-004"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "ca5f44553dcb732b8b19bb541381244e89e0fdc1157fb642ec38a6b481436ca5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "artifact_path": "units/008-live-chat.md",
+      "claim_ids": [
+        "UNIT-008",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "db31c4b6f8a93337a41cb7dd2116ae60b409972f2cf14bf4803cfc9d6cf0a9d6",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "artifact_path": "units/009-triage-labels-assignment-snooze-star.md",
+      "claim_ids": [
+        "UNIT-009",
+        "AC-009"
+      ],
+      "source_revision": "98eb869db99f598de02f685f83da3fd6a94ec733",
+      "sha256": "81bd7fcca6100b3650519a74c4836cd4201e6866c216eecd9d7568b6aec3fa99",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "SLICE-002",
+      "unit_ids": [
+        "UNIT-003"
+      ]
+    },
+    {
+      "id": "SLICE-003",
+      "unit_ids": [
+        "UNIT-005"
+      ]
+    }
+  ],
+  "manifest_sha256": "74e9de2cf46967744f3c9aa674f994d357a5817013825bfda49349fdb0f289b7"
+}
