@@ -20,7 +20,7 @@ type ClosedBetaAllowlistD1Row = {
   id: string;
   invited_at: string;
   invited_by: string | null;
-  invite_email_sent_at: string | null;
+  metadata_json: string | null;
   normalized_email: string;
   notes: string | null;
   status: string;
@@ -29,11 +29,29 @@ type ClosedBetaAllowlistD1Row = {
 
 type PendingInviteRow = {
   id: string;
+  metadata_json: string | null;
   normalized_email: string;
 };
 
 function isClosedBetaAccessStatus(value: string): value is Exclude<ClosedBetaAccessStatus, "disabled" | "no-email" | "error"> {
   return value === "missing" || value === "invited" || value === "active" || value === "revoked";
+}
+
+function parseMetadata(raw: string | null | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function readInviteEmailSentAt(metadata: Record<string, unknown>): string | null {
+  const value = metadata.invite_email_sent_at;
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 function toClosedBetaAccessResult(row: ClosedBetaAccessRow | null, normalizedEmail: string): ClosedBetaAccessResult {
@@ -51,13 +69,14 @@ function toClosedBetaAccessResult(row: ClosedBetaAccessRow | null, normalizedEma
 }
 
 function toAllowlistRow(row: ClosedBetaAllowlistD1Row): ClosedBetaAllowlistRow {
+  const metadata = parseMetadata(row.metadata_json);
   return {
     accepted_at: row.accepted_at,
     created_at: row.created_at,
     id: row.id,
     invited_at: row.invited_at,
     invited_by: row.invited_by,
-    invite_email_sent_at: row.invite_email_sent_at ?? null,
+    invite_email_sent_at: readInviteEmailSentAt(metadata),
     normalized_email: row.normalized_email,
     notes: row.notes,
     status: row.status as ClosedBetaAllowlistStatus,
@@ -164,8 +183,8 @@ export async function readClosedBetaAllowlistQueueFromD1(status: ClosedBetaAllow
         invited_by,
         invited_at,
         accepted_at,
-        invite_email_sent_at,
         notes,
+        metadata_json,
         created_at,
         updated_at
       FROM closed_beta_allowed_emails
@@ -272,18 +291,22 @@ export async function createClosedBetaAllowlistEntriesInD1({
 export async function markClosedBetaInviteEmailSentInD1(
   db: D1DatabaseLike,
   entryId: string,
+  metadataRaw: string | null,
   sentAt = new Date().toISOString(),
 ) {
+  const metadata = parseMetadata(metadataRaw);
+  if (readInviteEmailSentAt(metadata)) return;
+  metadata.invite_email_sent_at = sentAt;
+
   await db
     .prepare(
       `
         UPDATE closed_beta_allowed_emails
-        SET invite_email_sent_at = COALESCE(invite_email_sent_at, ?), updated_at = ?
+        SET metadata_json = ?, updated_at = ?
         WHERE id = ?
-          AND invite_email_sent_at IS NULL
       `,
     )
-    .bind(sentAt, sentAt, entryId)
+    .bind(metadataJson(metadata), sentAt, entryId)
     .run();
 }
 
@@ -294,18 +317,22 @@ export async function listPendingClosedBetaInviteEmailsFromD1(
   const result = await db
     .prepare<PendingInviteRow>(
       `
-        SELECT id, normalized_email
+        SELECT id, normalized_email, metadata_json
         FROM closed_beta_allowed_emails
-        WHERE invite_email_sent_at IS NULL
-          AND status IN ('invited', 'active')
+        WHERE status IN ('invited', 'active')
         ORDER BY created_at ASC
-        LIMIT ?
+        LIMIT 200
       `,
     )
-    .bind(limit)
     .all<PendingInviteRow>();
 
-  return result.results ?? [];
+  const pending: PendingInviteRow[] = [];
+  for (const row of result.results ?? []) {
+    if (readInviteEmailSentAt(parseMetadata(row.metadata_json))) continue;
+    pending.push(row);
+    if (pending.length >= limit) break;
+  }
+  return pending;
 }
 
 export async function deliverPendingClosedBetaInviteEmailsFromD1({
@@ -341,7 +368,7 @@ export async function deliverPendingClosedBetaInviteEmailsFromD1({
       failed += 1;
       continue;
     }
-    await markClosedBetaInviteEmailSentInD1(database, row.id);
+    await markClosedBetaInviteEmailSentInD1(database, row.id, row.metadata_json);
     sent += 1;
   }
 
@@ -364,10 +391,9 @@ export async function sendClosedBetaInviteEmailsForCreatedEntriesInD1({
     const row = await db
       .prepare<PendingInviteRow>(
         `
-          SELECT id, normalized_email
+          SELECT id, normalized_email, metadata_json
           FROM closed_beta_allowed_emails
           WHERE normalized_email = ?
-            AND invite_email_sent_at IS NULL
             AND status IN ('invited', 'active')
           LIMIT 1
         `,
@@ -375,14 +401,14 @@ export async function sendClosedBetaInviteEmailsForCreatedEntriesInD1({
       .bind(email)
       .first<PendingInviteRow>();
 
-    if (!row) continue;
+    if (!row || readInviteEmailSentAt(parseMetadata(row.metadata_json))) continue;
 
     const result = await sendClosedBetaInviteEmail({ email: row.normalized_email, origin });
     if (!result.ok) {
       failed += 1;
       continue;
     }
-    await markClosedBetaInviteEmailSentInD1(db, row.id);
+    await markClosedBetaInviteEmailSentInD1(db, row.id, row.metadata_json);
     sent += 1;
   }
 
