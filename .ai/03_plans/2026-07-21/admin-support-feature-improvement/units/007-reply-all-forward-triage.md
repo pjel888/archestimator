@@ -1,42 +1,42 @@
-# UNIT-007 — Reply-all / forward + keyboard triage
+# UNIT-007 — Reply-all, forward, recipient contract, and keyboard navigation
 
-## Goal
-Add reply-all (Cc) and forward, plus keyboard triage, completing console
-coherence.
+## Goal and status
 
-## Status
-`READY` · depends on: UNIT-002 · requirements: UX-001 · risks: RISK-004
+`READY` · dependencies: UNIT-002, UNIT-004, UNIT-006 · requirements: UX-001, SEC-001 · risks: RISK-004
+
+Add safe recipient-aware reply-all and new-thread forward without corrupting
+threading, leaking recipients, or capturing editable focus.
 
 ## Owned paths
-- `src/lib/admin/support-actions.ts` (write — **reread**, after UNIT-004)
-- `src/components/admin/AdminSupportInbox.tsx` (write — **reread**, after UNIT-002/004/006)
-- `src/components/admin/support/SupportRichComposer.tsx` (write — **reread**)
+
+- `src/lib/email/cloudflare-email-client.ts`
+- `src/lib/email/transactional-email-client.ts`
+- `src/lib/email/support-email-address.ts` or a focused recipient helper
+- `src/lib/admin/support-actions.ts` (reread after UNIT-004/006)
+- `src/components/admin/support/SupportRichComposer.tsx` (reread)
+- `src/components/admin/AdminSupportInbox.tsx` (reread)
 
 ## Implementation boundary
-1. Actions: accept `cc` on reply/new-email; persist `cc_json` (column exists);
-   pass Cc to `dispatchSupportEmail`. Add `forwardSupportMessage` (new outbound
-   to an arbitrary recipient copying body/attachments): in-thread forward keeps
-   `References`/`In-Reply-To` (reuse `buildThreadingHeaders`); forward-out starts
-   a new external conversation with a fresh routing token. All header text via
-   `sanitizeHeaderText`.
-2. UI: reply-all/forward controls in the thread header/composer; a To/Cc field
-   for reply-all/forward.
-3. Keyboard triage: j/k to move selection, e to archive (reuse
-   `setConversationStatus`), r to focus reply, / to focus search — scoped to the
-   inbox, no global capture; respect focus/ARIA.
 
-## Verification
-- `bun run type-check`, `bun run lint`.
-- GATE-UX-01: keyboard/focus behavior; GATE-SEC-01: header safety on new
-  recipients.
+1. Extend the internal email contract with explicit CC and a product recipient cap.
+2. Normalize/dedupe To/Cc, exclude every configured support From/reply mailbox,
+   and reject malformed, empty, or over-limit results before persistence/send.
+3. Reply-all remains in-thread and persists `to_json`/`cc_json` actually sent.
+4. Forward always creates a new conversation/routing token with `Fwd:` subject
+   and safely quoted source content. Do not add reply threading headers.
+5. Forward only explicitly selected `stored` attachments after R2 re-read and
+   current type/count/size checks; blocked/quarantined/missing objects fail closed.
+6. Scope j/k, archive, reply, and search shortcuts to the mailbox. Ignore events
+   from inputs, textareas, selects, contenteditable, dialogs, and the composer.
 
-## Scope
-In: reply-all/forward + keyboard triage. Out: labels/assignment/snooze (N1).
+## Acceptance evidence
 
-## Done criteria
-- [ ] Reply-all (Cc) and forward send correctly and persist Cc/threading.
-- [ ] Keyboard triage works without breaking focus/ARIA.
-- [ ] type-check + lint clean; existing send lifecycle preserved.
+- Source proves recipient exclusion/dedupe/caps and distinct reply vs forward semantics.
+- Cloudflare CC is sent as a first-class API field, not a custom header.
+- TEST_PROPOSAL only: `bun x vitest run tests/vitest/support-recipients.test.ts`.
 
-## Recovery
-Revert the three files (serialized last).
+## Recovery and completion
+
+Serialized shared-file edit. Complete when AC-004 and recipient parts of AC-005
+are source-proven and existing idempotency/audit/send-status behavior remains.
+

@@ -1,45 +1,41 @@
-# UNIT-003 — Multi-From send-identity registry + validation
+# UNIT-003 — Verified support identity registry and readiness contract
 
-## Goal
-Introduce a fail-closed registry of verified From identities and resolve/validate
-by id.
+## Goal and status
 
-## Status
-`READY` · depends on: (none) · requirements: DATA-002, SEC-001 · risks: RISK-002
+`READY` · dependencies: none · requirements: DATA-002, SEC-001 · risks: RISK-002
+
+Define a small fail-closed registry for `support@` and `philip@` while keeping
+From address separate from the canonical routed Reply-To mailbox.
 
 ## Owned paths
-- `src/lib/email/support-send-identities.ts` (new, write)
-- `src/lib/email/support-email-config.ts` (write — add identity env parsing)
+
+- new `src/lib/email/support-send-identities.ts`
+- `src/lib/email/support-email-config.ts`
+- `.env.example`, `.dev.vars.example`
+- `docs/support-email-operator-runbook.md`
+- existing email readiness scripts when their declared config surface changes
 
 ## Implementation boundary
-1. `support-send-identities.ts` (`server-only`): type
-   `SupportSendIdentity = { id; address; name; mailbox; isDefault }`.
-2. Build registry: default from `readSupportEmailConfig()` (support@) +
-   parse `ARCHESTIMATOR_SUPPORT_SEND_IDENTITIES` (comma list of
-   `address|Display Name`). Lowercase addresses; dedupe; validate with
-   `normalizeEmailAddress` (rejects header injection).
-3. `listSupportSendIdentities()` and `resolveSupportSendIdentity(id?)`:
-   omitted → default; unknown id → **throw** (fail-closed).
-4. **Include `philip@archestimator.com` as a registered identity** (same verified
-   domain — see 00-PLAN §10 readiness evidence: `archestimator.com` is onboarded
-   for Cloudflare Email Sending, which onboards a domain not an address). Default
-   remains `support@`. DMARC ramp is an ops posture note, not a send gate; runtime
-   send stays gated by the address-agnostic delivery flags. Every registered
-   address must be same-domain and pass `normalizeEmailAddress`.
 
-## Verification
-- `bun run type-check`, `bun run lint`.
-- SEC-001 TEST_PROPOSAL recorded (not run): allowlist rejects unknown/unverified
-  + injection.
+1. Parse stable id, From address/name, reply mailbox, and default flag.
+2. Include the two accepted same-domain identities; reject duplicate ids/
+   addresses, malformed/header-injection input, cross-domain From, invalid reply
+   mailbox, multiple defaults, empty registry, and excessive entries.
+3. Omitted id resolves the default; unknown id throws. Expose a serializable
+   client-safe list with no secrets.
+4. Keep the reply mailbox canonical unless a future separately verified inbound
+   route explicitly changes the product contract.
+5. Document provider readiness honestly: local registry validation is not DNS,
+   provider acceptance, delivery, or inbox-placement proof.
 
-## Scope
-In: registry + config parsing. Out: actions/UI (UNIT-004).
+## Acceptance evidence
 
-## Done criteria
-- [ ] Registry resolves default (`support@`) + `philip@` + any configured
-      identities; unknown id throws.
-- [ ] Addresses validated for header safety and same verified domain.
-- [ ] type-check + lint clean.
+- Source proves fail-closed resolution and header-safe normalization.
+- Examples/readiness docs agree on names without committing values or secrets.
+- TEST_PROPOSAL only: `bun x vitest run tests/vitest/support-send-identities.test.ts`.
 
-## Recovery
-New file + additive config; revert to roll back.
+## Recovery and completion
+
+New registry plus additive config/docs. Complete when UNIT-004 can resolve a
+single authoritative identity object and no send logic changed yet.
+

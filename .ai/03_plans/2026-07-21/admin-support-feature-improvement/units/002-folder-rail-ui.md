@@ -1,42 +1,40 @@
-# UNIT-002 — Folder rail UI + wiring (Sent visible)
+# UNIT-002 — Admin mailbox state refactor and folder rail
 
-## Goal
-Add a folder rail (Inbox / Sent / Drafts / Archive / All) with live counts and
-wire it to the `folder` query param, so Sent renders.
+## Goal and status
 
-## Status
-`READY` · depends on: UNIT-001 · requirements: DATA-001, UX-001 · risks: (none)
+`READY` · dependencies: UNIT-001 · requirements: DATA-001, UX-001 · risks: RISK-001, RISK-009
+
+Make URL state and TanStack Query the single list/count authority, then render a
+responsive mailbox rail without growing `AdminSupportInbox` into a larger monolith.
 
 ## Owned paths
-- `src/app/admin/support/page.tsx` (write)
-- `src/components/admin/AdminSupportInbox.tsx` (write — first editor)
-- `src/app/api/admin/support/conversations/route.ts` (write — accept `folder`)
+
+- `src/app/admin/support/page.tsx`
+- `src/components/admin/AdminSupportInbox.tsx`
+- new cohesive modules under `src/components/admin/support/`
 
 ## Implementation boundary
-1. `page.tsx`: read `folder` from `searchParams`, pass to
-   `listSupportConversations({ folder })` and `listSupportFolderCounts()`; pass
-   counts + folder to `AdminSupportInbox`.
-2. `AdminSupportInbox.tsx`: add a folder rail above the conversation list using
-   `src/components/ui/*` primitives (12px max, xs radius, neutral palette per
-   `DESIGN.md`). Each folder shows its count; selecting sets the `folder` URL
-   param (mirror the existing `router.replace` param pattern at `:159`).
-   Keep the existing channel/unread/status filters as sub-filters within a folder.
-3. Sent view lists outbound-bearing threads; the thread pane already renders
-   outbound via `SupportMessageCard`.
-4. API route: accept + forward `folder`.
 
-## Verification
-- `bun run type-check`, `bun run lint`.
-- GATE-UX-01: define empty/loading/selected states; folder rail keyboard-focusable.
+1. Seed the mailbox query from RSC data; derive its key from normalized URL state.
+2. Remove the unsynchronized copied conversation-list state. Mutation success
+   updates/invalidates the query cache; URL navigation refetches the right result.
+3. Extract URL/query, folder rail/list, and thread-pane boundaries; keep the rich
+   composer dynamically loaded and server-only values out of the client graph.
+4. Add Inbox, Sent, Archive, and All rail entries and counts. Drafts/Starred/
+   Snoozed render only when their backing units land, not as fake placeholders.
+5. Preserve channel/status/unread/search as composable URL filters.
+6. Define wide two-pane and narrow one-pane/Back behavior plus loading, empty,
+   degraded, and selected-thread-not-in-page states. Preserve focus on navigation.
 
-## Scope
-In: folder rail + counts + Sent rendering. Out: identities/drafts/forward.
+## Acceptance evidence
 
-## Done criteria
-- [ ] Folders render with counts; Sent shows outbound threads.
-- [ ] `folder` is a shareable URL param (reload reproduces view).
-- [ ] No regression to existing filters/compose/reply.
-- [ ] type-check + lint clean.
+- A URL reload deterministically reproduces folder/filter/selection.
+- No local list copy can outlive refreshed server/query data.
+- Source defines responsive and keyboard-focus behavior; browser proof is gated.
+- Type/static/lint checks are clean when implementation executes.
 
-## Recovery
-Revert the three files.
+## Recovery and completion
+
+Refactor before adding later features. Complete when Sent is usable, AC-001/004
+are source-proven for this phase, and later shared-file owners have a stable host.
+

@@ -1,58 +1,50 @@
-# UNIT-008 — In-app live chat (bidirectional user ↔ admin)
+# UNIT-008 — Chat authorization, owner APIs, persistence, and fanout hardening
 
-## Goal
-Turn the existing in-app support path into a realtime, bidirectional chat: both
-the admin console and the user widget subscribe to `SUPPORT_INBOX`, messages
-persist in D1 and fan out over the DO. No schema change.
+## Goal and status
 
-## Status
-`READY` · depends on: UNIT-004, UNIT-006, UNIT-007 · requirements: DATA-004,
-SEC-002, UX-002 · risks: RISK-005, RISK-006
+`READY` · dependencies: UNIT-007 · requirements: DATA-004, SEC-002 · risks: RISK-005, RISK-006
 
-## Why
-DO `SUPPORT_INBOX`, D1 `support_messages(transport='in_app')`, and
-`unread_for_admin`/`unread_for_user` already exist, but neither UI subscribes,
-admin sends don't fan out, and users can't post into an existing conversation.
+Make D1 the only authoritative chat write path and convert `SUPPORT_INBOX` into
+an authenticated invalidation relay shared by user, admin, and inbound email.
 
 ## Owned paths
-- `src/app/api/support/realtime-token/route.ts` (new, write) — room-token mint
-- `src/lib/cloudflare/support-inbox-client.ts` (new, write) — thin WS client
-- `src/lib/admin/support-actions.ts` (write — **reread**, after UNIT-004/007):
-  add `sendSupportUserMessage`, DO fanout on in_app sends, user read marker
-- `src/components/admin/AdminSupportInbox.tsx` (write — **reread**, after UNIT-002/004/006/007): subscribe + live receive
-- `src/components/support/SupportChatWidget.tsx` (write) — rewrite to a live thread
+
+- `src/lib/collaboration/realtime-identity-actions.ts`
+- new focused server-only support realtime authorization module if extraction is needed
+- new `src/app/api/support/conversations/route.ts`
+- new `src/app/api/support/conversations/[id]/messages/route.ts`
+- new `src/app/api/support/conversations/[id]/realtime-token/route.ts`
+- `src/lib/repositories/support-conversations-d1.ts` (reread after UNIT-001)
+- `src/lib/admin/support-actions.ts` (reread after UNIT-007)
+- new `src/lib/cloudflare/support-inbox-fanout.ts`
+- `src/lib/cloudflare/support-inbox.ts`
+- `src/lib/cloudflare/support-inbox-router.ts`
+- `src/lib/email/inbound-support-email.ts`
+- `worker.ts` only if type/wiring changes are required; no new binding/cron
 
 ## Implementation boundary
-1. Token route: authorize (admin via `requireAdminContext`; owner user via
-   `support_conversations.user_id === session.userId`), then
-   `issueRealtimeRoomToken({ secret: readRealtimeRoomTokenSecret(), sub, topic:
-   conversationId, ttlSeconds<=300 })`. Reject others (fail-closed).
-2. `sendSupportUserMessage`: ownership-checked; persist inbound in_app
-   (idempotent on client_message_id); `unread_for_admin=1`; best-effort fanout.
-3. Fanout helper: POST `{type:"fanout", message}` to the DO stub
-   (`env.SUPPORT_INBOX.get(idFromName(conversationId))`) after the D1 write;
-   failure is logged, non-fatal (D1 is source of truth).
-4. Client: connect → `authorize(token)` → `on("message")`; backfill from D1 on
-   mount/reconnect; dedupe by `client_message_id`.
-5. Both UIs: message list + composer + unread + thread continuity; presence/
-   typing only if cheap over the existing DO (optional, non-blocking).
-   Authenticated route → DESIGN.md alpha guidance (12px max, xs radius, neutral,
-   reuse `src/components/ui/*`).
 
-## Verification
-- `bun run type-check`, `bun run lint`.
-- GATE-SEC-01: token scoped to conversationId, fail-closed, TTL bounded.
-- GATE-DATA-01: D1 persists before fanout; idempotent; fanout best-effort.
-- GATE-UX-01: empty/loading/reconnect states; keyboard-focusable composer.
+1. Refactor the existing admin-or-owner token policy into one server-only
+   implementation and expose a no-store token route; delete duplicate policy.
+2. Add owner-scoped list/messages/send/read operations for `channel='in_app'`.
+   Every read/mutation checks `user_id`; admins continue through admin paths.
+3. Persist message idempotently and update unread flags before fanout.
+4. Shared internal fanout signs a short-lived system token, sends a strict
+   identifier-only invalidation envelope, checks response, and logs sanitized failures.
+5. Use that helper from user/admin in-app sends and inbound email persistence.
+6. Harden Worker router/DO: validate path/token/envelope/size, reject client
+   authoritative message frames, and broadcast only same-room invalidations.
+7. Keep D1 success non-fatal on DO failure; return explicit realtime-degraded metadata.
 
-## Scope
-In: realtime chat both sides. Out: triage (UNIT-009); chat on email threads.
+## Acceptance evidence
 
-## Done criteria
-- [ ] Owner user + admin can exchange messages live; both persist to D1.
-- [ ] Admin console and user widget subscribe and receive without reload.
-- [ ] Non-participants cannot mint a token or subscribe (server-enforced).
-- [ ] type-check + lint clean; existing email send lifecycle preserved.
+- Source traces every chat write through owner/admin auth and D1 before fanout.
+- Wrong-room/non-owner/expired/malformed/missing tokens fail closed.
+- No client frame can create or broadcast an authoritative message body.
+- TEST_PROPOSAL only: chat transport, realtime token, and router tests in §10.
 
-## Recovery
-New files revert cleanly; shared-file edits serialized last — revert to roll back.
+## Recovery and completion
+
+No schema/binding change. Complete when AC-006/007 server boundaries are proven
+and UNIT-010 receives stable history/send/token/invalidation contracts.
+

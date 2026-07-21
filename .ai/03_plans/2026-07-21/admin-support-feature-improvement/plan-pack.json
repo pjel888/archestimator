@@ -10,22 +10,24 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-21T06:15:00.000Z",
+  "updated_at": "2026-07-21T08:00:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
-    "head": "98eb869db99f598de02f685f83da3fd6a94ec733",
-    "scoped_status_sha256": "f14a80911aaf7747714b024c22b121c1aa8b7e9bc61a3d9a908d541d03a721ff",
-    "scoped_diff_sha256": "1c57b70e7ae0973255c70ea55da34986a213cfb23d9f51a4137e99130f0e19b6"
+    "head": "db13393a",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "stale_triggers": [
-    "src/lib/repositories/support-conversations-d1.ts changes (UNIT-001/009 base)",
-    "src/lib/admin/support-actions.ts changes (UNIT-004/007/008 base)",
-    "src/components/admin/AdminSupportInbox.tsx changes (UNIT-002/004/006/007/008/009 base)",
+    "src/lib/repositories/support-conversations-d1.ts changes (UNIT-001/005/008/009/010 base)",
+    "src/lib/admin/support-actions.ts changes (UNIT-004/006/007/008/010 base)",
+    "src/components/admin/AdminSupportInbox.tsx changes (UNIT-002/004/006/007/010/011 base)",
     "wrangler.jsonc send_email/EMAIL or SUPPORT_INBOX binding changes",
     "a new migration beyond 0096 lands (UNIT-005 draft 0096; UNIT-009 triage 0097 numbering)",
-    "src/lib/cloudflare/support-inbox.ts or SUPPORT_INBOX protocol/binding changes (UNIT-008 base)",
-    "src/components/support/SupportChatWidget.tsx changes (UNIT-008 base)"
+    "src/lib/cloudflare/support-inbox.ts or SUPPORT_INBOX protocol/binding changes (UNIT-008/010 base)",
+    "src/components/support/SupportChatWidget.tsx or owner-scoped support API routes change (UNIT-010 base)",
+    "src/lib/admin/support-attention-repository.ts changes (UNIT-011 base)",
+    "src/app/api/internal/upload-cleanup/route.ts changes (UNIT-005/006 base)"
   ],
   "artifacts": [
     {
@@ -93,6 +95,18 @@
       "role": "unit",
       "path": "units/009-triage-labels-assignment-snooze-star.md",
       "sha256": "81bd7fcca6100b3650519a74c4836cd4201e6866c216eecd9d7568b6aec3fa99"
+    },
+    {
+      "id": "ART-012",
+      "role": "unit",
+      "path": "units/010-live-chat-clients.md",
+      "sha256": "PENDING"
+    },
+    {
+      "id": "ART-013",
+      "role": "unit",
+      "path": "units/011-triage-ui-action-inbox.md",
+      "sha256": "PENDING"
     }
   ],
   "sources": [
@@ -141,7 +155,8 @@
       ],
       "unit_ids": [
         "UNIT-003",
-        "UNIT-004"
+        "UNIT-004",
+        "UNIT-007"
       ],
       "criterion_ids": [
         "AC-002"
@@ -204,7 +219,8 @@
         "SRC-001"
       ],
       "unit_ids": [
-        "UNIT-008"
+        "UNIT-008",
+        "UNIT-010"
       ],
       "criterion_ids": [
         "AC-006"
@@ -219,7 +235,8 @@
         "SRC-001"
       ],
       "unit_ids": [
-        "UNIT-008"
+        "UNIT-008",
+        "UNIT-010"
       ],
       "criterion_ids": [
         "AC-007"
@@ -234,7 +251,7 @@
         "SRC-001"
       ],
       "unit_ids": [
-        "UNIT-008"
+        "UNIT-010"
       ],
       "criterion_ids": [
         "AC-008"
@@ -249,7 +266,8 @@
         "SRC-001"
       ],
       "unit_ids": [
-        "UNIT-009"
+        "UNIT-009",
+        "UNIT-011"
       ],
       "criterion_ids": [
         "AC-009"
@@ -264,7 +282,7 @@
         "SRC-001"
       ],
       "unit_ids": [
-        "UNIT-009"
+        "UNIT-011"
       ],
       "criterion_ids": [
         "AC-009"
@@ -278,7 +296,8 @@
       "status": "OPEN",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-001"
+        "UNIT-001",
+        "UNIT-002"
       ],
       "criterion_ids": [
         "AC-001"
@@ -289,7 +308,8 @@
       "status": "OPEN",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-003"
+        "UNIT-003",
+        "UNIT-004"
       ],
       "criterion_ids": [
         "AC-005"
@@ -300,7 +320,8 @@
       "status": "OPEN",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-005"
+        "UNIT-005",
+        "UNIT-006"
       ],
       "criterion_ids": [
         "AC-003"
@@ -322,7 +343,8 @@
       "status": "OPEN",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-008"
+        "UNIT-008",
+        "UNIT-010"
       ],
       "criterion_ids": [
         "AC-007"
@@ -333,7 +355,8 @@
       "status": "OPEN",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-008"
+        "UNIT-008",
+        "UNIT-010"
       ],
       "criterion_ids": [
         "AC-006"
@@ -344,10 +367,37 @@
       "status": "OPEN",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-009"
+        "UNIT-009",
+        "UNIT-011"
       ],
       "criterion_ids": [
         "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-010",
+        "UNIT-011"
+      ],
+      "criterion_ids": [
+        "AC-001"
       ]
     }
   ],
@@ -449,7 +499,8 @@
       "test_rationale": "In-app chat persistence (D1 as source of truth) and best-effort DO fanout are verified by source/diff review and type-check; a realtime round-trip test is recorded as a TEST_PROPOSAL and not run without authorization.",
       "test_ids": [],
       "evidence_ids": [
-        "EVID-008"
+        "EVID-008",
+        "EVID-010"
       ],
       "authorization_boundary_id": null
     },
@@ -465,7 +516,8 @@
       "test_rationale": "Fail-closed room-token minting (participant-only, conversation-scoped, TTL-bounded) is verified by source review and type-check; a non-participant rejection test is recorded as a TEST_PROPOSAL and not run without authorization.",
       "test_ids": [],
       "evidence_ids": [
-        "EVID-008"
+        "EVID-008",
+        "EVID-010"
       ],
       "authorization_boundary_id": null
     },
@@ -481,7 +533,7 @@
       "test_rationale": "Chat message list, composer, unread, live receive, and thread continuity on both sides are verified by source review and type-check; browser proof is only taken if Philip authorizes a TEST_TASK.",
       "test_ids": [],
       "evidence_ids": [
-        "EVID-008"
+        "EVID-010"
       ],
       "authorization_boundary_id": null
     },
@@ -498,7 +550,8 @@
       "test_rationale": "The additive triage migration and folder-predicate composition (labels/assignee/star + snooze visibility) plus the rail/triage UI are verified by migration inspection, source review, and type-check; a predicate test is recorded as a TEST_PROPOSAL and not run without authorization.",
       "test_ids": [],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-011"
       ],
       "authorization_boundary_id": null
     }
@@ -515,7 +568,8 @@
         "DATA-001"
       ],
       "risk_ids": [
-        "RISK-001"
+        "RISK-001",
+        "RISK-009"
       ],
       "evidence_ids": [
         "EVID-001"
@@ -532,7 +586,10 @@
         "DATA-001",
         "UX-001"
       ],
-      "risk_ids": [],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-009"
+      ],
       "evidence_ids": [
         "EVID-002"
       ]
@@ -564,7 +621,9 @@
         "DATA-002",
         "SEC-001"
       ],
-      "risk_ids": [],
+      "risk_ids": [
+        "RISK-002"
+      ],
       "evidence_ids": [
         "EVID-004"
       ]
@@ -578,7 +637,8 @@
         "DATA-003"
       ],
       "risk_ids": [
-        "RISK-003"
+        "RISK-003",
+        "RISK-008"
       ],
       "evidence_ids": [
         "EVID-005"
@@ -594,7 +654,9 @@
       "requirement_ids": [
         "DATA-003"
       ],
-      "risk_ids": [],
+      "risk_ids": [
+        "RISK-003"
+      ],
       "evidence_ids": [
         "EVID-006"
       ]
@@ -604,10 +666,13 @@
       "status": "READY",
       "artifact_path": "units/007-reply-all-forward-triage.md",
       "depends_on": [
-        "UNIT-002"
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006"
       ],
       "requirement_ids": [
-        "UX-001"
+        "UX-001",
+        "SEC-001"
       ],
       "risk_ids": [
         "RISK-004"
@@ -621,14 +686,11 @@
       "status": "READY",
       "artifact_path": "units/008-live-chat.md",
       "depends_on": [
-        "UNIT-004",
-        "UNIT-006",
         "UNIT-007"
       ],
       "requirement_ids": [
         "DATA-004",
-        "SEC-002",
-        "UX-002"
+        "SEC-002"
       ],
       "risk_ids": [
         "RISK-005",
@@ -644,18 +706,61 @@
       "artifact_path": "units/009-triage-labels-assignment-snooze-star.md",
       "depends_on": [
         "UNIT-001",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "DATA-005"
+      ],
+      "risk_ids": [
+        "RISK-007",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-010",
+      "status": "READY",
+      "artifact_path": "units/010-live-chat-clients.md",
+      "depends_on": [
         "UNIT-002",
+        "UNIT-006",
         "UNIT-008"
+      ],
+      "requirement_ids": [
+        "DATA-004",
+        "SEC-002",
+        "UX-002"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-006",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-010"
+      ]
+    },
+    {
+      "id": "UNIT-011",
+      "status": "READY",
+      "artifact_path": "units/011-triage-ui-action-inbox.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-009",
+        "UNIT-010"
       ],
       "requirement_ids": [
         "DATA-005",
         "UX-003"
       ],
       "risk_ids": [
-        "RISK-007"
+        "RISK-007",
+        "RISK-009"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-011"
       ]
     }
   ],

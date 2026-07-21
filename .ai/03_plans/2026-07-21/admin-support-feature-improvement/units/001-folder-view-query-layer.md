@@ -1,49 +1,39 @@
-# UNIT-001 — Folder/view query layer (Sent + counts) over persisted messages
+# UNIT-001 — Mailbox view, count, cursor, and API contract
 
-## Goal
-Make Sent (and Inbox/Archive/All) queryable over already-persisted rows, with
-one batched counts call. No schema change.
+## Goal and status
 
-## Status
-`READY` · depends on: (none) · requirements: DATA-001 · risks: RISK-001
+`READY` · dependencies: none · requirements: DATA-001 · risks: RISK-001, RISK-009
 
-## Why
-Outbound is persisted (`support_messages.direction='outbound'`) but never
-queried as a view. This unit adds the missing predicate + counts.
+Create one validated mailbox-read contract so list rows and counts cannot drift.
 
 ## Owned paths
-- `src/lib/repositories/support-conversations-d1.ts` (write)
-- `src/lib/repositories/support-conversations-repository.ts` (re-export only if new symbols added)
+
+- `src/lib/repositories/support-conversations-d1.ts`
+- `src/app/api/admin/support/conversations/route.ts`
+- `src/lib/repositories/support-conversations-repository.ts` only for exports
 
 ## Implementation boundary
-1. Add `SupportFolder = 'inbox'|'sent'|'drafts'|'archive'|'all'`.
-2. Extend `listSupportConversations` input with `folder?: SupportFolder`.
-   Predicates:
-   - `sent`: `EXISTS (SELECT 1 FROM support_messages m WHERE m.conversation_id=c.id AND m.direction='outbound')`, order by max outbound `created_at`.
-   - `inbox`: `c.status != 'archived' AND (c.unread_for_admin=1 OR NOT EXISTS(outbound-after-latest-inbound))` — pragmatically: not archived and last message inbound OR unread.
-   - `archive`: `c.status='archived'`.
-   - `drafts`: placeholder returning empty until UNIT-005 lands (documented TODO), or `EXISTS support_drafts` guarded by table existence (`isMissingOptionalTable`).
-   - `all`: unchanged. Unknown value → behave as `all` (fail-open, safe).
-3. Add correlated selects `has_outbound`, `last_direction` to `CONVERSATION_SELECT`
-   (or a widened select used only by the list) — keep existing `SupportConversationRow`
-   backward compatible by making new fields optional.
-4. Add `listSupportFolderCounts(): { inbox; sent; drafts; archive; unread }`
-   using a single batched query (or `UNION ALL` of `COUNT(*)`), parameterized.
-5. Keep all SQL parameterized; reuse existing indexes; do not change existing
-   query signatures' behavior when `folder` is omitted.
 
-## Verification
-- `bun run type-check`, `bun run lint`.
-- Manual SQL reasoning: Sent predicate selects only outbound-bearing threads.
+1. Define folder/filter/cursor types and one normalizer/predicate builder.
+2. Implement Inbox, Sent, Archive, and All semantics from DEC-AUTO-001. Drafts,
+   Starred, and Snoozed join after their schema units; do not probe for optional tables.
+3. Return page rows, stable next cursor, and scoped counts from bounded D1 queries.
+   Use one captured time/filter snapshot and no per-row/per-folder round trips.
+4. Sent uses latest outbound timestamp for ordering and retains send-status data.
+5. Parse all route query parameters; invalid folder/status/channel/cursor returns
+   400, while omitted page parameters use documented defaults. Keep no-store.
+6. Inspect the query plan before adding an index; defer any index to the next
+   additive migration rather than editing `0095`.
 
-## Scope
-In: query layer. Out: UI (UNIT-002), drafts table (UNIT-005).
+## Acceptance evidence
 
-## Done criteria
-- [ ] `folder` param implemented for inbox/sent/archive/all (drafts stubbed).
-- [ ] `listSupportFolderCounts` returns 5 counts in ≤1 batched call.
-- [ ] Omitting `folder` reproduces current behavior (no regression).
-- [ ] type-check + lint clean.
+- Source proves list/count share normalized predicates and stable cursor tie-breaks.
+- API response contract is explicit for success, degraded D1 read, and invalid input.
+- Type/static/lint checks are clean when authorized implementation executes.
+- TEST_PROPOSAL only: `bun x vitest run tests/vitest/support-folders.test.ts`.
 
-## Recovery
-Additive; revert file to roll back.
+## Recovery and completion
+
+Additive query/API changes only. Complete when AC-001's data contract is present,
+existing omitted-filter behavior remains explicit, and `UNIT-002` can consume it.
+

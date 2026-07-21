@@ -1,42 +1,39 @@
-# UNIT-009 — Triage: labels / assignment / snooze / star
+# UNIT-009 — Normalized triage schema, mutations, and mailbox predicates
 
-## Goal
-Add labels, self-assignment, snooze, and star as additive metadata and fold them
-into the folder query + rail. Promoted from former non-goal N1.
+## Goal and status
 
-## Status
-`READY` · depends on: UNIT-001, UNIT-002, UNIT-008 · requirements: DATA-005,
-UX-003 · risks: RISK-007
+`READY` · dependencies: UNIT-001, UNIT-005 · requirements: DATA-005 · risks: RISK-007, RISK-008
+
+Add exact, revision-safe labels/self-assignment/snooze/star data and compose it
+with mailbox/count queries without JSON substring or clock-drift bugs.
 
 ## Owned paths
-- `migrations/0097_support_triage.sql` (new, write) — next after 0096
-- `src/lib/repositories/support-conversations-d1.ts` (write — **reread**, after UNIT-001)
-- `src/app/admin/support/page.tsx` (write — **reread**, after UNIT-002)
-- `src/components/admin/AdminSupportInbox.tsx` (write — **reread**, after UNIT-008)
+
+- next free migration after drafts (expected `migrations/0097_support_triage.sql`)
+- `src/lib/repositories/support-conversations-d1.ts` (reread after UNIT-001)
+- `src/lib/admin/support-actions.ts` (reread after UNIT-008)
 
 ## Implementation boundary
-1. Migration `0097` (additive, never edit ≤0096): add nullable
-   `labels_json`, `assignee_user_id` (FK profiles ON DELETE SET NULL),
-   `snoozed_until`, `starred_for_admin INTEGER NOT NULL DEFAULT 0`; add indexes
-   `idx_support_conv_assignee`, `idx_support_conv_snooze`.
-2. Repository: extend `listSupportConversations` filters (label, assignee,
-   starred) and folder predicate (Starred view; Snoozed view; snoozed hidden
-   from Inbox until `snoozed_until <= now`). Add parameterized mutators
-   (set labels / assign self / snooze / star). Extend counts.
-3. UI: label chips, assign-to-me, snooze menu, star toggle in the rail/thread
-   header; reuse `src/components/ui/*` per DESIGN.md.
 
-## Verification
-- `bun run type-check`, `bun run lint`; migration inspection.
-- GATE-DATA-01 (additive schema + authz + folder predicate composition).
+1. Recheck migration tail and use the next free number after the draft migration.
+2. Add one-to-one triage and exact-label join tables with FK/check/revision/
+   timestamp constraints and focused indexes from §5.7.
+3. Extend shared mailbox predicates/counts for Starred, Snoozed, label, and
+   assignee using one captured `now`; future snoozed rows leave Inbox and expired
+   snoozes re-enter without a cron.
+4. Add admin-gated revisioned mutations: normalized capped label replacement,
+   assign-to-self/unassign only, bounded UTC snooze/unsnooze, star/unstar.
+5. Write sanitized audit events and return the authoritative triage revision.
+6. Keep total open aggregate semantics unchanged; Action Inbox update is UNIT-011.
 
-## Scope
-In: triage metadata + rail/filters. Out: multi-agent assignment queues.
+## Acceptance evidence
 
-## Done criteria
-- [ ] `0097` adds columns/indexes additively; no data rewrite.
-- [ ] Label/assignee/star filters + Snoozed/Starred views work with counts.
-- [ ] type-check + lint clean; no regression to Sent/folders/chat.
+- Static SQL/source proves exact labels, revision CAS, predicate/count parity,
+  clock snapshot consistency, and additive migration ordering.
+- TEST_PROPOSAL only: `bun x vitest run tests/vitest/support-triage-folders.test.ts`.
 
-## Recovery
-Local rollback = drop the added columns/indexes; revert files.
+## Recovery and completion
+
+Forward-only additive schema. Complete when AC-009's data contract is ready for
+UNIT-011 and no earlier mailbox filter regresses by construction.
+

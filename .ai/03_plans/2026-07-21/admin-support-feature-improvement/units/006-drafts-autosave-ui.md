@@ -1,36 +1,47 @@
-# UNIT-006 — Draft autosave action + Drafts folder UI
+# UNIT-006 — Draft API, autosave, attachment ownership, resume, and discard
 
-## Goal
-Autosave compose to `support_drafts`, resume/discard drafts, and list them in the
-Drafts folder.
+## Goal and status
 
-## Status
-`READY` · depends on: UNIT-005 · requirements: DATA-003 · risks: (none)
+`READY` · dependencies: UNIT-004, UNIT-005 · requirements: DATA-003 · risks: RISK-003
+
+Make reply/new-email drafts durable through a no-store admin API with visible
+revision conflicts and coherent D1/R2/send cleanup.
 
 ## Owned paths
-- `src/app/api/admin/support/drafts/route.ts` (new, write) — or a server action in `support-actions.ts`
-- `src/components/admin/support/SupportRichComposer.tsx` (write — **reread**, after UNIT-004)
-- `src/components/admin/AdminSupportInbox.tsx` (write — **reread**, after UNIT-002/004)
+
+- new `src/app/api/admin/support/drafts/route.ts`
+- new `src/app/api/admin/support/drafts/[id]/route.ts`
+- `src/app/api/admin/support/uploads/route.ts`
+- `src/app/api/internal/upload-cleanup/route.ts`
+- `src/lib/email/support-outbound-attachments.ts`
+- `src/lib/admin/support-actions.ts` (reread after UNIT-004)
+- `src/components/admin/support/SupportRichComposer.tsx` (reread after UNIT-004)
+- `src/components/admin/AdminSupportInbox.tsx` (reread after UNIT-002/004)
 
 ## Implementation boundary
-1. Add a debounced autosave (admin-gated) calling `upsertSupportDraft`; on
-   successful send, `deleteSupportDraft` for the matching key.
-2. Composer: hydrate from an existing draft (reply + new-email); debounce saves.
-3. Inbox: Drafts folder lists standalone + per-thread drafts (from UNIT-001's
-   drafts predicate, now backed by the real table); selecting a draft opens the
-   composer prefilled; discard removes it.
-4. Reread shared files before editing (edited by earlier units).
 
-## Verification
-- `bun run type-check`, `bun run lint`. GATE-UX-01 (autosave status/empty states).
+1. Create draft before upload; every CRUD/upload route uses admin mutation/read
+   gates, validates UUID/revision/body sizes, and emits no-store responses.
+2. Upload accepts draft id, verifies D1 owner, writes owner-scoped R2, then binds
+   the child row. If row binding fails, delete the exact just-written object.
+3. Debounce autosave, serialize per-draft writes, and send expected revision.
+   Surface saving/saved/conflict/degraded states; never silently overwrite on 409.
+4. Hydrate reply/new drafts, list Drafts as draft entities, and support discard.
+5. Send accepts authoritative draft id, reloads recipients/body/identity/
+   attachments server-side, then clears D1/R2 only after local send state settles.
+6. Discard/privacy erase delete exact database-owned R2 keys and rows. Extend the
+   existing bounded upload-cleanup route/dry-run with stale draft candidates;
+   do not add a cron or scan arbitrary R2 prefixes.
 
-## Scope
-In: draft autosave + Drafts UI. Out: forward/reply-all (UNIT-007).
+## Acceptance evidence
 
-## Done criteria
-- [ ] Compose autosaves and survives reload; send clears the draft.
-- [ ] Drafts folder lists/opens/discards drafts.
-- [ ] type-check + lint clean; no regression to send/identity flows.
+- Source proves older autosaves cannot overwrite newer revisions.
+- Raw client R2 keys are not authoritative send inputs.
+- Draft send/discard/privacy/cleanup paths reconcile D1 and exact R2 objects.
+- Type/static/lint checks are clean; browser/local-D1 tests remain gated.
 
-## Recovery
-Revert the three files (serialized after UNIT-004/005).
+## Recovery and completion
+
+Serialized integration. Complete when AC-003 is source-proven and UNIT-007 can
+reuse durable To/Cc/identity/attachment state.
+
