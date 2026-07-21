@@ -1,0 +1,1457 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-21-new-landing-page",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "next_unit": "UNIT-001",
+  "updated_at": "2026-07-21T05:15:00.000Z",
+  "baseline": {
+    "head": null,
+    "scoped_status_sha256": "9af63361db38d15af836f71d9c99e5245898a2244561f7502cab920cea3acc8c",
+    "scoped_diff_sha256": "eb8fdd6edb6ffc8a46d5a3e0f47b7c2b5c70f79db83057614ac85b444f3b6e64"
+  },
+  "stale_triggers": [
+    "Owner changes the /new target or requests production promotion",
+    "The canonical Notion hero, CTA, stage, or product positioning changes",
+    "src/app/new/page.tsx changes after the observed baseline",
+    "HeroEstimateWorkspaceMockup or its sanitized data contract changes",
+    "The beta-request contact intent changes",
+    "A verified public sample proposal or public pricing becomes available",
+    "AGENTS.md design or test authorization policy changes",
+    "The animation dependency stack or reference-template license changes"
+  ],
+  "canonical_execution_artifact": "09-implementation-units.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "path": "README.md",
+      "role": "overview",
+      "sha256": "d43e26c5baaadd02174e481c73980b174ddbbbfdb5d3346c250f7fb2ab4abd84"
+    },
+    {
+      "id": "ART-002",
+      "path": "00-executive-brief.md",
+      "role": "executive-brief",
+      "sha256": "cc7528c2fbabcc69d1f958770ea2812746d7164fbf82ee9a86472326c09efdcb"
+    },
+    {
+      "id": "ART-003",
+      "path": "01-evidence-and-source-of-truth.md",
+      "role": "source-of-truth",
+      "sha256": "8b494fe463a63828d566e3c7de46762fcfa0d1e26e151ba471d86833930ff6e3"
+    },
+    {
+      "id": "ART-004",
+      "path": "02-current-codebase-audit.md",
+      "role": "codebase-audit",
+      "sha256": "ba73d6ede451ff5df71c379f4e8109c2033e8ae39968a5f5609cf473cbd58df1"
+    },
+    {
+      "id": "ART-005",
+      "path": "03-reference-template-deconstruction.md",
+      "role": "reference-deconstruction",
+      "sha256": "f3142270b44ead69e76532347c263ab0fcd0d7cd5f7ba717c0c5982d72a38223"
+    },
+    {
+      "id": "ART-006",
+      "path": "04-page-architecture-and-content-density.md",
+      "role": "page-architecture",
+      "sha256": "3d5a32c2853c1cc8422a0b51c24d40c663061b612b8dd5c6018916c4167cce69"
+    },
+    {
+      "id": "ART-007",
+      "path": "05-copy-deck.md",
+      "role": "copy-deck",
+      "sha256": "8ccf9be1001cd28632a148550ac0d0f24d476d9b9899594a6a76ec1bf13eb14d"
+    },
+    {
+      "id": "ART-008",
+      "path": "06-visual-design-system.md",
+      "role": "visual-design",
+      "sha256": "f11092f3ed928d975a555b60a01142ee42bf9bec50be26b36b3e9aeb4f336a5c"
+    },
+    {
+      "id": "ART-009",
+      "path": "07-motion-and-microinteractions.md",
+      "role": "motion-specification",
+      "sha256": "59a1f9fbc8ea743f1c2b9817b731676230f50448a435196312dc6a5feb74f16b"
+    },
+    {
+      "id": "ART-010",
+      "path": "08-component-and-file-architecture.md",
+      "role": "component-architecture",
+      "sha256": "27c9bec542dbacdb55d78cd2422f64a7c0f8d6a924c55069da1c864db579ea22"
+    },
+    {
+      "id": "ART-011",
+      "path": "09-implementation-units.md",
+      "role": "canonical-execution",
+      "sha256": "efd5dba658f335b54acb6b74f5fcb723fcff0e9b6f9582f7cbc446c2c5100cdd"
+    },
+    {
+      "id": "ART-012",
+      "path": "10-responsive-accessibility-performance.md",
+      "role": "responsive-accessibility-performance",
+      "sha256": "3bd63e86e9ad5a8c6d464d4d8a93d6d6f4462efce3141a6a84cfae2a1d5d0df6"
+    },
+    {
+      "id": "ART-013",
+      "path": "11-seo-analytics-and-route-guardrails.md",
+      "role": "seo-analytics-guardrails",
+      "sha256": "5ea45640e06197c7e50c516ecc0e0c3d5dff34b401febf0353cf475d6d2597d5"
+    },
+    {
+      "id": "ART-014",
+      "path": "12-validation-and-acceptance.md",
+      "role": "acceptance-contract",
+      "sha256": "9d8895308444e3e403c04d243e851f4139cf04f59ae2e2757a808c14918b2b4c"
+    },
+    {
+      "id": "ART-015",
+      "path": "13-risk-register-decisions-assumptions.md",
+      "role": "risk-decision-assumption-register",
+      "sha256": "ff791546d5c46ac0834b9aa6c81bb3d633338f134965cac001d3286b834ef882"
+    },
+    {
+      "id": "ART-016",
+      "path": "14-handoff-resume-and-completion-audit.md",
+      "role": "handoff-resume-audit",
+      "sha256": "68e723d0734b16ea06be46872e9b51891639c007c3421fd02bf707f12cb8c28b"
+    },
+    {
+      "id": "ART-017",
+      "path": "15-third-party-notice-and-license.md",
+      "role": "third-party-notice",
+      "sha256": "69be40bfb0edb2ddae83d5009f8ef814552df88865c1de655fdd25fe15f86a3f"
+    },
+    {
+      "id": "ART-018",
+      "path": "16-annotated-wireframes.md",
+      "role": "annotated-wireframes",
+      "sha256": "5268a3a85444e125f4542b22c03844acb37406b65e6daa9d635059ab0f878dca"
+    },
+    {
+      "id": "ART-019",
+      "path": "17-package-validation-report.md",
+      "role": "package-validation-report",
+      "sha256": "860796333bb8fada799b6104d8938c9898c66d2af31f704c0195ca71a28091c8"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "title": "Owner brief for /new landing plan pack",
+      "source_revision": "owner-request@2026-07-21",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "REQ-002",
+        "UX-003",
+        "UX-004",
+        "REQ-003"
+      ],
+      "artifact_path": "00-executive-brief.md"
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "title": "Canonical Archestimator Notion operating, strategy, and brand corpus",
+      "source_revision": "notion-corpus-observed@2026-07-21",
+      "affected_ids": [
+        "REQ-002",
+        "SEC-001",
+        "REQ-003"
+      ],
+      "artifact_path": "01-evidence-and-source-of-truth.md"
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "title": "Current /new route, / route, shell, metadata, and sitemap source",
+      "source_revision": "pjel888/archestimator@main-observed-2026-07-21",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001"
+      ],
+      "artifact_path": "02-current-codebase-audit.md"
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "title": "Current sanitized hero product demonstration and styling",
+      "source_revision": "HeroEstimateWorkspaceMockup@03f94e0502741b1ec00812b17d46bca2fbb28e58",
+      "affected_ids": [
+        "UX-002",
+        "UX-003",
+        "PERF-001",
+        "SEC-001"
+      ],
+      "artifact_path": "02-current-codebase-audit.md"
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "title": "Velora UI template structure, source, and MIT license",
+      "source_revision": "ColorlibHQ/velora-ui@main-observed-2026-07-21",
+      "affected_ids": [
+        "UX-001",
+        "UX-004",
+        "PERF-001"
+      ],
+      "artifact_path": "03-reference-template-deconstruction.md"
+    },
+    {
+      "id": "SRC-006",
+      "status": "CURRENT",
+      "title": "LaunchPad interaction reference",
+      "source_revision": "strapi/LaunchPad@main-observed-2026-07-21",
+      "affected_ids": [
+        "UX-004"
+      ],
+      "artifact_path": "03-reference-template-deconstruction.md"
+    },
+    {
+      "id": "SRC-007",
+      "status": "CURRENT",
+      "title": "Archestimator AGENTS policy, global token baseline, and dependency stack",
+      "source_revision": "pjel888/archestimator-policy-stack@main-observed-2026-07-21",
+      "affected_ids": [
+        "REQ-001",
+        "PERF-001",
+        "SEC-001",
+        "OPS-001"
+      ],
+      "artifact_path": "02-current-codebase-audit.md"
+    },
+    {
+      "id": "SRC-008",
+      "status": "CURRENT",
+      "title": "Existing contact intent, consent analytics, and preview SEO behavior",
+      "source_revision": "pjel888/archestimator-public-conversion@main-observed-2026-07-21",
+      "affected_ids": [
+        "REQ-003",
+        "OPS-001"
+      ],
+      "artifact_path": "11-seo-analytics-and-route-guardrails.md"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "title": "Route isolation and live-route safety",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-008",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "artifact_path": "00-executive-brief.md"
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "title": "Velora macrostructure adapted into a light Archestimator visual system",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "artifact_path": "04-page-architecture-and-content-density.md"
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "title": "Reuse current sanitized estimate-workspace demonstration in the hero",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "artifact_path": "02-current-codebase-audit.md"
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "title": "Canonical truthful concise Archestimator content",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-008"
+      ],
+      "artifact_path": "05-copy-deck.md"
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "title": "Responsive behavior with product proof visible on mobile",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "artifact_path": "10-responsive-accessibility-performance.md"
+    },
+    {
+      "id": "UX-004",
+      "status": "ACCEPTED",
+      "title": "Restrained motion and complete reduced-motion behavior",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "artifact_path": "07-motion-and-microinteractions.md"
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "title": "No new animation runtime and bounded client/performance architecture",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-004",
+        "SRC-005",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "artifact_path": "10-responsive-accessibility-performance.md"
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "title": "Sanitized data and no fabricated or privacy-sensitive proof",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-002",
+        "SRC-004",
+        "SRC-007"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "artifact_path": "01-evidence-and-source-of-truth.md"
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "title": "Preview SEO, consent analytics, traceability, and resumable handoff",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-003",
+        "SRC-007",
+        "SRC-008"
+      ],
+      "unit_ids": [
+        "UNIT-008",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-009"
+      ],
+      "artifact_path": "11-seo-analytics-and-route-guardrails.md"
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "title": "Early-access conversion without pricing or unsupported social proof",
+      "completion_role": "CORE",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-008"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ],
+      "artifact_path": "05-copy-deck.md"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "title": "/new remains an isolated noindex preview",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001",
+        "AC-001",
+        "AC-009",
+        "UNIT-008"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "title": "No verified public sample proposal is available",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-003",
+        "AC-004",
+        "AC-010",
+        "UNIT-002",
+        "UNIT-005"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "ASSUMP-003",
+      "status": "ACTIVE",
+      "title": "Existing beta-request contact intent remains acceptable",
+      "affected_ids": [
+        "REQ-003",
+        "AC-010",
+        "UNIT-002",
+        "UNIT-008"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "ASSUMP-004",
+      "status": "ACTIVE",
+      "title": "Public-route design freedom remains current",
+      "affected_ids": [
+        "UX-001",
+        "AC-002",
+        "UNIT-003"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "ASSUMP-005",
+      "status": "ACTIVE",
+      "title": "Shared hero can be extended backward-compatibly",
+      "affected_ids": [
+        "REQ-001",
+        "UX-002",
+        "AC-001",
+        "AC-003",
+        "UNIT-004"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "ASSUMP-006",
+      "status": "ACTIVE",
+      "title": "Current sanitized hero remains representative of the product",
+      "affected_ids": [
+        "UX-002",
+        "SEC-001",
+        "AC-003",
+        "AC-008",
+        "UNIT-004"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "ASSUMP-007",
+      "status": "ACTIVE",
+      "title": "No route-specific live data request is needed",
+      "affected_ids": [
+        "PERF-001",
+        "SEC-001",
+        "AC-007",
+        "AC-008",
+        "UNIT-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "title": "Real hero is too heavy for the public route",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-005",
+        "AC-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "title": "Copy drifts into unsupported claims",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-008",
+        "AC-010"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "title": "Shared hero changes the live / route",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-003"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "title": "Motion creates accessibility, cleanup, or fatigue defects",
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "title": "Template parity reintroduces fake proof or pricing",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-008",
+        "AC-010"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "title": "Third-party source is copied without license discipline",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-006",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "title": "Product proof disappears or becomes unreadable on mobile",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-005"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "title": "A second animation runtime is added",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "title": "Page becomes information-heavy",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-004"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-010",
+      "status": "OPEN",
+      "title": "Preview route becomes indexable or promoted accidentally",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-008",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-009"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-011",
+      "status": "OPEN",
+      "title": "Hero pause leaks shared drag state",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-006",
+        "AC-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-012",
+      "status": "OPEN",
+      "title": "Product demonstration is confusing to assistive technology",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-005",
+        "AC-006"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-013",
+      "status": "OPEN",
+      "title": "Signal orange is used at insufficient contrast",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "RISK-014",
+      "status": "OPEN",
+      "title": "Completion report overstates unrun visual or performance proof",
+      "unit_ids": [
+        "UNIT-007",
+        "UNIT-009"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-009"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "title": "Route isolation and preview guardrails",
+      "requirement_ids": [
+        "REQ-001",
+        "OPS-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Scoped source, diff, metadata, and static contract evidence is decisive; no automated application test is required for the planning-state record.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-008",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "title": "Velora structural parity and light Archestimator adaptation",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is rendered structural and visual fidelity across breakpoints; cheaper non-test source inspection is insufficient to prove the final visual composition.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "title": "Real sanitized hero demonstration and backward-compatible playback",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is correct rendered hero playback and pause behavior; cheaper non-test source proof is insufficient to observe the complete animation lifecycle.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "title": "Canonical concise copy",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The canonical copy file, source register, phrase scan, and word-count review are decisive non-test evidence for rendered text intent.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-005",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "title": "Responsive layout and mobile product proof",
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is usable layout and visible product proof at required viewport sizes; cheaper non-test CSS inspection is insufficient to prove rendered overflow and legibility.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "title": "Motion, keyboard, lifecycle, and reduced-motion behavior",
+      "requirement_ids": [
+        "UX-004"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is accessible motion and lifecycle behavior under real media and visibility states; cheaper non-test source evidence is insufficient to observe every transition.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "title": "Bounded performance architecture",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical invariant is acceptable production bundle and interaction performance; cheaper non-test architecture review is insufficient to prove measured LCP, CLS, INP, and bundle size.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "title": "Truth, sanitization, privacy, and proof integrity",
+      "requirement_ids": [
+        "REQ-002",
+        "SEC-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Source-backed content review, fixture inspection, and prohibited-claim scanning are decisive non-test evidence for this public truth and privacy criterion.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-005",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-009",
+      "status": "FAIL",
+      "title": "Preview SEO, analytics, and handoff integrity",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Route metadata, shell composition, CTA attributes, FAQ single-sourcing, and completion records provide decisive static evidence for this operational criterion.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    },
+    {
+      "id": "AC-010",
+      "status": "FAIL",
+      "title": "Truthful early-access conversion",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The centralized href and copy deck plus static source scanning are decisive evidence for the early-access label, destination, and absence of pricing or fake proof.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-005",
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null,
+      "artifact_path": "12-validation-and-acceptance.md"
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "title": "Truth and baseline lock",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "title": "Route shell and content architecture",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "UX-001",
+        "REQ-002",
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "title": "Scoped visual system and primitives",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "UX-004"
+      ],
+      "risk_ids": [
+        "RISK-006",
+        "RISK-008",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "title": "Real hero product proof",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "UX-003",
+        "PERF-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-007",
+        "RISK-011",
+        "RISK-012"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "title": "Mapped page sections",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "REQ-002",
+        "SEC-001",
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "title": "Motion and microinteractions",
+      "depends_on": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "UX-004",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-004",
+        "RISK-006",
+        "RISK-008",
+        "RISK-011"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "title": "Responsive, accessibility, and performance hardening",
+      "depends_on": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "UX-003",
+        "UX-004",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-004",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-011",
+        "RISK-012",
+        "RISK-013",
+        "RISK-014"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "title": "Metadata, analytics, and route guardrails",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-003",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    },
+    {
+      "id": "UNIT-009",
+      "status": "READY",
+      "title": "Final audit, evidence, and handoff",
+      "depends_on": [
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "SEC-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-005",
+        "RISK-006",
+        "RISK-008",
+        "RISK-010",
+        "RISK-014"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "artifact_path": "09-implementation-units.md"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "title": "Use Velora macrostructure but replace its claims",
+      "affected_ids": [
+        "UX-001",
+        "AC-002",
+        "UNIT-002",
+        "UNIT-005"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "title": "Use a light-first Archestimator visual system",
+      "affected_ids": [
+        "UX-001",
+        "AC-002",
+        "UNIT-003"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "title": "Reuse the real sanitized estimate-workspace hero",
+      "affected_ids": [
+        "UX-002",
+        "SEC-001",
+        "AC-003",
+        "UNIT-004"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "title": "Do not fabricate social proof or numeric outcomes",
+      "affected_ids": [
+        "REQ-002",
+        "SEC-001",
+        "AC-004",
+        "AC-008",
+        "UNIT-005"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "title": "Use Request early access as the canonical primary CTA",
+      "affected_ids": [
+        "REQ-003",
+        "AC-010",
+        "UNIT-002",
+        "UNIT-008"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "title": "Omit secondary hero proof CTA until a real asset exists",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-003",
+        "AC-004",
+        "AC-010",
+        "UNIT-002"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "title": "Use existing GSAP and CSS with no new motion dependency",
+      "affected_ids": [
+        "UX-004",
+        "PERF-001",
+        "AC-006",
+        "AC-007",
+        "UNIT-006"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "title": "Show a static real product state on mobile instead of hiding it",
+      "affected_ids": [
+        "UX-002",
+        "UX-003",
+        "AC-003",
+        "AC-005",
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "title": "Use a server-first page with focused client islands",
+      "affected_ids": [
+        "PERF-001",
+        "AC-007",
+        "UNIT-002",
+        "UNIT-007"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "title": "Keep /new noindex and unpromoted",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001",
+        "AC-001",
+        "AC-009",
+        "UNIT-008"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-011",
+      "status": "ACTIVE",
+      "title": "Replace pricing with design-partner access expectations",
+      "affected_ids": [
+        "REQ-003",
+        "AC-010",
+        "UNIT-005"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "title": "Keep automated testing and browser/build proof as proposals until authorized",
+      "affected_ids": [
+        "OPS-001",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-009",
+        "UNIT-009"
+      ],
+      "artifact_path": "13-risk-register-decisions-assumptions.md"
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "title": "Truth and baseline lock evidence plan",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-004",
+        "AC-008"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "01-evidence-and-source-of-truth.md",
+      "sha256": "8b494fe463a63828d566e3c7de46762fcfa0d1e26e151ba471d86833930ff6e3"
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "title": "Route shell and conversion architecture evidence plan",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-001",
+        "AC-010"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "08-component-and-file-architecture.md",
+      "sha256": "27c9bec542dbacdb55d78cd2422f64a7c0f8d6a924c55069da1c864db579ea22"
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "title": "Light structural and visual-system evidence plan",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-002"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "06-visual-design-system.md",
+      "sha256": "f11092f3ed928d975a555b60a01142ee42bf9bec50be26b36b3e9aeb4f336a5c"
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "title": "Real product hero and playback-contract evidence plan",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-003"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "08-component-and-file-architecture.md",
+      "sha256": "27c9bec542dbacdb55d78cd2422f64a7c0f8d6a924c55069da1c864db579ea22"
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "title": "Mapped section and canonical copy evidence plan",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-004",
+        "AC-008",
+        "AC-010"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "05-copy-deck.md",
+      "sha256": "8ccf9be1001cd28632a148550ac0d0f24d476d9b9899594a6a76ec1bf13eb14d"
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "title": "Motion and lifecycle evidence plan",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-006"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "07-motion-and-microinteractions.md",
+      "sha256": "59a1f9fbc8ea743f1c2b9817b731676230f50448a435196312dc6a5feb74f16b"
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "title": "Responsive accessibility and performance evidence plan",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-005",
+        "AC-007"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "10-responsive-accessibility-performance.md",
+      "sha256": "3bd63e86e9ad5a8c6d464d4d8a93d6d6f4462efce3141a6a84cfae2a1d5d0df6"
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "title": "Preview SEO analytics and CTA guardrail evidence plan",
+      "claim_ids": [
+        "UNIT-008",
+        "AC-001",
+        "AC-009",
+        "AC-010"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "11-seo-analytics-and-route-guardrails.md",
+      "sha256": "5ea45640e06197c7e50c516ecc0e0c3d5dff34b401febf0353cf475d6d2597d5"
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "title": "Final audit and resumable handoff evidence plan",
+      "claim_ids": [
+        "UNIT-009",
+        "AC-001",
+        "AC-004",
+        "AC-008",
+        "AC-009"
+      ],
+      "source_revision": "plan-pack@2026-07-21",
+      "valid_until": null,
+      "artifact_path": "14-handoff-resume-and-completion-audit.md",
+      "sha256": "68e723d0734b16ea06be46872e9b51891639c007c3421fd02bf707f12cb8c28b"
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "title": "Complete /new landing page implementation slice",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009"
+      ]
+    }
+  ],
+  "manifest_sha256": "969a9a1f02c3a149a4aac3af657bdfe81d5403f6961fbe36998e0200b2eb39d5"
+}
