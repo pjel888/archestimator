@@ -6,6 +6,7 @@ import { Check, Pause, Prohibit } from "@phosphor-icons/react/dist/ssr";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import { AdminDeleteUserButton } from "@/components/admin/AdminDeleteUserButton";
 import { banUser, reactivateUser, suspendUser } from "@/lib/admin/user-actions";
 import type { AdminUserRow } from "@/lib/admin/users-repository";
 import { Badge } from "@/components/ui/badge";
@@ -45,11 +46,18 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
         header: "User",
         cell: ({ row }) => {
           const user = row.original;
-          return (
-            <Link href={`/admin/users/${user.id}`} className="block hover:underline">
+          const content = (
+            <>
               <p className="text-[10px] font-medium leading-4 text-ink">{user.display_name ?? user.email}</p>
               <p className="text-[9px] leading-3 text-tertiary">{user.email}</p>
-            </Link>
+            </>
+          );
+          return (
+            user.is_manageable ? (
+              <Link href={`/admin/users/${user.id}`} className="block hover:underline">
+                {content}
+              </Link>
+            ) : <div>{content}</div>
           );
         },
       },
@@ -72,7 +80,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
           const status = row.original.account_status;
           return (
             <Badge
-              tone={status === "active" ? "success" : status === "suspended" ? "warning" : "danger"}
+              tone={status === "active" ? "success" : status === "suspended" || status === "invited" ? "warning" : "danger"}
               size="xs"
               className="min-w-0 px-1"
             >
@@ -116,6 +124,9 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
         meta: { align: "right" },
         cell: ({ row }) => {
           const user = row.original;
+          if (!user.is_manageable) {
+            return <span className="text-[9px] text-tertiary">Invite-only</span>;
+          }
           return (
             <div className="flex justify-end gap-1" onClick={(event) => event.stopPropagation()}>
               {user.account_status === "active" ? (
@@ -153,6 +164,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                   <Check aria-hidden size={13} />
                 </Button>
               )}
+              <AdminDeleteUserButton userId={user.id} email={user.email} />
             </div>
           );
         },

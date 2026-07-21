@@ -8,13 +8,17 @@ export type AdminUserRow = {
   email: string;
   display_name: string | null;
   role: string;
-  account_status: string;
+  account_status: "active" | "suspended" | "banned" | "invited" | "revoked";
   default_workspace_id: string | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
   active_session_count: number;
   last_session_at: string | null;
+  beta_status: "invited" | "active" | "revoked" | null;
+  is_beta_user: boolean;
+  is_registered: boolean;
+  is_manageable: boolean;
 };
 
 export type ListAdminUsersInput = {
@@ -37,6 +41,67 @@ type SignupCountRow = {
   signups: number;
 };
 
+type AdminUserQueryRow = Omit<AdminUserRow, "is_beta_user" | "is_registered" | "is_manageable"> & {
+  is_beta_user: number;
+  is_registered: number;
+  is_manageable: number;
+};
+
+const ADMIN_DIRECTORY_CTE = `
+  WITH directory AS (
+    SELECT
+      p.id,
+      p.email,
+      p.display_name,
+      p.role,
+      p.account_status,
+      p.default_workspace_id,
+      p.avatar_url,
+      p.created_at,
+      p.updated_at,
+      a.status AS beta_status,
+      CASE WHEN a.id IS NULL THEN 0 ELSE 1 END AS is_beta_user,
+      CASE WHEN EXISTS (
+        SELECT 1
+        FROM "user" u
+        WHERE lower(trim(u.email)) = lower(trim(p.email))
+      ) THEN 1 ELSE 0 END AS is_registered,
+      1 AS is_manageable
+    FROM profiles p
+    LEFT JOIN closed_beta_allowed_emails a
+      ON a.normalized_email = lower(trim(p.email))
+    WHERE p.deleted_at IS NULL
+
+    UNION ALL
+
+    SELECT
+      'allowlist:' || a.id AS id,
+      a.normalized_email AS email,
+      NULL AS display_name,
+      'beta' AS role,
+      a.status AS account_status,
+      NULL AS default_workspace_id,
+      NULL AS avatar_url,
+      a.invited_at AS created_at,
+      a.updated_at,
+      a.status AS beta_status,
+      1 AS is_beta_user,
+      CASE WHEN EXISTS (
+        SELECT 1
+        FROM "user" u
+        WHERE lower(trim(u.email)) = a.normalized_email
+      ) THEN 1 ELSE 0 END AS is_registered,
+      0 AS is_manageable
+    FROM closed_beta_allowed_emails a
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM profiles p
+      WHERE lower(trim(p.email)) = a.normalized_email
+        AND p.deleted_at IS NULL
+    )
+  )
+`;
+
 function clampPositiveInteger(value: number, fallback: number, max: number): number {
   if (!Number.isFinite(value)) return fallback;
   return Math.min(Math.max(Math.floor(value), 1), max);
@@ -58,6 +123,15 @@ function logUsersRepositoryFailure(error: unknown, event: string) {
   });
 }
 
+function toAdminUserRow(row: AdminUserQueryRow): AdminUserRow {
+  return {
+    ...row,
+    is_beta_user: row.is_beta_user === 1,
+    is_registered: row.is_registered === 1,
+    is_manageable: row.is_manageable === 1,
+  };
+}
+
 export async function listAdminUsers(
   input: ListAdminUsersInput,
 ): Promise<AdminRepositoryResult<AdminUserRow[]>> {
@@ -72,26 +146,28 @@ export async function listAdminUsers(
     if (!db) return { data: [], error: "Something went wrong. Try again in a moment.", count: 0 };
 
     const whereClause = search
-      ? "WHERE lower(p.email) LIKE ? OR lower(coalesce(p.display_name, '')) LIKE ?"
+      ? "WHERE lower(d.email) LIKE ? OR lower(coalesce(d.display_name, '')) LIKE ?"
       : "";
     const countStatement = db.prepare<CountRow>(
       `
+        ${ADMIN_DIRECTORY_CTE}
         SELECT COUNT(*) AS count
-        FROM profiles p
+        FROM directory d
         ${whereClause}
       `,
     );
     // The session aggregation is scoped via a correlated subquery to ONLY the
     // users on the current page (INNER LATERAL-style via EXISTS). This avoids
     // scanning+grouping the entire session table on every page load.
-    const usersStatement = db.prepare<AdminUserRow>(
+    const usersStatement = db.prepare<AdminUserQueryRow>(
       `
-        WITH paged_users AS (
-          SELECT p.id, p.email, p.display_name, p.role, p.account_status, p.default_workspace_id,
-                 p.avatar_url, p.created_at, p.updated_at
-          FROM profiles p
+        ${ADMIN_DIRECTORY_CTE}, paged_users AS (
+          SELECT d.id, d.email, d.display_name, d.role, d.account_status, d.default_workspace_id,
+                 d.avatar_url, d.created_at, d.updated_at, d.beta_status, d.is_beta_user,
+                 d.is_registered, d.is_manageable
+          FROM directory d
           ${whereClause}
-          ORDER BY p.created_at DESC, p.id DESC
+          ORDER BY d.created_at DESC, d.id DESC
           LIMIT ? OFFSET ?
         )
         SELECT
@@ -129,12 +205,12 @@ export async function listAdminUsers(
     const [countRow, users] = await Promise.all([
       search ? countStatement.bind(search, search).first<CountRow>() : countStatement.first<CountRow>(),
       search
-        ? usersStatement.bind(search, search, limit, offset, now).all<AdminUserRow>()
-        : usersStatement.bind(limit, offset, now).all<AdminUserRow>(),
+        ? usersStatement.bind(search, search, limit, offset, now).all<AdminUserQueryRow>()
+        : usersStatement.bind(limit, offset, now).all<AdminUserQueryRow>(),
     ]);
 
     return {
-      data: users.results ?? [],
+      data: (users.results ?? []).map(toAdminUserRow),
       error: null,
       count: countRow?.count ?? 0,
     };
@@ -243,6 +319,7 @@ export async function setUserAccountStatus(
           UPDATE profiles
           SET account_status = ?, updated_at = ?
           WHERE id = ?
+            AND deleted_at IS NULL
         `,
       )
       .bind(status, new Date().toISOString(), userId)
@@ -280,6 +357,7 @@ export async function getAdminUser(userId: string): Promise<AdminRepositoryResul
             GROUP BY "userId"
           ) s ON s.user_id = p.id
           WHERE p.id = ?
+            AND p.deleted_at IS NULL
           LIMIT 1
         `,
       )
