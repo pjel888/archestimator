@@ -18,7 +18,7 @@ support console, and make snooze semantics consistent with the founder Action In
 1. Add Starred and Snoozed rail entries/counts plus label/assignee URL filters.
 2. Add accessible label chips/editor, assign-to-me/unassign, bounded snooze menu,
    unsnooze, and star toggle in cohesive extracted components.
-3. Apply optimistic UI only against an expected revision; on conflict, restore
+3. Optimistic mutations carry an expected revision; on conflict, roll back to
    authoritative server state and explain the refresh instead of overwriting.
 4. Preserve folder/search/channel/status composition and narrow/wide pane behavior.
 5. Exclude future-snoozed conversations from `listOpenSupportConversations` so
@@ -35,4 +35,3 @@ support console, and make snooze semantics consistent with the founder Action In
 
 Serialized final feature edit. Complete when AC-009 is source-proven across both
 admin surfaces and the final requirement/risk/cleanup audit has no open local work.
-

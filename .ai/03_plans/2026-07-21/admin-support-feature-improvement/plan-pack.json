@@ -34,13 +34,13 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "9257c1ea2c1e70f20b2b87895f166bd6bb17123f8537c958bda562b8605fb480"
+      "sha256": "9c9ca608a823a72c61177288316306bfd779106262c90322f70ffa7e1d325826"
     },
     {
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "03493c9a9649cc55365ccee58dffd33c09b4058dd210feb9d23bf1062fdcc554"
+      "sha256": "dafaa9133bb69ceeeff0c31262d340580b1f603ea26357ea0945c5fb53d2b0e9"
     },
     {
       "id": "ART-003",
@@ -70,13 +70,13 @@
       "id": "ART-007",
       "role": "unit",
       "path": "units/005-drafts-schema-repository.md",
-      "sha256": "814c0a532b604bc67964a74a21aedff6ccf7cb94ea14d0fb3281f1935f2a4e94"
+      "sha256": "57f2c8a9181b30fceb1e2e971cd39e4dfc2013183c76753beeb808f1693fb4b0"
     },
     {
       "id": "ART-008",
       "role": "unit",
       "path": "units/006-drafts-autosave-ui.md",
-      "sha256": "a1851888061efceb2ba87a4021a564c168d81369258fce2d115ff3f9235a0986"
+      "sha256": "b8865c0d3043da8f15825eeb125c938fafcb44f9a1dccb0587761778467f157a"
     },
     {
       "id": "ART-009",
@@ -106,7 +106,7 @@
       "id": "ART-013",
       "role": "unit",
       "path": "units/011-triage-ui-action-inbox.md",
-      "sha256": "56310f18baa74c0d3bb3263821792d07264abf4d37d8bd9a092bab2c90e6b8ed"
+      "sha256": "92ecda51b2d900726be2dabf6817c4c61e4ab16e336543c1d9a2931ed355c9e4"
     }
   ],
   "sources": [
@@ -827,7 +827,7 @@
         "AC-003"
       ],
       "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
-      "sha256": "814c0a532b604bc67964a74a21aedff6ccf7cb94ea14d0fb3281f1935f2a4e94",
+      "sha256": "57f2c8a9181b30fceb1e2e971cd39e4dfc2013183c76753beeb808f1693fb4b0",
       "valid_until": null
     },
     {
@@ -839,7 +839,7 @@
         "AC-003"
       ],
       "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
-      "sha256": "a1851888061efceb2ba87a4021a564c168d81369258fce2d115ff3f9235a0986",
+      "sha256": "b8865c0d3043da8f15825eeb125c938fafcb44f9a1dccb0587761778467f157a",
       "valid_until": null
     },
     {
@@ -902,7 +902,7 @@
         "AC-009"
       ],
       "source_revision": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
-      "sha256": "56310f18baa74c0d3bb3263821792d07264abf4d37d8bd9a092bab2c90e6b8ed",
+      "sha256": "92ecda51b2d900726be2dabf6817c4c61e4ab16e336543c1d9a2931ed355c9e4",
       "valid_until": null
     }
   ],
@@ -926,5 +926,5 @@
       ]
     }
   ],
-  "manifest_sha256": "9701b39a37df67a3903b7617787127ebafacbdb4a5124f51bd9b4b2d8504df33"
+  "manifest_sha256": "826d945df6b16a0027b90d2610ca6a507ac77743d1348524e55d1fcb11b6068e"
 }

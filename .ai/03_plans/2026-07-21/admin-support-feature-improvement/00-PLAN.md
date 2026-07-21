@@ -143,7 +143,7 @@ with Action Inbox behavior; no safe in-scope unit or cleanup remains.
 | SEC-002 | CORE | Only admins/owners receive short-lived room tokens; client frames cannot inject authoritative messages or cross conversations | UNIT-008, UNIT-010 | AC-007 |
 | UX-002 | CORE | User and admin chat clients load history, send, receive, mark read, reconnect, backfill, dedupe, and expose degraded states | UNIT-010 | AC-008 |
 | DATA-005 | CORE | Labels, self-assignment, snooze, and star are normalized and compose with mailbox/count/Action Inbox predicates | UNIT-009, UNIT-011 | AC-009 |
-| UX-003 | CORE | Triage actions and Starred/Snoozed views are accessible, URL-addressable, optimistic only after server acceptance, and audited | UNIT-011 | AC-009 |
+| UX-003 | CORE | Triage actions and Starred/Snoozed views are accessible, URL-addressable, revision-aware, reconciled to server truth, and audited | UNIT-011 | AC-009 |
 
 ## 4. Resolved technical decisions
 
@@ -235,8 +235,10 @@ and send-failure states must not collapse layout or steal focus.
 Migration `0096` (or next free number at execution) adds:
 
 - `support_drafts`: owner, stable `scope_key`, kind, optional conversation,
-  recipients/subject/body/from identity, monotonic revision, timestamps, and
-  checks tying reply drafts to a conversation and new-email drafts to a client id;
+  recipients/subject/body/from identity, stable `client_message_id`, lifecycle
+  state, optional bound outbound conversation/message ids, monotonic revision,
+  timestamps, and checks tying reply drafts to a conversation and new-email
+  drafts to a client id;
 - `support_draft_attachments`: draft FK, exact R2 key, normalized filename/type,
   size/hash, timestamps, and unique `(draft_id, r2_key)`;
 - indexes for owner/update ordering and conversation lookup; an outbound lookup
@@ -244,12 +246,19 @@ Migration `0096` (or next free number at execution) adds:
 
 Draft creation precedes attachment upload. Upload accepts `draftId`, verifies
 admin ownership in D1, then writes the owner-scoped R2 key and child row. Send
-accepts `draftId`, reloads the authoritative draft/attachments server-side,
-materializes safe objects, and deletes draft state only after send persistence
-reaches its terminal local state. Discard and privacy erase delete exact owned
-objects. The existing bounded upload-cleanup route also removes stale draft
-attachments/rows older than the configured retention window; dry-run remains
-non-destructive.
+accepts `draftId`, reloads the authoritative aggregate, claims `editing -> sending`
+with revision CAS, and preflights every recipient/body/identity/R2 object before
+creating or reusing the one stable outbound message. Attachment promotion first
+loads and validates all source objects, then writes final message objects/rows;
+on partial local failure it compensates newly created final objects, marks the
+message non-pending, restores the editable draft, and leaves source objects.
+After durable promotion, the draft is consumed even if the provider rejects the
+email: the failed message/body/final attachments become the retry source. Retry
+reloads those persisted attachments and the persisted From/recipients; it never
+creates a second conversation/message or silently drops attachments. Discard and
+privacy erase delete exact objects owned by their still-live aggregate. The
+existing bounded upload-cleanup route also repairs stale `sending` drafts and
+removes expired unbound draft objects/rows; dry-run remains non-destructive.
 
 ### 5.5 Reply-all and forward
 
@@ -333,14 +342,17 @@ Inbox excludes future-snoozed rows; the total open aggregate remains unchanged.
 ## 7. Dependency DAG and ownership
 
 ```text
-UNIT-001 -> UNIT-002 -----------------------> UNIT-007 -> UNIT-008 -> UNIT-010 -> UNIT-011
-    |                                             ^                      ^          ^
-    +---------------------------> UNIT-009 -------+----------------------+----------+
-
-UNIT-003 -> UNIT-004 ----------------------------+
-                     ^                           |
-UNIT-005 -> UNIT-006 +---------------------------+
-    +-------------> UNIT-009
+UNIT-001 -> UNIT-002
+UNIT-001 -> UNIT-009
+UNIT-002 -> UNIT-007
+UNIT-002 -> UNIT-010
+UNIT-002 -> UNIT-011
+UNIT-003 -> UNIT-004 -> UNIT-007
+UNIT-005 -> UNIT-006 -> UNIT-007
+UNIT-005 -> UNIT-009
+UNIT-006 -> UNIT-010
+UNIT-007 -> UNIT-008 -> UNIT-010 -> UNIT-011
+UNIT-009 -> UNIT-011
 ```
 
 - Ready slices: `{UNIT-001}`, `{UNIT-003}`, `{UNIT-005}`.
@@ -361,8 +373,10 @@ UNIT-005 -> UNIT-006 +---------------------------+
   From and send/retry from another. Pass identity explicitly, keep canonical
   Reply-To, persist From, and fail if persisted identity is no longer allowed.
 - **RISK-003 — stale autosave and R2 leaks.** Out-of-order saves can overwrite
-  newer text; crashes can orphan objects. Use revision CAS, D1-bound attachment
-  rows, exact delete, privacy integration, and bounded existing cleanup.
+  newer text; partial promotion can orphan objects or make retries lose files.
+  Use revision/lifecycle CAS, stable message identity, validate-before-promote,
+  compensation, persisted-attachment retry, exact delete, privacy integration,
+  and bounded repair/cleanup.
 - **RISK-004 — recipient leak or broken forward.** Reply-all can echo support
   identities or forward unsafe content. Normalize/dedupe/exclude/cap recipients;
   new-thread forward only; selected safe attachments only.
@@ -394,7 +408,10 @@ UNIT-005 -> UNIT-006 +---------------------------+
   remains routable; idempotent retries cannot change identity.
 - **AC-003:** Reply and multiple new-email drafts have stable unique scopes;
   revision conflicts cannot overwrite newer content; attachment ownership is
-  server-derived; reload/resume/discard/send/privacy/cleanup reach coherent D1/R2 states.
+  server-derived; one draft maps to at most one outbound conversation/message;
+  partial promotion remains recoverable; failed-send retry preserves body,
+  recipients, From, and attachments; reload/resume/discard/send/privacy/cleanup
+  reach coherent D1/R2 states.
 - **AC-004:** Folder/list/thread layout works at narrow and wide widths from
   source contract; loading/empty/error/conflict states are explicit; reply-all
   and forward follow recipient/thread rules; shortcuts never capture editable focus.
@@ -515,4 +532,3 @@ fresh manifest validation; leave no active duplicate pack.
   `https://developers.cloudflare.com/durable-objects/best-practices/websockets/`.
 - Cloudflare WebSocket auth guidance:
   `https://developers.cloudflare.com/agents/runtime/operations/cross-domain-authentication/`.
-

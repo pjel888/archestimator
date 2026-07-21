@@ -25,6 +25,9 @@ replacing the existing D1 message ledger or adding a helpdesk dependency:
   is not sufficient for new-email drafts.
 - Bind draft attachments to a D1-owned draft before upload and clean exact R2
   keys on send, discard, privacy erase, and bounded orphan cleanup.
+- Promote a draft to one stable outbound message before dispatch; validate all
+  attachments first, retain recoverable bytes on partial failure, and make retry
+  reload the persisted message attachments rather than silently dropping them.
 - Reuse/refactor the existing support-room token authorization; do not add a
   duplicate permissive token path.
 - Persist chat messages before fanout. WebSockets carry invalidation signals,
@@ -55,4 +58,3 @@ Plan authoring uses static source/diff inspection and
 automation, screenshots, Storybook, and visual QA remain user-gated. Exact
 `TEST_PROPOSAL` commands are recorded in `00-PLAN.md`; they are not authorized
 for execution by this plan-only pass.
-

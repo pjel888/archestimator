@@ -27,16 +27,24 @@ revision conflicts and coherent D1/R2/send cleanup.
 3. Debounce autosave, serialize per-draft writes, and send expected revision.
    Surface saving/saved/conflict/degraded states; never silently overwrite on 409.
 4. Hydrate reply/new drafts, list Drafts as draft entities, and support discard.
-5. Send accepts authoritative draft id, reloads recipients/body/identity/
-   attachments server-side, then clears D1/R2 only after local send state settles.
-6. Discard/privacy erase delete exact database-owned R2 keys and rows. Extend the
+5. Send accepts authoritative draft id, claims its revision/lifecycle, reloads
+   all fields server-side, preflights every R2 object, and creates or reuses the
+   draft's stable outbound message/conversation. Repeat requests are idempotent.
+6. Refactor attachment promotion to validate all sources before final writes,
+   compensate partial final writes, and consume draft staging only after the
+   message/body/final attachments are durable. Provider failure retains a failed
+   message; retry reloads its persisted identity/recipients/attachments and does
+   not create another thread or send a body edited after the original attempt.
+7. Discard/privacy erase delete exact database-owned R2 keys and rows. Extend the
    existing bounded upload-cleanup route/dry-run with stale draft candidates;
-   do not add a cron or scan arbitrary R2 prefixes.
+   repair stale `sending` claims and do not add a cron or scan arbitrary R2 prefixes.
 
 ## Acceptance evidence
 
 - Source proves older autosaves cannot overwrite newer revisions.
 - Raw client R2 keys are not authoritative send inputs.
+- Partial promotion and provider failure have explicit recoverable states; retry
+  preserves the original persisted body, recipients, From, and attachments.
 - Draft send/discard/privacy/cleanup paths reconcile D1 and exact R2 objects.
 - Type/static/lint checks are clean; browser/local-D1 tests remain gated.
 
@@ -44,4 +52,3 @@ revision conflicts and coherent D1/R2/send cleanup.
 
 Serialized integration. Complete when AC-003 is source-proven and UNIT-007 can
 reuse durable To/Cc/identity/attachment state.
-
