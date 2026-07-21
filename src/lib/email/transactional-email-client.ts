@@ -14,6 +14,7 @@ import { emitLogRecord } from "@/lib/observability/logger";
 
 export type SendEmailInput = {
   to: string | string[];
+  cc?: string | string[];
   subject: string;
   html?: string;
   text?: string;
@@ -144,6 +145,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   const result = await sendCloudflareEmail({
     to: input.to,
+    cc: input.cc,
     subject: input.subject,
     html: input.html,
     text: input.text,

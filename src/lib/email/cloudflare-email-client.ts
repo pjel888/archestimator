@@ -10,6 +10,7 @@ export type EmailAttachmentInput = {
 
 export type SendEmailInput = {
   to: string | string[];
+  cc?: string | string[];
   subject: string;
   html?: string;
   text?: string;
@@ -31,6 +32,7 @@ type EmailAddress = {
 type CloudflareSendEmailBinding = {
   send: (message: {
     to: string | EmailAddress | Array<string | EmailAddress>;
+    cc?: string | EmailAddress | Array<string | EmailAddress>;
     from: string | EmailAddress;
     subject: string;
     replyTo?: string | EmailAddress;
@@ -168,6 +170,7 @@ export async function sendCloudflareEmail(
   try {
     const response = await binding.send({
       to: input.to,
+      ...(input.cc ? { cc: input.cc } : {}),
       from,
       subject: input.subject,
       text: input.text,

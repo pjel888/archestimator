@@ -72,6 +72,28 @@ export function normalizeEmailAddress(raw: string, options: { maxLength?: number
   };
 }
 
+export function normalizeSupportRecipients(input: {
+  to: readonly string[];
+  cc?: readonly string[];
+  excluded?: readonly string[];
+  maxRecipients?: number;
+}) {
+  const excluded = new Set((input.excluded ?? []).map((address) => normalizeEmailAddress(address).email.toLowerCase()));
+  const seen = new Set<string>();
+  const normalize = (addresses: readonly string[]) => addresses.flatMap((address) => {
+    const parsed = normalizeEmailAddress(address);
+    const email = parsed.email.toLowerCase();
+    if (excluded.has(email) || seen.has(email)) return [];
+    seen.add(email);
+    return [parsed];
+  });
+  const to = normalize(input.to);
+  const cc = normalize(input.cc ?? []);
+  if (to.length === 0) throw new Error("At least one recipient is required.");
+  if (to.length + cc.length > (input.maxRecipients ?? 20)) throw new Error("Too many recipients.");
+  return { to, cc };
+}
+
 export function normalizeMessageId(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const trimmed = raw.trim();

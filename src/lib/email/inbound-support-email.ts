@@ -22,6 +22,7 @@ import {
   stripPlusAddress,
   type SupportEmailConfig,
 } from "@/lib/email/support-email-config";
+import { fanoutSupportInboxInvalidation } from "@/lib/cloudflare/support-inbox-fanout";
 import {
   createExternalSupportConversationInD1,
   findSupportConversationByRoutingTokenInD1,
@@ -366,29 +367,13 @@ async function fanoutSupportInboxBestEffort(
   conversationId: string,
   message: SupportMessageRow,
 ) {
-  if (!env.SUPPORT_INBOX) return;
-  try {
-    const id = env.SUPPORT_INBOX.idFromName(conversationId);
-    const stub = env.SUPPORT_INBOX.get(id);
-    // Best-effort notify; DO auth may reject without a room token in Worker context.
-    // UI remains correct via D1 refresh regardless.
-    await stub.fetch(
-      new Request(`https://support-inbox.internal/__cloudflare/support-inbox/${encodeURIComponent(conversationId)}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          type: "fanout",
-          message: {
-            id: message.id,
-            conversation_id: conversationId,
-            created_at: message.created_at,
-            sender_role: message.sender_role,
-            transport: message.transport,
-          },
-        }),
-      }),
-    );
-  } catch {
+  const result = await fanoutSupportInboxInvalidation({
+    env,
+    conversationId,
+    messageId: message.id,
+    subject: "inbound_email",
+  });
+  if (result.degraded) {
     logSupportEmailEvent("support_email_realtime_fanout_failed", "warn", {
       conversation_id: conversationId,
       message_id: message.id,
