@@ -12,8 +12,19 @@ const isCloudflareWorkersProofBuild = process.env.ARCHESTIMATOR_CLOUDFLARE_BUILD
 const useCloudflareImageLoader = isCloudflareWorkersProofBuild;
 
 if (process.env.NODE_ENV === "development" && !isCloudflareWorkersProofBuild) {
+  // Strict === "1" is deliberate: remote bindings mutate production D1/R2.
+  const useRemoteBindings = process.env.ARCH_DEV_USE_REMOTE_BINDINGS === "1";
+  const configPath = useRemoteBindings
+    ? "wrangler.next-dev.remote.jsonc"
+    : "wrangler.next-dev.jsonc";
+  if (useRemoteBindings) {
+    console.warn(
+      "[archestimator] ARCH_DEV_USE_REMOTE_BINDINGS=1 — bun dev targets production D1 + R2. Local writes mutate live data. If queries hang, configure Cloudflare Access (cloudflared login or CLOUDFLARE_ACCESS_CLIENT_ID/SECRET) or use `bun run cf:d1-sync-from-remote` instead.",
+    );
+  }
   void initOpenNextCloudflareForDev({
-    configPath: "wrangler.next-dev.jsonc",
+    configPath,
+    remoteBindings: useRemoteBindings,
   });
 }
 

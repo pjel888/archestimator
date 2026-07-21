@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { DevRemoteBindingsBanner } from "@/components/workshop/DevRemoteBindingsBanner";
 import { WorkshopShell } from "@/components/workshop/WorkshopShell";
 import { AUTH_REQUEST_PATH_HEADER } from "@/lib/auth/redirects";
 import { isProtectedRouteGateSatisfied } from "@/lib/auth/protected-route-gate";
@@ -15,6 +16,15 @@ import {
 // Workshop-scoped vendor CSS: react-complex-tree styling is only consumed by
 // workshop trees, so public/marketing routes must not pay for it.
 import "react-complex-tree/lib/style-modern.css";
+
+function withWorkshopChrome(children: ReactNode) {
+  return (
+    <>
+      <DevRemoteBindingsBanner />
+      <WorkshopShell>{children}</WorkshopShell>
+    </>
+  );
+}
 
 /**
  * Auth/terms gate is the sole production verifier for /workshop/* (see
@@ -30,7 +40,7 @@ export default async function WorkshopLayout({ children }: { children: ReactNode
   const termsGateBypassed = shouldBypassTermsAcceptanceGate(requestPath);
 
   if (isProtectedRouteGateSatisfied(headerList, { termsRequired: !termsGateBypassed })) {
-    return <WorkshopShell>{children}</WorkshopShell>;
+    return withWorkshopChrome(children);
   }
 
   // Terms acceptance route: authenticated but must not mount workshop chrome.
@@ -46,5 +56,5 @@ export default async function WorkshopLayout({ children }: { children: ReactNode
     redirect(buildTermsAcceptanceRedirectPath(requestPath));
   }
 
-  return <WorkshopShell>{children}</WorkshopShell>;
+  return withWorkshopChrome(children);
 }

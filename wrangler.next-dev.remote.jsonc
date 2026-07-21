@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "archestimator-next-dev-bindings-remote",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARCH_UPLOADS_R2",
+      "bucket_name": "archestimator-proof-uploads",
+      "preview_bucket_name": "archestimator-proof-uploads-dev",
+      "remote": true
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "ARCH_DB",
+      "database_name": "archestimator-proof-db",
+      "database_id": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+      "preview_database_id": "363c756a-7c4d-42fe-908f-6d328bfa4acb",
+      "remote": true
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "UPLOAD_JOBS_QUEUE",
+        "queue": "archestimator-upload-jobs"
+      }
+    ]
+  },
+  "vars": {
+    "ARCH_UPLOAD_HOSTED_MEMORY_MB": "128",
+    "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES": "4194304",
+    "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS": "30000",
+    "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS": "3",
+    "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS": "250"
+  }
+}

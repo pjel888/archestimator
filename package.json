@@ -52,6 +52,7 @@
     "cf:verify-hosted-upload-ui": "bun run scripts/verify-cloudflare-hosted-upload-ui-proof.ts",
     "cf:verify-hosted-collaboration-ui": "bun run scripts/verify-cloudflare-hosted-collaboration-ui-proof.ts",
     "cf:d1-restore-rehearsal": "bun run scripts/generate-cloudflare-d1-restore-rehearsal.ts",
+    "cf:d1-sync-from-remote": "bun run scripts/sync-local-d1-from-remote.ts",
     "cf:d1-runtime-proof": "bun run scripts/verify-cloudflare-d1-runtime-performance-proof.ts",
     "cf:d1-performance-proof": "bun run scripts/generate-cloudflare-d1-performance-proof.ts",
     "cf:better-auth-provider-proof": "bun run scripts/verify-cloudflare-better-auth-provider-proof.ts",
