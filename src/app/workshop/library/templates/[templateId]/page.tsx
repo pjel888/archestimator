@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { TemplateEditorClient } from "@/components/workshop/library/template-editor/TemplateEditorClient";
+import { assertBetaFeaturePathAllowed } from "@/lib/feature-gates/enforce";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getEstimateTemplateById } from "@/lib/repositories/component-library-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
@@ -11,6 +12,7 @@ type TemplateEditorPageProps = {
 };
 
 export default async function TemplateEditorPage({ params, searchParams }: TemplateEditorPageProps) {
+  await assertBetaFeaturePathAllowed("/workshop/library/templates");
   assertRouteErrorSmoke({ routeLabel: "Template editor", searchParams: await searchParams });
 
   const { templateId } = await params;

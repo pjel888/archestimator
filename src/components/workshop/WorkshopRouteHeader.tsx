@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from "react";
 
 import { WorkshopNotificationEntry } from "@/features/notifications/components/WorkshopNotificationEntry";
-import { isPlatformAdminRole } from "@/lib/auth/roles";
+import { isPlatformAdmin } from "@/lib/auth/roles";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { cn } from "@/lib/ui/cn";
 import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
@@ -38,7 +38,9 @@ function WorkshopSettingsEntryFallback({ location }: { location: ReactNode }) {
 
 async function WorkshopSettingsEntry({ location }: { location: ReactNode }) {
   const currentUser = await getCurrentUserContext();
-  const canManagePlatformSettings = isPlatformAdminRole(currentUser?.role);
+  const canManagePlatformSettings = Boolean(
+    currentUser && isPlatformAdmin({ role: currentUser.role, email: currentUser.email }),
+  );
 
   return (
     <WorkshopSettingsModal location={location}>

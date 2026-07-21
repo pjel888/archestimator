@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { requirePlatformAdminPage } from "@/lib/auth/require-platform-admin-page";
 import {
   createClosedBetaAllowlistEntry,
   updateClosedBetaAllowlistEntry,
@@ -50,6 +51,7 @@ export default async function BetaUsersPage({
 }: {
   searchParams: Promise<{ created?: string; error?: string; saved?: string; status?: string }>;
 }) {
+  await requirePlatformAdminPage();
   const params = await searchParams;
   const queue = await readClosedBetaAllowlistQueue(params.status);
   const notice = betaUserNotice(params);

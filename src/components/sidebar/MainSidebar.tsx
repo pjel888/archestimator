@@ -39,6 +39,8 @@ type MainSidebarProps = {
   favoritesScope?: { workspaceId: string; userId: string } | null;
   status?: MainSidebarStatus;
   user?: MainSidebarUser;
+  /** Nav item ids hidden by closed-beta feature gates. */
+  disabledNavIds?: readonly string[];
 };
 
 const EMPTY_FAVORITE_PROJECTS: MainSidebarFavoriteProject[] = [];
@@ -124,6 +126,7 @@ export function MainSidebar({
   favoritesScope,
   status,
   user,
+  disabledNavIds = [],
 }: MainSidebarProps) {
   const pathname = usePathname();
   const favoritesScopeKey = favoritesScope ? `${favoritesScope.workspaceId}:${favoritesScope.userId}` : null;
@@ -221,15 +224,18 @@ export function MainSidebar({
 
   const resolvedSidebarNavItems = useMemo(() => {
     const projectsBadgeCount = status?.projectsBadgeCount ?? 0;
-    return sidebarNavItems.map((item) => {
-      if (item.id !== "projects" || projectsBadgeCount <= 0) return item;
-      return {
-        ...item,
-        badgeCount: projectsBadgeCount,
-        badgeLabel: formatPendingInviteBadgeLabel(projectsBadgeCount),
-      };
-    });
-  }, [status?.projectsBadgeCount]);
+    const disabled = new Set(disabledNavIds);
+    return sidebarNavItems
+      .filter((item) => !disabled.has(item.id))
+      .map((item) => {
+        if (item.id !== "projects" || projectsBadgeCount <= 0) return item;
+        return {
+          ...item,
+          badgeCount: projectsBadgeCount,
+          badgeLabel: formatPendingInviteBadgeLabel(projectsBadgeCount),
+        };
+      });
+  }, [disabledNavIds, status?.projectsBadgeCount]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

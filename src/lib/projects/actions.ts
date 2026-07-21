@@ -3,7 +3,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext, requireWorkshopWriteContext } from "@/lib/auth/session";
 import { isPlatformAdminRole } from "@/lib/auth/roles";
 import {
   getCloudflareD1Database,
@@ -1103,7 +1103,7 @@ async function executeBulkDeleteProjectsInD1(options: {
 }
 
 export async function createProjectRecord(formData: FormData) {
-  await requireAuth();
+  await requireWorkshopWriteContext();
   const { workspace, profile } = await ensureDefaultWorkspace();
   const database = await requireProjectsD1Database();
 
@@ -1187,13 +1187,13 @@ export async function createProjectRecord(formData: FormData) {
 }
 
 export async function createProject(formData: FormData) {
-  await requireAuth();
+  await requireWorkshopWriteContext();
   const project = await createProjectRecord(formData);
   redirect(`/workshop/projects/${project.id}`);
 }
 
 export async function deleteProject(formData: FormData) {
-  await requireAuth();
+  await requireWorkshopWriteContext();
   const projectId = readRequiredText(formData, "projectId");
   const expectedPreviewHash = readRequiredText(formData, "expectedPreviewHash");
   const correlationId =
@@ -1270,7 +1270,7 @@ export async function executeBulkDeleteProjects(
   try {
     const [database, currentUser] = await Promise.all([
       requireProjectsD1Database(),
-      requireCurrentUserContext(),
+      requireWorkshopWriteContext(),
     ]);
     result = coerceBulkExecutionResult(
       await executeBulkDeleteProjectsInD1({
@@ -1394,8 +1394,7 @@ export type UpdateProjectStatusInput = {
 export async function updateProjectStatus(
   input: UpdateProjectStatusInput | null | undefined,
 ) {
-  await requireAuth();
-  const currentUser = await requireCurrentUserContext();
+  const currentUser = await requireWorkshopWriteContext();
   const database = await requireProjectsD1Database();
   const projectId = String(input?.projectId ?? "").trim();
   if (!projectId) throw new Error("projectId is required.");
@@ -1427,8 +1426,7 @@ export async function updateProjectStatus(
 }
 
 export async function updateProjectDetails(formData: FormData) {
-  await requireAuth();
-  const currentUser = await requireCurrentUserContext();
+  const currentUser = await requireWorkshopWriteContext();
   const database = await requireProjectsD1Database();
 
   const projectId = readRequiredText(formData, "projectId");

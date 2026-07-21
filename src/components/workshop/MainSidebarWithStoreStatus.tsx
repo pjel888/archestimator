@@ -16,6 +16,7 @@ type MainSidebarWithStoreStatusProps = {
   favoritesScope?: { workspaceId: string; userId: string } | null;
   status?: MainSidebarStatus;
   user?: MainSidebarUser;
+  disabledNavIds?: readonly string[];
 };
 
 /** Merges layout/prop status with OPEN-1 home-page store writes. */

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { requireAuth, requireCurrentUserContext, requireWorkshopWriteContext } from "@/lib/auth/session";
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { storedEventTypesForCanonicalEventType } from "@/lib/activity/event-type-normalization";
 import { assertEstimateActionRateLimit } from "@/lib/estimates/action-rate-limit";
@@ -1764,7 +1764,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
 
   const [database, currentUser] = await Promise.all([
     requireEstimateD1Database(),
-    requireCurrentUserContext(),
+    requireWorkshopWriteContext(),
   ]);
   await assertCanEditProject(database, project.id);
   const name = readRequiredText(formData, "name");
@@ -2735,7 +2735,7 @@ export async function updateEstimateSheetAdjustment({
 
 export async function updateEstimateRowItem({ projectId, estimateId, rowId, componentMutationIntent, material, description, supplier, unit, unitCost, priceOptionLabel, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, database, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
-  const currentUser = await requireCurrentUserContext();
+  const currentUser = await requireWorkshopWriteContext();
   let sourceSnapshotPatch: Json | null | undefined;
   if (sourceSnapshot === null) {
     sourceSnapshotPatch = null;

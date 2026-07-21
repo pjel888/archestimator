@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { UploadScanOverridePanel } from "@/components/workshop/UploadScanOverridePanel";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { requirePlatformAdminPage } from "@/lib/auth/require-platform-admin-page";
 import {
   isUploadScanOverrideReviewStatus,
   readUploadScanOverrideReviewQueue,
@@ -26,6 +27,7 @@ export default async function UploadScanOverridesPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  await requirePlatformAdminPage();
   const params = await searchParams;
   const queue = await readUploadScanOverrideReviewQueue(params.status);
 

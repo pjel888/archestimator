@@ -9,6 +9,10 @@ import { WebVitalsProbe } from "@/components/workshop/WebVitalsProbe";
 import { WorkshopFeedbackModal } from "@/components/workshop/WorkshopFeedbackModal";
 import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import {
+  getDisabledWorkshopNavIds,
+  isWorkshopMaintenanceModeEnabled,
+} from "@/lib/feature-gates/enforce";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./estimate-center-column-boundary-vars";
 import {
@@ -37,18 +41,31 @@ async function getSidePanelWidthCssVariables() {
   }, {});
 }
 
-function MainSidebarShellFallback({ status }: { status?: MainSidebarStatus }) {
+function MainSidebarShellFallback({
+  status,
+  disabledNavIds,
+}: {
+  status?: MainSidebarStatus;
+  disabledNavIds?: readonly string[];
+}) {
   return (
     <MainSidebar
       favoriteProjects={[]}
       favoriteProjectsFresh={false}
       favoritesScope={null}
       status={status}
+      disabledNavIds={disabledNavIds}
     />
   );
 }
 
-async function AuthenticatedMainSidebar({ status }: { status?: MainSidebarStatus }) {
+async function AuthenticatedMainSidebar({
+  status,
+  disabledNavIds,
+}: {
+  status?: MainSidebarStatus;
+  disabledNavIds?: readonly string[];
+}) {
   const currentUser = await getCurrentUserContext();
   const workspaceBootstrap = currentUser ? await ensureDefaultWorkspace() : null;
   const favoritesScope = currentUser && workspaceBootstrap
@@ -65,6 +82,7 @@ async function AuthenticatedMainSidebar({ status }: { status?: MainSidebarStatus
       favoritesScope={favoritesScope}
       status={status}
       user={user}
+      disabledNavIds={disabledNavIds}
     />
   );
 }
@@ -74,8 +92,13 @@ async function AuthenticatedMainSidebar({ status }: { status?: MainSidebarStatus
  * Per-page headers live in WorkshopRouteHeader; canvas washes sync via WorkshopCanvasWash.
  */
 export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellProps) {
-  const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();
-  const showAskFlip = isAskFlipUiEnabled();
+  const [sidePanelWidthCssVariables, disabledNavIdSet, maintenanceMode, showAskFlip] = await Promise.all([
+    getSidePanelWidthCssVariables(),
+    getDisabledWorkshopNavIds(),
+    isWorkshopMaintenanceModeEnabled(),
+    Promise.resolve(isAskFlipUiEnabled()),
+  ]);
+  const disabledNavIds = Array.from(disabledNavIdSet);
 
   return (
     <main
@@ -85,8 +108,8 @@ export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellPr
     >
       <WebVitalsProbe />
       <WorkshopGlassBackdrop />
-      <Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} />}>
-        <AuthenticatedMainSidebar status={sidebarStatus} />
+      <Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} disabledNavIds={disabledNavIds} />}>
+        <AuthenticatedMainSidebar status={sidebarStatus} disabledNavIds={disabledNavIds} />
       </Suspense>
       <section
         data-workshop-page-shell-canvas
@@ -98,6 +121,14 @@ export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellPr
           data-workshop-workspace-surface
           className="sidebar-glass-shadow workshop-workspace-glass-surface flex h-full min-h-0 flex-col overflow-hidden rounded-xs border"
         >
+          {maintenanceMode ? (
+            <div
+              role="status"
+              className="shrink-0 border-b border-warning/25 bg-warning/10 px-2 py-1.5 text-[10px] leading-4 text-ink"
+            >
+              Maintenance mode is on. Workshop edits are paused for beta members; platform admins can still write.
+            </div>
+          ) : null}
           {/* Segment loading.tsx owns content fallbacks; avoid a second generic skeleton. */}
           {children}
 

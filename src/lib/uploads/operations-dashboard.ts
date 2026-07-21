@@ -333,7 +333,7 @@ export async function readUploadOperationsDashboardSnapshot(
   options: { now?: Date; windowHours?: number; limit?: number } = {},
 ): Promise<UploadOperationsDashboardReadResult> {
   const context = await requireCurrentUserContext();
-  if (!canApproveUploadScanOverride(context.role)) {
+  if (!canApproveUploadScanOverride(context)) {
     return { authorized: false, error: null, snapshot: null };
   }
 

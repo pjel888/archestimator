@@ -12,7 +12,7 @@ export async function updateBetaFeedbackReviewStatus(formData: FormData) {
   if (!parsed.ok) redirect("/workshop/settings/feedback?error=invalid");
 
   const context = await requireCurrentUserContext();
-  if (!canReviewBetaFeedback(context.role)) redirect("/workshop/settings/feedback?error=forbidden");
+  if (!canReviewBetaFeedback(context)) redirect("/workshop/settings/feedback?error=forbidden");
 
   try {
     await updateBetaFeedbackReviewStatusInD1({
