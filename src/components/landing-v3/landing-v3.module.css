@@ -621,8 +621,17 @@
   block-size: 900px;
   min-width: 1780px;
   min-height: 900px;
-  transform: scale(calc(100cqw / 1780px));
+  /* --hero-mockup-canvas-width / --hero-mockup-shift-x inherit, so outer
+     wrappers (e.g. /new) may zoom/crop the same real UI without changing
+     these defaults. */
+  transform: scale(calc(100cqw / var(--hero-mockup-canvas-width, 1780px)))
+    translateX(calc(-1 * var(--hero-mockup-shift-x, 0px)));
   transform-origin: 0 0;
+}
+
+/* Static playback (mobile/reduced-motion previews): no cursor affordance. */
+.heroActualEstimateMockupViewport[data-hero-playback="static"] .heroMockupAnimationLayer {
+  display: none;
 }
 
 .heroActualEstimateMockupScale :global(.estimate-glass-well) {

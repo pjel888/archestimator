@@ -12,6 +12,7 @@ import {
 } from "@/components/workshop/estimate-workshop-drag";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { cn } from "@/lib/ui/cn";
 import styles from "./landing-v3.module.css";
 
 export type HeroAnimationPhase =
@@ -198,11 +199,33 @@ export function findHeroKitchenRowsInTree(nodes: EstimateTreeNode[] | undefined)
   return [];
 }
 
-export function HeroEstimateWorkspaceMockup() {
+export type HeroEstimateWorkspaceMockupProps = {
+  /**
+   * "loop" (default) preserves the existing phase cycle. "static" freezes the
+   * demo on `staticPhase` with no timers and no cursor/drag affordances.
+   */
+  playback?: "loop" | "static";
+  staticPhase?: HeroAnimationPhase;
+  /** When true, an hidden document cancels timers and ends any drag state. */
+  pauseWhenDocumentHidden?: boolean;
+  className?: string;
+};
+
+export function HeroEstimateWorkspaceMockup({
+  playback = "loop",
+  staticPhase = "fauxwood-replaced",
+  pauseWhenDocumentHidden = false,
+  className,
+}: HeroEstimateWorkspaceMockupProps = {}) {
   const queryClient = useQueryClient();
   const [phaseIndex, setPhaseIndex] = useState(0);
-  const phase = getHeroPhaseAtIndex(phaseIndex);
-  const dragGhost = getDragGhost(phase);
+  const [documentHidden, setDocumentHidden] = useState(false);
+
+  // Static playback is fully deterministic; loop playback continues from the
+  // current index when it resumes after a pause.
+  const isPaused = playback === "static" || (pauseWhenDocumentHidden && documentHidden);
+  const phase = playback === "static" ? staticPhase : getHeroPhaseAtIndex(phaseIndex);
+  const dragGhost = playback === "static" ? null : getDragGhost(phase);
   const nodes = useMemo(() => createHeroEstimateTree(phase), [phase]);
   const estimateTabs = useMemo(() => {
     const kitchenRows = getHeroKitchenRows(phase);
@@ -216,19 +239,32 @@ export function HeroEstimateWorkspaceMockup() {
   }, [phase]);
 
   useEffect(() => {
+    if (!pauseWhenDocumentHidden) return;
+    const onVisibilityChange = () => {
+      setDocumentHidden(document.visibilityState === "hidden");
+    };
+    onVisibilityChange();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [pauseWhenDocumentHidden]);
+
+  useEffect(() => {
+    if (isPaused) return;
     const timer = window.setTimeout(() => {
       setPhaseIndex((current) => advanceHeroPhaseIndex(current));
     }, getHeroPhaseDurationMs(phase));
     return () => window.clearTimeout(timer);
-  }, [phase, phaseIndex]);
+  }, [phase, phaseIndex, isPaused]);
 
   useEffect(() => {
-    if (HERO_DRAG_PHASES.has(phase)) {
+    if (!isPaused && HERO_DRAG_PHASES.has(phase)) {
       useEstimateWorkshopDragState.setState({ activeDrag: { kind: "library-item" } });
       return;
     }
+    // Pausing (static mode or hidden tab) must never leave the shared store
+    // in a dragging state.
     endEstimateWorkshopDrag();
-  }, [phase]);
+  }, [phase, isPaused]);
 
   // EstimateSheetContent/Tree freeze `nodes` into TanStack `initialData` on mount.
   // Re-publish the phase tree into the same query keys the sheet reads so drop
@@ -241,7 +277,11 @@ export function HeroEstimateWorkspaceMockup() {
   useEffect(() => () => endEstimateWorkshopDrag(), []);
 
   return (
-    <div className={styles.heroActualEstimateMockupViewport} data-hero-animation-phase={phase}>
+    <div
+      className={cn(styles.heroActualEstimateMockupViewport, className)}
+      data-hero-animation-phase={phase}
+      data-hero-playback={playback}
+    >
       <div className={styles.heroActualEstimateMockupScale}>
         <EstimateWorkspaceClient
           projectId={HERO_PROJECT_ID}
