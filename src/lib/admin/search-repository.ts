@@ -47,7 +47,7 @@ export async function searchAdminEntities(rawQuery: string): Promise<AdminSearch
   if (!like) return { results: [], degraded: false, error: null };
 
   const db = await getCloudflareD1Database();
-  if (!db) return { results: [], degraded: true, error: "Cloudflare D1 is not available." };
+  if (!db) return { results: [], degraded: true, error: "Something went wrong. Try again in a moment." };
 
   // Four bounded queries in parallel; .catch keeps one failing source from
   // discarding the rest.

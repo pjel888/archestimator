@@ -233,7 +233,7 @@ function dedupeStorageTargets(targets: StorageCleanupTarget[]) {
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 component deletion preview failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 

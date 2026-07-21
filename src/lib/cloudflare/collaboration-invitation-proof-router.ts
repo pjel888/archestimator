@@ -463,7 +463,7 @@ export async function routeCloudflareCollaborationInvitationProofRequest(
   const authorization = isAuthorized(request, env);
   if (authorization === "missing-secret") return jsonResponse({ error: "CRON_SECRET is not configured." }, 503);
   if (authorization === "unauthorized") return jsonResponse({ error: "Unauthorized." }, 401);
-  if (!env.ARCH_DB) return jsonResponse({ error: "ARCH_DB D1 binding is not configured." }, 503);
+  if (!env.ARCH_DB) return jsonResponse({ error: "Something went wrong. Try again in a moment." }, 503);
 
   const report = await runHostedCollaborationInvitationProof(env.ARCH_DB);
   return jsonResponse(report, report.passed ? 200 : 500);

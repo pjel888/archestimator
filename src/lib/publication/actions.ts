@@ -505,7 +505,7 @@ export async function readSharedLinkEmailDeliveryReadiness(): Promise<SharedLink
     configured,
     message: configured
       ? "Email delivery is configured."
-      : "Email delivery is disabled until Cloudflare Email sender and reply-to settings are configured. Copy the share link manually.",
+      : "Email delivery is temporarily unavailable. Copy the share link manually.",
   };
 }
 

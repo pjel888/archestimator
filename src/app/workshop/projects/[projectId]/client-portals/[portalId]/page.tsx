@@ -12,7 +12,7 @@ export default async function ClientPortalControlCenterPage({ params, searchPara
   const [{ portalId, projectId }, query] = await Promise.all([params, searchParams]);
   const manager = await assertProjectPublicationManager(projectId);
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Client Portal D1 database is unavailable.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   const tab: ClientPortalControlCenterTab = query.tab && tabs.has(query.tab as ClientPortalControlCenterTab) ? query.tab as ClientPortalControlCenterTab : "overview";
   const actor = { kind: "internal" as const, userId: manager.currentUserId, workspaceId: manager.project.workspace_id, projectId: manager.project.id, projectRole: "viewer" as const, portalGrants: ["manager"] as const };
   const [data, composer] = await Promise.all([

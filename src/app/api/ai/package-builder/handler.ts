@@ -30,6 +30,7 @@ import {
   type PackageBuilderDraft,
 } from "@/lib/ai/package-builder/schemas";
 import { logAppError } from "@/lib/observability/logger";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 
 type PackageBuilderDependencies = {
   getUserContext: () => Promise<AiRequestUserContext | null>;
@@ -53,10 +54,10 @@ const defaultDependencies: PackageBuilderDependencies = {
   authorizeApply: recordAiPackageApplyAuthorization,
 };
 
-const AI_AUTH_MODE_ERROR = "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.";
+const AI_AUTH_MODE_ERROR = "AI requires a signed-in account session.";
 
 function jsonError(error: string, status: number) {
-  return NextResponse.json({ error }, { status });
+  return NextResponse.json({ error: toUserFacingErrorMessage(new Error(error)) }, { status });
 }
 
 function createEmptyReadData(): PackageBuilderReadToolsData {

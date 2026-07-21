@@ -102,6 +102,7 @@ import {
 } from "@/lib/estimates/d1-intents/templates";
 import type { EstimateRow as EstimateDatabaseRow, ProjectRow as ProjectDatabaseRow } from "@/lib/types/database";
 import type { Json } from "@/lib/types/json";
+import { throwUserFacingError } from "@/lib/observability/user-facing-error";
 
 type EstimateActionTables = {
   projects: ProjectDatabaseRow;
@@ -1746,7 +1747,7 @@ export async function reorderEstimateTreeNodes(
       correlationId: randomUUID(),
     });
   } catch (error) {
-    throw new Error(`Could not reorder estimate tree: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not reorder estimate tree.", error, { action: "estimates_actions" });
   }
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } =
@@ -1997,7 +1998,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
     patch: estimatePatch,
     correlationId: randomUUID(),
   }).catch((error) => {
-    throw new Error(`Could not update estimate details: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not update estimate details.", error, { action: "estimates_actions" });
   });
 
   const estimate = await getEstimateRecordForProject(database, { estimateId: input.estimateId, projectId: project.id });
@@ -2027,7 +2028,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
     patch: { sheetCode },
     correlationId: randomUUID(),
   }).catch((error) => {
-    throw new Error(`Could not regenerate estimate code: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not regenerate estimate code.", error, { action: "estimates_actions" });
   });
 
   const estimate = await getEstimateRecordForProject(database, { estimateId: input.estimateId, projectId: project.id });
@@ -2076,7 +2077,7 @@ export async function createEstimateTab(input: CreateEstimateTabInput): Promise<
     });
     return { ...readEstimateTabMutationResult(result), tabs: await getEstimateTabs(project.id, estimate.id) };
   } catch (error) {
-    throw new Error(`Could not create estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not create estimate tab.", error, { action: "estimates_actions" });
   }
 }
 
@@ -2094,7 +2095,7 @@ export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<
     });
     return { ...readEstimateTabMutationResult(result, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
   } catch (error) {
-    throw new Error(`Could not rename estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not rename estimate tab.", error, { action: "estimates_actions" });
   }
 }
 
@@ -2115,7 +2116,7 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
       correlationId: getMutationCorrelationId(input.correlationId),
     });
   } catch (error) {
-    throw new Error(`Could not reorder estimate tabs: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not reorder estimate tabs.", error, { action: "estimates_actions" });
   }
   const tabs = await getEstimateTabs(project.id, estimate.id);
   return { estimateTabId: input.updates[0]?.id ?? estimate.id, tabs };
@@ -2135,7 +2136,7 @@ export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Pr
     });
     return { ...readEstimateTabMutationResult(result), tabs: await getEstimateTabs(project.id, estimate.id) };
   } catch (error) {
-    throw new Error(`Could not duplicate estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not duplicate estimate tab.", error, { action: "estimates_actions" });
   }
 }
 
@@ -2151,7 +2152,7 @@ export async function archiveEstimateTab(input: EstimateTabActionInput): Promise
     });
     return { ...readEstimateTabMutationResult(result, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
   } catch (error) {
-    throw new Error(`Could not archive estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not archive estimate tab.", error, { action: "estimates_actions" });
   }
 }
 
@@ -2167,7 +2168,7 @@ export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<
     });
     return { ...readEstimateTabMutationResult(result, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
   } catch (error) {
-    throw new Error(`Could not delete estimate tab: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not delete estimate tab.", error, { action: "estimates_actions" });
   }
 }
 
@@ -2197,7 +2198,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
       correlationId: randomUUID(),
     });
   } catch (error) {
-    throw new Error(`Could not create estimate tree node: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not create estimate tree node.", error, { action: "estimates_actions" });
   }
 
   return {
@@ -2255,7 +2256,7 @@ export async function deleteEstimateNode(
       correlationId: randomUUID(),
     });
   } catch (error) {
-    throw new Error(`Could not delete estimate tree node: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not delete estimate tree node.", error, { action: "estimates_actions" });
   }
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(
@@ -2324,7 +2325,7 @@ export async function deleteEstimateNodesBulk(
       correlationId: randomUUID(),
     });
   } catch (error) {
-    throw new Error(`Could not delete selected estimate tree nodes: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not delete selected estimate tree nodes.", error, { action: "estimates_actions" });
   }
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } =
@@ -2389,7 +2390,7 @@ export async function insertEstimateTemplateIntoEstimate({
       ...(targetTabId ? { targetTabId } : {}),
     });
   } catch (error) {
-    throw new Error(`Could not insert estimate template: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not insert estimate template.", error, { action: "estimates_actions" });
   }
 
   if (copyResult.status === "requires_active_tab") return copyResult;
@@ -2449,7 +2450,7 @@ export async function insertEstimateTemplatesIntoEstimate({
       ...(targetTabId ? { targetTabId } : {}),
     });
   } catch (error) {
-    throw new Error(`Could not insert estimate templates: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not insert estimate templates.", error, { action: "estimates_actions" });
   }
 
   const confirmation = readTemplateInsertConfirmation(copyResult);
@@ -2519,7 +2520,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
       ...(targetTabId ? { targetTabId } : {}),
     });
   } catch (error) {
-    throw new Error(`Could not insert the template node: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not insert the template node.", error, { action: "estimates_actions" });
   }
 
   const confirmation = readTemplateInsertConfirmation(copyResult);
@@ -3109,7 +3110,7 @@ export async function restoreDeletedEstimateNodes({
       ...(normalizedNodeIds ? { nodeIds: normalizedNodeIds } : {}),
     });
   } catch (error) {
-    throw new Error(`Could not restore deleted estimate tree nodes: ${error instanceof Error ? error.message : String(error)}`);
+    throwUserFacingError("Could not restore deleted estimate tree nodes.", error, { action: "estimates_actions" });
   }
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } =

@@ -6,6 +6,7 @@ import { CLIENT_PORTAL_NO_STORE_HEADERS, readClientPortalRecipientSession, requi
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
 import { checkClientPortalDecisionRateLimit, checkClientPortalDecisionReadRateLimit } from "@/lib/client-portal/public-rate-limits";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 
 function unavailable() { return Response.json({ error: "Client Portal decision unavailable." }, { status: 404, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }
 function rateLimited(message: string, retryAfter: number) { return Response.json({ error: message }, { status: 429, headers: { ...CLIENT_PORTAL_NO_STORE_HEADERS, "Retry-After": String(retryAfter) } }); }
@@ -15,7 +16,10 @@ function decisionError(error: unknown) {
   const status = error.code === "client_portal_decision_denied" ? 403
     : error.code === "client_portal_decision_duplicate" || error.code === "client_portal_decision_stale" ? 409
       : error.code === "client_portal_decision_invalid" ? 400 : 404;
-  return Response.json({ error: error.message }, { status, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  return Response.json(
+    { error: toUserFacingErrorMessage(error, "Client Portal decision unavailable.") },
+    { status, headers: CLIENT_PORTAL_NO_STORE_HEADERS },
+  );
 }
 
 async function recipientContext(request: Request, token: string, requiresPost: boolean) {

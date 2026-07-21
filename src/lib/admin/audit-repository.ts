@@ -113,7 +113,7 @@ export async function writeAdminAuditEvent(
 ): Promise<AdminQueryResult<AdminAuditEvent | null>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: null, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: null, error: "Something went wrong. Try again in a moment." };
     return { data: await insertAdminAuditEventInD1(db, input), error: null };
   } catch (error) {
     logAdminAuditD1Failure(error, "admin_audit_write_failed");
@@ -131,7 +131,7 @@ export async function listAuditEvents(
 
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available.", count: 0 };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment.", count: 0 };
 
     const whereClause = action ? "WHERE action = ?" : "";
     const countStatement = db.prepare<CountRow>(

@@ -77,7 +77,7 @@ export function createCloudflareR2UploadStorageProvider(
     },
     async downloadObject(bucket, path) {
       const object = await r2.get(buildCloudflareR2ObjectKey(bucket, path));
-      if (!object) throw new Error("R2 storage object was not found.");
+      if (!object) throw new Error("Something went wrong. Try again in a moment.");
       const body = await object.arrayBuffer();
       return {
         body,
@@ -88,9 +88,9 @@ export function createCloudflareR2UploadStorageProvider(
       };
     },
     async headObject(bucket, path) {
-      if (!r2.head) throw new Error("R2 object head lookup is not available.");
+      if (!r2.head) throw new Error("Something went wrong. Try again in a moment.");
       const object = await r2.head(buildCloudflareR2ObjectKey(bucket, path));
-      if (!object) throw new Error("R2 storage object was not found.");
+      if (!object) throw new Error("Something went wrong. Try again in a moment.");
       return {
         contentType: object.httpMetadata?.contentType ?? null,
         sizeBytes: object.size ?? 0,
@@ -101,14 +101,14 @@ export function createCloudflareR2UploadStorageProvider(
     async createSignedReadUrl(bucket, path, expiresInSeconds) {
       const key = buildCloudflareR2ObjectKey(bucket, path);
       if (!options.signedReadUrlFactory) {
-        throw new Error("R2 signed read URLs require an app-owned signer or read route.");
+        throw new Error("Something went wrong. Try again in a moment.");
       }
       return options.signedReadUrlFactory({ bucket, path, key, expiresInSeconds });
     },
     getPublicUrl(bucket, path) {
       const key = buildCloudflareR2ObjectKey(bucket, path);
       if (!publicBaseUrl) {
-        throw new Error("R2 public URLs require an explicit public base URL.");
+        throw new Error("Something went wrong. Try again in a moment.");
       }
       return `${publicBaseUrl}/${key.split("/").map(encodeURIComponent).join("/")}`;
     },
@@ -117,17 +117,17 @@ export function createCloudflareR2UploadStorageProvider(
 
 function assertSafeLogicalBucket(bucket: string) {
   if (!LOGICAL_BUCKET_PATTERN.test(bucket)) {
-    throw new Error("R2 logical bucket name is unsafe.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 }
 
 function assertSafeStoragePath(path: string) {
   if (!path || path.startsWith("/") || path.includes("\\") || path.includes("//")) {
-    throw new Error("R2 storage path is unsafe.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 
   const segments = path.split("/");
   if (segments.some((segment) => segment === "." || segment === ".." || !PATH_SEGMENT_PATTERN.test(segment))) {
-    throw new Error("R2 storage path is unsafe.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 }

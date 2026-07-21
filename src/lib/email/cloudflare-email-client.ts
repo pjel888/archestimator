@@ -135,7 +135,7 @@ function describeCloudflareEmailError(error: unknown) {
     };
   }
   return {
-    message: "Unexpected Cloudflare Email Service send failure.",
+    message: "Unexpected email send failure.",
     code: undefined,
   };
 }
@@ -153,7 +153,7 @@ export async function sendCloudflareEmail(
   if (!config.enabled || !config.cloudflareProviderSelected || !from) {
     return {
       ok: false,
-      error: "Cloudflare Email Service delivery is not configured for this environment.",
+      error: "Email delivery is temporarily unavailable.",
       code: "EMAIL_NOT_CONFIGURED",
     };
   }
@@ -162,7 +162,7 @@ export async function sendCloudflareEmail(
     if (isTestEnv) return { ok: true, mocked: true };
     return {
       ok: false,
-      error: "Cloudflare Email Service binding EMAIL is not available.",
+      error: "Email delivery is temporarily unavailable.",
       code: "EMAIL_BINDING_MISSING",
     };
   }
@@ -189,7 +189,7 @@ export async function sendCloudflareEmail(
     emitLogRecord({
       level: "error",
       event: "cloudflare_email_send_error",
-      message: "Cloudflare Email Service send failed.",
+      message: "Email send failed.",
       action: "send_cloudflare_email",
       context: {
         route: "email/cloudflare-email-client",

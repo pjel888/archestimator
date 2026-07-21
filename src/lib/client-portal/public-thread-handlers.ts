@@ -7,9 +7,15 @@ import { ClientPortalThreadError, createClientPortalRecipientThread, editClientP
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
 import { checkClientPortalThreadRateLimit, checkClientPortalThreadReadRateLimit } from "@/lib/client-portal/public-rate-limits";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 
 function unavailable() { return Response.json({ error: "Client Portal discussion unavailable." }, { status: 404, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }
-function invalid(message: string) { return Response.json({ error: message }, { status: 400, headers: CLIENT_PORTAL_NO_STORE_HEADERS }); }
+function invalid(message: string) {
+  return Response.json(
+    { error: toUserFacingErrorMessage(new Error(message), "Discussion request is invalid.") },
+    { status: 400, headers: CLIENT_PORTAL_NO_STORE_HEADERS },
+  );
+}
 function rateLimited(message: string, retryAfter: number) { return Response.json({ error: message }, { status: 429, headers: { ...CLIENT_PORTAL_NO_STORE_HEADERS, "Retry-After": String(retryAfter) } }); }
 
 async function mutationRateLimit(actor: { portalId: string; recipientId: string }) {
@@ -59,10 +65,11 @@ function mentionedRecipientIds(value: unknown) {
 
 function threadError(error: unknown) {
   if (!(error instanceof ClientPortalThreadError)) return unavailable();
-  if (error.code === "client_portal_invalid_input") return invalid(error.message);
-  if (error.code === "client_portal_thread_conflict") return Response.json({ error: error.message }, { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  if (error.code === "client_portal_thread_denied") return Response.json({ error: error.message }, { status: 403, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  if (error.code === "client_portal_thread_stale") return Response.json({ error: error.message }, { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  const safeMessage = toUserFacingErrorMessage(error, "Client Portal discussion unavailable.");
+  if (error.code === "client_portal_invalid_input") return invalid(safeMessage);
+  if (error.code === "client_portal_thread_conflict") return Response.json({ error: safeMessage }, { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  if (error.code === "client_portal_thread_denied") return Response.json({ error: safeMessage }, { status: 403, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  if (error.code === "client_portal_thread_stale") return Response.json({ error: safeMessage }, { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
   return unavailable();
 }
 

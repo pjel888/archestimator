@@ -80,12 +80,12 @@ function nowIso() {
 }
 
 function assertKnownTable(table: string) {
-  if (!knownTables.has(table)) throw new Error(`Unsupported publication D1 table: ${table}`);
+  if (!knownTables.has(table)) throw new Error(`Something went wrong. Try again in a moment.`);
 }
 
 function assertSafeIdentifier(identifier: string) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
-    throw new Error(`Unsafe publication D1 identifier: ${identifier}`);
+    throw new Error(`Something went wrong. Try again in a moment.`);
   }
 }
 
@@ -170,7 +170,7 @@ function normalizeWriteRow(table: string, input: Record<string, unknown>) {
 
 async function getRequiredPublicationAdminD1Database() {
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required for publication admin actions.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 
@@ -204,7 +204,7 @@ function selectExpression(rawColumn: string) {
     if (snapshotJsonKey) {
       return `json_extract(source_snapshot_json, '$.${snapshotJsonKey}') AS ${alias}`;
     }
-    throw new Error(`Unsupported publication D1 select expression: ${trimmed}`);
+    throw new Error(`Something went wrong. Try again in a moment.`);
   }
 
   assertSafeIdentifier(trimmed);
@@ -520,7 +520,7 @@ function withImmutableIssuance(
 }
 
 async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string, unknown>) {
-  if (!db.batch) throw new Error("Publication replacement requires D1 batch support.");
+  if (!db.batch) throw new Error("Something went wrong. Try again in a moment.");
   const expectedSourceRevision = publicationSourceRevision(args.p_expected_source_revision);
   const project = await first<{ id: string; publication_source_revision: number | string | null }>(
     db,
@@ -662,7 +662,7 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
 }
 
 async function rotateProjectPublicationCredentials(db: D1DatabaseLike, args: Record<string, unknown>) {
-  if (!db.batch) throw new Error("Publication rotation requires D1 batch support.");
+  if (!db.batch) throw new Error("Something went wrong. Try again in a moment.");
   const expectedSourceRevision = publicationSourceRevision(args.p_expected_source_revision);
   const publication = await first<{
     encrypted_token: string | null;
@@ -862,7 +862,7 @@ export function createPublicationAdminD1Client(databasePromise: Promise<D1Databa
         } else if (functionName === "authorize_recipient_publication_for_current_user") {
           data = await authorizeRecipientPublicationForCurrentUser(db, args);
         } else {
-          throw new Error(`Unsupported publication D1 procedure: ${functionName}`);
+          throw new Error(`Something went wrong. Try again in a moment.`);
         }
         return { data: data as T, error: null };
       } catch (error) {

@@ -48,13 +48,13 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 component library read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 
 async function run<T = Record<string, unknown>>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Cloudflare D1 component library write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
@@ -62,11 +62,11 @@ async function runAtomicBatch(
   database: D1DatabaseLike,
   statements: Array<{ sql: string; values?: D1Value[] }>,
 ): Promise<D1Result[]> {
-  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for component updates.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const results = await database.batch(
     statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
   );
-  if (results.some((result) => result.success === false)) throw new Error("Cloudflare D1 component update batch failed.");
+  if (results.some((result) => result.success === false)) throw new Error("Something went wrong. Try again in a moment.");
   return results;
 }
 

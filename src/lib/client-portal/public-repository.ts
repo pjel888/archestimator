@@ -62,7 +62,7 @@ function policySection(row:SectionRow):ClientPortalPolicySection {
     downloadable: policy.downloadable === true,
   };
 }
-async function db() { const value=await getCloudflareD1Database(); if (!value) throw new Error("Client Portal D1 is unavailable."); return value; }
+async function db() { const value=await getCloudflareD1Database(); if (!value) throw new Error("Something went wrong. Try again in a moment."); return value; }
 async function first<T>(database:D1DatabaseLike, sql:string, values:string[]) { return database.prepare<T>(sql).bind(...values).first<T>(); }
 async function all<T>(database:D1DatabaseLike, sql:string, values:string[]) { const result=await database.prepare<T>(sql).bind(...values).all<T>(); return result.results ?? []; }
 async function resolvePortalToken(database:D1DatabaseLike, token:string):Promise<ResolvedPortalToken|null> {

@@ -142,7 +142,7 @@ const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
 
 function placeholders(valuesOrCount: number | readonly unknown[]) {
   const count = typeof valuesOrCount === "number" ? valuesOrCount : valuesOrCount.length;
-  if (count <= 0) throw new Error("Cannot build SQL placeholders for an empty value list.");
+  if (count <= 0) throw new Error("Something went wrong. Try again in a moment.");
   return new Array(count).fill("?").join(", ");
 }
 

@@ -66,7 +66,7 @@ async function getMetricCacheFromD1<T>(
 export async function getMetricCache<T>(key: string): Promise<MetricCacheResult<MetricCachePayload<T>>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: null, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: null, error: "Something went wrong. Try again in a moment." };
     return { data: await getMetricCacheFromD1<T>(db, key), error: null };
   } catch (error) {
     logMetricCacheFailure(error, "admin_metric_cache_read_failed", key);
@@ -90,7 +90,7 @@ export async function setMetricCache<T>(
 
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: null, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: null, error: "Something went wrong. Try again in a moment." };
 
     await db
       .prepare(

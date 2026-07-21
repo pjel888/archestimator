@@ -590,7 +590,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
 
   try {
     const result = await input.database.batch(statements);
-    if (result.some((entry) => entry.success === false)) throw new Error("D1 batch statement failed");
+    if (result.some((entry) => entry.success === false)) throw new Error("Something went wrong. Try again in a moment.");
     if (result[0]?.meta?.changes === 0) {
       throw new ClientPortalIssueBuildError("client_portal_source_changed", "Client Portal source content changed before issue commit. Publish again to issue one consistent revision.");
     }

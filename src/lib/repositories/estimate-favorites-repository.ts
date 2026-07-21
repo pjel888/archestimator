@@ -14,7 +14,7 @@ export async function listCurrentUserEstimateFavoriteCreatedAtById(
 
   const currentUser = await requireCurrentUserContext();
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 binding ARCH_DB is unavailable for estimate favorites.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const estimateIdPlaceholders = uniqueEstimateIds.map(() => "?").join(", ");
   const binds: D1Value[] = [currentUser.userId, ...uniqueEstimateIds];

@@ -34,7 +34,7 @@ function logIncidentRepositoryFailure(error: unknown) {
 export async function listOpenIncidents(): Promise<IncidentsRepositoryResult<OperationalIncidentRow[]>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<OperationalIncidentRow>(

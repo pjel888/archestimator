@@ -364,7 +364,7 @@ function bindValues(values: readonly unknown[]): D1Value[] {
 async function requireComponentLibraryRepositoryD1Database(): Promise<D1DatabaseLike> {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 binding ARCH_DB is required for component library reads.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }

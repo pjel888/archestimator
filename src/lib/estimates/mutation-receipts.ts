@@ -51,10 +51,10 @@ export function createMutationRequestFingerprint(value: unknown) {
 
 export function assertD1MutationStatementLimit(statementCount: number) {
   if (!Number.isSafeInteger(statementCount) || statementCount < 0) {
-    throw new Error("D1 mutation statement count is invalid.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   if (statementCount > D1_MUTATION_HARD_STATEMENT_LIMIT) {
-    throw new Error(`This action requires more than ${D1_MUTATION_HARD_STATEMENT_LIMIT} atomic D1 statements.`);
+    throw new Error(`Something went wrong. Try again in a moment.`);
   }
 }
 

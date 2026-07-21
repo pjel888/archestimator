@@ -85,6 +85,7 @@ import {
   type TemplateMutationStatement,
   type TemplatePricingProvenanceOrigin,
 } from "./template-mutations";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 import {
   archiveLibraryComponentsInD1,
   createCostLibraryComponentInD1,
@@ -161,7 +162,7 @@ function numberValue(value: unknown, fallback = 0) {
 
 async function requireComponentLibraryActionsD1Database() {
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required for component library actions.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 
@@ -171,13 +172,13 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 component library read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 
 async function run<T = Record<string, unknown>>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Cloudflare D1 component library write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
@@ -1448,7 +1449,7 @@ export async function previewBulkDeleteLibraryComponents(input: BulkDeleteLibrar
   } catch (error) {
     return buildRejectedPreviewResult("library_component", ids, [{
       code: "rpc_error",
-      message: `Could not preview component deletion: ${error instanceof Error ? error.message : "Cloudflare D1 preview failed."}`,
+      message: toUserFacingErrorMessage(error, "Could not preview component deletion."),
     }]);
   }
 }
@@ -1553,9 +1554,12 @@ export async function executeBulkDeleteLibraryComponents(input: ExecuteBulkDelet
     return buildComponentPermanentDeleteFailure(
       ids,
       "rpc_error",
-      error.phase === "impact"
-        ? `Could not load component deletion impact: ${error.message}`
-        : `Could not permanently delete components: ${error.message}`,
+      toUserFacingErrorMessage(
+        error,
+        error.phase === "impact"
+          ? "Could not load component deletion impact."
+          : "Could not permanently delete components.",
+      ),
     );
   }
 }

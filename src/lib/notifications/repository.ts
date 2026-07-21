@@ -70,7 +70,7 @@ function clampNotificationLimit(limit: number | undefined) {
 
 async function requireNotificationsD1() {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Notification D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return db;
 }
 

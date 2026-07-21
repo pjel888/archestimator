@@ -21,7 +21,7 @@ async function accessActor(projectId: string): Promise<ClientPortalInternalActor
 
 export async function updateClientPortalAccessAction({ accessEnabled, password, passwordAction, portalId, projectId }: { accessEnabled: boolean; password?: string; passwordAction: "keep" | "remove" | "replace"; portalId: string; projectId: string }) {
   const [actor, database] = await Promise.all([accessActor(projectId), getCloudflareD1Database()]);
-  if (!database) throw new Error("Client Portal D1 database is unavailable.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   const result = await updateClientPortalAccess({ accessEnabled, actor, database, password, passwordAction, portalId });
   revalidatePath(`/workshop/projects/${encodeURIComponent(projectId)}/client-portals/${encodeURIComponent(portalId)}`);
   return result;

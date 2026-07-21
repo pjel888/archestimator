@@ -46,7 +46,7 @@ export async function getCurrentUserTermsAcceptanceStatus(userId: string): Promi
   const localBypass = missingLocalD1AcceptanceBypass();
   if (localBypass) return localBypass;
 
-  throw new Error("Cloudflare D1 is not available for Terms acceptance reads.");
+  throw new Error("Something went wrong. Try again in a moment.");
 }
 
 export async function recordCurrentTermsAcceptance({

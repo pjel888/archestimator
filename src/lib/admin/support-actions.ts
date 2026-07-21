@@ -284,7 +284,7 @@ async function dispatchSupportEmail(input: {
   if (!supportOutboundConfigured()) {
     return {
       ok: false as const,
-      error: "Cloudflare Email Service delivery is not configured for this environment.",
+      error: "Email delivery is temporarily unavailable.",
       code: "EMAIL_NOT_CONFIGURED",
     };
   }

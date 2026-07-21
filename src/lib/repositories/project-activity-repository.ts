@@ -105,7 +105,7 @@ function normalizeProjectActivityCursor(cursor: ProjectActivityCursor | null | u
 async function requireProjectActivityD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for project activity.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }

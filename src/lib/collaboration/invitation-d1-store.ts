@@ -576,7 +576,7 @@ async function acceptInvitationInD1(db: D1DatabaseLike, input: InvitationAccepta
   if (!membership) return { data: { state: "invalid" }, error: null };
 
   if (!db.batch) {
-    return { data: null, error: new Error("Cloudflare D1 batch support is required to accept collaboration invitations.") };
+    return { data: null, error: new Error("Something went wrong. Try again in a moment.") };
   }
 
   const activationIntent = validateActivationProducerIntent({
@@ -761,7 +761,7 @@ export async function acceptCollaborationInvitationTokenInCloudflareD1(
   input: Omit<InvitationAcceptanceInput, "invitationId" | "via">,
 ) {
   const db = await getCloudflareD1Database();
-  if (!db) return { data: null, error: new Error("Cloudflare D1 collaboration invitation store is unavailable.") };
+  if (!db) return { data: null, error: new Error("Something went wrong. Try again in a moment.") };
   return acceptCollaborationInvitationTokenInD1(db, input);
 }
 
@@ -769,6 +769,6 @@ export async function acceptCollaborationInvitationByIdInCloudflareD1(
   input: Omit<InvitationAcceptanceInput, "invitationTokenHash" | "via">,
 ) {
   const db = await getCloudflareD1Database();
-  if (!db) return { data: null, error: new Error("Cloudflare D1 collaboration invitation store is unavailable.") };
+  if (!db) return { data: null, error: new Error("Something went wrong. Try again in a moment.") };
   return acceptCollaborationInvitationByIdInD1(db, input);
 }

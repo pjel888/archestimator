@@ -10,7 +10,7 @@ import { assertProjectPublicationManager } from "@/lib/publication/actions";
 
 async function readAuthorizedMigrationContext({ legacyPublicationId, projectId, requireLegacyWriteFreeze = false }: { legacyPublicationId: string; projectId: string; requireLegacyWriteFreeze?: boolean }) {
   const [manager, database] = await Promise.all([assertProjectPublicationManager(projectId), getCloudflareD1Database()]);
-  if (!database) throw new Error("Client Portal D1 database is unavailable.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   if (!await isClientPortalLegacyMigrationEnabled()) throw new Error("Client Portal legacy migration is not enabled for this rollout cohort.");
   if (requireLegacyWriteFreeze && !await isClientPortalLegacyWriteFreezeEnabled()) throw new Error("Legacy publication writes must be frozen before Client Portal migration can apply.");
   const publication = await database.prepare<{ project_id: string; workspace_id: string }>("SELECT project_id, workspace_id FROM project_publications WHERE id = ? LIMIT 1").bind(legacyPublicationId).first<{ project_id: string; workspace_id: string }>();

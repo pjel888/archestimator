@@ -93,7 +93,7 @@ function revalidateWorkshop() {
 
 async function requireGroupActionsD1Database() {
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Cloudflare D1 database is not available.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 

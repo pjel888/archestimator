@@ -5,6 +5,10 @@ import {
   type AppErrorKind,
   type AppLogLevel,
 } from "./types";
+import {
+  isUnsafeInfrastructureErrorMessage,
+  USER_FACING_INTERNAL_ERROR_MESSAGE,
+} from "./infra-error-message";
 
 type AppErrorOptions = {
   cause?: unknown;
@@ -65,10 +69,18 @@ export class AppError extends Error {
   }
 
   toClientJSON(): AppErrorClientJSON {
+    // Keep database/upstream kinds for server logs, but never ship provider or
+    // storage implementation vocabulary to browsers.
+    const clientKind = this.kind === "database" || this.kind === "upstream" ? "internal" : this.kind;
+    const clientCode =
+      this.code === "DATABASE_ERROR" || this.code === "UPSTREAM_ERROR" ? "INTERNAL_ERROR" : this.code;
+    const message = isUnsafeInfrastructureErrorMessage(this.message)
+      ? USER_FACING_INTERNAL_ERROR_MESSAGE
+      : this.message;
     return {
-      kind: this.kind,
-      code: this.code,
-      message: this.message,
+      kind: clientKind,
+      code: clientCode,
+      message,
     };
   }
 
@@ -120,13 +132,13 @@ export class ConflictError extends AppError {
 }
 
 export class DatabaseError extends AppError {
-  constructor(message = "Could not complete the database request.", options: AppErrorOptions = {}) {
+  constructor(message = "Something went wrong. Try again in a moment.", options: AppErrorOptions = {}) {
     super({ ...options, kind: "database", code: "DATABASE_ERROR", message, statusCode: 500 });
   }
 }
 
 export class UpstreamError extends AppError {
-  constructor(message = "A provider is unavailable. Try again in a moment.", options: AppErrorOptions = {}) {
+  constructor(message = "Something went wrong. Try again in a moment.", options: AppErrorOptions = {}) {
     super({ ...options, kind: "upstream", code: "UPSTREAM_ERROR", message, statusCode: 502 });
   }
 }

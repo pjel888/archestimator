@@ -37,7 +37,7 @@ function toReviewRow(row: BetaFeedbackD1Row): BetaFeedbackReviewRow {
 
 export async function saveBetaFeedbackToD1(payload: BetaFeedbackPayload, context: CurrentUserContext) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 is not available for beta feedback writes.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -83,7 +83,7 @@ export async function saveBetaFeedbackToD1(payload: BetaFeedbackPayload, context
 
 export async function readBetaFeedbackReviewQueueFromD1(status: BetaFeedbackStatus | null): Promise<BetaFeedbackReviewRow[]> {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 is not available for beta feedback reads.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const statusFilter = status ? "WHERE status = ?" : "";
   const statement = db.prepare<BetaFeedbackD1Row>(
@@ -110,7 +110,7 @@ export async function updateBetaFeedbackReviewStatusInD1({
   status: BetaFeedbackStatus;
 }) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 is not available for beta feedback writes.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const now = new Date().toISOString();
   const update = await db

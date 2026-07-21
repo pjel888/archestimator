@@ -163,6 +163,6 @@ export async function saveEstimateSheetUserPreferencesInCloudflareD1(
   columnWidths: EstimateColumnWidths,
 ) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Estimate sheet preferences D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return saveEstimateSheetUserPreferencesInD1(db, context, columnWidths);
 }

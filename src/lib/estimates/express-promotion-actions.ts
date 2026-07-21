@@ -821,7 +821,7 @@ async function preparePromotionAssets(input: {
 async function requireExpressPromotionD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for component promotion.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
@@ -832,20 +832,20 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]
 
 async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Cloudflare D1 component promotion write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
 async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: string; values?: D1Value[] }>) {
   if (statements.length === 0) return;
   if (!database.batch) {
-    throw new Error("Atomic Cloudflare D1 component promotion is unavailable.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   const results = await database.batch(
     statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
   );
   if (results.some((result) => result.success === false)) {
-    throw new Error("Cloudflare D1 component promotion batch failed.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 }
 
@@ -1071,7 +1071,7 @@ export async function promoteEstimateRowToLibraryComponent({
     }
 
     const row = await readPromotionSourceRow(database, { projectId, estimateId, rowId });
-    if (!row) throw new Error("Project, estimate, or row not found in Cloudflare D1.");
+    if (!row) throw new Error("Project, estimate, or row was not found.");
 
     const [canEditEstimate, canManageLibrary] = await Promise.all([
       canEditEstimateInD1(database, estimateId, currentUser),

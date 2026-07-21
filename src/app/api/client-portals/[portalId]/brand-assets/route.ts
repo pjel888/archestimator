@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ por
   const manager = await assertProjectPublicationManager(projectId).catch(() => null);
   if (!manager) return responseError("You do not have permission to manage this Client Portal.", 403);
   const database = await getCloudflareD1Database();
-  if (!database) return responseError("Client Portal D1 database is unavailable.", 503);
+  if (!database) return responseError("Something went wrong. Try again in a moment.", 503);
   const portal = await database.prepare<{ id:string;workspace_id:string;project_id:string }>("SELECT id, workspace_id, project_id FROM client_portals WHERE id = ? LIMIT 1").bind(portalId).first();
   if (!portal || portal.project_id !== manager.project.id || portal.workspace_id !== manager.project.workspace_id) return responseError("Client Portal was not found.", 404);
   const forwarded = new Request(new URL("/api/projects/images", request.url), { method: "POST", body: formData });

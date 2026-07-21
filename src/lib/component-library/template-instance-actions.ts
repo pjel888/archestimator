@@ -45,7 +45,7 @@ type TemplateInstanceStatusRow = {
 
 async function requireDatabase() {
   const database = await getCloudflareD1Database();
-  if (!database?.batch) throw new Error("Cloudflare D1 ARCH_DB binding is required for linked Template actions.");
+  if (!database?.batch) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 

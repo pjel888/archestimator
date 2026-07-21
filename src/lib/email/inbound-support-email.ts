@@ -442,7 +442,9 @@ export async function handleInboundSupportEmail(input: {
           ]),
         });
       } catch {
-        // fall through to forward/reject
+        logSupportEmailEvent("support_email_inbound_parse_failed", "warn", {
+          reason: "oversized_message_persist_failed",
+        });
       }
     }
     await maybeForward(message, config, "oversized");
@@ -453,7 +455,7 @@ export async function handleInboundSupportEmail(input: {
   const db = env.ARCH_DB;
   if (!db) {
     logSupportEmailEvent("support_email_inbound_parse_failed", "error", { reason: "d1_unavailable" });
-    throw new Error("ARCH_DB unavailable for inbound support email.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 
   const warningFlags = collectAutomatedFlags(message.headers);
@@ -505,7 +507,9 @@ export async function handleInboundSupportEmail(input: {
         ]),
       });
     } catch {
-      // ignore secondary failure
+      logSupportEmailEvent("support_email_inbound_parse_failed", "warn", {
+        reason: "parse_failed_secondary_persist_failed",
+      });
     }
     await maybeForward(message, config, "parse_failed");
     return;
