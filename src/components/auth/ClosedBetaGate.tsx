@@ -1,8 +1,5 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import { ControlInput } from "@/components/ui/control-input";
-
 /**
  * ClosedBetaGate — the request-access variant of the signup surface. This is the
  * SAFE DEFAULT until L-FUN-2 enables self-serve signup: instead of a live
@@ -61,20 +58,43 @@ export function ClosedBetaGate({ next }: ClosedBetaGateProps) {
 
         <label htmlFor="beta-access-email" className="flex flex-col gap-1.5">
           <span className="text-[14px] font-medium text-landing-ink">Email</span>
-          <ControlInput
+          <input
             id="beta-access-email"
             name="email"
             type="email"
             autoComplete="email"
             placeholder="name@example.com"
             required
-            className="min-h-11 px-3 text-[16px]"
+            className="min-h-[52px] w-full min-w-0 rounded-full border border-landing-hairline-strong bg-white px-5 text-[16px] leading-none text-landing-ink outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-landing-ink-muted hover:border-landing-ink-muted focus:border-brand-orange focus:ring-4 focus:ring-brand-orange/15"
           />
         </label>
 
-        <Button type="submit" variant="brand" className="w-full">
-          Request access
-        </Button>
+        <button
+          type="submit"
+          className="group inline-flex min-h-[52px] w-full cursor-pointer items-center justify-between gap-3 rounded-full bg-brand-orange pl-6 pr-2 text-left text-[15px] font-medium leading-none text-white shadow-[0_1px_2px_rgba(194,56,4,0.25),inset_0_1px_0_rgba(255,255,255,0.18)] outline-none transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span className="flex-1 text-center">Request access</span>
+          <span
+            aria-hidden="true"
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 transition-[transform,background-color] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:bg-white/25"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              className="size-4"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M2.5 8h11m0 0L9 3.5M13.5 8 9 12.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </button>
       </form>
 
       <p className="text-[14px] text-landing-ink-secondary">

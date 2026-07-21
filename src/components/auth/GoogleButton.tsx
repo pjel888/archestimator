@@ -1,13 +1,16 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-
 /**
- * GoogleButton — the Google-OAuth submit leaf. It is a `variant="secondary"`
- * button carrying the official Google "G" mark (inline SVG, no external asset)
- * plus the supplied label. It must live INSIDE the Google `<form action>` in the
- * form leaf (`LoginForm` / `SignupForm`) so the server action receives the
- * serialized `next` + honeypot fields.
+ * GoogleButton — the Google-OAuth submit leaf. A quiet white pill carrying
+ * the official Google "G" mark (inline SVG, no external asset) plus the
+ * supplied label. It must live INSIDE the Google `<form action>` in the form
+ * leaf (`LoginForm`) so the server action receives the serialized `next` +
+ * honeypot fields.
+ *
+ * Styled for the public auth surface (15px label, 48px target) rather than
+ * the dense in-app `ui/Button` (10px), which is sized for workspace grids.
+ * States: default / hover (lift + stronger hairline) / focus-visible (brand
+ * ring) / active (physical press) / disabled.
  *
  * `"use client"` because it is a button that may receive focus / form events;
  * the mark itself is pure markup.
@@ -22,7 +25,7 @@ const GOOGLE_G_MARK = (
     viewBox="0 0 18 18"
     aria-hidden="true"
     focusable="false"
-    className="size-4 shrink-0"
+    className="size-[18px] shrink-0"
   >
     <path
       fill="#4285F4"
@@ -45,9 +48,12 @@ const GOOGLE_G_MARK = (
 
 export function GoogleButton({ label, className }: GoogleButtonProps) {
   return (
-    <Button type="submit" variant="secondary" className={className}>
+    <button
+      type="submit"
+      className={`inline-flex min-h-[52px] w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-landing-hairline-strong bg-white px-5 text-[15px] font-medium leading-none text-landing-ink shadow-[0_1px_2px_rgba(23,23,23,0.05)] outline-none transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-px hover:border-landing-ink-muted hover:shadow-[0_4px_12px_-4px_rgba(23,23,23,0.12)] focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50 ${className ?? ""}`}
+    >
       {GOOGLE_G_MARK}
       <span>{label}</span>
-    </Button>
+    </button>
   );
 }

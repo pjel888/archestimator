@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-import { ControlInput } from "@/components/ui/control-input";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { MagicLinkButton } from "@/components/auth/MagicLinkButton";
 import { signInWithEmail, signInWithGoogle } from "@/lib/auth/actions";
@@ -52,7 +51,7 @@ export function LoginForm({ next }: LoginFormProps) {
 
       {/* "or" divider */}
       <div
-        className="flex items-center gap-3 text-[14px] text-landing-ink-secondary"
+        className="flex items-center gap-3 text-[13px] text-landing-ink-muted"
         aria-hidden="true"
       >
         <span className="h-px flex-1 bg-landing-hairline-strong" />
@@ -76,14 +75,16 @@ export function LoginForm({ next }: LoginFormProps) {
 
         <label htmlFor="login-email" className="flex flex-col gap-1.5">
           <span className="text-[14px] font-medium text-landing-ink">Email</span>
-          <ControlInput
+          {/* 16px input text keeps iOS Safari from zooming on focus; the pill
+              matches the auth CTAs. */}
+          <input
             id="login-email"
             name="email"
             type="email"
             autoComplete="email"
             placeholder="name@example.com"
             required
-            className="min-h-11 px-3 text-[16px]"
+            className="min-h-[52px] w-full min-w-0 rounded-full border border-landing-hairline-strong bg-white px-5 text-[16px] leading-none text-landing-ink outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-landing-ink-muted hover:border-landing-ink-muted focus:border-brand-orange focus:ring-4 focus:ring-brand-orange/15"
           />
         </label>
 
@@ -94,29 +95,29 @@ export function LoginForm({ next }: LoginFormProps) {
       </form>
 
       {/* Cross-link */}
-      <p className="text-[14px] text-landing-ink-secondary">
+      <p className="text-[14px] leading-5 text-landing-ink-secondary">
         New to Archestimator?{" "}
         <Link
           href="/signup"
-          className="font-medium text-[color:var(--brand-orange-dark)] underline decoration-landing-hairline-strong underline-offset-2 hover:decoration-[color:var(--brand-orange-dark)]"
+          className="font-medium text-[color:var(--brand-orange-dark)] underline decoration-landing-hairline-strong underline-offset-2 transition-colors hover:decoration-[color:var(--brand-orange-dark)]"
         >
           Start free →
         </Link>
       </p>
 
       {/* Legal row */}
-      <p className="text-[14px] leading-5 text-landing-ink-secondary">
+      <p className="border-t border-landing-hairline pt-5 text-[13px] leading-5 text-landing-ink-muted">
         By continuing you agree to our{" "}
         <Link
           href="/terms"
-          className="font-medium text-landing-ink underline decoration-landing-hairline-strong underline-offset-2 hover:decoration-landing-ink"
+          className="font-medium text-landing-ink underline decoration-landing-hairline-strong underline-offset-2 transition-colors hover:decoration-landing-ink"
         >
           Terms
         </Link>{" "}
         and{" "}
         <Link
           href="/privacy"
-          className="font-medium text-landing-ink underline decoration-landing-hairline-strong underline-offset-2 hover:decoration-landing-ink"
+          className="font-medium text-landing-ink underline decoration-landing-hairline-strong underline-offset-2 transition-colors hover:decoration-landing-ink"
         >
           Privacy Policy
         </Link>

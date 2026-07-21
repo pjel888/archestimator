@@ -25,12 +25,12 @@ export default function LoginPage() {
         </Suspense>
       }
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="font-display text-[40px] leading-[1.04] tracking-[0.02em] text-landing-ink">
+      <div className="flex flex-col gap-2.5">
+        <h1 className="font-display text-[40px] leading-[1.04] tracking-[0.02em] text-landing-ink sm:text-[44px]">
           Sign in
         </h1>
-        <p className="text-[16px] leading-6 text-landing-ink-secondary">
-          Sign in to your Archestimator workspace.
+        <p className="text-[15px] leading-6 text-landing-ink-secondary">
+          Welcome back — pick up where the estimate left off.
         </p>
       </div>
       <Suspense fallback={<LoginForm next="/workshop" />}>
