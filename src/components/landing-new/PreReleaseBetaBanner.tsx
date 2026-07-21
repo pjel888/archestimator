@@ -9,11 +9,10 @@ export function PreReleaseBetaBanner() {
     <aside className={styles.betaBanner} aria-label="Pre-release beta announcement">
       <LandingContainer className={styles.betaBannerInner}>
         <p className={styles.betaBannerMessage}>
-          <span className={styles.betaBannerEyebrow}>Now on pre-release beta</span>
-          <span>Access is manually approved. Email {BETA_ACCESS_EMAIL} to request access.</span>
+          <span className={styles.betaBannerEyebrow}>Pre-release beta</span>
         </p>
         <a href={BETA_ACCESS_MAILTO_HREF} className={styles.betaBannerLink}>
-          Request beta access
+          Request access: {BETA_ACCESS_EMAIL}
           <ArrowRight size={15} weight="bold" aria-hidden="true" />
         </a>
       </LandingContainer>
