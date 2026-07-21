@@ -7,7 +7,7 @@ import { MagicLinkButton } from "@/components/auth/MagicLinkButton";
 import { signInWithEmail, signInWithGoogle } from "@/lib/auth/actions";
 
 /**
- * LoginForm — the two `<form action>` leaves for the auth surface (Google OAuth
+ * LoginForm - the two `<form action>` leaves for the auth surface (Google OAuth
  * + email magic link). Auth model = Google OAuth + magic link, NO password
  * (keystone decision D-2 / `23-AUTH-EXPERIENCE.md`). `signInWithEmail` is
  * `shouldCreateUser:true`, so the same magic-link leaf doubles as signup.
@@ -20,7 +20,7 @@ import { signInWithEmail, signInWithGoogle } from "@/lib/auth/actions";
  * rejected by the server action (Phase 5 wiring). It is `aria-hidden`,
  * `tabindex=-1`, `autocomplete="off"`, and positioned off-flow at zero opacity
  * so it stays in the serialized FormData WITHOUT being reachable by keyboard or
- * screen reader. NOTE: `hidden` attribute is wrong here — the server action must
+ * screen reader. NOTE: `hidden` attribute is wrong here - the server action must
  * still receive the field, and `hidden` inputs can be skipped by some autofill
  * bots; the off-flow technique is the documented honeypot pattern.
  */

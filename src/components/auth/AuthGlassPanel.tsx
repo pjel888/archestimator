@@ -5,13 +5,13 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { cn } from "@/lib/ui/cn";
 
 /**
- * AuthGlassPanel — the LEFT column of the full-page 2-col auth surface
+ * AuthGlassPanel - the LEFT column of the full-page 2-col auth surface
  * (keystone decision D-2 / `23-AUTH-EXPERIENCE.md`).
  *
  * Composition: the real dashboard gradients as a seamless full-bleed wash
- * directly on the column — edge-to-edge, no inset box, no corner radius, no
+ * directly on the column - edge-to-edge, no inset box, no corner radius, no
  * illustration, no fake product screenshots, no stock photos (D-2 / radical
- * honesty) — with REAL, honest product copy layered on top: the brand slab,
+ * honesty) - with REAL, honest product copy layered on top: the brand slab,
  * a short editorial statement, and the three capabilities the product
  * actually ships. Decorative layers stay `aria-hidden`; the copy is real
  * content and remains in the a11y tree.
@@ -84,7 +84,7 @@ export function AuthGlassPanel({ variant = "full", className }: AuthGlassPanelPr
       )}
       style={{
         // Seamless full-bleed brand wash: the real dashboard gradients
-        // (token-anchored) directly on the column — edge-to-edge, no inset
+        // (token-anchored) directly on the column - edge-to-edge, no inset
         // box, no corner radius, no illustration.
         backgroundColor: "var(--warm-canvas)",
         backgroundImage: "var(--grad-hero-continue), var(--grad-hero-create)",
@@ -114,7 +114,7 @@ export function AuthGlassPanel({ variant = "full", className }: AuthGlassPanelPr
         </Link>
       </div>
 
-      {/* Honest product copy — real content, not decoration. */}
+      {/* Honest product copy - real content, not decoration. */}
       <div className="relative z-10 flex flex-col gap-8">
         <p
           className="auth-enter max-w-[26ch] font-display text-[clamp(1.75rem,2.4vw,2.5rem)] leading-[1.12] tracking-[0.02em] text-landing-ink"

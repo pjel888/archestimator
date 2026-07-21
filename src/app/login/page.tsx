@@ -9,7 +9,7 @@ import {
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign in — Archestimator",
+  title: "Sign in | Archestimator",
   description: "Sign in to your Archestimator workspace.",
   robots: { index: false, follow: false },
   alternates: { canonical: "/login" },
@@ -30,7 +30,7 @@ export default function LoginPage() {
           Sign in
         </h1>
         <p className="text-[15px] leading-6 text-landing-ink-secondary">
-          Welcome back — pick up where the estimate left off.
+          Welcome back. Pick up where the estimate left off.
         </p>
       </div>
       <Suspense fallback={<LoginForm next="/workshop" />}>

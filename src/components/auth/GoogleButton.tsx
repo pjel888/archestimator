@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * GoogleButton — the Google-OAuth submit leaf. A quiet white pill carrying
+ * GoogleButton - the Google-OAuth submit leaf. A quiet white pill carrying
  * the official Google "G" mark (inline SVG, no external asset) plus the
  * supplied label. It must live INSIDE the Google `<form action>` in the form
  * leaf (`LoginForm`) so the server action receives the serialized `next` +

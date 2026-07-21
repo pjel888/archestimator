@@ -2,7 +2,7 @@ import { getPublicAuthError } from "@/lib/auth/error-mapping";
 import { cn } from "@/lib/ui/cn";
 
 /**
- * AuthStatusBanner — the single aria-live status region for the auth surface.
+ * AuthStatusBanner - the single aria-live status region for the auth surface.
  * Renders the success ("Check your email…") banner when `sent` is truthy, the
  * error banner (mapped through `getPublicAuthError`) when `errorCode` is set,
  * and nothing at all when neither is present (the common first paint).
@@ -65,7 +65,7 @@ export function AuthStatusBanner({ sent, errorCode, className }: AuthStatusBanne
       </svg>
       <span>
         {success
-          ? "Check your email — we sent a sign-in link to your inbox."
+          ? "Check your email. We sent a sign-in link to your inbox."
           : publicError?.message}
       </span>
     </output>

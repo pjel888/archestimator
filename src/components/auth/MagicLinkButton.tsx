@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * MagicLinkButton — the signal-orange CTA for the email magic-link submit
+ * MagicLinkButton - the signal-orange CTA for the email magic-link submit
  * (keystone decision C-3). It fills with brand #F24405 (white text is
- * AA-pass) and steps to #C63804 on hover — NOT the #3D3D3D ink of the app's
+ * AA-pass) and steps to #C63804 on hover - NOT the #3D3D3D ink of the app's
  * `primary` variant. It must live INSIDE the magic-link `<form action>` in
  * the form leaf so the server action receives `next` + honeypot fields.
  *

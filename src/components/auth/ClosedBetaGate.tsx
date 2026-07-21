@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /**
- * ClosedBetaGate — the request-access variant of the signup surface. This is the
+ * ClosedBetaGate - the request-access variant of the signup surface. This is the
  * SAFE DEFAULT until L-FUN-2 enables self-serve signup: instead of a live
  * magic-link form, the visitor leaves an email and the request is queued via the
  * `/contact` intake with `intent=beta-request`.
@@ -12,7 +12,7 @@ import Link from "next/link";
  * `intent=beta-request` field. The honeypot `name="company_url"` is included to
  * honor the "every auth form carries a honeypot" hard contract.
  *
- * This gate OWNS the H1 ("Start free") — the route does NOT render it.
+ * This gate OWNS the H1 ("Start free") - the route does NOT render it.
  *
  * RSC-safe: no hooks, no "use client".
  */
@@ -44,7 +44,7 @@ export function ClosedBetaGate({ next }: ClosedBetaGateProps) {
         <input type="hidden" name="intent" value="beta-request" />
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
-        {/* Honeypot — see LoginForm docs. */}
+        {/* Honeypot - see LoginForm docs. */}
         <div aria-hidden="true" className={HONEYPOT_CLASS}>
           <label htmlFor="beta-company-url">Company URL</label>
           <input
