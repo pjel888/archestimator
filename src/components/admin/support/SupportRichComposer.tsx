@@ -27,7 +27,7 @@ import { cn } from "@/lib/ui/cn";
 
 export type SupportComposerDraft = {
   draftId: string;
-  r2Key: string;
+  attachmentId: string;
   filename: string;
   contentType: string;
   sizeBytes: number;
@@ -35,16 +35,34 @@ export type SupportComposerDraft = {
   previewUrl: string | null;
 };
 
+type PersistedSupportDraft = {
+  id: string;
+  revision: number;
+  body_html?: string | null;
+};
+
+type SupportComposerDraftFields = {
+  to_json?: string | null;
+  cc_json?: string | null;
+  subject?: string | null;
+  from_identity_id?: string | null;
+};
+
 type SupportRichComposerProps = {
   id: string;
   placeholder?: string;
   disabled?: boolean;
   fromLabel: string;
+  draftId: string;
+  draftKind: "reply" | "new_email";
+  conversationId?: string;
   savedReplies?: Array<{ id: string; label: string; body: string }>;
   submitLabel?: string;
   pendingLabel?: string;
   isPending?: boolean;
-  onSubmit: (payload: { html: string; text: string; drafts: SupportComposerDraft[] }) => void;
+  onSubmit: (payload: { draftScopeKey: string; html: string; text: string; drafts: SupportComposerDraft[] }) => void;
+  onDiscard?: () => void;
+  draftFields?: SupportComposerDraftFields;
   className?: string;
 };
 
@@ -66,9 +84,12 @@ function htmlToText(html: string) {
     .trim();
 }
 
-async function uploadDraft(file: File): Promise<SupportComposerDraft> {
+async function uploadDraft(file: File, draftId: string, draftKind: "reply" | "new_email", conversationId?: string): Promise<SupportComposerDraft> {
   const form = new FormData();
   form.append("file", file);
+  form.append("draftId", draftId);
+  form.append("kind", draftKind);
+  if (conversationId) form.append("conversationId", conversationId);
   const response = await fetch("/api/admin/support/uploads", {
     method: "POST",
     body: form,
@@ -79,7 +100,7 @@ async function uploadDraft(file: File): Promise<SupportComposerDraft> {
   }
   return {
     draftId: payload.draftId,
-    r2Key: payload.r2Key,
+    attachmentId: payload.attachmentId,
     filename: payload.filename,
     contentType: payload.contentType,
     sizeBytes: payload.sizeBytes,
@@ -124,11 +145,16 @@ export function SupportRichComposer({
   placeholder = "Write your message…",
   disabled = false,
   fromLabel,
+  draftId,
+  draftKind,
+  conversationId,
   savedReplies = [],
   submitLabel = "Send",
   pendingLabel = "Sending",
   isPending = false,
   onSubmit,
+  onDiscard,
+  draftFields,
   className,
 }: SupportRichComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +163,11 @@ export function SupportRichComposer({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "conflict" | "degraded">("idle");
+  const [draftContent, setDraftContent] = useState({ bodyHtml: "", bodyText: "" });
+  const [linkEditorOpen, setLinkEditorOpen] = useState(false);
+  const [linkHref, setLinkHref] = useState("");
+  const persistedDraftRef = useRef<PersistedSupportDraft | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -157,6 +188,10 @@ export function SupportRichComposer({
       Placeholder.configure({ placeholder }),
     ],
     editable: !disabled && !isPending,
+    onUpdate: ({ editor: nextEditor }) => {
+      const html = nextEditor.getHTML();
+      setDraftContent({ bodyHtml: html, bodyText: htmlToText(html) });
+    },
     editorProps: {
       attributes: {
         id,
@@ -194,6 +229,63 @@ export function SupportRichComposer({
     editor.setEditable(!disabled && !isPending);
   }, [disabled, editor, isPending]);
 
+  useEffect(() => {
+    let cancelled = false;
+    persistedDraftRef.current = null;
+    void fetch("/api/admin/support/drafts", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scopeKey: draftId, kind: draftKind, conversationId }),
+    }).then(async (response) => {
+      const payload = await response.json() as { draft?: PersistedSupportDraft };
+      if (!response.ok || !payload.draft || cancelled) {
+        if (!cancelled) setDraftStatus("degraded");
+        return;
+      }
+      persistedDraftRef.current = payload.draft;
+      if (payload.draft.body_html && editor?.isEmpty) {
+        editor.commands.setContent(payload.draft.body_html);
+        setDraftContent({ bodyHtml: payload.draft.body_html, bodyText: htmlToText(payload.draft.body_html) });
+      }
+      setDraftStatus("saved");
+    }).catch(() => {
+      if (!cancelled) setDraftStatus("degraded");
+    });
+    return () => { cancelled = true; };
+  }, [conversationId, draftId, draftKind, editor]);
+
+  useEffect(() => {
+    if (!persistedDraftRef.current || draftStatus === "conflict" || draftStatus === "degraded") return;
+    const timer = window.setTimeout(() => {
+      const persisted = persistedDraftRef.current;
+      if (!persisted) return;
+      setDraftStatus("saving");
+      void fetch(`/api/admin/support/drafts/${persisted.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          revision: persisted.revision,
+        body_html: draftContent.bodyHtml || null,
+        body_text: draftContent.bodyText || null,
+        ...draftFields,
+        }),
+      }).then(async (response) => {
+        const payload = await response.json() as { draft?: PersistedSupportDraft };
+        if (response.status === 409) {
+          setDraftStatus("conflict");
+          return;
+        }
+        if (!response.ok || !payload.draft) {
+          setDraftStatus("degraded");
+          return;
+        }
+        persistedDraftRef.current = payload.draft;
+        setDraftStatus("saved");
+      }).catch(() => setDraftStatus("degraded"));
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [draftContent, draftFields, draftStatus]);
+
   async function addFiles(files: File[]) {
     if (files.length === 0) return;
     setUploadError(null);
@@ -201,7 +293,7 @@ export function SupportRichComposer({
     try {
       const next: SupportComposerDraft[] = [];
       for (const file of files.slice(0, 10)) {
-        next.push(await uploadDraft(file));
+        next.push(await uploadDraft(file, draftId, draftKind, conversationId));
       }
       setDrafts((current) => [...current, ...next].slice(0, 10));
     } catch (error) {
@@ -225,24 +317,81 @@ export function SupportRichComposer({
     editor.commands.focus("end");
   }
 
-  function setLink() {
+  function openLinkEditor() {
     if (!editor) return;
-    const previous = editor.getAttributes("link").href as string | undefined;
-    const next = window.prompt("Link URL", previous || "https://");
-    if (next === null) return;
-    if (!next.trim()) {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: next.trim() }).run();
+    setLinkHref((editor.getAttributes("link").href as string | undefined) || "https://");
+    setLinkEditorOpen(true);
   }
 
-  function submitCurrent() {
+  function applyLink() {
+    if (!editor) return;
+    if (!linkHref.trim()) {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      setLinkEditorOpen(false);
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: linkHref.trim() }).run();
+    setLinkEditorOpen(false);
+  }
+
+  async function persistCurrentDraft(html: string, text: string) {
+    const persisted = persistedDraftRef.current;
+    if (!persisted) return false;
+    setDraftStatus("saving");
+    try {
+      const response = await fetch(`/api/admin/support/drafts/${persisted.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          revision: persisted.revision,
+          body_html: html || null,
+          body_text: text || null,
+          ...draftFields,
+        }),
+      });
+      const payload = await response.json() as { draft?: PersistedSupportDraft };
+      if (response.status === 409) {
+        setDraftStatus("conflict");
+        return false;
+      }
+      if (!response.ok || !payload.draft) {
+        setDraftStatus("degraded");
+        return false;
+      }
+      persistedDraftRef.current = payload.draft;
+      setDraftStatus("saved");
+      return true;
+    } catch {
+      setDraftStatus("degraded");
+      return false;
+    }
+  }
+
+  async function submitCurrent() {
     if (!editor || disabled || isPending || uploading) return;
     const html = editor.getHTML();
     const text = htmlToText(html);
     if (!text && drafts.length === 0) return;
-    onSubmit({ html, text: text || "(attachment)", drafts });
+    if (!await persistCurrentDraft(html, text || "(attachment)")) return;
+    onSubmit({ draftScopeKey: draftId, html, text: text || "(attachment)", drafts });
+  }
+
+  async function discardCurrentDraft() {
+    const persisted = persistedDraftRef.current;
+    if (!persisted || disabled || isPending) return;
+    setDraftStatus("saving");
+    try {
+      const response = await fetch(`/api/admin/support/drafts/${persisted.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        setDraftStatus("degraded");
+        return;
+      }
+      editor?.commands.clearContent();
+      setDrafts([]);
+      onDiscard?.();
+    } catch {
+      setDraftStatus("degraded");
+    }
   }
 
   return (
@@ -348,7 +497,7 @@ export function SupportRichComposer({
         >
           <Code size={12} />
         </ToolbarButton>
-        <ToolbarButton label="Link" active={editor?.isActive("link")} disabled={!editor || disabled || isPending} onClick={setLink}>
+        <ToolbarButton label="Link" active={editor?.isActive("link")} disabled={!editor || disabled || isPending} onClick={openLinkEditor}>
           <LinkSimple size={12} />
         </ToolbarButton>
         <span className="mx-1 h-3 w-px bg-hairline" aria-hidden />
@@ -403,9 +552,31 @@ export function SupportRichComposer({
           }}
         />
         <span className="ml-auto text-[9px] leading-3 text-tertiary">
-          {uploading ? "Uploading…" : "⌘↵ send · drop files"}
+          {uploading ? "Uploading…" : draftStatus === "saving" ? "Saving…" : draftStatus === "saved" ? "Saved" : draftStatus === "conflict" ? "Draft conflict" : draftStatus === "degraded" ? "Draft storage unavailable" : "⌘↵ send · drop files"}
         </span>
       </div>
+
+      {linkEditorOpen && (
+        <form
+          className="flex items-center gap-1 border-b border-hairline px-2 py-1"
+          onSubmit={(event) => {
+            event.preventDefault();
+            applyLink();
+          }}
+        >
+          <label className="sr-only" htmlFor={`${id}-link-url`}>Link URL</label>
+          <input
+            id={`${id}-link-url`}
+            value={linkHref}
+            onChange={(event) => setLinkHref(event.currentTarget.value)}
+            className="min-w-0 flex-1 rounded-xs border border-hairline px-1.5 py-0.5 text-[9px]"
+            placeholder="https://"
+            autoFocus
+          />
+          <Button type="submit" size="xs" variant="outline">Apply</Button>
+          <Button type="button" size="xs" variant="ghost" onClick={() => setLinkEditorOpen(false)}>Cancel</Button>
+        </form>
+      )}
 
       <EditorContent editor={editor} />
 
@@ -449,20 +620,23 @@ export function SupportRichComposer({
         <p className="text-[9px] leading-3 text-tertiary">
           Formatted HTML email with file and image attachments.
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          disabled={
-            disabled ||
-            isPending ||
-            uploading ||
-            (!editor?.getText().trim() && drafts.length === 0)
-          }
-          onClick={submitCurrent}
-        >
-          {isPending ? pendingLabel : submitLabel}
-        </Button>
+        <div className="flex items-center gap-1">
+          {onDiscard ? <Button type="button" variant="ghost" size="xs" disabled={disabled || isPending || uploading || draftStatus !== "saved"} onClick={discardCurrentDraft}>Discard</Button> : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            disabled={
+              disabled ||
+              isPending ||
+              uploading ||
+              (!editor?.getText().trim() && drafts.length === 0)
+            }
+            onClick={submitCurrent}
+          >
+            {isPending ? pendingLabel : submitLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

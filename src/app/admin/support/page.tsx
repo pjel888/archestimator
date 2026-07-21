@@ -2,16 +2,20 @@ import { Suspense } from "react";
 
 import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminSupportInbox } from "@/components/admin/AdminSupportInbox";
+import { requireAdminContext } from "@/lib/admin/require-admin";
 import { listSavedReplies } from "@/lib/admin/saved-replies-repository";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { readSupportEmailConfig, supportOutboundConfigured } from "@/lib/email/support-email-config";
+import { listClientSupportSendIdentities } from "@/lib/email/support-send-identities";
 import {
   listSupportAttachmentsForConversationInD1,
-  listSupportConversations,
+  listSupportMailbox,
   listSupportMessages,
 } from "@/lib/repositories/support-conversations-repository";
 
 export const dynamic = "force-dynamic";
+
+const mailboxFolders = ["inbox", "sent", "archive", "all", "starred", "snoozed"] as const;
 
 export default async function AdminSupportPage({
   searchParams,
@@ -19,23 +23,32 @@ export default async function AdminSupportPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = (await searchParams) ?? {};
+  const admin = await requireAdminContext();
   const selectedId = typeof params.c === "string" ? params.c : undefined;
+  const folder = typeof params.folder === "string" && mailboxFolders.includes(params.folder as (typeof mailboxFolders)[number])
+    ? params.folder as (typeof mailboxFolders)[number]
+    : "inbox";
   const status = typeof params.status === "string" ? params.status : undefined;
   const channel = typeof params.channel === "string" ? params.channel : undefined;
   const unreadOnly = params.unread === "1";
   const search = typeof params.q === "string" ? params.q : undefined;
+  const label = typeof params.label === "string" ? params.label : undefined;
+  const assigneeUserId = params.assignee === "me" ? admin.userId : undefined;
 
-  const conversations = await listSupportConversations({
+  const mailbox = await listSupportMailbox({
+    folder,
     status: status === "open" || status === "pending" || status === "resolved" || status === "archived" ? status : null,
     channel: channel === "email" || channel === "in_app" || channel === "all" ? channel : "all",
     unreadOnly,
     search,
+    label,
+    assigneeUserId,
     limit: 50,
   });
 
-  const firstConversationId = selectedId && conversations.data.some((row) => row.id === selectedId)
+  const firstConversationId = selectedId && mailbox.data.conversations.some((row) => row.id === selectedId)
     ? selectedId
-    : conversations.data[0]?.id;
+    : mailbox.data.conversations[0]?.id;
   const db = await getCloudflareD1Database();
   const [initialMessages, initialAttachments, savedReplies] = await Promise.all([
     firstConversationId ? listSupportMessages(firstConversationId) : Promise.resolve({ data: [], error: null }),
@@ -54,10 +67,10 @@ export default async function AdminSupportPage({
         description="Unified in-app and email inbox with rich compose, attachments, and Cloudflare acceptance states."
         className="shrink-0"
       />
-      {conversations.error && <p className="text-[10px] leading-4 text-tertiary">{conversations.error}</p>}
+      {mailbox.error && <p className="text-[10px] leading-4 text-tertiary">{mailbox.error}</p>}
       <Suspense fallback={<p className="text-[10px] text-tertiary">Loading support inbox…</p>}>
         <AdminSupportInbox
-          conversations={conversations.data}
+          conversations={mailbox.data.conversations}
           initialMessages={initialMessages.data}
           initialAttachments={initialAttachments}
           savedReplies={savedReplies}
@@ -65,6 +78,7 @@ export default async function AdminSupportPage({
             outboundConfigured: supportOutboundConfigured(),
             inboundEnabled: supportConfig.inboundEnabled,
             supportFrom: supportConfig.supportFrom,
+            sendIdentities: listClientSupportSendIdentities(supportConfig),
           }}
         />
       </Suspense>

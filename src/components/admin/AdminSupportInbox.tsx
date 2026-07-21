@@ -3,18 +3,20 @@
 import dynamic from "next/dynamic";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { EnvelopeSimple, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createSupportEmailConversationAndSend,
+  forwardSupportConversation,
   markSupportConversationRead,
+  replaceSupportTriageLabels,
   sendSupportReply,
   setConversationStatus,
+  updateSupportTriage,
 } from "@/lib/admin/support-actions";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { SupportMessageCard } from "@/components/admin/support/SupportMessageCard";
+import { SupportMailboxRail } from "@/components/admin/support/SupportMailboxRail";
 import type { SupportComposerDraft } from "@/components/admin/support/SupportRichComposer";
 import { cn } from "@/lib/ui/cn";
 import type {
@@ -22,9 +24,11 @@ import type {
   SupportChannelFilter,
   SupportConversationRow,
   SupportConversationStatus,
+  SupportConversationTriageRow,
   SupportMessageRow,
+  SupportMailboxFolder,
 } from "@/lib/repositories/support-conversations-d1";
-import type { StatusBadgeStatus } from "@/components/ui/status-badge";
+import type { SupportDraftRow } from "@/lib/repositories/support-drafts-d1";
 import styles from "@/components/admin/support/support-composer.module.css";
 
 const SupportRichComposer = dynamic(
@@ -54,35 +58,37 @@ type AdminSupportInboxProps = {
     outboundConfigured: boolean;
     inboundEnabled: boolean;
     supportFrom: string;
+    sendIdentities: Array<{ id: "support" | "philip"; fromAddress: string; fromName: string; isDefault: boolean }>;
   };
 };
 
 const statuses: SupportConversationStatus[] = ["open", "pending", "resolved", "archived"];
-const channelFilters: Array<{ id: SupportChannelFilter; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "email", label: "Email" },
-  { id: "in_app", label: "In-app" },
-];
-
-function toBadgeStatus(status: SupportConversationStatus): StatusBadgeStatus {
-  if (status === "open") return "active";
-  if (status === "resolved") return "approved";
-  if (status === "archived") return "inactive";
-  return "review";
-}
-
-function formatListTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-  return new Intl.DateTimeFormat(undefined, sameDay
-    ? { hour: "numeric", minute: "2-digit" }
-    : { month: "short", day: "numeric" }).format(date);
-}
+const emptyMailboxCounts: Record<SupportMailboxFolder, number> = {
+  inbox: 0, sent: 0, archive: 0, all: 0, starred: 0, snoozed: 0,
+};
 
 function createClientMessageId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function isEditableShortcutTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || Boolean(target.closest("input, textarea, select, [contenteditable='true'], [role='dialog']"));
+}
+
+function parseDraftRecipientList(value: string | null) {
+  if (!value) return "";
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return "";
+    return parsed.flatMap((recipient) => (
+      recipient && typeof recipient === "object" && typeof (recipient as { email?: unknown }).email === "string"
+        ? [(recipient as { email: string }).email]
+        : []
+    )).join(", ");
+  } catch {
+    return "";
+  }
 }
 
 export function AdminSupportInbox({
@@ -93,15 +99,19 @@ export function AdminSupportInbox({
   readiness,
 }: AdminSupportInboxProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const noticeId = useId();
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const labelInputRef = useRef<HTMLInputElement>(null);
   const initialSelectedId =
     searchParams.get("c") && initialConversations.some((thread) => thread.id === searchParams.get("c"))
       ? searchParams.get("c")!
       : initialConversations[0]?.id || "";
-  const [conversations, setConversations] = useState(initialConversations);
   const [selectedId, setSelectedId] = useState(initialSelectedId);
+  const [folder, setFolder] = useState<SupportMailboxFolder>(
+    (searchParams.get("folder") as SupportMailboxFolder | null) ?? "inbox",
+  );
   const [statusFilter, setStatusFilter] = useState<SupportConversationStatus | "all">(
     (searchParams.get("status") as SupportConversationStatus | null) ?? "all",
   );
@@ -110,6 +120,8 @@ export function AdminSupportInbox({
   );
   const [unreadOnly, setUnreadOnly] = useState(searchParams.get("unread") === "1");
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [labelFilter, setLabelFilter] = useState(searchParams.get("label") ?? "");
+  const [assignedToMe, setAssignedToMe] = useState(searchParams.get("assignee") === "me");
   const [messagesByConversation, setMessagesByConversation] = useState<Record<string, SupportMessageRow[]>>(
     initialSelectedId ? { [initialSelectedId]: initialMessages } : {},
   );
@@ -117,59 +129,76 @@ export function AdminSupportInbox({
     Record<string, SupportAttachmentRow[]>
   >(initialSelectedId ? { [initialSelectedId]: initialAttachments } : {});
   const [notice, setNotice] = useState<string | null>(null);
+  const [realtimeState, setRealtimeState] = useState<"connecting" | "connected" | "reconnecting" | "degraded" | "offline">("offline");
   const [isPending, startTransition] = useTransition();
   const [showNewEmail, setShowNewEmail] = useState(false);
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [mobileThreadOpen, setMobileThreadOpen] = useState(false);
+  const [showForward, setShowForward] = useState(false);
+  const [fromIdentityId, setFromIdentityId] = useState<"support" | "philip">(
+    readiness.sendIdentities.find((identity) => identity.isDefault)?.id ?? "support",
+  );
   const [newTo, setNewTo] = useState("");
+  const [newCc, setNewCc] = useState("");
   const [newSubject, setNewSubject] = useState("");
+  const [forwardTo, setForwardTo] = useState("");
+  const [forwardCc, setForwardCc] = useState("");
+  const [forwardAttachmentIds, setForwardAttachmentIds] = useState<string[]>([]);
   const [composerEpoch, setComposerEpoch] = useState(0);
   const [newComposerEpoch, setNewComposerEpoch] = useState(0);
-  const replyAttemptIdRef = useRef(createClientMessageId("admin-reply"));
-  const newEmailAttemptIdRef = useRef(createClientMessageId("admin-new"));
+  const [replyAttemptId, setReplyAttemptId] = useState(() => createClientMessageId("admin-reply"));
+  const [newEmailAttemptId, setNewEmailAttemptId] = useState(() => createClientMessageId("admin-new"));
+  const [replyDraftId, setReplyDraftId] = useState(() => crypto.randomUUID());
+  const [newEmailDraftId, setNewEmailDraftId] = useState(() => crypto.randomUUID());
+  const [triageByConversation, setTriageByConversation] = useState<Record<string, SupportConversationTriageRow>>({});
+  const [replyAll, setReplyAll] = useState(false);
+  const replyDraftFields = useMemo(() => ({ from_identity_id: fromIdentityId }), [fromIdentityId]);
+  const newEmailDraftFields = useMemo(() => ({
+    to_json: newTo.trim() ? JSON.stringify([{ email: newTo.trim() }]) : null,
+    cc_json: newCc.trim() ? JSON.stringify(newCc.split(",").map((email) => ({ email: email.trim() })).filter((recipient) => recipient.email)) : null,
+    subject: newSubject.trim() || null,
+    from_identity_id: fromIdentityId,
+  }), [fromIdentityId, newCc, newSubject, newTo]);
 
-  const filteredConversations = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return conversations.filter((thread) => {
-      if (statusFilter !== "all" && thread.status !== statusFilter) return false;
-      if (channelFilter !== "all" && thread.channel !== channelFilter) return false;
-      if (unreadOnly && thread.unread_for_admin !== 1) return false;
-      if (!query) return true;
-      const haystack = `${thread.subject ?? ""} ${thread.requester_email ?? ""} ${thread.requester_name ?? ""}`.toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [channelFilter, conversations, search, statusFilter, unreadOnly]);
-
-  const selected = filteredConversations.find((thread) => thread.id === selectedId)
-    ?? conversations.find((thread) => thread.id === selectedId)
-    ?? filteredConversations[0]
+  const mailboxQuery = useQuery({
+    queryKey: ["admin", "support", "mailbox", folder, statusFilter, channelFilter, unreadOnly, search.trim(), labelFilter.trim(), assignedToMe],
+    queryFn: async () => {
+      const params = new URLSearchParams({ folder, channel: channelFilter, limit: "50" });
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (unreadOnly) params.set("unread", "1");
+      if (search.trim()) params.set("q", search.trim());
+      if (labelFilter.trim()) params.set("label", labelFilter.trim());
+      if (assignedToMe) params.set("assignee", "me");
+      const response = await fetch(`/api/admin/support/conversations?${params}`, { cache: "no-store" });
+      const payload = (await response.json()) as {
+        conversations?: SupportConversationRow[];
+        counts?: Record<SupportMailboxFolder, number>;
+        error?: string | null;
+      };
+      if (!response.ok || payload.error) throw new Error(payload.error || "Support conversations could not be loaded.");
+      return {
+        conversations: payload.conversations ?? [],
+        counts: payload.counts ?? emptyMailboxCounts,
+      };
+    },
+  });
+  const draftsQuery = useQuery({
+    queryKey: ["admin", "support", "drafts"],
+    enabled: showDrafts,
+    queryFn: async () => {
+      const response = await fetch("/api/admin/support/drafts", { cache: "no-store" });
+      const payload = await response.json() as { drafts?: SupportDraftRow[]; error?: string | null };
+      if (!response.ok || payload.error) throw new Error(payload.error || "Support drafts could not be loaded.");
+      return payload.drafts ?? [];
+    },
+  });
+  const conversations = mailboxQuery.data?.conversations ?? initialConversations;
+  const mailboxCounts = mailboxQuery.data?.counts ?? emptyMailboxCounts;
+  const selected = conversations.find((thread) => thread.id === selectedId)
+    ?? conversations[0]
     ?? null;
-  const messages = selected ? messagesByConversation[selected.id] ?? [] : [];
-  const attachments = selected ? attachmentsByConversation[selected.id] ?? [] : [];
-  const attachmentsByMessage = useMemo(() => {
-    const map = new Map<string, SupportAttachmentRow[]>();
-    for (const attachment of attachments) {
-      const list = map.get(attachment.message_id);
-      if (list) list.push(attachment);
-      else map.set(attachment.message_id, [attachment]);
-    }
-    return map;
-  }, [attachments]);
-  const hasConversations = filteredConversations.length > 0;
-  const unreadCount = conversations.filter((thread) => thread.unread_for_admin === 1).length;
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (selected?.id) params.set("c", selected.id);
-    if (statusFilter !== "all") params.set("status", statusFilter);
-    if (channelFilter !== "all") params.set("channel", channelFilter);
-    if (unreadOnly) params.set("unread", "1");
-    if (search.trim()) params.set("q", search.trim());
-    const next = params.toString();
-    router.replace(next ? `/admin/support?${next}` : "/admin/support", { scroll: false });
-  }, [channelFilter, router, search, selected?.id, statusFilter, unreadOnly]);
-
   const selectedThreadId = selected?.id ?? "";
   const hasCachedThread = Boolean(selectedThreadId && messagesByConversation[selectedThreadId]);
-
   const threadQuery = useQuery({
     queryKey: ["admin", "support", "messages", selectedThreadId],
     enabled: Boolean(selectedThreadId) && !hasCachedThread,
@@ -192,44 +221,166 @@ export function AdminSupportInbox({
       };
     },
   });
+  const messages = selected
+    ? messagesByConversation[selected.id] ?? threadQuery.data?.messages ?? []
+    : [];
+  const triageQuery = useQuery({
+    queryKey: ["admin", "support", "triage", selectedThreadId],
+    enabled: Boolean(selectedThreadId),
+    staleTime: 30_000,
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/support/conversations/${selectedThreadId}/triage`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as {
+        triage?: SupportConversationTriageRow | null;
+        error?: string | null;
+      };
+      if (!response.ok || payload.error) throw new Error(payload.error || "Conversation triage could not be loaded.");
+      return payload.triage ?? null;
+    },
+  });
+  const selectedTriage = selectedThreadId
+    ? triageByConversation[selectedThreadId] ?? triageQuery.data ?? null
+    : null;
+  const attachmentsByMessage = useMemo(() => {
+    const attachments = selected
+      ? attachmentsByConversation[selected.id] ?? threadQuery.data?.attachments ?? []
+      : [];
+    const map = new Map<string, SupportAttachmentRow[]>();
+    for (const attachment of attachments) {
+      const list = map.get(attachment.message_id);
+      if (list) list.push(attachment);
+      else map.set(attachment.message_id, [attachment]);
+    }
+    return map;
+  }, [attachmentsByConversation, selected, threadQuery.data?.attachments]);
+  const forwardableAttachments = useMemo(
+    () => [...attachmentsByMessage.values()].flat().filter((attachment) => attachment.storage_status === "stored"),
+    [attachmentsByMessage],
+  );
 
   useEffect(() => {
-    if (!selectedThreadId || !threadQuery.data) return;
-    setMessagesByConversation((current) => ({
-      ...current,
-      [selectedThreadId]: threadQuery.data.messages,
-    }));
-    setAttachmentsByConversation((current) => ({
-      ...current,
-      [selectedThreadId]: threadQuery.data.attachments,
-    }));
-  }, [selectedThreadId, threadQuery.data]);
-
-  useEffect(() => {
-    if (threadQuery.isError) setNotice("Messages could not be loaded.");
-  }, [threadQuery.isError]);
+    const params = new URLSearchParams();
+    if (selected?.id) params.set("c", selected.id);
+    if (folder !== "inbox") params.set("folder", folder);
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (channelFilter !== "all") params.set("channel", channelFilter);
+    if (unreadOnly) params.set("unread", "1");
+    if (search.trim()) params.set("q", search.trim());
+    if (labelFilter.trim()) params.set("label", labelFilter.trim());
+    if (assignedToMe) params.set("assignee", "me");
+    const next = params.toString();
+    router.replace(next ? `/admin/support?${next}` : "/admin/support", { scroll: false });
+  }, [assignedToMe, channelFilter, folder, labelFilter, router, search, selected?.id, statusFilter, unreadOnly]);
 
   useEffect(() => {
     if (!selectedThreadId || !hasCachedThread) return;
     startTransition(async () => {
       const result = await markSupportConversationRead({ conversationId: selectedThreadId });
       if (result.ok) {
-        setConversations((current) =>
-          current.map((thread) =>
-            thread.id === selectedThreadId ? { ...thread, unread_for_admin: 0 } : thread,
-          ),
-        );
+        void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       }
     });
-  }, [hasCachedThread, selectedThreadId]);
+  }, [hasCachedThread, queryClient, selectedThreadId]);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, selected?.id]);
 
-  function handleReply(payload: { html: string; text: string; drafts: SupportComposerDraft[] }) {
+  useEffect(() => {
+    if (!selected || selected.channel !== "in_app") return;
+    let socket: WebSocket | null = null;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const backfill = () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "messages", selected.id] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
+    };
+    const reconnect = () => {
+      if (cancelled) return;
+      setRealtimeState(attempts > 0 ? "reconnecting" : "degraded");
+      const delay = Math.min(30_000, 500 * 2 ** Math.min(attempts, 6)) + Math.floor(Math.random() * 250);
+      attempts += 1;
+      retryTimer = setTimeout(() => void connect(), delay);
+    };
+    const connect = async () => {
+      setRealtimeState(attempts > 0 ? "reconnecting" : "connecting");
+      try {
+        const response = await fetch(`/api/support/conversations/${selected.id}/realtime-token`, { cache: "no-store" });
+        const payload = await response.json() as { roomToken?: string };
+        if (!response.ok || !payload.roomToken || cancelled) { reconnect(); return; }
+        const url = new URL(`/__cloudflare/support-inbox/${selected.id}`, window.location.origin);
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        url.searchParams.set("token", payload.roomToken);
+        socket = new WebSocket(url);
+        socket.onopen = () => {
+          attempts = 0;
+          setRealtimeState("connected");
+          backfill();
+        };
+        socket.onmessage = (event) => {
+          try {
+            const invalidation = JSON.parse(String(event.data)) as { type?: unknown; conversationId?: unknown; messageId?: unknown };
+            if (invalidation.type !== "support_message_created" || invalidation.conversationId !== selected.id || typeof invalidation.messageId !== "string") return;
+            backfill();
+          } catch {
+            // D1 history remains authoritative when an invalidation is malformed.
+          }
+        };
+        socket.onclose = reconnect;
+      } catch {
+        reconnect();
+      }
+    };
+    const onOnline = () => { backfill(); if (!socket || socket.readyState > WebSocket.OPEN) reconnect(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") onOnline(); };
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibility);
+    void connect();
+    return () => {
+      cancelled = true;
+      setRealtimeState("offline");
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibility);
+      socket?.close();
+    };
+  }, [queryClient, selected]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey || isEditableShortcutTarget(event.target)) return;
+      const index = selected ? conversations.findIndex((conversation) => conversation.id === selected.id) : -1;
+      if (event.key === "j" && conversations.length > 0) {
+        event.preventDefault();
+        setSelectedId(conversations[Math.min(conversations.length - 1, Math.max(0, index + 1))]!.id);
+      } else if (event.key === "k" && conversations.length > 0) {
+        event.preventDefault();
+        setSelectedId(conversations[Math.max(0, index - 1)]!.id);
+      } else if (event.key === "a" && selected) {
+        event.preventDefault();
+        startTransition(async () => {
+          const result = await setConversationStatus({ conversationId: selected.id, status: "archived" });
+          if (result.ok) void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
+          setNotice(result.ok ? "Status set to archived." : "Status could not be updated.");
+        });
+      } else if (event.key === "/") {
+        event.preventDefault();
+        document.getElementById("support-search")?.focus();
+      } else if (event.key === "r" && selected) {
+        event.preventDefault();
+        document.getElementById("support-reply")?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [conversations, queryClient, selected]);
+
+  function handleReply(payload: { draftScopeKey: string; html: string; text: string; drafts: SupportComposerDraft[] }) {
     if (!selected) return;
-    const clientMessageId = replyAttemptIdRef.current;
+    const clientMessageId = replyAttemptId;
     setNotice(null);
     startTransition(async () => {
       const result = await sendSupportReply({
@@ -237,6 +388,9 @@ export function AdminSupportInbox({
         body: payload.text,
         html: payload.html,
         clientMessageId,
+        fromIdentityId,
+        replyAll,
+        draftScopeKey: payload.draftScopeKey,
         drafts: payload.drafts,
       });
       if (!result.ok) {
@@ -260,7 +414,8 @@ export function AdminSupportInbox({
         }
         return;
       }
-      replyAttemptIdRef.current = createClientMessageId("admin-reply");
+      setReplyAttemptId(createClientMessageId("admin-reply"));
+      setReplyDraftId(crypto.randomUUID());
       setComposerEpoch((value) => value + 1);
       setMessagesByConversation((current) => ({
         ...current,
@@ -270,13 +425,7 @@ export function AdminSupportInbox({
         ...current,
         [selected.id]: [...(current[selected.id] ?? []), ...result.data.attachments],
       }));
-      setConversations((current) =>
-        current.map((thread) =>
-          thread.id === selected.id
-            ? { ...thread, last_message_at: result.data.message.created_at, unread_for_admin: 0 }
-            : thread,
-        ),
-      );
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       setNotice(
         result.data.message.transport === "email"
           ? "Reply accepted for sending by Cloudflare (not final delivery proof)."
@@ -291,28 +440,68 @@ export function AdminSupportInbox({
     startTransition(async () => {
       const result = await setConversationStatus({ conversationId: selected.id, status });
       if (result.ok) {
-        setConversations((current) =>
-          current.map((thread) => (thread.id === selected.id ? { ...thread, status } : thread)),
-        );
+        void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       }
       setNotice(result.ok ? `Status set to ${status}.` : "Status could not be updated.");
     });
   }
 
-  function handleNewEmail(payload: { html: string; text: string; drafts: SupportComposerDraft[] }) {
+  function handleTriage(update: { starredForAdmin?: boolean; snoozedUntil?: string | null; assignToSelf?: boolean }) {
+    if (!selected) return;
+    const current = triageByConversation[selected.id] ?? triageQuery.data;
+    setNotice(null);
+    startTransition(async () => {
+      const result = await updateSupportTriage({
+        conversationId: selected.id,
+        expectedRevision: current?.revision ?? 0,
+        ...update,
+      });
+      if (!result.ok) {
+        void queryClient.invalidateQueries({ queryKey: ["admin", "support", "triage", selected.id] });
+        setNotice("Triage changed elsewhere. Refresh the conversation and try again.");
+        return;
+      }
+      setTriageByConversation((values) => ({ ...values, [selected.id]: result.data.triage }));
+      queryClient.setQueryData(["admin", "support", "triage", selected.id], result.data.triage);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
+    });
+  }
+
+  function handleLabels() {
+    if (!selected) return;
+    const labels = labelInputRef.current?.value.split(",") ?? selectedTriage?.labels ?? [];
+    const expectedRevision = selectedTriage?.revision ?? 0;
+    startTransition(async () => {
+      const result = await replaceSupportTriageLabels({ conversationId: selected.id, labels, expectedRevision });
+      if (!result.ok) {
+        void queryClient.invalidateQueries({ queryKey: ["admin", "support", "triage", selected.id] });
+        setNotice("Labels changed elsewhere. Refresh the conversation and try again.");
+        return;
+      }
+      setTriageByConversation((values) => ({ ...values, [selected.id]: result.data.triage }));
+      if (labelInputRef.current) labelInputRef.current.value = result.data.triage.labels.join(", ");
+      queryClient.setQueryData(["admin", "support", "triage", selected.id], result.data.triage);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
+    });
+  }
+
+  function handleNewEmail(payload: { draftScopeKey: string; html: string; text: string; drafts: SupportComposerDraft[] }) {
     if (!newTo.trim() || !newSubject.trim()) {
       setNotice("Recipient and subject are required.");
       return;
     }
-    const clientMessageId = newEmailAttemptIdRef.current;
+    const clientMessageId = newEmailAttemptId;
     setNotice(null);
     startTransition(async () => {
       const result = await createSupportEmailConversationAndSend({
         to: newTo,
+        cc: newCc,
         subject: newSubject,
         body: payload.text,
         html: payload.html,
         clientMessageId,
+        fromIdentityId,
+        draftScopeKey: payload.draftScopeKey,
         drafts: payload.drafts,
       });
       if (!result.ok) {
@@ -325,7 +514,7 @@ export function AdminSupportInbox({
         );
         return;
       }
-      setConversations((current) => [result.data.conversation, ...current.filter((c) => c.id !== result.data.conversation.id)]);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       setMessagesByConversation((current) => ({
         ...current,
         [result.data.conversation.id]: [result.data.message],
@@ -337,139 +526,123 @@ export function AdminSupportInbox({
       setSelectedId(result.data.conversation.id);
       setShowNewEmail(false);
       setNewTo("");
+      setNewCc("");
       setNewSubject("");
       setNewComposerEpoch((value) => value + 1);
-      newEmailAttemptIdRef.current = createClientMessageId("admin-new");
+      setNewEmailAttemptId(createClientMessageId("admin-new"));
+      setNewEmailDraftId(crypto.randomUUID());
       setNotice("New email accepted for sending by Cloudflare (not final delivery proof).");
     });
   }
 
+  function handleForward() {
+    if (!selected || !forwardTo.trim()) {
+      setNotice("Forward recipient is required.");
+      return;
+    }
+    setNotice(null);
+    startTransition(async () => {
+      const result = await forwardSupportConversation({
+        conversationId: selected.id,
+        to: forwardTo,
+        cc: forwardCc,
+        clientMessageId: createClientMessageId("admin-forward"),
+        fromIdentityId,
+        attachmentIds: forwardAttachmentIds,
+      });
+      if (!result.ok) {
+        setNotice("Forward could not be sent.");
+        return;
+      }
+      setForwardTo("");
+      setForwardCc("");
+      setForwardAttachmentIds([]);
+      setShowForward(false);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
+      setNotice("Forward accepted for sending by Cloudflare (not final delivery proof).");
+    });
+  }
+
+  function resumeDraft(draft: SupportDraftRow) {
+    setShowDrafts(false);
+    if (draft.kind === "reply" && draft.conversation_id) {
+      setSelectedId(draft.conversation_id);
+      setReplyDraftId(draft.scope_key);
+      setComposerEpoch((value) => value + 1);
+      setShowNewEmail(false);
+      setMobileThreadOpen(true);
+      return;
+    }
+    if (draft.kind === "new_email") {
+      setNewEmailDraftId(draft.scope_key);
+      setNewSubject(draft.subject ?? "");
+      setNewTo(parseDraftRecipientList(draft.to_json));
+      setNewCc(parseDraftRecipientList(draft.cc_json));
+      setNewComposerEpoch((value) => value + 1);
+      setShowNewEmail(true);
+      setMobileThreadOpen(true);
+    }
+  }
+
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)] overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_1px_0_rgba(0,0,0,0.03)]">
-      <section className="flex min-h-0 flex-col border-r border-hairline" aria-label="Support conversations">
-        <div className="border-b border-hairline p-2">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium leading-4 text-ink">Inbox</p>
-              <p className="truncate text-[9px] leading-3 text-tertiary">
-                {readiness.outboundConfigured ? readiness.supportFrom : "Outbound not configured"}
-                {" · "}
-                {unreadCount} unread
-              </p>
-            </div>
-            <Button type="button" variant="outline" size="xs" onClick={() => setShowNewEmail((value) => !value)}>
-              <Plus size={10} className="mr-1" />
-              Compose
-            </Button>
-          </div>
+    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_1px_0_rgba(0,0,0,0.03)] md:grid-cols-[280px_minmax(0,1fr)]">
+      <SupportMailboxRail
+        folder={folder}
+        mailboxCounts={mailboxCounts}
+        conversations={conversations}
+        selectedId={selected?.id ?? null}
+        channelFilter={channelFilter}
+        statusFilter={statusFilter}
+        unreadOnly={unreadOnly}
+        search={search}
+        labelFilter={labelFilter}
+        assignedToMe={assignedToMe}
+        mailboxError={mailboxQuery.isError}
+        showDrafts={showDrafts}
+        drafts={draftsQuery.data}
+        draftsLoading={draftsQuery.isLoading}
+        draftsError={draftsQuery.isError}
+        outboundConfigured={readiness.outboundConfigured}
+        supportFrom={readiness.supportFrom}
+        mobileThreadOpen={mobileThreadOpen}
+        onCompose={() => { setShowNewEmail((value) => !value); setMobileThreadOpen(true); }}
+        onToggleDrafts={() => setShowDrafts((visible) => !visible)}
+        onFolderChange={setFolder}
+        onChannelChange={setChannelFilter}
+        onStatusChange={setStatusFilter}
+        onUnreadOnlyChange={() => setUnreadOnly((value) => !value)}
+        onSearchChange={setSearch}
+        onLabelChange={setLabelFilter}
+        onAssignedToMeChange={() => setAssignedToMe((value) => !value)}
+        onSelect={(thread) => {
+          setSelectedId(thread.id);
+          setShowNewEmail(false);
+          setMobileThreadOpen(true);
+          setReplyDraftId(crypto.randomUUID());
+        }}
+        onResumeDraft={resumeDraft}
+      />
 
-          <label className="relative mt-2 block" htmlFor="support-search">
-            <span className="sr-only">Search</span>
-            <MagnifyingGlass size={11} className="pointer-events-none absolute left-1.5 top-1.5 text-tertiary" />
-            <input
-              id="support-search"
-              value={search}
-              onChange={(event) => setSearch(event.currentTarget.value)}
-              className="w-full rounded-xs border border-hairline bg-white py-1 pl-5 pr-1.5 text-[10px] leading-4 text-ink"
-              placeholder="Search sender or subject"
-            />
-          </label>
-
-          <div className="mt-2 flex flex-wrap gap-1">
-            {channelFilters.map((filter) => (
-              <button
-                key={filter.id}
-                type="button"
-                className={cn(
-                  "rounded-xs border px-1.5 py-1 text-[9px] leading-3",
-                  channelFilter === filter.id ? "border-ink bg-surfaceMuted text-ink" : "border-hairline text-tertiary",
-                )}
-                onClick={() => setChannelFilter(filter.id)}
-              >
-                {filter.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={cn(
-                "rounded-xs border px-1.5 py-1 text-[9px] leading-3",
-                unreadOnly ? "border-ink bg-surfaceMuted text-ink" : "border-hairline text-tertiary",
-              )}
-              onClick={() => setUnreadOnly((value) => !value)}
-            >
-              Unread
-            </button>
-          </div>
-
-          <label className="mt-2 block text-[9px] font-medium uppercase leading-3 text-tertiary" htmlFor="support-status-filter">
-            Status
-          </label>
-          <select
-            id="support-status-filter"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.currentTarget.value as SupportConversationStatus | "all")}
-            className="mt-1 w-full rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink"
-          >
-            <option value="all">all</option>
-            {statuses.map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-auto p-1.5">
-          {filteredConversations.map((thread) => {
-            const active = selected?.id === thread.id;
-            return (
-              <button
-                key={thread.id}
-                type="button"
-                onClick={() => {
-                  setSelectedId(thread.id);
-                  setShowNewEmail(false);
-                }}
-                className={cn(
-                  "mb-1 w-full rounded-xs border p-2 text-left transition",
-                  active ? "border-ink/20 bg-surfaceMuted" : "border-transparent hover:bg-surfaceMuted/70",
-                  thread.unread_for_admin ? "font-medium" : "",
-                )}
-              >
-                <div className="flex items-start justify-between gap-1">
-                  <span className="truncate text-[10px] leading-4 text-ink">{thread.subject ?? "Support request"}</span>
-                  <span className="shrink-0 text-[9px] leading-3 text-tertiary">{formatListTime(thread.last_message_at)}</span>
-                </div>
-                <p className="mt-0.5 truncate text-[9px] leading-3 text-tertiary">
-                  {thread.requester_email ?? thread.requester_name ?? thread.user_id ?? "External sender"}
-                </p>
-                <div className="mt-1.5 flex items-center justify-between gap-1">
-                  <span className="inline-flex items-center gap-1 text-[9px] uppercase leading-3 text-secondary">
-                    {thread.channel === "email" ? <EnvelopeSimple size={10} /> : null}
-                    {thread.channel}
-                    {thread.unread_for_admin ? " · unread" : ""}
-                  </span>
-                  <StatusBadge status={toBadgeStatus(thread.status)} className="min-w-0 px-1 py-0.5">
-                    {thread.status}
-                  </StatusBadge>
-                </div>
-              </button>
-            );
-          })}
-          {!hasConversations && (
-            <div className="rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">
-              {channelFilter === "email"
-                ? "No email conversations yet. Compose one to start."
-                : "No support conversations match these filters."}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="flex min-h-0 flex-col" aria-label="Support thread">
+      <section className={cn("min-h-0 flex-col md:flex", mobileThreadOpen ? "flex" : "hidden")} aria-label="Support thread">
         {showNewEmail ? (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="border-b border-hairline px-3 py-2">
+              <Button type="button" variant="ghost" size="xs" className="mb-1 md:hidden" onClick={() => { setShowNewEmail(false); setMobileThreadOpen(false); }}>
+                Back to inbox
+              </Button>
               <p className="text-[11px] font-medium leading-4 text-ink">New email</p>
-              <p className="text-[9px] leading-3 text-tertiary">Sends from {readiness.supportFrom} only.</p>
+              <label className="mt-1 flex items-center gap-1 text-[9px] leading-3 text-tertiary">
+                From
+                <select
+                  value={fromIdentityId}
+                  onChange={(event) => setFromIdentityId(event.currentTarget.value as "support" | "philip")}
+                  className="rounded-xs border border-hairline bg-white px-1 py-0.5 text-[9px] text-ink"
+                >
+                  {readiness.sendIdentities.map((identity) => (
+                    <option key={identity.id} value={identity.id}>{identity.fromName} &lt;{identity.fromAddress}&gt;</option>
+                  ))}
+                </select>
+              </label>
               <div className="mt-2 grid gap-1.5">
                 <label className="grid grid-cols-[48px_1fr] items-center gap-2 text-[9px] uppercase text-tertiary" htmlFor="new-email-to">
                   To
@@ -492,6 +665,16 @@ export function AdminSupportInbox({
                     placeholder="How can we help?"
                   />
                 </label>
+                <label className="grid grid-cols-[48px_1fr] items-center gap-2 text-[9px] uppercase text-tertiary" htmlFor="new-email-cc">
+                  Cc
+                  <input
+                    id="new-email-cc"
+                    value={newCc}
+                    onChange={(e) => setNewCc(e.currentTarget.value)}
+                    className="rounded-xs border border-hairline px-1.5 py-1 text-[10px] normal-case text-ink"
+                    placeholder="optional@example.com, teammate@example.com"
+                  />
+                </label>
               </div>
               {notice && (
                 <p id={noticeId} role="status" aria-live="polite" className="mt-1 text-[9px] leading-3 text-tertiary">
@@ -504,11 +687,18 @@ export function AdminSupportInbox({
                 key={`new-${newComposerEpoch}`}
                 id="support-new-email"
                 fromLabel={readiness.supportFrom}
+                draftId={newEmailDraftId}
+                draftKind="new_email"
                 savedReplies={savedReplies}
                 disabled={!readiness.outboundConfigured}
                 isPending={isPending}
                 submitLabel="Send email"
                 onSubmit={handleNewEmail}
+                draftFields={newEmailDraftFields}
+                onDiscard={() => {
+                  setNewEmailDraftId(crypto.randomUUID());
+                  setNewComposerEpoch((value) => value + 1);
+                }}
               />
               <div className="mt-2 flex justify-end">
                 <Button type="button" variant="ghost" size="xs" onClick={() => setShowNewEmail(false)}>
@@ -521,6 +711,9 @@ export function AdminSupportInbox({
           <>
             <div className="border-b border-hairline px-3 py-2">
               <div className="flex items-start justify-between gap-2">
+                <Button type="button" variant="ghost" size="xs" className="md:hidden" onClick={() => setMobileThreadOpen(false)}>
+                  Back
+                </Button>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p className="truncate text-[11px] font-medium leading-4 text-ink">
@@ -551,6 +744,51 @@ export function AdminSupportInbox({
                     ))}
                   </select>
                 )}
+                {selected && (
+                  <>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      disabled={isPending}
+                      onClick={() => handleTriage({ starredForAdmin: !(selectedTriage?.starred_for_admin ?? false) })}
+                    >
+                      {selectedTriage?.starred_for_admin ? "Unstar" : "Star"}
+                    </Button>
+                    <Button type="button" size="xs" variant="outline" disabled={isPending} onClick={() => handleTriage({ assignToSelf: !selectedTriage?.assignee_user_id })}>
+                      {selectedTriage?.assignee_user_id ? "Unassign" : "Assign me"}
+                    </Button>
+                    <select
+                      value=""
+                      disabled={isPending}
+                      onChange={(event) => {
+                        const days = Number(event.currentTarget.value);
+                        if (!Number.isFinite(days)) return;
+                        handleTriage({
+                          snoozedUntil: days > 0
+                            ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+                            : null,
+                        });
+                      }}
+                      className="rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink"
+                      aria-label="Snooze conversation"
+                    >
+                      <option value="" disabled>{selectedTriage?.snoozed_until ? "Change snooze" : "Snooze"}</option>
+                      <option value="1">Snooze 1 day</option>
+                      <option value="3">Snooze 3 days</option>
+                      <option value="7">Snooze 1 week</option>
+                      {selectedTriage?.snoozed_until ? <option value="0">Unsnooze</option> : null}
+                    </select>
+                    <input key={selected.id} ref={labelInputRef} defaultValue={selectedTriage?.labels.join(", ") ?? ""} className="w-24 rounded-xs border border-hairline px-1 py-0.5 text-[9px]" placeholder="labels" aria-label="Conversation labels" />
+                    <Button type="button" size="xs" variant="outline" disabled={isPending} onClick={handleLabels}>Save labels</Button>
+                    {selectedTriage?.labels.length ? <span className="text-[9px] leading-3 text-tertiary">{selectedTriage.labels.join(", ")}</span> : null}
+                  </>
+                )}
+                {selected?.channel === "email" && (
+                  <Button type="button" size="xs" variant="outline" disabled={isPending} onClick={() => setShowForward((visible) => !visible)}>
+                    Forward
+                  </Button>
+                )}
               </div>
               {notice && (
                 <p id={noticeId} role="status" aria-live="polite" className="mt-1 text-[9px] leading-3 text-tertiary">
@@ -565,8 +803,40 @@ export function AdminSupportInbox({
               )}
               {selected?.channel === "in_app" && (
                 <p className="mt-1 text-[9px] leading-3 text-tertiary">
-                  In-app thread from a signed-in user. Replies stay in the product inbox (not emailed).
+                  In-app thread from a signed-in user. Realtime: {realtimeState}. Replies stay in the product inbox (not emailed).
                 </p>
+              )}
+              {selected?.channel === "email" && showForward && (
+                <form
+                  className="mt-2 flex flex-wrap items-center gap-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleForward();
+                  }}
+                >
+                  <input value={forwardTo} onChange={(event) => setForwardTo(event.currentTarget.value)} className="min-w-32 flex-1 rounded-xs border border-hairline px-1 py-0.5 text-[9px]" placeholder="Forward to" aria-label="Forward recipient" required />
+                  <input value={forwardCc} onChange={(event) => setForwardCc(event.currentTarget.value)} className="min-w-24 flex-1 rounded-xs border border-hairline px-1 py-0.5 text-[9px]" placeholder="CC (optional)" aria-label="Forward carbon-copy recipients" />
+                  <Button type="submit" size="xs" variant="outline" disabled={isPending}>Send forward</Button>
+                  {forwardableAttachments.length > 0 && (
+                    <fieldset className="basis-full pt-1">
+                      <legend className="text-[9px] leading-3 text-tertiary">Forward attachments</legend>
+                      <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1">
+                        {forwardableAttachments.map((attachment) => (
+                          <label key={attachment.id} className="flex items-center gap-1 text-[9px] leading-3 text-secondary">
+                            <input
+                              type="checkbox"
+                              checked={forwardAttachmentIds.includes(attachment.id)}
+                              onChange={(event) => setForwardAttachmentIds((current) => event.currentTarget.checked
+                                ? [...current, attachment.id]
+                                : current.filter((id) => id !== attachment.id))}
+                            />
+                            {attachment.filename}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  )}
+                </form>
               )}
             </div>
 
@@ -583,6 +853,11 @@ export function AdminSupportInbox({
                   No messages loaded for this conversation.
                 </div>
               )}
+              {selected && threadQuery.isError && (
+                <p role="status" className="rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">
+                  Messages could not be refreshed. Reconnecting will retry the D1 history.
+                </p>
+              )}
               {!selected && (
                 <div className="flex h-full min-h-40 items-center justify-center rounded-xs border border-dashed border-hairline p-4 text-center text-[10px] leading-4 text-tertiary">
                   Select a conversation or compose a new email.
@@ -592,6 +867,26 @@ export function AdminSupportInbox({
             </div>
 
             <div className={cn("border-t border-hairline p-2", styles.composer)}>
+              {selected?.channel === "email" && (
+                <label className="mb-1 flex items-center gap-1 text-[9px] leading-3 text-tertiary">
+                  From
+                  <select
+                    value={fromIdentityId}
+                    onChange={(event) => setFromIdentityId(event.currentTarget.value as "support" | "philip")}
+                    className="rounded-xs border border-hairline bg-white px-1 py-0.5 text-[9px] text-ink"
+                  >
+                    {readiness.sendIdentities.map((identity) => (
+                      <option key={identity.id} value={identity.id}>{identity.fromName} &lt;{identity.fromAddress}&gt;</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {selected?.channel === "email" && (
+                <label className="mb-1 flex items-center gap-1 text-[9px] leading-3 text-tertiary">
+                  <input type="checkbox" checked={replyAll} onChange={(event) => setReplyAll(event.currentTarget.checked)} />
+                  Reply all
+                </label>
+              )}
               <SupportRichComposer
                 key={`${selected?.id ?? "none"}-${composerEpoch}`}
                 id="support-reply"
@@ -600,6 +895,9 @@ export function AdminSupportInbox({
                     ? "In-app support"
                     : readiness.supportFrom
                 }
+                draftId={replyDraftId}
+                draftKind="reply"
+                conversationId={selected?.id}
                 savedReplies={savedReplies}
                 disabled={
                   !selected
@@ -615,6 +913,11 @@ export function AdminSupportInbox({
                 }
                 submitLabel={selected?.channel === "in_app" ? "Post reply" : "Send reply"}
                 onSubmit={handleReply}
+                draftFields={replyDraftFields}
+                onDiscard={() => {
+                  setReplyDraftId(crypto.randomUUID());
+                  setComposerEpoch((value) => value + 1);
+                }}
               />
             </div>
           </>
