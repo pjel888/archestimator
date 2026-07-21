@@ -107,13 +107,13 @@ export function AdminAccountWorkspaces({
   return (
     <div className="flex flex-col gap-3">
       {available.length > 0 ? (
-        <form onSubmit={handleLink} className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-1 flex-col gap-1">
+        <form onSubmit={handleLink} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-[9px] font-medium uppercase leading-3 text-tertiary">Workspace</span>
             <select
               value={selectedWorkspaceId}
               onChange={(e) => setSelectedWorkspaceId(e.target.value)}
-              className="rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
+              className="min-h-9 rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
             >
               <option value="">Select a workspace…</option>
               {available.map((ws) => (
@@ -126,7 +126,7 @@ export function AdminAccountWorkspaces({
               ))}
             </select>
           </label>
-          <Button type="submit" disabled={isPending || !selectedWorkspaceId}>
+          <Button type="submit" disabled={isPending || !selectedWorkspaceId} className="min-h-9 w-full sm:w-auto">
             Link workspace
           </Button>
         </form>

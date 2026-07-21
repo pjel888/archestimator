@@ -53,7 +53,7 @@ export function AdminProjectsTable({ projects }: { projects: AdminProjectOvervie
         onClear={() => setSearch("")}
         placeholder="Filter projects…"
         aria-label="Filter projects"
-        wrapperClassName="w-full max-w-xs border border-hairline bg-white"
+        wrapperClassName="w-full border border-hairline bg-white sm:max-w-xs"
       />
       <AdminDataTable
         data={projects}

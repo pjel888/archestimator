@@ -141,13 +141,13 @@ export function AdminAccountMembers({
 
   return (
     <div className="flex flex-col gap-3">
-      <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-1 flex-col gap-1">
+      <form onSubmit={handleAssign} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+        <label className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[9px] font-medium uppercase leading-3 text-tertiary">User</span>
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value)}
-            className="rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
+            className="min-h-9 rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
           >
             <option value="">Select a user…</option>
             {availableUsers.map((user) => (
@@ -157,12 +157,12 @@ export function AdminAccountMembers({
             ))}
           </select>
         </label>
-        <label className="flex w-32 flex-col gap-1">
+        <label className="flex w-full flex-col gap-1 sm:w-32">
           <span className="text-[9px] font-medium uppercase leading-3 text-tertiary">Role</span>
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
-            className="rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
+            className="min-h-9 rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
           >
             {ROLES.map((role) => (
               <option key={role} value={role}>
@@ -171,7 +171,7 @@ export function AdminAccountMembers({
             ))}
           </select>
         </label>
-        <Button type="submit" disabled={isPending || !selectedUserId}>
+        <Button type="submit" disabled={isPending || !selectedUserId} className="min-h-9 w-full sm:w-auto">
           Add member
         </Button>
       </form>

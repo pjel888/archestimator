@@ -83,10 +83,10 @@ export function AdminFlagsList({ flags }: { flags: AdminFeatureGateView[] }) {
           </h3>
           <div className="divide-y divide-divider rounded-xs border border-hairline bg-white">
             {categoryFlags.map((flag) => (
-              <div key={flag.key} className="flex items-center justify-between gap-2 p-2">
-                <div className="min-w-0">
+              <div key={flag.key} className="flex items-start justify-between gap-2 p-2 sm:items-center">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate text-[10px] font-medium leading-4 text-ink">{flag.title}</p>
+                    <p className="text-[10px] font-medium leading-4 text-ink text-pretty">{flag.title}</p>
                     <Badge tone={flag.enabled ? "success" : "neutral"} size="xs" className="min-w-0 px-1">
                       {flag.enabled ? "on" : "off"}
                     </Badge>
@@ -103,8 +103,8 @@ export function AdminFlagsList({ flags }: { flags: AdminFeatureGateView[] }) {
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="truncate text-[9px] leading-3 text-tertiary">{flag.key}</p>
-                  <p className="text-[9px] leading-3 text-tertiary">
+                  <p className="break-all text-[9px] leading-3 text-tertiary">{flag.key}</p>
+                  <p className="text-[9px] leading-3 text-tertiary text-pretty">
                     {flag.catalogDescription ?? flag.description ?? "No description."}
                   </p>
                   <p className="mt-1 text-[9px] leading-3 text-tertiary">Updated {flag.updated_at}</p>
@@ -114,6 +114,7 @@ export function AdminFlagsList({ flags }: { flags: AdminFeatureGateView[] }) {
                   onChange={(enabled) => handleToggle(flag.key, enabled)}
                   aria-label={`Toggle ${flag.key}`}
                   disabled={isPending || !flag.toggleable}
+                  className="mt-0.5 shrink-0 sm:mt-0"
                 />
               </div>
             ))}

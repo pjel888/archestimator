@@ -92,13 +92,19 @@ export function SupportMailboxRail({
   return (
     <section className={cn("min-h-0 flex-col border-r border-hairline md:flex", mobileThreadOpen ? "hidden" : "flex")} aria-label="Support conversations">
       <div className="border-b border-hairline p-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-[11px] font-medium leading-4 text-ink">{folders.find((item) => item.id === folder)?.label}</p>
             <p className="truncate text-[9px] leading-3 text-tertiary">{outboundConfigured ? supportFrom : "Outbound not configured"} · {mailboxCounts[folder]} conversations</p>
           </div>
-          <Button type="button" variant="outline" size="xs" onClick={onCompose}><Plus size={10} className="mr-1" />Compose</Button>
-          <Button type="button" variant="ghost" size="xs" onClick={onToggleDrafts}>Drafts</Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button type="button" variant="outline" size="xs" className="min-h-8 sm:min-h-0" onClick={onCompose}>
+              <Plus size={10} className="mr-1" />Compose
+            </Button>
+            <Button type="button" variant="ghost" size="xs" className="min-h-8 sm:min-h-0" onClick={onToggleDrafts}>
+              Drafts
+            </Button>
+          </div>
         </div>
         <label className="relative mt-2 block" htmlFor="support-search">
           <span className="sr-only">Search</span>

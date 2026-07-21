@@ -441,8 +441,8 @@ export function AdminAllowlistManager({
                 />
               </div>
             ) : (
-              <div className="mt-2 overflow-x-auto">
-                <table className="min-w-full border-collapse text-left text-[10px] leading-4">
+              <div className="mt-2 -mx-0.5 overflow-x-auto overscroll-contain touch-pan-x">
+                <table className="min-w-[36rem] border-collapse text-left text-[10px] leading-4">
                   <thead className="bg-surfaceMuted text-secondary">
                     <tr>
                       <th className="border-b border-hairline px-2 py-1.5 font-medium">Email</th>

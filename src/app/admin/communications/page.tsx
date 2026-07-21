@@ -52,25 +52,25 @@ export default async function AdminCommunicationsPage() {
           <ul className="space-y-1" aria-label="Communication records">
             {records.map((record) => (
               <li
-                key={record.id}
-                className="flex items-center justify-between gap-2 border-b border-hairline pb-1 text-[10px] leading-4 last:border-b-0"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-ink">{record.title}</p>
-                  <p className="text-[9px] text-tertiary">
-                    {record.kind} · {record.surface} · {new Date(record.created_at).toLocaleString()}
-                    {record.release_version ? ` · ${record.release_version}` : ""}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Badge tone={SEVERITY_TONE[record.severity] ?? "neutral"} size="xs" className="min-w-0 px-1">
-                    {record.severity}
-                  </Badge>
-                  <Badge tone="neutral" size="xs" className="min-w-0 px-1">
-                    {record.delivery_count} delivered
-                  </Badge>
-                </div>
-              </li>
+              key={record.id}
+              className="flex flex-col gap-1.5 border-b border-hairline pb-1.5 text-[10px] leading-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-2"
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-ink text-pretty">{record.title}</p>
+                <p className="text-[9px] text-tertiary">
+                  {record.kind} · {record.surface} · {new Date(record.created_at).toLocaleString()}
+                  {record.release_version ? ` · ${record.release_version}` : ""}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
+                <Badge tone={SEVERITY_TONE[record.severity] ?? "neutral"} size="xs" className="min-w-0 px-1">
+                  {record.severity}
+                </Badge>
+                <Badge tone="neutral" size="xs" className="min-w-0 px-1">
+                  {record.delivery_count} delivered
+                </Badge>
+              </div>
+            </li>
             ))}
           </ul>
         )}

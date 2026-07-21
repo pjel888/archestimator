@@ -83,8 +83,16 @@ export function AdminDataTable<TData>({
   }, [rows, virtualRows]);
 
   return (
-    <div ref={scrollRef} className={cn("min-h-0 flex-1 overflow-auto rounded-xs border border-hairline", className)}>
-      <Table>
+    <div
+      ref={scrollRef}
+      className={cn(
+        "min-h-0 flex-1 overflow-auto overscroll-contain rounded-xs border border-hairline",
+        /* Keep wide admin tables scannable on phones without dropping columns. */
+        "-mx-0.5 touch-pan-x",
+        className,
+      )}
+    >
+      <Table className="min-w-[36rem]">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="hover:bg-transparent">

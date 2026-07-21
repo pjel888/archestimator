@@ -41,11 +41,11 @@ export default async function AdminDataQualityPage() {
               key={finding.key}
               className="flex items-start justify-between gap-2 rounded-xs border border-hairline p-1.5"
             >
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium leading-4 text-ink">{finding.label}</p>
-                <p className="text-[9px] leading-3 text-tertiary">{finding.detail}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-medium leading-4 text-ink text-pretty">{finding.label}</p>
+                <p className="text-[9px] leading-3 text-tertiary text-pretty">{finding.detail}</p>
               </div>
-              <Badge tone={SEVERITY_TONE[finding.severity]} size="xs" className="mt-0.5 min-w-0 px-1">
+              <Badge tone={SEVERITY_TONE[finding.severity]} size="xs" className="mt-0.5 shrink-0 min-w-0 px-1">
                 {finding.count}
               </Badge>
             </li>

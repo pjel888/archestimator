@@ -95,7 +95,10 @@ export function AdminReleaseCenter({ initialRecords }: { initialRecords: AdminRe
       ) : (
         <ul className="space-y-1" aria-label="Release records">
           {initialRecords.map((record) => (
-            <li key={record.id} className="flex items-start justify-between gap-2 rounded-xs border border-hairline p-1.5">
+            <li
+              key={record.id}
+              className="flex flex-col gap-2 rounded-xs border border-hairline p-1.5 sm:flex-row sm:items-start sm:justify-between"
+            >
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-medium leading-4 text-ink">{record.version_label}</p>
                 <p className="text-[9px] leading-3 text-tertiary">
@@ -108,7 +111,7 @@ export function AdminReleaseCenter({ initialRecords }: { initialRecords: AdminRe
                   </p>
                 )}
               </div>
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
                 <Badge tone={STATUS_TONE[record.status]} size="xs" className="min-w-0 px-1">
                   {record.status}
                 </Badge>
@@ -117,7 +120,7 @@ export function AdminReleaseCenter({ initialRecords }: { initialRecords: AdminRe
                   disabled={pending}
                   onChange={(e) => changeStatus(record.id, e.target.value as ReleaseStatus)}
                   aria-label={`Set status for ${record.version_label}`}
-                  className="rounded-xs border border-hairline bg-white px-1 py-0.5 text-[9px] leading-3 text-ink disabled:opacity-50"
+                  className="min-h-8 rounded-xs border border-hairline bg-white px-1.5 py-1 text-[9px] leading-3 text-ink disabled:opacity-50 sm:min-h-0 sm:px-1 sm:py-0.5"
                 >
                   <option value="pending">pending</option>
                   <option value="shipped">shipped</option>

@@ -710,52 +710,60 @@ export function AdminSupportInbox({
         ) : (
           <>
             <div className="border-b border-hairline px-3 py-2">
-              <div className="flex items-start justify-between gap-2">
-                <Button type="button" variant="ghost" size="xs" className="md:hidden" onClick={() => setMobileThreadOpen(false)}>
-                  Back
-                </Button>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate text-[11px] font-medium leading-4 text-ink">
-                      {selected?.subject ?? "Select a conversation"}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-start gap-2">
+                  <Button type="button" variant="ghost" size="xs" className="shrink-0 md:hidden" onClick={() => setMobileThreadOpen(false)}>
+                    Back
+                  </Button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate text-[11px] font-medium leading-4 text-ink">
+                        {selected?.subject ?? "Select a conversation"}
+                      </p>
+                      {selected && (
+                        <span className="rounded-xs border border-hairline px-1 py-0.5 text-[9px] uppercase leading-3 text-secondary">
+                          {selected.channel === "email" ? "Email" : "In-app"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-[9px] leading-3 text-tertiary">
+                      {selected
+                        ? `${selected.requester_name ? `${selected.requester_name} · ` : ""}${selected.requester_email ?? selected.user_id ?? "unknown"}${selected.mailbox_address ? ` · ${selected.mailbox_address}` : ""}`
+                        : "Choose a thread from the inbox"}
                     </p>
-                    {selected && (
-                      <span className="rounded-xs border border-hairline px-1 py-0.5 text-[9px] uppercase leading-3 text-secondary">
-                        {selected.channel === "email" ? "Email" : "In-app"}
-                      </span>
-                    )}
                   </div>
-                  <p className="truncate text-[9px] leading-3 text-tertiary">
-                    {selected
-                      ? `${selected.requester_name ? `${selected.requester_name} · ` : ""}${selected.requester_email ?? selected.user_id ?? "unknown"}${selected.mailbox_address ? ` · ${selected.mailbox_address}` : ""}`
-                      : "Choose a thread from the inbox"}
-                  </p>
                 </div>
-                {selected && (
-                  <select
-                    value={selected.status}
-                    onChange={(event) => handleStatus(event.currentTarget.value as SupportConversationStatus)}
-                    disabled={isPending}
-                    className="rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink"
-                    aria-label="Conversation status"
-                  >
-                    {statuses.map((status) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                )}
-                {selected && (
-                  <>
+                {selected ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <select
+                      value={selected.status}
+                      onChange={(event) => handleStatus(event.currentTarget.value as SupportConversationStatus)}
+                      disabled={isPending}
+                      className="min-h-8 rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink sm:min-h-0"
+                      aria-label="Conversation status"
+                    >
+                      {statuses.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
                     <Button
                       type="button"
                       size="xs"
                       variant="outline"
                       disabled={isPending}
+                      className="min-h-8 sm:min-h-0"
                       onClick={() => handleTriage({ starredForAdmin: !(selectedTriage?.starred_for_admin ?? false) })}
                     >
                       {selectedTriage?.starred_for_admin ? "Unstar" : "Star"}
                     </Button>
-                    <Button type="button" size="xs" variant="outline" disabled={isPending} onClick={() => handleTriage({ assignToSelf: !selectedTriage?.assignee_user_id })}>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      disabled={isPending}
+                      className="min-h-8 sm:min-h-0"
+                      onClick={() => handleTriage({ assignToSelf: !selectedTriage?.assignee_user_id })}
+                    >
                       {selectedTriage?.assignee_user_id ? "Unassign" : "Assign me"}
                     </Button>
                     <select
@@ -770,7 +778,7 @@ export function AdminSupportInbox({
                             : null,
                         });
                       }}
-                      className="rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink"
+                      className="min-h-8 rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink sm:min-h-0"
                       aria-label="Snooze conversation"
                     >
                       <option value="" disabled>{selectedTriage?.snoozed_until ? "Change snooze" : "Snooze"}</option>
@@ -779,16 +787,36 @@ export function AdminSupportInbox({
                       <option value="7">Snooze 1 week</option>
                       {selectedTriage?.snoozed_until ? <option value="0">Unsnooze</option> : null}
                     </select>
-                    <input key={selected.id} ref={labelInputRef} defaultValue={selectedTriage?.labels.join(", ") ?? ""} className="w-24 rounded-xs border border-hairline px-1 py-0.5 text-[9px]" placeholder="labels" aria-label="Conversation labels" />
-                    <Button type="button" size="xs" variant="outline" disabled={isPending} onClick={handleLabels}>Save labels</Button>
-                    {selectedTriage?.labels.length ? <span className="text-[9px] leading-3 text-tertiary">{selectedTriage.labels.join(", ")}</span> : null}
-                  </>
-                )}
-                {selected?.channel === "email" && (
-                  <Button type="button" size="xs" variant="outline" disabled={isPending} onClick={() => setShowForward((visible) => !visible)}>
-                    Forward
-                  </Button>
-                )}
+                    <input
+                      key={selected.id}
+                      ref={labelInputRef}
+                      defaultValue={selectedTriage?.labels.join(", ") ?? ""}
+                      className="min-h-8 min-w-[7rem] flex-1 rounded-xs border border-hairline px-1.5 py-1 text-[9px] sm:min-h-0 sm:w-24 sm:flex-none sm:px-1 sm:py-0.5"
+                      placeholder="labels"
+                      aria-label="Conversation labels"
+                    />
+                    <Button type="button" size="xs" variant="outline" disabled={isPending} className="min-h-8 sm:min-h-0" onClick={handleLabels}>
+                      Save labels
+                    </Button>
+                    {selectedTriage?.labels.length ? (
+                      <span className="basis-full text-[9px] leading-3 text-tertiary sm:basis-auto">
+                        {selectedTriage.labels.join(", ")}
+                      </span>
+                    ) : null}
+                    {selected.channel === "email" ? (
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="outline"
+                        disabled={isPending}
+                        className="min-h-8 sm:min-h-0"
+                        onClick={() => setShowForward((visible) => !visible)}
+                      >
+                        Forward
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               {notice && (
                 <p id={noticeId} role="status" aria-live="polite" className="mt-1 text-[9px] leading-3 text-tertiary">

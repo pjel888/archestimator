@@ -41,15 +41,15 @@ export default async function AdminProjectDetailPage({
       <section className="grid gap-2 lg:grid-cols-2">
         <Card className="p-2">
           <h2 className="text-[11px] font-medium leading-4 text-ink">Project</h2>
-          <dl className="mt-2 grid grid-cols-[100px_1fr] gap-x-2 gap-y-1 text-[10px] leading-4">
+          <dl className="mt-2 grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-2 gap-y-1 text-[10px] leading-4 sm:grid-cols-[100px_1fr]">
             <dt className="text-tertiary">Project code</dt>
-            <dd className="text-ink">{project.project_code ?? "—"}</dd>
+            <dd className="min-w-0 break-words text-ink">{project.project_code ?? "—"}</dd>
             <dt className="text-tertiary">Workspace</dt>
-            <dd className="font-mono text-[9px] text-tertiary">{project.workspace_id}</dd>
+            <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{project.workspace_id}</dd>
             <dt className="text-tertiary">Created</dt>
             <dd className="text-ink">{new Date(project.created_at).toLocaleString()}</dd>
             <dt className="text-tertiary">Project ID</dt>
-            <dd className="font-mono text-[9px] text-tertiary">{project.id}</dd>
+            <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{project.id}</dd>
           </dl>
         </Card>
 

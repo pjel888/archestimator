@@ -44,23 +44,28 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
   return (
     <ol className="space-y-1" aria-label="Action inbox items">
       {items.map((item) => (
-        <li key={item.id} className="flex items-start gap-2 rounded-xs border border-hairline p-1.5">
-          <Badge tone={SEVERITY_TONE[item.severity]} size="xs" className="mt-0.5 min-w-0 px-1">
-            {item.severity}
-          </Badge>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium leading-4 text-ink">{item.title}</p>
-            <p className="text-[9px] leading-3 text-tertiary">
-              {item.source_kind} · seen {ageLabel(item.last_seen_at)}
-              {item.status === "snoozed" && item.snooze_until ? ` · snoozed until ${ageLabel(item.snooze_until)}` : ""}
-            </p>
+        <li
+          key={item.id}
+          className="flex flex-col gap-2 rounded-xs border border-hairline p-1.5 sm:flex-row sm:items-start sm:gap-2"
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <Badge tone={SEVERITY_TONE[item.severity]} size="xs" className="mt-0.5 min-w-0 px-1">
+              {item.severity}
+            </Badge>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-medium leading-4 text-ink">{item.title}</p>
+              <p className="text-[9px] leading-3 text-tertiary">
+                {item.source_kind} · seen {ageLabel(item.last_seen_at)}
+                {item.status === "snoozed" && item.snooze_until ? ` · snoozed until ${ageLabel(item.snooze_until)}` : ""}
+              </p>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
             <button
               type="button"
               disabled={pending}
               onClick={() => run(item.id, snoozeActionItem)}
-              className="rounded-xs border border-hairline px-1.5 py-0.5 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50"
+              className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
             >
               Snooze 1d
             </button>
@@ -68,7 +73,7 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
               type="button"
               disabled={pending}
               onClick={() => run(item.id, resolveActionItem)}
-              className="rounded-xs border border-hairline px-1.5 py-0.5 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50"
+              className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
             >
               Resolve
             </button>
@@ -76,7 +81,7 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
               type="button"
               disabled={pending}
               onClick={() => run(item.id, dismissActionItem)}
-              className="rounded-xs px-1.5 py-0.5 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:opacity-50"
+              className="min-h-8 rounded-xs px-2 py-1 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:px-1.5 sm:py-0.5"
               aria-label="Dismiss"
             >
               Dismiss

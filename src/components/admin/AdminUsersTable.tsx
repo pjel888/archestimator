@@ -175,16 +175,16 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
         <SearchInput
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           onClear={() => setSearch("")}
           placeholder="Search by email or name…"
           aria-label="Filter users"
-          wrapperClassName="w-full max-w-xs border border-hairline bg-white"
+          wrapperClassName="w-full border border-hairline bg-white sm:max-w-xs"
         />
-        {notice ? <span className="text-[9px] leading-3 text-tertiary">{notice}</span> : null}
+        {notice ? <span className="text-[9px] leading-3 text-tertiary sm:text-right">{notice}</span> : null}
       </div>
       <AdminDataTable
         data={initialUsers}
