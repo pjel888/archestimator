@@ -1,8 +1,8 @@
 import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 
 import { AdminCopilot } from "@/components/admin/AdminCopilot";
+import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { hasDeepSeekApiKey } from "@/lib/ai/deepseek";
 
 // F10 (UNIT-011) AI Copilot. Real + read-only when DEEPSEEK_API_KEY is set;
@@ -18,31 +18,30 @@ export default async function AdminCopilotPage() {
   const configured = hasDeepSeekApiKey();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="flex items-center gap-1 text-[12px] font-medium leading-5 text-ink">
-          <Sparkle size={13} weight="regular" aria-hidden="true" /> AI Copilot
-        </h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          Read-only, source-grounded assistant for the founder. Grounded in a live admin snapshot;
-          it never mutates data and won&apos;t fabricate numbers or revenue.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title={
+          <span className="flex items-center gap-1">
+            <Sparkle size={13} weight="regular" aria-hidden="true" /> AI Copilot
+          </span>
+        }
+        description="Read-only, source-grounded assistant for the founder. Grounded in a live admin snapshot; it never mutates data and won't fabricate numbers or revenue."
+      />
 
-      <Card className="p-2">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-medium leading-4 text-ink">Ask</h2>
+      <AdminSection
+        title="Ask"
+        actions={
           <Badge tone={configured ? "success" : "neutral"} size="xs" className="min-w-0 px-1">
             {configured ? "activated" : "not activated"}
           </Badge>
-        </div>
+        }
+      >
         <AdminCopilot configured={configured} />
-      </Card>
+      </AdminSection>
 
-      <Card className="p-2">
-        <h2 className="text-[11px] font-medium leading-4 text-ink">Operating contract</h2>
-        <ul className="mt-1 space-y-1" aria-label="AI operator contract">
+      <AdminSection title="Operating contract">
+        <ul className="space-y-1" aria-label="AI operator contract">
           {CONTRACT.map((item) => (
             <li key={item} className="flex items-start gap-2 text-[10px] leading-4 text-secondary">
               <span className="mt-1.5 inline-block h-1 w-1 shrink-0 rounded-full bg-tertiary" aria-hidden="true" />
@@ -50,7 +49,7 @@ export default async function AdminCopilotPage() {
             </li>
           ))}
         </ul>
-      </Card>
-    </div>
+      </AdminSection>
+    </AdminPage>
   );
 }

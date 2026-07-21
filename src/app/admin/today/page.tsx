@@ -1,6 +1,6 @@
 import { AdminActionInbox } from "@/components/admin/AdminActionInbox";
+import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import {
   deriveActionItemsFromSources,
   listOpenActionItems,
@@ -18,19 +18,16 @@ export default async function AdminTodayPage() {
   const items = await listOpenActionItems();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Today</h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          What needs your attention now. Snoozed items return automatically; resolved/dismissed stay
-          closed. Initial source: open incidents — more sources arrive with later slices.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Today"
+        description="What needs your attention now. Snoozed items return automatically; resolved/dismissed stay closed. Initial source: open incidents — more sources arrive with later slices."
+      />
 
-      <Card className="p-2">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-medium leading-4 text-ink">Action inbox</h2>
+      <AdminSection
+        title="Action inbox"
+        actions={
           <Badge
             tone={items.length > 0 ? "warning" : "success"}
             size="xs"
@@ -39,9 +36,10 @@ export default async function AdminTodayPage() {
             {derived ? "" : "stale · "}
             {items.length} open
           </Badge>
-        </div>
+        }
+      >
         <AdminActionInbox items={items} />
-      </Card>
-    </div>
+      </AdminSection>
+    </AdminPage>
   );
 }

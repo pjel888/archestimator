@@ -17,7 +17,7 @@ export function AdminShell({ children, displayName, email }: AdminShellProps) {
       <AdminSidebar />
       <section className="flex min-w-0 flex-1 flex-col" aria-label="Admin workspace">
         <AdminHeader displayName={displayName} email={email} />
-        <div className="min-h-0 flex-1 overflow-x-clip overflow-y-auto bg-white px-2 py-1.5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-x-clip overflow-y-auto bg-white p-4">{children}</div>
       </section>
     </main>
   );

@@ -10,6 +10,7 @@ import { runAdminHealthProbes, type AdminHealthProbeResult } from "@/lib/admin/h
 import { getSupportAggregateForPlatformAdmin } from "@/lib/admin/support-aggregate";
 import { countProfilesCreated } from "@/lib/admin/users-repository";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { BetaOperatingOverviewCards } from "@/components/admin/BetaOperatingOverview";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -110,19 +111,19 @@ export default async function AdminOverviewPage() {
   ];
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-          <h1 className="text-[12px] font-medium leading-5 text-ink">Overview</h1>
-          <p className="text-[10px] leading-4 text-tertiary">Live health probes, incidents, and signup metrics from D1.</p>
-        </div>
-        <Badge tone="success" size="xs" className="min-w-0 px-1">
-          Live data
-        </Badge>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Overview"
+        description="Live health probes, incidents, and signup metrics from D1."
+        actions={
+          <Badge tone="success" size="xs" className="min-w-0 px-1">
+            Live data
+          </Badge>
+        }
+      />
 
-      <section className="grid gap-2 md:grid-cols-4" aria-label="Admin metrics">
+      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="Admin metrics">
         {metrics.map((metric) => (
           <Card key={metric.label} className="p-2">
             <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">{metric.label}</p>
@@ -132,26 +133,24 @@ export default async function AdminOverviewPage() {
         ))}
       </section>
 
-      <section className="grid gap-2 lg:grid-cols-[1fr_280px]" aria-label="Admin operational summary">
-        <Card className="p-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-[11px] font-medium leading-4 text-ink">Signup trend</h2>
-              <p className="text-[9px] leading-3 text-tertiary">Last 5 days (approximate from 30d signup count).</p>
-            </div>
+      <section className="grid gap-2 lg:grid-cols-[1fr_320px]" aria-label="Admin operational summary">
+        <AdminSection
+          title="Signup trend"
+          description="Last 5 days (approximate from 30d signup count)."
+          actions={
             <Badge tone="neutral" size="xs" className="min-w-0 px-1">
               Recharts
             </Badge>
-          </div>
+          }
+        >
           <AdminSignupTrendChart data={[
             { label: "30d total", value: signupCount },
           ]} />
-        </Card>
+        </AdminSection>
 
         <div className="grid gap-2">
-          <Card className="p-2">
-            <h2 className="text-[11px] font-medium leading-4 text-ink">Health status</h2>
-            <div className="mt-2 flex flex-wrap gap-1">
+          <AdminSection title="Health status">
+            <div className="flex flex-wrap gap-1">
               <Badge tone={d1Badge.tone} size="xs" className="min-w-0 px-1">
                 {d1Badge.text}
               </Badge>
@@ -167,11 +166,10 @@ export default async function AdminOverviewPage() {
                 {healthProbes.filter((p) => !p.ok).map((p) => `${p.name}: ${p.detail}`).join("; ")}
               </p>
             )}
-          </Card>
-          <Card className="p-2">
-            <h2 className="text-[11px] font-medium leading-4 text-ink">Open incidents</h2>
+          </AdminSection>
+          <AdminSection title="Open incidents">
             {openIncidents.length > 0 ? (
-              <ul className="mt-2 space-y-1">
+              <ul className="space-y-1">
                 {openIncidents.slice(0, 3).map((incident) => (
                   <li key={incident.id} className="text-[9px] leading-3 text-tertiary">
                     <Badge tone="warning" size="xs" className="mr-1 min-w-0 px-1">{incident.severity}</Badge>
@@ -180,9 +178,9 @@ export default async function AdminOverviewPage() {
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-[10px] leading-4 text-tertiary">No open incidents.</p>
+              <p className="text-[10px] leading-4 text-tertiary">No open incidents.</p>
             )}
-          </Card>
+          </AdminSection>
         </div>
       </section>
 
@@ -208,6 +206,6 @@ export default async function AdminOverviewPage() {
           </Link>
         ))}
       </section>
-    </div>
+    </AdminPage>
   );
 }

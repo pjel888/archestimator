@@ -1,6 +1,7 @@
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
@@ -21,17 +22,14 @@ const METRICS = [
 
 export default function AdminFinancialsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Financials</h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          Financial readiness. No billing provider is connected — every metric is explicitly
-          unavailable (not zero). Connect a provider to populate these cards.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Financials"
+        description="Financial readiness. No billing provider is connected — every metric is explicitly unavailable (not zero). Connect a provider to populate these cards."
+      />
 
-      <section className="grid gap-2 md:grid-cols-3" aria-label="Financial readiness metrics">
+      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3" aria-label="Financial readiness metrics">
         {METRICS.map((metric) => (
           <Card key={metric.key} className="p-2">
             <div className="flex items-center justify-between gap-2">
@@ -64,6 +62,6 @@ export default function AdminFinancialsPage() {
           Open Stripe <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
         </Link>
       </Card>
-    </div>
+    </AdminPage>
   );
 }

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminSupportInbox } from "@/components/admin/AdminSupportInbox";
 import { listSavedReplies } from "@/lib/admin/saved-replies-repository";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
@@ -46,14 +47,13 @@ export default async function AdminSupportPage({
   const supportConfig = readSupportEmailConfig();
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-2.75rem)] w-full max-w-[1400px] flex-col gap-1.5 overflow-hidden">
-      <div className="shrink-0">
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Support</h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          Unified in-app and email inbox with rich compose, attachments, and Cloudflare acceptance states.
-        </p>
-      </div>
+    <AdminPage className="h-full gap-1.5 overflow-hidden">
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Support"
+        description="Unified in-app and email inbox with rich compose, attachments, and Cloudflare acceptance states."
+        className="shrink-0"
+      />
       {conversations.error && <p className="text-[10px] leading-4 text-tertiary">{conversations.error}</p>}
       <Suspense fallback={<p className="text-[10px] text-tertiary">Loading support inbox…</p>}>
         <AdminSupportInbox
@@ -68,6 +68,6 @@ export default async function AdminSupportPage({
           }}
         />
       </Suspense>
-    </div>
+    </AdminPage>
   );
 }

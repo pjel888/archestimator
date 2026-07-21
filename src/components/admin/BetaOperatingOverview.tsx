@@ -33,7 +33,7 @@ export function BetaOperatingOverviewCards({ overview }: { overview: BetaOperati
   }
 
   return (
-    <section className="grid gap-2 md:grid-cols-2" aria-label="Beta operator overview">
+    <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" aria-label="Beta operator overview">
       {overview.metrics.map((metric) => (
         <Card key={metric.id} className="p-2">
           <div className="flex items-start justify-between gap-2">

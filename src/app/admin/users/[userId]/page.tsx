@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AdminCustomerNotes } from "@/components/admin/AdminCustomerNotes";
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminUserDetailActions } from "@/components/admin/AdminUserDetailActions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -31,19 +32,19 @@ export default async function AdminUserDetailPage({
   const activities = activityResult.data ?? [];
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">
-          <Link href="/admin/users" className="hover:text-ink">Users</Link>
-          {" / "}
-          {user.email}
-        </p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">
-          {user.display_name ?? user.email}
-        </h1>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow={
+          <>
+            <Link href="/admin/users" className="hover:text-ink">Users</Link>
+            {" / "}
+            {user.email}
+          </>
+        }
+        title={user.display_name ?? user.email}
+      />
 
-      <section className="grid gap-2 md:grid-cols-2" aria-label="User profile">
+      <section className="grid gap-2 lg:grid-cols-2" aria-label="User profile">
         <Card className="p-2">
           <h2 className="text-[11px] font-medium leading-4 text-ink">Profile</h2>
           <dl className="mt-2 grid grid-cols-[100px_1fr] gap-x-2 gap-y-1 text-[10px] leading-4">
@@ -191,6 +192,6 @@ export default async function AdminUserDetailPage({
           </ol>
         )}
       </Card>
-    </div>
+    </AdminPage>
   );
 }

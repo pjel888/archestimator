@@ -1,7 +1,7 @@
 import Link from "next/link";
 
+import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { listCommunicationRecords } from "@/lib/admin/communications-repository";
 
 const SEVERITY_TONE: Record<string, "neutral" | "success" | "warning" | "danger"> = {
@@ -19,30 +19,33 @@ export default async function AdminCommunicationsPage() {
   const records = await listCommunicationRecords();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Communications</h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          In-app broadcast history with delivery counts. Bulk campaign email remains intentionally
-          unavailable; one-to-one support email lives in{" "}
-          <Link href="/admin/support" className="text-ink underline">
-            Support
-          </Link>
-          .{" "}
-          <Link href="/admin/notifications" className="text-ink underline">
-            Create a broadcast →
-          </Link>
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Communications"
+        description={
+          <>
+            In-app broadcast history with delivery counts. Bulk campaign email remains intentionally
+            unavailable; one-to-one support email lives in{" "}
+            <Link href="/admin/support" className="text-ink underline">
+              Support
+            </Link>
+            .{" "}
+            <Link href="/admin/notifications" className="text-ink underline">
+              Create a broadcast →
+            </Link>
+          </>
+        }
+      />
 
-      <Card className="p-2">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-medium leading-4 text-ink">Published &amp; history</h2>
+      <AdminSection
+        title="Published &amp; history"
+        actions={
           <Badge tone="neutral" size="xs" className="min-w-0 px-1">
             {records.length} record{records.length === 1 ? "" : "s"}
           </Badge>
-        </div>
+        }
+      >
         {records.length === 0 ? (
           <p className="text-[10px] leading-4 text-tertiary">No broadcasts sent yet.</p>
         ) : (
@@ -71,7 +74,7 @@ export default async function AdminCommunicationsPage() {
             ))}
           </ul>
         )}
-      </Card>
-    </div>
+      </AdminSection>
+    </AdminPage>
   );
 }

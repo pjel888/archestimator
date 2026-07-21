@@ -1,5 +1,5 @@
+import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import {
   isFindingActionable,
   runDataQualityChecks,
@@ -20,23 +20,21 @@ export default async function AdminDataQualityPage() {
   const actionable = findings.filter(isFindingActionable);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Data quality</h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          Read-only referential-integrity findings. Each check is isolated; a check that cannot run
-          in this environment is skipped, not hidden. Repair (dry-run/apply) arrives in a later slice.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Data quality"
+        description="Read-only referential-integrity findings. Each check is isolated; a check that cannot run in this environment is skipped, not hidden. Repair (dry-run/apply) arrives in a later slice."
+      />
 
-      <Card className="p-2">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-medium leading-4 text-ink">Findings</h2>
+      <AdminSection
+        title="Findings"
+        actions={
           <Badge tone={actionable.length > 0 ? "warning" : "success"} size="xs" className="min-w-0 px-1">
             {actionable.length} actionable
           </Badge>
-        </div>
+        }
+      >
         <ul className="space-y-1" aria-label="Data quality findings">
           {findings.map((finding) => (
             <li
@@ -53,7 +51,7 @@ export default async function AdminDataQualityPage() {
             </li>
           ))}
         </ul>
-      </Card>
-    </div>
+      </AdminSection>
+    </AdminPage>
   );
 }

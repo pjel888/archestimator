@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -24,20 +25,20 @@ export default async function AdminProjectDetailPage({
   if (!project) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">
-          <Link href="/admin" className="hover:text-ink">Admin</Link>
-          {" / "}
-          {project.name}
-        </p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">{project.name}</h1>
-        <p className="text-[10px] leading-4 text-tertiary">
-          Read-only project overview. Diagnostics, funnel, and publication links arrive in later slices.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow={
+          <>
+            <Link href="/admin" className="hover:text-ink">Admin</Link>
+            {" / "}
+            {project.name}
+          </>
+        }
+        title={project.name}
+        description="Read-only project overview. Diagnostics, funnel, and publication links arrive in later slices."
+      />
 
-      <section className="grid gap-2 md:grid-cols-2">
+      <section className="grid gap-2 lg:grid-cols-2">
         <Card className="p-2">
           <h2 className="text-[11px] font-medium leading-4 text-ink">Project</h2>
           <dl className="mt-2 grid grid-cols-[100px_1fr] gap-x-2 gap-y-1 text-[10px] leading-4">
@@ -86,6 +87,6 @@ export default async function AdminProjectDetailPage({
           </Link>
         </Card>
       </section>
-    </div>
+    </AdminPage>
   );
 }

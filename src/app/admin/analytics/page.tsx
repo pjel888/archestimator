@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
@@ -34,12 +35,12 @@ const tiles = [
 
 export default function AdminAnalyticsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Analytics</h1>
-        <p className="text-[10px] leading-4 text-tertiary">DEC-AUTO-1/2/3: external link-outs only when provider secrets are absent.</p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Analytics"
+        description="DEC-AUTO-1/2/3: external link-outs only when provider secrets are absent."
+      />
       <section className="grid gap-2 md:grid-cols-3" aria-label="Analytics providers">
         {tiles.map((tile) => (
           <Card key={tile.label} interactive className="p-2">
@@ -59,6 +60,6 @@ export default function AdminAnalyticsPage() {
           </Card>
         ))}
       </section>
-    </div>
+    </AdminPage>
   );
 }

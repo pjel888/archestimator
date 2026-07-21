@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { Card } from "@/components/ui/card";
 import {
   listRecentClientErrorEvents,
@@ -36,13 +37,13 @@ export default async function AdminObservabilityPage() {
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <h1 className="text-[12px] font-medium leading-5 text-ink">Observability</h1>
-        <p className="text-[10px] leading-4 text-tertiary">Local D1 event readers plus provider documentation links. This page does not claim hosted log or alert readiness.</p>
-      </div>
-      <section className="grid gap-2 md:grid-cols-4" aria-label="Recent observability events">
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Observability"
+        description="Local D1 event readers plus provider documentation links. This page does not claim hosted log or alert readiness."
+      />
+      <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="Recent observability events">
         <Card className="p-2">
           <p className="text-[11px] font-medium leading-4 text-ink">Cron runs</p>
           <p className="mb-2 text-[9px] leading-3 text-tertiary">{cronRuns.error ?? `${cronRuns.data.length} recent rows`}</p>
@@ -83,6 +84,6 @@ export default async function AdminObservabilityPage() {
           </Card>
         ))}
       </section>
-    </div>
+    </AdminPage>
   );
 }

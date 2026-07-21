@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 
+import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -355,22 +356,19 @@ export function AdminAllowlistManager({
       : "All";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-      <header className="flex flex-col gap-1">
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Admin</p>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-[12px] font-medium leading-5 text-ink">Closed-beta allowlist</h1>
-          {authorized ? (
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Admin"
+        title="Closed-beta allowlist"
+        description="Listed emails can complete Google or magic-link sign-in when closed beta is on. Allowlist grants app access, not admin."
+        actions={
+          authorized ? (
             <Badge tone="neutral" size="xs" className="min-w-0 px-1 normal-case">
               {rows.length} shown · {filterLabel}
             </Badge>
-          ) : null}
-        </div>
-        <p className="max-w-2xl text-[10px] leading-4 text-tertiary">
-          Listed emails can complete Google or magic-link sign-in when closed beta is on. Allowlist grants app
-          access, not admin.
-        </p>
-      </header>
+          ) : undefined
+        }
+      />
 
       {notice ? (
         <div
@@ -458,6 +456,6 @@ export function AdminAllowlistManager({
           </section>
         </>
       )}
-    </div>
+    </AdminPage>
   );
 }

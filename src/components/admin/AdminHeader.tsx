@@ -13,7 +13,7 @@ type AdminHeaderProps = {
 
 export function AdminHeader({ displayName, email }: AdminHeaderProps) {
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-hairline bg-white px-2">
+    <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-hairline bg-white px-4">
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <ShieldCheck size={13} weight="regular" className="text-tertiary" aria-hidden="true" />
