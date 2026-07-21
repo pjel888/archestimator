@@ -45,9 +45,9 @@ export default function AdminAnalyticsPage() {
         {tiles.map((tile) => (
           <Card key={tile.label} interactive className="p-2">
             <Link href={tile.href} target="_blank" rel="noreferrer" className="block">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-medium leading-4 text-ink">{tile.label}</span>
-                <Badge tone={tile.configured ? "success" : "neutral"} size="xs" className="min-w-0 px-1">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                <span className="text-[11px] font-medium leading-4 text-ink text-pretty">{tile.label}</span>
+                <Badge tone={tile.configured ? "success" : "neutral"} size="xs" className="w-fit min-w-0 px-1">
                   {tile.configured ? "Configured" : "Link-out"}
                 </Badge>
               </div>

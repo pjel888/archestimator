@@ -32,9 +32,9 @@ export default function AdminFinancialsPage() {
       <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3" aria-label="Financial readiness metrics">
         {METRICS.map((metric) => (
           <Card key={metric.key} className="p-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">{metric.label}</p>
-              <Badge tone="neutral" size="xs" className="min-w-0 px-1">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+              <p className="text-[9px] font-medium uppercase leading-3 text-tertiary text-pretty">{metric.label}</p>
+              <Badge tone="neutral" size="xs" className="w-fit min-w-0 px-1">
                 unavailable
               </Badge>
             </div>
