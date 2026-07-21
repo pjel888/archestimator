@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-20T17:17:50.464Z",
+  "generatedAt": "2026-07-21T03:48:45.850Z",
   "mode": "cloudflare-wrangler-auth",
   "source": "wrangler-whoami",
   "command": {
@@ -9,30 +9,37 @@
       "whoami",
       "--json"
     ],
-    "exitCode": 1,
+    "exitCode": 0,
     "signal": null,
     "timedOut": false
   },
   "wranglerVersion": null,
   "auth": {
     "checked": true,
-    "authenticated": false,
-    "method": null,
-    "accountEmailPresent": false,
-    "accountNames": [],
-    "accountIds": [],
-    "notAuthenticatedReason": "wrangler-login-required"
+    "authenticated": true,
+    "method": "oauth",
+    "accountEmailPresent": true,
+    "accountNames": [
+      "Philipjonlewis@gmail.com's Account"
+    ],
+    "accountIds": [
+      "7f6229cfea61b59f6f48b517fde86039"
+    ],
+    "notAuthenticatedReason": null
   },
-  "sanitizedMessages": [],
+  "sanitizedMessages": [
+    "Account ID: 7f6229cfea61b59f6f48b517fde86039",
+    "Account Name: Philipjonlewis@gmail.com's Account",
+    "Email: (present)",
+    "You are logged in with an OAuth Token"
+  ],
   "readiness": {
     "wranglerCliAvailable": true,
     "wranglerAuthCheckCompleted": true,
-    "wranglerApiAuthenticated": false,
-    "providerReadbackReady": false,
+    "wranglerApiAuthenticated": true,
+    "providerReadbackReady": true,
     "productionDeployReady": false
   },
-  "blockers": [
-    "Wrangler is not authenticated; run `wrangler login` or provide a scoped token outside the repo."
-  ],
+  "blockers": [],
   "note": "Runs `wrangler whoami --json` as a read-only CLI authentication check. It records only sanitized auth/account metadata, does not read env files, does not print tokens or secrets, does not create Cloudflare resources, does not deploy Workers, does not change DNS, does not purchase plans, and does not make production cutover ready."
 }
