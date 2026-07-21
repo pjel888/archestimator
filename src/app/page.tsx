@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { ArchestimatorLandingPage } from "@/components/landing-v3/ArchestimatorLandingPage";
+import { ArchestimatorNewLandingPage } from "@/components/landing-new/ArchestimatorNewLandingPage";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
-import {
-  PublicPageShell,
-  ABExperimentProvider,
-} from "@/components/landing";
+import { PublicPageShell } from "@/components/landing";
 
 export const metadata: Metadata = buildLandingMetadata({
-  title: "Archestimator — Construction estimating, proposals and approvals",
+  title: "Construction estimating from estimate to proposal",
   description:
-    "Build structured estimates from reusable cost knowledge, send client-ready proposals, capture revisions, and keep approvals on record in one connected workspace.",
+    "Build structured estimates, reuse cost knowledge, present clearer proposals, and keep reviews and revisions connected. Request beta access to Archestimator.",
   path: "/",
 });
 
@@ -17,10 +14,8 @@ export const dynamic = "force-static";
 
 export default function LandingPage() {
   return (
-    <PublicPageShell isHomePage={true}>
-      <ABExperimentProvider experimentId="hero-cta-copy" variant="A">
-        <ArchestimatorLandingPage />
-      </ABExperimentProvider>
+    <PublicPageShell isHomePage>
+      <ArchestimatorNewLandingPage />
     </PublicPageShell>
   );
 }

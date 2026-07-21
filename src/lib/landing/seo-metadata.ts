@@ -67,7 +67,7 @@ export function buildLandingMetadata(meta: LandingRouteMeta): Metadata {
 
 /**
  * Build noindex metadata for auth routes (/login, /signup) and the
- * preview/rollback routes (/newdesign/**, /legacy). Self-canonical,
+ * preview/rollback routes (/new, /newdesign/**, /legacy). Self-canonical,
  * noindex,nofollow, sitemap-excluded (doc 13 §4 / doc 23 §7).
  */
 function buildNoIndexMetadata(meta: { title: string; path: string }): Metadata {

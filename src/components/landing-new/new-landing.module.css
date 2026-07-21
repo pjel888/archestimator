@@ -24,8 +24,8 @@
   --ae-line: #e4e2db;
   --ae-line-strong: #cfccc3;
 
-  --ae-signal: #f24405;
-  --ae-signal-aa: #c63804;
+  --ae-signal: var(--brand-orange);
+  --ae-signal-aa: var(--brand-orange-dark);
   --ae-signal-soft: color-mix(in srgb, var(--ae-signal) 10%, white);
 
   --ae-slate: #567686;
@@ -203,7 +203,7 @@
   min-height: 46px;
   padding: 0.35rem 0.45rem 0.35rem 1.35rem;
   border-radius: var(--ae-radius-pill);
-  background: var(--ae-signal-aa);
+  background: var(--ae-signal);
   color: #ffffff;
   font-size: 0.875rem;
   font-weight: 600;
@@ -216,7 +216,7 @@
 }
 
 .primaryCta:hover {
-  background: #a92f03;
+  background: var(--ae-signal-aa);
   transform: translateY(-1px) scale(1.01);
 }
 
@@ -256,6 +256,29 @@
 .utilityLink:hover {
   color: var(--ae-ink);
   background: var(--ae-warm);
+}
+
+.navLink {
+  position: relative;
+}
+
+.navLink::after {
+  position: absolute;
+  right: 0;
+  bottom: 0.5rem;
+  left: 0;
+  height: 1px;
+  background: var(--ae-signal);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.26s var(--ae-ease-spring);
+}
+
+.navLink:hover::after,
+.navLink:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
 /* ---------------------------------- header ---------------------------------- */
@@ -419,6 +442,67 @@
   width: 100%;
 }
 
+/* ---------------------------------- beta announcement ---------------------------------- */
+
+.betaBanner {
+  position: relative;
+  z-index: 10;
+  background: var(--ae-ink);
+  color: rgb(255 255 255 / 0.84);
+}
+
+.betaBannerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  min-height: 48px;
+  padding-block: 0.6rem;
+}
+
+.betaBannerMessage {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.betaBannerEyebrow {
+  color: #ffffff;
+  font-weight: 650;
+}
+
+.betaBannerEyebrow::before {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  background: var(--ae-signal);
+  box-shadow: 0 0 0 4px rgb(242 68 5 / 0.18);
+  content: "";
+}
+
+.betaBannerLink {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s var(--ae-ease-out), transform 0.2s var(--ae-ease-spring);
+}
+
+.betaBannerLink:hover {
+  color: #ffd5c7;
+  transform: translateX(2px);
+}
+
 /* ---------------------------------- hero ---------------------------------- */
 
 .hero {
@@ -521,7 +605,7 @@
 
 .heroTitle {
   margin: 1.6rem 0 0;
-  max-width: 18ch;
+  max-width: 14ch;
   font-size: clamp(2.7rem, 6.4vw, 5.4rem);
   line-height: 1.01;
   letter-spacing: -0.032em;
@@ -531,7 +615,7 @@
 
 .heroLead {
   margin: 1.5rem 0 0;
-  max-width: 56ch;
+  max-width: 48ch;
   font-size: clamp(1rem, 1.5vw, 1.22rem);
   line-height: 1.6;
   color: var(--ae-ink-soft);
@@ -1893,6 +1977,15 @@
     padding-top: clamp(3.25rem, 10vw, 4.5rem);
   }
 
+  .betaBannerInner {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 0;
+    padding-block: 0.75rem;
+  }
+
   .heroTitle {
     font-size: clamp(2.35rem, 8.6vw, 3.4rem);
     max-width: 20ch;
@@ -2025,7 +2118,9 @@
   .connectionCard,
   .dockIcon,
   .primaryCta,
-  .primaryCtaArrow {
+  .primaryCtaArrow,
+  .betaBannerLink,
+  .navLink::after {
     transition-property: color, background-color, border-color, box-shadow;
   }
 

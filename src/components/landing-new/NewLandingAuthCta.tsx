@@ -17,7 +17,7 @@ import {
 } from "./new-landing-content";
 
 /**
- * Small client island: the only auth-dependent UI on `/new`. Everything else
+ * Small client island: the only auth-dependent UI on the public landing page. Everything else
  * on the route stays server-rendered. SSR and first client render always
  * show the signed-out variant (the hook fails closed), so hydration matches.
  */
@@ -47,11 +47,14 @@ export function EarlyAccessCta({ location, className }: EarlyAccessCtaProps) {
 
 type AuthUtilityLinkProps = {
   className?: string;
+  hideWhenLoggedIn?: boolean;
   workspaceLabel?: string;
 };
 
-export function AuthUtilityLink({ className, workspaceLabel }: AuthUtilityLinkProps) {
+export function AuthUtilityLink({ className, hideWhenLoggedIn = false, workspaceLabel }: AuthUtilityLinkProps) {
   const isLoggedIn = useLandingAuthHint();
+
+  if (isLoggedIn && hideWhenLoggedIn) return null;
 
   return (
     <Link href={isLoggedIn ? WORKSPACE_HREF : LOGIN_HREF} className={className}>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CaretDown, CheckCircle, List } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CaretDown, CheckCircle, List } from "@phosphor-icons/react/dist/ssr";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { stringifyJsonLd } from "@/lib/landing/json-ld";
@@ -62,6 +62,7 @@ export function ArchestimatorNewLandingPage() {
         {headerCopy.skipLink}
       </a>
       <NewLandingHeader />
+      <BetaAnnouncement />
       <main id="main-content">
         <HeroSection />
         <OutcomeSection />
@@ -102,7 +103,7 @@ function NewLandingHeader() {
           ))}
         </nav>
         <div className={styles.headerActions}>
-          <AuthUtilityLink className={styles.utilityLink} />
+          <AuthUtilityLink className={styles.utilityLink} hideWhenLoggedIn />
           <EarlyAccessCta location="header" className={styles.headerCta} />
           <details className={styles.mobileMenu} data-new-landing-menu>
             <summary className={styles.menuSummary}>
@@ -118,7 +119,7 @@ function NewLandingHeader() {
                 ))}
               </nav>
               <div className={styles.menuActions}>
-                <AuthUtilityLink className={styles.menuUtility} />
+                <AuthUtilityLink className={styles.menuUtility} hideWhenLoggedIn />
                 <EarlyAccessCta location="header" />
               </div>
             </div>
@@ -126,6 +127,23 @@ function NewLandingHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function BetaAnnouncement() {
+  return (
+    <aside className={styles.betaBanner} aria-label="Pre-release beta announcement">
+      <LandingContainer className={styles.betaBannerInner}>
+        <p className={styles.betaBannerMessage}>
+          <span className={styles.betaBannerEyebrow}>Now on pre-release beta</span>
+          <span>Built with hands-on AEC teams shaping the estimating workflow.</span>
+        </p>
+        <a href="#early-access" className={styles.betaBannerLink}>
+          See how access works
+          <ArrowRight size={15} weight="bold" aria-hidden="true" />
+        </a>
+      </LandingContainer>
+    </aside>
   );
 }
 

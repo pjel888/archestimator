@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
 
-import { PublicPageShell } from "@/components/landing";
-import { ArchestimatorNewLandingPage } from "@/components/landing-new/ArchestimatorNewLandingPage";
+import { ABExperimentProvider, PublicPageShell } from "@/components/landing";
+import { ArchestimatorLandingPage } from "@/components/landing-v3/ArchestimatorLandingPage";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Archestimator — Construction estimating from estimate to proposal",
+    absolute: "Archestimator legacy landing — Reference",
   },
-  description:
-    "Build structured estimates, reuse cost knowledge, present clearer proposals, and keep reviews and revisions connected. Request early access to Archestimator.",
+  description: "The previous Archestimator landing page, kept as a pre-release reference.",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-static";
 
-export default function NewLandingRoute() {
+export default function LegacyLandingReferenceRoute() {
   return (
     <PublicPageShell isHomePage>
-      <ArchestimatorNewLandingPage />
+      <ABExperimentProvider experimentId="hero-cta-copy" variant="A">
+        <ArchestimatorLandingPage />
+      </ABExperimentProvider>
     </PublicPageShell>
   );
 }

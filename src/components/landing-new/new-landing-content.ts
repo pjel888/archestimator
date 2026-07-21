@@ -22,7 +22,7 @@ export const LOGIN_HREF = "/login?next=/workshop/projects";
 
 export type LandingCtaLocation = "header" | "hero" | "early-access" | "final-cta";
 
-export const PRIMARY_CTA_LABEL = "Request early access";
+export const PRIMARY_CTA_LABEL = "Request beta access";
 export const SIGNED_IN_CTA_LABEL = "Open workspace";
 export const SIGN_IN_LABEL = "Sign in";
 
@@ -38,10 +38,10 @@ export const headerCopy = {
 } as const;
 
 export const heroCopy = {
-  badge: "Pre-release MVP · Design partner access",
-  title: "Make every estimate easier to build, clearer to present, and simpler to approve.",
-  lead: "Archestimator helps AEC teams reduce rework, communicate project costs clearly, and move decisions forward without losing context through reviews and revisions.",
-  stageNote: "Construction estimating software built around the estimate-to-proposal workflow.",
+  badge: "Estimate → proposal → decision",
+  title: "Build the estimate. Keep the context.",
+  lead: "One connected workspace for AEC teams to build estimates, present proposals, and move decisions forward.",
+  stageNote: "Built for the full estimate-to-proposal workflow.",
   demoDisclosure: "Sanitized Archestimator workspace demonstration",
   demoRegionLabel: "Sanitized Archestimator estimate workspace demonstration",
 } as const;
@@ -93,8 +93,8 @@ export const audienceCopy = {
 
 export const bentoCopy = {
   kicker: "The working record",
-  title: "Build the number once. Keep its context as the work moves forward.",
-  lead: "Archestimator brings project structure, reusable cost knowledge, proposal output, and review history into one estimate-to-proposal workflow.",
+  title: "One estimate. One connected record.",
+  lead: "Keep structure, cost knowledge, proposal output, and review history together from first scope to final decision.",
   cards: [
     {
       id: "structure",
@@ -135,8 +135,8 @@ export type BentoVisual = (typeof bentoCopy.cards)[number]["visual"];
 
 export const recordFlowCopy = {
   kicker: "One connected workflow",
-  title: "The estimate should not lose context when it becomes a proposal.",
-  lead: "Archestimator keeps project structure, reusable cost knowledge, proposal context, review, revisions, and decisions connected instead of scattering them across copied sheets, PDFs, and email.",
+  title: "A proposal should never lose its estimate.",
+  lead: "Keep the scope, source costs, review, revision, and final decision in the same working record.",
   bullets: [
     "Start from the way the project is structured.",
     "Reuse costs and components with their source context.",
@@ -156,8 +156,8 @@ export const recordFlowCopy = {
 
 export const activityCopy = {
   kicker: "Review in context",
-  title: "Show the work changing without losing why.",
-  lead: "A revision is useful when the team can see what changed, where the feedback came from, and which proposal context the decision belongs to.",
+  title: "See the change. Keep the reason.",
+  lead: "Make every revision easier to review by keeping the changed value, feedback, and decision together.",
   panelLabel: "Sanitized workflow example",
   entries: [
     {
@@ -188,7 +188,7 @@ export const activityCopy = {
 } as const;
 
 export const principlesCopy = {
-  title: "A connected workflow does not have to erase the tools or context your team already uses.",
+  title: "Keep the tools your team trusts. Lose the disconnected handoffs.",
   cards: [
     {
       id: "scope",
@@ -250,11 +250,11 @@ export const connectionCopy = {
 } as const;
 
 export const earlyAccessCopy = {
-  kicker: "Design partner access",
-  title: "Start with the workflow that already costs your team time.",
-  lead: "Archestimator is a pre-release MVP. Early conversations focus on the estimating, proposal, or revision handoff your team wants to improve.",
+  kicker: "Pre-release beta access",
+  title: "Start with the handoff that costs your team time.",
+  lead: "The beta is for AEC teams ready to test a more connected estimating, proposal, or revision workflow.",
   requestCard: {
-    title: "Request early access",
+    title: "Request beta access",
     body: "For AEC teams that create estimates, quotes, or proposals today and want to test a more connected workflow. No payment or commitment is required for the design-partner conversation.",
     note: "Bring the workflow you use today.",
   },
@@ -301,8 +301,8 @@ export const faqCopy = {
 } as const;
 
 export const finalCtaCopy = {
-  title: "Keep the estimate, proposal, and conversation connected.",
-  body: "Request early access to a founder-led look at the pre-release MVP and bring the estimating or proposal workflow you want to improve.",
+  title: "Keep the estimate and decision connected.",
+  body: "Request beta access and bring the estimating or proposal handoff you want to improve.",
   dockLabel: "Archestimator workflow stages",
   dock: [
     { id: "estimate", label: "Estimate", icon: Calculator },
