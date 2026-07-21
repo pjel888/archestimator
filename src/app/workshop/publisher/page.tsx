@@ -4,6 +4,7 @@ import { PublisherRosterClient } from "@/components/workshop/publisher/Publisher
 import { PublisherRosterSkeleton } from "@/components/workshop/publisher/PublisherRosterSkeleton";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { assertBetaFeaturePathAllowed } from "@/lib/feature-gates/enforce";
 import { parseRosterFilters } from "@/lib/publisher/roster-filter";
 import { readWorkspacePublicationsRoster } from "@/lib/publisher/roster-repository";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
@@ -47,7 +48,9 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
   );
 }
 
-export default function PublisherPage({ searchParams }: PublisherPageProps) {
+export default async function PublisherPage({ searchParams }: PublisherPageProps) {
+  await assertBetaFeaturePathAllowed("/workshop/publisher");
+
   return (
     <WorkshopRouteHeader
       title="Client links"

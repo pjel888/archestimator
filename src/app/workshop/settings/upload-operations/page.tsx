@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { UploadOperationsDashboardPanel } from "@/components/workshop/UploadOperationsDashboardPanel";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { requirePlatformAdminPage } from "@/lib/auth/require-platform-admin-page";
 import { readUploadOperationsDashboardSnapshot } from "@/lib/uploads/operations-dashboard";
 
 const windowOptions = [
@@ -27,6 +28,7 @@ export default async function UploadOperationsPage({
 }: {
   searchParams: Promise<{ windowHours?: string }>;
 }) {
+  await requirePlatformAdminPage();
   const params = await searchParams;
   const windowHours = parseWindowHours(params.windowHours);
   const dashboard = await readUploadOperationsDashboardSnapshot({ windowHours });

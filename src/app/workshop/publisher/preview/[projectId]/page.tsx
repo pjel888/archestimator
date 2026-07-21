@@ -7,6 +7,7 @@ import { SharePageBrandHeader } from "@/components/share/SharePageBrandHeader";
 import { SharePageFooter } from "@/components/share/SharePageFooter";
 import ShareReviewWorkspace from "@/components/share/ShareReviewWorkspace";
 import { requireAuth } from "@/lib/auth/session";
+import { assertBetaFeaturePathAllowed } from "@/lib/feature-gates/enforce";
 import { assertProjectPublicationManager } from "@/lib/publication/actions";
 import { createPublicationD1Store } from "@/lib/publication/d1-store";
 import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
@@ -18,6 +19,7 @@ type PreviewPageProps = { params: Promise<{ projectId: string }> };
 
 export default async function PublisherPreviewPage({ params }: PreviewPageProps) {
   const { projectId } = await params;
+  await assertBetaFeaturePathAllowed("/workshop/publisher");
   await requireAuth();
   await assertProjectPublicationManager(projectId);
   const summary = await getProjectPublicationSummary(projectId);

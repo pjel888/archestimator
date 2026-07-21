@@ -137,3 +137,14 @@ export async function requireCurrentUserContext(_options?: { enforceTermsAccepta
 export async function requireAuth(options?: { enforceTermsAcceptance?: boolean }) {
   return requireCurrentUserContext(options);
 }
+
+/**
+ * Auth gate for workshop write mutations. Applies closed-beta maintenance mode:
+ * non-platform-admins cannot mutate while `admin_maintenance_mode` is enabled.
+ */
+export async function requireWorkshopWriteContext(options?: { enforceTermsAcceptance?: boolean }) {
+  const context = await requireCurrentUserContext(options);
+  const { assertWorkshopWritable } = await import("@/lib/feature-gates/enforce");
+  await assertWorkshopWritable(context);
+  return context;
+}

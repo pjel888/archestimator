@@ -80,7 +80,7 @@ export async function readUploadScanOverrideReviewQueue(
   options: { limit?: number } = {},
 ): Promise<UploadScanOverrideReviewQueue> {
   const context = await requireCurrentUserContext();
-  if (!canApproveUploadScanOverride(context.role)) {
+  if (!canApproveUploadScanOverride(context)) {
     return { authorized: false, error: null, rows: [] };
   }
 

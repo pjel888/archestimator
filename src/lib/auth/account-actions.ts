@@ -22,7 +22,7 @@ import {
   type WorkspaceSettingsPayload,
 } from "@/lib/auth/account-data";
 import { DEFAULT_AUTH_DESTINATION, sanitizeNextPath } from "@/lib/auth/redirects";
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireCurrentUserContext, requireWorkshopWriteContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 
 type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
@@ -103,7 +103,7 @@ export async function updateProfileSettings(formData: FormData) {
     redirect("/workshop/settings/profile?error=missing_fields");
   }
 
-  const context = await requireCurrentUserContext();
+  const context = await requireWorkshopWriteContext();
   const database = await requireAccountActionsD1Database();
 
   await saveProfileSettings(database, context.userId, parsed.profile, false);
@@ -123,7 +123,7 @@ export async function updateWorkspaceSettings(formData: FormData) {
     redirect("/workshop/settings/workspace?error=missing_fields");
   }
 
-  const context = await requireCurrentUserContext();
+  const context = await requireWorkshopWriteContext();
   const database = await requireAccountActionsD1Database();
   const workspaceIdValue = formData.get("workspace_id");
   const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue.trim() : "";

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isPlatformAdminRole } from "@/lib/auth/roles";
+import { isPlatformAdmin, isPlatformAdminRole } from "@/lib/auth/roles";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 export type UploadScanOverrideCommand = {
@@ -41,8 +41,17 @@ function readStringField(body: unknown, field: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export function canApproveUploadScanOverride(role: string | null | undefined) {
-  return isPlatformAdminRole(role);
+/**
+ * Accepts a role string (legacy callers/tests) or a full platform-admin context
+ * so email allowlist admins match `/admin` authority.
+ */
+export function canApproveUploadScanOverride(
+  context: string | null | undefined | { role: unknown; email?: string | null },
+) {
+  if (context && typeof context === "object") {
+    return isPlatformAdmin({ role: context.role, email: context.email ?? null });
+  }
+  return isPlatformAdminRole(context);
 }
 
 export function parseUploadScanOverrideRequest(

@@ -1,12 +1,12 @@
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { WorkshopSettingsModal } from "@/components/workshop/WorkshopSettingsModal";
 import { WorkshopSettingsModalContent } from "@/components/workshop/WorkshopSettingsModalContent";
-import { isPlatformAdminRole } from "@/lib/auth/roles";
+import { isPlatformAdmin } from "@/lib/auth/roles";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 
 export default async function WorkshopSettingsPage() {
   const context = await requireCurrentUserContext();
-  const canManagePlatform = isPlatformAdminRole(context.role);
+  const canManagePlatform = isPlatformAdmin(context);
 
   return (
     <WorkshopRouteHeader

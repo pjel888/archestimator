@@ -16,7 +16,7 @@ function jsonError(message: string, status = 400) {
 
 export async function POST(request: Request) {
   const currentUser = await requireCurrentUserContext();
-  if (!canApproveUploadScanOverride(currentUser.role)) {
+  if (!canApproveUploadScanOverride(currentUser)) {
     return jsonError("Only platform admins can approve scan overrides.", 403);
   }
 

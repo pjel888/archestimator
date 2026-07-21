@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { requirePlatformAdminPage } from "@/lib/auth/require-platform-admin-page";
 import { BETA_FEEDBACK_STATUSES, isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { updateBetaFeedbackReviewStatus } from "@/lib/workshop/beta-feedback-review-actions";
 import { readBetaFeedbackReviewQueue } from "@/lib/workshop/beta-feedback-review";
@@ -41,6 +42,7 @@ export default async function BetaFeedbackReviewPage({
 }: {
   searchParams: Promise<{ error?: string; saved?: string; status?: string }>;
 }) {
+  await requirePlatformAdminPage();
   const params = await searchParams;
   const queue = await readBetaFeedbackReviewQueue(params.status);
   const notice = feedbackNotice(params.error, params.saved);

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isPlatformAdminRole } from "@/lib/auth/roles";
+import { isPlatformAdmin, isPlatformAdminRole } from "@/lib/auth/roles";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { readBetaFeedbackReviewQueueFromD1 } from "@/lib/workshop/beta-feedback-d1-store";
@@ -25,13 +25,22 @@ export type BetaFeedbackReviewQueue = {
   submissions: BetaFeedbackReviewRow[];
 };
 
-export function canReviewBetaFeedback(role: string | null | undefined) {
-  return isPlatformAdminRole(role);
+/**
+ * Accepts a role string (legacy callers/tests) or a full platform-admin context
+ * so email allowlist admins match `/admin` authority.
+ */
+export function canReviewBetaFeedback(
+  context: string | null | undefined | { role: unknown; email?: string | null },
+) {
+  if (context && typeof context === "object") {
+    return isPlatformAdmin({ role: context.role, email: context.email ?? null });
+  }
+  return isPlatformAdminRole(context);
 }
 
 export async function readBetaFeedbackReviewQueue(status?: string): Promise<BetaFeedbackReviewQueue> {
   const context = await requireCurrentUserContext();
-  if (!canReviewBetaFeedback(context.role)) {
+  if (!canReviewBetaFeedback(context)) {
     return { authorized: false, error: null, submissions: [] };
   }
 

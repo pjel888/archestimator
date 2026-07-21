@@ -1,4 +1,5 @@
 import { TemplatesBrowsePageClient } from "@/components/workshop/library/templates-browse/TemplatesBrowsePageClient";
+import { assertBetaFeaturePathAllowed } from "@/lib/feature-gates/enforce";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import {
   getCurrentWorkspaceComponentRowsLibrary,
@@ -31,6 +32,7 @@ async function TemplatesBrowseData() {
 }
 
 export default async function LibraryTemplatesPage({ searchParams }: LibraryTemplatesPageProps) {
+  await assertBetaFeaturePathAllowed("/workshop/library/templates");
   assertRouteErrorSmoke({ routeLabel: "Templates", searchParams: await searchParams });
 
   return <TemplatesBrowseData />;
