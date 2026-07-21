@@ -3,6 +3,11 @@ import "server-only";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import type { ClosedBetaAccessResult, ClosedBetaAccessStatus } from "@/lib/auth/closed-beta-access";
 import type { ClosedBetaAllowlistRow, ClosedBetaAllowlistStatus } from "@/lib/auth/beta-allowlist-admin";
+import {
+  resolveClosedBetaInviteOrigin,
+  sendClosedBetaInviteEmail,
+} from "@/lib/auth/closed-beta-invite-email";
+import type { CloudflareEmailClientOptions } from "@/lib/email/cloudflare-email-client";
 
 type ClosedBetaAccessRow = {
   normalized_email: string;
@@ -15,14 +20,38 @@ type ClosedBetaAllowlistD1Row = {
   id: string;
   invited_at: string;
   invited_by: string | null;
+  metadata_json: string | null;
   normalized_email: string;
   notes: string | null;
   status: string;
   updated_at: string;
 };
 
+type PendingInviteRow = {
+  id: string;
+  metadata_json: string | null;
+  normalized_email: string;
+};
+
 function isClosedBetaAccessStatus(value: string): value is Exclude<ClosedBetaAccessStatus, "disabled" | "no-email" | "error"> {
   return value === "missing" || value === "invited" || value === "active" || value === "revoked";
+}
+
+function parseMetadata(raw: string | null | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function readInviteEmailSentAt(metadata: Record<string, unknown>): string | null {
+  const value = metadata.invite_email_sent_at;
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 function toClosedBetaAccessResult(row: ClosedBetaAccessRow | null, normalizedEmail: string): ClosedBetaAccessResult {
@@ -40,12 +69,14 @@ function toClosedBetaAccessResult(row: ClosedBetaAccessRow | null, normalizedEma
 }
 
 function toAllowlistRow(row: ClosedBetaAllowlistD1Row): ClosedBetaAllowlistRow {
+  const metadata = parseMetadata(row.metadata_json);
   return {
     accepted_at: row.accepted_at,
     created_at: row.created_at,
     id: row.id,
     invited_at: row.invited_at,
     invited_by: row.invited_by,
+    invite_email_sent_at: readInviteEmailSentAt(metadata),
     normalized_email: row.normalized_email,
     notes: row.notes,
     status: row.status as ClosedBetaAllowlistStatus,
@@ -81,14 +112,81 @@ export async function getClosedBetaAccessFromCloudflareD1(normalizedEmail: strin
   return db ? getClosedBetaAccessFromD1(db, normalizedEmail) : null;
 }
 
+export async function markClosedBetaAllowlistAcceptedInD1(
+  db: D1DatabaseLike,
+  normalizedEmail: string,
+): Promise<{ promoted: boolean }> {
+  const email = normalizedEmail.trim().toLowerCase();
+  if (!email) return { promoted: false };
+
+  const now = new Date().toISOString();
+  const update = await db
+    .prepare(
+      `
+        UPDATE closed_beta_allowed_emails
+        SET
+          status = 'active',
+          accepted_at = COALESCE(accepted_at, ?),
+          updated_at = ?
+        WHERE normalized_email = ?
+          AND status = 'invited'
+      `,
+    )
+    .bind(now, now, email)
+    .run();
+
+  return { promoted: (update.meta?.changes ?? 0) > 0 };
+}
+
+export async function reconcileClosedBetaAllowlistAcceptedFromUsersInD1(
+  db?: D1DatabaseLike | null,
+): Promise<{ promoted: number }> {
+  const database = db ?? (await getCloudflareD1Database());
+  if (!database) return { promoted: 0 };
+
+  const now = new Date().toISOString();
+  const update = await database
+    .prepare(
+      `
+        UPDATE closed_beta_allowed_emails
+        SET
+          status = 'active',
+          accepted_at = COALESCE(accepted_at, ?),
+          updated_at = ?
+        WHERE status = 'invited'
+          AND EXISTS (
+            SELECT 1
+            FROM "user" AS auth_user
+            WHERE lower(trim(auth_user.email)) = closed_beta_allowed_emails.normalized_email
+          )
+      `,
+    )
+    .bind(now, now)
+    .run();
+
+  return { promoted: update.meta?.changes ?? 0 };
+}
+
 export async function readClosedBetaAllowlistQueueFromD1(status: ClosedBetaAllowlistStatus | null): Promise<ClosedBetaAllowlistRow[]> {
   const db = await getCloudflareD1Database();
   if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist reads.");
 
+  await reconcileClosedBetaAllowlistAcceptedFromUsersInD1(db);
+
   const statusFilter = status ? "WHERE status = ?" : "";
   const statement = db.prepare<ClosedBetaAllowlistD1Row>(
     `
-      SELECT id, normalized_email, status, invited_by, invited_at, accepted_at, notes, created_at, updated_at
+      SELECT
+        id,
+        normalized_email,
+        status,
+        invited_by,
+        invited_at,
+        accepted_at,
+        notes,
+        metadata_json,
+        created_at,
+        updated_at
       FROM closed_beta_allowed_emails
       ${statusFilter}
       ORDER BY created_at DESC
@@ -120,6 +218,7 @@ export async function createClosedBetaAllowlistEntryInD1({
   if (result.created === 0) {
     throw new Error("Closed beta allowlist entry already exists or was not created.");
   }
+  return result;
 }
 
 export async function createClosedBetaAllowlistEntriesInD1({
@@ -138,6 +237,7 @@ export async function createClosedBetaAllowlistEntriesInD1({
 
   const now = new Date().toISOString();
   let created = 0;
+  const createdEmails: string[] = [];
 
   for (const email of emails) {
     const id = crypto.randomUUID();
@@ -164,6 +264,7 @@ export async function createClosedBetaAllowlistEntriesInD1({
 
     if ((insert.meta?.changes ?? 0) === 0) continue;
     created += 1;
+    createdEmails.push(email);
 
     await db
       .prepare(
@@ -184,7 +285,134 @@ export async function createClosedBetaAllowlistEntriesInD1({
       .run();
   }
 
-  return { created, requested: emails.length };
+  return { created, requested: emails.length, createdEmails };
+}
+
+export async function markClosedBetaInviteEmailSentInD1(
+  db: D1DatabaseLike,
+  entryId: string,
+  metadataRaw: string | null,
+  sentAt = new Date().toISOString(),
+) {
+  const metadata = parseMetadata(metadataRaw);
+  if (readInviteEmailSentAt(metadata)) return;
+  metadata.invite_email_sent_at = sentAt;
+
+  await db
+    .prepare(
+      `
+        UPDATE closed_beta_allowed_emails
+        SET metadata_json = ?, updated_at = ?
+        WHERE id = ?
+      `,
+    )
+    .bind(metadataJson(metadata), sentAt, entryId)
+    .run();
+}
+
+export async function listPendingClosedBetaInviteEmailsFromD1(
+  db: D1DatabaseLike,
+  limit = 50,
+): Promise<PendingInviteRow[]> {
+  const result = await db
+    .prepare<PendingInviteRow>(
+      `
+        SELECT id, normalized_email, metadata_json
+        FROM closed_beta_allowed_emails
+        WHERE status IN ('invited', 'active')
+        ORDER BY created_at ASC
+        LIMIT 200
+      `,
+    )
+    .all<PendingInviteRow>();
+
+  const pending: PendingInviteRow[] = [];
+  for (const row of result.results ?? []) {
+    if (readInviteEmailSentAt(parseMetadata(row.metadata_json))) continue;
+    pending.push(row);
+    if (pending.length >= limit) break;
+  }
+  return pending;
+}
+
+export async function deliverPendingClosedBetaInviteEmailsFromD1({
+  db,
+  cloudflareOptions,
+  limit = 50,
+  origin,
+}: {
+  db?: D1DatabaseLike | null;
+  cloudflareOptions?: CloudflareEmailClientOptions;
+  limit?: number;
+  origin?: string;
+} = {}): Promise<{ attempted: number; sent: number; failed: number }> {
+  const database = db ?? (await getCloudflareD1Database());
+  if (!database) return { attempted: 0, sent: 0, failed: 0 };
+
+  const pending = await listPendingClosedBetaInviteEmailsFromD1(database, limit);
+  let sent = 0;
+  let failed = 0;
+  const resolvedOrigin =
+    origin
+    ?? resolveClosedBetaInviteOrigin(
+      (cloudflareOptions?.env as Record<string, string | undefined> | undefined) ?? process.env,
+    );
+
+  for (const row of pending) {
+    const result = await sendClosedBetaInviteEmail({
+      email: row.normalized_email,
+      origin: resolvedOrigin,
+      cloudflareOptions,
+    });
+    if (!result.ok) {
+      failed += 1;
+      continue;
+    }
+    await markClosedBetaInviteEmailSentInD1(database, row.id, row.metadata_json);
+    sent += 1;
+  }
+
+  return { attempted: pending.length, sent, failed };
+}
+
+export async function sendClosedBetaInviteEmailsForCreatedEntriesInD1({
+  emails,
+}: {
+  emails: string[];
+}): Promise<{ attempted: number; sent: number; failed: number }> {
+  const db = await getCloudflareD1Database();
+  if (!db || emails.length === 0) return { attempted: 0, sent: 0, failed: 0 };
+
+  let sent = 0;
+  let failed = 0;
+  const origin = resolveClosedBetaInviteOrigin();
+
+  for (const email of emails) {
+    const row = await db
+      .prepare<PendingInviteRow>(
+        `
+          SELECT id, normalized_email, metadata_json
+          FROM closed_beta_allowed_emails
+          WHERE normalized_email = ?
+            AND status IN ('invited', 'active')
+          LIMIT 1
+        `,
+      )
+      .bind(email)
+      .first<PendingInviteRow>();
+
+    if (!row || readInviteEmailSentAt(parseMetadata(row.metadata_json))) continue;
+
+    const result = await sendClosedBetaInviteEmail({ email: row.normalized_email, origin });
+    if (!result.ok) {
+      failed += 1;
+      continue;
+    }
+    await markClosedBetaInviteEmailSentInD1(db, row.id, row.metadata_json);
+    sent += 1;
+  }
+
+  return { attempted: emails.length, sent, failed };
 }
 
 export async function updateClosedBetaAllowlistEntryInD1({
@@ -202,16 +430,32 @@ export async function updateClosedBetaAllowlistEntryInD1({
   if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist writes.");
 
   const now = new Date().toISOString();
-  const update = await db
-    .prepare(
-      `
-        UPDATE closed_beta_allowed_emails
-        SET status = ?, notes = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    )
-    .bind(status, notes, now, id)
-    .run();
+  const update =
+    status === "active"
+      ? await db
+          .prepare(
+            `
+              UPDATE closed_beta_allowed_emails
+              SET
+                status = ?,
+                notes = ?,
+                accepted_at = COALESCE(accepted_at, ?),
+                updated_at = ?
+              WHERE id = ?
+            `,
+          )
+          .bind(status, notes, now, now, id)
+          .run()
+      : await db
+          .prepare(
+            `
+              UPDATE closed_beta_allowed_emails
+              SET status = ?, notes = ?, updated_at = ?
+              WHERE id = ?
+            `,
+          )
+          .bind(status, notes, now, id)
+          .run();
 
   if ((update.meta?.changes ?? 0) === 0) throw new Error("Closed beta allowlist entry was not updated.");
 

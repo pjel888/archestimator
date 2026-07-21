@@ -1,11 +1,26 @@
 import { AdminAllowlistManager } from "@/components/admin/AdminAllowlistManager";
+import { deliverPendingClosedBetaInviteEmails } from "@/lib/auth/beta-allowlist-admin-actions";
 import { readClosedBetaAllowlistQueue } from "@/lib/auth/beta-allowlist-admin";
 
-function noticeFromParams(params: { created?: string; error?: string; saved?: string }) {
+function noticeFromParams(params: {
+  created?: string;
+  error?: string;
+  invited?: string;
+  saved?: string;
+}) {
   if (params.created) {
     const count = Number(params.created);
     const label = Number.isFinite(count) && count > 1 ? `${count} emails` : "Email";
-    return { tone: "success" as const, text: `${label} added to the allowlist.` };
+    return { tone: "success" as const, text: `${label} added to the allowlist and invite email queued.` };
+  }
+  if (params.invited) {
+    const count = Number(params.invited);
+    if (Number.isFinite(count) && count > 0) {
+      return {
+        tone: "success" as const,
+        text: count === 1 ? "Sent 1 pending beta invite email." : `Sent ${count} pending beta invite emails.`,
+      };
+    }
   }
   if (params.saved) return { tone: "success" as const, text: "Allowlist entry updated." };
   if (params.error === "forbidden") {
@@ -24,11 +39,22 @@ function noticeFromParams(params: { created?: string; error?: string; saved?: st
 export default async function AdminAllowlistPage({
   searchParams,
 }: {
-  searchParams: Promise<{ created?: string; error?: string; saved?: string; status?: string }>;
+  searchParams: Promise<{ created?: string; error?: string; invited?: string; saved?: string; status?: string }>;
 }) {
   const params = await searchParams;
+  const delivery = await deliverPendingClosedBetaInviteEmails();
   const queue = await readClosedBetaAllowlistQueue(params.status);
-  const notice = noticeFromParams(params);
+  const notice =
+    noticeFromParams(params)
+    ?? (delivery.authorized && delivery.sent > 0
+      ? {
+          tone: "success" as const,
+          text:
+            delivery.sent === 1
+              ? "Sent 1 pending beta invite email."
+              : `Sent ${delivery.sent} pending beta invite emails.`,
+        }
+      : null);
 
   return (
     <AdminAllowlistManager
@@ -40,6 +66,8 @@ export default async function AdminAllowlistPage({
         status: row.status,
         notes: row.notes,
         invited_at: row.invited_at,
+        accepted_at: row.accepted_at,
+        invite_email_sent_at: row.invite_email_sent_at,
       }))}
       statusFilter={params.status ?? ""}
       notice={notice}

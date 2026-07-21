@@ -22,6 +22,7 @@ export type ClosedBetaAllowlistRow = {
   id: string;
   invited_at: string;
   invited_by: string | null;
+  invite_email_sent_at: string | null;
   normalized_email: string;
   notes: string | null;
   status: ClosedBetaAllowlistStatus;
