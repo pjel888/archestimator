@@ -10,11 +10,11 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-21T08:00:00.000Z",
+  "updated_at": "2026-07-21T06:23:36.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
-    "head": "db13393a",
+    "head": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
@@ -34,79 +34,79 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "96e235a87d51d8272051c3e7dd9ebe028d8b14efee5e5df18142dd9e339ed9e0"
+      "sha256": "9257c1ea2c1e70f20b2b87895f166bd6bb17123f8537c958bda562b8605fb480"
     },
     {
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "b2126de564f368d21fa750f7d517c632496d0391d9549323790fba14089ca99a"
+      "sha256": "03493c9a9649cc55365ccee58dffd33c09b4058dd210feb9d23bf1062fdcc554"
     },
     {
       "id": "ART-003",
       "role": "unit",
       "path": "units/001-folder-view-query-layer.md",
-      "sha256": "6bab84dd2a2110279edd87abc542ad1c7f2f8669cd10b18d9eaed744460329f8"
+      "sha256": "2e518ff6de779a17503fbbc46f9a8513a9adfd3c1178888d3a864c0b0f647801"
     },
     {
       "id": "ART-004",
       "role": "unit",
       "path": "units/002-folder-rail-ui.md",
-      "sha256": "25485993c3ac3df706def74d090977af932a5c0ef225ec9f9a3e263130ee0307"
+      "sha256": "60f6612736799646b32ff964a8c21062e691d0b3b0c72fc12c878d5f937ffb6e"
     },
     {
       "id": "ART-005",
       "role": "unit",
       "path": "units/003-send-identity-registry.md",
-      "sha256": "764d7ede85c83f2426b2796aee54996d9f4d69a074d89048549ac06a32e05738"
+      "sha256": "454aef43eeda9f7cb1143cd7b787444114952e59fbaf4934b32845873d2c9851"
     },
     {
       "id": "ART-006",
       "role": "unit",
       "path": "units/004-from-identity-actions-ui.md",
-      "sha256": "22c0adeb071591b817ab08e08915b5ed474c02abfdda582e388722e8a9e033d2"
+      "sha256": "6a75d13bc79199a643fbcd6bacf87bd45199162c946b5257cf542f7f7b3720e4"
     },
     {
       "id": "ART-007",
       "role": "unit",
       "path": "units/005-drafts-schema-repository.md",
-      "sha256": "6e19b3fbcb36d2232ee7c250e8ef4eeb194705ee8c829ebe1681470dad82334f"
+      "sha256": "814c0a532b604bc67964a74a21aedff6ccf7cb94ea14d0fb3281f1935f2a4e94"
     },
     {
       "id": "ART-008",
       "role": "unit",
       "path": "units/006-drafts-autosave-ui.md",
-      "sha256": "27810ce579a75f00354e49da38c5ab5990baa90798724df962d4248d21cb41e1"
+      "sha256": "a1851888061efceb2ba87a4021a564c168d81369258fce2d115ff3f9235a0986"
     },
     {
       "id": "ART-009",
       "role": "unit",
       "path": "units/007-reply-all-forward-triage.md",
-      "sha256": "ca5f44553dcb732b8b19bb541381244e89e0fdc1157fb642ec38a6b481436ca5"
+      "sha256": "0e8ae60718becc79e8affd691efd04a97799e0a93938e02b175282866a37f882"
     },
     {
       "id": "ART-010",
       "role": "unit",
       "path": "units/008-live-chat.md",
-      "sha256": "db31c4b6f8a93337a41cb7dd2116ae60b409972f2cf14bf4803cfc9d6cf0a9d6"
+      "sha256": "4d140320d0cf4bc3a9087bfeb889047e85b3d94bd625091fbafc27ba7cb663f2"
     },
     {
       "id": "ART-011",
       "role": "unit",
       "path": "units/009-triage-labels-assignment-snooze-star.md",
-      "sha256": "81bd7fcca6100b3650519a74c4836cd4201e6866c216eecd9d7568b6aec3fa99"
+      "sha256": "23411c3000a661f9fab0330c12546dbc81d690200d709f88654f0ad33bb01d18"
     },
     {
       "id": "ART-012",
       "role": "unit",
       "path": "units/010-live-chat-clients.md",
-      "sha256": "PENDING"
+      "sha256": "ff2610b5cc6874753a94b7f0f4ed551acedc9838be3336e4c3da5b7c37910072"
     },
     {
       "id": "ART-013",
       "role": "unit",
       "path": "units/011-triage-ui-action-inbox.md",
-      "sha256": "PENDING"
+      "sha256": "56310f18baa74c0d3bb3263821792d07264abf4d37d8bd9a092bab2c90e6b8ed"
     }
   ],
   "sources": [
