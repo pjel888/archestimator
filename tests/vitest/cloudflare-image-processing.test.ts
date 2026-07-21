@@ -94,14 +94,14 @@ describe("Cloudflare Images upload processing", () => {
     expect(result).toEqual({ status: "cloudflare-image-processing-unavailable" });
   });
 
-  it("keeps the proof build unavailable unless the Cloudflare Images provider is selected", async () => {
+  it("uses Cloudflare Images on Workers builds even when node-sharp is configured", async () => {
     vi.stubEnv("ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER", "node-sharp");
     const fake = createFakeImagesBinding();
 
     const result = await processWithCloudflareImages(fake.binding);
 
-    expect(result).toEqual({ status: "cloudflare-image-processing-unavailable" });
-    expect(fake.input).not.toHaveBeenCalled();
+    expect(result.status).toBe("ok");
+    expect(fake.input).toHaveBeenCalled();
   });
 
   it("rejects unsupported image encodings before transformation", async () => {

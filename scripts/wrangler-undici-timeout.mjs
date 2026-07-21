@@ -2,10 +2,11 @@ import { Agent, setGlobalDispatcher } from "undici";
 
 setGlobalDispatcher(
   new Agent({
-    bodyTimeout: 20 * 60 * 1000,
-    headersTimeout: 20 * 60 * 1000,
+    // Large OpenNext Worker uploads regularly exceed 20m on slow links.
+    bodyTimeout: 45 * 60 * 1000,
+    headersTimeout: 45 * 60 * 1000,
     connect: {
-      timeout: 2 * 60 * 1000,
+      timeout: 5 * 60 * 1000,
     },
   }),
 );

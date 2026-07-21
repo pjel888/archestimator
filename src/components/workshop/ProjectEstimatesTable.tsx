@@ -2,7 +2,7 @@
 
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition, type CSSProperties, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -98,7 +98,7 @@ const LIST_ROW_VIRTUALIZATION_MIN_ROWS = 75;
 const LIST_ROW_VIRTUALIZATION_ESTIMATED_HEIGHT = 32;
 const LIST_ROW_VIRTUALIZATION_OVERSCAN = 12;
 const LIST_ROW_VIRTUALIZATION_INITIAL_VIEWPORT_HEIGHT = 720;
-const COLUMN_WIDTH_STORAGE_KEY_PREFIX = "archestimator:project-estimates-column-widths";
+const COLUMN_WIDTH_STORAGE_KEY_PREFIX = "archestimator:project-estimates-column-widths:v2";
 const READ_ONLY_HOVER_COLUMN_IDS = new Set(["totalProjectCost", "overbudget", "updated_at", "created_at"]);
 const TIGHT_ICON_COLUMN_IDS = new Set(["favorite_action", "duplicate_action"]);
 const ESTIMATE_NAME_COLUMN_INDEX = 5;
@@ -810,9 +810,9 @@ function ProjectEstimatesTableComponent({
       {
         accessorKey: "sheet_code",
         header: "Estimate Code",
-        size: 176,
-        minSize: 132,
-        maxSize: 260,
+        size: 120,
+        minSize: 96,
+        maxSize: 200,
         cell: ({ row }) => (
           <ProjectEstimateSheetCodeCell
             canEditEstimate={canEditEstimate(row.original.id)}
@@ -828,9 +828,9 @@ function ProjectEstimatesTableComponent({
       {
         accessorKey: "name",
         header: "Estimate Name",
-        size: 340,
-        minSize: 220,
-        maxSize: 520,
+        size: 200,
+        minSize: 140,
+        maxSize: 420,
         cell: ({ row }) => (
           <ProjectEstimateEditableTextCell
             estimate={row.original}
@@ -849,9 +849,9 @@ function ProjectEstimatesTableComponent({
       {
         accessorKey: "notes",
         header: "Notes",
-        size: 240,
-        minSize: 172,
-        maxSize: 420,
+        size: 160,
+        minSize: 120,
+        maxSize: 360,
         cell: ({ row }) => (
           <ProjectEstimateEditableTextCell
             estimate={row.original}
@@ -869,9 +869,9 @@ function ProjectEstimatesTableComponent({
       {
         accessorKey: "project_budget",
         header: "Project Budget",
-        size: 172,
-        minSize: 144,
-        maxSize: 240,
+        size: 120,
+        minSize: 100,
+        maxSize: 200,
         cell: ({ row }) => (
           <ProjectEstimateBudgetCell
             estimate={row.original}
@@ -886,17 +886,17 @@ function ProjectEstimatesTableComponent({
       {
         accessorKey: "totalProjectCost",
         header: "Ongoing Project Cost",
-        size: 172,
-        minSize: 144,
-        maxSize: 240,
+        size: 128,
+        minSize: 108,
+        maxSize: 200,
         cell: ({ row }) => <span className="font-sans font-medium tabular-nums text-ink">{formatPeso(row.original.totalProjectCost)}</span>,
       },
       {
         id: "overbudget",
         header: "Remaining Budget",
-        size: 168,
-        minSize: 144,
-        maxSize: 240,
+        size: 120,
+        minSize: 100,
+        maxSize: 200,
         accessorFn: (row) => (row.project_budget ?? 0) - row.totalProjectCost,
         cell: ({ row }) => {
           if (row.original.project_budget === null) return <span className="font-medium text-tertiary">No budget set</span>;
@@ -911,17 +911,17 @@ function ProjectEstimatesTableComponent({
       {
         accessorKey: "updated_at",
         header: "Updated",
-        size: 150,
-        minSize: 132,
-        maxSize: 220,
+        size: 112,
+        minSize: 96,
+        maxSize: 160,
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.updated_at)}</span>,
       },
       {
         accessorKey: "created_at",
         header: "Created",
-        size: 150,
-        minSize: 132,
-        maxSize: 220,
+        size: 112,
+        minSize: 96,
+        maxSize: 160,
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
       {
@@ -954,8 +954,8 @@ function ProjectEstimatesTableComponent({
     getRowId: (row) => row.id,
     defaultColumn: {
       minSize: 88,
-      size: 150,
-      maxSize: 520,
+      size: 120,
+      maxSize: 420,
     },
     onColumnSizingChange: setColumnSizing,
     onSortingChange: (updater) => dispatchTable({ type: "sortingChanged", updater }),
@@ -964,8 +964,6 @@ function ProjectEstimatesTableComponent({
   });
   const visibleRows = table.getRowModel().rows;
   const fillerRowCount = Math.max(EMPTY_TABLE_ROW_COUNT - visibleRows.length, 0);
-  const tableTotalSize = table.getTotalSize();
-  const tableStyle = useMemo<CSSProperties>(() => ({ width: `${tableTotalSize}px`, minWidth: "100%" }), [tableTotalSize]);
   const leafColumnCount = table.getAllLeafColumns().length;
 
   // Row windowing. The scroll viewport is the existing overflow-auto wrapper
@@ -1018,9 +1016,9 @@ function ProjectEstimatesTableComponent({
       ) : null}
       <div
         ref={scrollContainerRef}
-        className={cn("min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]", selectedEstimateCount ? "pb-20" : null)}
+        className={cn("min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]", selectedEstimateCount ? "pb-20" : null)}
       >
-        <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
+        <table className="w-full table-fixed border-collapse text-left text-[10px]">
           <ProjectEstimatesColGroup table={table} />
           <thead className="sticky top-0 z-10 bg-surface-muted text-[10px] font-medium text-tertiary">
             {table.getHeaderGroups().map((headerGroup) => (
