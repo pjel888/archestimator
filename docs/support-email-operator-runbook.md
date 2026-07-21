@@ -55,3 +55,16 @@ only after verified alignment. DNS presence is not deliverability proof.
 
 Do not block support on `ceo@`. Prefer personal forwarding first; the schema
 already persists `mailbox_address` for a later alias if needed.
+
+## Admin send identities
+
+Admin support email uses a fixed local registry with two same-domain identities:
+`support@<support-mailbox-domain>` and `philip@<support-mailbox-domain>`. The
+selected identity controls the provider From address and display name only.
+Replies always route through the configured canonical support mailbox (including
+its conversation plus-address), so a visible From selection never changes inbound
+routing.
+
+Registry validation proves local configuration only. It does not prove DNS,
+provider acceptance, delivery, or inbox placement; verify those conditions with
+the provider before enabling outbound delivery.

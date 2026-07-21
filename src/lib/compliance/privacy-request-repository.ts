@@ -4,6 +4,11 @@ import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
 import { anonymizeActivityActor, type ActivityOutboxDatabase } from "@/lib/activity/activity-outbox";
 import { eraseActivationPrivacyData, exportActivationPrivacyData } from "@/lib/onboarding/activation-retention";
+import { getSupportUploadsR2 } from "@/lib/email/support-outbound-attachments";
+import {
+  deleteSupportDraftsForPrivacyRequestInD1,
+  listSupportDraftAttachmentKeysForPrivacyRequestInD1,
+} from "@/lib/repositories/support-drafts-d1";
 import {
   eraseSupportDataForPrivacyRequest,
   listSupportDataForPrivacyRequest,
@@ -226,7 +231,44 @@ export async function exportPrivacyRequestSupportData(requesterUserId: string, d
 }
 
 export async function erasePrivacyRequestSupportData(requesterUserId: string, dbOverride?: D1DatabaseLike) {
-  return eraseSupportDataForPrivacyRequest(requesterUserId, dbOverride);
+  const db = dbOverride ?? await getCloudflareD1Database();
+  if (!db) {
+    return {
+      data: { conversationsUpdated: 0, messagesUpdated: 0, draftsDeleted: 0 },
+      error: "Support data could not be erased for privacy request.",
+    };
+  }
+
+  const draftKeys = await listSupportDraftAttachmentKeysForPrivacyRequestInD1(db, requesterUserId);
+  if (draftKeys.length > 0) {
+    const r2 = await getSupportUploadsR2();
+    if (!r2?.delete) {
+      return {
+        data: { conversationsUpdated: 0, messagesUpdated: 0, draftsDeleted: 0 },
+        error: "Support draft storage is unavailable for privacy erasure.",
+      };
+    }
+    try {
+      await r2.delete(draftKeys);
+    } catch {
+      return {
+        data: { conversationsUpdated: 0, messagesUpdated: 0, draftsDeleted: 0 },
+        error: "Support draft attachments could not be erased.",
+      };
+    }
+  }
+
+  const erased = await eraseSupportDataForPrivacyRequest(requesterUserId, db);
+  if (erased.error) return { data: { ...erased.data, draftsDeleted: 0 }, error: erased.error };
+  try {
+    const draftsDeleted = await deleteSupportDraftsForPrivacyRequestInD1(db, requesterUserId);
+    return { data: { ...erased.data, draftsDeleted }, error: null };
+  } catch {
+    return {
+      data: { ...erased.data, draftsDeleted: 0 },
+      error: "Support draft rows could not be erased after attachment deletion.",
+    };
+  }
 }
 
 export type PrivacyActivityExportRow = {

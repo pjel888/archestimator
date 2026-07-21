@@ -1,0 +1,878 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-21-clarity-and-analytics",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-21T08:35:17.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stale_triggers": [
+    "src/components/landing/LandingAnalyticsLoader.tsx or PublicPageShell changes",
+    "src/components/landing/ClarityScript.tsx changes",
+    "next.config.ts CSP source matcher changes",
+    "src/app/admin/analytics/page.tsx or admin analytics API routes change",
+    "privacy/terms analytics processor copy changes",
+    ".env.example analytics block or Worker public analytics env contract changes",
+    "migrations/ analytics provider cache numbering collision",
+    "wrangler.jsonc / Worker secret binding conventions for GA4/Clarity change"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "67fd855fd1884d9743f20ba8e91d10af6bdef5ad3dfd23286a1ba0845cfe8341"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "12c488ce67f0a374b0fc11476a9c557cf5aba8bbd0d4132902a875d101220bca"
+    },
+    {
+      "id": "ART-003",
+      "role": "unit",
+      "path": "units/001-config-deep-links.md",
+      "sha256": "48a90b1be07c1396cd026fcdc629382ea00b48cf417d232c97968ea07705ba9d"
+    },
+    {
+      "id": "ART-004",
+      "role": "unit",
+      "path": "units/002-privacy-csp.md",
+      "sha256": "b6b773ecb0f9f55eb6d010551d9a53dfec4179acfedf8b9038b7c1a70913261c"
+    },
+    {
+      "id": "ART-005",
+      "role": "unit",
+      "path": "units/003-event-taxonomy.md",
+      "sha256": "ff7a00e7974ae2316749e5b1ac86bed9b6e252309f93b98cd39c205ec78274f8"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/004-clarity-hardening-conversions.md",
+      "sha256": "b3654e833759a753c85693f4e7284df58056d47f2b5fd0ff206825c006b8ae53"
+    },
+    {
+      "id": "ART-007",
+      "role": "unit",
+      "path": "units/005-ga4-data-client.md",
+      "sha256": "92e2ba249318b6a6f22810d9931137eafdf0475631305240e86977cfef2b626e"
+    },
+    {
+      "id": "ART-008",
+      "role": "unit",
+      "path": "units/006-clarity-export-cache.md",
+      "sha256": "e7fe4cac571ce66aa2aa35ccc652d1a85ec3c8fdb084c712854c7cf90f2ffcb7"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "units/007-admin-analytics-ui.md",
+      "sha256": "d99f373b132c85b9976abaed6f01123cf1403bc0573fa0b05bb512c750daa217"
+    },
+    {
+      "id": "ART-010",
+      "role": "unit",
+      "path": "units/008-ops-runbook-audit.md",
+      "sha256": "4807d7f7416c189bc8cf5abe0c766a5e9787cf8e99707d9c6dada7f161384fba"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "SEC-001",
+        "SEC-002",
+        "DATA-002",
+        "UX-001",
+        "DATA-003",
+        "DATA-004",
+        "OPS-001",
+        "OPS-002"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "DATA-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "AUXILIARY",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "OPS-001",
+        "AC-001"
+      ]
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-003",
+        "DATA-004",
+        "AC-006"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001",
+        "OPS-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Env/docs/constants and optional CFWA contract without secrets. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Privacy/Terms name GA4+Clarity; consent remains required before scripts. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "CSP covers PublicPageShell tracker routes; share stays tracker-free; admin API gated. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Shared helpers emit taxonomy events from public CTAs. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Clarity masking/consent posture present in loader path. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Admin GA section renders live DTO or degraded link-out with deep link. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-004"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Admin Clarity section renders cached aggregates or degraded link-out. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Ops runbook lists AUTH steps and verification checklist. Verified by source/diff/typecheck; product tests remain TEST_PROPOSAL until Philip authorizes TEST_TASK.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-config-deep-links.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-privacy-csp.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "SEC-001",
+        "SEC-002"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-event-taxonomy.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-008",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-clarity-hardening-conversions.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "DATA-002",
+        "UX-001"
+      ],
+      "risk_ids": [
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-ga4-data-client.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "DATA-003"
+      ],
+      "risk_ids": [
+        "RISK-004",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-clarity-export-cache.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-004",
+        "SEC-002"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-admin-analytics-ui.md",
+      "depends_on": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "DATA-003",
+        "DATA-004",
+        "SEC-002",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-007",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "units/008-ops-runbook-audit.md",
+      "depends_on": [
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "SEC-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-003"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-004"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-config-deep-links.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "48a90b1be07c1396cd026fcdc629382ea00b48cf417d232c97968ea07705ba9d",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-privacy-csp.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "AC-003"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "b6b773ecb0f9f55eb6d010551d9a53dfec4179acfedf8b9038b7c1a70913261c",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-event-taxonomy.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-004"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "ff7a00e7974ae2316749e5b1ac86bed9b6e252309f93b98cd39c205ec78274f8",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/004-clarity-hardening-conversions.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-004",
+        "AC-005"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "b3654e833759a753c85693f4e7284df58056d47f2b5fd0ff206825c006b8ae53",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "units/005-ga4-data-client.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-006"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "92e2ba249318b6a6f22810d9931137eafdf0475631305240e86977cfef2b626e",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "units/006-clarity-export-cache.md",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-007"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "e7fe4cac571ce66aa2aa35ccc652d1a85ec3c8fdb084c712854c7cf90f2ffcb7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "units/007-admin-analytics-ui.md",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-003",
+        "AC-006",
+        "AC-007"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "d99f373b132c85b9976abaed6f01123cf1403bc0573fa0b05bb512c750daa217",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "artifact_path": "units/008-ops-runbook-audit.md",
+      "claim_ids": [
+        "UNIT-008",
+        "AC-008"
+      ],
+      "source_revision": "6baaf90937bb6a015f58c7dfd8c2c9b4c6a44295",
+      "sha256": "4807d7f7416c189bc8cf5abe0c766a5e9787cf8e99707d9c6dada7f161384fba",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "manifest_sha256": "76f24a501daa8ce64c61d06dab54bfd901ad5f42ab43bed1118eb3552bf6904d"
+}

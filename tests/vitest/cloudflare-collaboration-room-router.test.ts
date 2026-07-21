@@ -9,12 +9,23 @@ import {
 
 type WranglerConfig = {
   name?: string;
-  d1_databases?: Array<{ binding?: string; database_name?: string; database_id?: string; preview_database_id?: string }>;
-  r2_buckets?: Array<{ binding?: string; bucket_name?: string; preview_bucket_name?: string }>;
+  d1_databases?: Array<{
+    binding?: string;
+    database_name?: string;
+    database_id?: string;
+    preview_database_id?: string;
+    remote?: boolean;
+  }>;
+  r2_buckets?: Array<{
+    binding?: string;
+    bucket_name?: string;
+    preview_bucket_name?: string;
+    remote?: boolean;
+  }>;
   images?: { binding?: string };
-  send_email?: Array<{ name?: string }>;
+  send_email?: Array<{ name?: string; remote?: boolean }>;
   queues?: {
-    producers?: Array<{ binding?: string; queue?: string }>;
+    producers?: Array<{ binding?: string; queue?: string; remote?: boolean }>;
     consumers?: Array<unknown>;
   };
   observability?: unknown;
@@ -34,8 +45,21 @@ function readWranglerConfig() {
   return JSON.parse(readFileSync("wrangler.jsonc", "utf8")) as WranglerConfig;
 }
 
-function readNextDevWranglerConfig() {
-  return JSON.parse(readFileSync("wrangler.next-dev.jsonc", "utf8")) as WranglerConfig;
+function readNextDevWranglerConfig(path = "wrangler.next-dev.jsonc") {
+  return JSON.parse(readFileSync(path, "utf8")) as WranglerConfig;
+}
+
+function assertNextDevBindingSubset(config: WranglerConfig, expectedName: string) {
+  expect(config.name).toBe(expectedName);
+  expect(config.d1_databases?.map((binding) => binding.binding)).toContain("ARCH_DB");
+  expect(config.r2_buckets?.map((binding) => binding.binding)).toContain("ARCH_UPLOADS_R2");
+  expect(config.images?.binding).toBe("IMAGES");
+  expect(config.send_email?.map((binding) => binding.name)).toContain("EMAIL");
+  expect(config.queues?.producers?.map((binding) => binding.binding)).toContain("UPLOAD_JOBS_QUEUE");
+  expect(config.queues?.consumers).toBeUndefined();
+  expect(config.durable_objects).toBeUndefined();
+  expect(config.migrations).toBeUndefined();
+  expect(config.observability).toBeUndefined();
 }
 
 describe("Cloudflare collaboration room Durable Object scaffold", () => {
@@ -72,23 +96,30 @@ describe("Cloudflare collaboration room Durable Object scaffold", () => {
   it("keeps next dev Cloudflare bindings free of Worker-only Durable Object runtime state", () => {
     const nextConfigSource = readFileSync("next.config.ts", "utf8");
     const hasNextDevConfig = existsSync("wrangler.next-dev.jsonc");
+    const hasNextDevRemoteConfig = existsSync("wrangler.next-dev.remote.jsonc");
 
     expect(nextConfigSource).toContain("initOpenNextCloudflareForDev");
-    expect(nextConfigSource).toContain('configPath: "wrangler.next-dev.jsonc"');
+    expect(nextConfigSource).toContain('ARCH_DEV_USE_REMOTE_BINDINGS === "1"');
+    expect(nextConfigSource).toContain('"wrangler.next-dev.jsonc"');
+    expect(nextConfigSource).toContain('"wrangler.next-dev.remote.jsonc"');
     expect(hasNextDevConfig).toBe(true);
-    if (!hasNextDevConfig) return;
+    expect(hasNextDevRemoteConfig).toBe(true);
+    if (!hasNextDevConfig || !hasNextDevRemoteConfig) return;
 
     const nextDevConfig = readNextDevWranglerConfig();
-    expect(nextDevConfig.name).toBe("archestimator-next-dev-bindings");
-    expect(nextDevConfig.d1_databases?.map((binding) => binding.binding)).toContain("ARCH_DB");
-    expect(nextDevConfig.r2_buckets?.map((binding) => binding.binding)).toContain("ARCH_UPLOADS_R2");
-    expect(nextDevConfig.images?.binding).toBe("IMAGES");
-    expect(nextDevConfig.send_email?.map((binding) => binding.name)).toContain("EMAIL");
-    expect(nextDevConfig.queues?.producers?.map((binding) => binding.binding)).toContain("UPLOAD_JOBS_QUEUE");
-    expect(nextDevConfig.queues?.consumers).toBeUndefined();
-    expect(nextDevConfig.durable_objects).toBeUndefined();
-    expect(nextDevConfig.migrations).toBeUndefined();
-    expect(nextDevConfig.observability).toBeUndefined();
+    assertNextDevBindingSubset(nextDevConfig, "archestimator-next-dev-bindings");
+    expect(nextDevConfig.d1_databases?.some((binding) => binding.remote === true)).toBe(false);
+    expect(nextDevConfig.r2_buckets?.some((binding) => binding.remote === true)).toBe(false);
+
+    const nextDevRemoteConfig = readNextDevWranglerConfig("wrangler.next-dev.remote.jsonc");
+    assertNextDevBindingSubset(nextDevRemoteConfig, "archestimator-next-dev-bindings-remote");
+    expect(nextDevRemoteConfig.d1_databases?.find((binding) => binding.binding === "ARCH_DB")?.remote).toBe(true);
+    expect(nextDevRemoteConfig.r2_buckets?.find((binding) => binding.binding === "ARCH_UPLOADS_R2")?.remote).toBe(true);
+    expect(nextDevRemoteConfig.r2_buckets?.find((binding) => binding.binding === "ARCH_UPLOADS_R2")?.bucket_name).toBe(
+      "archestimator-proof-uploads",
+    );
+    expect(nextDevRemoteConfig.send_email?.some((binding) => binding.remote === true)).toBe(false);
+    expect(nextDevRemoteConfig.queues?.producers?.some((binding) => binding.remote === true)).toBe(false);
   });
 
   it("ignores non-collaboration-room paths", () => {

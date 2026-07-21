@@ -2,13 +2,13 @@
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED / N/A / ACHIEVED`
 
 - **Suite compatibility:** manifest `2026-07-12` (latest validator-supported contract); planning guidance reviewed against the `2026-07-19` kernel.
 - **Profile:** `standard`; authenticated UI, D1 schema, R2 lifecycle, email identity, and Durable Object boundaries.
-- **Action ceiling:** `IMPLEMENT_LOCAL`; this authoring pass is `PLAN_ONLY`.
-- **Exact next unit:** `UNIT-001`.
-- **Test decision:** `NOT_REQUIRED` for plan authoring; product tests remain proposals unless Philip issues a current-task `TEST_TASK`.
+- **Action ceiling:** `IMPLEMENT_LOCAL`; all eleven implementation units are complete.
+- **Exact next unit:** none.
+- **Test decision:** `NOT_REQUIRED`; product tests remain proposals unless Philip issues a current-task `TEST_TASK`.
 
 ## 1. Task Contract
 
@@ -517,6 +517,28 @@ Before terminal `ACHIEVED`, reconcile DATA-001..005, UX-001..003, SEC-001..002,
 AC-001..009, DEC-AUTO-001..008, RISK-001..009, every unit, privacy/cleanup,
 unrun tests, and external proof boundaries. Archive only after this audit and a
 fresh manifest validation; leave no active duplicate pack.
+
+### Execution closeout — 2026-07-21
+
+- DATA-001/UX-001: shared mailbox predicates, scoped counts, URL-seeded TanStack
+  Query state, folders, draft rail, recipient operations, and keyboard scope are
+  implemented in the D1 repository, admin route, and extracted rail/list/thread
+  surfaces.
+- DATA-002/SEC-001: the two-identity allowlist is header-safe and fail-closed;
+  selected identities persist through send/retry while canonical Reply-To stays
+  on the routed mailbox.
+- DATA-003: additive draft migration, owner-scoped revision CAS, exact R2
+  ownership, authoritative send promotion, retry preservation, privacy erase,
+  discard, and bounded stale-claim recovery are implemented.
+- DATA-004/SEC-002/UX-002: owner/admin APIs persist D1 before identifier-only
+  Durable Object invalidation; client islands use TanStack Query history with
+  reconnect, backfill, degradation, and cleanup states.
+- DATA-005/UX-003: normalized triage, exact labels, revisioned self-assignment,
+  bounded snooze, star filters, and Action Inbox snooze parity are implemented.
+- Fresh evidence: targeted support lint, `bun run type-check`,
+  `bun run validate:plan-pack -- .ai/03_plans/2026-07-21/admin-support-feature-improvement`,
+  and `git diff --check` pass. Product tests and browser/real-DO proof remain
+  intentionally unrun under the User Test Authorization Gate.
 
 ## 14. Sources
 
