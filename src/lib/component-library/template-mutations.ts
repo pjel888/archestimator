@@ -130,12 +130,12 @@ export async function runTemplateAtomicBatch(
   statements: TemplateMutationStatement[],
 ): Promise<D1Result[]> {
   assertD1MutationStatementLimit(statements.length);
-  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for template updates.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const results = await database.batch(
     statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
   );
   if (results.some((result) => result.success === false)) {
-    throw new Error("Cloudflare D1 template mutation batch failed.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return results;
 }

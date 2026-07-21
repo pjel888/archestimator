@@ -1,7 +1,8 @@
 import { actionFailure, actionOk } from "./action-result";
-import { normalizeAppError } from "./app-error";
+import { isAppError, normalizeAppError } from "./app-error";
 import { logAppError, type AppLogger } from "./logger";
 import { getCurrentRequestId } from "./request-id";
+import { remapErrorForClientBoundary } from "./user-facing-error";
 import type { ActionFailure, ActionResult } from "./types";
 
 type WithActionErrorsOptions = {
@@ -59,7 +60,7 @@ export function withActionErrors<Args extends unknown[], T>(
       });
       const failure = actionFailure(appError);
       if (options.failureMode === "passthrough-message") {
-        return { ...failure, message: appError.message };
+        return { ...failure, message: appError.toClientJSON().message };
       }
       return failure;
     }
@@ -82,7 +83,10 @@ export function withActionErrorLogging<Args extends unknown[], T>(
         action: actionName,
         requestId: getCurrentRequestId() ?? undefined,
       });
-      throw error;
+      // Preserve intentional AppError messages; remap infra leaks before they
+      // cross the Server Action serialization boundary to the browser.
+      if (isAppError(error)) throw error;
+      throw remapErrorForClientBoundary(error);
     }
   };
 }

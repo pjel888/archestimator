@@ -169,7 +169,7 @@ export async function reconcileClosedBetaAllowlistAcceptedFromUsersInD1(
 
 export async function readClosedBetaAllowlistQueueFromD1(status: ClosedBetaAllowlistStatus | null): Promise<ClosedBetaAllowlistRow[]> {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist reads.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   await reconcileClosedBetaAllowlistAcceptedFromUsersInD1(db);
 
@@ -233,7 +233,7 @@ export async function createClosedBetaAllowlistEntriesInD1({
   status: ClosedBetaAllowlistStatus;
 }) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist writes.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const now = new Date().toISOString();
   let created = 0;
@@ -427,7 +427,7 @@ export async function updateClosedBetaAllowlistEntryInD1({
   status: ClosedBetaAllowlistStatus;
 }) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist writes.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const now = new Date().toISOString();
   const update =

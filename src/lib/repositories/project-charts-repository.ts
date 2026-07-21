@@ -362,14 +362,14 @@ function finite(value: number): number {
 async function requireProjectChartsD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for project charts.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 project chart read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 

@@ -50,7 +50,7 @@ export type OpsRunEventRow = {
 
 async function resolveObservabilityDb(dbOverride?: D1DatabaseLike): Promise<D1DatabaseLike> {
   const db = dbOverride ?? (await getCloudflareD1Database());
-  if (!db) throw new Error("Cloudflare D1 is not available.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return db;
 }
 

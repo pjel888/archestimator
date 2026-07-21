@@ -35,7 +35,7 @@ function prepareStatement(database: D1DatabaseLike, statement: D1IntentStatement
 
 export async function requireEstimateD1Database(): Promise<D1DatabaseLike> {
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required for estimate actions.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 
@@ -53,7 +53,7 @@ export async function allD1Rows<T>(
   values: readonly unknown[] = [],
 ): Promise<T[]> {
   const result = await database.prepare<T>(sql).bind(...values.map(normalizeD1Value)).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 estimate action read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 
@@ -63,7 +63,7 @@ export async function runD1Statement(
   values: readonly unknown[] = [],
 ): Promise<D1Result> {
   const result = await database.prepare(sql).bind(...values.map(normalizeD1Value)).run();
-  if (result.success === false) throw new Error("Cloudflare D1 estimate action write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
@@ -75,7 +75,7 @@ export async function runD1Batch(
   if (database.batch) {
     const results = await database.batch(statements.map((statement) => prepareStatement(database, statement)));
     if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 estimate action batch failed.");
+      throw new Error("Something went wrong. Try again in a moment.");
     }
     return;
   }
@@ -99,13 +99,13 @@ export async function runPreparedD1Batch(
       ...preparedStatements,
     ]);
     if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 estimate action batch failed.");
+      throw new Error("Something went wrong. Try again in a moment.");
     }
     return;
   }
   await runD1Batch(database, statements);
   for (const statement of preparedStatements) {
     const result = await statement.run();
-    if (result.success === false) throw new Error("Cloudflare D1 estimate action write failed.");
+    if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   }
 }

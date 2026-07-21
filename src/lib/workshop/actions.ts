@@ -32,7 +32,7 @@ function assertUuid(value: string, label: string) {
 async function requireWorkshopActionsD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for workshop favorite actions.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
@@ -43,7 +43,7 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]
 
 async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Cloudflare D1 favorite write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 

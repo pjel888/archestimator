@@ -216,11 +216,11 @@ function directUploadCapacityMessage(quotaClass: "active_actor" | "active_worksp
 }
 
 function directUploadStorageProviderUnsupportedResponse() {
-  return jsonError("Direct attachment uploads require Cloudflare R2 storage.", 501);
+  return jsonError("Something went wrong. Try again in a moment.", 501);
 }
 
 function directUploadMetadataUnavailableResponse() {
-  return jsonError("Cloudflare D1 upload metadata is not configured.", 503);
+  return jsonError("Something went wrong. Try again in a moment.", 503);
 }
 
 function isCloudflareR2RuntimeSelected() {
@@ -353,7 +353,7 @@ async function createSignedUpload(
     return directUploadStorageProviderUnsupportedResponse();
   }
   if (strategy.kind === "multipart_resumable") {
-    return jsonError("Resumable attachment uploads need Cloudflare R2 multipart support before they can be enabled.", 501);
+    return jsonError("Something went wrong. Try again in a moment.", 501);
   }
 
   const extension = EXTENSION_BY_MIME_TYPE.get(contentType);
@@ -505,7 +505,7 @@ async function finalizeSignedUpload(currentUser: CurrentUserContext, body: Recor
     });
     return null;
   });
-  if (!storageProvider) return jsonError("Cloudflare R2 upload storage is not configured.", 503);
+  if (!storageProvider) return jsonError("Something went wrong. Try again in a moment.", 503);
 
   const object = await (
     storageProvider.headObject?.(session.storage_bucket, session.storage_path)
@@ -615,7 +615,7 @@ async function uploadToCloudflareR2(request: Request, currentUser: CurrentUserCo
     });
     return null;
   });
-  if (!storageProvider) return jsonError("Cloudflare R2 upload storage is not configured.", 503);
+  if (!storageProvider) return jsonError("Something went wrong. Try again in a moment.", 503);
 
   await storageProvider.uploadObject({
     bucket: session.storage_bucket,

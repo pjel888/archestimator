@@ -400,7 +400,7 @@ const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
 
 function placeholders(valuesOrCount: number | readonly unknown[]) {
   const count = typeof valuesOrCount === "number" ? valuesOrCount : valuesOrCount.length;
-  if (count <= 0) throw new Error("Cannot build SQL placeholders for an empty value list.");
+  if (count <= 0) throw new Error("Something went wrong. Try again in a moment.");
   return new Array(count).fill("?").join(", ");
 }
 
@@ -416,7 +416,7 @@ function bindValues(values: readonly unknown[]): D1Value[] {
 
 async function requireWorkspaceRepositoryD1Database(): Promise<D1DatabaseLike> {
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Cloudflare D1 binding ARCH_DB is required for workspace repository reads.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 

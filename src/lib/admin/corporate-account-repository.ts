@@ -104,7 +104,7 @@ export async function listCorporateAccountsWithCounts(
 ): Promise<CorporateAccountResult<CorporateAccountWithCountRow[]>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const statusClause =
       options.status === "archived"
@@ -137,7 +137,7 @@ export async function listCorporateAccounts(): Promise<
 > {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<CorporateAccountRow>(
@@ -160,7 +160,7 @@ export async function getCorporateAccount(
 ): Promise<CorporateAccountResult<CorporateAccountRow | null>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: null, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: null, error: "Something went wrong. Try again in a moment." };
 
     const row = await db
       .prepare<CorporateAccountRow>(
@@ -184,7 +184,7 @@ export async function listCorporateAccountMembers(
 ): Promise<CorporateAccountResult<CorporateAccountMemberRow[]>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<CorporateAccountMemberRow>(
@@ -218,7 +218,7 @@ export async function listCorporateAccountWorkspaces(
 ): Promise<CorporateAccountResult<WorkspaceSummaryRow[]>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<WorkspaceSummaryRow>(
@@ -242,7 +242,7 @@ export async function listUserCorporateAccounts(
 ): Promise<CorporateAccountResult<UserCorporateAccountRow[]>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<UserCorporateAccountRow>(
@@ -286,7 +286,7 @@ export async function listCorporateAccountReadOnlyViewsForMember(
 ): Promise<CorporateAccountResult<CorporateAccountReadOnlyView[]>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     return await listCorporateAccountReadOnlyViewsInD1(db, userId);
   } catch (error) {
@@ -400,7 +400,7 @@ export async function createCorporateAccount(input: {
   try {
     const db = await getCloudflareD1Database();
     if (!db)
-      return { data: null as never, error: "Cloudflare D1 is not available." };
+      return { data: null as never, error: "Something went wrong. Try again in a moment." };
 
     const id = genId();
     const ts = now();
@@ -459,7 +459,7 @@ export async function addCorporateAccountMember(input: {
   try {
     const db = await getCloudflareD1Database();
     if (!db)
-      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+      return { data: { ok: false }, error: "Something went wrong. Try again in a moment." };
 
     const ts = now();
     const result = await db
@@ -546,7 +546,7 @@ export async function removeCorporateAccountMember(
   try {
     const db = await getCloudflareD1Database();
     if (!db)
-      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+      return { data: { ok: false }, error: "Something went wrong. Try again in a moment." };
 
     // Last-owner guard: cannot remove the last owner.
     if (await isLastOwner(db, accountId, userId)) {
@@ -600,7 +600,7 @@ export async function updateCorporateAccountMemberRole(input: {
   try {
     const db = await getCloudflareD1Database();
     if (!db)
-      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+      return { data: { ok: false }, error: "Something went wrong. Try again in a moment." };
 
     // Last-owner guard: cannot demote the last owner to a non-owner role.
     if (
@@ -681,7 +681,7 @@ export async function linkWorkspaceToCorporateAccount(
     if (!db)
       return {
         data: { ok: false, previousAccountId: null },
-        error: "Cloudflare D1 is not available.",
+        error: "Something went wrong. Try again in a moment.",
       };
 
     // Check if the workspace is already linked to a different account.
@@ -731,7 +731,7 @@ export async function linkWorkspaceToCorporateAccountWithAudit(
     if (!db)
       return {
         data: { ok: false, previousAccountId: null },
-        error: "Cloudflare D1 is not available.",
+        error: "Something went wrong. Try again in a moment.",
       };
 
     return await linkWorkspaceToCorporateAccountWithAuditInD1(db, input);
@@ -769,7 +769,7 @@ export async function linkWorkspaceToCorporateAccountWithAuditInD1(
   if (!db.batch) {
     return {
       data: { ok: false, previousAccountId },
-      error: "Transactional D1 batch support is required to link a workspace.",
+      error: "Something went wrong. Try again in a moment.",
     };
   }
 
@@ -864,7 +864,7 @@ export async function updateCorporateAccountStatus(
   try {
     const db = await getCloudflareD1Database();
     if (!db)
-      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+      return { data: { ok: false }, error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare(
@@ -890,7 +890,7 @@ export async function unlinkWorkspaceFromCorporateAccount(
   try {
     const db = await getCloudflareD1Database();
     if (!db)
-      return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+      return { data: { ok: false }, error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare(
@@ -923,7 +923,7 @@ export async function unlinkWorkspaceFromCorporateAccountWithAudit(
     if (!db)
       return {
         data: { ok: false, previousAccountId: null },
-        error: "Cloudflare D1 is not available.",
+        error: "Something went wrong. Try again in a moment.",
       };
 
     return await unlinkWorkspaceFromCorporateAccountWithAuditInD1(db, input);
@@ -961,8 +961,7 @@ export async function unlinkWorkspaceFromCorporateAccountWithAuditInD1(
   if (!db.batch) {
     return {
       data: { ok: false, previousAccountId },
-      error:
-        "Transactional D1 batch support is required to unlink a workspace.",
+      error: "Something went wrong. Try again in a moment.",
     };
   }
 
@@ -1012,7 +1011,7 @@ export async function listUnlinkedWorkspaces(): Promise<
 > {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<WorkspaceSummaryRow>(
@@ -1036,7 +1035,7 @@ export async function listAllWorkspacesForLinking(): Promise<
 > {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<WorkspaceLinkCandidateRow>(
@@ -1068,7 +1067,7 @@ export async function listAllUsersForAssignment(): Promise<
 > {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<{

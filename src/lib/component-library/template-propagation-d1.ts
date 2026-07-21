@@ -650,7 +650,7 @@ async function applyClaimedJob(
     },
   ];
   assertD1MutationStatementLimit(statements.length);
-  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for Template propagation.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const results = await database.batch(statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))));
   if (results.some((result) => result.success === false)) throw new Error("Template propagation batch failed.");
   if ((results.at(-1)?.meta?.changes ?? 0) !== 1) throw new Error("Template propagation acknowledgement lost its lease.");
@@ -672,7 +672,7 @@ async function recordJobFailure(
     : null;
   const errorCode = known?.code ?? (error instanceof Error ? error.name : "template_propagation_failed");
   const timestamp = now.toISOString();
-  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for Template propagation failures.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const statements = [
     database.prepare(`SELECT CASE WHEN EXISTS (
       SELECT 1 FROM estimate_template_propagation_jobs

@@ -194,6 +194,6 @@ export async function approveUploadScanOverrideInD1(
 
 export async function approveUploadScanOverride(command: UploadScanOverrideCommand): Promise<UploadScanOverrideApproval> {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Upload scan override D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return approveUploadScanOverrideInD1(db, command);
 }

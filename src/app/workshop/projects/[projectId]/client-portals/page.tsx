@@ -12,7 +12,7 @@ export default async function ClientPortalsPage({ params, searchParams }: { para
   const [{ projectId }, query] = await Promise.all([params, searchParams]);
   const manager = await assertProjectPublicationManager(projectId);
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Client Portal D1 database is unavailable.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   const status = query.status === "draft" || query.status === "live" || query.status === "access_off" || query.status === "archived" ? query.status : "all";
   const portals = await listClientPortalsForProject({ actor: { kind: "internal", userId: manager.currentUserId, workspaceId: manager.project.workspace_id, projectId: manager.project.id, projectRole: "viewer", portalGrants: ["manager"] }, cursor: query.cursor, database, projectId: manager.project.id, status });
   const basePath = `/workshop/projects/${encodeURIComponent(projectId)}/client-portals`;

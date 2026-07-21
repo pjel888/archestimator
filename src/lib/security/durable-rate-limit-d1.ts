@@ -19,7 +19,7 @@ type RateLimitCountRow = {
 async function getRequiredRateLimitDatabase() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for publication shared links.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }

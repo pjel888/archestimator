@@ -566,8 +566,8 @@ export async function routeCloudflareUploadLifecycleProofRequest(
   const authorization = isAuthorized(request, env);
   if (authorization === "missing-secret") return jsonResponse({ error: "CRON_SECRET is not configured." }, 503);
   if (authorization === "unauthorized") return jsonResponse({ error: "Unauthorized." }, 401);
-  if (!env.ARCH_DB) return jsonResponse({ error: "ARCH_DB D1 binding is not configured." }, 503);
-  if (!env.ARCH_UPLOADS_R2) return jsonResponse({ error: "ARCH_UPLOADS_R2 binding is not configured." }, 503);
+  if (!env.ARCH_DB) return jsonResponse({ error: "Something went wrong. Try again in a moment." }, 503);
+  if (!env.ARCH_UPLOADS_R2) return jsonResponse({ error: "Something went wrong. Try again in a moment." }, 503);
 
   const report = await runHostedUploadLifecycleProof(env.ARCH_DB, env.ARCH_UPLOADS_R2);
   return jsonResponse(report, report.passed ? 200 : 500);

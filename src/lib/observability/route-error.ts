@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentPerfTraceSnapshot } from "@/lib/perf/server-timing";
 import { getCurrentRequestId, REQUEST_ID_HEADER } from "./request-id";
-import { normalizeAppError } from "./app-error";
+import { normalizeAppError, type AppErrorCode } from "./app-error";
 import { logAppError, type AppLogger } from "./logger";
 
 type ErrorResponseOptions = {
@@ -34,6 +34,32 @@ function readTraceId(override?: string) {
   return override ?? getCurrentRequestId() ?? getCurrentPerfTraceSnapshot()?.requestId ?? makeTraceId();
 }
 
+function problemTitleForCode(code: AppErrorCode): string {
+  switch (code) {
+    case "AUTH_REQUIRED":
+    case "AUTH_SESSION_EXPIRED":
+      return "Authentication required";
+    case "AUTH_PERMISSION_DENIED":
+      return "Permission denied";
+    case "AUTH_RATE_LIMITED":
+    case "RATE_LIMITED":
+      return "Too many requests";
+    case "VALIDATION_FAILED":
+      return "Invalid request";
+    case "NOT_FOUND":
+      return "Not found";
+    case "CONFLICT":
+      return "Conflict";
+    case "NETWORK_ERROR":
+      return "Network unavailable";
+    case "DATABASE_ERROR":
+    case "UPSTREAM_ERROR":
+    case "INTERNAL_ERROR":
+    default:
+      return "Request failed";
+  }
+}
+
 export function errorResponse(error: unknown, options: ErrorResponseOptions = {}) {
   const traceId = readTraceId(options.traceId);
   const appError = normalizeAppError(error);
@@ -61,6 +87,7 @@ export function errorResponse(error: unknown, options: ErrorResponseOptions = {}
 export function problemDetailsResponse(error: unknown, options: ProblemDetailsOptions = {}) {
   const requestId = readTraceId(options.requestId);
   const appError = normalizeAppError(error);
+  const clientError = appError.toClientJSON();
 
   logAppError(error, {
     logger: options.logger,
@@ -69,11 +96,11 @@ export function problemDetailsResponse(error: unknown, options: ProblemDetailsOp
   });
 
   const body: Record<string, unknown> = {
-    type: `urn:archestimator:problem:${appError.code}`,
-    title: appError.name,
+    type: `urn:archestimator:problem:${clientError.code}`,
+    title: problemTitleForCode(clientError.code),
     status: appError.statusCode,
-    detail: appError.message,
-    code: appError.code,
+    detail: clientError.message,
+    code: clientError.code,
     requestId,
   };
   if (options.instance !== undefined) body.instance = options.instance;

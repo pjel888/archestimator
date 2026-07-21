@@ -274,7 +274,7 @@ async function readD1Rows<T>(
   input: { windowStart: string; limit: number },
 ) {
   const result = await db.prepare<T>(sql).bind(input.windowStart, input.limit).all<T>();
-  if (result.success === false) throw new Error("D1 upload operations query failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 

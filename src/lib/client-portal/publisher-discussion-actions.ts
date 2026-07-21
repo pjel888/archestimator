@@ -28,7 +28,7 @@ async function managerActor(projectId: string): Promise<ClientPortalInternalActo
 
 async function requireClientPortalDatabase() {
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Client Portal D1 database is unavailable.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return database;
 }
 

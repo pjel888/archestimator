@@ -135,7 +135,7 @@ async function recordInviteRateLimitEvent({
   windowSeconds: number;
 }) {
   const db = await getAiAuditD1Database();
-  if (!db) throw new Error("Invite rate limiting requires Cloudflare D1 audit storage.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   const now = Date.now();
   const occurredAt = new Date(now).toISOString();
   await deleteExpiredSecurityRateLimitEventsInD1(db, occurredAt);
@@ -158,7 +158,7 @@ async function countInviteRateLimitEvents({
   windowSeconds: number;
 }) {
   const db = await getAiAuditD1Database();
-  if (!db) throw new Error("Invite rate limiting requires Cloudflare D1 audit storage.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return countSecurityRateLimitEventsInD1(db, {
     scope,
     keyHash,

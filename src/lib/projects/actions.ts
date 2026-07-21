@@ -32,6 +32,7 @@ import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbo
 import type { Json } from "@/lib/types/json";
 import { isUuid } from "@/lib/ids";
 import { logAppError } from "@/lib/observability/logger";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 import {
   claimUploadAssetsForRemoval,
   getUploadRemovalCleanupNotBefore,
@@ -288,7 +289,7 @@ function applyProjectImageMetadata(
 
 function placeholders(values: readonly unknown[]) {
   if (values.length === 0)
-    throw new Error("At least one SQL placeholder is required.");
+    throw new Error("Something went wrong. Try again in a moment.");
   return values.map(() => "?").join(", ");
 }
 
@@ -296,7 +297,7 @@ async function requireProjectsD1Database() {
   const database = await getCloudflareD1Database();
   if (!database)
     throw new Error(
-      "Cloudflare D1 ARCH_DB binding is required for project actions.",
+      "Something went wrong. Try again in a moment.",
     );
   return database;
 }
@@ -334,7 +335,7 @@ async function run(
     .bind(...values)
     .run();
   if (result.success === false)
-    throw new Error("Cloudflare D1 project action write failed.");
+    throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
@@ -344,7 +345,7 @@ async function runBatch(
 ) {
   if (statements.length === 0) return;
   if (!database.batch) {
-    throw new Error("Cloudflare D1 atomic batch support is required for project deletion.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   const results = await database.batch(
     statements.map((statement) =>
@@ -352,7 +353,7 @@ async function runBatch(
     ),
   );
   if (results.some((result) => result.success === false)) {
-    throw new Error("Cloudflare D1 project action batch failed.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 }
 
@@ -1166,7 +1167,7 @@ export async function createProjectRecord(formData: FormData) {
       dedupeKey: `${workspace.id}:${projectId}:workspace_ready`,
     }),
   ];
-  if (!database.batch) throw new Error("Project creation requires D1 batch support.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const results = await database.batch([projectInsert, ...activationStatements]);
   if (results.some((result) => result.success === false)) {
     throw new Error("Could not create project and activation intents.");
@@ -1178,7 +1179,7 @@ export async function createProjectRecord(formData: FormData) {
   );
   if (!project)
     throw new Error(
-      "Project was created but could not be loaded from Cloudflare D1.",
+      "Something went wrong. Try again in a moment.",
     );
 
   revalidatePath("/workshop/projects");
@@ -1245,7 +1246,7 @@ export async function previewBulkDeleteProjects(
     return buildRejectedPreviewResult("project", ids, [
       {
         code: "rpc_error",
-        message: `Could not preview project deletion: ${error instanceof Error ? error.message : "Cloudflare D1 preview failed."}`,
+        message: toUserFacingErrorMessage(error, "Could not preview project deletion."),
       },
     ]);
   }
@@ -1295,7 +1296,7 @@ export async function executeBulkDeleteProjects(
       issues: [
         {
           code: "rpc_error",
-          message: `Could not delete projects: ${error instanceof Error ? error.message : "Cloudflare D1 delete failed."}`,
+          message: toUserFacingErrorMessage(error, "Could not delete projects."),
         },
       ],
     };

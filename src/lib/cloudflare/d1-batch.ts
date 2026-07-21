@@ -9,7 +9,7 @@ export async function runRequiredD1Batch(
   statements: D1PreparedStatementLike[],
   errorMessage: string,
 ): Promise<D1Result[]> {
-  if (!db.batch) throw new Error("Cloudflare D1 batch support is required.");
+  if (!db.batch) throw new Error("Something went wrong. Try again in a moment.");
   const results = await db.batch(statements);
   if (results.some((result) => result.success === false)) {
     throw new Error(errorMessage);

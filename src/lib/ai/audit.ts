@@ -141,9 +141,9 @@ export function buildAiAskAuditEvent(input: AiAskAuditInput): AiAskAuditEvent | 
 
 export async function recordAiAskAuditEvent(input: AiAskAuditInput) {
   const event = buildAiAskAuditEvent(input);
-  if (!event) throw new Error("AI Ask audit requires a Cloudflare D1 workspace audit context.");
+  if (!event) throw new Error("Something went wrong. Try again in a moment.");
   const db = await getAiAuditD1Database();
-  if (!db) throw new Error("AI Ask audit D1 database is not configured.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   await recordAiAskAuditEventInD1(db, {
     actionRun: event.actionRun,
@@ -301,9 +301,9 @@ export async function recordAiPackageAuditRows(input: AiPackageAuditRows | null)
 }
 
 export async function recordAiPackageApplyAuthorization(actionRun: AiActionRunAuditRow | null) {
-  if (!actionRun) throw new Error("Package Apply authorization requires a Cloudflare D1 workspace audit context.");
+  if (!actionRun) throw new Error("Something went wrong. Try again in a moment.");
   const db = await getAiAuditD1Database();
-  if (!db) throw new Error("AI package Apply authorization audit D1 database is not configured.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   await recordAiPackageApplyAuthorizationInD1(db, actionRun);
 }

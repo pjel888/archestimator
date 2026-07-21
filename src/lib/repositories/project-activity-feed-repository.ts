@@ -216,14 +216,14 @@ function normalizeD1Value(value: unknown): D1Value {
 async function requireProjectActivityFeedD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for project activity feed data.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: unknown[] = []) {
   const result = await database.prepare<T>(sql).bind(...values.map(normalizeD1Value)).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 project activity feed read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 

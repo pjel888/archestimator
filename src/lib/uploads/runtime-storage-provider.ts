@@ -30,7 +30,7 @@ export async function createRuntimeUploadStorageProvider(
   const cloudflareEnv = options.cloudflareEnv ?? await (options.loadCloudflareEnv ?? loadCloudflareEnv)();
   const r2 = cloudflareEnv?.ARCH_UPLOADS_R2;
   if (!r2) {
-    throw new Error("Cloudflare R2 upload storage was selected but ARCH_UPLOADS_R2 is not bound.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return createCloudflareR2UploadStorageProvider(r2);
 }

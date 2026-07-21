@@ -110,7 +110,7 @@ export async function recordComponentLibraryTelemetryEventInCloudflareD1(
   record: ComponentLibraryTelemetryD1Record,
 ) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Component library telemetry D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return recordComponentLibraryTelemetryEventInD1(db, record);
 }
 
@@ -165,7 +165,7 @@ export async function loadComponentLibraryUserPreferencesFromD1(
 
 export async function loadComponentLibraryUserPreferencesFromCloudflareD1(input: { userId: string; workspaceId: string }) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Component library preferences D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return loadComponentLibraryUserPreferencesFromD1(db, input);
 }
 
@@ -214,6 +214,6 @@ export async function saveComponentLibraryUserPreferencesInD1(
 
 export async function saveComponentLibraryUserPreferencesInCloudflareD1(record: ComponentLibraryUserPreferenceD1Record) {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Component library preferences D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return saveComponentLibraryUserPreferencesInD1(db, record);
 }

@@ -1,3 +1,5 @@
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
+
 export type UploadClientErrorKind = "aborted" | "timeout" | "http" | "network" | "invalid-response";
 
 export class UploadClientError extends Error {
@@ -56,7 +58,8 @@ function linkAbortSignals(signals: AbortSignal[]): LinkedAbortSignal {
 
 async function readUploadErrorMessage(response: Response, fallbackMessage: string) {
   const result = await response.json().catch(() => null);
-  return result && typeof result.error === "string" ? result.error : fallbackMessage;
+  const serverMessage = result && typeof result.error === "string" ? result.error : fallbackMessage;
+  return toUserFacingErrorMessage(new Error(serverMessage), fallbackMessage);
 }
 
 export function isUploadAbortError(error: unknown) {
@@ -64,7 +67,7 @@ export function isUploadAbortError(error: unknown) {
 }
 
 export function getUploadClientErrorMessage(error: unknown, fallbackMessage: string) {
-  return error instanceof Error && error.message ? error.message : fallbackMessage;
+  return toUserFacingErrorMessage(error, fallbackMessage);
 }
 
 export async function postUploadFormData<T>(

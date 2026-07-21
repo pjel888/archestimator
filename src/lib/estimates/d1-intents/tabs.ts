@@ -95,7 +95,7 @@ function nowIso() {
 }
 
 function placeholders(values: readonly unknown[]) {
-  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  if (values.length === 0) throw new Error("Something went wrong. Try again in a moment.");
   return values.map(() => "?").join(", ");
 }
 
@@ -523,7 +523,7 @@ export async function duplicateEstimateTabWithHistory(
   actor: EstimateD1Actor,
   input: TabMutationScope & { sourceTabId: string; name?: string },
 ) {
-  if (!database.batch) throw new Error("Estimate tab duplication requires atomic D1 batch support.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const requestedName = typeof input.name === "string" && input.name.trim() ? input.name.trim() : null;
   const { context: intent, committedResult } = await prepareEstimateMutationIntent<Record<string, unknown>>(
     database,

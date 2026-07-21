@@ -7,7 +7,7 @@ import { assertProjectPublicationManager } from "@/lib/publication/actions";
 
 export async function previewClientPortalAsRoleAction({ portalId, projectId, role }: { portalId: string; projectId: string; role: ClientPortalRecipientRoleTemplate }) {
   const [manager, database] = await Promise.all([assertProjectPublicationManager(projectId), getCloudflareD1Database()]);
-  if (!database) throw new Error("Client Portal D1 database is unavailable.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   return previewClientPortalAsRole({
     actor: { kind: "internal", userId: manager.currentUserId, workspaceId: manager.project.workspace_id, projectId: manager.project.id, projectRole: "viewer", portalGrants: ["manager"] },
     database,

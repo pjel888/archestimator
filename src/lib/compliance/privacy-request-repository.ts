@@ -173,7 +173,7 @@ export async function createPrivacyRequest(
 
   const db = dbOverride ?? (await getCloudflareD1Database());
   if (!db) {
-    throw new Error("D1 database binding unavailable; privacy request not persisted.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 
   await db

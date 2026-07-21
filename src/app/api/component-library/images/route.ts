@@ -127,7 +127,7 @@ function parseComponentImageStoragePath(path: string) {
 }
 
 function uploadMetadataUnavailableResponse() {
-  return jsonError("Cloudflare D1 upload metadata is not configured.", 503);
+  return jsonError("Something went wrong. Try again in a moment.", 503);
 }
 
 async function uploadWebp({

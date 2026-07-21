@@ -39,7 +39,7 @@ function withAuthNoStore(response: Response) {
 
 async function createHandlers(request: Request): Promise<BetterAuthRouteHandlers | Response> {
   const handlers = await createCloudflareBetterAuthNextHandlersForRequest(request);
-  if (!handlers) return jsonError("Better Auth route is not configured.", 503);
+  if (!handlers) return jsonError("Sign-in is temporarily unavailable.", 503);
   return handlers;
 }
 
@@ -58,7 +58,7 @@ async function handleBetterAuthRoute(request: Request, method: BetterAuthMethod)
         route_handler: `${method} /api/auth/[...all]`,
       },
     });
-    return jsonError("Better Auth route failed.", 500);
+    return jsonError("Something went wrong. Try again in a moment.", 500);
   }
 }
 

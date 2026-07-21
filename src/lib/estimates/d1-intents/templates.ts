@@ -501,7 +501,7 @@ async function copyTemplateNodes(
   actor: EstimateD1Actor,
   input: TemplateCopyScope & { templateIds: string[]; templateNodeId?: string },
 ): Promise<TemplateCopyResult> {
-  if (!database.batch) throw new Error("Estimate template insertion requires atomic D1 batch support.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const templateIds = [...new Set(input.templateIds.filter(Boolean))];
   if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
   if (input.templateNodeId && templateIds.length !== 1) {
@@ -887,7 +887,7 @@ async function linkTemplateNodes(
   actor: EstimateD1Actor,
   input: TemplateCopyScope & { templateId: string },
 ): Promise<TemplateLinkResult> {
-  if (!database.batch) throw new Error("Linked Estimate Template insertion requires atomic D1 batch support.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const { context: intent, committedResult } = await prepareEstimateMutationIntent<TemplateLinkedResult>(
     database,
     actor,

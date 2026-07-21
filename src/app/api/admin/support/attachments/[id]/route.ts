@@ -28,7 +28,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const db = await getCloudflareD1Database();
   if (!db) {
-    return Response.json({ error: "D1 unavailable." }, { status: 503, headers: NO_STORE_HEADERS });
+    return Response.json({ error: "Something went wrong. Try again in a moment." }, { status: 503, headers: NO_STORE_HEADERS });
   }
 
   const attachment = await getSupportAttachmentForAdminInD1(db, id);

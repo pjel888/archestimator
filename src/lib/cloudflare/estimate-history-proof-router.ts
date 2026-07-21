@@ -622,7 +622,7 @@ export async function routeCloudflareEstimateHistoryProofRequest(
   const auth = isAuthorized(request, env);
   if (auth !== "authorized") return jsonResponse({ error: auth === "missing-secret" ? "Proof secret is not configured." : "Unauthorized." }, auth === "missing-secret" ? 503 : 401);
   const db = env.ARCH_DB;
-  if (!db) return jsonResponse({ error: "Cloudflare D1 ARCH_DB binding is not configured." }, 503);
+  if (!db) return jsonResponse({ error: "Something went wrong. Try again in a moment." }, 503);
 
   const runId = proofId();
   const ids = {

@@ -146,7 +146,7 @@ type PublicationProjectStatusRow = {
 async function requirePublisherRosterD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for Publisher roster data.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }

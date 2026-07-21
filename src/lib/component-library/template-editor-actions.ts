@@ -142,7 +142,7 @@ function nowIso() {
 }
 
 function placeholders(values: readonly unknown[]) {
-  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  if (values.length === 0) throw new Error("Something went wrong. Try again in a moment.");
   return values.map(() => "?").join(", ");
 }
 
@@ -207,7 +207,7 @@ function toTemplateRowItem(row: EstimateTemplateRowItemD1Row): EstimateTemplateR
 async function requireTemplateEditorD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for template editor actions.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }

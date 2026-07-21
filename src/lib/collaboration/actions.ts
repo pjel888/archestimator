@@ -169,7 +169,7 @@ function rateLimitActionResult(result: { message: string }): CollaborationAction
 
 async function getRequiredCollaborationD1Database() {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Collaboration D1 store is unavailable.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return db;
 }
 
@@ -733,7 +733,7 @@ async function issueInviteEntryLink({
     ),
   );
 
-  if (!context.db.batch) throw new Error("Invitation delivery intent requires transactional D1 support.");
+  if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.");
   await context.db.batch(statements);
 
   const invitePath = `/invite/${encodeURIComponent(inviteToken.rawToken)}`;
@@ -1044,7 +1044,7 @@ async function persistAccessMutationWithAudit({
   context: ProjectAccessContext;
   mutation: D1PreparedStatementLike;
 }) {
-  if (!context.db.batch) throw new Error("Collaboration access changes require transactional D1 support.");
+  if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.");
   await context.db.batch([mutation, audit]);
 }
 
@@ -1070,7 +1070,7 @@ export async function readProjectInviteDeliveryReadiness(): Promise<ProjectInvit
     ? "Teamspace invite delivery is disabled until project invite entry and token settings are configured. Send beta invites manually outside the app."
     : !emailDeliveryConfig.enabled
       ? "Teamspace invite delivery is disabled until email delivery is explicitly enabled. Send beta invites manually outside the app."
-      : "Teamspace invite delivery is disabled until Cloudflare Email sender settings are configured. Send beta invites manually outside the app.";
+      : "Invite email delivery is temporarily unavailable. Send invites manually outside the app.";
   return {
     configured,
     message: configured
@@ -1764,7 +1764,7 @@ export async function removeProjectCollaborator({
     await assertProjectCascadeRemovalAllowed(context, userId, directEstimateGrants);
   }
 
-  if (!context.db.batch) throw new Error("Project removal requires transactional D1 support.");
+  if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.");
 
   const timestamp = nowIso();
   const removalStatements = [
@@ -1956,7 +1956,7 @@ export async function setEstimateSheetAccessMode({
 }): Promise<CollaborationActionResult> {
   const context = await assertEstimateAccessManager(projectId, estimateId);
   const timestamp = nowIso();
-  if (!context.db.batch) throw new Error("Estimate access changes require transactional D1 support.");
+  if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.");
   const statements = [
     context.db.prepare(
       `

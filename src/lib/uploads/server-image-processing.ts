@@ -47,7 +47,7 @@ const IMAGE_PROCESSING_PROVIDER_ENV = "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER";
 declare const __ARCHESTIMATOR_CLOUDFLARE_WORKERS_PROOF_BUILD__: boolean | undefined;
 
 export const CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE =
-  "Image uploads are not available in the Cloudflare Workers proof build unless Cloudflare Images processing is selected and the IMAGES binding is available. Use the current Node deployment until provider proof passes.";
+  "Image processing is temporarily unavailable. Try again in a moment.";
 
 export function isCloudflareWorkersProofBuild() {
   return typeof __ARCHESTIMATOR_CLOUDFLARE_WORKERS_PROOF_BUILD__ !== "undefined"
@@ -109,13 +109,13 @@ function scaleDownDimensions(width: number, height: number, edge: number) {
 async function cloudflareOutputToBuffer(result: CloudflareImageOutputResult) {
   if (typeof result.response === "function") {
     const response = await result.response();
-    if (!response.ok) throw new Error("Cloudflare Images output response was not successful.");
+    if (!response.ok) throw new Error("Something went wrong. Try again in a moment.");
     return Buffer.from(await response.arrayBuffer());
   }
   if (typeof result.image === "function") {
     return Buffer.from(await new Response(result.image()).arrayBuffer());
   }
-  throw new Error("Cloudflare Images output did not expose bytes.");
+  throw new Error("Something went wrong. Try again in a moment.");
 }
 
 async function loadCloudflareImagesBinding() {

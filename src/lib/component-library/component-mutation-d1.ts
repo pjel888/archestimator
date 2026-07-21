@@ -277,14 +277,16 @@ function componentPermanentDeleteD1Error(
   cause: unknown,
 ): ComponentPermanentDeleteD1Error {
   const error = new Error(
-    cause instanceof Error
-      ? cause.message
-      : phase === "impact"
-        ? "Cloudflare D1 preview failed."
-        : "Cloudflare D1 delete failed.",
+    phase === "impact"
+      ? "Could not load component deletion impact."
+      : "Could not permanently delete components.",
   ) as ComponentPermanentDeleteD1Error;
   error.name = "ComponentPermanentDeleteD1Error";
-  Object.assign(error, { code: "component_permanent_delete_d1" as const, phase });
+  Object.assign(error, {
+    code: "component_permanent_delete_d1" as const,
+    phase,
+    cause,
+  });
   return error;
 }
 
@@ -365,13 +367,13 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[]
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 component library read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 
 async function run<T = Record<string, unknown>>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
   const result = await database.prepare<T>(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Cloudflare D1 component library write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
@@ -382,7 +384,7 @@ async function runBatch(database: D1DatabaseLike, statements: D1Statement[]) {
       statements.map((statement) => database.prepare(statement.sql).bind(...statement.values)),
     );
     if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 component library batch failed.");
+      throw new Error("Something went wrong. Try again in a moment.");
     }
     return;
   }
@@ -390,11 +392,11 @@ async function runBatch(database: D1DatabaseLike, statements: D1Statement[]) {
 }
 
 async function runAtomicBatch(database: D1DatabaseLike, statements: D1Statement[]): Promise<D1Result[]> {
-  if (!database.batch) throw new Error("Cloudflare D1 atomic batch support is required for component updates.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const results = await database.batch(
     statements.map((statement) => database.prepare(statement.sql).bind(...statement.values)),
   );
-  if (results.some((result) => result.success === false)) throw new Error("Cloudflare D1 component update batch failed.");
+  if (results.some((result) => result.success === false)) throw new Error("Something went wrong. Try again in a moment.");
   return results;
 }
 

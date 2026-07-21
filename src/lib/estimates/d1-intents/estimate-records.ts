@@ -72,7 +72,7 @@ function readJson(value: unknown, fallback: Json): Json {
 }
 
 function quoteColumn(column: string) {
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(column)) throw new Error(`Unsupported D1 column: ${column}`);
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(column)) throw new Error(`Something went wrong. Try again in a moment.`);
   return column;
 }
 
@@ -91,7 +91,7 @@ async function insertRecordReturning<T>(
   const columns = Object.keys(record);
   const sql = `INSERT INTO ${table} (${columns.map(quoteColumn).join(", ")}) VALUES (${columns.map(() => "?").join(", ")}) RETURNING *`;
   const inserted = await firstD1Row<T>(database, sql, columns.map((column) => record[column]));
-  if (!inserted) throw new Error(`Cloudflare D1 ${table} insert did not return a row.`);
+  if (!inserted) throw new Error(`Something went wrong. Try again in a moment.`);
   return inserted;
 }
 

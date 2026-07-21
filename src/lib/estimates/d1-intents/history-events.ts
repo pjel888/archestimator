@@ -127,7 +127,7 @@ type ActivityActorProfile = {
 const DORMANT_NAMED_VERSION_EVENT_TYPES = ["sheet_version_created", "sheet_restored_as_copy"] as const;
 
 function placeholders(values: readonly unknown[]) {
-  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  if (values.length === 0) throw new Error("Something went wrong. Try again in a moment.");
   return values.map(() => "?").join(", ");
 }
 

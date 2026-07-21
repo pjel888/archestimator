@@ -197,14 +197,14 @@ function toJsonString(value: unknown, fallback: Record<string, never> | never[] 
 }
 
 function placeholders(values: readonly unknown[]) {
-  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  if (values.length === 0) throw new Error("Something went wrong. Try again in a moment.");
   return values.map(() => "?").join(", ");
 }
 
 async function requirePackageApplyD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for package Apply.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
@@ -215,13 +215,13 @@ async function first<T>(database: D1DatabaseLike, sql: string, values: unknown[]
 
 async function all<T>(database: D1DatabaseLike, sql: string, values: unknown[] = []) {
   const result = await database.prepare<T>(sql).bind(...values.map(normalizeD1Value)).all<T>();
-  if (result.success === false) throw new Error("Cloudflare D1 package Apply read failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result.results ?? [];
 }
 
 async function run(database: D1DatabaseLike, sql: string, values: unknown[] = []) {
   const result = await database.prepare(sql).bind(...values.map(normalizeD1Value)).run();
-  if (result.success === false) throw new Error("Cloudflare D1 package Apply write failed.");
+  if (result.success === false) throw new Error("Something went wrong. Try again in a moment.");
   return result;
 }
 
@@ -232,7 +232,7 @@ async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: strin
       statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []).map(normalizeD1Value))),
     );
     if (results.some((result) => result.success === false)) {
-      throw new Error("Cloudflare D1 package Apply batch failed.");
+      throw new Error("Something went wrong. Try again in a moment.");
     }
     return;
   }

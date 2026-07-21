@@ -42,11 +42,11 @@ export async function checkAiAskQuota({
   userContext: AiRequestUserContext;
 }): Promise<AiAskQuotaResult> {
   if (!isProviderBackedAiUserContext(userContext)) {
-    throw new Error("AI Ask quota requires an authenticated Better Auth workspace user.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
 
   const db = await getAiAuditD1Database();
-  if (!db) throw new Error("AI Ask quota requires Cloudflare D1 audit storage.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
   const now = Date.now();
   const occurredAt = new Date(now).toISOString();

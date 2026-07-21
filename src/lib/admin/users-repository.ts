@@ -69,7 +69,7 @@ export async function listAdminUsers(
 
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available.", count: 0 };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment.", count: 0 };
 
     const whereClause = search
       ? "WHERE lower(p.email) LIKE ? OR lower(coalesce(p.display_name, '')) LIKE ?"
@@ -155,7 +155,7 @@ export async function countProfilesCreated(windowDays: number): Promise<AdminRep
 
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: 0, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: 0, error: "Something went wrong. Try again in a moment." };
 
     const row = await db
       .prepare<SignupCountRow>(
@@ -196,7 +196,7 @@ export async function listAdminUserAuditActivity(
   const safeLimit = clampPositiveInteger(limit, 10, 100);
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+    if (!db) return { data: [], error: "Something went wrong. Try again in a moment." };
 
     const result = await db
       .prepare<AdminUserAuditActivityRow>(
@@ -231,7 +231,7 @@ export async function setUserAccountStatus(
 ): Promise<AdminRepositoryResult<{ ok: boolean; changes: number }>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false, changes: 0 }, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: { ok: false, changes: 0 }, error: "Something went wrong. Try again in a moment." };
 
     // F0-2: capture affected rows. SQLite counts every row matched by WHERE as
     // changed (even for a no-op value update), so changes===0 reliably means
@@ -259,7 +259,7 @@ export async function setUserAccountStatus(
 export async function getAdminUser(userId: string): Promise<AdminRepositoryResult<AdminUserRow | null>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: null, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: null, error: "Something went wrong. Try again in a moment." };
 
     const row = await db
       .prepare<AdminUserRow>(

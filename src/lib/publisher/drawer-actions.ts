@@ -47,7 +47,7 @@ export async function updatePublisherProjectClientName({
   }
 
   const database = await getCloudflareD1Database();
-  if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required to update the client name.");
+  if (!database) throw new Error("Something went wrong. Try again in a moment.");
   await database
     .prepare(`
       UPDATE projects

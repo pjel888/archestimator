@@ -12,7 +12,8 @@ export type SilentCatchPattern =
   | "catch-empty-block"
   | "promise-catch-empty-arrow"
   | "promise-catch-empty-function"
-  | "runtime-console-error";
+  | "runtime-console-error"
+  | "infrastructure-error-literal";
 
 export type SilentCatchViolation = {
   file: string;
@@ -60,6 +61,11 @@ export const DEFAULT_ERROR_HANDLING_SCAN_TARGETS = [
   "src/lib/email",
   "src/lib/uploads/operations-dashboard.ts",
   "src/lib/uploads/operational-telemetry.ts",
+  "src/lib/estimates/actions.ts",
+  "src/lib/projects/actions.ts",
+  "src/lib/component-library/actions.ts",
+  "src/lib/client-portal/public-decision-handlers.ts",
+  "src/lib/client-portal/public-thread-handlers.ts",
   "scripts/record-operational-incident.ts",
   "scripts/check-operational-incidents.ts",
   "scripts/check-production-observability-proof.ts",
@@ -68,6 +74,9 @@ export const DEFAULT_ERROR_HANDLING_SCAN_TARGETS = [
   "scripts/collect-workers-logs-proof.ts",
   "scripts/verify-observability-alert-delivery.ts",
 ];
+
+const INFRA_ERROR_LITERAL_PATTERN =
+  /(?:throw new Error|jsonError)\(\s*["'`][^"'`]*(?:Cloudflare|\bD1\b|ARCH_DB|Better Auth|\bSQL\b|\bR2\b)[^"'`]*["'`]/gi;
 
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -211,6 +220,15 @@ function findRuntimeConsoleErrorViolations(file: SourceFileSnapshot) {
   return violations;
 }
 
+function findInfrastructureErrorLiteralViolations(file: SourceFileSnapshot) {
+  if (file.path.includes("proof-router")) return [];
+  const violations: SilentCatchViolation[] = [];
+  for (const match of file.content.matchAll(INFRA_ERROR_LITERAL_PATTERN)) {
+    violations.push(buildViolation(file, match.index ?? 0, "infrastructure-error-literal"));
+  }
+  return violations;
+}
+
 export function findSilentCatchViolations(files: SourceFileSnapshot[]): SilentCatchViolation[] {
   const promiseCatchArrowPattern = /\.catch\s*\(\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)?\s*=>\s*\{([\s\S]*?)\}\s*\)/g;
   const promiseCatchFunctionPattern =
@@ -221,6 +239,7 @@ export function findSilentCatchViolations(files: SourceFileSnapshot[]): SilentCa
     ...findPatternViolations(file, promiseCatchArrowPattern, "promise-catch-empty-arrow"),
     ...findPatternViolations(file, promiseCatchFunctionPattern, "promise-catch-empty-function"),
     ...findRuntimeConsoleErrorViolations(file),
+    ...findInfrastructureErrorLiteralViolations(file),
   ]).sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column);
 }
 
@@ -231,8 +250,19 @@ export function buildErrorHandlingContractReport(options: CheckOptions = {}): Er
   const violations = findSilentCatchViolations(files);
   const passed = violations.length === 0;
   const failedChecks = [
-    violations.some((violation) => violation.pattern !== "runtime-console-error") ? "silent-catch-handling" : null,
-    violations.some((violation) => violation.pattern === "runtime-console-error") ? "structured-error-logging" : null,
+    violations.some((violation) =>
+      violation.pattern === "catch-empty-block"
+      || violation.pattern === "promise-catch-empty-arrow"
+      || violation.pattern === "promise-catch-empty-function"
+    )
+      ? "silent-catch-handling"
+      : null,
+    violations.some((violation) => violation.pattern === "runtime-console-error")
+      ? "structured-error-logging"
+      : null,
+    violations.some((violation) => violation.pattern === "infrastructure-error-literal")
+      ? "user-facing-infrastructure-leak"
+      : null,
   ].filter((check): check is string => Boolean(check));
 
   return {
@@ -243,7 +273,7 @@ export function buildErrorHandlingContractReport(options: CheckOptions = {}): Er
     violations,
     failedChecks,
     passed,
-    note: "Scans sensitive server, observability, email, and operations surfaces for empty catch blocks, empty Promise.catch handlers, and raw console.error calls in runtime user/operator paths. It is a static guardrail for agentic debugging; runtime logging and hosted observability still require their own proof.",
+    note: "Scans sensitive server, observability, email, and operations surfaces for empty catch blocks, empty Promise.catch handlers, raw console.error calls in runtime user/operator paths, and user-facing throw/jsonError literals that name infrastructure. It is a static guardrail for agentic debugging; runtime logging and hosted observability still require their own proof.",
   };
 }
 

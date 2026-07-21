@@ -19,6 +19,7 @@ import { checkSharedLinkCommentReadRateLimit, checkSharedLinkCommentRateLimit } 
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 import { parseSharedLinkActivityCursor } from "@/lib/publication/activity-helpers";
 import { emitLogRecord, logAppError } from "@/lib/observability/logger";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 
 export const dynamic = "force-dynamic";
@@ -123,7 +124,7 @@ function readSessionPayload(value: string | undefined) {
 }
 
 function readErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
+  return toUserFacingErrorMessage(error, fallback);
 }
 
 function scheduleOwnerDigest(publicationId: string, token: string, kind: "comment" | "decision") {

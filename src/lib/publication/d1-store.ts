@@ -190,7 +190,7 @@ function normalizeD1Value(value: D1Value | Date): D1Value {
 async function getRequiredPublicationD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for publication shared links.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
@@ -355,7 +355,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       workspaceId: string;
     }) {
       const db = await getDb();
-      if (!db.batch) throw new Error("Activation recipient events require D1 batch support.");
+      if (!db.batch) throw new Error("Something went wrong. Try again in a moment.");
       const activationIntent = validateActivationProducerIntent({
         domainMutationId: `${input.publicationId}:${input.recipientId}:open`,
         milestone: "recipient_opened",
@@ -640,7 +640,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       if (!recipient) throw new Error("Recipient not found.");
 
       const id = randomUUID();
-      if (!db.batch) throw new Error("Activation recipient events require D1 batch support.");
+      if (!db.batch) throw new Error("Something went wrong. Try again in a moment.");
       const createdAt = nowIso();
       const activationIntent = validateActivationProducerIntent({
         domainMutationId: id,
@@ -737,7 +737,7 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
         : null;
 
       const id = randomUUID();
-      if (!db.batch) throw new Error("Activation recipient events require D1 batch support.");
+      if (!db.batch) throw new Error("Something went wrong. Try again in a moment.");
       const activationIntent = validateActivationProducerIntent({
         domainMutationId: id,
         milestone: "recipient_decided",

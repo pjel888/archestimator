@@ -98,7 +98,7 @@ function appendEstimateScope(sql: string, accessibleEstimateIds: string[] | null
 
 async function requireProjectEstimateSheetsD1Database(): Promise<D1DatabaseLike> {
   const db = await getCloudflareD1Database();
-  if (!db) throw new Error("Cloudflare D1 binding ARCH_DB is unavailable for project estimate sheets.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return db;
 }
 

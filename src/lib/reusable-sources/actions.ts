@@ -134,7 +134,7 @@ type ReusableSourceEventPayload = {
 };
 
 function placeholders(values: readonly unknown[]) {
-  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  if (values.length === 0) throw new Error("Something went wrong. Try again in a moment.");
   return values.map(() => "?").join(", ");
 }
 
@@ -166,28 +166,16 @@ function readNumber(value: unknown, fallback = 0) {
 async function requireReusableSourcesD1Database() {
   const database = await getCloudflareD1Database();
   if (!database) {
-    throw new Error("Cloudflare D1 ARCH_DB binding is required for reusable source actions.");
+    throw new Error("Something went wrong. Try again in a moment.");
   }
   return database;
 }
 
 function throwReusableSourceReadError(error: unknown): never {
-  if (error instanceof Error && error.message === "Cloudflare D1 estimate action read failed.") {
-    throw new Error("Cloudflare D1 reusable source read failed.");
-  }
   throw error;
 }
 
 function reusableSourceBatchError(error: unknown) {
-  if (
-    error instanceof Error
-    && [
-      "Cloudflare D1 estimate action batch failed.",
-      "Cloudflare D1 estimate action write failed.",
-    ].includes(error.message)
-  ) {
-    return new Error("Cloudflare D1 reusable source batch failed.");
-  }
   return error;
 }
 
@@ -623,7 +611,7 @@ async function copyProjectSourceSubtreeInD1(
   input: InsertProjectSourceIntoEstimateInput,
   currentUserId: string,
 ): Promise<ReusableSourceEventPayload> {
-  if (!database.batch) throw new Error("Project-source insertion requires atomic D1 batch support.");
+  if (!database.batch) throw new Error("Something went wrong. Try again in a moment.");
   const targetEstimate = await readEstimateContext(database, input.targetEstimateId);
   if (!targetEstimate || targetEstimate.project_id !== input.targetProjectId) {
     throw new Error("Estimate not found after inserting the project source.");

@@ -299,7 +299,7 @@ export function setSupportDbResolver(resolver: () => Promise<D1DatabaseLike | nu
 async function resolveSupportDb(dbOverride?: D1DatabaseLike): Promise<D1DatabaseLike> {
   if (dbOverride) return dbOverride;
   const db = supportDbResolver ? await supportDbResolver() : null;
-  if (!db) throw new Error("Cloudflare D1 is not available.");
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
   return db;
 }
 

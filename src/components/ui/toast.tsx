@@ -20,6 +20,7 @@ import {
 
 import { cn } from "@/lib/ui/cn";
 import { AppError, InternalError } from "@/lib/observability/app-error";
+import { toUserFacingErrorMessage } from "@/lib/observability/user-facing-error";
 import { readAppErrorToastConfig } from "@/lib/observability/toast-config";
 import type { AppErrorClientJSON, AppErrorKind } from "@/lib/observability/types";
 import { Button } from "./button";
@@ -148,7 +149,10 @@ function toastInputFromAppError(error: unknown): ToastInput {
 }
 
 function createToastFunction(showToast: (input: ToastInput) => string): ToastFunction {
-  return Object.assign((input: ToastInput) => showToast(input), {
+  return Object.assign((input: ToastInput) => showToast({
+    ...input,
+    message: toUserFacingErrorMessage(new Error(input.message)),
+  }), {
     appError: (error: unknown) => showToast(toastInputFromAppError(error)),
   });
 }

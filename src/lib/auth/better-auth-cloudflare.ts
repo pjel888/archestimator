@@ -342,7 +342,7 @@ export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
       });
 
       if (!result.ok) {
-        throw new Error(result.error ?? "Better Auth magic-link email delivery failed.");
+        throw new Error("Magic-link email delivery failed.");
       }
     },
   });
