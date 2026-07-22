@@ -13,6 +13,7 @@ export type FeedbackAttentionRow = {
   user_email: string;
   feedback_type: string;
   severity: "blocker" | "high" | "medium" | "low";
+  status: "new" | "reviewing" | "resolved" | "archived";
   page_path: string | null;
   created_at: string;
 };
@@ -33,9 +34,15 @@ export async function listHighSeverityFeedback(limit = 15): Promise<FeedbackAtte
     const result = await db
       .prepare<FeedbackAttentionRow>(
         `
-          SELECT id, user_email, feedback_type, severity, page_path, created_at
+          SELECT id, user_email, feedback_type, severity, status, page_path, created_at
           FROM beta_feedback_submissions
           WHERE severity IN ('blocker', 'high')
+            AND status IN ('new', 'reviewing')
+            AND NOT EXISTS (
+              SELECT 1
+              FROM support_legacy_feedback_imports mapped_feedback
+              WHERE mapped_feedback.feedback_id = beta_feedback_submissions.id
+            )
           ORDER BY CASE severity WHEN 'blocker' THEN 0 ELSE 1 END, created_at DESC
           LIMIT ?
         `,

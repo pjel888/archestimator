@@ -18,14 +18,13 @@ import {
   summarizeUploadCleanupJobResult,
 } from "@/lib/uploads/cleanup-job";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
-import { recoverStaleSupportDraftSendsInD1 } from "@/lib/repositories/support-drafts-d1";
+import { reconcileSupportPrivacyCleanup } from "@/lib/compliance/support-privacy-fulfillment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_ROUTE_LIMIT = 100;
 const MAX_ROUTE_LIMIT = 1_000;
-const SUPPORT_DRAFT_STALE_SEND_MS = 6 * 60 * 60 * 1000;
 const NO_STORE_HEADERS = {
   "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
 };
@@ -113,16 +112,15 @@ async function handleUploadCleanupJob(request: Request) {
     const db = await getCloudflareD1Database();
     if (!db) return jsonError("Upload cleanup job database is not configured.", 503);
 
-    const supportDrafts = await recoverStaleSupportDraftSendsInD1({
-      db,
-      olderThan: new Date(Date.now() - SUPPORT_DRAFT_STALE_SEND_MS).toISOString(),
+    const supportPrivacy = await reconcileSupportPrivacyCleanup({
+      database: db,
       limit,
       dryRun,
     });
 
     if (!dryRun) await expireProjectComponentAttachmentRetentionHolds(db, { limit });
     const records = await listUploadCleanupJobRecords(db, { limit });
-    if (dryRun) return jsonOk({ ...summarizeUploadCleanupDryRun(records, limit), supportDrafts });
+    if (dryRun) return jsonOk({ ...summarizeUploadCleanupDryRun(records, limit), supportPrivacy });
     const storageProvider = await createRuntimeUploadStorageProvider();
 
     const result = await runUploadCleanupJob({
@@ -133,7 +131,7 @@ async function handleUploadCleanupJob(request: Request) {
       coordinator: createUploadCleanupCoordinator(db),
     });
 
-    return jsonOk({ ...summarizeUploadCleanupJobResult(result), supportDrafts });
+    return jsonOk({ ...summarizeUploadCleanupJobResult(result), supportPrivacy });
   } catch (error) {
     logAppError(error, {
       event: "upload_cleanup_job_error",

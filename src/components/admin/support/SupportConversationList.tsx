@@ -3,6 +3,7 @@
 import { EnvelopeSimple } from "@phosphor-icons/react";
 
 import { StatusBadge, type StatusBadgeStatus } from "@/components/ui/status-badge";
+import { Button } from "@/components/ui/button";
 import { formatAdminListTime } from "@/lib/admin/datetime";
 import { cn } from "@/lib/ui/cn";
 import type { SupportChannelFilter, SupportConversationRow, SupportConversationStatus } from "@/lib/repositories/support-conversations-d1";
@@ -20,12 +21,14 @@ export function SupportConversationList({
   channelFilter,
   mailboxError,
   onSelect,
+  onRetry,
 }: {
   conversations: SupportConversationRow[];
   selectedId: string | null;
   channelFilter: SupportChannelFilter;
   mailboxError: boolean;
   onSelect: (conversation: SupportConversationRow) => void;
+  onRetry: () => void;
 }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto p-1.5" aria-live="polite">
@@ -60,7 +63,14 @@ export function SupportConversationList({
         </button>
       ))}
       {conversations.length === 0 && <div className="rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">{channelFilter === "email" ? "No email conversations yet. Compose one to start." : "No support conversations match these filters."}</div>}
-      {mailboxError && <p role="status" className="px-1.5 py-2 text-[9px] leading-3 text-tertiary">Mailbox refresh failed; showing the last available list.</p>}
+      {mailboxError && (
+        <div role="status" className="flex items-center justify-between gap-2 px-1.5 py-2 text-[9px] leading-3 text-tertiary">
+          <span>Mailbox refresh failed; showing the last available list.</span>
+          <Button type="button" variant="ghost" size="xs" className="min-h-6 px-1.5" onClick={onRetry}>
+            Retry
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

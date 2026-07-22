@@ -20,6 +20,7 @@ import {
   Notepad,
   Pulse,
   Rocket,
+  ShieldCheck,
   Sparkle,
   TreeStructure,
   Users,
@@ -97,6 +98,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { href: "/admin/flags", label: "Flags", icon: Flag },
       { href: "/admin/audit", label: "Audit", icon: ClipboardText },
+      { href: "/admin/privacy", label: "Privacy", icon: ShieldCheck },
     ],
   },
 ] as const satisfies readonly AdminNavGroup[];

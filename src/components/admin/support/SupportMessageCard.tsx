@@ -3,9 +3,14 @@
 import { Paperclip } from "@phosphor-icons/react";
 
 import { formatAdminMessageTime } from "@/lib/admin/datetime";
+import { Button } from "@/components/ui/button";
 import { sanitizeSupportHtml } from "@/lib/email/support-email-html";
 import { cn } from "@/lib/ui/cn";
-import type { SupportAttachmentRow, SupportMessageRow } from "@/lib/repositories/support-conversations-d1";
+import type {
+  SupportAttachmentRow,
+  SupportMessageContextRow,
+  SupportMessageRow,
+} from "@/lib/repositories/support-conversations-d1";
 
 function formatBytes(size: number) {
   if (size < 1024) return `${size} B`;
@@ -24,9 +29,16 @@ function sendStatusLabel(status: SupportMessageRow["send_status"], transport: Su
 type SupportMessageCardProps = {
   message: SupportMessageRow;
   attachments: SupportAttachmentRow[];
+  context: SupportMessageContextRow | null;
+  onRetryAttachments: () => void;
 };
 
-export function SupportMessageCard({ message, attachments }: SupportMessageCardProps) {
+export function SupportMessageCard({
+  message,
+  attachments,
+  context,
+  onRetryAttachments,
+}: SupportMessageCardProps) {
   const isAdmin = message.sender_role === "admin";
   const isEmail = message.transport === "email";
   const html = message.body_html ? sanitizeSupportHtml(message.body_html) : null;
@@ -73,6 +85,33 @@ export function SupportMessageCard({ message, attachments }: SupportMessageCardP
         <p className="mt-1 text-[9px] leading-3 text-tertiary">Warning: {warning.flags.join(", ")}</p>
       )}
 
+      {context ? (
+        <details className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/45 px-2 py-1.5">
+          <summary className="min-h-6 cursor-pointer text-[9px] font-medium leading-6 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+            Included details
+          </summary>
+          <dl className="grid gap-x-3 gap-y-1 border-t border-hairline pt-1.5 text-[9px] leading-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+            <dt className="text-tertiary">Message reference</dt>
+            <dd className="break-all text-secondary">{message.id}</dd>
+            <dt className="text-tertiary">Route</dt>
+            <dd className="break-all text-secondary">{context.route_template}</dd>
+            <dt className="text-tertiary">Optional diagnostics</dt>
+            <dd className="text-secondary">{context.diagnostics_shared ? "Shared" : "Not shared"}</dd>
+            {context.diagnostics_shared ? (
+              <>
+                {context.workspace_id ? <><dt className="text-tertiary">Workspace</dt><dd className="break-all text-secondary">{context.workspace_id}</dd></> : null}
+                {context.project_id ? <><dt className="text-tertiary">Project</dt><dd className="break-all text-secondary">{context.project_id}</dd></> : null}
+                {context.estimate_id ? <><dt className="text-tertiary">Estimate</dt><dd className="break-all text-secondary">{context.estimate_id}</dd></> : null}
+                {context.viewport_width && context.viewport_height ? <><dt className="text-tertiary">Viewport</dt><dd className="text-secondary">{context.viewport_width} × {context.viewport_height}</dd></> : null}
+                {context.timezone ? <><dt className="text-tertiary">Timezone</dt><dd className="text-secondary">{context.timezone}</dd></> : null}
+                {context.browser_family || context.os_family ? <><dt className="text-tertiary">Browser / OS</dt><dd className="text-secondary">{[context.browser_family, context.os_family].filter(Boolean).join(" / ")}</dd></> : null}
+                {context.app_release ? <><dt className="text-tertiary">App release</dt><dd className="break-all text-secondary">{context.app_release}</dd></> : null}
+              </>
+            ) : null}
+          </dl>
+        </details>
+      ) : null}
+
       {attachments.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1" aria-label="Attachments">
           {attachments.map((attachment) => {
@@ -98,9 +137,12 @@ export function SupportMessageCard({ message, attachments }: SupportMessageCardP
                     </span>
                   </a>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-xs border border-dashed border-hairline px-1.5 py-1 text-[9px] leading-3 text-tertiary">
-                    {attachment.filename} — {attachment.storage_status}
-                  </span>
+                  <div className="flex items-center gap-1 rounded-xs border border-dashed border-hairline px-1.5 py-1 text-[9px] leading-3 text-tertiary">
+                    <span>{attachment.filename} is unavailable ({attachment.storage_status}). The message remains available.</span>
+                    <Button type="button" variant="ghost" size="xs" className="min-h-6 px-1.5" onClick={onRetryAttachments}>
+                      Retry
+                    </Button>
+                  </div>
                 )}
               </li>
             );

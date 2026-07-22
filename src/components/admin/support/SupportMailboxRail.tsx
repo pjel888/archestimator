@@ -58,6 +58,7 @@ export function SupportMailboxRail({
   onAssignedToMeChange,
   onSelect,
   onResumeDraft,
+  onRetryMailbox,
 }: {
   folder: SupportMailboxFolder;
   mailboxCounts: Record<SupportMailboxFolder, number>;
@@ -88,6 +89,7 @@ export function SupportMailboxRail({
   onAssignedToMeChange: () => void;
   onSelect: (conversation: SupportConversationRow) => void;
   onResumeDraft: (draft: SupportDraftRow) => void;
+  onRetryMailbox: () => void;
 }) {
   const activeFolder = folders.find((item) => item.id === folder)?.label ?? "Inbox";
 
@@ -256,6 +258,7 @@ export function SupportMailboxRail({
         channelFilter={channelFilter}
         mailboxError={mailboxError}
         onSelect={onSelect}
+        onRetry={onRetryMailbox}
       />
     </section>
   );

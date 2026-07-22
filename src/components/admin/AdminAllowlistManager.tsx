@@ -96,7 +96,13 @@ function AddSubmitButton({ readyCount }: { readyCount: number }) {
   const label =
     readyCount > 1 ? `Add ${readyCount} emails` : readyCount === 1 ? "Add email" : "Add to allowlist";
   return (
-    <Button type="submit" variant="primary" size="xs" disabled={pending || readyCount === 0} className="min-w-[7.5rem]">
+    <Button
+      type="submit"
+      variant="primary"
+      size="xs"
+      disabled={pending}
+      className="min-h-10 w-full sm:min-h-8 sm:w-auto sm:min-w-[7.5rem]"
+    >
       {pending ? "Adding…" : label}
     </Button>
   );
@@ -105,7 +111,13 @@ function AddSubmitButton({ readyCount }: { readyCount: number }) {
 function RowSaveButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant="secondary" size="xs" disabled={pending} className="min-w-[4.5rem]">
+    <Button
+      type="submit"
+      variant="secondary"
+      size="xs"
+      disabled={pending}
+      className="min-h-10 w-full sm:min-h-7 sm:w-auto sm:min-w-[4.5rem]"
+    >
       {pending ? "Saving…" : "Save"}
     </Button>
   );
@@ -183,7 +195,7 @@ function AllowlistAddForm() {
               />
             </ControlField>
           </div>
-          <div className="flex items-center justify-between gap-2 border-t border-hairline pt-2">
+          <div className="flex flex-col gap-2 border-t border-hairline pt-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[9px] leading-3 text-tertiary">New entries can sign in immediately.</p>
             <AddSubmitButton readyCount={preview.length} />
           </div>
@@ -325,12 +337,12 @@ function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desk
               </Button>
             </form>
           ) : (
-            <Button
-              type="button"
-              variant="danger"
-              size="xs"
-              disabled={isPending}
-              onClick={() => setConfirmOpen(true)}
+              <Button
+                type="button"
+                variant="danger"
+                size="xs"
+                disabled={isPending}
+                onClick={() => setConfirmOpen(true)}
             >
               Revoke
             </Button>
@@ -359,7 +371,7 @@ function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desk
         <form action={updateClosedBetaAllowlistEntry} className="mt-2 grid gap-2">
           <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
           <input type="hidden" name="id" value={row.id} />
-          <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-2">
+          <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
             <ControlField label="Status" as="div" className="gap-0.5">
               <AdminStatusSelect
                 name="status"
@@ -378,7 +390,7 @@ function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desk
               />
             </ControlField>
           </div>
-          <div className="flex justify-end">
+          <div className="flex">
             <RowSaveButton />
           </div>
         </form>
@@ -389,17 +401,24 @@ function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desk
               <input type="hidden" name="id" value={row.id} />
               <input type="hidden" name="status" value="invited" />
               <input type="hidden" name="notes" value={row.notes ?? ""} />
-              <Button type="submit" variant="secondary" size="xs" disabled={isPending}>
+              <Button
+                type="submit"
+                variant="secondary"
+                size="xs"
+                disabled={isPending}
+                className="min-h-10"
+              >
                 Restore access
               </Button>
             </form>
           ) : (
-            <Button
-              type="button"
-              variant="danger"
-              size="xs"
-              disabled={isPending}
-              onClick={() => setConfirmOpen(true)}
+              <Button
+                type="button"
+                variant="danger"
+                size="xs"
+                disabled={isPending}
+                className="min-h-10"
+                onClick={() => setConfirmOpen(true)}
             >
               Revoke access
             </Button>

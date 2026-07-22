@@ -5,12 +5,22 @@ import {
 import { classifyInboundAttachment, sha256Hex } from "@/lib/email/support-email-attachments";
 import { readSupportEmailConfig } from "@/lib/email/support-email-config";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import {
-  addSupportDraftAttachmentInD1,
   getSupportDraftForAdminInD1,
-  getOrCreateSupportDraftInD1,
   listSupportDraftAttachmentsInD1,
 } from "@/lib/repositories/support-drafts-d1";
+import {
+  captureSupportPrivacyWriteGate,
+  supportPrivacyWriteGateSql,
+  supportPrivacyWriteGateValues,
+  type SupportPrivacyWriteGate,
+} from "@/lib/support/privacy-fence";
+import {
+  forgetSupportSubjectR2Object,
+  markSupportSubjectR2ObjectStoredStatement,
+  reserveOpenSupportSubjectR2Object,
+} from "@/lib/support/subject-r2-registry";
 
 export const dynamic = "force-dynamic";
 
@@ -60,41 +70,130 @@ export async function POST(request: Request) {
   if (kind === "reply" && (typeof conversationId !== "string" || !conversationId)) {
     return jsonError("Reply draft conversation is required.", 400);
   }
-  const draft = await getOrCreateSupportDraftInD1({
-    db,
-    adminUserId: gate.context.userId,
-    scopeKey: draftId,
-    kind,
-    conversationId: typeof conversationId === "string" ? conversationId : null,
-    clientMessageId: draftId,
-  });
-  if (!draft || draft.lifecycle !== "editing") return jsonError("Draft is unavailable.", 409);
+  const resolvedConversationId = typeof conversationId === "string" ? conversationId : null;
+  let privacyGate: SupportPrivacyWriteGate = null;
+  if (resolvedConversationId) {
+    const conversation = await db.prepare<{ user_id: string | null }>(
+      "SELECT user_id FROM support_conversations WHERE id = ? LIMIT 1",
+    ).bind(resolvedConversationId).first<{ user_id: string | null }>();
+    if (!conversation) return jsonError("Draft is unavailable.", 409);
+    try {
+      privacyGate = await captureSupportPrivacyWriteGate(db, conversation.user_id);
+    } catch {
+      return jsonError("support_subject_fenced", 409);
+    }
+  }
+  let draft = await getSupportDraftForAdminInD1(db, draftId, gate.context.userId);
+  if (!draft) {
+    const now = new Date().toISOString();
+    const insertDraft = db.prepare(
+      `INSERT OR IGNORE INTO support_drafts (
+         id, admin_user_id, scope_key, kind, conversation_id, client_message_id,
+         lifecycle, revision, created_at, updated_at
+       ) SELECT ?, ?, ?, ?, ?, ?, 'editing', 1, ?, ?
+       WHERE ${supportPrivacyWriteGateSql("draft_upload_fence")}`,
+    ).bind(
+      draftId,
+      gate.context.userId,
+      draftId,
+      kind,
+      resolvedConversationId,
+      draftId,
+      now,
+      now,
+      ...supportPrivacyWriteGateValues(privacyGate),
+    );
+    const [created] = await runRequiredD1Batch(db, [insertDraft], "Support draft could not be created.");
+    if ((created.meta?.changes ?? 0) !== 1) return jsonError("support_subject_fenced", 409);
+    draft = await getSupportDraftForAdminInD1(db, draftId, gate.context.userId);
+  }
+  if (
+    !draft
+    || draft.lifecycle !== "editing"
+    || draft.kind !== kind
+    || draft.conversation_id !== resolvedConversationId
+  ) return jsonError("Draft is unavailable.", 409);
 
   const r2Key = `support-email/drafts/${gate.context.userId.replace(/[^a-zA-Z0-9_-]/g, "_")}/${draftId}/${crypto.randomUUID()}-${decision.sanitizedFilename}`;
   const bytes = new Uint8Array(await file.arrayBuffer());
   const digest = await sha256Hex(bytes);
+  const attachmentId = crypto.randomUUID();
+  let subjectReservation = false;
 
-  await r2.put(r2Key, bytes, {
-    httpMetadata: {
-      contentType: decision.safeContentType,
-      cacheControl: "private, max-age=3600",
-    },
-  });
-  let attachmentId: string;
   try {
-    const attachment = await addSupportDraftAttachmentInD1({
-      db,
-      draft_id: draftId,
-      r2_key: r2Key,
-      filename: decision.sanitizedFilename,
-      content_type: decision.safeContentType,
-      size_bytes: bytes.byteLength,
-      sha256: digest,
+    if (privacyGate) {
+      await reserveOpenSupportSubjectR2Object({
+        database: db,
+        privacyGate,
+        r2Key,
+        sourceId: attachmentId,
+        sourceKind: "admin_draft_attachment",
+      });
+      subjectReservation = true;
+    }
+    await r2.put(r2Key, bytes, {
+      httpMetadata: {
+        contentType: decision.safeContentType,
+        cacheControl: "private, max-age=3600",
+      },
     });
-    attachmentId = attachment.id;
+    const insertAttachment = db.prepare(
+      `INSERT INTO support_draft_attachments (
+         id, draft_id, r2_key, filename, content_type, size_bytes, sha256, created_at
+       ) SELECT ?, ?, ?, ?, ?, ?, ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM support_drafts draft
+         WHERE draft.id = ? AND draft.admin_user_id = ? AND draft.lifecycle = 'editing'
+       ) AND ${supportPrivacyWriteGateSql("draft_attachment_fence")}`,
+    ).bind(
+      attachmentId,
+      draft.id,
+      r2Key,
+      decision.sanitizedFilename,
+      decision.safeContentType,
+      bytes.byteLength,
+      digest,
+      new Date().toISOString(),
+      draft.id,
+      gate.context.userId,
+      ...supportPrivacyWriteGateValues(privacyGate),
+    );
+    const statements = [insertAttachment];
+    if (privacyGate) {
+      statements.push(markSupportSubjectR2ObjectStoredStatement({
+        database: db,
+        r2Key,
+        sourceId: attachmentId,
+        sourceKind: "admin_draft_attachment",
+        storedAt: new Date().toISOString(),
+        userId: privacyGate.userId,
+      }));
+    }
+    const results = await runRequiredD1Batch(db, statements, "Draft attachment could not be saved.");
+    if (results.some((result) => (result.meta?.changes ?? 0) !== 1)) {
+      throw new Error("support_subject_fenced");
+    }
   } catch {
-    await r2.delete?.(r2Key).catch(() => undefined);
-    return jsonError("Draft attachment could not be saved.", 409);
+    try {
+      if (!r2.delete) throw new Error("support_r2_delete_unavailable");
+      await r2.delete(r2Key);
+      const remaining = await r2.get(r2Key);
+      if (remaining) {
+        await remaining.body?.cancel().catch(() => undefined);
+        throw new Error("support_r2_delete_unconfirmed");
+      }
+      if (subjectReservation && privacyGate) {
+        await forgetSupportSubjectR2Object({
+          database: db,
+          r2Key,
+          userId: privacyGate.userId,
+        });
+      }
+    } catch (cleanupError) {
+      // A durable subject reservation intentionally remains for erasure retry.
+      void cleanupError;
+    }
+    return jsonError(privacyGate ? "support_subject_fenced" : "Draft attachment could not be saved.", 409);
   }
 
   const isImage = decision.safeContentType.startsWith("image/");
@@ -104,7 +203,7 @@ export async function POST(request: Request) {
 
   return Response.json(
     {
-      draftId,
+      draftId: draft.id,
       attachmentId,
       filename: decision.sanitizedFilename,
       contentType: decision.safeContentType,

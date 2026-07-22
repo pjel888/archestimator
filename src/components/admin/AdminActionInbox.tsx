@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import {
   dismissActionItem,
@@ -22,9 +23,25 @@ function ageLabel(iso: string): string {
   return days <= 0 ? "today" : `${days}d`;
 }
 
+function safeInternalHref(href: string | null): string | null {
+  if (!href || !href.startsWith("/") || href.startsWith("//") || href.includes("\\")) return null;
+  if (/[\u0000-\u001f\u007f]/.test(href)) return null;
+  return href;
+}
+
+function actionHref(item: AdminActionItemRow): string | null {
+  if (item.source_kind === "support") {
+    return `/admin/support?${new URLSearchParams({ c: item.source_id, folder: "all" }).toString()}`;
+  }
+  if (item.source_kind === "feedback") {
+    return `/workshop/settings/feedback?${new URLSearchParams({ feedback: item.source_id }).toString()}`;
+  }
+  return safeInternalHref(item.href);
+}
+
 /**
- * F2 Action Inbox list. Each item can be resolved, dismissed, or snoozed 1 day.
- * Snoozed items resurface automatically once snooze_until passes (see repository).
+ * F2 Action Inbox list. Source-owned support/feedback rows only expose Open;
+ * other derived items can be resolved, dismissed, or snoozed for one day.
  */
 export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
   const router = useRouter();
@@ -61,31 +78,43 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => run(item.id, snoozeActionItem)}
-              className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
-            >
-              Snooze 1d
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => run(item.id, resolveActionItem)}
-              className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
-            >
-              Resolve
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => run(item.id, dismissActionItem)}
-              className="min-h-8 rounded-xs px-2 py-1 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:px-1.5 sm:py-0.5"
-              aria-label="Dismiss"
-            >
-              Dismiss
-            </button>
+            {actionHref(item) ? (
+              <Link
+                href={actionHref(item)!}
+                className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-center text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+              >
+                Open
+              </Link>
+            ) : null}
+            {item.source_kind !== "support" && item.source_kind !== "feedback" ? (
+              <>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(item.id, snoozeActionItem)}
+                  className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                >
+                  Snooze 1d
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(item.id, resolveActionItem)}
+                  className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                >
+                  Resolve
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(item.id, dismissActionItem)}
+                  className="min-h-8 rounded-xs px-2 py-1 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:py-0.5"
+                  aria-label="Dismiss"
+                >
+                  Dismiss
+                </button>
+              </>
+            ) : null}
           </div>
         </li>
       ))}

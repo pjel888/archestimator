@@ -1,6 +1,16 @@
 import { gateAdminApiGet, gateAdminApiMutation, NO_STORE_HEADERS } from "@/lib/admin/require-admin";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
-import { getOrCreateSupportDraftInD1, listSupportDraftsForAdminInD1 } from "@/lib/repositories/support-drafts-d1";
+import {
+  getSupportDraftByScopeForAdminInD1,
+  listSupportDraftsForAdminInD1,
+} from "@/lib/repositories/support-drafts-d1";
+import {
+  captureSupportPrivacyWriteGate,
+  supportPrivacyWriteGateSql,
+  supportPrivacyWriteGateValues,
+  type SupportPrivacyWriteGate,
+} from "@/lib/support/privacy-fence";
 
 export const dynamic = "force-dynamic";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
@@ -20,14 +30,49 @@ export async function POST(request: Request) {
   }
   const db = await getCloudflareD1Database();
   if (!db) return Response.json({ error: "Draft storage unavailable." }, { status: 503, headers: NO_STORE_HEADERS });
-  const draft = await getOrCreateSupportDraftInD1({
-    db,
-    adminUserId: gate.context.userId,
-    scopeKey: payload.scopeKey,
-    kind: payload.kind,
-    conversationId: typeof payload.conversationId === "string" ? payload.conversationId : null,
-    clientMessageId: payload.scopeKey,
-  });
+  const existing = await getSupportDraftByScopeForAdminInD1(db, payload.scopeKey, gate.context.userId);
+  if (existing) return Response.json({ draft: existing }, { status: 200, headers: NO_STORE_HEADERS });
+  const conversationId = typeof payload.conversationId === "string" ? payload.conversationId : null;
+  let privacyGate: SupportPrivacyWriteGate = null;
+  if (conversationId) {
+    const conversation = await db.prepare<{ user_id: string | null }>(
+      "SELECT user_id FROM support_conversations WHERE id = ? LIMIT 1",
+    ).bind(conversationId).first<{ user_id: string | null }>();
+    if (!conversation) return Response.json({ error: "Conversation not found." }, { status: 404, headers: NO_STORE_HEADERS });
+    try {
+      privacyGate = await captureSupportPrivacyWriteGate(db, conversation.user_id);
+    } catch {
+      return Response.json({ error: "support_subject_fenced" }, { status: 409, headers: NO_STORE_HEADERS });
+    }
+  }
+  const now = new Date().toISOString();
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO support_drafts (
+       id, admin_user_id, scope_key, kind, conversation_id, client_message_id,
+       lifecycle, revision, created_at, updated_at
+     )
+     SELECT ?, ?, ?, ?, ?, ?, 'editing', 1, ?, ?
+     WHERE (? IS NULL OR EXISTS (
+       SELECT 1 FROM support_conversations conversation WHERE conversation.id = ?
+     )) AND ${supportPrivacyWriteGateSql("draft_fence")}`,
+  ).bind(
+    crypto.randomUUID(),
+    gate.context.userId,
+    payload.scopeKey,
+    payload.kind,
+    conversationId,
+    payload.scopeKey,
+    now,
+    now,
+    conversationId,
+    conversationId,
+    ...supportPrivacyWriteGateValues(privacyGate),
+  );
+  const [result] = await runRequiredD1Batch(db, [insert], "Support draft could not be created.");
+  const draft = await getSupportDraftByScopeForAdminInD1(db, payload.scopeKey, gate.context.userId);
+  if ((result.meta?.changes ?? 0) !== 1 || !draft) {
+    return Response.json({ error: "support_subject_fenced" }, { status: 409, headers: NO_STORE_HEADERS });
+  }
   return Response.json({ draft }, { status: 201, headers: NO_STORE_HEADERS });
 }
 

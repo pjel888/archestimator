@@ -8,8 +8,10 @@ import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { readSupportEmailConfig, supportOutboundConfigured } from "@/lib/email/support-email-config";
 import { listClientSupportSendIdentities } from "@/lib/email/support-send-identities";
 import {
+  getSupportConversationInD1,
   listSupportAttachmentsForConversationInD1,
   listSupportMailbox,
+  listSupportMessageContextsForConversationInD1,
   listSupportMessages,
 } from "@/lib/repositories/support-conversations-repository";
 
@@ -47,6 +49,7 @@ export default async function AdminSupportPage({
   const search = typeof params.q === "string" ? params.q : undefined;
   const label = typeof params.label === "string" ? params.label : undefined;
   const assigneeUserId = params.assignee === "me" ? admin.userId : undefined;
+  const db = await getCloudflareD1Database();
 
   const mailbox = await listSupportMailbox({
     folder,
@@ -59,15 +62,25 @@ export default async function AdminSupportPage({
     limit: 50,
   });
 
-  const firstConversationId = selectedId && mailbox.data.conversations.some((row) => row.id === selectedId)
-    ? selectedId
-    : mailbox.data.conversations[0]?.id;
-  const db = await getCloudflareD1Database();
-  const [initialMessages, initialAttachments, savedReplies] = await Promise.all([
+  // A Today/Action Inbox deep link must remain exact even when its conversation
+  // is outside the current folder, filter, cursor, or display page. Admin
+  // authorization is established above; the selected row is independently
+  // fetched and pinned into the initial mailbox view.
+  const selectedConversation = selectedId && db
+    ? await getSupportConversationInD1(db, selectedId).catch(() => null)
+    : null;
+  const conversations = selectedConversation && !mailbox.data.conversations.some((row) => row.id === selectedConversation.id)
+    ? [selectedConversation, ...mailbox.data.conversations]
+    : mailbox.data.conversations;
+  const firstConversationId = selectedConversation?.id ?? conversations[0]?.id;
+  const [initialMessages, initialAttachments, initialContexts, savedReplies] = await Promise.all([
     firstConversationId ? listSupportMessages(firstConversationId) : Promise.resolve({ data: [], error: null }),
     firstConversationId && db
       ? listSupportAttachmentsForConversationInD1(db, firstConversationId).catch(() => [])
       : Promise.resolve([] as Awaited<ReturnType<typeof listSupportAttachmentsForConversationInD1>>),
+    firstConversationId && db
+      ? listSupportMessageContextsForConversationInD1(db, firstConversationId).catch(() => [])
+      : Promise.resolve([] as Awaited<ReturnType<typeof listSupportMessageContextsForConversationInD1>>),
     listSavedReplies(50),
   ]);
   const supportConfig = readSupportEmailConfig();
@@ -87,9 +100,10 @@ export default async function AdminSupportPage({
       )}
       <Suspense fallback={<p className="text-[10px] text-tertiary">Loading support inbox…</p>}>
         <AdminSupportInbox
-          conversations={mailbox.data.conversations}
+          conversations={conversations}
           initialMessages={initialMessages.data}
           initialAttachments={initialAttachments}
+          initialContexts={initialContexts}
           savedReplies={savedReplies}
           readiness={{
             outboundConfigured: supportOutboundConfigured(),

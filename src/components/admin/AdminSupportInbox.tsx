@@ -25,10 +25,15 @@ import type {
   SupportConversationRow,
   SupportConversationStatus,
   SupportConversationTriageRow,
+  SupportMessageContextRow,
   SupportMessageRow,
   SupportMailboxFolder,
 } from "@/lib/repositories/support-conversations-d1";
 import type { SupportDraftRow } from "@/lib/repositories/support-drafts-d1";
+import {
+  SUPPORT_REALTIME_FIXED_PROTOCOL,
+  supportRealtimeProtocols,
+} from "@/lib/support/realtime-protocol";
 import styles from "@/components/admin/support/support-composer.module.css";
 
 const SupportRichComposer = dynamic(
@@ -49,10 +54,19 @@ type SavedReplyOption = {
   body: string;
 };
 
+type AdminReplyStatus = "pending" | "resolved" | "archived";
+
+type SupportThreadPayload = {
+  attachments: SupportAttachmentRow[];
+  contexts: SupportMessageContextRow[];
+  messages: SupportMessageRow[];
+};
+
 type AdminSupportInboxProps = {
   conversations: SupportConversationRow[];
   initialMessages: SupportMessageRow[];
   initialAttachments?: SupportAttachmentRow[];
+  initialContexts?: SupportMessageContextRow[];
   savedReplies: SavedReplyOption[];
   readiness: {
     outboundConfigured: boolean;
@@ -62,7 +76,7 @@ type AdminSupportInboxProps = {
   };
 };
 
-const statuses: SupportConversationStatus[] = ["open", "pending", "resolved", "archived"];
+const directStatuses: Array<Extract<SupportConversationStatus, "open" | "pending">> = ["open", "pending"];
 const emptyMailboxCounts: Record<SupportMailboxFolder, number> = {
   inbox: 0, sent: 0, archive: 0, all: 0, starred: 0, snoozed: 0,
 };
@@ -95,6 +109,7 @@ export function AdminSupportInbox({
   conversations: initialConversations,
   initialMessages,
   initialAttachments = [],
+  initialContexts = [],
   savedReplies,
   readiness,
 }: AdminSupportInboxProps) {
@@ -109,6 +124,9 @@ export function AdminSupportInbox({
       ? searchParams.get("c")!
       : initialConversations[0]?.id || "";
   const [selectedId, setSelectedId] = useState(initialSelectedId);
+  const [pinnedConversation, setPinnedConversation] = useState<SupportConversationRow | null>(
+    initialConversations.find((conversation) => conversation.id === initialSelectedId) ?? null,
+  );
   const [folder, setFolder] = useState<SupportMailboxFolder>(
     (searchParams.get("folder") as SupportMailboxFolder | null) ?? "inbox",
   );
@@ -128,6 +146,9 @@ export function AdminSupportInbox({
   const [attachmentsByConversation, setAttachmentsByConversation] = useState<
     Record<string, SupportAttachmentRow[]>
   >(initialSelectedId ? { [initialSelectedId]: initialAttachments } : {});
+  const [contextsByConversation] = useState<Record<string, SupportMessageContextRow[]>>(
+    initialSelectedId ? { [initialSelectedId]: initialContexts } : {},
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [realtimeState, setRealtimeState] = useState<"connecting" | "connected" | "reconnecting" | "degraded" | "offline">("offline");
   const [isPending, startTransition] = useTransition();
@@ -152,6 +173,7 @@ export function AdminSupportInbox({
   const [newEmailDraftId, setNewEmailDraftId] = useState(() => crypto.randomUUID());
   const [triageByConversation, setTriageByConversation] = useState<Record<string, SupportConversationTriageRow>>({});
   const [replyAll, setReplyAll] = useState(false);
+  const [replyStatus, setReplyStatus] = useState<AdminReplyStatus>("pending");
   const replyDraftFields = useMemo(() => ({ from_identity_id: fromIdentityId }), [fromIdentityId]);
   const newEmailDraftFields = useMemo(() => ({
     to_json: newTo.trim() ? JSON.stringify([{ email: newTo.trim() }]) : null,
@@ -192,16 +214,21 @@ export function AdminSupportInbox({
       return payload.drafts ?? [];
     },
   });
-  const conversations = mailboxQuery.data?.conversations ?? initialConversations;
+  const mailboxConversations = mailboxQuery.data?.conversations ?? initialConversations;
+  const conversations = useMemo(() => (
+    pinnedConversation
+      && !mailboxConversations.some((conversation) => conversation.id === pinnedConversation.id)
+      ? [pinnedConversation, ...mailboxConversations]
+      : mailboxConversations
+  ), [mailboxConversations, pinnedConversation]);
   const mailboxCounts = mailboxQuery.data?.counts ?? emptyMailboxCounts;
   const selected = conversations.find((thread) => thread.id === selectedId)
     ?? conversations[0]
     ?? null;
   const selectedThreadId = selected?.id ?? "";
-  const hasCachedThread = Boolean(selectedThreadId && messagesByConversation[selectedThreadId]);
   const threadQuery = useQuery({
     queryKey: ["admin", "support", "messages", selectedThreadId],
-    enabled: Boolean(selectedThreadId) && !hasCachedThread,
+    enabled: Boolean(selectedThreadId),
     staleTime: 30_000,
     queryFn: async () => {
       const response = await fetch(`/api/admin/support/conversations/${selectedThreadId}/messages`, {
@@ -210,6 +237,7 @@ export function AdminSupportInbox({
       const payload = (await response.json()) as {
         messages?: SupportMessageRow[];
         attachments?: SupportAttachmentRow[];
+        contexts?: SupportMessageContextRow[];
         error?: string | null;
       };
       if (!response.ok || payload.error) {
@@ -218,11 +246,12 @@ export function AdminSupportInbox({
       return {
         messages: payload.messages ?? [],
         attachments: payload.attachments ?? [],
+        contexts: payload.contexts ?? [],
       };
     },
   });
   const messages = selected
-    ? messagesByConversation[selected.id] ?? threadQuery.data?.messages ?? []
+    ? threadQuery.data?.messages ?? messagesByConversation[selected.id] ?? []
     : [];
   const triageQuery = useQuery({
     queryKey: ["admin", "support", "triage", selectedThreadId],
@@ -245,7 +274,7 @@ export function AdminSupportInbox({
     : null;
   const attachmentsByMessage = useMemo(() => {
     const attachments = selected
-      ? attachmentsByConversation[selected.id] ?? threadQuery.data?.attachments ?? []
+      ? threadQuery.data?.attachments ?? attachmentsByConversation[selected.id] ?? []
       : [];
     const map = new Map<string, SupportAttachmentRow[]>();
     for (const attachment of attachments) {
@@ -255,6 +284,15 @@ export function AdminSupportInbox({
     }
     return map;
   }, [attachmentsByConversation, selected, threadQuery.data?.attachments]);
+  const contextsByMessage = useMemo(() => {
+    const contexts = selected
+      ? threadQuery.data?.contexts ?? contextsByConversation[selected.id] ?? []
+      : [];
+    return new Map(contexts.map((context) => [context.message_id, context]));
+  }, [contextsByConversation, selected, threadQuery.data?.contexts]);
+  const renderedInboundMessageId = [...messages]
+    .reverse()
+    .find((message) => message.sender_role === "user" || message.direction === "inbound")?.id ?? null;
   const forwardableAttachments = useMemo(
     () => [...attachmentsByMessage.values()].flat().filter((attachment) => attachment.storage_status === "stored"),
     [attachmentsByMessage],
@@ -275,14 +313,20 @@ export function AdminSupportInbox({
   }, [assignedToMe, channelFilter, folder, labelFilter, router, search, selected?.id, statusFilter, unreadOnly]);
 
   useEffect(() => {
-    if (!selectedThreadId || !hasCachedThread) return;
+    if (!selectedThreadId || !renderedInboundMessageId || threadQuery.isError) return;
     startTransition(async () => {
-      const result = await markSupportConversationRead({ conversationId: selectedThreadId });
+      const result = await markSupportConversationRead({
+        conversationId: selectedThreadId,
+        throughMessageId: renderedInboundMessageId,
+      });
       if (result.ok) {
+        setPinnedConversation((current) => current?.id === selectedThreadId
+          ? { ...current, unread_for_admin: result.data.unread ? 1 : 0 }
+          : current);
         void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       }
     });
-  }, [hasCachedThread, queryClient, selectedThreadId]);
+  }, [queryClient, renderedInboundMessageId, selectedThreadId, threadQuery.isError]);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -313,9 +357,12 @@ export function AdminSupportInbox({
         if (!response.ok || !payload.roomToken || cancelled) { reconnect(); return; }
         const url = new URL(`/__cloudflare/support-inbox/${selected.id}`, window.location.origin);
         url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-        url.searchParams.set("token", payload.roomToken);
-        socket = new WebSocket(url);
+        socket = new WebSocket(url, [...supportRealtimeProtocols(payload.roomToken)]);
         socket.onopen = () => {
+          if (socket?.protocol !== SUPPORT_REALTIME_FIXED_PROTOCOL) {
+            socket?.close(1008, "Support protocol negotiation failed.");
+            return;
+          }
           attempts = 0;
           setRealtimeState("connected");
           backfill();
@@ -323,12 +370,17 @@ export function AdminSupportInbox({
         socket.onmessage = (event) => {
           try {
             const invalidation = JSON.parse(String(event.data)) as { type?: unknown; conversationId?: unknown; messageId?: unknown };
-            if (invalidation.type !== "support_message_created" || invalidation.conversationId !== selected.id || typeof invalidation.messageId !== "string") return;
+            if (invalidation.conversationId !== selected.id) return;
+            if (
+              invalidation.type !== "support_conversation_changed"
+              && (invalidation.type !== "support_message_created" || typeof invalidation.messageId !== "string")
+            ) return;
             backfill();
           } catch {
             // D1 history remains authoritative when an invalidation is malformed.
           }
         };
+        socket.onerror = () => setRealtimeState("degraded");
         socket.onclose = reconnect;
       } catch {
         reconnect();
@@ -359,13 +411,6 @@ export function AdminSupportInbox({
       } else if (event.key === "k" && conversations.length > 0) {
         event.preventDefault();
         setSelectedId(conversations[Math.max(0, index - 1)]!.id);
-      } else if (event.key === "a" && selected) {
-        event.preventDefault();
-        startTransition(async () => {
-          const result = await setConversationStatus({ conversationId: selected.id, status: "archived" });
-          if (result.ok) void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
-          setNotice(result.ok ? "Status set to archived." : "Status could not be updated.");
-        });
       } else if (event.key === "/") {
         event.preventDefault();
         document.getElementById("support-search")?.focus();
@@ -388,8 +433,12 @@ export function AdminSupportInbox({
         body: payload.text,
         html: payload.html,
         clientMessageId,
+        expectedConversationStatus: selected.status,
+        expectedConversationUpdatedAt: selected.updated_at,
+        renderedInboundMessageId,
         fromIdentityId,
         replyAll,
+        statusAfterReply: replyStatus,
         draftScopeKey: payload.draftScopeKey,
         drafts: payload.drafts,
       });
@@ -404,6 +453,19 @@ export function AdminSupportInbox({
         setNotice(nextNotice);
         if (result.message) {
           const returnedMessage = result.message;
+          queryClient.setQueryData<SupportThreadPayload>(
+            ["admin", "support", "messages", selected.id],
+            (current) => {
+              const existingMessages = current?.messages ?? messages;
+              return {
+                attachments: current?.attachments ?? [...attachmentsByMessage.values()].flat(),
+                contexts: current?.contexts ?? [...contextsByMessage.values()],
+                messages: existingMessages.some((message) => message.id === returnedMessage.id)
+                  ? existingMessages.map((message) => message.id === returnedMessage.id ? returnedMessage : message)
+                  : [...existingMessages, returnedMessage],
+              };
+            },
+          );
           setMessagesByConversation((current) => ({
             ...current,
             [selected.id]: (current[selected.id] ?? []).some((message) => message.id === returnedMessage.id)
@@ -415,21 +477,50 @@ export function AdminSupportInbox({
         return;
       }
       setReplyAttemptId(createClientMessageId("admin-reply"));
+      setReplyStatus("pending");
       setReplyDraftId(crypto.randomUUID());
       setComposerEpoch((value) => value + 1);
+      queryClient.setQueryData<SupportThreadPayload>(
+        ["admin", "support", "messages", selected.id],
+        (current) => {
+          const currentMessages = current?.messages ?? messages;
+          const currentAttachments = current?.attachments ?? [...attachmentsByMessage.values()].flat();
+          return {
+            attachments: [
+              ...currentAttachments,
+              ...result.data.attachments.filter((attachment) => !currentAttachments.some((item) => item.id === attachment.id)),
+            ],
+            contexts: current?.contexts ?? [...contextsByMessage.values()],
+            messages: currentMessages.some((message) => message.id === result.data.message.id)
+              ? currentMessages.map((message) => message.id === result.data.message.id ? result.data.message : message)
+              : [...currentMessages, result.data.message],
+          };
+        },
+      );
       setMessagesByConversation((current) => ({
         ...current,
-        [selected.id]: [...(current[selected.id] ?? []), result.data.message],
+        [selected.id]: (current[selected.id] ?? []).some((message) => message.id === result.data.message.id)
+          ? (current[selected.id] ?? []).map((message) => message.id === result.data.message.id ? result.data.message : message)
+          : [...(current[selected.id] ?? []), result.data.message],
       }));
       setAttachmentsByConversation((current) => ({
         ...current,
-        [selected.id]: [...(current[selected.id] ?? []), ...result.data.attachments],
+        [selected.id]: [
+          ...(current[selected.id] ?? []),
+          ...result.data.attachments.filter((attachment) => !(current[selected.id] ?? []).some((item) => item.id === attachment.id)),
+        ],
       }));
+      setPinnedConversation(result.data.conversation);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "messages", selected.id] });
       void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       setNotice(
         result.data.message.transport === "email"
           ? "Reply accepted for sending by Cloudflare (not final delivery proof)."
-          : "In-app reply posted to the conversation.",
+          : result.data.conversation.status === "pending"
+            ? "In-app reply posted. The conversation is waiting on the user."
+            : result.data.conversation.status === "open"
+              ? "In-app reply posted. A newer inbound message kept the conversation open."
+              : `In-app reply posted and the conversation was ${result.data.conversation.status}.`,
       );
     });
   }
@@ -438,11 +529,22 @@ export function AdminSupportInbox({
     if (!selected) return;
     setNotice(null);
     startTransition(async () => {
-      const result = await setConversationStatus({ conversationId: selected.id, status });
+      const result = await setConversationStatus({
+        conversationId: selected.id,
+        expectedStatus: selected.status,
+        status,
+      });
       if (result.ok) {
+        setPinnedConversation(result.data.conversation);
         void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
       }
-      setNotice(result.ok ? `Status set to ${status}.` : "Status could not be updated.");
+      setNotice(
+        result.ok
+          ? `Status set to ${status}.`
+          : result.error === "terminal_reply_required"
+            ? "Resolved and archived require an explanatory reply. Choose the close outcome beside the reply editor."
+            : "Status could not be updated. Refresh and try again.",
+      );
     });
   }
 
@@ -524,6 +626,7 @@ export function AdminSupportInbox({
         [result.data.conversation.id]: result.data.attachments,
       }));
       setSelectedId(result.data.conversation.id);
+      setPinnedConversation(result.data.conversation);
       setShowNewEmail(false);
       setNewTo("");
       setNewCc("");
@@ -616,11 +719,13 @@ export function AdminSupportInbox({
         onAssignedToMeChange={() => setAssignedToMe((value) => !value)}
         onSelect={(thread) => {
           setSelectedId(thread.id);
+          setPinnedConversation(thread);
           setShowNewEmail(false);
           setMobileThreadOpen(true);
           setReplyDraftId(crypto.randomUUID());
         }}
         onResumeDraft={resumeDraft}
+        onRetryMailbox={() => void mailboxQuery.refetch()}
       />
 
       <section className={cn("min-h-0 flex-col bg-white md:flex", mobileThreadOpen ? "flex" : "hidden")} aria-label="Support thread">
@@ -749,7 +854,10 @@ export function AdminSupportInbox({
                         className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                         aria-label="Conversation status"
                       >
-                        {statuses.map((status) => (
+                        {selected.status === "resolved" || selected.status === "archived" ? (
+                          <option value={selected.status} disabled>{selected.status} (reply required to change closure)</option>
+                        ) : null}
+                        {directStatuses.map((status) => (
                           <option key={status} value={status}>{status}</option>
                         ))}
                       </select>
@@ -848,9 +956,27 @@ export function AdminSupportInbox({
                 <p className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[9px] leading-3 text-secondary">Inbound routing is code-ready but feature-gated off until enabled.</p>
               )}
               {selected?.channel === "in_app" && (
-                <p className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[9px] leading-3 text-secondary">
-                  In-app thread from a signed-in user. Realtime: {realtimeState}. Replies stay in the product inbox (not emailed).
-                </p>
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[9px] leading-3 text-secondary">
+                  <p>
+                    {realtimeState === "connected"
+                      ? "Live updates are connected. Replies stay in the product inbox (not emailed)."
+                      : "Live updates are delayed. Messages are still saved in D1; refresh for the latest history."}
+                  </p>
+                  {realtimeState !== "connected" ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="min-h-6 shrink-0 px-1.5"
+                      onClick={() => {
+                        void threadQuery.refetch();
+                        void mailboxQuery.refetch();
+                      }}
+                    >
+                      Refresh
+                    </Button>
+                  ) : null}
+                </div>
               )}
               {selected?.channel === "email" && showForward && (
                 <form
@@ -893,17 +1019,22 @@ export function AdminSupportInbox({
                     key={message.id}
                     message={message}
                     attachments={attachmentsByMessage.get(message.id) ?? []}
+                    context={contextsByMessage.get(message.id) ?? null}
+                    onRetryAttachments={() => void threadQuery.refetch()}
                   />
                 ))}
-              {selected && messages.length === 0 && (
+              {selected && messages.length === 0 && !threadQuery.isError && (
                 <div className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[10px] leading-4 text-tertiary">
                   No messages loaded for this conversation.
                 </div>
               )}
               {selected && threadQuery.isError && (
-                <p role="status" className="rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">
-                  Messages could not be refreshed. Reconnecting will retry the D1 history.
-                </p>
+                <div role="status" className="flex items-center justify-between gap-2 rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">
+                  <span>Messages could not be refreshed. The last rendered history remains available.</span>
+                  <Button type="button" variant="ghost" size="xs" className="min-h-6 px-1.5" onClick={() => void threadQuery.refetch()}>
+                    Retry
+                  </Button>
+                </div>
               )}
               {!selected && (
                 <div className="flex min-h-72 flex-col items-center justify-center rounded-xs border border-dashed border-hairline bg-white p-6 text-center">
@@ -937,6 +1068,20 @@ export function AdminSupportInbox({
                 </label>
                 </div>
               )}
+              <label className="mb-2 flex items-center justify-end gap-1.5 text-[9px] leading-3 text-tertiary">
+                After this reply
+                <select
+                  value={replyStatus}
+                  onChange={(event) => setReplyStatus(event.currentTarget.value as AdminReplyStatus)}
+                  disabled={isPending}
+                  className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  aria-label="Conversation outcome after reply"
+                >
+                  <option value="pending">Wait on user</option>
+                  <option value="resolved">Close as resolved</option>
+                  <option value="archived">Close as archived</option>
+                </select>
+              </label>
               <SupportRichComposer
                 key={`${selected?.id ?? "none"}-${composerEpoch}`}
                 id="support-reply"

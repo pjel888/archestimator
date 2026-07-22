@@ -38,6 +38,15 @@ Catalog: `src/lib/feature-gates/catalog.ts`. D1 `feature_flags` rows are additiv
 - Support inbox DO: `SupportInbox`.
 - Active bindings and routes are in `wrangler.jsonc` and `worker.ts`; do not add paid Cloudflare products for this dashboard.
 
+## Privacy Fulfillment
+
+- `/admin/privacy` lists the D1 privacy-request register. Anonymous requests stay unverified until a platform admin binds a real profile ID with the displayed revision.
+- Access and portability stream a versioned, uncompressed tar directly to private `ARCH_UPLOADS_R2`. The retained download expires after seven days and the object key never appears in UI or API responses.
+- Erasure keeps the subject support fence closed until claim quiet periods have elapsed, every known draft, claim, committed attachment, and prior export object is deleted and confirmed absent, D1 content is redacted, and a second enumeration finds no owned support content.
+- A failed operation stays `in_progress` and fenced with a stable redacted code. Retry from the refreshed request revision; do not manually reopen `support_subject_privacy_fences`.
+- `/api/internal/upload-cleanup` reconciles stale claims, stale draft sends, and expired exports behind the existing bearer gate. Direct apply still requires `UPLOAD_JOBS_ENABLED=1`; `dryRun=1|true` never deletes. Scheduled runs remain dry-run unless `UPLOAD_JOBS_ENABLED=1` and `CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=0`.
+- Account deletion is a soft-retain account closure. It does not represent verified privacy erasure.
+
 ## Rollback
 
 1. Disable `admin_dashboard_enabled` in `feature_flags`, or set `ADMIN_DASHBOARD_ENABLED=off`.
