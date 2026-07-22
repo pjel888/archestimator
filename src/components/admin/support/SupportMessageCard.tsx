@@ -28,6 +28,7 @@ type SupportMessageCardProps = {
 
 export function SupportMessageCard({ message, attachments }: SupportMessageCardProps) {
   const isAdmin = message.sender_role === "admin";
+  const isEmail = message.transport === "email";
   const html = message.body_html ? sanitizeSupportHtml(message.body_html) : null;
   let warning: { flags?: string[] } | null = null;
   if (message.warning_flags_json) {
@@ -41,11 +42,12 @@ export function SupportMessageCard({ message, attachments }: SupportMessageCardP
   return (
     <article
       className={cn(
-        "mb-2 max-w-[92%] rounded-xs border border-hairline p-2",
-        isAdmin ? "ml-auto bg-surfaceMuted/70" : "mr-auto bg-white",
+        "mb-2 rounded-xs border border-hairline p-2.5",
+        isEmail ? "w-full bg-white" : "max-w-[88%]",
+        !isEmail && (isAdmin ? "ml-auto bg-surfaceMuted" : "mr-auto bg-white"),
       )}
     >
-      <header className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[9px] leading-3 text-tertiary">
+      <header className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-1.5 text-[9px] leading-3 text-tertiary">
         <span className="font-medium text-secondary">
           {isAdmin
             ? "You"

@@ -84,12 +84,12 @@ export async function getOrCreateSupportDraftInD1(input: {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   await input.db.prepare(
-    `INSERT INTO support_drafts (
+    `INSERT OR IGNORE INTO support_drafts (
       id, admin_user_id, scope_key, kind, conversation_id, client_message_id,
       lifecycle, revision, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, 'editing', 1, ?, ?)`,
   ).bind(id, input.adminUserId, input.scopeKey, input.kind, input.conversationId ?? null, input.clientMessageId, now, now).run();
-  return getSupportDraftForAdminInD1(input.db, id, input.adminUserId);
+  return getSupportDraftByScopeForAdminInD1(input.db, input.scopeKey, input.adminUserId);
 }
 
 export async function updateSupportDraftInD1(input: {

@@ -130,7 +130,7 @@ function ToolbarButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-6 w-6 items-center justify-center rounded-xs text-secondary transition",
+        "inline-flex h-7 w-7 items-center justify-center rounded-xs text-secondary transition md:h-6 md:w-6",
         active ? "bg-surfaceMuted text-ink" : "hover:bg-surfaceMuted hover:text-ink",
         disabled && "opacity-40",
       )}
@@ -175,6 +175,8 @@ export function SupportRichComposer({
       StarterKit.configure({
         heading: false,
         codeBlock: false,
+        link: false,
+        underline: false,
       }),
       Underline,
       Link.configure({
@@ -413,14 +415,14 @@ export function SupportRichComposer({
         void addFiles(Array.from(event.dataTransfer.files ?? []));
       }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-2 py-1">
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">From {fromLabel}</p>
+      <div className="flex flex-col gap-1.5 border-b border-hairline px-2 py-1.5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[9px] font-medium leading-3 text-secondary">From {fromLabel}</p>
         {savedReplies.length > 0 && (
-          <label className="text-[9px] leading-3 text-tertiary" htmlFor={`${id}-saved`}>
+          <label className="flex items-center justify-between gap-2 text-[9px] leading-3 text-tertiary" htmlFor={`${id}-saved`}>
             Saved reply
             <select
               id={`${id}-saved`}
-              className="ml-1 rounded-xs border border-hairline bg-white px-1 py-0.5 text-[10px]"
+              className="h-7 min-w-32 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
               defaultValue=""
               disabled={disabled || isPending}
               onChange={(event) => {
@@ -440,7 +442,7 @@ export function SupportRichComposer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-hairline px-1.5 py-1">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-hairline px-1.5 py-1.5 md:py-1">
         <ToolbarButton
           label="Bold"
           active={editor?.isActive("bold")}
@@ -551,7 +553,7 @@ export function SupportRichComposer({
             event.currentTarget.value = "";
           }}
         />
-        <span className="ml-auto text-[9px] leading-3 text-tertiary">
+        <span className="ml-auto hidden text-[9px] leading-3 text-tertiary sm:inline">
           {uploading ? "Uploading…" : draftStatus === "saving" ? "Saving…" : draftStatus === "saved" ? "Saved" : draftStatus === "conflict" ? "Draft conflict" : draftStatus === "degraded" ? "Draft storage unavailable" : "⌘↵ send · drop files"}
         </span>
       </div>
@@ -616,11 +618,11 @@ export function SupportRichComposer({
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-2 border-t border-hairline px-2 py-1.5">
+      <div className="flex flex-col gap-2 border-t border-hairline px-2 py-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[9px] leading-3 text-tertiary">
-          Formatted HTML email with file and image attachments.
+          Autosaved draft · Attachments supported
         </p>
-        <div className="flex items-center gap-1">
+        <div className="grid grid-cols-2 gap-1 sm:flex sm:items-center">
           {onDiscard ? <Button type="button" variant="ghost" size="xs" disabled={disabled || isPending || uploading || draftStatus !== "saved"} onClick={discardCurrentDraft}>Discard</Button> : null}
           <Button
             type="button"

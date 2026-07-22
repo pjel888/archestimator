@@ -63,11 +63,15 @@ export default async function AdminSupportPage({
     <AdminPage className="h-full gap-1.5 overflow-hidden">
       <AdminPageHeader
         eyebrow="Admin"
-        title="Support"
-        description="Unified in-app and email inbox with rich compose, attachments, and Cloudflare acceptance states."
+        title="Support inbox"
+        description="Review, triage, and reply to every customer conversation without leaving the workspace."
         className="shrink-0"
       />
-      {mailbox.error && <p className="text-[10px] leading-4 text-tertiary">{mailbox.error}</p>}
+      {mailbox.error && (
+        <p role="alert" className="shrink-0 rounded-xs border border-dangerSoft bg-dangerSoft/40 px-2 py-1.5 text-[10px] leading-4 text-danger">
+          {mailbox.error}
+        </p>
+      )}
       <Suspense fallback={<p className="text-[10px] text-tertiary">Loading support inbox…</p>}>
         <AdminSupportInbox
           conversations={mailbox.data.conversations}

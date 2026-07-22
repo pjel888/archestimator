@@ -585,7 +585,7 @@ export function AdminSupportInbox({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_1px_0_rgba(0,0,0,0.03)] md:grid-cols-[280px_minmax(0,1fr)]">
+    <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xs border border-hairline bg-white md:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
       <SupportMailboxRail
         folder={folder}
         mailboxCounts={mailboxCounts}
@@ -623,20 +623,25 @@ export function AdminSupportInbox({
         onResumeDraft={resumeDraft}
       />
 
-      <section className={cn("min-h-0 flex-col md:flex", mobileThreadOpen ? "flex" : "hidden")} aria-label="Support thread">
+      <section className={cn("min-h-0 flex-col bg-white md:flex", mobileThreadOpen ? "flex" : "hidden")} aria-label="Support thread">
         {showNewEmail ? (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="border-b border-hairline px-3 py-2">
-              <Button type="button" variant="ghost" size="xs" className="mb-1 md:hidden" onClick={() => { setShowNewEmail(false); setMobileThreadOpen(false); }}>
-                Back to inbox
-              </Button>
-              <p className="text-[11px] font-medium leading-4 text-ink">New email</p>
-              <label className="mt-1 flex items-center gap-1 text-[9px] leading-3 text-tertiary">
-                From
+            <div className="border-b border-hairline px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="xs" className="min-h-8 min-w-0 px-2 md:hidden" onClick={() => { setShowNewEmail(false); setMobileThreadOpen(false); }}>
+                  Back
+                </Button>
+                <div>
+                  <p className="text-[11px] font-medium leading-4 text-ink">New conversation</p>
+                  <p className="text-[9px] leading-3 text-tertiary">Start an outbound support email.</p>
+                </div>
+              </div>
+              <label className="mt-2 grid gap-1 text-[8px] font-medium uppercase leading-3 text-tertiary sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:items-center">
+                From identity
                 <select
                   value={fromIdentityId}
                   onChange={(event) => setFromIdentityId(event.currentTarget.value as "support" | "philip")}
-                  className="rounded-xs border border-hairline bg-white px-1 py-0.5 text-[9px] text-ink"
+                  className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 >
                   {readiness.sendIdentities.map((identity) => (
                     <option key={identity.id} value={identity.id}>{identity.fromName} &lt;{identity.fromAddress}&gt;</option>
@@ -644,34 +649,34 @@ export function AdminSupportInbox({
                 </select>
               </label>
               <div className="mt-2 grid gap-1.5">
-                <label className="grid grid-cols-[48px_1fr] items-center gap-2 text-[9px] uppercase text-tertiary" htmlFor="new-email-to">
+                <label className="grid gap-1 text-[8px] font-medium uppercase text-tertiary sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:items-center" htmlFor="new-email-to">
                   To
                   <input
                     id="new-email-to"
                     value={newTo}
                     onChange={(e) => setNewTo(e.currentTarget.value)}
-                    className="rounded-xs border border-hairline px-1.5 py-1 text-[10px] normal-case text-ink"
+                    className="h-8 min-w-0 rounded-xs border border-hairline px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     placeholder="customer@example.com"
                     autoFocus
                   />
                 </label>
-                <label className="grid grid-cols-[48px_1fr] items-center gap-2 text-[9px] uppercase text-tertiary" htmlFor="new-email-subject">
+                <label className="grid gap-1 text-[8px] font-medium uppercase text-tertiary sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:items-center" htmlFor="new-email-subject">
                   Subject
                   <input
                     id="new-email-subject"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.currentTarget.value)}
-                    className="rounded-xs border border-hairline px-1.5 py-1 text-[10px] normal-case text-ink"
+                    className="h-8 min-w-0 rounded-xs border border-hairline px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     placeholder="How can we help?"
                   />
                 </label>
-                <label className="grid grid-cols-[48px_1fr] items-center gap-2 text-[9px] uppercase text-tertiary" htmlFor="new-email-cc">
+                <label className="grid gap-1 text-[8px] font-medium uppercase text-tertiary sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:items-center" htmlFor="new-email-cc">
                   Cc
                   <input
                     id="new-email-cc"
                     value={newCc}
                     onChange={(e) => setNewCc(e.currentTarget.value)}
-                    className="rounded-xs border border-hairline px-1.5 py-1 text-[10px] normal-case text-ink"
+                    className="h-8 min-w-0 rounded-xs border border-hairline px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     placeholder="optional@example.com, teammate@example.com"
                   />
                 </label>
@@ -709,24 +714,24 @@ export function AdminSupportInbox({
           </div>
         ) : (
           <>
-            <div className="border-b border-hairline px-3 py-2">
-              <div className="flex flex-col gap-2">
+            <div className="border-b border-hairline px-3 py-2.5">
+              <div className="flex flex-col gap-2.5">
                 <div className="flex items-start gap-2">
-                  <Button type="button" variant="ghost" size="xs" className="shrink-0 md:hidden" onClick={() => setMobileThreadOpen(false)}>
+                  <Button type="button" variant="ghost" size="xs" className="min-h-8 min-w-0 shrink-0 px-2 md:hidden" onClick={() => setMobileThreadOpen(false)}>
                     Back
                   </Button>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="truncate text-[11px] font-medium leading-4 text-ink">
+                      <h2 className="truncate text-[11px] font-medium leading-4 text-ink">
                         {selected?.subject ?? "Select a conversation"}
-                      </p>
+                      </h2>
                       {selected && (
-                        <span className="rounded-xs border border-hairline px-1 py-0.5 text-[9px] uppercase leading-3 text-secondary">
+                        <span className="rounded-xs border border-hairline bg-surfaceMuted px-1 py-0.5 text-[8px] font-medium uppercase leading-3 text-secondary">
                           {selected.channel === "email" ? "Email" : "In-app"}
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-[9px] leading-3 text-tertiary">
+                    <p className="mt-0.5 truncate text-[9px] leading-3 text-tertiary">
                       {selected
                         ? `${selected.requester_name ? `${selected.requester_name} · ` : ""}${selected.requester_email ?? selected.user_id ?? "unknown"}${selected.mailbox_address ? ` · ${selected.mailbox_address}` : ""}`
                         : "Choose a thread from the inbox"}
@@ -734,24 +739,27 @@ export function AdminSupportInbox({
                   </div>
                 </div>
                 {selected ? (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <select
-                      value={selected.status}
-                      onChange={(event) => handleStatus(event.currentTarget.value as SupportConversationStatus)}
-                      disabled={isPending}
-                      className="min-h-8 rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink sm:min-h-0"
-                      aria-label="Conversation status"
-                    >
-                      {statuses.map((status) => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-end">
+                    <label className="grid gap-1 text-[8px] font-medium uppercase leading-3 text-tertiary">
+                      Status
+                      <select
+                        value={selected.status}
+                        onChange={(event) => handleStatus(event.currentTarget.value as SupportConversationStatus)}
+                        disabled={isPending}
+                        className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        aria-label="Conversation status"
+                      >
+                        {statuses.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </label>
                     <Button
                       type="button"
                       size="xs"
                       variant="outline"
                       disabled={isPending}
-                      className="min-h-8 sm:min-h-0"
+                      className="min-h-8 min-w-0 px-2"
                       onClick={() => handleTriage({ starredForAdmin: !(selectedTriage?.starred_for_admin ?? false) })}
                     >
                       {selectedTriage?.starred_for_admin ? "Unstar" : "Star"}
@@ -761,7 +769,7 @@ export function AdminSupportInbox({
                       size="xs"
                       variant="outline"
                       disabled={isPending}
-                      className="min-h-8 sm:min-h-0"
+                      className="min-h-8 min-w-0 px-2"
                       onClick={() => handleTriage({ assignToSelf: !selectedTriage?.assignee_user_id })}
                     >
                       {selectedTriage?.assignee_user_id ? "Unassign" : "Assign me"}
@@ -778,7 +786,7 @@ export function AdminSupportInbox({
                             : null,
                         });
                       }}
-                      className="min-h-8 rounded-xs border border-hairline bg-white px-1.5 py-1 text-[10px] leading-4 text-ink sm:min-h-0"
+                      className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-4 text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       aria-label="Snooze conversation"
                     >
                       <option value="" disabled>{selectedTriage?.snoozed_until ? "Change snooze" : "Snooze"}</option>
@@ -787,29 +795,13 @@ export function AdminSupportInbox({
                       <option value="7">Snooze 1 week</option>
                       {selectedTriage?.snoozed_until ? <option value="0">Unsnooze</option> : null}
                     </select>
-                    <input
-                      key={selected.id}
-                      ref={labelInputRef}
-                      defaultValue={selectedTriage?.labels.join(", ") ?? ""}
-                      className="min-h-8 min-w-[7rem] flex-1 rounded-xs border border-hairline px-1.5 py-1 text-[9px] sm:min-h-0 sm:w-24 sm:flex-none sm:px-1 sm:py-0.5"
-                      placeholder="labels"
-                      aria-label="Conversation labels"
-                    />
-                    <Button type="button" size="xs" variant="outline" disabled={isPending} className="min-h-8 sm:min-h-0" onClick={handleLabels}>
-                      Save labels
-                    </Button>
-                    {selectedTriage?.labels.length ? (
-                      <span className="basis-full text-[9px] leading-3 text-tertiary sm:basis-auto">
-                        {selectedTriage.labels.join(", ")}
-                      </span>
-                    ) : null}
                     {selected.channel === "email" ? (
                       <Button
                         type="button"
                         size="xs"
                         variant="outline"
                         disabled={isPending}
-                        className="min-h-8 sm:min-h-0"
+                        className="min-h-8 min-w-0 px-2"
                         onClick={() => setShowForward((visible) => !visible)}
                       >
                         Forward
@@ -817,36 +809,62 @@ export function AdminSupportInbox({
                     ) : null}
                   </div>
                 ) : null}
+                {selected ? (
+                  <details className="group rounded-xs border border-hairline bg-surfaceMuted/45 px-2 py-1.5">
+                    <summary className="flex min-h-6 cursor-pointer list-none items-center justify-between text-[9px] font-medium leading-3 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                      Conversation details
+                      <span className="font-normal text-tertiary">
+                        {selectedTriage?.labels.length ? selectedTriage.labels.join(", ") : "No labels"}
+                      </span>
+                    </summary>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                      <label className="grid gap-1 text-[8px] font-medium uppercase leading-3 text-tertiary">
+                        Labels
+                        <input
+                          key={selected.id}
+                          ref={labelInputRef}
+                          defaultValue={selectedTriage?.labels.join(", ") ?? ""}
+                          className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          placeholder="billing, onboarding, bug"
+                          aria-label="Conversation labels"
+                        />
+                      </label>
+                      <Button type="button" size="xs" variant="secondary" disabled={isPending} className="min-h-8" onClick={handleLabels}>
+                        Save labels
+                      </Button>
+                    </div>
+                  </details>
+                ) : null}
               </div>
               {notice && (
-                <p id={noticeId} role="status" aria-live="polite" className="mt-1 text-[9px] leading-3 text-tertiary">
+                <p id={noticeId} role="status" aria-live="polite" className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[9px] leading-3 text-secondary">
                   {notice}
                 </p>
               )}
               {selected?.channel === "email" && !readiness.outboundConfigured && (
-                <p className="mt-1 text-[9px] leading-3 text-tertiary">Email delivery is not configured for this environment.</p>
+                <p className="mt-2 rounded-xs border border-warning/20 bg-warning/10 px-2 py-1.5 text-[9px] leading-3 text-warning">Email delivery is not configured for this environment.</p>
               )}
               {selected?.channel === "email" && !readiness.inboundEnabled && (
-                <p className="mt-1 text-[9px] leading-3 text-tertiary">Inbound routing is code-ready but feature-gated off until enabled.</p>
+                <p className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[9px] leading-3 text-secondary">Inbound routing is code-ready but feature-gated off until enabled.</p>
               )}
               {selected?.channel === "in_app" && (
-                <p className="mt-1 text-[9px] leading-3 text-tertiary">
+                <p className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[9px] leading-3 text-secondary">
                   In-app thread from a signed-in user. Realtime: {realtimeState}. Replies stay in the product inbox (not emailed).
                 </p>
               )}
               {selected?.channel === "email" && showForward && (
                 <form
-                  className="mt-2 flex flex-wrap items-center gap-1"
+                  className="mt-2 grid gap-1.5 rounded-xs border border-hairline bg-surfaceMuted/45 p-2 sm:grid-cols-2"
                   onSubmit={(event) => {
                     event.preventDefault();
                     handleForward();
                   }}
                 >
-                  <input value={forwardTo} onChange={(event) => setForwardTo(event.currentTarget.value)} className="min-w-32 flex-1 rounded-xs border border-hairline px-1 py-0.5 text-[9px]" placeholder="Forward to" aria-label="Forward recipient" required />
-                  <input value={forwardCc} onChange={(event) => setForwardCc(event.currentTarget.value)} className="min-w-24 flex-1 rounded-xs border border-hairline px-1 py-0.5 text-[9px]" placeholder="CC (optional)" aria-label="Forward carbon-copy recipients" />
-                  <Button type="submit" size="xs" variant="outline" disabled={isPending}>Send forward</Button>
+                  <input value={forwardTo} onChange={(event) => setForwardTo(event.currentTarget.value)} className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-focus" placeholder="Forward to" aria-label="Forward recipient" required />
+                  <input value={forwardCc} onChange={(event) => setForwardCc(event.currentTarget.value)} className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-focus" placeholder="CC (optional)" aria-label="Forward carbon-copy recipients" />
+                  <Button type="submit" size="xs" variant="secondary" className="justify-self-start" disabled={isPending}>Send forward</Button>
                   {forwardableAttachments.length > 0 && (
-                    <fieldset className="basis-full pt-1">
+                    <fieldset className="sm:col-span-2">
                       <legend className="text-[9px] leading-3 text-tertiary">Forward attachments</legend>
                       <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1">
                         {forwardableAttachments.map((attachment) => (
@@ -868,16 +886,17 @@ export function AdminSupportInbox({
               )}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,#fafafa_0%,#ffffff_48px)] px-3 py-2">
-              {messages.map((message) => (
-                <SupportMessageCard
-                  key={message.id}
-                  message={message}
-                  attachments={attachmentsByMessage.get(message.id) ?? []}
-                />
-              ))}
+            <div className="min-h-0 flex-1 overflow-auto bg-surfaceMuted/35 px-3 py-3 sm:px-4">
+              <div className="mx-auto max-w-3xl">
+                {messages.map((message) => (
+                  <SupportMessageCard
+                    key={message.id}
+                    message={message}
+                    attachments={attachmentsByMessage.get(message.id) ?? []}
+                  />
+                ))}
               {selected && messages.length === 0 && (
-                <div className="rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">
+                <div className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[10px] leading-4 text-tertiary">
                   No messages loaded for this conversation.
                 </div>
               )}
@@ -887,33 +906,36 @@ export function AdminSupportInbox({
                 </p>
               )}
               {!selected && (
-                <div className="flex h-full min-h-40 items-center justify-center rounded-xs border border-dashed border-hairline p-4 text-center text-[10px] leading-4 text-tertiary">
-                  Select a conversation or compose a new email.
+                <div className="flex min-h-72 flex-col items-center justify-center rounded-xs border border-dashed border-hairline bg-white p-6 text-center">
+                  <p className="text-[11px] font-medium leading-4 text-ink">No conversation selected</p>
+                  <p className="mt-1 max-w-xs text-[10px] leading-4 text-tertiary">Choose a conversation from the inbox, or start a new outbound email.</p>
                 </div>
               )}
               <div ref={threadEndRef} />
+              </div>
             </div>
 
-            <div className={cn("border-t border-hairline p-2", styles.composer)}>
-              {selected?.channel === "email" && (
-                <label className="mb-1 flex items-center gap-1 text-[9px] leading-3 text-tertiary">
-                  From
+            {selected ? (
+            <div className={cn("border-t border-hairline bg-white p-2.5", styles.composer)}>
+              {selected.channel === "email" && (
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-[9px] leading-3 text-tertiary">
+                    From
                   <select
                     value={fromIdentityId}
                     onChange={(event) => setFromIdentityId(event.currentTarget.value as "support" | "philip")}
-                    className="rounded-xs border border-hairline bg-white px-1 py-0.5 text-[9px] text-ink"
+                    className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   >
                     {readiness.sendIdentities.map((identity) => (
                       <option key={identity.id} value={identity.id}>{identity.fromName} &lt;{identity.fromAddress}&gt;</option>
                     ))}
                   </select>
-                </label>
-              )}
-              {selected?.channel === "email" && (
-                <label className="mb-1 flex items-center gap-1 text-[9px] leading-3 text-tertiary">
+                  </label>
+                <label className="flex min-h-7 items-center gap-1.5 rounded-xs border border-hairline px-2 text-[9px] leading-3 text-secondary">
                   <input type="checkbox" checked={replyAll} onChange={(event) => setReplyAll(event.currentTarget.checked)} />
                   Reply all
                 </label>
+                </div>
               )}
               <SupportRichComposer
                 key={`${selected?.id ?? "none"}-${composerEpoch}`}
@@ -948,6 +970,7 @@ export function AdminSupportInbox({
                 }}
               />
             </div>
+            ) : null}
           </>
         )}
       </section>
