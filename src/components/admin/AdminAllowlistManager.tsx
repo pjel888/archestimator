@@ -132,7 +132,7 @@ function AllowlistAddForm() {
             Add emails
           </h2>
           <p className="mt-0.5 text-[10px] leading-4 text-tertiary">
-            Paste one or many addresses. Separators: comma, space, semicolon, or new line. Each new invite gets a beta thank-you email.
+            Paste one or many addresses. Separators: comma, space, semicolon, or new line. Each new invite gets a founder invitation email.
           </p>
         </div>
         <Badge tone="neutral" size="xs" className="min-w-0 px-1 normal-case">
