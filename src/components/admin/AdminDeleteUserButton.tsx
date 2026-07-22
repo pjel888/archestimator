@@ -17,7 +17,15 @@ import {
 
 const initialState: DeleteUserActionState = { ok: false };
 
-export function AdminDeleteUserButton({ userId, email }: { userId: string; email: string }) {
+export function AdminDeleteUserButton({
+  userId,
+  email,
+  compact = true,
+}: {
+  userId: string;
+  email: string;
+  compact?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<DeleteAccountPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -59,7 +67,7 @@ export function AdminDeleteUserButton({ userId, email }: { userId: string; email
   return (
     <>
       <Button
-        size="icon-xs"
+        size={compact ? "icon-xs" : "xs"}
         variant="danger"
         disabled={pending}
         onClick={openModal}
@@ -67,6 +75,7 @@ export function AdminDeleteUserButton({ userId, email }: { userId: string; email
         title="Delete account"
       >
         <Trash aria-hidden size={13} />
+        {compact ? null : "Delete"}
       </Button>
 
       <Modal

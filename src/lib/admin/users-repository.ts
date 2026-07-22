@@ -5,6 +5,8 @@ import { emitLogRecord } from "@/lib/observability/logger";
 
 export type AdminUserRow = {
   id: string;
+  profile_id: string | null;
+  auth_user_id: string | null;
   email: string;
   display_name: string | null;
   role: string;
@@ -13,8 +15,11 @@ export type AdminUserRow = {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  total_session_count: number;
   active_session_count: number;
+  first_session_at: string | null;
   last_session_at: string | null;
+  last_session_refreshed_at: string | null;
   beta_status: "invited" | "active" | "revoked" | null;
   is_beta_user: boolean;
   is_registered: boolean;
@@ -51,6 +56,8 @@ const ADMIN_DIRECTORY_CTE = `
   WITH directory AS (
     SELECT
       p.id,
+      p.id AS profile_id,
+      u.id AS auth_user_id,
       p.email,
       p.display_name,
       p.role,
@@ -61,21 +68,21 @@ const ADMIN_DIRECTORY_CTE = `
       p.updated_at,
       a.status AS beta_status,
       CASE WHEN a.id IS NULL THEN 0 ELSE 1 END AS is_beta_user,
-      CASE WHEN EXISTS (
-        SELECT 1
-        FROM "user" u
-        WHERE lower(trim(u.email)) = lower(trim(p.email))
-      ) THEN 1 ELSE 0 END AS is_registered,
+      CASE WHEN u.id IS NULL THEN 0 ELSE 1 END AS is_registered,
       1 AS is_manageable
     FROM profiles p
     LEFT JOIN closed_beta_allowed_emails a
       ON a.normalized_email = lower(trim(p.email))
+    LEFT JOIN "user" u
+      ON lower(trim(u.email)) = lower(trim(p.email))
     WHERE p.deleted_at IS NULL
 
     UNION ALL
 
     SELECT
       'allowlist:' || a.id AS id,
+      NULL AS profile_id,
+      u.id AS auth_user_id,
       a.normalized_email AS email,
       NULL AS display_name,
       'beta' AS role,
@@ -86,13 +93,11 @@ const ADMIN_DIRECTORY_CTE = `
       a.updated_at,
       a.status AS beta_status,
       1 AS is_beta_user,
-      CASE WHEN EXISTS (
-        SELECT 1
-        FROM "user" u
-        WHERE lower(trim(u.email)) = a.normalized_email
-      ) THEN 1 ELSE 0 END AS is_registered,
+      CASE WHEN u.id IS NULL THEN 0 ELSE 1 END AS is_registered,
       0 AS is_manageable
     FROM closed_beta_allowed_emails a
+    LEFT JOIN "user" u
+      ON lower(trim(u.email)) = a.normalized_email
     WHERE NOT EXISTS (
       SELECT 1
       FROM profiles p
@@ -162,7 +167,7 @@ export async function listAdminUsers(
     const usersStatement = db.prepare<AdminUserQueryRow>(
       `
         ${ADMIN_DIRECTORY_CTE}, paged_users AS (
-          SELECT d.id, d.email, d.display_name, d.role, d.account_status, d.default_workspace_id,
+          SELECT d.id, d.profile_id, d.auth_user_id, d.email, d.display_name, d.role, d.account_status, d.default_workspace_id,
                  d.avatar_url, d.created_at, d.updated_at, d.beta_status, d.is_beta_user,
                  d.is_registered, d.is_manageable
           FROM directory d
@@ -172,6 +177,8 @@ export async function listAdminUsers(
         )
         SELECT
           pu.id,
+          pu.profile_id,
+          pu.auth_user_id,
           pu.email,
           pu.display_name,
           pu.role,
@@ -180,18 +187,28 @@ export async function listAdminUsers(
           pu.avatar_url,
           pu.created_at,
           pu.updated_at,
+          pu.beta_status,
+          pu.is_beta_user,
+          pu.is_registered,
+          pu.is_manageable,
+          coalesce(s.total_session_count, 0) AS total_session_count,
           coalesce(s.active_session_count, 0) AS active_session_count,
-          s.last_session_at
+          s.first_session_at,
+          s.last_session_at,
+          s.last_session_refreshed_at
         FROM paged_users pu
         LEFT JOIN (
           SELECT
             "userId" AS user_id,
-            COUNT(*) AS active_session_count,
-            MAX("updatedAt") AS last_session_at
+            COUNT(*) AS total_session_count,
+            SUM(CASE WHEN "expiresAt" > ? THEN 1 ELSE 0 END) AS active_session_count,
+            MIN("createdAt") AS first_session_at,
+            MAX("createdAt") AS last_session_at,
+            MAX("updatedAt") AS last_session_refreshed_at
           FROM "session"
-          WHERE "expiresAt" > ? AND "userId" IN (SELECT id FROM paged_users)
+          WHERE "userId" IN (SELECT auth_user_id FROM paged_users WHERE auth_user_id IS NOT NULL)
           GROUP BY "userId"
-        ) s ON s.user_id = pu.id
+        ) s ON s.user_id = pu.auth_user_id
         ORDER BY pu.created_at DESC, pu.id DESC
       `,
     );
@@ -268,6 +285,7 @@ export type AdminUserAuditActivityRow = {
 export async function listAdminUserAuditActivity(
   userId: string,
   limit = 50,
+  alternateUserId: string | null = null,
 ): Promise<AdminRepositoryResult<AdminUserAuditActivityRow[]>> {
   const safeLimit = clampPositiveInteger(limit, 10, 100);
   try {
@@ -279,12 +297,12 @@ export async function listAdminUserAuditActivity(
         `
           SELECT action, target_type, target_id, summary_json, created_at
           FROM admin_audit_events
-          WHERE actor_user_id = ?
+          WHERE actor_user_id IN (?, ?)
           ORDER BY created_at DESC
           LIMIT ?
         `,
       )
-      .bind(userId, safeLimit)
+      .bind(userId, alternateUserId ?? "__missing_alternate_user__", safeLimit)
       .all<AdminUserAuditActivityRow>();
 
     return { data: result.results ?? [], error: null };
@@ -339,32 +357,51 @@ export async function getAdminUser(userId: string): Promise<AdminRepositoryResul
     if (!db) return { data: null, error: "Something went wrong. Try again in a moment." };
 
     const row = await db
-      .prepare<AdminUserRow>(
+      .prepare<AdminUserQueryRow>(
         `
+          ${ADMIN_DIRECTORY_CTE}
           SELECT
-            p.id, p.email, p.display_name, p.role, p.account_status,
-            p.default_workspace_id, p.avatar_url, p.created_at, p.updated_at,
+            directory.id,
+            directory.profile_id,
+            directory.auth_user_id,
+            directory.email,
+            directory.display_name,
+            directory.role,
+            directory.account_status,
+            directory.default_workspace_id,
+            directory.avatar_url,
+            directory.created_at,
+            directory.updated_at,
+            directory.beta_status,
+            directory.is_beta_user,
+            directory.is_registered,
+            directory.is_manageable,
+            coalesce(s.total_session_count, 0) AS total_session_count,
             coalesce(s.active_session_count, 0) AS active_session_count,
-            s.last_session_at
-          FROM profiles p
+            s.first_session_at,
+            s.last_session_at,
+            s.last_session_refreshed_at
+          FROM directory
           LEFT JOIN (
             SELECT
               "userId" AS user_id,
-              COUNT(*) AS active_session_count,
-              MAX("updatedAt") AS last_session_at
+              COUNT(*) AS total_session_count,
+              SUM(CASE WHEN "expiresAt" > ? THEN 1 ELSE 0 END) AS active_session_count,
+              MIN("createdAt") AS first_session_at,
+              MAX("createdAt") AS last_session_at,
+              MAX("updatedAt") AS last_session_refreshed_at
             FROM "session"
-            WHERE "expiresAt" > ? AND "userId" = ?
+            WHERE "userId" = (SELECT auth_user_id FROM directory WHERE id = ? LIMIT 1)
             GROUP BY "userId"
-          ) s ON s.user_id = p.id
-          WHERE p.id = ?
-            AND p.deleted_at IS NULL
+          ) s ON s.user_id = directory.auth_user_id
+          WHERE directory.id = ?
           LIMIT 1
         `,
       )
       .bind(new Date().toISOString(), userId, userId)
-      .first<AdminUserRow>();
+      .first<AdminUserQueryRow>();
 
-    return { data: row ?? null, error: null };
+    return { data: row ? toAdminUserRow(row) : null, error: null };
   } catch (error) {
     logUsersRepositoryFailure(error, "admin_user_detail_failed");
     return { data: null, error: "User could not be read." };
