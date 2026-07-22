@@ -40,6 +40,8 @@ export function SupportMailboxRail({
   labelFilter,
   assignedToMe,
   mailboxError,
+  hasMore,
+  isLoadingMore,
   showDrafts,
   drafts,
   draftsLoading,
@@ -59,6 +61,7 @@ export function SupportMailboxRail({
   onSelect,
   onResumeDraft,
   onRetryMailbox,
+  onLoadMore,
 }: {
   folder: SupportMailboxFolder;
   mailboxCounts: Record<SupportMailboxFolder, number>;
@@ -71,6 +74,8 @@ export function SupportMailboxRail({
   labelFilter: string;
   assignedToMe: boolean;
   mailboxError: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
   showDrafts: boolean;
   drafts: SupportDraftRow[] | undefined;
   draftsLoading: boolean;
@@ -90,6 +95,7 @@ export function SupportMailboxRail({
   onSelect: (conversation: SupportConversationRow) => void;
   onResumeDraft: (draft: SupportDraftRow) => void;
   onRetryMailbox: () => void;
+  onLoadMore: () => void;
 }) {
   const activeFolder = folders.find((item) => item.id === folder)?.label ?? "Inbox";
 
@@ -257,8 +263,11 @@ export function SupportMailboxRail({
         selectedId={selectedId}
         channelFilter={channelFilter}
         mailboxError={mailboxError}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
         onSelect={onSelect}
         onRetry={onRetryMailbox}
+        onLoadMore={onLoadMore}
       />
     </section>
   );

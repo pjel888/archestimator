@@ -20,15 +20,21 @@ export function SupportConversationList({
   selectedId,
   channelFilter,
   mailboxError,
+  hasMore,
+  isLoadingMore,
   onSelect,
   onRetry,
+  onLoadMore,
 }: {
   conversations: SupportConversationRow[];
   selectedId: string | null;
   channelFilter: SupportChannelFilter;
   mailboxError: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
   onSelect: (conversation: SupportConversationRow) => void;
   onRetry: () => void;
+  onLoadMore: () => void;
 }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto p-1.5" aria-live="polite">
@@ -63,6 +69,18 @@ export function SupportConversationList({
         </button>
       ))}
       {conversations.length === 0 && <div className="rounded-xs border border-dashed border-hairline p-3 text-[10px] leading-4 text-tertiary">{channelFilter === "email" ? "No email conversations yet. Compose one to start." : "No support conversations match these filters."}</div>}
+      {hasMore ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="xs"
+          className="mt-1 min-h-8 w-full"
+          disabled={isLoadingMore}
+          onClick={onLoadMore}
+        >
+          {isLoadingMore ? "Loading older conversations…" : "Load older conversations"}
+        </Button>
+      ) : null}
       {mailboxError && (
         <div role="status" className="flex items-center justify-between gap-2 px-1.5 py-2 text-[9px] leading-3 text-tertiary">
           <span>Mailbox refresh failed; showing the last available list.</span>

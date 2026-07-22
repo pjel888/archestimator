@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createSupportEmailConversationAndSend,
@@ -14,6 +14,10 @@ import {
   setConversationStatus,
   updateSupportTriage,
 } from "@/lib/admin/support-actions";
+import {
+  findSelectedSupportConversation,
+  mergeSupportConversationPages,
+} from "@/lib/admin/support-mailbox-client";
 import { Button } from "@/components/ui/button";
 import { SupportMessageCard } from "@/components/admin/support/SupportMessageCard";
 import { SupportMailboxRail } from "@/components/admin/support/SupportMailboxRail";
@@ -182,27 +186,36 @@ export function AdminSupportInbox({
     from_identity_id: fromIdentityId,
   }), [fromIdentityId, newCc, newSubject, newTo]);
 
-  const mailboxQuery = useQuery({
+  const mailboxQuery = useInfiniteQuery({
     queryKey: ["admin", "support", "mailbox", folder, statusFilter, channelFilter, unreadOnly, search.trim(), labelFilter.trim(), assignedToMe],
-    queryFn: async () => {
+    initialPageParam: "",
+    queryFn: async ({ pageParam, signal }) => {
       const params = new URLSearchParams({ folder, channel: channelFilter, limit: "50" });
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (unreadOnly) params.set("unread", "1");
       if (search.trim()) params.set("q", search.trim());
       if (labelFilter.trim()) params.set("label", labelFilter.trim());
       if (assignedToMe) params.set("assignee", "me");
-      const response = await fetch(`/api/admin/support/conversations?${params}`, { cache: "no-store" });
+      if (pageParam) params.set("cursor", pageParam);
+      const response = await fetch(`/api/admin/support/conversations?${params}`, {
+        cache: "no-store",
+        signal,
+      });
       const payload = (await response.json()) as {
         conversations?: SupportConversationRow[];
         counts?: Record<SupportMailboxFolder, number>;
+        nextCursor?: string | null;
         error?: string | null;
       };
       if (!response.ok || payload.error) throw new Error(payload.error || "Support conversations could not be loaded.");
       return {
         conversations: payload.conversations ?? [],
         counts: payload.counts ?? emptyMailboxCounts,
+        nextCursor: payload.nextCursor ?? null,
       };
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    refetchInterval: 15_000,
   });
   const draftsQuery = useQuery({
     queryKey: ["admin", "support", "drafts"],
@@ -214,25 +227,28 @@ export function AdminSupportInbox({
       return payload.drafts ?? [];
     },
   });
-  const mailboxConversations = mailboxQuery.data?.conversations ?? initialConversations;
+  const mailboxConversations = useMemo(
+    () => mailboxQuery.data ? mergeSupportConversationPages(mailboxQuery.data.pages) : initialConversations,
+    [initialConversations, mailboxQuery.data],
+  );
   const conversations = useMemo(() => (
     pinnedConversation
       && !mailboxConversations.some((conversation) => conversation.id === pinnedConversation.id)
       ? [pinnedConversation, ...mailboxConversations]
       : mailboxConversations
   ), [mailboxConversations, pinnedConversation]);
-  const mailboxCounts = mailboxQuery.data?.counts ?? emptyMailboxCounts;
-  const selected = conversations.find((thread) => thread.id === selectedId)
-    ?? conversations[0]
-    ?? null;
+  const mailboxCounts = mailboxQuery.data?.pages[0]?.counts ?? emptyMailboxCounts;
+  const selected = findSelectedSupportConversation(conversations, selectedId);
   const selectedThreadId = selected?.id ?? "";
   const threadQuery = useQuery({
     queryKey: ["admin", "support", "messages", selectedThreadId],
     enabled: Boolean(selectedThreadId),
     staleTime: 30_000,
-    queryFn: async () => {
+    refetchInterval: realtimeState === "connected" ? false : 15_000,
+    queryFn: async ({ signal }) => {
       const response = await fetch(`/api/admin/support/conversations/${selectedThreadId}/messages`, {
         cache: "no-store",
+        signal,
       });
       const payload = (await response.json()) as {
         messages?: SupportMessageRow[];
@@ -333,29 +349,45 @@ export function AdminSupportInbox({
   }, [messages.length, selected?.id]);
 
   useEffect(() => {
-    if (!selected || selected.channel !== "in_app") return;
+    if (!selectedThreadId) return;
+    const conversationId = selectedThreadId;
     let socket: WebSocket | null = null;
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let attempts = 0;
+    const abortController = new AbortController();
     const backfill = () => {
-      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "messages", selected.id] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", "messages", conversationId] });
       void queryClient.invalidateQueries({ queryKey: ["admin", "support", "mailbox"] });
     };
     const reconnect = () => {
-      if (cancelled) return;
+      if (cancelled || retryTimer) return;
       setRealtimeState(attempts > 0 ? "reconnecting" : "degraded");
       const delay = Math.min(30_000, 500 * 2 ** Math.min(attempts, 6)) + Math.floor(Math.random() * 250);
       attempts += 1;
-      retryTimer = setTimeout(() => void connect(), delay);
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void connect();
+      }, delay);
     };
     const connect = async () => {
+      if (cancelled) return;
       setRealtimeState(attempts > 0 ? "reconnecting" : "connecting");
       try {
-        const response = await fetch(`/api/support/conversations/${selected.id}/realtime-token`, { cache: "no-store" });
+        const response = await fetch(`/api/support/conversations/${conversationId}/realtime-token`, {
+          cache: "no-store",
+          signal: abortController.signal,
+        });
         const payload = await response.json() as { roomToken?: string };
-        if (!response.ok || !payload.roomToken || cancelled) { reconnect(); return; }
-        const url = new URL(`/__cloudflare/support-inbox/${selected.id}`, window.location.origin);
+        if (!response.ok || !payload.roomToken || cancelled) {
+          if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
+            setRealtimeState("degraded");
+            return;
+          }
+          reconnect();
+          return;
+        }
+        const url = new URL(`/__cloudflare/support-inbox/${conversationId}`, window.location.origin);
         url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
         socket = new WebSocket(url, [...supportRealtimeProtocols(payload.roomToken)]);
         socket.onopen = () => {
@@ -370,7 +402,7 @@ export function AdminSupportInbox({
         socket.onmessage = (event) => {
           try {
             const invalidation = JSON.parse(String(event.data)) as { type?: unknown; conversationId?: unknown; messageId?: unknown };
-            if (invalidation.conversationId !== selected.id) return;
+            if (invalidation.conversationId !== conversationId) return;
             if (
               invalidation.type !== "support_conversation_changed"
               && (invalidation.type !== "support_message_created" || typeof invalidation.messageId !== "string")
@@ -381,9 +413,12 @@ export function AdminSupportInbox({
           }
         };
         socket.onerror = () => setRealtimeState("degraded");
-        socket.onclose = reconnect;
+        socket.onclose = () => {
+          socket = null;
+          reconnect();
+        };
       } catch {
-        reconnect();
+        if (!cancelled) reconnect();
       }
     };
     const onOnline = () => { backfill(); if (!socket || socket.readyState > WebSocket.OPEN) reconnect(); };
@@ -395,11 +430,12 @@ export function AdminSupportInbox({
       cancelled = true;
       setRealtimeState("offline");
       if (retryTimer) clearTimeout(retryTimer);
+      abortController.abort();
       window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
       socket?.close();
     };
-  }, [queryClient, selected]);
+  }, [queryClient, selectedThreadId]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -701,6 +737,8 @@ export function AdminSupportInbox({
         labelFilter={labelFilter}
         assignedToMe={assignedToMe}
         mailboxError={mailboxQuery.isError}
+        hasMore={Boolean(mailboxQuery.hasNextPage)}
+        isLoadingMore={mailboxQuery.isFetchingNextPage}
         showDrafts={showDrafts}
         drafts={draftsQuery.data}
         draftsLoading={draftsQuery.isLoading}
@@ -726,6 +764,7 @@ export function AdminSupportInbox({
         }}
         onResumeDraft={resumeDraft}
         onRetryMailbox={() => void mailboxQuery.refetch()}
+        onLoadMore={() => void mailboxQuery.fetchNextPage()}
       />
 
       <section className={cn("min-h-0 flex-col bg-white md:flex", mobileThreadOpen ? "flex" : "hidden")} aria-label="Support thread">
