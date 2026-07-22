@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
+import { AdminDevBindingsBanner } from "@/components/admin/AdminDevBindingsBanner";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { isAdminDashboardEnabled } from "@/lib/admin/feature-flags";
 import { isPlatformAdmin } from "@/lib/auth/roles";
@@ -25,6 +26,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminShell displayName={currentUser.displayName} email={currentUser.email}>
+      <AdminDevBindingsBanner />
       {children}
     </AdminShell>
   );
