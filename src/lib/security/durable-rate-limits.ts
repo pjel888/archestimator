@@ -59,11 +59,13 @@ async function cleanupExpiredRateLimitEventsIfDue(now: number) {
 }
 
 export async function checkRecordedDurableRateLimit({
+  dedupeHash,
   keyParts,
   metadata,
   scope,
   windows,
 }: {
+  dedupeHash?: string | null;
   keyParts: DurableRateLimitKeyParts;
   metadata?: Record<string, DurableRateLimitJsonValue>;
   scope: string;
@@ -74,7 +76,13 @@ export async function checkRecordedDurableRateLimit({
   const maxWindowSeconds = Math.max(...windows.map((window) => window.seconds));
 
   await cleanupExpiredRateLimitEventsIfDue(now);
-  await insertDurableRateLimitEvent({ keyHash, metadata, scope, ttlSeconds: maxWindowSeconds });
+  await insertDurableRateLimitEvent({
+    dedupeHash,
+    keyHash,
+    metadata,
+    scope,
+    ttlSeconds: maxWindowSeconds,
+  });
 
   for (const window of windows) {
     const since = new Date(now - window.seconds * 1000).toISOString();
@@ -110,11 +118,13 @@ export async function checkExistingDurableRateLimit({
 }
 
 export async function recordDurableRateLimitEvent({
+  dedupeHash,
   keyParts,
   metadata,
   scope,
   ttlSeconds,
 }: {
+  dedupeHash?: string | null;
   keyParts: DurableRateLimitKeyParts;
   metadata?: Record<string, DurableRateLimitJsonValue>;
   scope: string;
@@ -124,7 +134,7 @@ export async function recordDurableRateLimitEvent({
   const keyHash = hashDurableRateLimitKey(scope, keyParts);
 
   await cleanupExpiredRateLimitEventsIfDue(now);
-  await insertDurableRateLimitEvent({ keyHash, metadata, scope, ttlSeconds });
+  await insertDurableRateLimitEvent({ dedupeHash, keyHash, metadata, scope, ttlSeconds });
 }
 
 export async function clearDurableRateLimitEvents(scope: string, keyParts: DurableRateLimitKeyParts) {

@@ -1,5 +1,5 @@
 type SharpFactory = (input: Buffer, options: { failOn: "warning"; limitInputPixels: number }) => {
-  metadata: () => Promise<{ format?: string; width?: number; height?: number }>;
+  metadata: () => Promise<{ format?: string; width?: number; height?: number; pages?: number }>;
   rotate: () => ReturnType<SharpFactory>;
   resize: (options: { width: number; height: number; fit: "inside"; withoutEnlargement: boolean }) => ReturnType<SharpFactory>;
   webp: (options: { quality: number; effort: number }) => ReturnType<SharpFactory>;
@@ -12,7 +12,9 @@ export type ProcessedUploadImage = {
 };
 
 type CloudflareImageInfo = {
+  animated?: boolean;
   format?: string;
+  frameCount?: number;
   width?: number;
   height?: number;
 };
@@ -37,6 +39,20 @@ type ProcessUploadImageResult =
   | { status: "cloudflare-image-processing-unavailable" }
   | { status: "decode-error" }
   | { status: "unsupported-encoding" }
+  | { status: "missing-dimensions" }
+  | { status: "dimensions-too-large" };
+
+export type ProcessedSupportImage = {
+  data: Buffer;
+  info: { width: number; height: number };
+};
+
+export type ProcessSupportImageResult =
+  | { status: "ok"; image: ProcessedSupportImage }
+  | { status: "cloudflare-image-processing-unavailable" }
+  | { status: "decode-error" }
+  | { status: "unsupported-encoding" }
+  | { status: "animated-image" }
   | { status: "missing-dimensions" }
   | { status: "dimensions-too-large" };
 
@@ -132,6 +148,101 @@ async function loadSharp() {
   if (isCloudflareWorkersProofBuild()) return null;
   const sharpModule = await import("sharp");
   return (sharpModule.default ?? sharpModule) as SharpFactory;
+}
+
+function sourceHasActiveAnimation(sourceBuffer: Buffer, magicMime: string) {
+  if (magicMime === "image/png") {
+    return sourceBuffer.includes(Buffer.from("acTL", "ascii"));
+  }
+  if (magicMime === "image/webp") {
+    return sourceBuffer.includes(Buffer.from("ANIM", "ascii"));
+  }
+  if (magicMime === "image/avif") {
+    return sourceBuffer.subarray(0, 64).includes(Buffer.from("avis", "ascii"));
+  }
+  return false;
+}
+
+async function processSupportImageWithCloudflareImages({
+  cloudflareImagesBinding,
+  magicMime,
+  maxImageEdge,
+  maxImagePixels,
+  sourceBuffer,
+}: {
+  cloudflareImagesBinding?: CloudflareImagesBindingLike | null;
+  magicMime: string;
+  maxImageEdge: number;
+  maxImagePixels: number;
+  sourceBuffer: Buffer;
+}): Promise<ProcessSupportImageResult> {
+  const images = cloudflareImagesBinding === undefined ? await loadCloudflareImagesBinding() : cloudflareImagesBinding;
+  if (!images || typeof images.info !== "function") return { status: "cloudflare-image-processing-unavailable" };
+
+  try {
+    const metadata = await images.info(bufferToReadableStream(sourceBuffer));
+    if (!isAllowedCloudflareImageFormat(metadata.format, magicMime)) return { status: "unsupported-encoding" };
+    if (metadata.animated === true || (metadata.frameCount ?? 1) > 1) return { status: "animated-image" };
+    if (!metadata.width || !metadata.height) return { status: "missing-dimensions" };
+    if (metadata.width * metadata.height > maxImagePixels) return { status: "dimensions-too-large" };
+
+    const output = await images
+      .input(bufferToReadableStream(sourceBuffer))
+      .transform({ width: maxImageEdge, height: maxImageEdge, fit: "scale-down" })
+      .output({ format: "image/webp", quality: 82, anim: false });
+    return {
+      status: "ok",
+      image: {
+        data: await cloudflareOutputToBuffer(output),
+        info: scaleDownDimensions(metadata.width, metadata.height, maxImageEdge),
+      },
+    };
+  } catch {
+    return { status: "decode-error" };
+  }
+}
+
+export async function processSupportImageToWebp({
+  cloudflareImagesBinding,
+  magicMime,
+  maxImageEdge,
+  maxImagePixels,
+  sourceBuffer,
+}: {
+  cloudflareImagesBinding?: CloudflareImagesBindingLike | null;
+  magicMime: string;
+  maxImageEdge: number;
+  maxImagePixels: number;
+  sourceBuffer: Buffer;
+}): Promise<ProcessSupportImageResult> {
+  if (sourceHasActiveAnimation(sourceBuffer, magicMime)) return { status: "animated-image" };
+  if (shouldUseCloudflareImagesProcessing()) {
+    return processSupportImageWithCloudflareImages({
+      cloudflareImagesBinding,
+      magicMime,
+      maxImageEdge,
+      maxImagePixels,
+      sourceBuffer,
+    });
+  }
+
+  const sharp = await loadSharp();
+  if (!sharp) return { status: "cloudflare-image-processing-unavailable" };
+  try {
+    const metadata = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: maxImagePixels }).metadata();
+    if (!isAllowedSharpFormat(metadata.format, magicMime)) return { status: "unsupported-encoding" };
+    if ((metadata.pages ?? 1) > 1) return { status: "animated-image" };
+    if (!metadata.width || !metadata.height) return { status: "missing-dimensions" };
+    if (metadata.width * metadata.height > maxImagePixels) return { status: "dimensions-too-large" };
+    const image = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: maxImagePixels })
+      .rotate()
+      .resize({ width: maxImageEdge, height: maxImageEdge, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer({ resolveWithObject: true });
+    return { status: "ok", image };
+  } catch {
+    return { status: "decode-error" };
+  }
 }
 
 async function processUploadImageWithCloudflareImages({

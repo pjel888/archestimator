@@ -25,7 +25,11 @@ async function getRequiredRateLimitDatabase() {
 }
 
 async function execute(db: D1DatabaseLike, sql: string, values: D1Value[]) {
-  await db.prepare(sql).bind(...values).run();
+  const result = await db.prepare(sql).bind(...values).run();
+  if (result.success === false) {
+    throw new Error("Durable rate limit storage operation failed.");
+  }
+  return result;
 }
 
 async function first<T>(db: D1DatabaseLike, sql: string, values: D1Value[]) {
@@ -33,6 +37,7 @@ async function first<T>(db: D1DatabaseLike, sql: string, values: D1Value[]) {
 }
 
 export async function insertDurableRateLimitEvent(input: {
+  dedupeHash?: string | null;
   keyHash: string;
   metadata?: Record<string, DurableRateLimitJsonValue>;
   scope: string;
@@ -42,11 +47,21 @@ export async function insertDurableRateLimitEvent(input: {
   const occurredAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + input.ttlSeconds * 1000).toISOString();
 
-  await execute(
+  return execute(
     db,
-    `INSERT INTO security_rate_limit_events (id, scope, key_hash, metadata_json, occurred_at, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [randomUUID(), input.scope, input.keyHash, JSON.stringify(input.metadata ?? {}), occurredAt, expiresAt],
+    `INSERT OR IGNORE INTO security_rate_limit_events (
+       id, scope, key_hash, dedupe_hash, metadata_json, occurred_at, expires_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      randomUUID(),
+      input.scope,
+      input.keyHash,
+      input.dedupeHash ?? null,
+      JSON.stringify(input.metadata ?? {}),
+      occurredAt,
+      expiresAt,
+    ],
   );
 }
 

@@ -60,7 +60,8 @@ export function DeleteAccountDangerZone() {
           </h2>
           <p className="text-[10px] leading-4 text-secondary">
             Closes your account and removes workshop access. Your projects and estimate sheets will no longer appear
-            if you sign up again. Archestimator retains internal records for operations.
+            if you sign up again. Archestimator retains internal records for operations. This account closure is not a
+            verified privacy erasure request; use the Privacy Notice process for erasure.
           </p>
         </div>
       </div>
