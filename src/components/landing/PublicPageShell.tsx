@@ -38,7 +38,7 @@ export function PublicPageShell({
           <LandingFooter />
         </>
       )}
-      <CookieConsentBanner />
+      <CookieConsentBanner inlineTrigger={isHomePage} />
       <LandingAnalyticsLoader />
     </div>
   );

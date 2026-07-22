@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { ArchestimatorNewLandingPage } from "@/components/landing-new/ArchestimatorNewLandingPage";
+
+import { ArchestimatorNewLandingPage as ArchestimatorProductionLandingPage } from "@/components/landing-production/ArchestimatorNewLandingPage";
+import { ProductionPublicPageShell } from "@/components/landing-production/ProductionPublicPageShell";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
-import { PublicPageShell } from "@/components/landing";
 
 export const metadata: Metadata = buildLandingMetadata({
   title: "Construction estimating from estimate to proposal",
@@ -14,8 +15,8 @@ export const dynamic = "force-static";
 
 export default function LandingPage() {
   return (
-    <PublicPageShell isHomePage>
-      <ArchestimatorNewLandingPage />
-    </PublicPageShell>
+    <ProductionPublicPageShell>
+      <ArchestimatorProductionLandingPage />
+    </ProductionPublicPageShell>
   );
 }

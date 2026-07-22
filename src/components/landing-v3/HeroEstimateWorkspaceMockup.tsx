@@ -208,6 +208,7 @@ export type HeroEstimateWorkspaceMockupProps = {
   staticPhase?: HeroAnimationPhase;
   /** When true, an hidden document cancels timers and ends any drag state. */
   pauseWhenDocumentHidden?: boolean;
+  presentationMode?: boolean;
   className?: string;
 };
 
@@ -215,6 +216,7 @@ export function HeroEstimateWorkspaceMockup({
   playback = "loop",
   staticPhase = "fauxwood-replaced",
   pauseWhenDocumentHidden = false,
+  presentationMode = true,
   className,
 }: HeroEstimateWorkspaceMockupProps = {}) {
   const queryClient = useQueryClient();
@@ -303,6 +305,7 @@ export function HeroEstimateWorkspaceMockup({
           libraryEnableReusableProjectSources={false}
           surfaceVariant="glass"
           disableRouteSync
+          presentationMode={presentationMode}
         />
       </div>
       <div className={styles.heroMockupAnimationLayer} aria-hidden="true">

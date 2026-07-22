@@ -40,7 +40,11 @@ function writeStoredConsent(consent: LandingConsentState) {
   window.dispatchEvent(new CustomEvent(consentChangeEvent, { detail: consent }));
 }
 
-export function CookieConsentBanner() {
+type CookieConsentBannerProps = {
+  inlineTrigger?: boolean;
+};
+
+export function CookieConsentBanner({ inlineTrigger = false }: CookieConsentBannerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const consent = useSyncExternalStore(
     subscribeToConsentChanges,
@@ -61,7 +65,11 @@ export function CookieConsentBanner() {
       <button
         type="button"
         aria-label="Open cookie choices"
-        className="fixed bottom-3 left-3 z-[60] rounded-[5px] border border-[#d8d6cf] bg-white/95 px-3 py-2 text-[11px] font-semibold text-[#34342f] shadow-sm backdrop-blur-md transition hover:border-[#b9b5aa] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+        className={
+          inlineTrigger
+            ? "m-3 rounded-[5px] border border-[#d8d6cf] bg-white px-3 py-2 text-[11px] font-semibold text-[#34342f] transition hover:border-[#b9b5aa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+            : "fixed bottom-3 left-3 z-[60] rounded-[5px] border border-[#d8d6cf] bg-white/95 px-3 py-2 text-[11px] font-semibold text-[#34342f] shadow-sm backdrop-blur-md transition hover:border-[#b9b5aa] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+        }
         onClick={() => setIsEditing(true)}
       >
         Cookie settings
