@@ -172,6 +172,7 @@ export function AdminAccountWorkspaces({
           columns={columns}
           getRowId={(row) => row.id}
           emptyMessage="No linked workspaces."
+          persistenceKey="admin-account-workspaces"
         />
       </div>
     </div>

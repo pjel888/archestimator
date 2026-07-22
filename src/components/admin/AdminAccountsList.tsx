@@ -152,6 +152,7 @@ export function AdminAccountsList({
           getRowId={(row) => row.id}
           globalFilter={search}
           emptyMessage={emptyMessage}
+          persistenceKey="admin-accounts"
         />
       </div>
     </div>

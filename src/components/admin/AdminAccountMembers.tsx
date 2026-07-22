@@ -235,6 +235,7 @@ export function AdminAccountMembers({
           columns={columns}
           getRowId={(row) => row.user_id}
           emptyMessage="No members yet."
+          persistenceKey="admin-account-members"
         />
       </div>
     </div>

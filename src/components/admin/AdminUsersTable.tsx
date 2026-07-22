@@ -401,6 +401,7 @@ export function AdminUsersTable({
           columns={columns}
           getRowId={(row) => row.id}
           emptyMessage="No users match these filters."
+          persistenceKey="admin-users"
         />
       </div>
     </div>

@@ -2,11 +2,13 @@
 
 /**
  * AdminDataTable — TanStack Table + shadcn Table chrome for admin density.
- * Callers: AdminUsersTable, AdminAccountsList, AdminAuditTable, AdminProjectsTable.
- * User instruction: integrate tanstack tables for admin shadcn migration.
+ * Callers: AdminUsersTable, AdminAccountsList, AdminAuditTable, AdminProjectsTable,
+ * AdminAccountMembers, AdminAccountWorkspaces, AdminAllowlistManager.
+ * Header-click sorting is the canonical organization control; pass a stable
+ * `persistenceKey` so the chosen sort survives refreshes (localStorage).
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   flexRender,
@@ -15,6 +17,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
   type SortingState,
 } from "@tanstack/react-table";
 import { CaretDown, CaretUp } from "@phosphor-icons/react/dist/ssr";
@@ -25,6 +28,19 @@ import { cn } from "@/lib/ui/cn";
 const VIRTUALIZE_MIN_ROWS = 75;
 const ROW_HEIGHT = 32;
 
+function isSortingState(value: unknown): value is SortingState {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof (item as { id?: unknown }).id === "string" &&
+        typeof (item as { desc?: unknown }).desc === "boolean",
+    )
+  );
+}
+
 export type AdminDataTableProps<TData> = {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
@@ -34,6 +50,11 @@ export type AdminDataTableProps<TData> = {
   /** Optional global filter string applied to all stringifiable cell values when no column filterFn is set. */
   globalFilter?: string;
   onRowClick?: (row: TData) => void;
+  /**
+   * Stable key used to persist the header-click sorting state in localStorage
+   * so the chosen column order survives refreshes. Unique per table instance.
+   */
+  persistenceKey?: string;
 };
 
 export function AdminDataTable<TData>({
@@ -44,15 +65,57 @@ export function AdminDataTable<TData>({
   className,
   globalFilter = "",
   onRowClick,
+  persistenceKey,
 }: AdminDataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const storageKey = persistenceKey ? `archestimator:admin-table:${persistenceKey}:sorting` : null;
+  /* Guard against clobbering the stored sort with the mount-time default before it is read. */
+  const hasRestoredSorting = useRef(false);
+
+  /* Restore after mount: reading localStorage during render would diverge from the SSR pass. */
+  useEffect(() => {
+    hasRestoredSorting.current = false;
+    if (storageKey) {
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed: unknown = JSON.parse(raw);
+          if (isSortingState(parsed)) setSorting(parsed);
+        }
+      } catch {
+        /* Unreadable storage must never break the table. */
+      }
+    }
+    hasRestoredSorting.current = true;
+  }, [storageKey]);
+
+  const handleSortingChange = useCallback<OnChangeFn<SortingState>>(
+    (updater) => {
+      setSorting((current) => {
+        const next = typeof updater === "function" ? updater(current) : updater;
+        if (storageKey && hasRestoredSorting.current) {
+          try {
+            if (next.length > 0) {
+              window.localStorage.setItem(storageKey, JSON.stringify(next));
+            } else {
+              window.localStorage.removeItem(storageKey);
+            }
+          } catch {
+            /* Quota/privacy-mode failures must never break sorting. */
+          }
+        }
+        return next;
+      });
+    },
+    [storageKey],
+  );
 
   const table = useReactTable({
     data,
     columns,
     state: { sorting, globalFilter },
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

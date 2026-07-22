@@ -261,6 +261,7 @@ export function AdminProjectsTable({ projects }: { projects: AdminProjectOvervie
           columns={columns}
           getRowId={(row) => row.id}
           emptyMessage="No projects match these filters."
+          persistenceKey="admin-projects"
         />
       </div>
     </div>

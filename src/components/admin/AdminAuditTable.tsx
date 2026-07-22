@@ -86,6 +86,7 @@ export function AdminAuditTable({ rows, error }: { rows: AuditRow[]; error?: str
           getRowId={(row) => row.id}
           emptyMessage={emptyMessage}
           className="min-h-0 flex-1"
+          persistenceKey="admin-audit"
         />
       </div>
     </>
