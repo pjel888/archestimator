@@ -51,18 +51,31 @@ function roundQuantity(value: number) {
 
 function buildParticulars(row: EstimateRowItem) {
   const material = normalizeWhitespace(row.material) || "Unnamed item";
+  const variant = normalizeWhitespace(row.priceOptionLabel);
   const description = normalizeWhitespace(row.description);
+  const head = variant && keyText(variant) !== keyText(material) ? `${material} (${variant})` : material;
 
-  if (!description || keyText(description) === keyText(material)) return material;
-  return `${material} — ${description}`;
+  if (!description || keyText(description) === keyText(material) || keyText(description) === keyText(variant)) {
+    return head;
+  }
+  return `${head} — ${description}`;
 }
 
-function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
+function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings, areaPathLabel?: string) {
   const remarks: string[] = [];
+  const brand = normalizeWhitespace(row.brand);
+  const sku = normalizeWhitespace(row.sku);
   const supplier = normalizeWhitespace(row.supplier);
   const pricingSource = normalizeWhitespace(row.pricingSource);
   const pricingDate = normalizeWhitespace(row.pricingDate);
   const notes = normalizeWhitespace(row.notes);
+
+  // Product identity (brand / SKU) is client-safe component data, not supplier pricing.
+  if (brand) remarks.push(`Brand: ${brand}`);
+  if (sku) remarks.push(`SKU: ${sku}`);
+  if (settings.consolidationMode === "area-breakdown" && areaPathLabel) {
+    remarks.push(`Area: ${areaPathLabel}`);
+  }
 
   // `showSupplierInRemarks` gates internal pricing intelligence (supplier and pricing
   // source/date) together — applyAudiencePolicy forces it off for a client
@@ -123,6 +136,17 @@ function normalizeSourceRow(
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
   // P3-T2: per-row scope from row metadata (else included).
   const scopeStatus: ProposalScopeStatus = normalizeScope(sourceRow.scopeStatus);
+  // Stable identity for consolidation. Supplier/component/variant keys stay in the
+  // merge key even when client audience redacts them from remarks, so distinct
+  // library items or suppliers never falsely collapse into one BOQ line.
+  const identityKey = [
+    normalizeWhitespace(sourceRow.sourceLibraryItemId),
+    normalizeWhitespace(sourceRow.priceOptionId),
+    normalizeWhitespace(sourceRow.supplierId) || keyText(sourceRow.supplier),
+    keyText(sourceRow.sku),
+    keyText(sourceRow.brand),
+    settings.consolidationMode === "area-breakdown" ? flatRow.areaPathLabel : "",
+  ].join("|");
 
   return {
     sourceRowId: flatRow.sourceRowId,
@@ -145,9 +169,10 @@ function normalizeSourceRow(
     contingencySubtotal,
     miscSubtotal,
     costAmount,
-    remarks: buildRemarks(sourceRow, settings),
+    remarks: buildRemarks(sourceRow, settings, flatRow.areaPathLabel),
     scopeStatus,
     includedInTotal: scopeStatus === "included",
+    identityKey,
   };
 }
 
@@ -162,6 +187,7 @@ function consolidationKey(row: ProposalNormalizedSourceRow) {
     keyText(row.remarks),
     row.scopeStatus,
     row.includedInTotal,
+    row.identityKey,
   ]);
 }
 

@@ -72,6 +72,14 @@ function parseExportSettings(searchParams: URLSearchParams): ParsedExportSetting
     settings[key] = raw === "true";
   }
 
+  const consolidationMode = searchParams.get("consolidationMode");
+  if (consolidationMode !== null) {
+    if (consolidationMode !== "industry-standard" && consolidationMode !== "area-breakdown") {
+      return { ok: false, error: "consolidationMode must be 'industry-standard' or 'area-breakdown'." };
+    }
+    settings.consolidationMode = consolidationMode;
+  }
+
   return { ok: true, settings, requestedInternal: searchParams.get("audience") === "internal" };
 }
 
@@ -432,7 +440,10 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
       maxTabCount: PROPOSAL_EXPORT_TAB_LIMIT,
     });
     if (tabs.length > PROPOSAL_EXPORT_TAB_LIMIT) return createLimitResponse();
-    if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, exportContext);
+    // Single-tab estimates must load that exact tab (not a separate default-tab lookup), so
+    // a lone non-default tab or the synthetic legacy Main tab still exports its own tree.
+    if (tabs.length === 1) return await buildSingleTabResponse(projectId, estimateId, tabs[0]!.id, exportContext);
+    if (tabs.length === 0) return await buildSingleTabResponse(projectId, estimateId, null, exportContext);
     return await buildAllTabsResponse(projectId, estimateId, tabs, exportContext);
   } catch (error) {
     // F-33 (P2-T8): a malformed estimate/tab id reaches Postgres as an invalid uuid (SQLSTATE
