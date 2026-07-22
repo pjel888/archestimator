@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DotsThreeOutline } from "@phosphor-icons/react/dist/ssr";
@@ -22,13 +22,18 @@ export function AdminMobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = moreOpen || !isAdminPrimaryNavRoute(pathname);
 
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
   return (
     <>
       <nav
         aria-label="Admin mobile navigation"
         className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-0 z-50 md:hidden",
+          "pointer-events-none fixed inset-x-0 bottom-0 z-[900] md:hidden",
           "px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1",
+          moreOpen && "invisible",
         )}
       >
         <div
@@ -69,7 +74,16 @@ export function AdminMobileBottomNav() {
             aria-label="More admin sections"
             aria-expanded={moreOpen}
             aria-haspopup="dialog"
-            onClick={() => setMoreOpen((open) => !open)}
+            aria-controls="admin-mobile-more-sheet"
+            onPointerDown={(event) => {
+              // Keep the opening gesture on this control so the portaled
+              // backdrop cannot receive the same pointerup/click.
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              setMoreOpen((open) => !open);
+            }}
             className={cn(
               "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--glass-nav-radius)] px-1 py-1",
               "text-[8px] font-medium leading-3 transition-[background-color,color,transform] duration-150",

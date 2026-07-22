@@ -178,12 +178,65 @@ export function AdminAccountMembers({
 
       {notice ? <span className="text-[9px] leading-3 text-tertiary">{notice}</span> : null}
 
-      <AdminDataTable
-        data={members}
-        columns={columns}
-        getRowId={(row) => row.user_id}
-        emptyMessage="No members yet."
-      />
+      <div className="overflow-hidden rounded-xs border border-hairline md:hidden">
+        {members.length > 0 ? (
+          members.map((member) => (
+            <article key={member.user_id} className="border-b border-hairline p-3 last:border-b-0">
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-medium leading-4 text-ink">
+                  {member.display_name ?? member.email}
+                </p>
+                <p className="break-all text-[9px] leading-3 text-tertiary">{member.email}</p>
+              </div>
+              <div className="mt-2 grid gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[8px] font-medium uppercase leading-3 text-tertiary">Role</span>
+                  <select
+                    value={member.role}
+                    onChange={(e) => handleRoleChange(member.user_id, e.target.value)}
+                    disabled={isPending}
+                    aria-label={`Role for ${member.email}`}
+                    className="min-h-9 rounded-xs border border-hairline px-2 py-1 text-[10px] text-ink"
+                  >
+                    {ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-[9px] leading-3 text-tertiary">
+                    {member.job_title ?? "No job title"}
+                  </p>
+                  <Button
+                    size="xs"
+                    variant="danger"
+                    disabled={isPending}
+                    onClick={() => handleRemove(member.user_id)}
+                    aria-label={`Remove ${member.email}`}
+                    className="min-h-8 shrink-0"
+                  >
+                    <UserMinus aria-hidden size={13} />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="p-4 text-center text-[10px] leading-4 text-tertiary">No members yet.</p>
+        )}
+      </div>
+
+      <div className="hidden md:block">
+        <AdminDataTable
+          data={members}
+          columns={columns}
+          getRowId={(row) => row.user_id}
+          emptyMessage="No members yet."
+        />
+      </div>
     </div>
   );
 }

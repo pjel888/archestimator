@@ -15,16 +15,18 @@ type AdminShellProps = {
 /**
  * Admin app chrome: desktop left rail + header; mobile floating bottom nav.
  * Content padding reserves space for the mobile nav without clipping data.
+ * Mobile overlays (More sheet, command palette) portal to document.body so
+ * this overflow container cannot clip or trap them.
  */
 export function AdminShell({ children, displayName, email }: AdminShellProps) {
   return (
     <main className="flex h-[100dvh] overflow-hidden bg-surfaceMuted/40 text-ink" aria-label="Admin dashboard">
       <AdminSidebar />
-      <section className="flex min-w-0 flex-1 flex-col" aria-label="Admin workspace">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden" aria-label="Admin workspace">
         <AdminHeader displayName={displayName} email={email} />
         <div
           className={[
-            "min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain bg-white",
+            "min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-y-contain bg-white",
             "px-3 py-3 sm:p-4",
             /* Reserve thumb-nav + safe-area clearance on mobile app chrome */
             "pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-4",

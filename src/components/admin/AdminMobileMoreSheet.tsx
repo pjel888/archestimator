@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "@phosphor-icons/react/dist/ssr";
@@ -19,14 +20,37 @@ type AdminMobileMoreSheetProps = {
 /**
  * Full admin destination sheet for mobile. Preserves every sidebar group and
  * link that the desktop rail exposes — nothing is dropped behind "More".
+ *
+ * Portaled to document.body so it escapes AdminShell overflow clipping, and
+ * dismiss is deferred until the opening pointer gesture ends so the backdrop
+ * does not immediately swallow the same tap that opened the sheet.
  */
 export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreSheetProps) {
   const pathname = usePathname();
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dismissReadyRef = useRef(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      dismissReadyRef.current = false;
+      return;
+    }
+
+    // Ignore backdrop dismiss for a short window after open. Mobile browsers
+    // can deliver a ghost click/pointerup onto a newly mounted overlay under
+    // the same finger that pressed More; a pointerup-based ready gate fails
+    // in that case because the ghost gesture itself marks dismiss ready.
+    dismissReadyRef.current = false;
+    const readyFallback = window.setTimeout(() => {
+      dismissReadyRef.current = true;
+    }, 400);
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const focusId = requestAnimationFrame(() => closeRef.current?.focus());
@@ -40,23 +64,30 @@ export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreShee
 
     window.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(readyFallback);
       cancelAnimationFrame(focusId);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onOpenChange]);
 
-  if (!open) return null;
+  if (!mounted || !open) return null;
 
-  return (
-    <div className="fixed inset-0 z-[60] md:hidden" role="presentation">
+  function requestClose() {
+    if (!dismissReadyRef.current) return;
+    onOpenChange(false);
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] md:hidden" role="presentation">
       <button
         type="button"
         className="absolute inset-0 bg-ink/35 transition-opacity duration-150"
         aria-label="Close admin navigation"
-        onClick={() => onOpenChange(false)}
+        onClick={requestClose}
       />
       <div
+        id="admin-mobile-more-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -79,7 +110,7 @@ export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreShee
             ref={closeRef}
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             aria-label="Close"
           >
             <X size={14} weight="regular" aria-hidden="true" />
@@ -125,6 +156,7 @@ export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreShee
           ))}
         </nav>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

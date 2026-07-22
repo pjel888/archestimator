@@ -88,7 +88,7 @@ export function AdminDataTable<TData>({
       className={cn(
         "min-h-0 flex-1 overflow-auto overscroll-contain rounded-xs border border-hairline",
         /* Keep wide admin tables scannable on phones without dropping columns. */
-        "-mx-0.5 touch-pan-x",
+        "touch-pan-x [-webkit-overflow-scrolling:touch]",
         className,
       )}
     >
