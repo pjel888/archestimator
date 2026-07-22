@@ -1,0 +1,971 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-22-user-support-system",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-22T04:40:06.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+    "scoped_status_sha256": "c8011aa5327c58a504b9896d242c913c89cf5d750ee82524825920b7482c4038",
+    "scoped_diff_sha256": "c4eae21634cd0595d555b84ae33b80922bc29540402b0fc1c42e17272c373b1e"
+  },
+  "stale_triggers": [
+    "src/lib/repositories/support-conversations-d1.ts mailbox, message, unread, or status semantics change",
+    "src/lib/repositories/support-drafts-d1.ts draft get-or-create semantics change",
+    "src/lib/admin/action-inbox-repository.ts or AdminActionInbox.tsx source action behavior changes",
+    "authenticated support entry points, SupportChatWidget, WorkshopFeedbackModal, or BetaFeedbackForm change",
+    "support user or admin API authorization, multipart, realtime, or attachment contracts change",
+    "privacy-request-repository.ts support export or erasure behavior changes",
+    "the active migration tail advances beyond the number reserved during UNIT-002 execution",
+    "wrangler.jsonc ARCH_DB, ARCH_UPLOADS_R2, or SUPPORT_INBOX bindings or limits change",
+    "package.json support UI, upload, form, socket, toast, or virtualization dependencies change",
+    "official Next.js or Cloudflare runtime limits used by this plan materially change"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "d13fd42c3278783a52e7c5abcadd87ac2dc387584cd6ff50001e8627f5b8afbc"
+    },
+    {
+      "id": "ART-002",
+      "role": "manifest",
+      "path": "README.md",
+      "sha256": "11fdc0ce0cd34ddd3ea98e665087353ef4e011ad49a69e51826e1b85b9d534b1"
+    },
+    {
+      "id": "ART-003",
+      "role": "ux-audit",
+      "path": "UX-AUDIT.md",
+      "sha256": "9187cf84ba13429d83a6b8c93c903066ae261b4d675cd61e0f1c5bccd0601df8"
+    },
+    {
+      "id": "ART-004",
+      "role": "dependency-decision",
+      "path": "DEPENDENCY-DECISION.md",
+      "sha256": "45dc890e5626a46d184121c80e9c5fd84455318a201c5cf98e4942afcb9bc89d"
+    },
+    {
+      "id": "ART-005",
+      "role": "external-research",
+      "path": "RESEARCH.md",
+      "sha256": "70166f81bbfb9829be7cc1a57d9e5a5ba40eae74748f12e694b02ce78ebf9c14"
+    },
+    {
+      "id": "ART-006",
+      "role": "unit",
+      "path": "units/001-recover-support-runtime-and-action-links.md",
+      "sha256": "2271da4e023d0a7990b8e6d9590265d660ffb341edfa324fb23aa2400b3ac902"
+    },
+    {
+      "id": "ART-007",
+      "role": "unit",
+      "path": "units/002-establish-canonical-support-domain.md",
+      "sha256": "e8c0b914ffc8b2acd40caafb8e937acfb758690cd639e9c5fabe37cd0028b5e2"
+    },
+    {
+      "id": "ART-008",
+      "role": "unit",
+      "path": "units/003-build-secure-user-intake.md",
+      "sha256": "82501a78c54779a1d2b2d7686ec04a8d448ccc67ebb960bccacdebc5284efb65"
+    },
+    {
+      "id": "ART-009",
+      "role": "unit",
+      "path": "units/004-replace-feedback-with-support-composer.md",
+      "sha256": "5c68a9c54ff590ed89fc0cc262c5df77b2826d950fa945c6a540b91d200c21a8"
+    },
+    {
+      "id": "ART-010",
+      "role": "unit",
+      "path": "units/005-establish-user-support-inbox.md",
+      "sha256": "c4101ecd145ee4888b59397c670fbd509af924b9efd9df453f93ac55d99ac6a0"
+    },
+    {
+      "id": "ART-011",
+      "role": "unit",
+      "path": "units/006-converge-admin-support-and-action-inbox.md",
+      "sha256": "b6288471caca22318471b767b03c52dfa84b4a75d213ec1e667a3068e5264a8a"
+    },
+    {
+      "id": "ART-012",
+      "role": "unit",
+      "path": "units/007-cut-over-privacy-observability-and-legacy.md",
+      "sha256": "cb59f1cb27902df5cd39c7f5111c7f32da5b9ef47af349dd92f8f574208c8c8e"
+    },
+    {
+      "id": "ART-013",
+      "role": "rendered-audit",
+      "path": "audit/01-admin-today.png",
+      "sha256": "e99dc56280c9bba453378341f3ec631a290b9283eee6be25096bc6bde085c2f1"
+    },
+    {
+      "id": "ART-014",
+      "role": "rendered-audit",
+      "path": "audit/02-admin-support.png",
+      "sha256": "0629f8b5b70145d9bae595078a740cbc60e6aeee971a14b6867cf665f1b812b7"
+    },
+    {
+      "id": "ART-015",
+      "role": "rendered-audit",
+      "path": "audit/03-feedback-modal.png",
+      "sha256": "0543fe60956c3f7ceaeec1fc122541f8bd863369d60ed5ae19e93700f6d6de73"
+    },
+    {
+      "id": "ART-016",
+      "role": "rendered-audit",
+      "path": "audit/04-user-feedback-and-chat.png",
+      "sha256": "d76425710e6ab33e61ec64122f1fa9554251b8b21c5dc9fc483db0a8ac2cd932"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "DATA-001",
+        "UX-001",
+        "SEC-001",
+        "SEC-002",
+        "UX-002",
+        "DATA-002",
+        "UX-003",
+        "PERF-001",
+        "OPS-002"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-008",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-006",
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; this criterion will use source, SQL, static, and optional explicitly authorized product-test evidence during UNIT-001.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; canonical ledger and legacy convergence evidence is planned across UNIT-002, UNIT-006, and UNIT-007.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; composer source, accessibility, responsive, and optional user-authorized browser evidence will be collected in UNIT-003 and UNIT-004.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; actor, context, ownership, privacy, and route-boundary proof is planned across UNIT-002, UNIT-003, and UNIT-007.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-003",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; private screenshot ownership, idempotency, compensation, and cleanup proof is planned across UNIT-002, UNIT-003, and UNIT-007.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-003",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; Support Center discovery, request history, unread, reply, retry, responsive, and accessibility evidence is planned in UNIT-004 and UNIT-005.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; D1-before-fanout, idempotent retry, unread, reopen, and degraded realtime evidence is planned across four implementation units.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-003",
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; exact deep links, admin context, assignment, priority, reply, and Action Inbox convergence evidence is planned in UNIT-001 and UNIT-006.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; dependency diff, client-boundary inspection, static analysis, and bounded data-flow evidence is planned in UNIT-004 through UNIT-006.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-010",
+      "status": "N/A",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "The implementation has not started; privacy, cleanup, observability, documentation, duplicate-write, and release-boundary evidence is planned in UNIT-007.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [],
+  "gates": [],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "units/001-recover-support-runtime-and-action-links.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-001",
+        "UX-003"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-007",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "units/002-establish-canonical-support-domain.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "SEC-001",
+        "SEC-002",
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "units/003-build-secure-user-intake.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "SEC-001",
+        "SEC-002",
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "units/004-replace-feedback-with-support-composer.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "UX-002",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-006",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "units/005-establish-user-support-inbox.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "DATA-002",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-006",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "units/006-converge-admin-support-and-action-inbox.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "UX-003",
+        "DATA-002",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-007",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "units/007-cut-over-privacy-observability-and-legacy.md",
+      "depends_on": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "SEC-001",
+        "SEC-002",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-008",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "UX-003"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "OPS-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "PERF-001",
+        "UX-001",
+        "UX-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "units/001-recover-support-runtime-and-action-links.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001",
+        "AC-008"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "2271da4e023d0a7990b8e6d9590265d660ffb341edfa324fb23aa2400b3ac902",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "units/002-establish-canonical-support-domain.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "e8c0b914ffc8b2acd40caafb8e937acfb758690cd639e9c5fabe37cd0028b5e2",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "units/003-build-secure-user-intake.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "82501a78c54779a1d2b2d7686ec04a8d448ccc67ebb960bccacdebc5284efb65",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "units/004-replace-feedback-with-support-composer.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-003",
+        "AC-006",
+        "AC-009"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "5c68a9c54ff590ed89fc0cc262c5df77b2826d950fa945c6a540b91d200c21a8",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "units/005-establish-user-support-inbox.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-006",
+        "AC-007",
+        "AC-009"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "c4101ecd145ee4888b59397c670fbd509af924b9efd9df453f93ac55d99ac6a0",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "units/006-converge-admin-support-and-action-inbox.md",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-002",
+        "AC-007",
+        "AC-008",
+        "AC-009"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "b6288471caca22318471b767b03c52dfa84b4a75d213ec1e667a3068e5264a8a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "units/007-cut-over-privacy-observability-and-legacy.md",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-010"
+      ],
+      "source_revision": "facf7eeede513b0da3e0d394ee974a3ee65bd15c",
+      "sha256": "cb59f1cb27902df5cd39c7f5111c7f32da5b9ef47af349dd92f8f574208c8c8e",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "manifest_sha256": "27753268f2ca8c6164550242112b2d61554c0250df0b94653f69610aa07654e0"
+}
