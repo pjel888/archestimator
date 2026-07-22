@@ -135,7 +135,7 @@ export function AdminAccountWorkspaces({
 
       {notice ? <span className="text-[9px] leading-3 text-tertiary">{notice}</span> : null}
 
-      <div className="overflow-hidden rounded-xs border border-hairline md:hidden">
+      <div className="overflow-hidden rounded-xs border border-hairline md:hidden [content-visibility:auto]">
         {workspaces.length > 0 ? (
           workspaces.map((ws) => (
             <article key={ws.id} className="border-b border-hairline p-3 last:border-b-0">
