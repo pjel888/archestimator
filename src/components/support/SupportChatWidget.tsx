@@ -1,12 +1,16 @@
 import { SupportChatWidgetClient } from "@/components/support/SupportChatWidgetClient";
-import { isSupportChatEnabled } from "@/lib/feature-gates/enforce";
+import { getCurrentUserContext } from "@/lib/auth/session";
 
 /**
- * In-app support intake for signed-in workshop users.
- * Creates a `channel: in_app` conversation that appears in `/admin/support`.
- * Gated by `admin_support_realtime` so operators can disable it from /admin/flags.
+ * Full-page Support Center host for signed-in workshop users.
+ * Realtime may degrade independently; durable D1 support remains available.
  */
 export async function SupportChatWidget() {
-  if (!(await isSupportChatEnabled())) return null;
-  return <SupportChatWidgetClient />;
+  const currentUser = await getCurrentUserContext();
+  return (
+    <SupportChatWidgetClient
+      host="page"
+      workspaceId={currentUser?.profile.default_workspace_id ?? null}
+    />
+  );
 }

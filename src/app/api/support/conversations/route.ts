@@ -1,60 +1,70 @@
-import { NO_STORE_HEADERS, assertAdminApiOrigin } from "@/lib/admin/require-admin";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
-import { fanoutSupportInboxInvalidation } from "@/lib/cloudflare/support-inbox-fanout";
 import {
-  createSupportConversation,
-  listSupportConversationsForUserInD1,
-} from "@/lib/repositories/support-conversations-repository";
+  SupportIntakeServiceError,
+  writeUserSupportMessage,
+} from "@/lib/support/intake-service";
+import {
+  assertSupportSameOrigin,
+  SUPPORT_NO_STORE_HEADERS,
+  supportJsonError,
+} from "@/lib/support/http";
+import {
+  listUserSupportConversations,
+  SupportReadError,
+} from "@/lib/support/user-read-service";
 
 export const dynamic = "force-dynamic";
 
-async function currentUser() {
+export async function GET(request: Request) {
   const user = await getCurrentUserContext();
-  if (!user) return null;
-  return user;
-}
+  if (!user) return supportJsonError("Authentication required.", 401);
+  const database = await getCloudflareD1Database();
+  if (!database) return supportJsonError("Support storage unavailable.", 503);
 
-export async function GET() {
-  const user = await currentUser();
-  if (!user) return Response.json({ error: "Authentication required." }, { status: 401, headers: NO_STORE_HEADERS });
-  const db = await getCloudflareD1Database();
-  if (!db) return Response.json({ error: "Support storage unavailable." }, { status: 503, headers: NO_STORE_HEADERS });
-  const conversations = await listSupportConversationsForUserInD1(db, user.userId);
-  return Response.json({ conversations }, { headers: NO_STORE_HEADERS });
+  try {
+    const url = new URL(request.url);
+    const result = await listUserSupportConversations({
+      cursor: url.searchParams.get("cursor"),
+      database,
+      limit: url.searchParams.get("limit"),
+      userId: user.userId,
+    });
+    return Response.json(result, { headers: SUPPORT_NO_STORE_HEADERS });
+  } catch (error) {
+    if (error instanceof SupportReadError) return supportJsonError(error.message, error.status);
+    return supportJsonError("Support requests could not be read.", 503);
+  }
 }
 
 export async function POST(request: Request) {
-  const originError = assertAdminApiOrigin(request);
+  const originError = assertSupportSameOrigin(request);
   if (originError) return originError;
-  const user = await currentUser();
-  if (!user) return Response.json({ error: "Authentication required." }, { status: 401, headers: NO_STORE_HEADERS });
-  const payload = await request.json().catch(() => null) as Record<string, unknown> | null;
-  if (!payload || typeof payload.body !== "string" || typeof payload.clientMessageId !== "string") {
-    return Response.json({ error: "A message and clientMessageId are required." }, { status: 400, headers: NO_STORE_HEADERS });
-  }
-  const result = await createSupportConversation({
-    userId: user.userId,
-    subject: typeof payload.subject === "string" ? payload.subject : undefined,
-    initialBody: payload.body,
-    clientMessageId: payload.clientMessageId,
-  });
-  if (result.error || !result.data) return Response.json({ error: result.error || "Support conversation could not be created." }, { status: 400, headers: NO_STORE_HEADERS });
+  const user = await getCurrentUserContext();
+  if (!user) return supportJsonError("Authentication required.", 401);
+  const database = await getCloudflareD1Database();
+  if (!database) return supportJsonError("Support storage unavailable.", 503);
 
-  let realtimeDegraded = false;
   try {
-    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    const context = await getCloudflareContext({ async: true }) as unknown as { env?: Record<string, unknown> };
-    const realtime = await fanoutSupportInboxInvalidation({
-      env: context.env ?? {},
-      conversationId: result.data.conversation.id,
-      messageId: result.data.message.id,
-      subject: "user_in_app_conversation",
-    });
-    realtimeDegraded = realtime.degraded;
-  } catch {
-    // D1 is authoritative; clients backfill when the optional relay is unavailable.
-    realtimeDegraded = true;
+    const outcome = await writeUserSupportMessage({ database, kind: "new", request, user });
+    if (outcome.status === 202) {
+      return Response.json(
+        { pending: true },
+        {
+          status: 202,
+          headers: { ...SUPPORT_NO_STORE_HEADERS, "Retry-After": String(outcome.retryAfter) },
+        },
+      );
+    }
+    return Response.json(outcome.data, { status: outcome.status, headers: SUPPORT_NO_STORE_HEADERS });
+  } catch (error) {
+    if (error instanceof SupportIntakeServiceError) {
+      return supportJsonError(
+        error.message,
+        error.status,
+        error.retryAfter ? { "Retry-After": String(error.retryAfter) } : undefined,
+      );
+    }
+    return supportJsonError("Support request could not be saved.", 503);
   }
-  return Response.json({ ...result.data, realtimeDegraded }, { status: 201, headers: NO_STORE_HEADERS });
 }
