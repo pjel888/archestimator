@@ -354,7 +354,9 @@ export function EstimateTabStrip({
   const scrollTabIntoView = useCallback((tabId: string) => {
     const index = orderedTabs.findIndex((tab) => tab.id === tabId);
     if (index < 0) return;
-    tabRefs.current[index]?.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: prefersReducedMotion ? "auto" : "smooth" });
+    const target = tabRefs.current[index];
+    if (!target || target.closest("[inert]")) return;
+    target.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: prefersReducedMotion ? "auto" : "smooth" });
   }, [orderedTabs, prefersReducedMotion]);
 
   // Keep the active tab in view (covers activate + create switching to the new tab).
