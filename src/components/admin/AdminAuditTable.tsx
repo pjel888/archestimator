@@ -72,7 +72,7 @@ export function AdminAuditTable({ rows, error }: { rows: AuditRow[]; error?: str
 
   return (
     <>
-      <div className="min-h-0 flex-1 overflow-auto md:hidden">
+      <div className="min-h-0 flex-1 overflow-auto md:hidden [content-visibility:auto]">
         {rows.length > 0 ? (
           rows.map((row) => <AuditMobileCard key={row.id} row={row} />)
         ) : (

@@ -249,7 +249,7 @@ export function AdminProjectsTable({ projects }: { projects: AdminProjectOvervie
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto md:hidden">
+      <div className="min-h-0 flex-1 overflow-auto md:hidden [content-visibility:auto]">
         {visibleProjects.length > 0 ? visibleProjects.map((project) => (
           <ProjectMobileCard key={project.id} project={project} />
         )) : <p className="p-4 text-center text-[10px] leading-4 text-tertiary">No projects match these filters.</p>}

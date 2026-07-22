@@ -137,7 +137,7 @@ export function AdminAccountsList({
         wrapperClassName="w-full border border-hairline bg-white sm:max-w-xs"
       />
 
-      <div className="overflow-hidden rounded-xs border border-hairline md:hidden">
+      <div className="overflow-hidden rounded-xs border border-hairline md:hidden [content-visibility:auto]">
         {visibleAccounts.length > 0 ? (
           visibleAccounts.map((account) => <AccountMobileCard key={account.id} account={account} />)
         ) : (
