@@ -1,5 +1,5 @@
 /**
- * Shared admin navigation model — desktop sidebar and mobile bottom nav
+ * Shared admin navigation model — desktop sidebar and mobile More sheet
  * consume the same groups so no route or label is lost when chrome adapts.
  */
 import type { ComponentType, SVGProps } from "react";
@@ -25,6 +25,9 @@ import {
   Users,
 } from "@phosphor-icons/react/dist/ssr";
 
+import { ADMIN_MOBILE_PRIMARY_NAV } from "@/components/admin/admin-mobile-primary-nav";
+import { isAdminNavActive, isAdminPrimaryNavRoute as matchPrimaryRoute } from "@/components/admin/admin-nav-utils";
+
 type PhosphorIcon = ComponentType<
   SVGProps<SVGSVGElement> & {
     size?: number | string;
@@ -42,6 +45,9 @@ export type AdminNavGroup = {
   label: string;
   items: readonly AdminNavItem[];
 };
+
+export { ADMIN_MOBILE_PRIMARY_NAV } from "@/components/admin/admin-mobile-primary-nav";
+export { isAdminNavActive } from "@/components/admin/admin-nav-utils";
 
 export const ADMIN_NAV_GROUPS = [
   {
@@ -95,19 +101,14 @@ export const ADMIN_NAV_GROUPS = [
   },
 ] as const satisfies readonly AdminNavGroup[];
 
-/** Primary thumb targets for the floating mobile bottom nav. */
-export const ADMIN_MOBILE_PRIMARY_NAV = [
-  { href: "/admin", label: "Overview", icon: Gauge },
-  { href: "/admin/today", label: "Today", icon: Lightning },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/support", label: "Support", icon: Headset },
-] as const satisfies readonly AdminNavItem[];
-
-export function isAdminNavActive(pathname: string, href: string) {
-  if (href === "/admin") return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export function isAdminPrimaryNavRoute(pathname: string) {
-  return ADMIN_MOBILE_PRIMARY_NAV.some((item) => isAdminNavActive(pathname, item.href));
+  return matchPrimaryRoute(
+    pathname,
+    ADMIN_MOBILE_PRIMARY_NAV.map((item) => item.href),
+  );
 }
+
+/** Flat href list for route prefetch when the More sheet opens. */
+export const ADMIN_NAV_HREFS = ADMIN_NAV_GROUPS.flatMap((group) =>
+  group.items.map((item) => item.href),
+);

@@ -1,10 +1,19 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
-import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const AdminCommandPalette = dynamic(
+  () => import("@/components/admin/AdminCommandPalette").then((module) => module.AdminCommandPalette),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-8 w-8 rounded-xs sm:w-[4.5rem]" aria-hidden="true" />,
+  },
+);
 
 type AdminHeaderProps = {
   displayName: string;

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
+import nextDynamic from "next/dynamic";
 
 import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
-import { AdminSupportInbox } from "@/components/admin/AdminSupportInbox";
 import { requireAdminContext } from "@/lib/admin/require-admin";
 import { listSavedReplies } from "@/lib/admin/saved-replies-repository";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
@@ -14,6 +14,19 @@ import {
 } from "@/lib/repositories/support-conversations-repository";
 
 export const dynamic = "force-dynamic";
+
+const AdminSupportInbox = nextDynamic(
+  () => import("@/components/admin/AdminSupportInbox").then((module) => module.AdminSupportInbox),
+  {
+    loading: () => (
+      <div
+        className="min-h-[24rem] flex-1 animate-pulse rounded-xs border border-hairline bg-surfaceMuted/40"
+        aria-busy="true"
+        aria-label="Loading support inbox"
+      />
+    ),
+  },
+);
 
 const mailboxFolders = ["inbox", "sent", "archive", "all", "starred", "snoozed"] as const;
 

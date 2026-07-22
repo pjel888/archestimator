@@ -28,6 +28,7 @@ type DialogContextValue = {
   closeOnEscape: boolean;
   closeOnOverlayClick: boolean;
   modal: boolean;
+  isOverlayDismissReady: () => boolean;
 };
 
 type DialogProps = {
@@ -39,6 +40,11 @@ type DialogProps = {
   closeOnOverlayClick?: boolean;
   modal?: boolean;
   returnFocusOnClose?: boolean;
+  /**
+   * Ignore overlay click-dismiss for this many ms after open. Prevents mobile
+   * ghost-clicks from immediately closing a dialog that mounted under the finger.
+   */
+  overlayCloseGraceMs?: number;
 };
 
 const DialogContext = createContext<DialogContextValue | null>(null);
@@ -78,13 +84,33 @@ export function Dialog({
   closeOnOverlayClick = true,
   modal = true,
   returnFocusOnClose = true,
+  overlayCloseGraceMs = 0,
 }: DialogProps) {
   const dialogId = useId();
   const titleId = useId();
   const descriptionId = useId();
   const openerRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
+  const overlayDismissAfterRef = useRef(0);
+  const overlayGraceArmedRef = useRef(false);
   const closeDialog = useEffectEvent(() => onOpenChange(false));
+  const isOverlayDismissReady = useEffectEvent(() => {
+    const until = overlayDismissAfterRef.current;
+    return until === 0 || Date.now() >= until;
+  });
+
+  // Arm overlay grace synchronously on open so a mobile ghost-click that lands
+  // before effects flush cannot dismiss the freshly mounted dialog.
+  if (open) {
+    if (!overlayGraceArmedRef.current) {
+      overlayDismissAfterRef.current =
+        overlayCloseGraceMs > 0 ? Date.now() + overlayCloseGraceMs : 0;
+      overlayGraceArmedRef.current = true;
+    }
+  } else if (overlayGraceArmedRef.current) {
+    overlayGraceArmedRef.current = false;
+    overlayDismissAfterRef.current = 0;
+  }
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -139,7 +165,9 @@ export function Dialog({
     modalLockCount += 1;
 
     // Add inert to main app shells so background content is hidden from assistive tech
-    const shells = document.querySelectorAll("[data-workshop-page-shell-root], [data-public-page-shell-root]");
+    const shells = document.querySelectorAll(
+      "[data-workshop-page-shell-root], [data-public-page-shell-root], [data-admin-shell-root]",
+    );
     shells.forEach((el) => {
       lockedShells.add(el);
       el.setAttribute("inert", "");
@@ -157,8 +185,30 @@ export function Dialog({
   }, [modal, open]);
 
   const value = useMemo(
-    () => ({ open, onOpenChange, dialogId, titleId, descriptionId, closeLabel, closeOnEscape, closeOnOverlayClick, modal }),
-    [closeLabel, closeOnEscape, closeOnOverlayClick, descriptionId, dialogId, modal, onOpenChange, open, titleId],
+    () => ({
+      open,
+      onOpenChange,
+      dialogId,
+      titleId,
+      descriptionId,
+      closeLabel,
+      closeOnEscape,
+      closeOnOverlayClick,
+      modal,
+      isOverlayDismissReady,
+    }),
+    [
+      closeLabel,
+      closeOnEscape,
+      closeOnOverlayClick,
+      descriptionId,
+      dialogId,
+      isOverlayDismissReady,
+      modal,
+      onOpenChange,
+      open,
+      titleId,
+    ],
   );
 
   return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>;
@@ -192,7 +242,7 @@ type DialogOverlayProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 export function DialogOverlay({ className, blur = false, transparent = false, onClick, ...props }: DialogOverlayProps) {
-  const { onOpenChange, closeOnOverlayClick } = useDialogContext("DialogOverlay");
+  const { onOpenChange, closeOnOverlayClick, isOverlayDismissReady } = useDialogContext("DialogOverlay");
 
   return (
     // react-doctor-disable-next-line react-doctor/click-events-have-key-events, react-doctor/no-static-element-interactions -- Overlay click closes the dialog; keyboard close is handled by Escape/focus-trap logic.
@@ -207,7 +257,9 @@ export function DialogOverlay({ className, blur = false, transparent = false, on
       )}
       onClick={(event) => {
         onClick?.(event);
-        if (!event.defaultPrevented && closeOnOverlayClick) onOpenChange(false);
+        if (event.defaultPrevented || !closeOnOverlayClick) return;
+        if (!isOverlayDismissReady()) return;
+        onOpenChange(false);
       }}
     />
   );

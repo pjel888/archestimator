@@ -135,12 +135,45 @@ export function AdminAccountWorkspaces({
 
       {notice ? <span className="text-[9px] leading-3 text-tertiary">{notice}</span> : null}
 
-      <AdminDataTable
-        data={workspaces}
-        columns={columns}
-        getRowId={(row) => row.id}
-        emptyMessage="No linked workspaces."
-      />
+      <div className="overflow-hidden rounded-xs border border-hairline md:hidden [content-visibility:auto]">
+        {workspaces.length > 0 ? (
+          workspaces.map((ws) => (
+            <article key={ws.id} className="border-b border-hairline p-3 last:border-b-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-medium leading-4 text-ink">{ws.name}</p>
+                  <p className="truncate text-[9px] leading-3 text-tertiary">{ws.slug ?? "No slug"}</p>
+                </div>
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  disabled={isPending}
+                  onClick={() => handleUnlink(ws.id)}
+                  aria-label={`Unlink ${ws.name}`}
+                  className="min-h-8 shrink-0"
+                >
+                  <LinkBreak aria-hidden size={13} />
+                  Unlink
+                </Button>
+              </div>
+              <p className="mt-2 text-[9px] leading-3 text-tertiary">
+                Created {formatAdminDate(ws.created_at)}
+              </p>
+            </article>
+          ))
+        ) : (
+          <p className="p-4 text-center text-[10px] leading-4 text-tertiary">No linked workspaces.</p>
+        )}
+      </div>
+
+      <div className="hidden md:block">
+        <AdminDataTable
+          data={workspaces}
+          columns={columns}
+          getRowId={(row) => row.id}
+          emptyMessage="No linked workspaces."
+        />
+      </div>
     </div>
   );
 }

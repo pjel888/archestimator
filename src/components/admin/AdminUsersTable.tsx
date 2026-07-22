@@ -387,7 +387,7 @@ export function AdminUsersTable({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto md:hidden">
+      <div className="min-h-0 flex-1 overflow-auto md:hidden [content-visibility:auto]">
         {visibleUsers.length > 0 ? visibleUsers.map((user) => (
           <UserMobileCard key={user.id} user={user} isPending={isPending} onAction={handleAction} />
         )) : (

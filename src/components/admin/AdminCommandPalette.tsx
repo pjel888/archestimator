@@ -1,11 +1,20 @@
 "use client";
 
-import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { adminSearch, type AdminSearchActionOutcome } from "@/lib/admin/search-actions";
 import type { AdminSearchKind, AdminSearchResult } from "@/lib/admin/search-repository";
+import {
+  Dialog,
+  DialogBody,
+  DialogCloseButton,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/overlays/dialog";
 
 const KIND_LABEL: Record<AdminSearchKind, string> = {
   user: "Users",
@@ -17,7 +26,7 @@ const KIND_LABEL: Record<AdminSearchKind, string> = {
 /**
  * F1 global command palette. Opens on ⌘K / Ctrl+K (or the trigger button),
  * runs a debounced admin search, and navigates to the chosen entity in one step.
- * Self-contained overlay so it does not depend on shared UI primitives.
+ * Uses shared Dialog primitives for portal, focus trap, and mobile overlay grace.
  */
 export function AdminCommandPalette() {
   const router = useRouter();
@@ -29,7 +38,6 @@ export function AdminCommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Global ⌘K / Ctrl+K to open.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -41,19 +49,17 @@ export function AdminCommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Focus the input whenever the palette opens.
   useEffect(() => {
-    if (open) {
-      setActive(0);
-      const id = requestAnimationFrame(() => inputRef.current?.focus());
-      return () => cancelAnimationFrame(id);
+    if (!open) {
+      setQuery("");
+      setOutcome(null);
+      return;
     }
-    // Clear state when closed so reopening is clean.
-    setQuery("");
-    setOutcome(null);
+    setActive(0);
+    const id = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
   }, [open]);
 
-  // Debounced search.
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
@@ -74,7 +80,6 @@ export function AdminCommandPalette() {
 
   const flat = useMemo(() => (outcome && outcome.ok ? outcome.results : []), [outcome]);
 
-  // Reset active index when the result set changes.
   useEffect(() => setActive(0), [flat]);
 
   function go(result: AdminSearchResult) {
@@ -124,94 +129,85 @@ export function AdminCommandPalette() {
         </kbd>
       </button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/40 p-0 sm:items-start sm:p-4 sm:pt-[12vh]"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Admin search"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="flex max-h-[min(88dvh,720px)] w-full max-w-xl flex-col overflow-hidden rounded-t-[var(--glass-radius)] border border-hairline bg-white shadow-lg sm:rounded-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-2 border-b border-hairline px-2">
-              <MagnifyingGlass size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={onInputKey}
-                placeholder="Search users, accounts, projects, estimates…"
-                className="h-9 w-full bg-transparent text-[11px] text-ink outline-none placeholder:text-tertiary"
-                aria-label="Search query"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-xs p-1 text-tertiary transition hover:bg-surfaceMuted"
-                aria-label="Close search"
-              >
-                <X size={13} weight="regular" />
-              </button>
-            </div>
+      <Dialog open={open} onOpenChange={setOpen} closeLabel="Close search" modal overlayCloseGraceMs={400}>
+        <DialogPortal>
+          <div className="fixed inset-0 z-[1000] flex items-end justify-center p-0 sm:items-start sm:p-4 sm:pt-[12vh]">
+            <DialogOverlay className="bg-ink/40" />
+            <DialogContent
+              described={false}
+              className="max-h-[min(88dvh,720px)] w-full max-w-xl rounded-none rounded-t-[var(--glass-radius)] sm:rounded-sm"
+            >
+              <div className="flex items-center gap-2 border-b border-hairline px-2">
+                <DialogTitle className="sr-only">Admin search</DialogTitle>
+                <MagnifyingGlass size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+                <input
+                  ref={inputRef}
+                  data-dialog-initial-focus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={onInputKey}
+                  placeholder="Search users, accounts, projects, estimates…"
+                  className="h-11 w-full bg-transparent text-[11px] text-ink outline-none placeholder:text-tertiary sm:h-9"
+                  aria-label="Search query"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <DialogCloseButton className="h-9 w-9" />
+              </div>
 
-            <div className="max-h-[50vh] overflow-y-auto p-1">
-              {query.trim().length < 2 ? (
-                <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">
-                  Type at least 2 characters to search.
-                </p>
-              ) : isPending ? (
-                <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">Searching…</p>
-              ) : !outcome || !outcome.ok ? (
-                <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">Search unavailable.</p>
-              ) : flat.length === 0 ? (
-                <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">No matches.</p>
-              ) : (
-                Array.from(grouped.entries()).map(([kind, items]) => (
-                  <div key={kind} className="mb-1">
-                    <p className="px-2 py-1 text-[8px] font-medium uppercase leading-3 text-tertiary">
-                      {KIND_LABEL[kind]}
-                    </p>
-                    {items.map((result) => {
-                      const index = flat.indexOf(result);
-                      const isActive = index === active;
-                      return (
-                        <button
-                          key={`${result.kind}-${result.id}`}
-                          type="button"
-                          onMouseEnter={() => setActive(index)}
-                          onClick={() => go(result)}
-                          className={`flex w-full items-center justify-between gap-2 rounded-xs px-2 py-1 text-left text-[10px] leading-4 transition ${
-                            isActive ? "bg-surfaceMuted text-ink" : "text-ink"
-                          }`}
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium">{result.label}</span>
-                            {result.sublabel && (
-                              <span className="block truncate text-[9px] text-tertiary">{result.sublabel}</span>
-                            )}
-                          </span>
-                          <span className="shrink-0 text-[8px] uppercase text-tertiary">{result.kind}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {outcome && outcome.ok && outcome.degraded && (
-              <p className="border-t border-hairline px-2 py-1 text-[8px] leading-3 text-tertiary">
-                Partial results — a search source was unavailable.
-              </p>
-            )}
+              <DialogBody className="max-h-[min(50vh,24rem)] space-y-0 overflow-y-auto overscroll-contain p-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-1">
+                {query.trim().length < 2 ? (
+                  <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">
+                    Type at least 2 characters to search.
+                  </p>
+                ) : isPending ? (
+                  <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">Searching…</p>
+                ) : !outcome || !outcome.ok ? (
+                  <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">Search unavailable.</p>
+                ) : flat.length === 0 ? (
+                  <p className="px-2 py-3 text-center text-[10px] leading-4 text-tertiary">No matches.</p>
+                ) : (
+                  Array.from(grouped.entries()).map(([kind, items]) => (
+                    <div key={kind} className="mb-1">
+                      <p className="px-2 py-1 text-[8px] font-medium uppercase leading-3 text-tertiary">
+                        {KIND_LABEL[kind]}
+                      </p>
+                      {items.map((result) => {
+                        const index = flat.indexOf(result);
+                        const isActive = index === active;
+                        return (
+                          <button
+                            key={`${result.kind}-${result.id}`}
+                            type="button"
+                            onMouseEnter={() => setActive(index)}
+                            onClick={() => go(result)}
+                            className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xs px-2 py-2 text-left text-[10px] leading-4 transition sm:min-h-0 sm:py-1 ${
+                              isActive ? "bg-surfaceMuted text-ink" : "text-ink"
+                            }`}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium">{result.label}</span>
+                              {result.sublabel && (
+                                <span className="block truncate text-[9px] text-tertiary">{result.sublabel}</span>
+                              )}
+                            </span>
+                            <span className="shrink-0 text-[8px] uppercase text-tertiary">{result.kind}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))
+                )}
+                {outcome && outcome.ok && outcome.degraded ? (
+                  <p className="border-t border-hairline px-2 py-1 text-[8px] leading-3 text-tertiary">
+                    Partial results — a search source was unavailable.
+                  </p>
+                ) : null}
+              </DialogBody>
+            </DialogContent>
           </div>
-        </div>
-      )}
+        </DialogPortal>
+      </Dialog>
     </>
   );
 }
