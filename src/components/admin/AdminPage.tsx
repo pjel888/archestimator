@@ -33,7 +33,7 @@ export function AdminPageHeader({ title, description, actions, eyebrow, classNam
   return (
     <div className={cn("flex flex-col gap-0.5", className)}>
       {eyebrow ? (
-        <p className="text-[9px] font-medium uppercase leading-3 tracking-wide text-tertiary">{eyebrow}</p>
+        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">{eyebrow}</p>
       ) : null}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -78,5 +78,48 @@ export function AdminSection({ title, description, actions, children, className 
       </div>
       {children}
     </Card>
+  );
+}
+
+export type AdminOverviewItem = {
+  label: ReactNode;
+  value: ReactNode;
+  detail?: ReactNode;
+};
+
+export function AdminOverviewStrip({
+  items,
+  className,
+}: {
+  items: AdminOverviewItem[];
+  className?: string;
+}) {
+  return (
+    <dl
+      className={cn(
+        "grid grid-cols-2 overflow-hidden rounded-xs border border-hairline bg-white lg:grid-cols-4",
+        className,
+      )}
+    >
+      {items.map((item, index) => (
+        <div
+          key={index}
+          className={cn(
+            "min-w-0 px-3 py-2",
+            index % 2 === 1 && "border-l border-hairline",
+            index >= 2 && "border-t border-hairline lg:border-t-0",
+            index > 0 && index % 2 === 0 && "lg:border-l lg:border-hairline",
+          )}
+        >
+          <dt className="text-[9px] font-medium leading-3 text-tertiary">{item.label}</dt>
+          <dd className="mt-0.5 flex min-w-0 items-baseline gap-1.5">
+            <span className="text-[12px] font-medium leading-4 tabular-nums text-ink">{item.value}</span>
+            {item.detail ? (
+              <span className="truncate text-[9px] leading-3 text-tertiary">{item.detail}</span>
+            ) : null}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
