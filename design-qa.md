@@ -1,34 +1,18 @@
-# Public Landing Design QA
+# Design QA
 
-## Scope
+- **Source visual truth:** unavailable; no approved target visual was supplied.
+- **Implementation screenshot:** unavailable for the authenticated product
+  surfaces. The in-app browser reached the expected login gate, but its URL
+  policy blocked the localhost-only authenticated bridge. That policy was not
+  bypassed.
+- **Viewport, dimensions, density:** not captured.
+- **Requested states:** `/workshop/feedback`, `/admin/support`, `/admin/privacy`,
+  authenticated support overlay, and `/privacy` on the local development server.
+- **Full-page comparison:** blocked.
+- **Focused comparison:** blocked.
+- **Comparison history:** none.
+- **Findings:** authenticated HTTP smoke evidence proves the routes render after
+  migration, but it cannot substitute for a rendered visual comparison. No
+  visual discrepancies or pass verdict are asserted.
 
-- **Baseline:** `.wrangler/tmp/new-landing-design-qa/01-production-baseline-desktop.png`
-- **Implementation captures:**
-  - `.wrangler/tmp/new-landing-design-qa/03-local-hero-desktop.png`
-  - `.wrangler/tmp/new-landing-design-qa/02-local-product-desktop.png`
-  - `.wrangler/tmp/new-landing-design-qa/04-local-mobile.png`
-- **Intentional differences from the baseline:** a shorter hero, a persistent
-  pre-release beta announcement, beta-specific CTA copy, and a more direct
-  estimate-to-decision narrative.
-
-## Checks
-
-- Desktop header has one clear public path: `Sign in` plus `Request beta access`.
-- Signed-in header behavior is covered by `new-landing-auth-cta.test.tsx`: only
-  the `Open workspace` primary action remains after the auth hint resolves.
-- The beta banner stays readable at desktop width and stacks into a clear
-  message-plus-link treatment on a 390px viewport.
-- The hero fits its new message into two balanced lines on desktop and mobile;
-  the CTA remains immediately visible without competing with the announcement.
-- Product cards retain hierarchy and readable contrast at the desktop product
-  section capture.
-- Hover checks confirm the CTA lifts and scales, while primary navigation
-  underlines expand without affecting layout. Reduced-motion rules also cover
-  the new underline and banner link.
-
-## Result
-
-`passed` — no remaining P0, P1, or P2 visual issues were found in the reviewed
-public signed-out desktop and mobile states. Authenticated browser capture was
-not available without a user session; the focused auth CTA test verifies that
-state instead.
+final result: blocked

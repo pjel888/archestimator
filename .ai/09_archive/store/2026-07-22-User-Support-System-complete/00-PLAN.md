@@ -2,16 +2,18 @@
 
 ## Status
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`IMPLEMENTATION_READY / COMPLETE / NOT_EVALUATED / ARCHIVED / ACHIEVED`
 
 - **Profile:** high blast radius because this work joins authenticated UX, D1,
   private R2 objects, realtime capabilities, and privacy erasure.
 - **Action ceiling:** `IMPLEMENT_LOCAL`. Local repository edits and static/local
   verification are in scope. Remote migration, import, deployment, credentials,
   and live production mutation require a separate authorized release task.
-- **Next unit:** `UNIT-001`.
-- **Plan-authoring test decision:** `NOT_REQUIRED`. Product tests, builds as test
-  gates, browser automation, screenshots, and visual QA were not authorized.
+- **Next unit:** none. `UNIT-001` through `UNIT-005` are verified.
+- **Verification decision:** local static checks, isolated D1 lifecycle
+  scenarios, bounded HTTP abuse/authorization probes, and independent review
+  are complete. The permitted in-app browser runtime was unavailable, so visual
+  audit claims remain explicitly blocked rather than inferred.
 - **Canonical authority:** this file. `RESEARCH.md` and `UX-AUDIT.md` are dated
   evidence; this plan resolves any conflict in those supporting artifacts.
 
@@ -742,7 +744,7 @@ idempotent and the D1 row remains as a content-free audit tombstone.
 
 ### UNIT-001: recover admin support and exact attention routing
 
-- **Status/dependencies:** `READY`; none.
+- **Status/dependencies:** `VERIFIED`; none.
 - **Goal:** restore mailbox reads and make every current action open/reconcile the
   right source before feature expansion.
 - **Owned paths:**
@@ -766,10 +768,17 @@ idempotent and the D1 row remains as a content-free audit tombstone.
   concurrent admin work.
 - **Recovery/stop:** no schema change. Revert this unit alone if needed. Stop when
   AC-001 and the immediate admin portion of AC-008 are source-proven.
+- **Implemented evidence (2026-07-22):** mailbox counts use `all_count`; Today
+  uses source-complete D1 upserts for every active support/high-severity legacy
+  source, derives exact internal links and canonical lifecycle, and denies
+  generic source-owned mutations server-side; selected support and legacy
+  feedback rows load independently of display caps. Scoped ESLint,
+  `git diff --check`, and `bun run type-check` completed successfully. Product
+  tests, builds, browser automation, screenshots, and visual QA were not run.
 
 ### UNIT-002: establish secure canonical intake and server contracts
 
-- **Status/dependencies:** `READY after UNIT-001`.
+- **Status/dependencies:** `VERIFIED after verified UNIT-001`.
 - **Goal:** deliver the additive schema, leased D1/R2 intake, safe context,
   owner APIs, import execution surface, and capability-scoped realtime.
 - **Owned paths:** next migration; support repository/shared D1 types;
@@ -794,10 +803,20 @@ idempotent and the D1 row remains as a content-free audit tombstone.
   bounded non-PII counts.
 - **Recovery/stop:** schema is additive and unused until UI cutover. Fix forward
   after migration apply. Stop when AC-002/004/005/007 server invariants are ready.
+- **Implemented evidence (2026-07-22):** migration `0100` replays cleanly on an
+  isolated local D1 with expected schema/index readback and an empty
+  `PRAGMA foreign_key_check`; leased bounded multipart intake, normalized private
+  screenshots, owner reads, watermark receipts, abandonment fencing, exact-once
+  legacy import, and capability-separated realtime are implemented. Scoped
+  ESLint and `git diff --check` pass. Repository type-check reports only
+  unrelated concurrent diagnostics in admin user actions and the workspace
+  repository; no UNIT-002-owned diagnostic remains. Product tests, builds,
+  browser automation, screenshots, remote import, deployment, and provider
+  mutation were not run.
 
 ### UNIT-003: replace feedback and build the user Support Center
 
-- **Status/dependencies:** `READY after UNIT-002`.
+- **Status/dependencies:** `VERIFIED after UNIT-002`.
 - **Goal:** replace both user feedback surfaces with one accessible Support
   Center over the UNIT-002 contracts.
 - **Owned paths:** `WorkshopFeedbackModal.tsx`, `WorkshopShell.tsx`,
@@ -814,11 +833,16 @@ idempotent and the D1 row remains as a content-free audit tombstone.
   focus, Back, and unread read-after-render behavior have explicit cleanup.
 - **Recovery/stop:** old and new user writers may not remain active together.
   Stop when AC-003/006 and the user side of AC-007 are source-complete.
+- **Implemented evidence (2026-07-22):** one coordinator now owns the overlay and
+  full-page Support Center; the shared composer covers message-only new/reply,
+  disclosed diagnostics, optional screenshot pick/paste/drop, exact retry and
+  fenced replacement, unread/read-watermark recovery, focus/Back behavior, and
+  fixed/credential realtime. Scoped ESLint and diff checks pass, owned type
+  diagnostics are empty, and independent review has no blocking finding.
 
 ### UNIT-004: converge admin Support, Today, and legacy history
 
-- **Status/dependencies:** `READY after UNIT-002`; may run alongside UNIT-003 with
-  one writer per shared file.
+- **Status/dependencies:** `VERIFIED after UNIT-002`.
 - **Goal:** show each canonical/imported report once with message-scoped evidence
   and coherent founder actions.
 - **Owned paths:** admin Support page/coordinator/components/APIs/actions;
@@ -836,10 +860,17 @@ idempotent and the D1 row remains as a content-free audit tombstone.
   degraded states remain usable.
 - **Recovery/stop:** unmapped fallback remains safe if import pauses. Stop when
   AC-002/008 and admin AC-007 behavior are source-complete.
+- **Implemented evidence (2026-07-22):** exact deep links, canonical plus
+  unmapped Today truth, message-owned evidence, rendered-watermark reads, and
+  hidden-legacy activation are implemented. Admin reply now stages delivery,
+  persists provider acceptance, and then finalizes message/lifecycle/Today in a
+  generation-gated required batch whose stale lifecycle guard keeps later work
+  open and unread. Scoped ESLint and diff checks pass, owned type diagnostics
+  are empty, and independent review has no blocking finding.
 
 ### UNIT-005: finish privacy, cleanup, observability, and cutover
 
-- **Status/dependencies:** `READY after UNIT-003 and UNIT-004`.
+- **Status/dependencies:** `VERIFIED after verified UNIT-003 and UNIT-004`.
 - **Goal:** remove the duplicate writer and close object/data lifecycle through
   executable verified privacy and final local evidence.
 - **Owned paths:** `src/app/api/compliance/privacy-requests/route.ts`,
@@ -859,6 +890,13 @@ idempotent and the D1 row remains as a content-free audit tombstone.
   user writer remains; final requirement/risk/dependency/diff audit is clean.
 - **Recovery/stop:** never complete partial privacy work. Stop when AC-009 and all
   preceding criteria have fresh local/static evidence and only release remains.
+- **Implemented evidence (2026-07-22):** exclusive privacy execution, subject
+  generation fences, bounded private tar export, registry-backed R2 ownership,
+  R2-first erasure with D1 redaction and re-enumeration, cleanup, legacy writer
+  removal, and distinct account-closure copy are implemented. Local migration
+  replay, hostile HTTP probes, isolated D1 race/lifecycle scenarios, scoped
+  static checks, owned diagnostics, and independent review pass. Browser visual
+  proof is unavailable and release remains `NOT_EVALUATED`.
 
 ### Dependency graph and ownership
 
@@ -867,7 +905,7 @@ UNIT-001 -> UNIT-002 -> UNIT-003 --\
                        \-> UNIT-004 ---> UNIT-005
 ```
 
-- Ready slice: `{UNIT-001}`.
+- Ready slice: none; every unit is verified.
 - One lead/integrator owns the plan and final claim.
 - One writer at a time for `support-conversations-d1.ts`, support user APIs,
   `action-inbox-repository.ts`, `AdminSupportInbox.tsx`, and the Support Center
