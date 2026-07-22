@@ -12,6 +12,45 @@
   font-display: swap;
 }
 
+@media (max-width: 1719px) {
+  [data-workshop-page-shell-canvas]:has([data-estimate-workspace]) {
+    --estimate-library-panel-width: 0px !important;
+  }
+}
+
+@media (max-width: 1399px) {
+  [data-workshop-page-shell-canvas]:has([data-estimate-workspace]) {
+    --estimate-tree-panel-width: 0px !important;
+  }
+}
+
+[data-estimate-sheet-viewport] {
+  container-type: inline-size;
+}
+
+[data-estimate-column-label="compact"] {
+  display: none;
+}
+
+@container (max-width: 899px) {
+  [data-estimate-pointer-surface] {
+    --estimate-column-template: 28px 40px minmax(160px, 1fr) 52px 68px 76px 68px 76px 88px 40px;
+    --estimate-sheet-min-width: 696px;
+  }
+
+  [data-estimate-column-resize-handle] {
+    display: none;
+  }
+
+  [data-estimate-column-label="full"] {
+    display: none;
+  }
+
+  [data-estimate-column-label="compact"] {
+    display: inline;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #3d3d3d;

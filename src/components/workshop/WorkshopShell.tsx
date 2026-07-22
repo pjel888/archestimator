@@ -87,6 +87,13 @@ async function AuthenticatedMainSidebar({
   );
 }
 
+async function AuthenticatedWorkshopSupport() {
+  const currentUser = await getCurrentUserContext();
+  return (
+    <WorkshopFeedbackModal workspaceId={currentUser?.profile.default_workspace_id ?? null} />
+  );
+}
+
 /**
  * Layout-owned persistent workshop chrome (sidebar, glass, footer).
  * Per-page headers live in WorkshopRouteHeader; canvas washes sync via WorkshopCanvasWash.
@@ -137,7 +144,9 @@ export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellPr
             className="workshop-shell-glass-chrome workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible p-2 text-[10px] text-tertiary"
           >
             <div className="min-w-0 flex-1">
-              <WorkshopFeedbackModal />
+              <Suspense fallback={<WorkshopFeedbackModal />}>
+                <AuthenticatedWorkshopSupport />
+              </Suspense>
             </div>
             <div data-workshop-shell-footer-slot className="contents" />
             {showAskFlip ? <AskFlipFooterAssistant /> : null}

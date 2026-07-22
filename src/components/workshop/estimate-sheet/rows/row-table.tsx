@@ -1,11 +1,11 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type RefObject, type SetStateAction } from "react";
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "zustand";
-import { ArrowsOutSimple, CopySimple, DotsSixVertical, Info, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CopySimple, DotsSixVertical, DotsThreeVertical, Info, Trash } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ControlInput } from "@/components/ui/control-input";
 import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
@@ -157,7 +157,6 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
 
 const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
-const ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP = "Delete row. Undo after saving can restore it.";
 const ESTIMATE_COLUMN_HELP: Partial<Record<EstimateColumnId, string>> = {
   material: "The material or component used for this line, including its unit cost.",
   quantity: "The total amount needed. You can enter a base quantity with a contingency amount, such as 10 + 1.",
@@ -230,14 +229,20 @@ function scrollMarginReducer(current: number, action: ScrollMarginAction) {
   return Math.abs(current - action.value) < 0.5 ? current : action.value;
 }
 
-function EstimateColumnHeader({ columnId, label }: { columnId: EstimateColumnId; label: string }) {
+function EstimateColumnHeader({ columnId, label, compactLabel = label }: { columnId: EstimateColumnId; label: string; compactLabel?: string }) {
   const helpText = ESTIMATE_COLUMN_HELP[columnId];
-  if (!helpText) return label;
+  const responsiveLabel = (
+    <>
+      <span data-estimate-column-label="full">{label}</span>
+      <span data-estimate-column-label="compact">{compactLabel}</span>
+    </>
+  );
+  if (!helpText) return responsiveLabel;
 
   return (
     <Tooltip label={helpText} side="top" contentClassName="z-[1200] max-w-64 whitespace-normal text-center leading-3">
       <span tabIndex={0} className="inline-flex cursor-help items-center gap-1 outline-none focus-visible:rounded-xs focus-visible:ring-1 focus-visible:ring-ink">
-        {label}
+        {responsiveLabel}
         <Info size={11} weight="regular" aria-hidden="true" className="shrink-0 text-tertiary" />
       </span>
     </Tooltip>
@@ -426,6 +431,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const [quantityInputDraft, setQuantityInputDraft] = useState<string | null>(null);
   const [quantityCellHovered, setQuantityCellHovered] = useState(false);
   const [quantityBreakdownFocused, setQuantityBreakdownFocused] = useState(false);
+  const rowActionTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quantityHasContingency = computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0;
   const quantityBreakdownVisible = quantityHasContingency && (quantityCellHovered || quantityBreakdownFocused);
   const quantityDisplayValue = quantityInputDraft ?? (quantityInputFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity));
@@ -640,7 +646,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             <button
               type="button"
               draggable
-              className="grid size-6 cursor-grab place-items-center rounded-xs text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+              className="grid size-6 cursor-grab place-items-center rounded-xs text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100 [@media(pointer:coarse)]:hidden"
               aria-label={`Move row ${computedItemLabel}`}
               aria-haspopup="dialog"
               data-estimate-row-drag-handle=""
@@ -945,51 +951,61 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td className="flex items-center justify-end border-r border-hairline px-1 text-right">
         <p className={ESTIMATE_PRIMARY_NUMERIC_CLASS}>{pesoFormatter.format(computedItem.totalItemCosts).replace("₱", "₱ ")}</p>
       </td>
-      <td className="grid grid-cols-1 place-content-center gap-1 py-2 text-tertiary">
-        {canEditEstimate ? (
-          <Tooltip label="Duplicate row item" side="left" contentClassName="z-[1200]">
-            <Button
+      <td className="flex items-center justify-center py-2 text-tertiary">
+        <DropdownMenu
+          align="end"
+          side="bottom"
+          className="min-w-44"
+          trigger={(
+            <button
+              ref={rowActionTriggerRef}
               type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-              aria-label={`Duplicate row item ${computedItemLabel}`}
+              className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
+              aria-label={`Open row actions for ${computedItemLabel}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
+            </button>
+          )}
+        >
+          <DropdownMenu.Item
+            label="Row activity"
+            icon={<ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />}
+            onClick={() => {
+              const opener = rowActionTriggerRef.current;
+              if (opener) onOpenRowDetails(computedItem.id, opener, "activity");
+            }}
+          />
+          {canEditEstimate && onOpenMoveRowItemDialog ? (
+            <DropdownMenu.Item
+              label="Move row"
+              icon={<DotsSixVertical size={14} weight="regular" aria-hidden="true" />}
+              onClick={() => {
+                const opener = rowActionTriggerRef.current;
+                if (opener) onOpenMoveRowItemDialog(computedItem.id, opener);
+              }}
+            />
+          ) : null}
+          {canEditEstimate ? (
+            <DropdownMenu.Item
+              label="Duplicate row"
+              icon={<CopySimple size={14} weight="regular" aria-hidden="true" />}
               disabled={duplicateRowItemDisabled}
               onClick={() => onInsertLibraryItem(targetNodeId, {
                 ...computedItem,
                 duplicateSourceRowId: computedItem.id,
               } as EstimateRowItem & { duplicateSourceRowId: string })}
-            >
-              <CopySimple size={14} weight="regular" aria-hidden="true" />
-            </Button>
-          </Tooltip>
-        ) : null}
-        <Tooltip label="Row activity" side="left" contentClassName="z-[1200]">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-            aria-label={`Open row activity for ${computedItemLabel}`}
-            onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "activity")}
-          >
-            <ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />
-          </Button>
-        </Tooltip>
-        {canEditEstimate ? (
-          <Tooltip label={ESTIMATE_ROW_DELETE_RECOVERY_TOOLTIP} side="left" contentClassName="z-[1200]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
-              aria-label={`Delete row ${computedItemLabel}`}
+            />
+          ) : null}
+          {canEditEstimate ? (
+            <DropdownMenu.Item
+              label="Delete row"
+              icon={<Trash size={14} weight="regular" aria-hidden="true" />}
+              destructive
               onClick={() => onDeleteRowItem(computedItem.id)}
-            >
-              <Trash size={14} weight="regular" aria-hidden="true" />
-            </Button>
-          </Tooltip>
-        ) : null}
+            />
+          ) : null}
+        </DropdownMenu>
       </td>
     </tr>
   );
@@ -1191,7 +1207,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   return (
     <div
       ref={scrollRootRef}
-      className={cn("overflow-hidden border-x border-b border-hairline", estimateSurfaceClass(surfaceVariant, "gridTableRoot"))}
+      className={cn("min-w-[var(--estimate-sheet-min-width,856px)] overflow-visible border-x border-b border-hairline", estimateSurfaceClass(surfaceVariant, "gridTableRoot"))}
       data-estimate-row-table-root={targetNodeId}
       onDragOver={canEditEstimate ? handleTableDragOver : undefined}
       onDrop={canEditEstimate ? handleDrop : undefined}
@@ -1234,7 +1250,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               {columnResize ? <EstimateRowColumnResizeHandle columnId="quantity" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("contingency", "text-center")}>
-              <EstimateColumnHeader columnId="contingency" label="Contingency" />
+              <EstimateColumnHeader columnId="contingency" label="Contingency" compactLabel="Cont." />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="contingency" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("subTotal")}>
@@ -1242,15 +1258,15 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               {columnResize ? <EstimateRowColumnResizeHandle columnId="subTotal" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("adjustment", "text-center")}>
-              <EstimateColumnHeader columnId="adjustment" label="Adjustment" />
+              <EstimateColumnHeader columnId="adjustment" label="Adjustment" compactLabel="Adjust." />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="adjustment" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("miscCost", "text-center")}>
-              <EstimateColumnHeader columnId="miscCost" label="Misc Cost" />
+              <EstimateColumnHeader columnId="miscCost" label="Misc Cost" compactLabel="Misc" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="miscCost" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" className={headerCellClassName("totalItemCosts", "text-center")}>
-              <EstimateColumnHeader columnId="totalItemCosts" label="Total Item Cost" />
+              <EstimateColumnHeader columnId="totalItemCosts" label="Total Item Cost" compactLabel="Total" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="totalItemCosts" resizeController={columnResizeController} /> : null}
             </th>
             <th scope="col" aria-label="Row actions" />

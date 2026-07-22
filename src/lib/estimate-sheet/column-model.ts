@@ -26,6 +26,7 @@ export type EstimateColumnWidths = Partial<Record<ResizableEstimateColumnId, num
 export type EstimateColumnDefinition = {
   id: EstimateColumnId;
   label: string;
+  compactLabel?: string;
   defaultWidth: number;
   minWidth: number;
   maxWidth: number;
@@ -34,16 +35,16 @@ export type EstimateColumnDefinition = {
 };
 
 export const ESTIMATE_COLUMN_DEFINITIONS = [
-  { id: "index", label: "#", defaultWidth: 36, minWidth: 36, maxWidth: 36, resizable: false },
+  { id: "index", label: "#", defaultWidth: 28, minWidth: 28, maxWidth: 28, resizable: false },
   { id: "select", label: "Select", defaultWidth: 32, minWidth: 32, maxWidth: 32, resizable: false },
-  { id: "material", label: "Materials", defaultWidth: 148, minWidth: 148, maxWidth: 640, resizable: true, cssVar: "--est-col-material" },
-  { id: "quantity", label: "Qty", defaultWidth: 70, minWidth: 56, maxWidth: 140, resizable: true, cssVar: "--est-col-quantity" },
-  { id: "contingency", label: "Contingency", defaultWidth: 104, minWidth: 82, maxWidth: 200, resizable: true, cssVar: "--est-col-contingency" },
-  { id: "subTotal", label: "Subtotal", defaultWidth: 108, minWidth: 86, maxWidth: 220, resizable: true, cssVar: "--est-col-subTotal" },
-  { id: "adjustment", label: "Adjustment", defaultWidth: 104, minWidth: 82, maxWidth: 200, resizable: true, cssVar: "--est-col-adjustment" },
-  { id: "miscCost", label: "Misc Cost", defaultWidth: 108, minWidth: 86, maxWidth: 220, resizable: true, cssVar: "--est-col-miscCost" },
-  { id: "totalItemCosts", label: "Total Item Cost", defaultWidth: 124, minWidth: 104, maxWidth: 260, resizable: true, cssVar: "--est-col-totalItemCosts" },
-  { id: "actions", label: "Actions", defaultWidth: 30, minWidth: 30, maxWidth: 30, resizable: false },
+  { id: "material", label: "Materials", defaultWidth: 280, minWidth: 240, maxWidth: 640, resizable: true, cssVar: "--est-col-material" },
+  { id: "quantity", label: "Qty", defaultWidth: 64, minWidth: 52, maxWidth: 140, resizable: true, cssVar: "--est-col-quantity" },
+  { id: "contingency", label: "Contingency", compactLabel: "Cont.", defaultWidth: 84, minWidth: 68, maxWidth: 200, resizable: true, cssVar: "--est-col-contingency" },
+  { id: "subTotal", label: "Subtotal", defaultWidth: 92, minWidth: 76, maxWidth: 220, resizable: true, cssVar: "--est-col-subTotal" },
+  { id: "adjustment", label: "Adjustment", compactLabel: "Adjust.", defaultWidth: 84, minWidth: 68, maxWidth: 200, resizable: true, cssVar: "--est-col-adjustment" },
+  { id: "miscCost", label: "Misc Cost", compactLabel: "Misc", defaultWidth: 92, minWidth: 76, maxWidth: 220, resizable: true, cssVar: "--est-col-miscCost" },
+  { id: "totalItemCosts", label: "Total Item Cost", compactLabel: "Total", defaultWidth: 108, minWidth: 88, maxWidth: 260, resizable: true, cssVar: "--est-col-totalItemCosts" },
+  { id: "actions", label: "Actions", defaultWidth: 32, minWidth: 32, maxWidth: 32, resizable: false },
 ] as const satisfies readonly EstimateColumnDefinition[];
 
 export const RESIZABLE_ESTIMATE_COLUMN_IDS = ESTIMATE_COLUMN_DEFINITIONS.flatMap((column) =>
@@ -60,20 +61,22 @@ export const DEFAULT_ESTIMATE_COLUMN_WIDTHS = Object.freeze(
 
 export const EMPTY_ESTIMATE_COLUMN_WIDTHS = Object.freeze({}) as Readonly<EstimateColumnWidths>;
 
-export const DEFAULT_ESTIMATE_COLUMN_TEMPLATE = "36px 32px minmax(148px,1fr) 70px 104px 108px 104px 108px 124px 30px";
+export const DEFAULT_ESTIMATE_COLUMN_TEMPLATE = "28px 32px minmax(240px,1fr) 64px 84px 92px 84px 92px 108px 32px";
 
-export const ESTIMATE_COLUMN_TEMPLATE = [
-  "36px",
+const ESTIMATE_COLUMN_TEMPLATE_TRACKS = [
+  "28px",
   "32px",
-  "minmax(var(--est-col-material, 148px), 1fr)",
-  "var(--est-col-quantity, 70px)",
-  "var(--est-col-contingency, 104px)",
-  "var(--est-col-subTotal, 108px)",
-  "var(--est-col-adjustment, 104px)",
-  "var(--est-col-miscCost, 108px)",
-  "var(--est-col-totalItemCosts, 124px)",
-  "30px",
+  "minmax(var(--est-col-material, 280px), 1fr)",
+  "var(--est-col-quantity, 64px)",
+  "var(--est-col-contingency, 84px)",
+  "var(--est-col-subTotal, 92px)",
+  "var(--est-col-adjustment, 84px)",
+  "var(--est-col-miscCost, 92px)",
+  "var(--est-col-totalItemCosts, 108px)",
+  "32px",
 ].join(" ");
+
+export const ESTIMATE_COLUMN_TEMPLATE = `var(--estimate-column-template, ${ESTIMATE_COLUMN_TEMPLATE_TRACKS})`;
 
 const RESIZABLE_COLUMN_SET = new Set<EstimateColumnId>(RESIZABLE_ESTIMATE_COLUMN_IDS);
 

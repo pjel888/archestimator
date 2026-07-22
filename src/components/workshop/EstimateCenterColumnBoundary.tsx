@@ -12,10 +12,7 @@ type EstimateCenterColumnBoundaryProps = Omit<HTMLAttributes<HTMLDivElement>, "c
 };
 
 const scopeClassName: Record<EstimateCenterColumnBoundaryScope, string> = {
-  // Suppress the centre metadata pill below lg: at <lg the tree/library rails are
-  // hidden, so the absolute left/right offsets collapse the pill onto the
-  // breadcrumb and clip it. `hidden lg:flex` matches the pill's flex display.
-  "workshop-title": "hidden lg:flex inset-y-2",
+  "workshop-title": "hidden min-[1400px]:flex inset-y-2",
   "project-workspace-row": "inset-y-0",
 };
 

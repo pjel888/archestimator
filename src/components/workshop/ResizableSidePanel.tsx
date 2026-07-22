@@ -25,8 +25,27 @@ type ResizableSidePanelProps = {
   collapsedWidth?: number;
   persistWidth?: boolean;
   compactDrawer?: boolean;
+  compactBreakpoint?: "lg" | "estimate-narrow" | "estimate-wide";
   children?: ReactNode;
 };
+
+const COMPACT_BREAKPOINTS = {
+  lg: {
+    query: "(max-width: 1023px)",
+    compactClassName: "lg:hidden",
+    desktopClassName: "hidden lg:flex",
+  },
+  "estimate-narrow": {
+    query: "(max-width: 1399px)",
+    compactClassName: "min-[1400px]:hidden",
+    desktopClassName: "hidden min-[1400px]:flex",
+  },
+  "estimate-wide": {
+    query: "(max-width: 1719px)",
+    compactClassName: "min-[1720px]:hidden",
+    desktopClassName: "hidden min-[1720px]:flex",
+  },
+} as const;
 
 const emptySubscribe = () => () => {};
 
@@ -113,6 +132,7 @@ export function ResizableSidePanel({
   collapsedWidth = 32,
   persistWidth = true,
   compactDrawer = true,
+  compactBreakpoint = "lg",
   children,
 }: ResizableSidePanelProps) {
   const glass = useEstimateSurfaceVariant() === "glass";
@@ -123,7 +143,8 @@ export function ResizableSidePanel({
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const compactViewport = useMediaQuery("(max-width: 1023px)");
+  const compactBreakpointConfig = COMPACT_BREAKPOINTS[compactBreakpoint];
+  const compactViewport = useMediaQuery(compactBreakpointConfig.query);
   const width = dragWidth ?? committedWidth ?? persistedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
@@ -377,7 +398,8 @@ export function ResizableSidePanel({
           aria-expanded={drawerOpen}
           aria-haspopup="dialog"
           className={cn(
-            "inline-flex h-full min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xs border-hairline bg-surface px-2 text-[10px] font-medium text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden",
+            "inline-flex h-full min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xs border-hairline bg-surface px-2 text-[10px] font-medium text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+            compactBreakpointConfig.compactClassName,
             triggerSideClass,
           )}
           onClick={openDrawer}
@@ -387,7 +409,7 @@ export function ResizableSidePanel({
         </button>
         {drawerOpen ? (
           <div
-            className="fixed inset-0 z-50 bg-black/30 lg:hidden"
+            className={cn("fixed inset-0 z-50 bg-black/30", compactBreakpointConfig.compactClassName)}
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) closeDrawer();
             }}
@@ -422,7 +444,7 @@ export function ResizableSidePanel({
   }
 
   return (
-    <div className="group hidden h-full shrink-0 overflow-hidden lg:flex" style={panelStyle}>
+    <div className={cn("group h-full shrink-0 overflow-hidden", compactBreakpointConfig.desktopClassName)} style={panelStyle}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
       <aside id={panelId} className={cn("h-full min-w-0 flex-1 overflow-hidden !text-[10px]", glass ? "bg-transparent" : "bg-white")} aria-label={ariaLabel} aria-hidden={collapsed}>

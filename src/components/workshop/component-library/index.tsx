@@ -3616,11 +3616,12 @@ function useEstimateRightSidebarContent({
         side="right"
         ariaLabel="Sources"
         storageKey="estimate_component_library_width"
-        defaultWidth={560}
+        defaultWidth={400}
         minWidth={360}
-        maxWidth={560}
+        maxWidth={480}
         persistWidth={usePersistentPanelWidth}
         compactDrawer={false}
+        compactBreakpoint="estimate-wide"
       >
         {sourceSidebarBody}
       </ResizableSidePanel>

@@ -13,17 +13,17 @@ export const SIDE_PANEL_WIDTH_CONFIGS = [
   {
     storageKey: "estimate_sheet_tree_width",
     cssVariable: "--estimate-tree-panel-width",
-    defaultWidth: 272,
-    minWidth: 216,
-    maxWidth: 432,
+    defaultWidth: 240,
+    minWidth: 200,
+    maxWidth: 352,
     widthOffset: 104,
   },
   {
     storageKey: "estimate_component_library_width",
     cssVariable: "--estimate-library-panel-width",
-    defaultWidth: 560,
+    defaultWidth: 400,
     minWidth: 360,
-    maxWidth: 560,
+    maxWidth: 480,
     widthOffset: 0,
   },
   {

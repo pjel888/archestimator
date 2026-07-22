@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useReducer, useRef, useState, type CSSProperties, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, ImageSquare, PencilSimple, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, DotsThreeVertical, ImageSquare, PencilSimple, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -46,7 +46,7 @@ export type ExpressInsertDraftState = "creating" | "failed";
 
 type ComponentSourceTone = "library" | "express" | "project" | "manual";
 
-const MATERIAL_COST_SLOT_CLASS = "w-[112px] shrink-0";
+const MATERIAL_COST_SLOT_CLASS = "w-[76px] shrink-0";
 const MATERIAL_UNIT_LABEL_CLASS =
   "flex min-w-0 max-w-full items-center justify-end gap-0.5 text-right !text-[10px] font-medium leading-3";
 const MATERIAL_UNIT_SLASH_CLASS = "block shrink-0 leading-3 text-tertiary";
@@ -283,18 +283,20 @@ function EstimateMaterialCardFrame({
   unit: ReactNode;
 }) {
   return (
-    <div className="relative grid h-full min-h-0 grid-cols-[56px_minmax(0,1fr)_112px] grid-rows-[56px_16px] gap-x-2 gap-y-1">
+    <div className="relative grid h-full min-h-0 grid-cols-[44px_minmax(0,1fr)] grid-rows-[minmax(44px,1fr)_16px] gap-x-2 gap-y-1">
       <div className="col-start-1 row-start-1 min-w-0">{image}</div>
-      <div className="col-start-2 row-start-1 flex h-14 min-w-0 flex-col justify-between overflow-hidden pr-16">
+      <div className="col-start-2 row-start-1 flex min-w-0 flex-col justify-between overflow-hidden pr-12">
         {name}
         {brand}
         {supplier}
       </div>
-      <div className="absolute top-1/2 right-0 flex w-[112px] -translate-y-1/2 items-center justify-end">{cost}</div>
       <div className="col-start-1 row-start-2 flex min-w-0 items-center">{variant}</div>
-      <div className="col-start-2 row-start-2 min-w-0 overflow-hidden">{description}</div>
-      <div className="col-start-3 row-start-2 flex min-w-0 items-center justify-end" data-estimate-material-unit-slot="true">
-        {unit}
+      <div className="col-start-2 row-start-2 flex min-w-0 items-center gap-1 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-hidden">{description}</div>
+        <div className="flex shrink-0 items-center justify-end gap-1">
+          {cost}
+          <div className="min-w-0 max-w-10" data-estimate-material-unit-slot="true">{unit}</div>
+        </div>
       </div>
     </div>
   );
@@ -306,7 +308,7 @@ function EstimateMaterialCardSyncSkeleton() {
     <div className="absolute inset-y-2 right-2 left-3 z-20" data-component-sync-skeleton="true">
       <span className="sr-only">Updating linked component</span>
       <EstimateMaterialCardFrame
-        image={<Skeleton className={cn("size-14", skeletonClassName)} />}
+        image={<Skeleton className={cn("size-11", skeletonClassName)} />}
         name={<Skeleton className={cn("h-3 w-2/3 max-w-40", skeletonClassName)} />}
         brand={<Skeleton className={cn("h-2 w-20", skeletonClassName)} />}
         supplier={<Skeleton className={cn("h-2 w-28", skeletonClassName)} />}
@@ -434,7 +436,7 @@ function EstimateMaterialCardContent({
     <EstimateMaterialCardFrame
       image={(
         <div
-          className="size-14 shrink-0 rounded-xs bg-neutral-100 bg-cover bg-center"
+          className="size-11 shrink-0 rounded-xs bg-neutral-100 bg-cover bg-center"
           style={{ backgroundImage: `url(${getMaterialCardImageUrl(item)})` }}
           aria-label={`${item.material} reference image`}
         />
@@ -656,12 +658,12 @@ function ExpressMaterialImageEditor({
 
   return (
     <>
-      <div className="relative size-14 shrink-0">
+      <div className="relative size-11 shrink-0">
         <ActionTooltip label={imageModalBusy ? "Uploading reference image" : imageUrl ? "Change reference image" : "Add reference image"}>
           <button
             type="button"
             className={cn(
-              "relative grid size-14 place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
+              "relative grid size-11 place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
               (imageUrl || selectedImagePreview) && "shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
             )}
             style={thumbnailImageStyle}
@@ -1201,6 +1203,7 @@ export function EstimateMaterialCell({
   onDeleteExpressDraft: () => void;
 }) {
   const surfaceVariant = useEstimateSurfaceVariant();
+  const componentActionTriggerRef = useRef<HTMLButtonElement | null>(null);
   function handleReplacementDragOver(event: DragEvent<HTMLDivElement>) {
     if (!canEditEstimate) return;
     if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
@@ -1261,6 +1264,12 @@ export function EstimateMaterialCell({
     && Boolean(onOpenComponentEditor)
     && (!linkedSharedComponent || canManageLibrary);
   const componentEditorLabel = linkedSharedComponent ? "Edit shared library component" : "Edit component";
+  const showComponentActionMenu = showProjectSpecificAction
+    || showPromoteAction
+    || Boolean(canEditEstimate && onOpenReplacePicker)
+    || Boolean(canEditEstimate && onOpenMovePicker)
+    || canEditEstimate
+    || canOpenComponentEditor;
 
   return (
     <div
@@ -1285,113 +1294,82 @@ export function EstimateMaterialCell({
       />
       <span className="sr-only">{sourceLabel}</span>
       <div
-        className={cn("absolute top-1 right-1 z-10 flex items-center gap-1.5", componentSyncPending && "invisible")}
+        className={cn("absolute top-1 right-1 z-10 flex items-center gap-0.5", componentSyncPending && "invisible")}
         inert={componentSyncPending}
         aria-hidden={componentSyncPending || undefined}
         aria-label={`Component actions for ${componentLabel}`}
       >
-        {showProjectSpecificAction ? (
-          <ActionTooltip label="Make project component">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-              aria-label={`Make ${componentLabel} a Project Component`}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onRequestProjectSpecific();
-              }}
-            >
-              <Cube size={11} weight="regular" aria-hidden="true" />
-            </Button>
-          </ActionTooltip>
-        ) : null}
-        {showPromoteAction ? (
-          <ActionTooltip label="Promote to library">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-              aria-label={`Promote ${componentLabel} to library`}
-              disabled={promoteToLibraryPending}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onPromoteToLibrary();
-              }}
-            >
-              <StackPlus size={11} weight="regular" aria-hidden="true" />
-            </Button>
-          </ActionTooltip>
-        ) : null}
-        {canEditEstimate && onOpenReplacePicker ? (
-          <ActionTooltip label="Replace component">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-              aria-label={`Replace component ${componentLabel}`}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onOpenReplacePicker(event.currentTarget);
-              }}
-            >
-              <ArrowsClockwise size={11} weight="regular" aria-hidden="true" />
-            </Button>
-          </ActionTooltip>
-        ) : null}
-        {canEditEstimate && onOpenMovePicker ? (
-          <ActionTooltip label="Move component">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-              aria-label={`Move component ${componentLabel}`}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onOpenMovePicker(event.currentTarget);
-              }}
-            >
-              <ArrowsOutCardinal size={11} weight="regular" aria-hidden="true" />
-            </Button>
-          </ActionTooltip>
-        ) : null}
-        {canEditEstimate ? (
-          <ActionTooltip label="Delete component">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 active:bg-red-50 focus-visible:text-red-700"
-              aria-label={`Delete component ${componentLabel}`}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onClearComponent();
-              }}
-            >
-              <Trash size={11} weight="regular" aria-hidden="true" />
-            </Button>
-          </ActionTooltip>
-        ) : null}
-        {canOpenComponentEditor && onOpenComponentEditor ? (
-          <ActionTooltip label={componentEditorLabel}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-              aria-label={`${componentEditorLabel} ${componentLabel}`}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onOpenComponentEditor(event.currentTarget);
-              }}
-            >
-              <PencilSimple size={11} weight="regular" aria-hidden="true" />
-            </Button>
-          </ActionTooltip>
+        {showComponentActionMenu ? (
+          <DropdownMenu
+            align="end"
+            side="bottom"
+            className="min-w-48"
+            trigger={(
+              <button
+                ref={componentActionTriggerRef}
+                type="button"
+                className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
+                aria-label={`Open component actions for ${componentLabel}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
+              </button>
+            )}
+          >
+            {canOpenComponentEditor && onOpenComponentEditor ? (
+              <DropdownMenu.Item
+                label={componentEditorLabel}
+                icon={<PencilSimple size={14} weight="regular" aria-hidden="true" />}
+                onClick={() => {
+                  const opener = componentActionTriggerRef.current;
+                  if (opener) onOpenComponentEditor(opener);
+                }}
+              />
+            ) : null}
+            {canEditEstimate && onOpenReplacePicker ? (
+              <DropdownMenu.Item
+                label="Replace component"
+                icon={<ArrowsClockwise size={14} weight="regular" aria-hidden="true" />}
+                onClick={() => {
+                  const opener = componentActionTriggerRef.current;
+                  if (opener) onOpenReplacePicker(opener);
+                }}
+              />
+            ) : null}
+            {canEditEstimate && onOpenMovePicker ? (
+              <DropdownMenu.Item
+                label="Move component"
+                icon={<ArrowsOutCardinal size={14} weight="regular" aria-hidden="true" />}
+                onClick={() => {
+                  const opener = componentActionTriggerRef.current;
+                  if (opener) onOpenMovePicker(opener);
+                }}
+              />
+            ) : null}
+            {showProjectSpecificAction ? (
+              <DropdownMenu.Item
+                label="Make project component"
+                icon={<Cube size={14} weight="regular" aria-hidden="true" />}
+                onClick={onRequestProjectSpecific}
+              />
+            ) : null}
+            {showPromoteAction ? (
+              <DropdownMenu.Item
+                label="Promote to library"
+                icon={<StackPlus size={14} weight="regular" aria-hidden="true" />}
+                disabled={promoteToLibraryPending}
+                onClick={onPromoteToLibrary}
+              />
+            ) : null}
+            {canEditEstimate ? (
+              <DropdownMenu.Item
+                label="Delete component"
+                icon={<Trash size={14} weight="regular" aria-hidden="true" />}
+                destructive
+                onClick={onClearComponent}
+              />
+            ) : null}
+          </DropdownMenu>
         ) : null}
         {canEditEstimate ? (
           <ActionTooltip label="Drag component">
@@ -1399,7 +1377,7 @@ export function EstimateMaterialCell({
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="size-5 cursor-grab rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:cursor-grabbing active:bg-surfaceMuted"
+              className="size-6 cursor-grab rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:cursor-grabbing active:bg-surfaceMuted [@media(pointer:coarse)]:hidden"
               aria-label={`Drag component ${componentLabel}`}
               draggable
               onClick={(event: MouseEvent<HTMLButtonElement>) => event.stopPropagation()}

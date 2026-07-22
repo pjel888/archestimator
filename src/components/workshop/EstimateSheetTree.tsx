@@ -1214,11 +1214,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         side="left"
         ariaLabel="Tree"
         storageKey="estimate_sheet_tree_width"
-        defaultWidth={272}
-        minWidth={216}
-        maxWidth={432}
+        defaultWidth={240}
+        minWidth={200}
+        maxWidth={352}
         widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
         persistWidth={!disableRouteSync}
+        compactBreakpoint="estimate-narrow"
       >
         {/* group/tree on the panel widens the rail-reveal scope: rows keep
             their drag/select space while the pointer or focus is anywhere in

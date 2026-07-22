@@ -3500,7 +3500,7 @@ export function EstimateSheetContent({
                 ariaControls: ESTIMATE_SOURCES_DRAWER_ID,
                 ariaExpanded: sourcesDrawerOpen,
                 ariaHasPopup: "dialog" as const,
-                className: "lg:hidden text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
+                className: "min-[1720px]:hidden text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
               },
             ] : []),
             ...(createTabState.canCreate ? [
@@ -3561,7 +3561,7 @@ export function EstimateSheetContent({
           </>
         ) : selectedNode ? (
           <>
-            <div className="relative flex min-h-0 flex-1 flex-col">
+            <div className="relative flex min-h-0 flex-1 flex-col" data-estimate-sheet-viewport>
               <div
                 ref={estimatePointerSurfaceRef}
                 className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-1", bulkSelectedRowCount > 0 ? "pb-16" : "pb-1")}

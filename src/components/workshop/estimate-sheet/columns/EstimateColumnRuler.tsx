@@ -71,7 +71,7 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
   return (
     <div
       aria-label="Estimate column ruler"
-      className="sticky top-0 z-20 grid min-h-8 border-x border-t border-hairline bg-white text-[10px] font-medium text-ink"
+      className="sticky top-0 z-20 grid min-h-8 min-w-[var(--estimate-sheet-min-width,856px)] border-x border-t border-hairline bg-white text-[10px] font-medium text-ink"
       style={{ gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}
       data-estimate-column-ruler
     >
@@ -95,7 +95,10 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
               <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
             </button>
           ) : (
-            <span className="truncate">{column.label}</span>
+            <span className="truncate">
+              <span data-estimate-column-label="full">{column.label}</span>
+              <span data-estimate-column-label="compact">{"compactLabel" in column ? column.compactLabel : column.label}</span>
+            </span>
           )}
           {isResizableEstimateColumnId(column.id) ? renderHandle(column.id) : null}
         </div>
