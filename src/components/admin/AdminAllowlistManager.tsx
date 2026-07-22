@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
+import type { ColumnDef } from "@tanstack/react-table";
 
+import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import { AdminOverviewStrip, AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import { Badge } from "@/components/ui/badge";
@@ -268,7 +270,66 @@ function StatusLegend() {
   );
 }
 
-function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desktop" | "mobile" }) {
+/** Inline status + notes edit form shared by the desktop table cell and the mobile card. */
+function AllowlistStatusEditor({ row, mobile = false }: { row: AdminAllowlistRow; mobile?: boolean }) {
+  if (mobile) {
+    return (
+      <form action={updateClosedBetaAllowlistEntry} className="mt-2 grid gap-2">
+        <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
+        <input type="hidden" name="id" value={row.id} />
+        <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
+          <ControlField label="Status" as="div" className="gap-0.5">
+            <AdminStatusSelect
+              name="status"
+              defaultValue={row.status}
+              options={statusOptions}
+              aria-label={`Status for ${row.normalized_email}`}
+            />
+          </ControlField>
+          <ControlField label="Notes" className="gap-0.5">
+            <ControlInput
+              name="notes"
+              defaultValue={row.notes ?? ""}
+              aria-label={`Notes for ${row.normalized_email}`}
+              placeholder="Add context"
+              className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
+            />
+          </ControlField>
+        </div>
+        <div className="flex">
+          <RowSaveButton />
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form
+      action={updateClosedBetaAllowlistEntry}
+      className="grid grid-cols-[8rem_minmax(8rem,1fr)_auto] items-center gap-1"
+    >
+      <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
+      <input type="hidden" name="id" value={row.id} />
+      <AdminStatusSelect
+        name="status"
+        defaultValue={row.status}
+        options={statusOptions}
+        aria-label={`Status for ${row.normalized_email}`}
+      />
+      <ControlInput
+        name="notes"
+        defaultValue={row.notes ?? ""}
+        aria-label={`Notes for ${row.normalized_email}`}
+        placeholder="Add context"
+        className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
+      />
+      <RowSaveButton />
+    </form>
+  );
+}
+
+/** Revoke/restore actions with confirm dialog, shared by desktop and mobile rows. */
+function AllowlistAccessActions({ row, mobile = false }: { row: AdminAllowlistRow; mobile?: boolean }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -285,146 +346,35 @@ function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desk
 
   return (
     <>
-      {mode === "desktop" ? (
-      <tr className="align-top">
-        <td className="border-b border-hairline px-2 py-2.5">
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
-            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
-              Invited {formatAdminDateTime(row.invited_at)}
-              {row.accepted_at ? ` · Signed in ${formatAdminDateTime(row.accepted_at)}` : ""}
-              {row.invite_email_sent_at ? ` · Email sent ${formatAdminDateTime(row.invite_email_sent_at)}` : " · Email pending"}
-            </p>
-          </div>
-        </td>
-        <td className="border-b border-hairline px-2 py-2.5">
-          <Badge tone={statusTone[row.status]} size="xs" className="min-w-0 px-1">
-            {statusLabels[row.status]}
-          </Badge>
-        </td>
-        <td className="border-b border-hairline px-2 py-2.5">
-          <form
-            action={updateClosedBetaAllowlistEntry}
-            className="grid grid-cols-[8rem_minmax(8rem,1fr)_auto] items-center gap-1"
-          >
-            <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
-            <input type="hidden" name="id" value={row.id} />
-            <AdminStatusSelect
-              name="status"
-              defaultValue={row.status}
-              options={statusOptions}
-              aria-label={`Status for ${row.normalized_email}`}
-            />
-            <ControlInput
-              name="notes"
-              defaultValue={row.notes ?? ""}
-              aria-label={`Notes for ${row.normalized_email}`}
-              placeholder="Add context"
-              className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
-            />
-            <RowSaveButton />
-          </form>
-        </td>
-        <td className="border-b border-hairline px-2 py-2.5 text-right">
-          {row.status === "revoked" ? (
-            <form action={updateClosedBetaAllowlistEntry}>
-              <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
-              <input type="hidden" name="id" value={row.id} />
-              <input type="hidden" name="status" value="invited" />
-              <input type="hidden" name="notes" value={row.notes ?? ""} />
-              <Button type="submit" variant="secondary" size="xs" disabled={isPending}>
-                Restore
-              </Button>
-            </form>
-          ) : (
-              <Button
-                type="button"
-                variant="danger"
-                size="xs"
-                disabled={isPending}
-                onClick={() => setConfirmOpen(true)}
-            >
-              Revoke
-            </Button>
-          )}
-        </td>
-      </tr>
-      ) : (
-      <article className="border-b border-hairline p-3 last:border-b-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="break-all text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
-            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
-              Invited {formatAdminDateTime(row.invited_at)}
-            </p>
-          </div>
-          <Badge tone={statusTone[row.status]} size="xs" className="min-w-0 px-1">
-            {statusLabels[row.status]}
-          </Badge>
-        </div>
-
-        <div className="mt-2 rounded-xs bg-surfaceMuted/70 px-2 py-1.5 text-[9px] leading-3 text-secondary">
-          {row.accepted_at ? `Signed in ${formatAdminDateTime(row.accepted_at)}` : "First sign-in pending"}
-          {row.invite_email_sent_at ? ` · Invite sent ${formatAdminDateTime(row.invite_email_sent_at)}` : " · Invite email pending"}
-        </div>
-
-        <form action={updateClosedBetaAllowlistEntry} className="mt-2 grid gap-2">
+      {row.status === "revoked" ? (
+        <form action={updateClosedBetaAllowlistEntry} className={mobile ? undefined : "flex justify-end"}>
           <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
           <input type="hidden" name="id" value={row.id} />
-          <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
-            <ControlField label="Status" as="div" className="gap-0.5">
-              <AdminStatusSelect
-                name="status"
-                defaultValue={row.status}
-                options={statusOptions}
-                aria-label={`Status for ${row.normalized_email}`}
-              />
-            </ControlField>
-            <ControlField label="Notes" className="gap-0.5">
-              <ControlInput
-                name="notes"
-                defaultValue={row.notes ?? ""}
-                aria-label={`Notes for ${row.normalized_email}`}
-                placeholder="Add context"
-                className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
-              />
-            </ControlField>
-          </div>
-          <div className="flex">
-            <RowSaveButton />
-          </div>
+          <input type="hidden" name="status" value="invited" />
+          <input type="hidden" name="notes" value={row.notes ?? ""} />
+          <Button
+            type="submit"
+            variant="secondary"
+            size="xs"
+            disabled={isPending}
+            className={mobile ? "min-h-10" : undefined}
+          >
+            {mobile ? "Restore access" : "Restore"}
+          </Button>
         </form>
-        <div className="mt-1.5 flex justify-end">
-          {row.status === "revoked" ? (
-            <form action={updateClosedBetaAllowlistEntry}>
-              <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
-              <input type="hidden" name="id" value={row.id} />
-              <input type="hidden" name="status" value="invited" />
-              <input type="hidden" name="notes" value={row.notes ?? ""} />
-              <Button
-                type="submit"
-                variant="secondary"
-                size="xs"
-                disabled={isPending}
-                className="min-h-10"
-              >
-                Restore access
-              </Button>
-            </form>
-          ) : (
-              <Button
-                type="button"
-                variant="danger"
-                size="xs"
-                disabled={isPending}
-                className="min-h-10"
-                onClick={() => setConfirmOpen(true)}
-            >
-              Revoke access
-            </Button>
-          )}
+      ) : (
+        <div className={mobile ? undefined : "flex justify-end"}>
+          <Button
+            type="button"
+            variant="danger"
+            size="xs"
+            disabled={isPending}
+            className={mobile ? "min-h-10" : undefined}
+            onClick={() => setConfirmOpen(true)}
+          >
+            {mobile ? "Revoke access" : "Revoke"}
+          </Button>
         </div>
-      </article>
       )}
 
       <ConfirmDialog
@@ -442,6 +392,34 @@ function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desk
   );
 }
 
+function AllowlistMobileCard({ row }: { row: AdminAllowlistRow }) {
+  return (
+    <article className="border-b border-hairline p-3 last:border-b-0">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="break-all text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
+          <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
+            Invited {formatAdminDateTime(row.invited_at)}
+          </p>
+        </div>
+        <Badge tone={statusTone[row.status]} size="xs" className="min-w-0 px-1">
+          {statusLabels[row.status]}
+        </Badge>
+      </div>
+
+      <div className="mt-2 rounded-xs bg-surfaceMuted/70 px-2 py-1.5 text-[9px] leading-3 text-secondary">
+        {row.accepted_at ? `Signed in ${formatAdminDateTime(row.accepted_at)}` : "First sign-in pending"}
+        {row.invite_email_sent_at ? ` · Invite sent ${formatAdminDateTime(row.invite_email_sent_at)}` : " · Invite email pending"}
+      </div>
+
+      <AllowlistStatusEditor row={row} mobile />
+      <div className="mt-1.5 flex justify-end">
+        <AllowlistAccessActions row={row} mobile />
+      </div>
+    </article>
+  );
+}
+
 export function AdminAllowlistManager({
   authorized,
   error,
@@ -454,6 +432,63 @@ export function AdminAllowlistManager({
     statusFilter && statusOptions.some((option) => option.value === statusFilter)
       ? statusLabels[statusFilter as AdminAllowlistStatus]
       : "All";
+
+  const columns = useMemo<ColumnDef<AdminAllowlistRow, unknown>[]>(
+    () => [
+      {
+        accessorKey: "normalized_email",
+        header: "Person and delivery",
+        cell: ({ row }) => {
+          const record = row.original;
+          return (
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-medium leading-4 text-ink">{record.normalized_email}</p>
+              <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
+                Invited {formatAdminDateTime(record.invited_at)}
+                {record.accepted_at ? ` · Signed in ${formatAdminDateTime(record.accepted_at)}` : ""}
+                {record.invite_email_sent_at
+                  ? ` · Email sent ${formatAdminDateTime(record.invite_email_sent_at)}`
+                  : " · Email pending"}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "State",
+        cell: ({ row }) => (
+          <Badge tone={statusTone[row.original.status]} size="xs" className="min-w-0 px-1">
+            {statusLabels[row.original.status]}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "invited_at",
+        header: "Invited",
+        sortingFn: "datetime",
+        cell: ({ row }) => (
+          <span className="text-[9px] leading-3 text-tertiary">
+            {formatAdminDateTime(row.original.invited_at)}
+          </span>
+        ),
+      },
+      {
+        id: "context",
+        header: "Status and internal context",
+        enableSorting: false,
+        cell: ({ row }) => <AllowlistStatusEditor row={row.original} />,
+      },
+      {
+        id: "access",
+        header: "Access",
+        enableSorting: false,
+        meta: { align: "right" },
+        cell: ({ row }) => <AllowlistAccessActions row={row.original} />,
+      },
+    ],
+    [],
+  );
 
   return (
     <AdminPage>
@@ -549,24 +584,19 @@ export function AdminAllowlistManager({
               <div>
                 <div className="md:hidden">
                   {rows.map((row) => (
-                    <AllowlistRowEditor key={`mobile-${row.id}`} row={row} mode="mobile" />
+                    <AllowlistMobileCard key={row.id} row={row} />
                   ))}
                 </div>
-                <table className="hidden w-full table-fixed border-collapse text-left text-[10px] leading-4 md:table">
-                  <thead className="bg-surfaceMuted text-secondary">
-                    <tr>
-                      <th className="w-[36%] border-b border-hairline px-2 py-1.5 font-medium lg:w-[32%]">Person and delivery</th>
-                      <th className="w-20 border-b border-hairline px-2 py-1.5 font-medium">State</th>
-                      <th className="border-b border-hairline px-2 py-1.5 font-medium">Status and internal context</th>
-                      <th className="w-28 border-b border-hairline px-2 py-1.5 text-right font-medium">Access</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <AllowlistRowEditor key={`desktop-${row.id}`} row={row} mode="desktop" />
-                    ))}
-                  </tbody>
-                </table>
+                <div className="hidden md:block">
+                  <AdminDataTable
+                    data={rows}
+                    columns={columns}
+                    getRowId={(row) => row.id}
+                    emptyMessage="No emails match this filter."
+                    persistenceKey="admin-allowlist"
+                    className="rounded-none border-0"
+                  />
+                </div>
               </div>
             )}
           </section>
