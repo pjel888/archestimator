@@ -22,6 +22,7 @@ import {
   createClosedBetaAllowlistEntries,
   updateClosedBetaAllowlistEntry,
 } from "@/lib/auth/beta-allowlist-admin-actions";
+import { formatAdminDateTime } from "@/lib/admin/datetime";
 
 const ALLOWLIST_PATH = "/admin/allowlist";
 const MAX_BULK_EMAILS = 50;
@@ -72,17 +73,6 @@ const filterOptions = [
   { value: "", label: "All" },
   ...statusOptions,
 ] as const;
-
-const dateFormatter = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return dateFormatter.format(new Date(value));
-}
 
 /** UI preview only — server `parseClosedBetaAllowlistEmails` remains authoritative. */
 function previewAllowlistEmails(raw: string): string[] {
@@ -271,9 +261,9 @@ function AllowlistRowEditor({ row }: { row: AdminAllowlistRow }) {
           <div className="min-w-0">
             <p className="truncate text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
             <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
-              Invited {formatDate(row.invited_at)}
-              {row.accepted_at ? ` · Signed in ${formatDate(row.accepted_at)}` : ""}
-              {row.invite_email_sent_at ? ` · Email sent ${formatDate(row.invite_email_sent_at)}` : " · Email pending"}
+              Invited {formatAdminDateTime(row.invited_at)}
+              {row.accepted_at ? ` · Signed in ${formatAdminDateTime(row.accepted_at)}` : ""}
+              {row.invite_email_sent_at ? ` · Email sent ${formatAdminDateTime(row.invite_email_sent_at)}` : " · Email pending"}
             </p>
           </div>
         </td>

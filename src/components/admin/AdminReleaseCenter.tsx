@@ -8,6 +8,7 @@ import {
   setReleaseStatusAction,
 } from "@/lib/admin/release-center-actions";
 import type { AdminReleaseRecordRow, ReleaseStatus } from "@/lib/admin/release-center-repository";
+import { formatAdminDateTime } from "@/lib/admin/datetime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -103,7 +104,7 @@ export function AdminReleaseCenter({ initialRecords }: { initialRecords: AdminRe
                 <p className="truncate text-[10px] font-medium leading-4 text-ink">{record.version_label}</p>
                 <p className="text-[9px] leading-3 text-tertiary">
                   {record.commit_ref ? `${record.commit_ref} · ` : ""}
-                  {new Date(record.created_at).toLocaleString()}
+                  {formatAdminDateTime(record.created_at)}
                 </p>
                 {record.go_no_go_notes && (
                   <p className="mt-0.5 whitespace-pre-wrap break-words text-[9px] leading-3 text-secondary">

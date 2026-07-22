@@ -10,6 +10,7 @@ import {
   linkWorkspaceAction,
   unlinkWorkspaceAction,
 } from "@/lib/admin/corporate-account-actions";
+import { formatAdminDate } from "@/lib/admin/datetime";
 import type {
   WorkspaceLinkCandidateRow,
   WorkspaceSummaryRow,
@@ -75,7 +76,7 @@ export function AdminAccountWorkspaces({
       header: "Created",
       cell: ({ row }) => (
         <span className="text-[9px] leading-3 text-tertiary">
-          {new Date(row.original.created_at).toLocaleDateString()}
+          {formatAdminDate(row.original.created_at)}
         </span>
       ),
     },

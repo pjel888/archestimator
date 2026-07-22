@@ -2,6 +2,7 @@
 
 import { Paperclip } from "@phosphor-icons/react";
 
+import { formatAdminMessageTime } from "@/lib/admin/datetime";
 import { sanitizeSupportHtml } from "@/lib/email/support-email-html";
 import { cn } from "@/lib/ui/cn";
 import type { SupportAttachmentRow, SupportMessageRow } from "@/lib/repositories/support-conversations-d1";
@@ -18,17 +19,6 @@ function sendStatusLabel(status: SupportMessageRow["send_status"], transport: Su
   if (status === "pending") return "Pending";
   if (status === "send_failed") return "Failed";
   return status;
-}
-
-function formatWhen(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
 }
 
 type SupportMessageCardProps = {
@@ -64,7 +54,7 @@ export function SupportMessageCard({ message, attachments }: SupportMessageCardP
           {message.direction !== "internal" ? ` · ${message.direction}` : ""}
         </span>
         <span>
-          {sendStatusLabel(message.send_status, message.transport)} · {formatWhen(message.created_at)}
+          {sendStatusLabel(message.send_status, message.transport)} · {formatAdminMessageTime(message.created_at)}
         </span>
       </header>
 

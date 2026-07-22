@@ -7,6 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import { AdminDeleteUserButton } from "@/components/admin/AdminDeleteUserButton";
+import { formatAdminDate } from "@/lib/admin/datetime";
 import { banUser, reactivateUser, suspendUser } from "@/lib/admin/user-actions";
 import type { AdminUserRow } from "@/lib/admin/users-repository";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +102,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
               {user.last_session_at ? (
                 <>
                   <br />
-                  {`Last: ${new Date(user.last_session_at).toLocaleDateString()}`}
+                  {`Last: ${formatAdminDate(user.last_session_at)}`}
                 </>
               ) : null}
             </span>
@@ -113,7 +114,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
         header: "Joined",
         cell: ({ row }) => (
           <span className="text-[9px] leading-3 text-tertiary">
-            {new Date(row.original.created_at).toLocaleDateString()}
+            {formatAdminDate(row.original.created_at)}
           </span>
         ),
       },

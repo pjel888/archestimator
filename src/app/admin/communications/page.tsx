@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
 import { listCommunicationRecords } from "@/lib/admin/communications-repository";
+import { formatAdminDateTime } from "@/lib/admin/datetime";
 
 const SEVERITY_TONE: Record<string, "neutral" | "success" | "warning" | "danger"> = {
   info: "neutral",
@@ -58,7 +59,7 @@ export default async function AdminCommunicationsPage() {
               <div className="min-w-0">
                 <p className="font-medium text-ink text-pretty">{record.title}</p>
                 <p className="text-[9px] text-tertiary">
-                  {record.kind} · {record.surface} · {new Date(record.created_at).toLocaleString()}
+                  {record.kind} · {record.surface} · {formatAdminDateTime(record.created_at)}
                   {record.release_version ? ` · ${record.release_version}` : ""}
                 </p>
               </div>

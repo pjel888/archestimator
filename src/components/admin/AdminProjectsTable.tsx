@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import { formatAdminDate } from "@/lib/admin/datetime";
 import type { AdminProjectOverviewRow } from "@/lib/admin/projects-overview-repository";
 import { SearchInput } from "@/components/ui/search-input";
 
@@ -37,7 +38,7 @@ export function AdminProjectsTable({ projects }: { projects: AdminProjectOvervie
         header: "Created",
         cell: ({ row }) => (
           <span className="text-[9px] leading-3 text-tertiary">
-            {new Date(row.original.created_at).toLocaleDateString()}
+            {formatAdminDate(row.original.created_at)}
           </span>
         ),
       },

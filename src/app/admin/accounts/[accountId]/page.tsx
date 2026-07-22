@@ -8,6 +8,7 @@ import { AdminAccountWorkspaces } from "@/components/admin/AdminAccountWorkspace
 import { AdminCustomerNotes } from "@/components/admin/AdminCustomerNotes";
 import { Card } from "@/components/ui/card";
 import { listCustomerNotes } from "@/lib/admin/customer-notes-repository";
+import { formatAdminDate } from "@/lib/admin/datetime";
 import {
   getCorporateAccount,
   listCorporateAccountMembers,
@@ -63,7 +64,7 @@ export default async function AdminAccountDetailPage({
           accountName={account.name}
         />
         <span className="text-[9px] leading-3 text-tertiary">
-          Created {new Date(account.created_at).toLocaleDateString()}
+          Created {formatAdminDate(account.created_at)}
         </span>
       </div>
 
