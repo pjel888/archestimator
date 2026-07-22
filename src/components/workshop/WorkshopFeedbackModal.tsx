@@ -1,55 +1,20 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { Lifebuoy } from "@phosphor-icons/react/dist/ssr";
+import { usePathname } from "next/navigation";
 
-import { Modal } from "@/components/ui/modal";
-import { cn } from "@/lib/ui/cn";
-
-// Heavy form body kept out of the shared workshop client chunk; it only mounts
-// when the modal opens (the dialog portal renders nothing while closed), so the
-// chunk is fetched on first open. No loading fallback — the modal frame already
-// provides the visible shell for the brief fetch.
-const BetaFeedbackForm = dynamic(
-  () => import("@/components/workshop/BetaFeedbackForm").then((mod) => mod.BetaFeedbackForm),
+const SupportCenterOverlay = dynamic(
+  () => import("@/components/support/SupportChatWidgetClient").then((module) => module.SupportChatWidgetClient),
   { ssr: false },
 );
 
 type WorkshopFeedbackModalProps = {
   className?: string;
+  workspaceId?: string | null;
 };
 
-export function WorkshopFeedbackModal({ className }: WorkshopFeedbackModalProps) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        aria-label="Send feedback"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        className={cn(
-          "inline-flex size-8 items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-          open ? "bg-surfaceMuted text-ink" : null,
-          className,
-        )}
-        onClick={() => setOpen(true)}
-      >
-        <Lifebuoy size={15} weight="regular" aria-hidden="true" />
-      </button>
-      <Modal
-        open={open}
-        title="Feedback"
-        description="Report workflow blockers, confusing screens, export issues, and missing estimating details."
-        closeLabel="Close feedback"
-        className="max-w-[680px]"
-        bodyClassName="bg-surface p-3"
-        onOpenChange={setOpen}
-      >
-        <BetaFeedbackForm mode="inline" />
-      </Modal>
-    </>
-  );
+export function WorkshopFeedbackModal({ className, workspaceId }: WorkshopFeedbackModalProps) {
+  const pathname = usePathname();
+  if (pathname === "/workshop/feedback") return null;
+  return <SupportCenterOverlay className={className} host="overlay" workspaceId={workspaceId} />;
 }

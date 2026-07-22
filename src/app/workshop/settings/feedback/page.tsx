@@ -1,10 +1,15 @@
 import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import { requirePlatformAdminPage } from "@/lib/auth/require-platform-admin-page";
 import { BETA_FEEDBACK_STATUSES, isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { updateBetaFeedbackReviewStatus } from "@/lib/workshop/beta-feedback-review-actions";
 import { readBetaFeedbackReviewQueue } from "@/lib/workshop/beta-feedback-review";
+import {
+  readBetaFeedbackReviewByIdFromD1,
+  readCanonicalSupportConversationIdForFeedbackFromD1,
+} from "@/lib/workshop/beta-feedback-d1-store";
 
 const statusLabels: Record<BetaFeedbackStatus, string> = {
   archived: "Archived",
@@ -40,11 +45,24 @@ function formatDate(value: string) {
 export default async function BetaFeedbackReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string; status?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; status?: string; feedback?: string }>;
 }) {
   await requirePlatformAdminPage();
   const params = await searchParams;
+  const requestedFeedbackId = params.feedback?.trim() ?? "";
+  const canonicalConversationId = requestedFeedbackId
+    ? await readCanonicalSupportConversationIdForFeedbackFromD1(requestedFeedbackId).catch(() => null)
+    : null;
+  if (canonicalConversationId) {
+    redirect(`/admin/support?c=${encodeURIComponent(canonicalConversationId)}&folder=all`);
+  }
   const queue = await readBetaFeedbackReviewQueue(params.status);
+  const selectedFeedback = requestedFeedbackId
+    ? await readBetaFeedbackReviewByIdFromD1(requestedFeedbackId).catch(() => null)
+    : null;
+  const submissions = selectedFeedback && !queue.submissions.some((item) => item.id === selectedFeedback.id)
+    ? [selectedFeedback, ...queue.submissions]
+    : queue.submissions;
   const notice = feedbackNotice(params.error, params.saved);
 
   return (
@@ -105,9 +123,9 @@ export default async function BetaFeedbackReviewPage({
 
             <section className="border border-hairline bg-white">
               <div className="border-b border-hairline p-2 text-[10px] leading-4 text-tertiary">
-                Showing {queue.submissions.length} latest feedback submissions.
+                Showing {submissions.length} latest feedback submissions.
               </div>
-              {queue.submissions.length === 0 ? (
+              {submissions.length === 0 ? (
                 <p className="p-2 text-[10px] leading-4 text-tertiary">
                   No feedback matches this view.
                 </p>
@@ -125,7 +143,7 @@ export default async function BetaFeedbackReviewPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {queue.submissions.map((item) => (
+                      {submissions.map((item) => (
                         <tr key={item.id} className="align-top">
                           <td className="border-b border-hairline px-2 py-2 text-tertiary">{formatDate(item.created_at)}</td>
                           <td className="border-b border-hairline px-2 py-2 text-secondary">

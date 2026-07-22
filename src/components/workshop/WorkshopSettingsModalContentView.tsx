@@ -4,7 +4,6 @@ import {
   ArrowSquareOut,
   Buildings,
   ChartLineUp,
-  EnvelopeSimple,
   FileText,
   Lifebuoy,
   ShieldCheck,
@@ -89,12 +88,12 @@ const accountSettings = [
 const supportSettings = [
   {
     category: "Support",
-    description: "Report workflow blockers, export issues, or confusing estimating details.",
+    description: "Read support replies, continue a request, or send a new private message.",
     href: "/workshop/feedback",
-    icon: <EnvelopeSimple size={15} weight="regular" aria-hidden="true" />,
-    id: "feedback",
-    notes: ["Product feedback", "Workflow blockers", "Proposal or export issues"],
-    title: "Send feedback",
+    icon: <Lifebuoy size={15} weight="regular" aria-hidden="true" />,
+    id: "support-center",
+    notes: ["Request history", "Unread support replies", "New requests and screenshots"],
+    title: "Support Center",
   },
   {
     category: "Support",
