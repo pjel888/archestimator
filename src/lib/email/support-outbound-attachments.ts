@@ -9,13 +9,22 @@ import {
 } from "@/lib/email/support-email-attachments";
 import { readSupportEmailConfig } from "@/lib/email/support-email-config";
 import type { EmailAttachmentInput } from "@/lib/email/cloudflare-email-client";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import {
-  insertSupportAttachmentInD1,
-  deleteSupportAttachmentsForMessageInD1,
-  updateSupportMessageAttachmentCountInD1,
+  listSupportAttachmentsForMessageInD1,
   type D1DatabaseLike,
   type SupportAttachmentRow,
 } from "@/lib/repositories/support-conversations-d1";
+import {
+  supportPrivacyWriteGateSql,
+  supportPrivacyWriteGateValues,
+  type SupportPrivacyWriteGate,
+} from "@/lib/support/privacy-fence";
+import {
+  forgetSupportSubjectR2Object,
+  markSupportSubjectR2ObjectStoredStatement,
+  reserveOpenSupportSubjectR2Object,
+} from "@/lib/support/subject-r2-registry";
 
 export type SupportDraftAttachmentMeta = {
   draftId: string;
@@ -65,6 +74,106 @@ export function assertDraftOwnedByAdmin(r2Key: string, adminUserId: string) {
   }
 }
 
+async function persistMaterializedAttachments(input: {
+  db: D1DatabaseLike;
+  messageId: string;
+  privacyGate: SupportPrivacyWriteGate;
+  rows: Array<{
+    contentType: string;
+    filename: string;
+    id: string;
+    r2Key: string;
+    sha256: string;
+    sizeBytes: number;
+  }>;
+}) {
+  const now = new Date().toISOString();
+  const inserts = input.rows.map((row) => input.db.prepare(
+    `INSERT INTO support_message_attachments (
+       id, message_id, r2_key, filename, content_type, size_bytes,
+       content_id, disposition, sha256, storage_status, created_at
+     ) SELECT ?, ?, ?, ?, ?, ?, NULL, 'attachment', ?, 'stored', ?
+     WHERE ${supportPrivacyWriteGateSql("materialize_fence")}`,
+  ).bind(
+    row.id,
+    input.messageId,
+    row.r2Key,
+    row.filename,
+    row.contentType,
+    row.sizeBytes,
+    row.sha256,
+    now,
+    ...supportPrivacyWriteGateValues(input.privacyGate),
+  ));
+  const updateCount = input.db.prepare(
+    `UPDATE support_messages SET attachment_count = ?
+     WHERE id = ? AND ${supportPrivacyWriteGateSql("materialize_count_fence")}`,
+  ).bind(
+    input.rows.length,
+    input.messageId,
+    ...supportPrivacyWriteGateValues(input.privacyGate),
+  );
+  const privacyGate = input.privacyGate;
+  const registryUpdates = privacyGate
+    ? input.rows.map((row) => markSupportSubjectR2ObjectStoredStatement({
+        database: input.db,
+        r2Key: row.r2Key,
+        sourceId: row.id,
+        sourceKind: "outbound_attachment",
+        storedAt: now,
+        userId: privacyGate.userId,
+      }))
+    : [];
+  const results = await runRequiredD1Batch(
+    input.db,
+    [...inserts, ...registryUpdates, updateCount],
+    "Support attachments could not be materialized.",
+  );
+  if (
+    inserts.some((_, index) => (results[index]?.meta?.changes ?? 0) !== 1)
+    || registryUpdates.some((_, index) => (results[inserts.length + index]?.meta?.changes ?? 0) !== 1)
+    || (results.at(-1)?.meta?.changes ?? 0) !== 1
+  ) {
+    throw new Error("support_subject_fenced");
+  }
+  const attachments = await listSupportAttachmentsForMessageInD1(input.db, input.messageId);
+  const ids = new Set(input.rows.map((row) => row.id));
+  return attachments.filter((attachment) => ids.has(attachment.id));
+}
+
+async function retireMaterializedObject(input: {
+  database: D1DatabaseLike;
+  privacyGate: SupportPrivacyWriteGate;
+  r2: SupportR2BucketLike;
+  r2Key: string;
+}) {
+  if (!input.r2.delete) return;
+  await input.r2.delete(input.r2Key);
+  const remaining = await input.r2.get(input.r2Key);
+  if (remaining) {
+    await remaining.body?.cancel().catch(() => undefined);
+    throw new Error("support_r2_delete_unconfirmed");
+  }
+  if (input.privacyGate) {
+    await forgetSupportSubjectR2Object({
+      database: input.database,
+      r2Key: input.r2Key,
+      userId: input.privacyGate.userId,
+    });
+  }
+}
+
+async function cleanupMaterializedObjects(input: {
+  database: D1DatabaseLike;
+  privacyGate: SupportPrivacyWriteGate;
+  r2: SupportR2BucketLike;
+  r2Keys: string[];
+}) {
+  for (const r2Key of input.r2Keys) {
+    await retireMaterializedObject({ ...input, r2Key }).catch(() => undefined);
+  }
+}
+
 export async function materializeDraftAttachmentsForMessage(input: {
   db: D1DatabaseLike;
   r2: SupportR2BucketLike;
@@ -72,6 +181,7 @@ export async function materializeDraftAttachmentsForMessage(input: {
   conversationId: string;
   messageId: string;
   drafts: SupportDraftAttachmentMeta[];
+  privacyGate?: SupportPrivacyWriteGate;
 }): Promise<{ attachments: SupportAttachmentRow[]; emailAttachments: EmailAttachmentInput[] }> {
   const config = readSupportEmailConfig();
   const drafts = input.drafts.slice(0, config.maxAttachments);
@@ -106,33 +216,41 @@ export async function materializeDraftAttachmentsForMessage(input: {
     prepared.push({ draft, decision, bytes, digest });
   }
 
-  const attachments: SupportAttachmentRow[] = [];
   const emailAttachments: EmailAttachmentInput[] = [];
   const finalKeys: string[] = [];
+  const rows: Parameters<typeof persistMaterializedAttachments>[0]["rows"] = [];
+  const privacyGate = input.privacyGate ?? null;
 
   try {
     for (const { decision, bytes, digest } of prepared) {
+      const attachmentId = crypto.randomUUID();
       const finalKey = buildSupportAttachmentR2Key({
         conversationId: input.conversationId,
         messageId: input.messageId,
-        attachmentId: crypto.randomUUID(),
+        attachmentId,
         filename: decision.sanitizedFilename,
       });
+      if (privacyGate) {
+        await reserveOpenSupportSubjectR2Object({
+          database: input.db,
+          privacyGate,
+          r2Key: finalKey,
+          sourceId: attachmentId,
+          sourceKind: "outbound_attachment",
+        });
+      }
       await input.r2.put(finalKey, bytes, {
         httpMetadata: { contentType: decision.safeContentType, cacheControl: "private, max-age=31536000" },
       });
       finalKeys.push(finalKey);
-      const row = await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key: finalKey,
-        filename: decision.sanitizedFilename,
+      rows.push({
         contentType: decision.safeContentType,
-        sizeBytes: bytes.byteLength,
-        disposition: "attachment",
+        filename: decision.sanitizedFilename,
+        id: attachmentId,
+        r2Key: finalKey,
         sha256: digest,
-        storageStatus: "stored",
+        sizeBytes: bytes.byteLength,
       });
-      attachments.push(row);
       emailAttachments.push({
         filename: decision.sanitizedFilename,
         content: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
@@ -140,15 +258,28 @@ export async function materializeDraftAttachmentsForMessage(input: {
         disposition: "attachment",
       });
     }
+    const attachments = await persistMaterializedAttachments({
+      db: input.db,
+      messageId: input.messageId,
+      privacyGate,
+      rows,
+    });
+    await cleanupMaterializedObjects({
+      database: input.db,
+      privacyGate,
+      r2: input.r2,
+      r2Keys: prepared.map(({ draft }) => draft.r2Key),
+    });
+    return { attachments, emailAttachments };
   } catch (error) {
-    await deleteSupportAttachmentsForMessageInD1(input.db, input.messageId).catch(() => undefined);
-    await input.r2.delete?.(finalKeys).catch(() => undefined);
+    await cleanupMaterializedObjects({
+      database: input.db,
+      privacyGate,
+      r2: input.r2,
+      r2Keys: finalKeys,
+    });
     throw error;
   }
-
-  await updateSupportMessageAttachmentCountInD1(input.db, input.messageId, attachments.length);
-  await Promise.all(prepared.map(({ draft }) => input.r2.delete?.(draft.r2Key).catch(() => undefined)));
-  return { attachments, emailAttachments };
 }
 
 export async function materializeStoredSupportAttachmentsForMessage(input: {
@@ -157,6 +288,7 @@ export async function materializeStoredSupportAttachmentsForMessage(input: {
   conversationId: string;
   messageId: string;
   attachments: SupportAttachmentRow[];
+  privacyGate?: SupportPrivacyWriteGate;
 }): Promise<{ attachments: SupportAttachmentRow[]; emailAttachments: EmailAttachmentInput[] }> {
   const config = readSupportEmailConfig();
   if (input.attachments.length > config.maxAttachments) throw new Error("Too many forwarded attachments.");
@@ -179,32 +311,40 @@ export async function materializeStoredSupportAttachmentsForMessage(input: {
     prepared.push({ source, bytes, decision, digest });
   }
 
-  const attachments: SupportAttachmentRow[] = [];
   const emailAttachments: EmailAttachmentInput[] = [];
   const finalKeys: string[] = [];
+  const rows: Parameters<typeof persistMaterializedAttachments>[0]["rows"] = [];
+  const privacyGate = input.privacyGate ?? null;
   try {
     for (const { bytes, decision, digest } of prepared) {
+      const attachmentId = crypto.randomUUID();
       const finalKey = buildSupportAttachmentR2Key({
         conversationId: input.conversationId,
         messageId: input.messageId,
-        attachmentId: crypto.randomUUID(),
+        attachmentId,
         filename: decision.sanitizedFilename,
       });
+      if (privacyGate) {
+        await reserveOpenSupportSubjectR2Object({
+          database: input.db,
+          privacyGate,
+          r2Key: finalKey,
+          sourceId: attachmentId,
+          sourceKind: "outbound_attachment",
+        });
+      }
       await input.r2.put(finalKey, bytes, {
         httpMetadata: { contentType: decision.safeContentType, cacheControl: "private, max-age=31536000" },
       });
       finalKeys.push(finalKey);
-      const row = await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key: finalKey,
-        filename: decision.sanitizedFilename,
+      rows.push({
         contentType: decision.safeContentType,
-        sizeBytes: bytes.byteLength,
-        disposition: "attachment",
+        filename: decision.sanitizedFilename,
+        id: attachmentId,
+        r2Key: finalKey,
         sha256: digest,
-        storageStatus: "stored",
+        sizeBytes: bytes.byteLength,
       });
-      attachments.push(row);
       emailAttachments.push({
         filename: decision.sanitizedFilename,
         content: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
@@ -212,13 +352,22 @@ export async function materializeStoredSupportAttachmentsForMessage(input: {
         disposition: "attachment",
       });
     }
+    const attachments = await persistMaterializedAttachments({
+      db: input.db,
+      messageId: input.messageId,
+      privacyGate,
+      rows,
+    });
+    return { attachments, emailAttachments };
   } catch (error) {
-    await deleteSupportAttachmentsForMessageInD1(input.db, input.messageId).catch(() => undefined);
-    await input.r2.delete?.(finalKeys).catch(() => undefined);
+    await cleanupMaterializedObjects({
+      database: input.db,
+      privacyGate,
+      r2: input.r2,
+      r2Keys: finalKeys,
+    });
     throw error;
   }
-  await updateSupportMessageAttachmentCountInD1(input.db, input.messageId, attachments.length);
-  return { attachments, emailAttachments };
 }
 
 export async function getSupportUploadsR2(): Promise<SupportR2BucketLike | null> {

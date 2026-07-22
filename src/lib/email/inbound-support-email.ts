@@ -23,19 +23,26 @@ import {
   type SupportEmailConfig,
 } from "@/lib/email/support-email-config";
 import { fanoutSupportInboxInvalidation } from "@/lib/cloudflare/support-inbox-fanout";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import {
   createExternalSupportConversationInD1,
   findSupportConversationByRoutingTokenInD1,
   findSupportMessageByIngestKeyInD1,
   findSupportMessageByInternetMessageIdInD1,
   getSupportConversationInD1,
-  insertSupportAttachmentInD1,
   insertSupportMessageIfNewInD1,
-  updateSupportMessageAttachmentCountInD1,
   type D1DatabaseLike,
   type SupportConversationRow,
   type SupportMessageRow,
 } from "@/lib/repositories/support-conversations-d1";
+import {
+  requireOpenSupportPrivacyFence,
+  SupportPrivacyFenceError,
+} from "@/lib/support/privacy-fence";
+import {
+  markSupportSubjectR2ObjectStoredStatement,
+  reserveOpenSupportSubjectR2Object,
+} from "@/lib/support/subject-r2-registry";
 
 type ForwardableEmailMessage = {
   from: string;
@@ -53,6 +60,7 @@ type R2BucketLike = {
     value: ArrayBuffer | ArrayBufferView | string | ReadableStream | Blob | null,
     options?: { httpMetadata?: { contentType?: string } },
   ): Promise<unknown>;
+  delete?(keys: string | string[]): Promise<unknown>;
 };
 
 type SupportInboxNamespaceLike = {
@@ -99,6 +107,32 @@ type ParsedMail = {
   date?: string | Date | null;
   attachments?: ParsedAttachment[];
 };
+
+type InboundAttachmentInsert = {
+  contentId?: string | null;
+  contentType: string | null;
+  disposition?: string | null;
+  filename: string;
+  id?: string;
+  messageId: string;
+  r2Key: string;
+  sha256?: string | null;
+  sizeBytes: number;
+  storageStatus: "stored" | "failed" | "blocked" | "quarantined";
+};
+
+type InboundPrivacySubject = {
+  userId: string | null;
+  generation: number;
+};
+
+function inboundPrivacyGateSql(alias: string, fenceAlias: string) {
+  return `(\n    (? IS NULL AND ${alias}.user_id IS NULL)\n    OR (${alias}.user_id = ? AND EXISTS (\n      SELECT 1 FROM support_subject_privacy_fences ${fenceAlias}\n      WHERE ${fenceAlias}.user_id = ?\n        AND ${fenceAlias}.generation = ?\n        AND ${fenceAlias}.state = 'open'\n    ))\n  )`;
+}
+
+function inboundPrivacyGateValues(subject: InboundPrivacySubject) {
+  return [subject.userId, subject.userId, subject.userId, subject.generation] as const;
+}
 
 function logSupportEmailEvent(
   event: string,
@@ -196,12 +230,170 @@ async function resolveConversation(
   return { conversation, created: true };
 }
 
+async function insertInboundMessageWithPrivacyFence(input: {
+  authorUserId: string | null;
+  bodyText: string;
+  clientMessageId: string;
+  conversation: SupportConversationRow;
+  database: D1DatabaseLike;
+  fromAddress: string;
+  fromName: string | null;
+  ingestKey: string;
+  privacySubject: InboundPrivacySubject;
+  inReplyTo: string | null;
+  internetMessageId: string | null;
+  mailboxAddress: string;
+  referencesJson: string | null;
+  toJson: string;
+  warningFlagsJson: string | null;
+}): Promise<{ inserted: boolean; message: SupportMessageRow }> {
+  const existing = await findSupportMessageByIngestKeyInD1(input.database, input.ingestKey);
+  if (existing) return { inserted: false, message: existing };
+  const messageId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const gate = inboundPrivacyGateSql("conversation", "inbound_fence");
+  const insertMessage = input.database.prepare(
+    `INSERT OR IGNORE INTO support_messages (
+       id, conversation_id, sender_role, author_user_id, body_text,
+       body_html, email_message_id, client_message_id, send_status,
+       direction, transport, mailbox_address, from_address, from_name,
+       to_json, cc_json, internet_message_id, in_reply_to, references_json,
+       ingest_key, attachment_count, provider_name, received_at,
+       warning_flags_json, created_at
+     )
+     SELECT ?, conversation.id, 'user', ?, ?, NULL, NULL, ?, 'sent',
+            'inbound', 'email', ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0,
+            'cloudflare-email', ?, ?, ?
+     FROM support_conversations conversation
+     WHERE conversation.id = ? AND ${gate}`,
+  ).bind(
+    messageId,
+    input.authorUserId,
+    input.bodyText,
+    input.clientMessageId,
+    input.mailboxAddress,
+    input.fromAddress,
+    input.fromName,
+    input.toJson,
+    input.internetMessageId,
+    input.inReplyTo,
+    input.referencesJson,
+    input.ingestKey,
+    now,
+    input.warningFlagsJson,
+    now,
+    input.conversation.id,
+    ...inboundPrivacyGateValues(input.privacySubject),
+  );
+  const updateConversation = input.database.prepare(
+    `UPDATE support_conversations
+     SET last_message_at = ?, updated_at = ?, unread_for_admin = 1
+     WHERE id = ?
+       AND EXISTS (SELECT 1 FROM support_messages message WHERE message.id = ?)
+       AND ${inboundPrivacyGateSql("support_conversations", "conversation_fence")}`,
+  ).bind(
+    now,
+    now,
+    input.conversation.id,
+    messageId,
+    ...inboundPrivacyGateValues(input.privacySubject),
+  );
+  const results = await runRequiredD1Batch(
+    input.database,
+    [insertMessage, updateConversation],
+    "Inbound support email could not be persisted.",
+  );
+  const row = await findSupportMessageByIngestKeyInD1(input.database, input.ingestKey);
+  if ((results[0]?.meta?.changes ?? 0) !== 1 || (results[1]?.meta?.changes ?? 0) !== 1 || !row) {
+    if (row) return { inserted: false, message: row };
+    throw new SupportPrivacyFenceError();
+  }
+  return { inserted: true, message: row };
+}
+
+async function insertInboundAttachmentWithPrivacyFence(input: {
+  attachment: InboundAttachmentInsert;
+  database: D1DatabaseLike;
+  privacySubject: InboundPrivacySubject;
+}) {
+  const id = input.attachment.id ?? crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const insert = input.database.prepare(
+    `INSERT INTO support_message_attachments (
+       id, message_id, r2_key, filename, content_type, size_bytes,
+       content_id, disposition, sha256, storage_status, created_at
+     )
+     SELECT ?, message.id, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     FROM support_messages message
+     INNER JOIN support_conversations conversation ON conversation.id = message.conversation_id
+     WHERE message.id = ?
+       AND ${inboundPrivacyGateSql("conversation", "attachment_fence")}`,
+  ).bind(
+    id,
+    input.attachment.r2Key,
+    input.attachment.filename,
+    input.attachment.contentType,
+    input.attachment.sizeBytes,
+    input.attachment.contentId ?? null,
+    input.attachment.disposition ?? null,
+    input.attachment.sha256 ?? null,
+    input.attachment.storageStatus,
+    createdAt,
+    input.attachment.messageId,
+    ...inboundPrivacyGateValues(input.privacySubject),
+  );
+  const statements = [insert];
+  if (input.attachment.storageStatus === "stored" && input.privacySubject.userId) {
+    statements.push(markSupportSubjectR2ObjectStoredStatement({
+      database: input.database,
+      r2Key: input.attachment.r2Key,
+      sourceId: id,
+      sourceKind: "inbound_attachment",
+      storedAt: createdAt,
+      userId: input.privacySubject.userId,
+    }));
+  }
+  const results = await runRequiredD1Batch(
+    input.database,
+    statements,
+    "Inbound support attachment could not be persisted.",
+  );
+  if (results.some((result) => (result.meta?.changes ?? 0) !== 1)) {
+    throw new SupportPrivacyFenceError();
+  }
+}
+
+async function updateInboundAttachmentCountWithPrivacyFence(input: {
+  attachmentCount: number;
+  database: D1DatabaseLike;
+  messageId: string;
+  privacySubject: InboundPrivacySubject;
+  warningFlagsJson: string | null;
+}) {
+  const result = await input.database.prepare(
+    `UPDATE support_messages
+     SET attachment_count = ?, warning_flags_json = COALESCE(?, warning_flags_json)
+     WHERE id = ? AND EXISTS (
+       SELECT 1 FROM support_conversations conversation
+       WHERE conversation.id = support_messages.conversation_id
+         AND ${inboundPrivacyGateSql("conversation", "attachment_fence")}
+     )`,
+  ).bind(
+    input.attachmentCount,
+    input.warningFlagsJson,
+    input.messageId,
+    ...inboundPrivacyGateValues(input.privacySubject),
+  ).run();
+  if ((result.meta?.changes ?? 0) !== 1) throw new SupportPrivacyFenceError();
+}
+
 async function storeAttachments(input: {
   db: D1DatabaseLike;
   r2: R2BucketLike | null | undefined;
   config: SupportEmailConfig;
   conversationId: string;
   messageId: string;
+  privacySubject: InboundPrivacySubject;
   attachments: ParsedAttachment[];
   warningFlags: string[];
 }) {
@@ -227,20 +419,24 @@ async function storeAttachments(input: {
     const sizeBytes = bytes?.byteLength ?? 0;
     if (sizeBytes > input.config.maxAttachmentBytes) {
       input.warningFlags.push("attachment_too_large");
-      await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key: buildSupportAttachmentR2Key({
-          conversationId: input.conversationId,
+      await insertInboundAttachmentWithPrivacyFence({
+        database: input.db,
+        privacySubject: input.privacySubject,
+        attachment: {
           messageId: input.messageId,
-          attachmentId: crypto.randomUUID(),
+          r2Key: buildSupportAttachmentR2Key({
+            conversationId: input.conversationId,
+            messageId: input.messageId,
+            attachmentId: crypto.randomUUID(),
+            filename: classification.sanitizedFilename,
+          }),
           filename: classification.sanitizedFilename,
-        }),
-        filename: classification.sanitizedFilename,
-        contentType: classification.safeContentType,
-        sizeBytes,
-        contentId: attachment.contentId ?? null,
-        disposition: attachment.disposition ?? null,
-        storageStatus: "quarantined",
+          contentType: classification.safeContentType,
+          sizeBytes,
+          contentId: attachment.contentId ?? null,
+          disposition: attachment.disposition ?? null,
+          storageStatus: "quarantined",
+        },
       });
       continue;
     }
@@ -252,20 +448,24 @@ async function storeAttachments(input: {
 
     if (classification.blocked) {
       input.warningFlags.push("attachment_blocked");
-      await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key: buildSupportAttachmentR2Key({
-          conversationId: input.conversationId,
+      await insertInboundAttachmentWithPrivacyFence({
+        database: input.db,
+        privacySubject: input.privacySubject,
+        attachment: {
           messageId: input.messageId,
-          attachmentId: crypto.randomUUID(),
+          r2Key: buildSupportAttachmentR2Key({
+            conversationId: input.conversationId,
+            messageId: input.messageId,
+            attachmentId: crypto.randomUUID(),
+            filename: classification.sanitizedFilename,
+          }),
           filename: classification.sanitizedFilename,
-        }),
-        filename: classification.sanitizedFilename,
-        contentType: classification.safeContentType,
-        sizeBytes,
-        contentId: attachment.contentId ?? null,
-        disposition: attachment.disposition ?? null,
-        storageStatus: "blocked",
+          contentType: classification.safeContentType,
+          sizeBytes,
+          contentId: attachment.contentId ?? null,
+          disposition: attachment.disposition ?? null,
+          storageStatus: "blocked",
+        },
       });
       continue;
     }
@@ -280,34 +480,55 @@ async function storeAttachments(input: {
 
     if (!input.r2 || !bytes) {
       input.warningFlags.push("attachment_store_failed");
-      await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key,
-        filename: classification.sanitizedFilename,
-        contentType: classification.safeContentType,
-        sizeBytes,
-        contentId: attachment.contentId ?? null,
-        disposition: attachment.disposition ?? null,
-        storageStatus: "failed",
+      await insertInboundAttachmentWithPrivacyFence({
+        database: input.db,
+        privacySubject: input.privacySubject,
+        attachment: {
+          messageId: input.messageId,
+          r2Key,
+          filename: classification.sanitizedFilename,
+          contentType: classification.safeContentType,
+          sizeBytes,
+          contentId: attachment.contentId ?? null,
+          disposition: attachment.disposition ?? null,
+          storageStatus: "failed",
+        },
       });
       continue;
     }
 
     try {
       const hash = await sha256Hex(bytes);
+      if (input.privacySubject.userId) {
+        await reserveOpenSupportSubjectR2Object({
+          database: input.db,
+          privacyGate: {
+            generation: input.privacySubject.generation,
+            userId: input.privacySubject.userId,
+          },
+          r2Key,
+          sourceId: attachmentId,
+          sourceKind: "inbound_attachment",
+        });
+      }
       await input.r2.put(r2Key, bytes, {
         httpMetadata: { contentType: classification.safeContentType },
       });
-      await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key,
-        filename: classification.sanitizedFilename,
-        contentType: classification.safeContentType,
-        sizeBytes,
-        contentId: attachment.contentId ?? null,
-        disposition: attachment.disposition ?? null,
-        sha256: hash,
-        storageStatus: "stored",
+      await insertInboundAttachmentWithPrivacyFence({
+        database: input.db,
+        privacySubject: input.privacySubject,
+        attachment: {
+          id: attachmentId,
+          messageId: input.messageId,
+          r2Key,
+          filename: classification.sanitizedFilename,
+          contentType: classification.safeContentType,
+          sizeBytes,
+          contentId: attachment.contentId ?? null,
+          disposition: attachment.disposition ?? null,
+          sha256: hash,
+          storageStatus: "stored",
+        },
       });
       storedCount += 1;
       totalBytes += sizeBytes;
@@ -316,17 +537,23 @@ async function storeAttachments(input: {
         message_id: input.messageId,
         size_bytes: sizeBytes,
       });
-    } catch {
+    } catch (error) {
+      await input.r2.delete?.(r2Key).catch(() => undefined);
+      if (error instanceof SupportPrivacyFenceError) throw error;
       input.warningFlags.push("attachment_store_failed");
-      await insertSupportAttachmentInD1(input.db, {
-        messageId: input.messageId,
-        r2Key,
-        filename: classification.sanitizedFilename,
-        contentType: classification.safeContentType,
-        sizeBytes,
-        contentId: attachment.contentId ?? null,
-        disposition: attachment.disposition ?? null,
-        storageStatus: "failed",
+      await insertInboundAttachmentWithPrivacyFence({
+        database: input.db,
+        privacySubject: input.privacySubject,
+        attachment: {
+          messageId: input.messageId,
+          r2Key,
+          filename: classification.sanitizedFilename,
+          contentType: classification.safeContentType,
+          sizeBytes,
+          contentId: attachment.contentId ?? null,
+          disposition: attachment.disposition ?? null,
+          storageStatus: "failed",
+        },
       });
       logSupportEmailEvent("support_email_attachment_store_failed", "error", {
         conversation_id: input.conversationId,
@@ -578,37 +805,63 @@ export async function handleInboundSupportEmail(input: {
     references: uniqueReferences,
     mailboxAddress,
   });
+  const privacyUserId = conversation.user_id;
+  let privacyGeneration = -1;
+  if (privacyUserId) {
+    try {
+      privacyGeneration = (await requireOpenSupportPrivacyFence(db, privacyUserId)).generation;
+    } catch {
+      logSupportEmailEvent("support_email_inbound_subject_fenced", "warn", {
+        code: "support_subject_fenced",
+        conversation_id: conversation.id,
+      });
+      message.setReject("Support changes are temporarily unavailable for this account.");
+      return;
+    }
+  }
+  const privacySubject: InboundPrivacySubject = {
+    userId: privacyUserId,
+    generation: privacyGeneration,
+  };
 
   const textBody =
     (parsed.text?.trim() ||
       (parsed.html ? htmlToPlainText(parsed.html) : "") ||
       "(empty message body)").slice(0, 8_000);
 
-  const inserted = await insertSupportMessageIfNewInD1(db, {
-    conversationId: conversation.id,
-    senderRole: "user",
-    authorUserId: conversation.user_id,
-    bodyText: textBody,
-    clientMessageId: `inbound-${ingestKey}`.slice(0, 128),
-    sendStatus: "sent",
-    direction: "inbound",
-    transport: "email",
-    mailboxAddress,
-    fromAddress: fromEmail,
-    fromName,
-    toJson: JSON.stringify([{ email: message.to }]),
-    internetMessageId,
-    inReplyTo,
-    referencesJson: uniqueReferences.length > 0 ? JSON.stringify(uniqueReferences) : null,
-    ingestKey,
-    attachmentCount: 0,
-    providerName: "cloudflare-email",
-    receivedAt: new Date().toISOString(),
-    warningFlagsJson:
-      warningFlags.length > 0 || authSummary.authenticationResults
-        ? JSON.stringify({ flags: warningFlags, auth: authSummary })
-        : null,
-  });
+  let inserted: { inserted: boolean; message: SupportMessageRow };
+  try {
+    inserted = await insertInboundMessageWithPrivacyFence({
+      authorUserId: privacyUserId,
+      bodyText: textBody,
+      clientMessageId: `inbound-${ingestKey}`.slice(0, 128),
+      conversation,
+      database: db,
+      fromAddress: fromEmail,
+      fromName,
+      ingestKey,
+      inReplyTo,
+      internetMessageId,
+      mailboxAddress,
+      privacySubject,
+      referencesJson: uniqueReferences.length > 0 ? JSON.stringify(uniqueReferences) : null,
+      toJson: JSON.stringify([{ email: message.to }]),
+      warningFlagsJson:
+        warningFlags.length > 0 || authSummary.authenticationResults
+          ? JSON.stringify({ flags: warningFlags, auth: authSummary })
+          : null,
+    });
+  } catch (error) {
+    if (error instanceof SupportPrivacyFenceError) {
+      logSupportEmailEvent("support_email_inbound_subject_fenced", "warn", {
+        code: error.code,
+        conversation_id: conversation.id,
+      });
+      message.setReject("Support changes are temporarily unavailable for this account.");
+      return;
+    }
+    throw error;
+  }
 
   if (!inserted.inserted) {
     logSupportEmailEvent("support_email_inbound_duplicate", "info", {
@@ -619,23 +872,40 @@ export async function handleInboundSupportEmail(input: {
     return;
   }
 
-  const attachmentCount = await storeAttachments({
-    db,
-    r2: env.ARCH_UPLOADS_R2,
-    config,
-    conversationId: conversation.id,
-    messageId: inserted.message.id,
-    attachments: parsed.attachments ?? [],
-    warningFlags,
-  });
+  let attachmentCount: number;
+  try {
+    attachmentCount = await storeAttachments({
+      db,
+      r2: env.ARCH_UPLOADS_R2,
+      config,
+      conversationId: conversation.id,
+      messageId: inserted.message.id,
+      privacySubject,
+      attachments: parsed.attachments ?? [],
+      warningFlags,
+    });
+  } catch (error) {
+    if (error instanceof SupportPrivacyFenceError) {
+      logSupportEmailEvent("support_email_inbound_subject_fenced", "warn", {
+        code: error.code,
+        conversation_id: conversation.id,
+      });
+      message.setReject("Support changes are temporarily unavailable for this account.");
+      return;
+    }
+    throw error;
+  }
 
   if (attachmentCount > 0 || warningFlags.length > 0) {
-    await updateSupportMessageAttachmentCountInD1(
-      db,
-      inserted.message.id,
+    await updateInboundAttachmentCountWithPrivacyFence({
       attachmentCount,
-      warningFlags.length > 0 ? JSON.stringify({ flags: warningFlags, auth: authSummary }) : null,
-    );
+      database: db,
+      messageId: inserted.message.id,
+      privacySubject,
+      warningFlagsJson: warningFlags.length > 0
+        ? JSON.stringify({ flags: warningFlags, auth: authSummary })
+        : null,
+    });
   }
 
   logSupportEmailEvent("support_email_inbound_persisted", "info", {

@@ -1,11 +1,17 @@
 import {
+  hasRealtimeRoomCapability,
   readRealtimeRoomTokenSecret,
   verifyRealtimeRoomToken,
   type RealtimeRoomTokenClaims,
 } from "@/lib/collaboration/realtime-room-token";
+import {
+  SUPPORT_REALTIME_CREDENTIAL_PROTOCOL_PREFIX,
+  SUPPORT_REALTIME_FIXED_PROTOCOL,
+} from "@/lib/support/realtime-protocol";
 
-const MAX_MESSAGE_BYTES = 8192;
+const MAX_MESSAGE_BYTES = 8_192;
 const SUPPORT_INBOX_PATH_PREFIX = "/__cloudflare/support-inbox/";
+const SUPPORT_FANOUT_SUBJECT = "system:support-inbox-fanout";
 
 type DurableObjectStateLike = {
   acceptWebSocket(ws: WebSocket, tags?: string[]): void;
@@ -25,9 +31,13 @@ type WebSocketWithAttachment = WebSocket & {
 };
 
 type SocketAttachment = {
-  authorized?: RealtimeRoomTokenClaims;
-  conversationId?: string;
+  authorized: RealtimeRoomTokenClaims;
+  conversationId: string;
 };
+
+type SupportInvalidation =
+  | { type: "support_message_created"; conversationId: string; messageId: string }
+  | { type: "support_conversation_changed"; conversationId: string };
 
 function isWebSocketUpgrade(request: Request) {
   return request.headers.get("upgrade")?.toLowerCase() === "websocket";
@@ -40,7 +50,7 @@ function readConversationIdFromRequest(request: Request) {
   return conversationId || null;
 }
 
-function parseClientMessage(message: string) {
+function parseJsonObject(message: string) {
   try {
     const parsed = JSON.parse(message);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
@@ -51,35 +61,44 @@ function parseClientMessage(message: string) {
   }
 }
 
-function parseInvalidation(value: Record<string, unknown>, conversationId: string) {
+function parseInvalidation(value: Record<string, unknown>, conversationId: string): SupportInvalidation | null {
+  if (value.conversationId !== conversationId) return null;
+  if (value.type === "support_conversation_changed") {
+    return { type: "support_conversation_changed", conversationId };
+  }
   if (
     value.type !== "support_message_created"
-    || value.conversationId !== conversationId
     || typeof value.messageId !== "string"
     || !value.messageId.trim()
     || value.messageId.length > 200
   ) return null;
-  return { type: "support_message_created" as const, conversationId, messageId: value.messageId.trim() };
+  return {
+    type: "support_message_created",
+    conversationId,
+    messageId: value.messageId.trim(),
+  };
 }
 
-function readBearerToken(request: Request) {
-  const authorization = request.headers.get("authorization");
-  if (authorization?.startsWith("Bearer ")) return authorization.slice("Bearer ".length).trim();
-  return request.headers.get("x-realtime-room-token")?.trim() || null;
-}
-
-function readRealtimeRoomTokenFromRequest(request: Request) {
-  const authorization = request.headers.get("authorization")?.trim();
-  if (authorization?.startsWith("Bearer ")) {
-    const token = authorization.slice("Bearer ".length).trim();
-    if (token) return token;
-  }
-
+function readInternalFanoutToken(request: Request) {
   const headerToken = request.headers.get("x-realtime-room-token")?.trim();
   if (headerToken) return headerToken;
+  const authorization = request.headers.get("authorization")?.trim();
+  return authorization?.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length).trim() || null
+    : null;
+}
 
-  const queryToken = new URL(request.url).searchParams.get("token")?.trim();
-  return queryToken || null;
+function readSocketCredential(request: Request) {
+  const offered = request.headers.get("sec-websocket-protocol");
+  if (!offered) return null;
+  const protocols = offered.split(",").map((value) => value.trim()).filter(Boolean);
+  if (protocols.length !== 2) return null;
+  const fixed = protocols.filter((value) => value === SUPPORT_REALTIME_FIXED_PROTOCOL);
+  const credentials = protocols.filter((value) => value.startsWith(SUPPORT_REALTIME_CREDENTIAL_PROTOCOL_PREFIX));
+  if (fixed.length !== 1 || credentials.length !== 1) return null;
+  if (protocols.some((value) => value !== fixed[0] && value !== credentials[0])) return null;
+  const token = credentials[0]?.slice(SUPPORT_REALTIME_CREDENTIAL_PROTOCOL_PREFIX.length) ?? "";
+  return token && !token.includes(",") ? token : null;
 }
 
 function sendJson(ws: WebSocket, value: Record<string, unknown>) {
@@ -107,15 +126,16 @@ export class SupportInbox {
 
     if (isWebSocketUpgrade(request)) {
       const secret = readRealtimeRoomTokenSecret(this.env);
-      const token = readRealtimeRoomTokenFromRequest(request);
+      const token = readSocketCredential(request);
       const authorized = secret && token
         ? await verifyRealtimeRoomToken({
+            expectedAudience: "support-inbox",
             expectedTopic: conversationId,
             secret,
             token,
           })
         : null;
-      if (!authorized) {
+      if (!authorized || !hasRealtimeRoomCapability(authorized, "support:subscribe")) {
         return Response.json({ ok: false, error: "auth_failed" }, { status: 401 });
       }
 
@@ -128,6 +148,7 @@ export class SupportInbox {
       this.ctx.acceptWebSocket(server);
       return new Response(null, {
         status: 101,
+        headers: { "Sec-WebSocket-Protocol": SUPPORT_REALTIME_FIXED_PROTOCOL },
         webSocket: client,
       } as ResponseInit & { webSocket: WebSocket });
     }
@@ -135,38 +156,18 @@ export class SupportInbox {
     if (request.method === "POST") {
       return this.handleFanoutPost(request, conversationId);
     }
-
     return Response.json({ ok: false, error: "websocket_upgrade_or_post_required" }, { status: 405 });
   }
 
   async webSocketMessage(ws: WebSocketWithAttachment, message: ArrayBuffer | string) {
-    if (typeof message !== "string") {
-      sendJson(ws, { type: "error", code: "binary_not_supported" });
-      return;
-    }
-
-    if (new TextEncoder().encode(message).byteLength > MAX_MESSAGE_BYTES) {
+    if (typeof message === "string" && new TextEncoder().encode(message).byteLength > MAX_MESSAGE_BYTES) {
       sendJson(ws, { type: "error", code: "message_too_large" });
       return;
     }
-
-    const parsed = parseClientMessage(message);
-    if (!parsed) {
-      sendJson(ws, { type: "error", code: "invalid_json" });
-      return;
-    }
-
-    if (parsed.type === "authorize") {
-      await this.authorizeSocket(ws, parsed.token);
-      return;
-    }
-
-    if (!this.isSocketAuthorized(ws)) {
-      sendJson(ws, { type: "error", code: "auth_required" });
-      return;
-    }
-
-    sendJson(ws, { type: "error", code: "client_messages_not_supported" });
+    sendJson(ws, {
+      type: "error",
+      code: typeof message === "string" ? "client_messages_not_supported" : "binary_not_supported",
+    });
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string) {
@@ -179,17 +180,21 @@ export class SupportInbox {
 
   private async handleFanoutPost(request: Request, conversationId: string) {
     const secret = readRealtimeRoomTokenSecret(this.env);
-    const token = readBearerToken(request);
+    const token = readInternalFanoutToken(request);
     if (!secret || !token) {
       return Response.json({ ok: false, error: "auth_failed" }, { status: 401 });
     }
-
     const authorized = await verifyRealtimeRoomToken({
+      expectedAudience: "support-inbox",
       expectedTopic: conversationId,
       secret,
       token,
     });
-    if (!authorized) {
+    if (
+      !authorized
+      || authorized.sub !== SUPPORT_FANOUT_SUBJECT
+      || !hasRealtimeRoomCapability(authorized, "support:fanout")
+    ) {
       return Response.json({ ok: false, error: "auth_failed" }, { status: 401 });
     }
 
@@ -197,51 +202,25 @@ export class SupportInbox {
     if (new TextEncoder().encode(bodyText).byteLength > MAX_MESSAGE_BYTES) {
       return Response.json({ ok: false, error: "message_too_large" }, { status: 413 });
     }
-
-    const parsed = parseClientMessage(bodyText);
-    if (!parsed) {
-      return Response.json({ ok: false, error: "invalid_message" }, { status: 400 });
-    }
-    const invalidation = parseInvalidation(parsed, conversationId);
+    const parsed = parseJsonObject(bodyText);
+    const invalidation = parsed ? parseInvalidation(parsed, conversationId) : null;
     if (!invalidation) return Response.json({ ok: false, error: "invalid_message" }, { status: 400 });
     this.broadcastMessage(invalidation);
     return Response.json({ ok: true });
   }
 
-  private broadcastMessage(message: { type: "support_message_created"; conversationId: string; messageId: string }) {
+  private broadcastMessage(message: SupportInvalidation) {
     for (const peer of this.ctx.getWebSockets()) {
       if (!this.isSocketAuthorized(peer as WebSocketWithAttachment)) continue;
       sendJson(peer, message);
     }
   }
 
-  private async authorizeSocket(ws: WebSocketWithAttachment, token: unknown) {
-    const attachment = ws.deserializeAttachment?.<SocketAttachment>() ?? {};
-    const conversationId = attachment.conversationId;
-    const secret = readRealtimeRoomTokenSecret(this.env);
-    if (typeof token !== "string" || !conversationId || !secret) {
-      sendJson(ws, { type: "error", code: "auth_failed" });
-      return;
-    }
-
-    const authorized = await verifyRealtimeRoomToken({
-      expectedTopic: conversationId,
-      secret,
-      token,
-    });
-    if (!authorized) {
-      sendJson(ws, { type: "error", code: "auth_failed" });
-      return;
-    }
-
-    ws.serializeAttachment?.({ ...attachment, authorized } satisfies SocketAttachment);
-    sendJson(ws, { type: "authorized" });
-  }
-
   private isSocketAuthorized(ws: WebSocketWithAttachment) {
     const attachment = ws.deserializeAttachment?.<SocketAttachment>();
     if (!attachment?.authorized || !attachment.conversationId) return false;
     if (attachment.authorized.topic !== attachment.conversationId) return false;
-    return attachment.authorized.exp * 1000 > Date.now();
+    if (!hasRealtimeRoomCapability(attachment.authorized, "support:subscribe")) return false;
+    return attachment.authorized.exp * 1_000 > Date.now();
   }
 }
