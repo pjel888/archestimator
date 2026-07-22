@@ -16,6 +16,15 @@ const estimateActionMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/component-library/actions", () => componentLibraryActionMocks);
 vi.mock("@/lib/estimates/actions", () => estimateActionMocks);
+vi.mock("@/lib/component-library/template-browse-actions", () => ({
+  loadCurrentWorkspaceEstimateTemplateGraph: vi.fn(async (templateId: string) => ({
+    id: templateId,
+    name: "Condo Starter",
+    description: "Compact condo structure.",
+    category: "Residential",
+    nodes: [],
+  })),
+}));
 
 function makeRow(overrides: Partial<EstimateRowItem> & { id: string; material: string }): EstimateRowItem {
   const itemCost = overrides.itemCost ?? 100;
@@ -209,8 +218,10 @@ describe("InsertIntoEstimatePicker", () => {
     renderPicker({ ...makeTemplate(), nodes: [] });
 
     const dialog = await chooseOnlyTarget();
-    expect(within(dialog).getByRole("radio", { name: /Insert linked/ })).toBeDisabled();
-    expect(within(dialog).getByText(/This Template is empty/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(dialog).getByRole("radio", { name: /Insert linked/ })).toBeDisabled();
+      expect(within(dialog).getByText(/This Template is empty/)).toBeInTheDocument();
+    });
     fireEvent.click(within(dialog).getByRole("radio", { name: /Insert copy/ }));
     expect(within(dialog).getByRole("button", { name: "Insert template" })).not.toBeDisabled();
   });

@@ -166,6 +166,7 @@ function SelectedTemplatePreview({
 const TemplateGalleryRow = memo(function TemplateGalleryRow({
   template,
   selected,
+  canManageLibrary,
   onSelect,
   onOpen,
   onInsert,
@@ -175,6 +176,7 @@ const TemplateGalleryRow = memo(function TemplateGalleryRow({
 }: {
   template: EstimateTemplate;
   selected: boolean;
+  canManageLibrary: boolean;
   onSelect: (templateId: string) => void;
   onOpen: (templateId: string) => void;
   onInsert: (template: EstimateTemplate) => void;
@@ -249,23 +251,25 @@ const TemplateGalleryRow = memo(function TemplateGalleryRow({
           >
             Insert into estimate
           </Button>
-          <DropdownMenu
-            trigger={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="size-6 rounded-xs p-0 text-tertiary"
-                aria-label={`${template.name} actions`}
-              >
-                <DotsThree size={12} weight="regular" aria-hidden="true" />
-              </Button>
-            }
-            align="end"
-          >
-            <DropdownMenu.Item label="Rename" onClick={() => onRename(template)} />
-            <DropdownMenu.Item label="Duplicate" onClick={() => onDuplicate(template)} />
-            <DropdownMenu.Item label="Archive" onClick={() => onRequestDelete(template)} />
-          </DropdownMenu>
+          {canManageLibrary ? (
+            <DropdownMenu
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-6 rounded-xs p-0 text-tertiary"
+                  aria-label={`${template.name} actions`}
+                >
+                  <DotsThree size={12} weight="regular" aria-hidden="true" />
+                </Button>
+              }
+              align="end"
+            >
+              <DropdownMenu.Item label="Rename" onClick={() => onRename(template)} />
+              <DropdownMenu.Item label="Duplicate" onClick={() => onDuplicate(template)} />
+              <DropdownMenu.Item label="Archive" onClick={() => onRequestDelete(template)} />
+            </DropdownMenu>
+          ) : null}
         </div>
       </div>
     </li>
@@ -278,6 +282,7 @@ export type TemplateGalleryProps = {
   selectedTemplateId: string | null;
   selectedTemplate?: EstimateTemplate | null;
   status: TemplatesBrowseStatus;
+  canManageLibrary?: boolean;
   onSelectTemplate: (templateId: string) => void;
   onClosePreview: () => void;
   onOpenTemplate: (templateId: string) => void;
@@ -300,6 +305,7 @@ export function TemplateGallery({
   selectedTemplateId,
   selectedTemplate = null,
   status,
+  canManageLibrary = true,
   onSelectTemplate,
   onClosePreview,
   onOpenTemplate,
@@ -359,22 +365,24 @@ export function TemplateGallery({
           onSearchOpenChange={setSearchOpen}
           searchInputRef={searchInputRef}
           showDefaultActions={false}
-          addActions={[
-            {
-              label: "Archived Templates",
-              visibleLabel: "Archived",
-              showVisibleLabel: true,
-              icon: null,
-              onClick: onOpenArchived,
-            },
-            {
-              label: "New template",
-              visibleLabel: "New template",
-              showVisibleLabel: true,
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
-              onClick: onNewTemplate,
-            },
-          ]}
+          addActions={canManageLibrary
+            ? [
+                {
+                  label: "Archived Templates",
+                  visibleLabel: "Archived",
+                  showVisibleLabel: true,
+                  icon: null,
+                  onClick: onOpenArchived,
+                },
+                {
+                  label: "New template",
+                  visibleLabel: "New template",
+                  showVisibleLabel: true,
+                  icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+                  onClick: onNewTemplate,
+                },
+              ]
+            : []}
         />
         <div
           className={cn(
@@ -421,6 +429,7 @@ export function TemplateGallery({
               key={template.id}
               template={template}
               selected={selectedTemplateId === template.id}
+              canManageLibrary={canManageLibrary}
               onSelect={onSelectTemplate}
               onOpen={onOpenTemplate}
               onInsert={onInsertIntoEstimate}

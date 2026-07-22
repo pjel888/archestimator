@@ -212,6 +212,7 @@ type TemplatesBrowseTreePanelProps = {
   templates: EstimateTemplate[];
   selectedCategory: string | null;
   selectedTemplateId: string | null;
+  canManageLibrary: boolean;
   onSelectAll: () => void;
   onSelectCategory: (category: string) => void;
   onSelectTemplate: (templateId: string) => void;
@@ -231,6 +232,7 @@ function TemplatesBrowseTreePanel({
   templates,
   selectedCategory,
   selectedTemplateId,
+  canManageLibrary,
   onSelectAll,
   onSelectCategory,
   onSelectTemplate,
@@ -343,13 +345,14 @@ function TemplatesBrowseTreePanel({
 
   const handleTreeDrop = useCallback(
     (draggedId: string, targetId: string, position: TreeDropPosition) => {
+      if (!canManageLibrary) return;
       const draggedDatum = getBrowseTreeDatum(nodeById.get(draggedId));
       if (draggedDatum?.type !== "template") return;
       const targetCategory = resolveDropCategory(targetId, position);
       if (!targetCategory || targetCategory === draggedDatum.template.category) return;
       onMoveTemplateToCategory(draggedDatum.template, targetCategory);
     },
-    [nodeById, onMoveTemplateToCategory, resolveDropCategory],
+    [canManageLibrary, nodeById, onMoveTemplateToCategory, resolveDropCategory],
   );
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
@@ -357,6 +360,7 @@ function TemplatesBrowseTreePanel({
     if (!datum) return [];
 
     if (datum.type === "all") {
+      if (!canManageLibrary) return [];
       return [
         {
           id: "all-templates-actions",
@@ -373,6 +377,7 @@ function TemplatesBrowseTreePanel({
     }
 
     if (datum.type === "category") {
+      if (!canManageLibrary) return [];
       return [
         {
           id: "category-actions",
@@ -394,7 +399,7 @@ function TemplatesBrowseTreePanel({
       ];
     }
 
-    return [
+    const groups: ActionMenuGroup[] = [
       {
         id: "template-primary-actions",
         items: [
@@ -412,45 +417,51 @@ function TemplatesBrowseTreePanel({
           },
         ],
       },
-      {
-        id: "template-edit-actions",
-        items: [
-          {
-            // Keyboard/menu equivalent of dragging the template between
-            // category folders (hard rule: every drag has a non-drag path).
-            id: "move-template",
-            label: "Move to group…",
-            icon: <ArrowsLeftRight size={12} weight="regular" aria-hidden="true" />,
-            onSelect: () => onMoveTemplatePrompt(datum.template),
-          },
-          {
-            id: "rename-template",
-            label: "Rename",
-            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
-            onSelect: () => onRenameTemplate(datum.template),
-          },
-          {
-            id: "duplicate-template",
-            label: "Duplicate",
-            icon: <Copy size={12} weight="regular" aria-hidden="true" />,
-            onSelect: () => onDuplicateTemplate(datum.template),
-          },
-        ],
-      },
-      {
-        id: "template-danger-actions",
-        items: [
-          {
-            id: "delete-template",
-            label: "Delete",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
-            tone: "destructive" as const,
-            onSelect: () => onRequestDeleteTemplate(datum.template),
-          },
-        ],
-      },
     ];
+    if (canManageLibrary) {
+      groups.push(
+        {
+          id: "template-edit-actions",
+          items: [
+            {
+              // Keyboard/menu equivalent of dragging the template between
+              // category folders (hard rule: every drag has a non-drag path).
+              id: "move-template",
+              label: "Move to group…",
+              icon: <ArrowsLeftRight size={12} weight="regular" aria-hidden="true" />,
+              onSelect: () => onMoveTemplatePrompt(datum.template),
+            },
+            {
+              id: "rename-template",
+              label: "Rename",
+              icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+              onSelect: () => onRenameTemplate(datum.template),
+            },
+            {
+              id: "duplicate-template",
+              label: "Duplicate",
+              icon: <Copy size={12} weight="regular" aria-hidden="true" />,
+              onSelect: () => onDuplicateTemplate(datum.template),
+            },
+          ],
+        },
+        {
+          id: "template-danger-actions",
+          items: [
+            {
+              id: "delete-template",
+              label: "Delete",
+              icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+              tone: "destructive" as const,
+              onSelect: () => onRequestDeleteTemplate(datum.template),
+            },
+          ],
+        },
+      );
+    }
+    return groups;
   }, [
+    canManageLibrary,
     contextMenuNodeId,
     nodeById,
     onDuplicateTemplate,
@@ -506,13 +517,13 @@ function TemplatesBrowseTreePanel({
           showDefaultActions={false}
           onExpandAll={() => setCollapsedIds(new Set())}
           onCollapseAll={() => setCollapsedIds(new Set(folderIds))}
-          addActions={[
+          addActions={canManageLibrary ? [
             {
               label: "New template",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               onClick: () => onNewTemplate(newTemplatePrefillCategory),
             },
-          ]}
+          ] : []}
         />
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -561,6 +572,7 @@ function TemplatesBrowseTreePanel({
 export type TemplatesBrowseManagerProps = {
   templates?: EstimateTemplate[];
   libraryData?: ComponentRowsLibraryDataset;
+  canManageLibrary?: boolean;
   // Library Optimization Plan P0 T4: TemplatesBrowsePageClient owns the warm
   // TanStack Query cache and passes this so mutations patch that cache instead of
   // router.refresh() (which re-ran the whole server segment). No-op default keeps
@@ -767,6 +779,7 @@ function templatesBrowseManagerReducer(
 export function TemplatesBrowseManager({
   templates = [],
   libraryData,
+  canManageLibrary = true,
   onTemplatesMutated = noopTemplatesMutated,
   onTemplatesInvalidated = noopTemplatesInvalidated,
 }: TemplatesBrowseManagerProps = {}) {
@@ -892,8 +905,11 @@ export function TemplatesBrowseManager({
     openNewTemplate(selectedCategory ?? undefined);
   }, [openNewTemplate, selectedCategory]);
   const openInsertTarget = useCallback((template: EstimateTemplate) => {
-    dispatch({ type: "insertTargetChanged", template });
-  }, []);
+    const hydrated = selectedTemplateGraph?.id === template.id && selectedTemplateGraph.nodes.length > 0
+      ? selectedTemplateGraph
+      : template;
+    dispatch({ type: "insertTargetChanged", template: hydrated });
+  }, [selectedTemplateGraph]);
   const requestDeleteTemplate = useCallback((template: EstimateTemplate) => {
     dispatch({ type: "deleteTargetChanged", template });
   }, []);
@@ -1175,6 +1191,7 @@ export function TemplatesBrowseManager({
           templates={localTemplates}
           selectedCategory={selectedCategory}
           selectedTemplateId={selectedTemplateId}
+          canManageLibrary={canManageLibrary}
             onSelectAll={selectAll}
             onSelectCategory={selectCategory}
             onSelectTemplate={selectTemplate}
@@ -1195,6 +1212,7 @@ export function TemplatesBrowseManager({
               selectedTemplateId={selectedTemplateId}
               selectedTemplate={selectedTemplate}
               status={status}
+              canManageLibrary={canManageLibrary}
               onSelectTemplate={selectTemplate}
               onClosePreview={closePreview}
               onOpenTemplate={openTemplate}

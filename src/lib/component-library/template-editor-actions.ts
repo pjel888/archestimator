@@ -961,9 +961,11 @@ export async function renameLinkedEstimateTemplate(input: {
     result,
     metadata: { previousName: template.name, name },
     statements: [{
-      sql: `UPDATE estimate_templates SET name = ?, updated_at = ?
+      // Keep `updated_at` unchanged here so the linked version-bump statement
+      // can still match the pre-mutation optimistic concurrency token.
+      sql: `UPDATE estimate_templates SET name = ?
             WHERE id = ? AND workspace_id = ? AND current_version_number = ? AND updated_at = ?`,
-      values: [name, timestamp, template.id, workspace.id, template.current_version_number, template.updated_at],
+      values: [name, template.id, workspace.id, template.current_version_number, template.updated_at],
     }],
   });
   const committed = await commitTemplateMutation(
@@ -1020,9 +1022,11 @@ export async function moveLinkedEstimateTemplateToCategory(input: {
     result,
     metadata: { previousCategory: template.category, category },
     statements: [{
-      sql: `UPDATE estimate_templates SET category = ?, updated_at = ?
+      // Keep `updated_at` unchanged here so the linked version-bump statement
+      // can still match the pre-mutation optimistic concurrency token.
+      sql: `UPDATE estimate_templates SET category = ?
             WHERE id = ? AND workspace_id = ? AND current_version_number = ? AND updated_at = ?`,
-      values: [category, timestamp, template.id, workspace.id, template.current_version_number, template.updated_at],
+      values: [category, template.id, workspace.id, template.current_version_number, template.updated_at],
     }],
   });
   const committed = await commitTemplateMutation(
