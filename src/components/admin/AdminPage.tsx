@@ -1,7 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/ui/cn";
 
 type AdminPageProps = ComponentProps<"div">;
@@ -27,9 +26,8 @@ type AdminPageHeaderProps = {
 };
 
 /**
- * Standard admin page header. Single typographic hierarchy for every
- * /admin subpage: optional uppercase eyebrow, 12px medium title,
- * 10px tertiary description, right-aligned actions.
+ * Standard admin page header. Stacks title/actions on narrow viewports so
+ * controls stay thumb-reachable without clipping copy.
  */
 export function AdminPageHeader({ title, description, actions, eyebrow, className }: AdminPageHeaderProps) {
   return (
@@ -37,7 +35,17 @@ export function AdminPageHeader({ title, description, actions, eyebrow, classNam
       {eyebrow ? (
         <p className="text-[9px] font-medium uppercase leading-3 tracking-wide text-tertiary">{eyebrow}</p>
       ) : null}
-      <PageHeader title={title} description={description} actions={actions} />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h1 className="truncate text-[12px] font-medium leading-4 text-ink">{title}</h1>
+          {description ? (
+            <p className="text-[10px] font-normal leading-[14px] text-muted text-pretty">{description}</p>
+          ) : null}
+        </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:justify-end">{actions}</div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -59,14 +67,14 @@ type AdminSectionProps = {
 export function AdminSection({ title, description, actions, children, className }: AdminSectionProps) {
   return (
     <Card className={cn("p-2", className)}>
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
         <div className="min-w-0">
           <h2 className="text-[11px] font-medium leading-4 text-ink">{title}</h2>
           {description ? (
             <p className="mt-0.5 text-[9px] leading-3 text-tertiary">{description}</p>
           ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+        {actions ? <div className="flex flex-wrap items-center gap-1 sm:shrink-0">{actions}</div> : null}
       </div>
       {children}
     </Card>

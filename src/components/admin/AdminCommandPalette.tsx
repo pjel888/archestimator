@@ -114,24 +114,26 @@ export function AdminCommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-7 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        className="inline-flex min-h-8 min-w-8 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
         aria-label="Open admin search"
       >
         <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />
-        Search
-        <kbd className="ml-1 rounded-xs border border-hairline px-1 text-[8px] font-medium leading-3 text-tertiary">⌘K</kbd>
+        <span className="hidden sm:inline">Search</span>
+        <kbd className="ml-1 hidden rounded-xs border border-hairline px-1 text-[8px] font-medium leading-3 text-tertiary md:inline">
+          ⌘K
+        </kbd>
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[12vh]"
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/40 p-0 sm:items-start sm:p-4 sm:pt-[12vh]"
           role="dialog"
           aria-modal="true"
           aria-label="Admin search"
           onClick={() => setOpen(false)}
         >
           <div
-            className="flex w-full max-w-xl flex-col overflow-hidden rounded-sm border border-hairline bg-white shadow-lg"
+            className="flex max-h-[min(88dvh,720px)] w-full max-w-xl flex-col overflow-hidden rounded-t-[var(--glass-radius)] border border-hairline bg-white shadow-lg sm:rounded-sm"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-hairline px-2">

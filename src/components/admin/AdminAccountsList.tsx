@@ -76,7 +76,7 @@ export function AdminAccountsList({
         onClear={() => setSearch("")}
         placeholder="Search accounts…"
         aria-label="Filter accounts"
-        wrapperClassName="w-full max-w-xs border border-hairline bg-white"
+        wrapperClassName="w-full border border-hairline bg-white sm:max-w-xs"
       />
       <AdminDataTable
         data={accounts}

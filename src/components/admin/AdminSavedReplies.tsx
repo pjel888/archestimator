@@ -81,12 +81,12 @@ export function AdminSavedReplies({ initialReplies }: { initialReplies: AdminSav
           {initialReplies.map((reply) => (
             <li key={reply.id} className="rounded-xs border border-hairline p-1.5">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[10px] font-medium leading-4 text-ink">{reply.label}</p>
+                <p className="min-w-0 flex-1 text-[10px] font-medium leading-4 text-ink text-pretty">{reply.label}</p>
                 <button
                   type="button"
                   disabled={pending}
                   onClick={() => remove(reply.id)}
-                  className="shrink-0 text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink disabled:opacity-50"
+                  className="min-h-8 shrink-0 rounded-xs px-2 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:opacity-50 sm:min-h-0 sm:px-0"
                   aria-label={`Delete ${reply.label}`}
                 >
                   Delete

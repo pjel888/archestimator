@@ -54,11 +54,12 @@ export function AdminCopilot({ configured }: { configured: boolean }) {
           className="w-full resize-y rounded-xs border border-hairline bg-white p-1.5 text-[10px] leading-4 text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
           aria-label="Copilot question"
         />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-[9px] leading-3 text-tertiary">{question.length}/2000 · read-only</span>
           <Button
             size="sm"
             variant="secondary"
+            className="min-h-9 w-full sm:w-auto"
             disabled={pending || question.trim().length === 0}
             onClick={ask}
           >

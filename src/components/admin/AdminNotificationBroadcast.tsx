@@ -153,8 +153,8 @@ export function AdminNotificationBroadcast() {
         </label>
       )}
 
-      <div className="flex items-center justify-between gap-2">
-        <Button type="submit" disabled={isPending || !title || !body}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Button type="submit" disabled={isPending || !title || !body} className="min-h-9 w-full sm:w-auto">
           {isPending ? "Sending…" : "Broadcast to all active users"}
         </Button>
         {result && (

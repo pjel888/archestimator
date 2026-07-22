@@ -47,12 +47,12 @@ export default async function AdminUserDetailPage({
       <section className="grid gap-2 lg:grid-cols-2" aria-label="User profile">
         <Card className="p-2">
           <h2 className="text-[11px] font-medium leading-4 text-ink">Profile</h2>
-          <dl className="mt-2 grid grid-cols-[100px_1fr] gap-x-2 gap-y-1 text-[10px] leading-4">
+          <dl className="mt-2 grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-2 gap-y-1 text-[10px] leading-4 sm:grid-cols-[100px_1fr]">
             <dt className="text-tertiary">Email</dt>
-            <dd className="text-ink">{user.email}</dd>
+            <dd className="min-w-0 break-words text-ink">{user.email}</dd>
 
             <dt className="text-tertiary">Display name</dt>
-            <dd className="text-ink">{user.display_name ?? "—"}</dd>
+            <dd className="min-w-0 break-words text-ink">{user.display_name ?? "—"}</dd>
 
             <dt className="text-tertiary">Role</dt>
             <dd>
@@ -73,7 +73,7 @@ export default async function AdminUserDetailPage({
             </dd>
 
             <dt className="text-tertiary">User ID</dt>
-            <dd className="font-mono text-[9px] text-tertiary">{user.id}</dd>
+            <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{user.id}</dd>
 
             <dt className="text-tertiary">Joined</dt>
             <dd className="text-ink">{new Date(user.created_at).toLocaleString()}</dd>
@@ -82,13 +82,13 @@ export default async function AdminUserDetailPage({
             <dd className="text-ink">{new Date(user.updated_at).toLocaleString()}</dd>
 
             <dt className="text-tertiary">Workspace</dt>
-            <dd className="font-mono text-[9px] text-tertiary">{user.default_workspace_id ?? "—"}</dd>
+            <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{user.default_workspace_id ?? "—"}</dd>
           </dl>
         </Card>
 
         <Card className="p-2">
           <h2 className="text-[11px] font-medium leading-4 text-ink">Session info</h2>
-          <dl className="mt-2 grid grid-cols-[100px_1fr] gap-x-2 gap-y-1 text-[10px] leading-4">
+          <dl className="mt-2 grid grid-cols-[minmax(5.5rem,auto)_minmax(0,1fr)] gap-x-2 gap-y-1 text-[10px] leading-4 sm:grid-cols-[100px_1fr]">
             <dt className="text-tertiary">Active sessions</dt>
             <dd className="text-ink">{user.active_session_count}</dd>
 
