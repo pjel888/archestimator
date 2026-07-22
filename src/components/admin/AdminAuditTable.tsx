@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import { formatAdminDateTime } from "@/lib/admin/datetime";
 
 // F0-4: rows are fetched server-side from the real audit repository
 // (listAuditEvents) and passed in as plain serializable data. The raw
@@ -38,8 +39,7 @@ export function AdminAuditTable({ rows, error }: { rows: AuditRow[]; error?: str
       {
         accessorKey: "occurredAt",
         header: "When",
-        cell: ({ row }) =>
-          row.original.occurredAt ? new Date(row.original.occurredAt).toLocaleString() : "—",
+        cell: ({ row }) => formatAdminDateTime(row.original.occurredAt),
       },
     ],
     [],

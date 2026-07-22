@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { formatAdminDate, formatAdminDateTime } from "@/lib/admin/datetime";
 import {
   getAdminProjectOverview,
   listAdminProjectEstimates,
@@ -47,7 +48,7 @@ export default async function AdminProjectDetailPage({
             <dt className="text-tertiary">Workspace</dt>
             <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{project.workspace_id}</dd>
             <dt className="text-tertiary">Created</dt>
-            <dd className="text-ink">{new Date(project.created_at).toLocaleString()}</dd>
+            <dd className="text-ink">{formatAdminDateTime(project.created_at)}</dd>
             <dt className="text-tertiary">Project ID</dt>
             <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{project.id}</dd>
           </dl>
@@ -73,7 +74,7 @@ export default async function AdminProjectDetailPage({
                     {estimate.name}
                   </Link>
                   <span className="shrink-0 text-[9px] text-tertiary">
-                    {new Date(estimate.created_at).toLocaleDateString()}
+                    {formatAdminDate(estimate.created_at)}
                   </span>
                 </li>
               ))}

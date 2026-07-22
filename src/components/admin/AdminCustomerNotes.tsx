@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { addCustomerNoteAction } from "@/lib/admin/customer-notes-actions";
 import type { AdminCustomerNoteRow, CustomerNoteTargetKind } from "@/lib/admin/customer-notes-repository";
+import { formatAdminDateTime } from "@/lib/admin/datetime";
 import { Button } from "@/components/ui/button";
 
 // F3 founder notes for a customer (user or account). List is server-rendered
@@ -67,7 +68,7 @@ export function AdminCustomerNotes({
               <p className="whitespace-pre-wrap break-words text-[10px] leading-4 text-ink">{note.body}</p>
               <p className="mt-1 text-[9px] leading-3 text-tertiary">
                 {note.created_by_email ?? note.created_by.slice(0, 8)} ·{" "}
-                {new Date(note.created_at).toLocaleString()}
+                {formatAdminDateTime(note.created_at)}
               </p>
             </li>
           ))}

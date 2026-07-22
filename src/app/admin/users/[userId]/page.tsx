@@ -6,6 +6,7 @@ import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminUserDetailActions } from "@/components/admin/AdminUserDetailActions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { formatAdminDateTime } from "@/lib/admin/datetime";
 import { listUserCorporateAccounts } from "@/lib/admin/corporate-account-repository";
 import { listCustomerNotes } from "@/lib/admin/customer-notes-repository";
 import { getAdminUser, listAdminUserAuditActivity } from "@/lib/admin/users-repository";
@@ -76,10 +77,10 @@ export default async function AdminUserDetailPage({
             <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{user.id}</dd>
 
             <dt className="text-tertiary">Joined</dt>
-            <dd className="text-ink">{new Date(user.created_at).toLocaleString()}</dd>
+            <dd className="text-ink">{formatAdminDateTime(user.created_at)}</dd>
 
             <dt className="text-tertiary">Last updated</dt>
-            <dd className="text-ink">{new Date(user.updated_at).toLocaleString()}</dd>
+            <dd className="text-ink">{formatAdminDateTime(user.updated_at)}</dd>
 
             <dt className="text-tertiary">Workspace</dt>
             <dd className="min-w-0 break-all font-mono text-[9px] text-tertiary">{user.default_workspace_id ?? "—"}</dd>
@@ -94,7 +95,7 @@ export default async function AdminUserDetailPage({
 
             <dt className="text-tertiary">Last session</dt>
             <dd className="text-ink">
-              {user.last_session_at ? new Date(user.last_session_at).toLocaleString() : "Never"}
+              {user.last_session_at ? formatAdminDateTime(user.last_session_at) : "Never"}
             </dd>
           </dl>
 
@@ -178,7 +179,7 @@ export default async function AdminUserDetailPage({
                 className="flex items-start gap-2 border-b border-hairline pb-1 text-[10px] leading-4 last:border-b-0"
               >
                 <time className="shrink-0 text-tertiary" dateTime={activity.created_at}>
-                  {new Date(activity.created_at).toLocaleString()}
+                  {formatAdminDateTime(activity.created_at)}
                 </time>
                 <span className="font-medium text-ink">{activity.action}</span>
                 {activity.target_type && (
