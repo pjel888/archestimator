@@ -31,7 +31,10 @@ import {
   type RealtimeRoomCapability,
 } from "@/lib/collaboration/realtime-room-token";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
-import { canAccessSupportConversationInD1 } from "@/lib/repositories/support-conversations-repository";
+import {
+  canAccessVisibleSupportConversationInD1,
+  getSupportConversationInD1,
+} from "@/lib/repositories/support-conversations-repository";
 
 /** Topic must be `project:<uuid>` or `estimate:<uuid>` (36-char uuid form). */
 const TOPIC_PATTERN = /^(project|estimate):([0-9a-f-]{36})$/;
@@ -147,10 +150,14 @@ export async function issueRealtimeIdentity({
 }
 
 async function issueRoomTokenForUser({
+  audience,
+  capabilities,
   topic,
   userId,
   env,
 }: {
+  audience?: "support-inbox";
+  capabilities?: readonly RealtimeRoomCapability[];
   topic: string;
   userId: string;
   env: NodeJS.ProcessEnv;
@@ -159,6 +166,8 @@ async function issueRoomTokenForUser({
   if (!roomTokenSecret) return null;
 
   const roomToken = await issueRealtimeRoomToken({
+    audience,
+    capabilities,
     secret: roomTokenSecret,
     sub: userId,
     topic,
@@ -195,22 +204,26 @@ export async function issueSupportInboxRealtimeToken({
   if (acceptanceStatus.requiresAcceptance) return null;
   const runtimeEnv = await readRealtimeRuntimeEnv();
 
-  if (!isPlatformAdmin(user)) {
-    const database = await getCloudflareD1Database();
-    if (!database) return null;
-    try {
-      const allowed = await canAccessSupportConversationInD1({
+  const database = await getCloudflareD1Database();
+  if (!database) return null;
+  try {
+    if (isPlatformAdmin(user)) {
+      if (!await getSupportConversationInD1(database, normalizedConversationId)) return null;
+    } else {
+      const allowed = await canAccessVisibleSupportConversationInD1({
         conversationId: normalizedConversationId,
         database,
         userId: user.userId,
       });
       if (!allowed) return null;
-    } catch {
-      return null;
     }
+  } catch {
+    return null;
   }
 
   return issueRoomTokenForUser({
+    audience: "support-inbox",
+    capabilities: ["support:subscribe"],
     topic: normalizedConversationId,
     userId: user.userId,
     env: runtimeEnv,

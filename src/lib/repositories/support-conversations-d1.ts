@@ -1,23 +1,13 @@
+import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import { DEFAULT_SUPPORT_MAILBOX } from "@/lib/email/support-email-config";
+import {
+  supportPrivacyWriteGateSql,
+  supportPrivacyWriteGateValues,
+  type SupportPrivacyWriteGate,
+} from "@/lib/support/privacy-fence";
 
-export type D1Value = string | number | boolean | null | ArrayBuffer;
-
-export type D1Result<T = Record<string, unknown>> = {
-  results?: T[];
-  success?: boolean;
-  meta?: { changes?: number };
-};
-
-export type D1PreparedStatementLike<T = Record<string, unknown>> = {
-  bind(...values: D1Value[]): D1PreparedStatementLike<T>;
-  first<R = T>(): Promise<R | null>;
-  all<R = T>(): Promise<D1Result<R>>;
-  run(): Promise<D1Result<T>>;
-};
-
-export type D1DatabaseLike = {
-  prepare<T = Record<string, unknown>>(sql: string): D1PreparedStatementLike<T>;
-};
+export type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 type SupportConversationAccessRow = {
   user_id: string | null;
@@ -111,6 +101,22 @@ export type SupportAttachmentRow = {
   disposition: string | null;
   sha256: string | null;
   storage_status: SupportAttachmentStorageStatus;
+  created_at: string;
+};
+
+export type SupportMessageContextRow = {
+  message_id: string;
+  workspace_id: string | null;
+  project_id: string | null;
+  estimate_id: string | null;
+  route_template: string;
+  app_release: string | null;
+  viewport_width: number | null;
+  viewport_height: number | null;
+  timezone: string | null;
+  browser_family: string | null;
+  os_family: string | null;
+  diagnostics_shared: number;
   created_at: string;
 };
 
@@ -441,12 +447,14 @@ function supportMailboxSortExpression(folder: SupportMailboxFolder) {
   return "c.last_message_at";
 }
 
-function coerceMailboxCounts(row: Partial<Record<SupportMailboxFolder, number>> | null): Record<SupportMailboxFolder, number> {
+function coerceMailboxCounts(
+  row: (Partial<Record<SupportMailboxFolder, number>> & { all_count?: number }) | null,
+): Record<SupportMailboxFolder, number> {
   return {
     inbox: Number(row?.inbox ?? 0),
     sent: Number(row?.sent ?? 0),
     archive: Number(row?.archive ?? 0),
-    all: Number(row?.all ?? 0),
+    all: Number(row?.all_count ?? row?.all ?? 0),
     starred: Number(row?.starred ?? 0),
     snoozed: Number(row?.snoozed ?? 0),
   };
@@ -496,7 +504,7 @@ export async function listSupportMailbox(
               SUM(CASE WHEN c.status = 'archived' THEN 1 ELSE 0 END) AS archive,
               SUM(CASE WHEN EXISTS (SELECT 1 FROM support_conversation_triage starred_triage WHERE starred_triage.conversation_id = c.id AND starred_triage.starred_for_admin = 1) THEN 1 ELSE 0 END) AS starred,
               SUM(CASE WHEN EXISTS (SELECT 1 FROM support_conversation_triage snoozed_triage WHERE snoozed_triage.conversation_id = c.id AND snoozed_triage.snoozed_until > ?) THEN 1 ELSE 0 END) AS snoozed,
-              COUNT(*) AS all
+              COUNT(*) AS all_count
             FROM support_conversations c
             LEFT JOIN profiles p ON p.id = c.user_id
             ${countWhere}
@@ -568,6 +576,35 @@ export async function canAccessSupportConversationInD1({
     .first<SupportConversationAccessRow>();
 
   return Boolean(row?.user_id && row.user_id === userId);
+}
+
+export async function canAccessVisibleSupportConversationInD1({
+  conversationId,
+  database,
+  userId,
+}: {
+  conversationId: string;
+  database: D1DatabaseLike;
+  userId: string;
+}) {
+  const row = await database
+    .prepare<{ allowed: number }>(
+      `SELECT 1 AS allowed
+       FROM support_conversations conversation
+       WHERE conversation.id = ?
+         AND conversation.user_id = ?
+         AND conversation.channel = 'in_app'
+         AND NOT EXISTS (
+           SELECT 1
+           FROM support_legacy_feedback_imports hidden_legacy
+           WHERE hidden_legacy.conversation_id = conversation.id
+             AND hidden_legacy.user_visible_at IS NULL
+         )
+       LIMIT 1`,
+    )
+    .bind(conversationId, userId)
+    .first<{ allowed: number }>();
+  return row?.allowed === 1;
 }
 
 export async function listSupportConversationsForUserInD1(
@@ -738,6 +775,27 @@ export async function listSupportAttachmentsForConversationInD1(
   return rows.results ?? [];
 }
 
+export async function listSupportMessageContextsForConversationInD1(
+  db: D1DatabaseLike,
+  conversationId: string,
+): Promise<SupportMessageContextRow[]> {
+  const rows = await db
+    .prepare<SupportMessageContextRow>(
+      `SELECT context.message_id, context.workspace_id, context.project_id,
+              context.estimate_id, context.route_template, context.app_release,
+              context.viewport_width, context.viewport_height, context.timezone,
+              context.browser_family, context.os_family,
+              context.diagnostics_shared, context.created_at
+       FROM support_message_context context
+       INNER JOIN support_messages message ON message.id = context.message_id
+       WHERE message.conversation_id = ?
+       ORDER BY context.created_at ASC, context.message_id ASC`,
+    )
+    .bind(conversationId)
+    .all<SupportMessageContextRow>();
+  return rows.results ?? [];
+}
+
 export async function getSupportAttachmentForAdminInD1(
   db: D1DatabaseLike,
   attachmentId: string,
@@ -848,6 +906,7 @@ export async function createExternalSupportConversationInD1(
     subject?: string | null;
     mailboxAddress?: string | null;
     channel?: "in_app" | "email";
+    privacyGate?: SupportPrivacyWriteGate;
   },
 ): Promise<SupportConversationRow> {
   const now = new Date().toISOString();
@@ -856,15 +915,15 @@ export async function createExternalSupportConversationInD1(
   const subject = normalizeOptionalText(input.subject, SUPPORT_SUBJECT_MAX) ?? "Support request";
   const mailbox = (input.mailboxAddress ?? DEFAULT_SUPPORT_MAILBOX).toLowerCase();
 
-  await db
-    .prepare(
+  const insert = db.prepare(
       `
         INSERT INTO support_conversations (
           id, user_id, requester_email, requester_name, subject, status, channel,
           mailbox_address, routing_token, last_message_at,
           unread_for_admin, unread_for_user, created_at, updated_at
         )
-        VALUES (?, NULL, ?, ?, ?, 'open', ?, ?, ?, ?, 1, 0, ?, ?)
+        SELECT ?, NULL, ?, ?, ?, 'open', ?, ?, ?, ?, 1, 0, ?, ?
+        WHERE ${supportPrivacyWriteGateSql("external_conversation_fence")}
       `,
     )
     .bind(
@@ -878,8 +937,10 @@ export async function createExternalSupportConversationInD1(
       now,
       now,
       now,
-    )
-    .run();
+      ...supportPrivacyWriteGateValues(input.privacyGate ?? null),
+    );
+  const [created] = await runRequiredD1Batch(db, [insert], "External support conversation could not be created.");
+  if ((created.meta?.changes ?? 0) !== 1) throw new Error("support_subject_fenced");
 
   const conversation = await getSupportConversationInD1(db, conversationId);
   if (!conversation) throw new Error("External support conversation insert failed.");
@@ -912,6 +973,7 @@ export async function insertSupportMessageIfNewInD1(
     receivedAt?: string | null;
     warningFlagsJson?: string | null;
     bodyHtml?: string | null;
+    privacyGate?: SupportPrivacyWriteGate;
   },
 ): Promise<{ message: SupportMessageRow; inserted: boolean }> {
   const bodyText = normalizeBodyText(input.bodyText);
@@ -931,8 +993,7 @@ export async function insertSupportMessageIfNewInD1(
     (input.senderRole === "admin" ? "outbound" : input.senderRole === "user" ? "inbound" : "internal");
   const transport = input.transport ?? "in_app";
 
-  await db
-    .prepare(
+  const insertMessage = db.prepare(
       `
         INSERT OR IGNORE INTO support_messages (
           id, conversation_id, sender_role, author_user_id, body_text,
@@ -941,7 +1002,8 @@ export async function insertSupportMessageIfNewInD1(
           internet_message_id, in_reply_to, references_json, ingest_key,
           attachment_count, provider_name, received_at, warning_flags_json, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE ${supportPrivacyWriteGateSql("message_insert_fence")}
       `,
     )
     .bind(
@@ -970,28 +1032,32 @@ export async function insertSupportMessageIfNewInD1(
       input.receivedAt ?? null,
       input.warningFlagsJson ?? null,
       now,
-    )
-    .run();
+      ...supportPrivacyWriteGateValues(input.privacyGate ?? null),
+    );
+  const updateConversation = db.prepare(
+    `UPDATE support_conversations
+     SET last_message_at = ?, updated_at = ?,
+         unread_for_admin = CASE WHEN ? = 'admin' THEN unread_for_admin ELSE 1 END,
+         unread_for_user = CASE WHEN ? = 'admin' THEN 1 ELSE unread_for_user END
+     WHERE id = ? AND ${supportPrivacyWriteGateSql("message_conversation_fence")}`,
+  ).bind(
+    now,
+    now,
+    input.senderRole,
+    input.senderRole,
+    input.conversationId,
+    ...supportPrivacyWriteGateValues(input.privacyGate ?? null),
+  );
+  const results = await runRequiredD1Batch(
+    db,
+    [insertMessage, updateConversation],
+    "Support message could not be inserted.",
+  );
 
   const row =
     (input.ingestKey ? await findSupportMessageByIngestKeyInD1(db, input.ingestKey) : null) ??
     (await getSupportMessageByClientIdInD1(db, input.conversationId, clientMessageId));
-  if (!row) throw new Error("Support message insert failed.");
-
-  if (row.id === id) {
-    await db
-      .prepare(
-        `
-          UPDATE support_conversations
-          SET last_message_at = ?, updated_at = ?,
-              unread_for_admin = CASE WHEN ? = 'admin' THEN unread_for_admin ELSE 1 END,
-              unread_for_user = CASE WHEN ? = 'admin' THEN 1 ELSE unread_for_user END
-          WHERE id = ?
-        `,
-      )
-      .bind(now, now, input.senderRole, input.senderRole, input.conversationId)
-      .run();
-  }
+  if (!row || (results[1]?.meta?.changes ?? 0) !== 1) throw new Error("Support message insert failed.");
 
   return { message: row, inserted: row.id === id };
 }

@@ -12,7 +12,11 @@ export type RealtimeRoomCapability =
   | "presence:read"
   | "presence:write"
   | "broadcast:cursor"
-  | "broadcast:row-update";
+  | "broadcast:row-update"
+  | "support:subscribe"
+  | "support:fanout";
+
+export type RealtimeRoomTokenAudience = "support-inbox";
 
 export type RealtimeRoomTokenClaims = {
   v: 1;
@@ -24,6 +28,7 @@ export type RealtimeRoomTokenClaims = {
   v: 2;
   sub: string;
   topic: string;
+  aud?: RealtimeRoomTokenAudience;
   capabilities: RealtimeRoomCapability[];
   iat: number;
   exp: number;
@@ -108,6 +113,7 @@ function decodeClaims(payload: string): RealtimeRoomTokenClaims | null {
     if (typeof claims.iat !== "number" || !Number.isFinite(claims.iat)) return null;
     if (typeof claims.exp !== "number" || !Number.isFinite(claims.exp)) return null;
     if (claims.iat >= claims.exp) return null;
+    if (claims.v === 2 && claims.aud !== undefined && claims.aud !== "support-inbox") return null;
     if (claims.v === 2 && (!Array.isArray(claims.capabilities) || claims.capabilities.some((capability) => !isRealtimeRoomCapability(capability)))) {
       return null;
     }
@@ -118,6 +124,7 @@ function decodeClaims(payload: string): RealtimeRoomTokenClaims | null {
 }
 
 export async function issueRealtimeRoomToken({
+  audience,
   capabilities,
   nowMs = Date.now(),
   secret,
@@ -125,6 +132,7 @@ export async function issueRealtimeRoomToken({
   topic,
   ttlSeconds = DEFAULT_ROOM_TOKEN_TTL_SECONDS,
 }: {
+  audience?: RealtimeRoomTokenAudience;
   capabilities?: readonly RealtimeRoomCapability[];
   nowMs?: number;
   secret: string;
@@ -135,7 +143,15 @@ export async function issueRealtimeRoomToken({
   const iat = Math.floor(nowMs / 1000);
   const exp = iat + Math.max(1, Math.floor(ttlSeconds));
   const payload = encodeClaims(capabilities
-    ? { v: 2, sub, topic, capabilities: [...new Set(capabilities)].sort() as RealtimeRoomCapability[], iat, exp }
+    ? {
+        v: 2,
+        sub,
+        topic,
+        ...(audience ? { aud: audience } : {}),
+        capabilities: [...new Set(capabilities)].sort() as RealtimeRoomCapability[],
+        iat,
+        exp,
+      }
     : { v: 1, sub, topic, iat, exp });
   const signature = await hmacSha256(secret, payload);
   return `${payload}.${signature}`;
@@ -145,7 +161,9 @@ export function isRealtimeRoomCapability(value: unknown): value is RealtimeRoomC
   return value === "presence:read"
     || value === "presence:write"
     || value === "broadcast:cursor"
-    || value === "broadcast:row-update";
+    || value === "broadcast:row-update"
+    || value === "support:subscribe"
+    || value === "support:fanout";
 }
 
 export function hasRealtimeRoomCapability(
@@ -156,11 +174,13 @@ export function hasRealtimeRoomCapability(
 }
 
 export async function verifyRealtimeRoomToken({
+  expectedAudience,
   expectedTopic,
   nowMs = Date.now(),
   secret,
   token,
 }: {
+  expectedAudience?: RealtimeRoomTokenAudience;
   expectedTopic: string;
   nowMs?: number;
   secret: string;
@@ -175,6 +195,7 @@ export async function verifyRealtimeRoomToken({
   const claims = decodeClaims(payload);
   if (!claims) return null;
   if (claims.topic !== expectedTopic) return null;
+  if (expectedAudience && (claims.v !== 2 || claims.aud !== expectedAudience)) return null;
 
   const iatMs = claims.iat * 1000;
   const expMs = claims.exp * 1000;

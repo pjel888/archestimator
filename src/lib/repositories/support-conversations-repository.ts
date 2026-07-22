@@ -5,5 +5,5 @@ import { setSupportDbResolver } from "@/lib/repositories/support-conversations-d
 
 setSupportDbResolver(async () => getCloudflareD1Database());
 
-export type { D1DatabaseLike } from "@/lib/repositories/support-conversations-d1";
+export type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 export * from "@/lib/repositories/support-conversations-d1";
