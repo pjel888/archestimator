@@ -5,7 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 
-import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
+import { AdminOverviewStrip, AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ type AdminAllowlistManagerProps = {
   authorized: boolean;
   error: string | null;
   rows: AdminAllowlistRow[];
+  counts: Record<AdminAllowlistStatus, number> & { total: number };
   statusFilter: string;
   notice: AdminAllowlistNotice;
 };
@@ -130,7 +131,10 @@ function AllowlistAddForm() {
         </Badge>
       </div>
 
-      <form action={createClosedBetaAllowlistEntries} className="mt-2 grid gap-2">
+      <form
+        action={createClosedBetaAllowlistEntries}
+        className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,1fr)] lg:items-start"
+      >
         <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
 
         <ControlField
@@ -149,7 +153,7 @@ function AllowlistAddForm() {
             id="admin-allowlist-emails"
             name="emails"
             required
-            rows={4}
+            rows={5}
             value={emailsText}
             onChange={(event) => setEmailsText(event.target.value)}
             placeholder={"reviewer@example.com\npartner@example.com"}
@@ -159,33 +163,43 @@ function AllowlistAddForm() {
           />
         </ControlField>
 
-        <div className="grid gap-2 md:grid-cols-[9rem_minmax(0,1fr)_auto] md:items-end">
-          <ControlField label="Initial status" as="div" controlId="admin-allowlist-status">
-            <AdminStatusSelect
-              name="status"
-              defaultValue="invited"
-              options={statusOptions}
-              aria-label="Initial status"
-            />
-          </ControlField>
+        <div className="grid gap-2">
+          <div className="grid gap-2 sm:grid-cols-[9rem_minmax(0,1fr)] lg:grid-cols-1 xl:grid-cols-[9rem_minmax(0,1fr)]">
+            <ControlField label="Initial status" as="div" controlId="admin-allowlist-status">
+              <AdminStatusSelect
+                name="status"
+                defaultValue="invited"
+                options={statusOptions}
+                aria-label="Initial status"
+              />
+            </ControlField>
 
-          <ControlField label="Notes" controlId="admin-allowlist-notes">
-            <ControlInput
-              id="admin-allowlist-notes"
-              name="notes"
-              placeholder="Cohort, source, or support context"
-              className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
-            />
-          </ControlField>
-
-          <AddSubmitButton readyCount={preview.length} />
+            <ControlField label="Notes" controlId="admin-allowlist-notes">
+              <ControlInput
+                id="admin-allowlist-notes"
+                name="notes"
+                placeholder="Cohort, source, or support context"
+                className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
+              />
+            </ControlField>
+          </div>
+          <div className="flex items-center justify-between gap-2 border-t border-hairline pt-2">
+            <p className="text-[9px] leading-3 text-tertiary">New entries can sign in immediately.</p>
+            <AddSubmitButton readyCount={preview.length} />
+          </div>
         </div>
       </form>
     </section>
   );
 }
 
-function StatusFilterBar({ statusFilter }: { statusFilter: string }) {
+function StatusFilterBar({
+  statusFilter,
+  counts,
+}: {
+  statusFilter: string;
+  counts: Record<AdminAllowlistStatus, number> & { total: number };
+}) {
   const active = statusFilter && statusOptions.some((option) => option.value === statusFilter) ? statusFilter : "";
 
   return (
@@ -207,6 +221,9 @@ function StatusFilterBar({ statusFilter }: { statusFilter: string }) {
             )}
           >
             {option.label}
+            <span className={cn("ml-1 tabular-nums", isActive ? "text-white/70" : "text-tertiary")}>
+              {option.value ? counts[option.value] : counts.total}
+            </span>
           </Link>
         );
       })}
@@ -239,7 +256,7 @@ function StatusLegend() {
   );
 }
 
-function AllowlistRowEditor({ row }: { row: AdminAllowlistRow }) {
+function AllowlistRowEditor({ row, mode }: { row: AdminAllowlistRow; mode: "desktop" | "mobile" }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -256,8 +273,9 @@ function AllowlistRowEditor({ row }: { row: AdminAllowlistRow }) {
 
   return (
     <>
+      {mode === "desktop" ? (
       <tr className="align-top">
-        <td className="border-b border-hairline px-2 py-2">
+        <td className="border-b border-hairline px-2 py-2.5">
           <div className="min-w-0">
             <p className="truncate text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
             <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
@@ -267,39 +285,35 @@ function AllowlistRowEditor({ row }: { row: AdminAllowlistRow }) {
             </p>
           </div>
         </td>
-        <td className="border-b border-hairline px-2 py-2">
+        <td className="border-b border-hairline px-2 py-2.5">
           <Badge tone={statusTone[row.status]} size="xs" className="min-w-0 px-1">
             {statusLabels[row.status]}
           </Badge>
         </td>
-        <td className="border-b border-hairline px-2 py-2">
+        <td className="border-b border-hairline px-2 py-2.5">
           <form
             action={updateClosedBetaAllowlistEntry}
-            className="grid gap-1 md:grid-cols-[9rem_minmax(0,1fr)_auto] md:items-end"
+            className="grid grid-cols-[8rem_minmax(8rem,1fr)_auto] items-center gap-1"
           >
             <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
             <input type="hidden" name="id" value={row.id} />
-            <ControlField label="Status" as="div" className="gap-0.5">
-              <AdminStatusSelect
-                name="status"
-                defaultValue={row.status}
-                options={statusOptions}
-                aria-label={`Status for ${row.normalized_email}`}
-                className="min-w-28"
-              />
-            </ControlField>
-            <ControlField label="Notes" className="gap-0.5">
-              <ControlInput
-                name="notes"
-                defaultValue={row.notes ?? ""}
-                aria-label={`Notes for ${row.normalized_email}`}
-                className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
-              />
-            </ControlField>
+            <AdminStatusSelect
+              name="status"
+              defaultValue={row.status}
+              options={statusOptions}
+              aria-label={`Status for ${row.normalized_email}`}
+            />
+            <ControlInput
+              name="notes"
+              defaultValue={row.notes ?? ""}
+              aria-label={`Notes for ${row.normalized_email}`}
+              placeholder="Add context"
+              className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
+            />
             <RowSaveButton />
           </form>
         </td>
-        <td className="border-b border-hairline px-2 py-2">
+        <td className="border-b border-hairline px-2 py-2.5 text-right">
           {row.status === "revoked" ? (
             <form action={updateClosedBetaAllowlistEntry}>
               <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
@@ -323,6 +337,76 @@ function AllowlistRowEditor({ row }: { row: AdminAllowlistRow }) {
           )}
         </td>
       </tr>
+      ) : (
+      <article className="border-b border-hairline p-3 last:border-b-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="break-all text-[10px] font-medium leading-4 text-ink">{row.normalized_email}</p>
+            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
+              Invited {formatAdminDateTime(row.invited_at)}
+            </p>
+          </div>
+          <Badge tone={statusTone[row.status]} size="xs" className="min-w-0 px-1">
+            {statusLabels[row.status]}
+          </Badge>
+        </div>
+
+        <div className="mt-2 rounded-xs bg-surfaceMuted/70 px-2 py-1.5 text-[9px] leading-3 text-secondary">
+          {row.accepted_at ? `Signed in ${formatAdminDateTime(row.accepted_at)}` : "First sign-in pending"}
+          {row.invite_email_sent_at ? ` · Invite sent ${formatAdminDateTime(row.invite_email_sent_at)}` : " · Invite email pending"}
+        </div>
+
+        <form action={updateClosedBetaAllowlistEntry} className="mt-2 grid gap-2">
+          <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
+          <input type="hidden" name="id" value={row.id} />
+          <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-2">
+            <ControlField label="Status" as="div" className="gap-0.5">
+              <AdminStatusSelect
+                name="status"
+                defaultValue={row.status}
+                options={statusOptions}
+                aria-label={`Status for ${row.normalized_email}`}
+              />
+            </ControlField>
+            <ControlField label="Notes" className="gap-0.5">
+              <ControlInput
+                name="notes"
+                defaultValue={row.notes ?? ""}
+                aria-label={`Notes for ${row.normalized_email}`}
+                placeholder="Add context"
+                className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 !text-[10px]")}
+              />
+            </ControlField>
+          </div>
+          <div className="flex justify-end">
+            <RowSaveButton />
+          </div>
+        </form>
+        <div className="mt-1.5 flex justify-end">
+          {row.status === "revoked" ? (
+            <form action={updateClosedBetaAllowlistEntry}>
+              <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
+              <input type="hidden" name="id" value={row.id} />
+              <input type="hidden" name="status" value="invited" />
+              <input type="hidden" name="notes" value={row.notes ?? ""} />
+              <Button type="submit" variant="secondary" size="xs" disabled={isPending}>
+                Restore access
+              </Button>
+            </form>
+          ) : (
+            <Button
+              type="button"
+              variant="danger"
+              size="xs"
+              disabled={isPending}
+              onClick={() => setConfirmOpen(true)}
+            >
+              Revoke access
+            </Button>
+          )}
+        </div>
+      </article>
+      )}
 
       <ConfirmDialog
         open={confirmOpen}
@@ -343,6 +427,7 @@ export function AdminAllowlistManager({
   authorized,
   error,
   rows,
+  counts,
   statusFilter,
   notice,
 }: AdminAllowlistManagerProps) {
@@ -365,6 +450,17 @@ export function AdminAllowlistManager({
           ) : undefined
         }
       />
+
+      {authorized ? (
+        <AdminOverviewStrip
+          items={[
+            { label: "Total access records", value: counts.total },
+            { label: "Awaiting first sign-in", value: counts.invited, detail: "invited" },
+            { label: "Confirmed access", value: counts.active, detail: "active" },
+            { label: "Blocked access", value: counts.revoked, detail: "revoked" },
+          ]}
+        />
+      ) : null}
 
       {notice ? (
         <div
@@ -391,25 +487,25 @@ export function AdminAllowlistManager({
         <>
           <AllowlistAddForm />
 
-          <section className="rounded-xs border border-hairline bg-white p-2" aria-labelledby="allowlist-queue-heading">
-            <div className="flex flex-col gap-2 border-b border-hairline pb-2 sm:flex-row sm:items-center sm:justify-between">
+          <section className="overflow-hidden rounded-xs border border-hairline bg-white" aria-labelledby="allowlist-queue-heading">
+            <div className="flex flex-col gap-2 border-b border-hairline p-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 id="allowlist-queue-heading" className="text-[11px] font-medium leading-4 text-ink">
-                  Allowlist
+                  Access directory
                 </h2>
                 <StatusLegend />
               </div>
-              <StatusFilterBar statusFilter={statusFilter} />
+              <StatusFilterBar statusFilter={statusFilter} counts={counts} />
             </div>
 
             {error ? (
-              <div role="alert" className="mt-2 rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
+              <div role="alert" className="m-2 rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
                 {error}
               </div>
             ) : null}
 
             {rows.length === 0 ? (
-              <div className="mt-2">
+              <div className="p-2">
                 <EmptyState
                   icon={<EnvelopeSimple size={18} weight="regular" aria-hidden="true" />}
                   title={statusFilter ? "No emails match this filter" : "Allowlist is empty"}
@@ -431,19 +527,24 @@ export function AdminAllowlistManager({
                 />
               </div>
             ) : (
-              <div className="mt-2 -mx-0.5 overflow-x-auto overscroll-contain touch-pan-x">
-                <table className="min-w-[36rem] border-collapse text-left text-[10px] leading-4">
+              <div>
+                <div className="md:hidden">
+                  {rows.map((row) => (
+                    <AllowlistRowEditor key={`mobile-${row.id}`} row={row} mode="mobile" />
+                  ))}
+                </div>
+                <table className="hidden w-full table-fixed border-collapse text-left text-[10px] leading-4 md:table">
                   <thead className="bg-surfaceMuted text-secondary">
                     <tr>
-                      <th className="border-b border-hairline px-2 py-1.5 font-medium">Email</th>
-                      <th className="border-b border-hairline px-2 py-1.5 font-medium">Status</th>
-                      <th className="border-b border-hairline px-2 py-1.5 font-medium">Edit</th>
-                      <th className="border-b border-hairline px-2 py-1.5 font-medium">Access</th>
+                      <th className="w-[36%] border-b border-hairline px-2 py-1.5 font-medium lg:w-[32%]">Person and delivery</th>
+                      <th className="w-20 border-b border-hairline px-2 py-1.5 font-medium">State</th>
+                      <th className="border-b border-hairline px-2 py-1.5 font-medium">Status and internal context</th>
+                      <th className="w-28 border-b border-hairline px-2 py-1.5 text-right font-medium">Access</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <AllowlistRowEditor key={row.id} row={row} />
+                      <AllowlistRowEditor key={`desktop-${row.id}`} row={row} mode="desktop" />
                     ))}
                   </tbody>
                 </table>

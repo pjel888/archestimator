@@ -1,6 +1,9 @@
 import { AdminAllowlistManager } from "@/components/admin/AdminAllowlistManager";
 import { deliverPendingClosedBetaInviteEmails } from "@/lib/auth/beta-allowlist-admin-actions";
-import { readClosedBetaAllowlistQueue } from "@/lib/auth/beta-allowlist-admin";
+import {
+  isClosedBetaAllowlistStatus,
+  readClosedBetaAllowlistQueue,
+} from "@/lib/auth/beta-allowlist-admin";
 
 function noticeFromParams(params: {
   created?: string;
@@ -43,7 +46,15 @@ export default async function AdminAllowlistPage({
 }) {
   const params = await searchParams;
   const delivery = await deliverPendingClosedBetaInviteEmails();
-  const queue = await readClosedBetaAllowlistQueue(params.status);
+  const queue = await readClosedBetaAllowlistQueue();
+  const selectedStatus = params.status && isClosedBetaAllowlistStatus(params.status) ? params.status : null;
+  const visibleRows = selectedStatus
+    ? queue.rows.filter((row) => row.status === selectedStatus)
+    : queue.rows;
+  const counts = queue.rows.reduce(
+    (result, row) => ({ ...result, [row.status]: result[row.status] + 1 }),
+    { invited: 0, active: 0, revoked: 0 },
+  );
   const notice =
     noticeFromParams(params)
     ?? (delivery.authorized && delivery.sent > 0
@@ -60,7 +71,7 @@ export default async function AdminAllowlistPage({
     <AdminAllowlistManager
       authorized={queue.authorized}
       error={queue.error}
-      rows={queue.rows.map((row) => ({
+      rows={visibleRows.map((row) => ({
         id: row.id,
         normalized_email: row.normalized_email,
         status: row.status,
@@ -69,6 +80,7 @@ export default async function AdminAllowlistPage({
         accepted_at: row.accepted_at,
         invite_email_sent_at: row.invite_email_sent_at,
       }))}
+      counts={{ ...counts, total: queue.rows.length }}
       statusFilter={params.status ?? ""}
       notice={notice}
     />
