@@ -2,9 +2,11 @@ import { after } from "next/server";
 
 import {
   createPrivacyRequest,
+  listPrivacyRequestsForUser,
   PRIVACY_REQUEST_KINDS,
   type PrivacyRequestKind,
 } from "@/lib/compliance/privacy-request-repository";
+import { getCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
 import { logAppError } from "@/lib/observability/logger";
@@ -329,9 +331,16 @@ export async function POST(request: Request) {
     return jsonError(`description must be ${DESCRIPTION_MAX} characters or fewer.`, 400);
   }
 
-  const requesterEmail = cleanOptionalString(parsed.requesterEmail, "requesterEmail", REQUESTER_EMAIL_MAX);
-  const requesterName = cleanOptionalString(parsed.requesterName, "requesterName", REQUESTER_NAME_MAX);
-  const workspaceId = cleanOptionalString(parsed.workspaceId, "workspaceId", WORKSPACE_ID_MAX);
+  const session = await getCurrentUserContext();
+  const requesterEmail: { value: string | null; error?: string } = session
+    ? { value: session.email }
+    : cleanOptionalString(parsed.requesterEmail, "requesterEmail", REQUESTER_EMAIL_MAX);
+  const requesterName: { value: string | null; error?: string } = session
+    ? { value: session.displayName }
+    : cleanOptionalString(parsed.requesterName, "requesterName", REQUESTER_NAME_MAX);
+  const workspaceId: { value: string | null; error?: string } = session
+    ? { value: session.profile.default_workspace_id }
+    : cleanOptionalString(parsed.workspaceId, "workspaceId", WORKSPACE_ID_MAX);
   const userAgent = cleanOptionalString(request.headers.get("user-agent"), "user-agent", USER_AGENT_MAX);
   const metadata = sanitizeMetadataForIntake(parsed.metadata);
   const validationError = requesterEmail.error ?? requesterName.error ?? workspaceId.error ?? userAgent.error ?? metadata.error;
@@ -370,10 +379,17 @@ export async function POST(request: Request) {
       description: parsed.description,
       requesterEmail: requesterEmail.value,
       requesterName: requesterName.value,
+      requesterUserId: session?.userId ?? null,
       workspaceId: workspaceId.value,
       ipAddress: clientIp,
       userAgent: userAgent.value,
       metadata: metadata.value,
+      subjectVerification: session
+        ? {
+            method: "authenticated_session",
+            verifiedByUserId: session.userId,
+          }
+        : null,
     }, db);
 
     // ponytail: email confirmation is a P1 follow-up gated on counsel sign-off
@@ -402,4 +418,31 @@ export async function POST(request: Request) {
     });
     return jsonError("Could not record privacy request. Please try again or email support.", 500);
   }
+}
+
+export async function GET() {
+  const session = await getCurrentUserContext();
+  if (!session) return jsonError("Authentication required.", 401);
+  const requests = await listPrivacyRequestsForUser(session.userId);
+  return Response.json(
+    {
+      requests: requests.map((request) => ({
+        id: request.id,
+        kind: request.request_kind,
+        status: request.status,
+        createdAt: request.created_at,
+        updatedAt: request.updated_at,
+        resolvedAt: request.resolved_at,
+        executionErrorCode: request.execution_error_code,
+        supportExport: request.support_export_ready === 1
+          ? {
+              createdAt: request.support_export_created_at,
+              expiresAt: request.support_export_expires_at,
+              downloadUrl: `/api/compliance/privacy-requests/${request.id}/support-export`,
+            }
+          : null,
+      })),
+    },
+    { headers: NO_STORE },
+  );
 }

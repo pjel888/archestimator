@@ -1,4 +1,5 @@
 import { PublicPageShell } from "@/components/landing";
+import { PrivacyRequestStatus } from "@/components/privacy/PrivacyRequestStatus";
 import { CURRENT_PRIVACY_NOTICE, CURRENT_TERMS } from "@/lib/legal/terms-content";
 
 export const dynamic = "force-static";
@@ -59,9 +60,10 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-[11px] font-medium leading-4 text-[#111111]">Retention, deletion, and legal evidence</h2>
               <p className="mt-1">
-                To request deletion of beta account or workspace data, contact support@archestimator.com with the Google email used for beta access. Minimal legal/audit records may need to be retained or anonymized subject to legal review, valid obligations, and abuse-prevention needs.
+                Closing an account removes access and follows the product&apos;s soft-retain operational lifecycle. It is not a verified privacy erasure. To request access, portability, or verified erasure of support data, contact support@archestimator.com or submit a privacy request while signed in. Minimal legal and audit records may still be retained or anonymized when required.
               </p>
             </section>
+            <PrivacyRequestStatus />
             <p className="border-t border-[#d9d8d4] pt-3 text-[9px] leading-4 text-[#5f615f]">
               Last updated for closed beta review: June 6, 2026. Closed beta privacy version {CURRENT_PRIVACY_NOTICE.version}. Support and privacy requests: support@archestimator.com.
             </p>

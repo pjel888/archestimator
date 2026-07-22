@@ -44,6 +44,10 @@ export type PrivacyRequestInput = {
   ipAddress?: string | null;
   userAgent?: string | null;
   metadata?: Record<string, unknown> | null;
+  subjectVerification?: {
+    method: "authenticated_session" | "admin_verified";
+    verifiedByUserId: string;
+  } | null;
 };
 
 export type PrivacyRequestRow = {
@@ -63,6 +67,31 @@ export type PrivacyRequestRow = {
   triaged_at: string | null;
   resolved_at: string | null;
   triaged_by: string | null;
+  execution_revision: number;
+  subject_verified_at: string | null;
+  subject_verified_by: string | null;
+  subject_verification_method: "authenticated_session" | "admin_verified" | null;
+  execution_started_at: string | null;
+  execution_error_code: string | null;
+};
+
+export type SupportPrivacyExportRow = {
+  privacy_request_id: string;
+  user_id: string;
+  status: "ready" | "deleted";
+  r2_key: string | null;
+  sha256: string | null;
+  size_bytes: number | null;
+  created_at: string;
+  expires_at: string;
+  downloaded_at: string | null;
+  deleted_at: string | null;
+};
+
+export type PrivacyRequestListRow = PrivacyRequestRow & {
+  support_export_created_at: string | null;
+  support_export_expires_at: string | null;
+  support_export_ready: number;
 };
 
 export type CreatePrivacyRequestResult = {
@@ -170,6 +199,10 @@ export async function createPrivacyRequest(
   const workspaceId = normalizeOptionalString(input.workspaceId, "workspaceId", WORKSPACE_ID_MAX);
   const userAgent = normalizeOptionalString(input.userAgent, "userAgent", USER_AGENT_MAX);
   const metadataJson = JSON.stringify(sanitizeMetadata(input.metadata));
+  const subjectVerification = input.subjectVerification ?? null;
+  if (subjectVerification && !requesterUserId) {
+    throw new Error("Verified privacy requests require requesterUserId");
+  }
 
   const db = dbOverride ?? (await getCloudflareD1Database());
   if (!db) {
@@ -185,9 +218,10 @@ export async function createPrivacyRequest(
           description, workspace_id,
           ip_hash, user_agent_hash,
           metadata_json,
-          created_at, updated_at
+          created_at, updated_at,
+          subject_verified_at, subject_verified_by, subject_verification_method
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
     .bind(
@@ -204,6 +238,9 @@ export async function createPrivacyRequest(
       metadataJson,
       now,
       now,
+      subjectVerification ? now : null,
+      subjectVerification?.verifiedByUserId ?? null,
+      subjectVerification?.method ?? null,
     )
     .run();
 
@@ -224,6 +261,115 @@ export async function listPrivacyRequests(
   const bound = options.status ? stmt.bind(options.status) : stmt;
   const result = await bound.all<Record<string, unknown>>();
   return (result.results ?? []) as unknown as PrivacyRequestRow[];
+}
+
+export async function getPrivacyRequestById(
+  id: string,
+  dbOverride?: D1DatabaseLike,
+): Promise<PrivacyRequestRow | null> {
+  const db = dbOverride ?? (await getCloudflareD1Database());
+  if (!db) return null;
+  return db
+    .prepare<PrivacyRequestRow>("SELECT * FROM privacy_requests WHERE id = ? LIMIT 1")
+    .bind(id)
+    .first<PrivacyRequestRow>();
+}
+
+export async function listPrivacyRequestsForUser(
+  requesterUserId: string,
+  dbOverride?: D1DatabaseLike,
+): Promise<PrivacyRequestListRow[]> {
+  const db = dbOverride ?? (await getCloudflareD1Database());
+  if (!db) return [];
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare<PrivacyRequestListRow>(
+      `SELECT request.*,
+              export.created_at AS support_export_created_at,
+              export.expires_at AS support_export_expires_at,
+              CASE
+                WHEN export.status = 'ready' AND export.expires_at > ? THEN 1
+                ELSE 0
+              END AS support_export_ready
+       FROM privacy_requests request
+       LEFT JOIN support_privacy_exports export
+         ON export.privacy_request_id = request.id
+       WHERE request.requester_user_id = ?
+         AND request.subject_verified_at IS NOT NULL
+       ORDER BY request.created_at DESC
+       LIMIT 100`,
+    )
+    .bind(now, requesterUserId)
+    .all<PrivacyRequestListRow>();
+  return result.results ?? [];
+}
+
+export async function getSupportPrivacyExportByRequestId(
+  privacyRequestId: string,
+  dbOverride?: D1DatabaseLike,
+): Promise<SupportPrivacyExportRow | null> {
+  const db = dbOverride ?? (await getCloudflareD1Database());
+  if (!db) return null;
+  return db
+    .prepare<SupportPrivacyExportRow>(
+      `SELECT privacy_request_id, user_id, status, r2_key, sha256, size_bytes,
+              created_at, expires_at, downloaded_at, deleted_at
+       FROM support_privacy_exports
+       WHERE privacy_request_id = ?
+       LIMIT 1`,
+    )
+    .bind(privacyRequestId)
+    .first<SupportPrivacyExportRow>();
+}
+
+export async function verifyPrivacyRequestSubject(input: {
+  adminUserId: string;
+  expectedRevision: number;
+  privacyRequestId: string;
+  requesterUserId: string;
+  dbOverride?: D1DatabaseLike;
+}): Promise<PrivacyRequestRow | null> {
+  const db = input.dbOverride ?? (await getCloudflareD1Database());
+  if (!db) throw new Error("Something went wrong. Try again in a moment.");
+  const requesterUserId = normalizeOptionalString(
+    input.requesterUserId,
+    "requesterUserId",
+    REQUESTER_USER_ID_MAX,
+  );
+  if (!requesterUserId) throw new Error("requesterUserId is required");
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `UPDATE privacy_requests
+       SET requester_user_id = ?,
+           subject_verified_at = ?,
+           subject_verified_by = ?,
+           subject_verification_method = 'admin_verified',
+           status = CASE WHEN status = 'submitted' THEN 'in_triage' ELSE status END,
+           triaged_at = COALESCE(triaged_at, ?),
+           triaged_by = COALESCE(triaged_by, ?),
+           execution_revision = execution_revision + 1,
+           updated_at = ?
+       WHERE id = ?
+         AND execution_revision = ?
+         AND status IN ('submitted', 'in_triage')
+         AND subject_verified_at IS NULL
+         AND EXISTS (SELECT 1 FROM profiles profile WHERE profile.id = ?)`,
+    )
+    .bind(
+      requesterUserId,
+      now,
+      input.adminUserId,
+      now,
+      input.adminUserId,
+      now,
+      input.privacyRequestId,
+      input.expectedRevision,
+      requesterUserId,
+    )
+    .run();
+  if ((result.meta?.changes ?? 0) !== 1) return null;
+  return getPrivacyRequestById(input.privacyRequestId, db);
 }
 
 export async function exportPrivacyRequestSupportData(requesterUserId: string, dbOverride?: D1DatabaseLike) {
