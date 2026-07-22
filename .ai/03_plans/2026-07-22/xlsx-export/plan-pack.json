@@ -1,0 +1,1007 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-22-xlsx-export",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-22T15:45:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "eadd30b06baba82b7380097e35ac089126f36b31",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "bde419b55f6e7cfb0f89201a93f9975be38bdae8cfb1a1ff1aceda99b102af7d"
+    },
+    {
+      "id": "ART-002",
+      "role": "current-state-audit",
+      "path": "01-CURRENT-STATE-AUDIT.md",
+      "sha256": "925a12346b7ddfea8ce4cb5c96aeabbb34ac969d89b3e91fa613f233892e7ec3"
+    },
+    {
+      "id": "ART-003",
+      "role": "ux-verification-contract",
+      "path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "sha256": "cf02e1fdecce3c8a3d2356ba7ff91f63eb5097c0fc51994a9b9c3a7ba6b019a4"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "OPS-002",
+        "DATA-003",
+        "UX-001",
+        "UX-002",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-STATE-AUDIT.md",
+      "affected_ids": [
+        "OPS-001",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "OPS-002",
+        "DATA-003",
+        "UX-001",
+        "UX-002",
+        "PERF-001"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-STATE-AUDIT.md",
+      "affected_ids": [
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-002",
+        "PERF-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Reliable fail-closed rate limiting is a critical invariant; cheaper non-test inspection is insufficient because both D1 SQL branches and route error mapping must execute.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Estimate financial truth is a critical invariant; cheaper non-test review is insufficient to cover the S1-S19 cross-product and rounding outcomes.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Review and download parity is a critical invariant; cheaper non-test inspection is insufficient because saved-state races and server normalization must execute.",
+      "test_ids": [
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Authorization and byte-level redaction are critical invariants; cheaper non-test review is insufficient to prove that generated XML contains no internal data.",
+      "test_ids": [
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Valid styled OOXML is a critical invariant; cheaper non-test inspection is insufficient because style references, ZIP parts, and independent parsing must be exercised.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Editable financial formulas are a critical invariant; cheaper non-test review is insufficient because mutated input cells must recalculate every advertised component.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Truthful server-backed export state is a critical invariant; cheaper non-test inspection is insufficient to exercise abort races, typed recovery, and selection persistence.",
+      "test_ids": [
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Accessible mobile dialog operation is a critical invariant; cheaper non-test inspection is insufficient to prove focus movement, announcements, zoom, and narrow overflow behavior.",
+      "test_ids": [
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "FAIL",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Bounded Worker generation is a critical invariant; cheaper non-test inspection is insufficient to measure near-limit elapsed time, memory, and buffer-copy effects.",
+      "test_ids": [
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-005",
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "BOUNDARY",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001",
+        "DATA-002",
+        "DATA-003",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-006",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "OPS-002",
+        "DATA-003",
+        "SEC-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "OPS-001",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "UX-001",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-005",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "DATA-002",
+        "SEC-001",
+        "UX-001",
+        "UX-002"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-007",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "OPS-002",
+        "DATA-003",
+        "UX-001",
+        "UX-002",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-002",
+        "PERF-001",
+        "UNIT-003"
+      ],
+      "rationale": "The current serializer exists for Cloudflare compatibility and can be completed without adding a runtime dependency."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UNIT-005"
+      ],
+      "rationale": "The current modal is not a spreadsheet preview, so a truthful server-backed export review is the smallest coherent redesign."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "SEC-001",
+        "UX-001",
+        "UNIT-004"
+      ],
+      "rationale": "One server preparation service prevents review and download from implementing separate authorization and financial semantics."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "UNIT-004",
+        "AC-003"
+      ],
+      "rationale": "A saved-input fingerprint makes server rereads explicit and turns silent drift into a recoverable conflict."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-001",
+        "RISK-001"
+      ],
+      "rationale": "Ordinary rate-limit events do not need support intake deduplication and should not depend on its later schema column."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "UNIT-002",
+        "AC-002"
+      ],
+      "rationale": "Absent scope is contractually included, while an unknown non-empty status must be excluded and surfaced without changing legacy rows."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-003",
+        "UNIT-003",
+        "AC-006"
+      ],
+      "rationale": "A partially live financial formula is misleading; formula generation must follow available calculation provenance."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "DATA-003",
+        "UNIT-002",
+        "AC-003"
+      ],
+      "rationale": "One shared parser limited to the current request surface prevents UI, review, and download settings from drifting without inventing new product controls."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "PERF-001",
+        "UNIT-003",
+        "UNIT-004",
+        "AC-009"
+      ],
+      "rationale": "Provider docs define a shared 128 MB isolate ceiling but no safe XLSX row or byte limits, so current source caps must be retained or lowered from measured Worker evidence rather than guessed thresholds."
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "AUTH-001",
+        "GATE-VERIFY-01"
+      ],
+      "rationale": "Local implementation may proceed while product tests remain behind the user-controlled gate; external deployment is out of scope rather than an implementation gate."
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "GATE-VERIFY-01"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "01-CURRENT-STATE-AUDIT.md",
+      "claim_ids": [
+        "SRC-002",
+        "SRC-003",
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-006"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "925a12346b7ddfea8ce4cb5c96aeabbb34ac969d89b3e91fa613f233892e7ec3",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001",
+        "TEST-001"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "bde419b55f6e7cfb0f89201a93f9975be38bdae8cfb1a1ff1aceda99b102af7d",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "01-CURRENT-STATE-AUDIT.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "TEST-002"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "925a12346b7ddfea8ce4cb5c96aeabbb34ac969d89b3e91fa613f233892e7ec3",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-005",
+        "AC-006",
+        "TEST-003"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "bde419b55f6e7cfb0f89201a93f9975be38bdae8cfb1a1ff1aceda99b102af7d",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-003",
+        "AC-004",
+        "TEST-004"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "bde419b55f6e7cfb0f89201a93f9975be38bdae8cfb1a1ff1aceda99b102af7d",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-007",
+        "AC-008",
+        "TEST-005"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "cf02e1fdecce3c8a3d2356ba7ff91f63eb5097c0fc51994a9b9c3a7ba6b019a4",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "02-UX-AND-VERIFICATION-CONTRACT.md",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-009",
+        "TEST-006",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "eadd30b06baba82b7380097e35ac089126f36b31",
+      "sha256": "cf02e1fdecce3c8a3d2356ba7ff91f63eb5097c0fc51994a9b9c3a7ba6b019a4",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "SLICE-002",
+      "unit_ids": [
+        "UNIT-002"
+      ]
+    }
+  ],
+  "stale_triggers": [
+    "baseline HEAD changes on the proposal XLSX route or export UI files",
+    "estimate row, tab, totals, scope, adjustment, contingency, VAT, or source-link semantics change",
+    "durable rate-limit schema or shared D1 rate-limit helpers change",
+    "the custom XLSX serializer or Worker runtime compatibility configuration changes",
+    "current row or tab caps, the 60-second generation guard, or response buffering changes",
+    "test authorization changes"
+  ],
+  "manifest_sha256": "be8cc1c27cd5e822d7e7baea997bd1decf05c28bd06600da4177eb895e556ac2"
+}
