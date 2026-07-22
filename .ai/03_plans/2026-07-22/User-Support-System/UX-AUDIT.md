@@ -74,9 +74,12 @@ performed.
 ### Global entry
 
 - Keep the existing footer lifebuoy as the persistent Support trigger.
-- Show the user's unread reply count as a badge.
-- Open a responsive Support Center surface. Desktop uses the existing modal;
-  narrow screens use the existing modal/sheet composition at full usable height.
+- Show the user's unread reply count as a capped `9+` badge with the full count in
+  its accessible label.
+- Open a responsive Support Center surface. Select the newest unread request;
+  otherwise open Requests when history exists and New request when it does not.
+  Desktop uses the existing modal; narrow screens use the existing sheet
+  composition at full usable height.
 
 ### New request
 
@@ -84,9 +87,11 @@ performed.
 2. Optional screenshot area supporting pick, paste, and drop.
 3. Local preview with filename, size, and Remove before send.
 4. `Included details` disclosure:
-   - always: signed-in account, request reference, time, sanitized pathname;
-   - optional and removable: validated workspace/project/estimate reference,
-     viewport, timezone, normalized browser/OS, and app release when available.
+   - always: signed-in account, request reference, time, and a sanitized route
+     template with opaque dynamic segments replaced;
+   - optional as one per-message toggle, default on and not saved as a preference:
+     validated workspace/project/estimate references, viewport, timezone,
+     normalized browser/OS family, and safe app release when available.
 5. Confidentiality reminder: do not include client secrets or unrelated
    sensitive information in the screenshot.
 6. One primary action: `Send to support`.
@@ -98,8 +103,7 @@ performed.
 - User-facing status language:
   - `open` -> `Received` or `Waiting for support`;
   - `pending` -> `Waiting on you`;
-  - `resolved` -> `Resolved`;
-  - `archived` -> `Closed`.
+  - `resolved` or `archived` -> `Conversation closed`.
 - Opening a request marks it read only after the message history is visible.
 
 ### Conversation
@@ -114,8 +118,10 @@ performed.
 ### Admin thread
 
 - Header: requester identity, status, priority, assignee, labels, age, channel.
-- Context panel: sanitized route and validated resource links, release/browser/
-  viewport facts, and screenshot preview.
+- Each message owns its screenshot and an expandable `Included details`
+  disclosure containing its sanitized route and validated resource references,
+  release/browser/viewport facts. Stable identity and triage remain in the thread
+  header; there is no ambiguous thread-global diagnostics panel.
 - No raw query string, tokens, cookies, browser storage, DOM/form content,
   request bodies, estimate totals, or client/project names are captured.
 
@@ -127,7 +133,9 @@ performed.
 - Offline before send; connection lost after send; response uncertain.
 - Durable send succeeded but realtime degraded.
 - Message idempotently recovered after a lost response.
-- Screenshot removed before send and persisted attachment removed after send.
+- Screenshot can be removed before sending. After sending, it remains part of the
+  support record until authorized admin lifecycle handling or privacy erasure;
+  disclose that consequence before submission.
 - Admin mailbox degraded; legacy import incomplete; stale Action Inbox item.
 
 ## Accessibility and responsive contract

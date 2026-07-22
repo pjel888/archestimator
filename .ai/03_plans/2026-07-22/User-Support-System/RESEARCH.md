@@ -6,6 +6,18 @@
 
 Keep **D1 as the authoritative support ledger**, R2 as private object storage referenced by that ledger, and the existing per-conversation `SUPPORT_INBOX` Durable Object as an **ephemeral invalidation fan-out**, never as message storage. Persist the message and its state transition before publishing an invalidation; a failed or missed WebSocket notification only causes the client to refetch D1-backed data.
 
+### Selected plan resolution
+
+`00-PLAN.md` resolves the alternatives in this dated research: use the existing
+UI primitives and provider bindings with no new runtime dependency; accept no
+image or one source screenshot up to 3 MiB inside a 4,194,304-byte bounded Worker
+relay; normalize server-side to private WebP; use a leased D1 intake claim around
+the R2/D1 boundary; carry browser subscribe capability as a credential-prefixed
+WebSocket protocol offer while the server selects only a fixed non-secret
+protocol; and defer email, a support queue/outbox, presigned
+uploads, OS notifications, malware scanning, and in-app screen capture beyond
+this MVP.
+
 For the initial attachment scope, keep the authenticated Worker relay only if the product limit is reduced to the declared hosted request-body ceiling (currently 4 MiB). The current support configuration allows 5 MB attachments and the route buffers each `File` with `arrayBuffer()`, so the plan must choose one of these two coherent designs:
 
 1. **Small-file MVP (recommended unless larger files are an explicit requirement):** cap each support attachment below the hosted 4 MiB body limit and retain the current server-authorized, private R2 write/read path.
@@ -27,17 +39,37 @@ Do not expose a bucket publicly. Download and image preview continue through an 
 - Keep the deterministic **one Durable Object per conversation** routing model (`idFromName(conversationId)`). Durable Objects are a single coordination point, and their hibernation WebSocket API is the recommended API for persistent client connections. [Use WebSockets](https://developers.cloudflare.com/durable-objects/best-practices/websockets/) and [Durable Objects overview](https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/)
 - Use `ctx.acceptWebSocket()` with `webSocketMessage`, `webSocketClose`, and `webSocketError` handlers, not the standard `addEventListener` WebSocket API. Hibernation keeps clients connected while resetting in-memory state; `serializeAttachment`/`deserializeAttachment` is the supported way to restore per-connection authorization state. Attachments are limited to 16,384 bytes and disappear when the socket closes, so store only immutable claims/topic metadata there—never message content or durable authorization. [Hibernation API](https://developers.cloudflare.com/durable-objects/best-practices/websockets/) and [DurableObjectState API](https://developers.cloudflare.com/durable-objects/api/state/)
 - Admission must be **server-authorized before connection**: authenticate the app session, check that the caller is the conversation owner or a platform admin, and mint a short-lived, audience/topic-bound capability. The DO then validates the capability’s topic, expiry, and subject. This is a plan inference from the hibernation persistence model and the existing repository pattern; Cloudflare’s WebSocket docs do not prescribe one application-token format.
-- A browser WebSocket cannot set arbitrary request headers. If the current query-token fallback remains, make it short lived, never log it, avoid including it in telemetry/error strings, and reconnect with a newly minted token. Better still, use the existing server-authenticated same-origin token issuance and ensure the token cannot be reused for another conversation. Do not send support message bodies over the socket: publish only `{ type, conversationId, messageId }`, then refetch the D1 record.
+- A browser WebSocket cannot set arbitrary request headers. The selected plan uses
+  two constructor protocol offers: fixed `archestimator.support.v2` and one
+  credential-prefixed short-lived topic-bound capability. The DO validates both
+  and selects/echoes only the fixed protocol, avoiding browser negotiation failure
+  and removing support tokens from URL query strings, selected response headers,
+  telemetry, and errors. Reconnect with a newly minted token. Do not send support
+  message bodies over the socket: publish only identifiers, then refetch D1.
 - Hibernating DOs lose in-memory state and are currently eligible after a short idle period (documented as 10 seconds); alarms, timers, incoming requests, and pending work inhibit hibernation. This makes invalidations—not in-DO polling/timers—the appropriate support use. [DO lifecycle](https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/)
 - A hibernation-enabled object has an upper bound of 32,768 WebSockets, but practical capacity is lower for CPU/memory-heavy work. Support traffic should be sparse and one conversation per DO, avoiding a global inbox singleton. [DurableObjectState `acceptWebSocket`](https://developers.cloudflare.com/durable-objects/api/state/)
 
 ### D1 ledger, atomicity, and idempotency
 
-- Treat D1 as the durable source of truth for conversation, message, attachment, read state, and notification/outbox state. The DO and client cache are derived/recoverable layers.
-- For an all-D1 state change—such as inserting a support message, updating conversation timestamps/unread counts, recording an outbox row, and binding completed upload intents—use `D1Database.batch()` when the repository’s D1 abstraction is extended for it. Cloudflare documents `batch()` as sequential, non-concurrent statements in a transaction; a failure rolls back the sequence. [D1 Worker API](https://developers.cloudflare.com/d1/worker-api/d1-database/)
+- Treat D1 as the durable source of truth for conversation, message, attachment,
+  read state, and any later notification/outbox state. The DO and client cache are
+  derived/recoverable layers.
+- For an all-D1 state change—such as inserting a support message, updating
+  conversation timestamps/unread counts, and binding its completed attachment—use
+  `D1Database.batch()` through the repository's existing fail-closed
+  `runRequiredD1Batch` abstraction. Cloudflare documents `batch()` as sequential,
+  non-concurrent statements in a transaction; a failure rolls back the sequence.
+  [D1 Worker API](https://developers.cloudflare.com/d1/worker-api/d1-database/)
 - Preserve and extend the existing idempotency keys: client send uses a client-generated `client_message_id`; inbound email uses a stable provider-derived `ingest_key`; upload completion needs an immutable `upload_intent_id` plus a unique attachment/object key. Insert-or-select must return the original result on retry, rather than create another message or attachment.
-- Do not claim distributed exactly-once delivery across D1, R2, Queues, and Email. Use a **D1 transactional outbox**: commit the support state and an effect record first; a worker/consumer claims it idempotently, performs the side effect, then records a terminal/retryable result. This is the necessary application pattern because D1 transaction guarantees cover D1 statements only.
-- R2 writes cannot join a D1 transaction. Direct uploads therefore use an explicit lifecycle (`authorized` → `uploaded_unverified` → `stored`/`quarantined`/`failed`) and a completion check. Relay uploads retain compensating cleanup: if the D1 insert fails after an R2 write, delete the newly written object; never expose an object not represented by an authorized D1 row.
+- Do not claim distributed exactly-once delivery across D1, R2, Queues, and Email.
+  If a later external notification is selected, use a D1 transactional outbox;
+  this MVP deliberately adds no email/queue effect.
+- R2 writes cannot join a D1 transaction. The selected relay therefore uses a
+  fingerprinted, leased D1 intake claim and stable private object key. Only the
+  lease winner writes/commits. A failed commit never immediately deletes that
+  key; cleanup first fences the expired claim, waits the canonical plan's quiet
+  period, proves no committed attachment, then deletes, confirms absence, and
+  records the terminal state.
 
 ### R2 uploads and private attachments
 
@@ -48,7 +80,7 @@ Do not expose a bucket publicly. Download and image preview continue through an 
 - Keep the bucket private. A browser must obtain an authenticated application download/preview response after D1 authorization; a presigned `GET` is appropriate only for a deliberately time-bounded download link and must be treated as an equivalent bearer capability. The R2 Worker binding remains the right server-side API for private reads/writes. [R2 Workers API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/)
 - Screenshot/image preview can use `URL.createObjectURL(file)` locally before upload. Revoke the object URL when the preview is discarded/unmounted; do not make local preview a proof of server acceptance. The File API defines `File`/`Blob` object URLs. [File API](https://w3c.github.io/FileAPI/)
 
-### Queues, Email, and Workers execution limits
+### Deferred Queues, Email, and Workers execution limits
 
 - Do not make a user-visible support message wait for email delivery, thumbnailing, malware scanning, or admin notification. Commit the D1 message/outbox first and dispatch asynchronous work. Queues provides at-least-once delivery and explicitly does not preserve publish order, so every consumer must be idempotent by the D1 effect/message ID. [How Queues works](https://developers.cloudflare.com/queues/reference/how-queues-works/)
 - A failed item in a batch can cause the whole batch to retry unless successes are explicitly acknowledged. Existing queue consumers already define retries/DLQs; a support effect should use a dedicated queue and DLQ rather than mix different retry/latency semantics into `CLIENT_PORTAL_NOTIFICATIONS_QUEUE`. [Batching, retries, and delays](https://developers.cloudflare.com/queues/configuration/batching-retries/) and [Dead Letter Queues](https://developers.cloudflare.com/queues/configuration/dead-letter-queues/)
@@ -86,16 +118,22 @@ Radix is an accessibility-preserving choice when a modal is justified: it traps 
 2. For relay uploads, enforce the lower of application/provider request limits before reading bytes. For presigned uploads, create a D1 upload intent and return only a short-lived one-object `PUT` capability.
 3. Normalize filename; allowlist types; enforce count/per-file/aggregate limits; reject active content; generate a random R2 key independent of user filename. Preview only selected image types and force downloads for all other types.
 4. Verify the uploaded object server-side, calculate/validate integrity data, bind the D1 attachment row to its message/draft, and make it available only when storage status is `stored`. Sweep expired intents/orphan objects asynchronously.
-5. In one D1 transaction, create/update the durable message/conversation state plus an outbox event. Return the durable result to the user; never use a WebSocket/queue/email completion as the send acknowledgement.
+5. In one required D1 batch, create/update the durable message/conversation,
+   context, attachment, unread, and claim state. Return the durable result to the
+   user; never use WebSocket completion as the send acknowledgement.
 6. Publish the minimal invalidation after commit. The client refetches authoritative D1 data; reconnection refetches rather than assumes no events were missed.
-7. Queue external notifications/email/scanning by stable effect ID. Claim effects idempotently, record failures, retry boundedly, route exhausted failures to a DLQ, and surface a retryable administrative state.
+7. Do not queue email, scanning, or other external effects in this MVP. If one is
+   later selected, add a D1 outbox and an idempotent dedicated consumer rather
+   than coupling it to durable message success.
 
 ## Version and uncertainty flags
 
 - Source pages above were retrieved 2026-07-22. Cloudflare platform pages were last updated between April and June 2026; limits and Email Service’s Beta status are mutable and must be reread immediately before implementation/deploy.
 - `wrangler.jsonc` currently uses `compatibility_date: 2026-06-29`, after the documented 2026-04-07 WebSocket close-handshake behavior change. Do not add a compatibility flag merely to duplicate the current default.
 - No source was found that turns a browser-provided filename/MIME declaration into trusted file classification. The plan must retain server policy and, if threat requirements expand, explicitly choose a malware/content-scanning service instead of implying R2 scans uploads.
-- This research does not decide whether the product needs files larger than 4 MiB, automated malware scanning, OS notifications, or in-app screen capture. Those are product boundaries that determine whether direct upload, a scanning queue, or capture work is justified.
+- The selected plan deliberately excludes files larger than the bounded relay,
+  automated malware scanning, email/OS notifications, and in-app screen capture.
+  Reopen those boundaries only from current product evidence.
 
 ## Retrieval sufficiency
 

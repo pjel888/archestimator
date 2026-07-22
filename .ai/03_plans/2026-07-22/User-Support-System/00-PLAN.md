@@ -1,338 +1,315 @@
 # User Support System: Canonical Execution Plan
 
-## Status tuple
+## Status
 
 `IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
 
-- **Suite compatibility:** manifest `2026-07-12`.
-- **Profile:** high-blast-radius because the work joins authenticated UX, D1,
-  private R2 objects, user identity, admin operations, realtime, and privacy
-  erasure.
-- **Action ceiling:** `IMPLEMENT_LOCAL`. This pack plans repository changes and
-  local verification. It does not deploy, apply remote migrations, change DNS,
-  enable paid services, or mutate unbound resources.
-- **Exact next unit:** `UNIT-001`.
-- **Plan-authoring test decision:** `NOT_REQUIRED`. Live rendered audit,
-  read-only D1 inspection, redacted local diagnostics, source inspection, and
-  the final static Plan Pack validation are the sufficient closeout evidence.
-- **Prior-pack relationship:** the completed July 21 admin-support pack remains
-  historical context. Current source and live behavior show reliability and
-  user-intake gaps that this pack must fix rather than assume complete.
+- **Profile:** high blast radius because this work joins authenticated UX, D1,
+  private R2 objects, realtime capabilities, and privacy erasure.
+- **Action ceiling:** `IMPLEMENT_LOCAL`. Local repository edits and static/local
+  verification are in scope. Remote migration, import, deployment, credentials,
+  and live production mutation require a separate authorized release task.
+- **Next unit:** `UNIT-001`.
+- **Plan-authoring test decision:** `NOT_REQUIRED`. Product tests, builds as test
+  gates, browser automation, screenshots, and visual QA were not authorized.
+- **Canonical authority:** this file. `RESEARCH.md` and `UX-AUDIT.md` are dated
+  evidence; this plan resolves any conflict in those supporting artifacts.
 
-## 1. Task contract
+## 1. Task Contract
 
 ### Objective
 
-Replace the split feedback/support experience with one secure, legible support
-system. A signed-in user sends a plain-language message, may attach one
-screenshot, and receives a durable private conversation. Archestimator derives
-the user and safe operational context, delivers the report to `/admin/support`,
-surfaces attention in `/admin/today`, and lets the founder and user continue the
-same thread.
+Replace the split feedback/support experience with one secure support pipeline.
+A signed-in user writes a plain-language message, may add one screenshot, and
+gets a durable private conversation. Archestimator derives the user and a
+minimized page context, delivers the report to `/admin/support`, surfaces active
+attention in `/admin/today`, and lets the founder and user continue the same
+thread.
+
+### Required outcome
+
+1. `/admin/support` loads reliably and Today items open the exact source.
+2. New user complaints, questions, and feedback write only to canonical support.
+3. User intake asks for a message, not type, severity, subject, or UUIDs.
+4. One optional screenshot is private, bounded, normalized, owner-scoped, and
+   recoverable across retries and partial D1/R2 failures.
+5. Every message carries only disclosed, minimized, message-scoped context.
+6. Users have Requests, New request, and Conversation views with unread state,
+   status, history, replies, attachments, and explicit recovery behavior.
+7. Admin Support and Today derive from the same D1 state and cannot resolve or
+   hide a conversation independently of canonical support lifecycle.
+8. Existing beta feedback becomes canonical admin history exactly once without
+   surprising users with a newly visible conversation they did not start as chat.
+9. Privacy export and erasure cover messages, context, attachments, claims,
+   drafts, and retained legacy data through a verified, executable lifecycle.
 
 ### In scope
 
-- global authenticated Support trigger and modal/sheet;
-- `/workshop/feedback` as the full Support Center route;
-- owner-scoped support list, thread, message, read, and attachment APIs;
-- `/admin/support` mailbox, thread, context, attachment, priority, and assignment;
-- `/admin/today` support/legacy-feedback attention items and deep links;
-- `support_conversations`, `support_messages`, `support_message_attachments`,
-  support triage, new message-context and legacy-import records;
-- current `ARCH_DB`, `ARCH_UPLOADS_R2`, `SUPPORT_INBOX`, `EMAIL`, and existing
-  security-rate-limit data;
-- idempotency, realtime invalidation, unread state, privacy export/erase, R2
-  cleanup, safe diagnostics, and operational logging;
-- additive import of existing `beta_feedback_submissions` into canonical support.
+- global authenticated Support trigger and `/workshop/feedback` Support Center;
+- owner-scoped list, thread, message, attachment, read, and realtime-token APIs;
+- `/admin/support`, `/admin/today`, and the legacy feedback review link;
+- current `ARCH_DB`, `ARCH_UPLOADS_R2`, `SUPPORT_INBOX`, `IMAGES`, and existing
+  durable rate-limit and upload-cleanup infrastructure;
+- additive D1 schema, legacy import, idempotency, unread/status transitions,
+  private image handling, realtime invalidation, privacy fulfillment, and
+  redacted operational events;
+- removal of authenticated legacy feedback submission paths after cutover.
 
 ### Non-goals
 
-- AI classification, suggested replies, bots, SLAs, macros, or help-center CMS;
-- public/anonymous support intake;
-- voice/video, typing indicators, presence, or collaborative admin collision UI;
-- automatic screenshot capture, DOM serialization, session replay, or hidden
-  collection of form/estimate/client content;
-- files larger than 3 MiB, multiple user attachments, or non-image user files;
-- a third-party helpdesk, new runtime package, new Cloudflare binding, new queue,
-  R2 S3 credentials, or paid scanning service;
-- desktop/OS notifications or email notifications for in-app replies in MVP;
-- destructive deletion of legacy feedback tables during this pack;
-- deployment or hosted release certification.
+- AI classification, bots, suggested replies, SLAs, macros, help-center CMS;
+- public or anonymous support conversations;
+- automatic screen capture, DOM/session replay, or hidden content collection;
+- multiple user files, non-image files, or files above the relay limit;
+- a third-party helpdesk, new runtime dependency, new Cloudflare binding, new
+  queue, R2 S3 credentials, public bucket, or paid scanning service;
+- new support priority schema or multi-admin assignment UI; current self-assign,
+  labels, status, snooze, and star are sufficient for the founder MVP;
+- email, browser, or OS notification for in-app replies in this MVP. The Support
+  badge and inbox are the canonical reply-discovery surface;
+- destructive legacy-table deletion, hosted deployment, or release certification.
 
-### Constraints
+### Stop condition
 
-- Current source and `wrangler.jsonc` are authoritative.
-- Next 16 Server Components keep auth and data access server-side; the client
-  boundary owns only browser events, object URLs, paste/drop, local form state,
-  TanStack Query, and WebSocket lifecycle.
-- D1 is the durable ledger. R2 stores private screenshot bytes. The Durable
-  Object broadcasts identifier-only invalidations after commit.
-- User identity is always server-derived. Resource IDs from the browser are
-  hints until server ownership checks succeed.
-- Never record raw query strings, route tokens, cookies, authorization headers,
-  local/session storage, clipboard text, DOM/form contents, request bodies,
-  client/project names, estimate descriptions, quantities, rates, or totals.
-- Preserve unfamiliar worktree edits and reread shared files immediately before
-  implementation.
+Stop when every required outcome has source and static/local evidence, the five
+units are internally consistent, the pack validates, and no safe in-scope work
+remains. Implementation completion does not imply remote release; release stays
+`NOT_EVALUATED` until a separate authorized task proves it.
 
-### Completion and stop condition
+## 2. Confirmed Current State
 
-Stop only when one authenticated user can submit a message from any workshop
-page, optionally with a valid screenshot; the resulting canonical conversation
-is visible and openable in both admin attention and support surfaces; the user
-can read and continue the same thread; context and objects obey owner/admin and
-privacy boundaries; legacy feedback appears once in canonical Support; and no
-safe in-scope gap, duplicate write path, or stale action semantics remains.
-
-## 2. Confirmed current state
-
-### 2.1 Live rendered audit
-
-`UX-AUDIT.md` contains the screenshots and full findings.
-
-| Surface | Confirmed state | Consequence |
+| Surface | Current evidence | Required repair |
 | --- | --- | --- |
-| `/admin/today` | Legacy blocker feedback is visible, but only Snooze, Resolve, and Dismiss are rendered. | The founder cannot open or understand the complaint. |
-| `/admin/support` | The live route displays `Support conversations could not be read.` | Canonical support is operationally unavailable. |
-| Global feedback modal | Type, Severity, Project UUID, and Message are required/presented. | Users are asked to perform internal triage and manual context entry. |
-| `/workshop/feedback` | A basic support chat and a separate beta-feedback form coexist. | One user intent is split across two ledgers and admin workflows. |
+| Admin mailbox | `listSupportMailbox` emits `COUNT(*) AS all`; SQLite rejects the reserved alias and the combined query returns a generic error. | Quote/rename the alias and preserve predicate parity between list/count. |
+| Action Inbox | `AdminActionItemRow.href` is persisted but `AdminActionInbox` does not render it. Support uses `/admin/support`; feedback uses `/admin`. | Render source-aware Open and persist exact deep links. |
+| Deep link | `src/app/admin/support/page.tsx` accepts `?c=`, but selects it only when the ID is present in the current mailbox page. | Fetch/pin an authorized selected conversation independently of the active page/filter. |
+| Reconciliation | Support and feedback source reads are capped, then every absent ID is resolved. | Reconcile closure with source-of-truth `NOT EXISTS`, never a truncated display page. |
+| Feedback intake | `WorkshopFeedbackModal` and `BetaFeedbackForm` ask for Type, Severity, Project UUID, and Message. | Replace with one message-first Support composer. |
+| User support | `SupportChatWidgetClient` already lists, reads, replies, and reconnects, but exposes technical socket state and has no screenshot/context/status UX. | Recompose into one Support Center over the existing D1/DO substrate. |
+| Support ledger | D1 already has conversations, messages, unread flags, attachments, triage, drafts, email correlation, and owner checks. | Extend rather than replace it. |
+| Draft concurrency | Shared worktree changes `support-drafts-d1.ts` to `INSERT OR IGNORE` plus authoritative scope read. | Preserve and verify that concurrent repair. |
+| Attachments | Admin/email attachments use private R2; user routes have no upload/read path. | Add a distinct user-owned path; never reuse the admin upload endpoint as authorization. |
+| Body safety | `readBoundedFormData` already provides pre-parse byte limits and rejects unsupported content encoding. | Use it before any support `formData()` access. |
+| Image safety | `server-image-processing.ts` already supports fail-closed Cloudflare Images/Sharp decode, pixel limits, resize, WebP output, and metadata stripping through re-encode. | Reuse/extend it for one normalized support image. |
+| D1 atomicity | The support repository declares a prepare-only D1 type, while `src/lib/cloudflare/d1.ts` and `d1-batch.ts` expose optional batch plus fail-closed batching. | Remove the local duplicate type and require `runRequiredD1Batch`. |
+| Privacy | Privacy intake records requests; support export/erase helpers have no verified-subject execution surface and account deletion bypasses them. | Add verified identity, an in-progress write fence, and an admin fulfillment lifecycle. |
+| Realtime auth | Support subscribe and internal fanout currently share a room-token shape; browser tokens are placed in the WebSocket query. | Split subscribe/fanout capabilities and move browser capability out of URL queries. |
 
-### 2.2 Exact admin mailbox root cause
+The dated rendered baseline and four captures remain in `UX-AUDIT.md` and
+`audit/`. They are evidence of the starting state, not a requirement to preserve
+the old composition.
 
-- Bound D1 migration state is current through the repository tail.
-- Read-only bound D1 inspection confirmed support and triage tables exist, the
-  support ledger currently has zero conversations/messages, and the legacy
-  beta-feedback table has one row.
-- Replaying the current count SQL fails with `near "all": syntax error` because
-  `listSupportMailbox` emits `COUNT(*) AS all` without quoting the reserved alias.
-- Because list and counts run in `Promise.all`, the count failure returns the
-  generic mailbox error even when the conversation list itself is valid.
-
-### 2.3 Exact Action Inbox gap
-
-- `AdminActionItemRow` includes `href`, and source derivation persists it.
-- `AdminActionInbox` never renders or navigates `item.href`.
-- Support items use generic `/admin/support`; feedback items use `/admin`.
-- The source upsert does not update `href` or priority on conflict, so existing
-  rows would remain stale after a code correction unless the conflict clause is
-  fixed.
-- Support-derived Resolve/Dismiss can disagree with the canonical conversation.
-
-### 2.4 Draft reliability incident and concurrent repair
-
-- `support_drafts` correctly enforces `UNIQUE(admin_user_id, scope_key)`.
-- Redacted local diagnostics captured a unique-constraint error on
-  `POST /api/admin/support/drafts` when initial operations overlapped.
-- The current shared worktree now changes the insert to `INSERT OR IGNORE` and
-  reads the authoritative row by `(admin_user_id, scope_key)`. This is a
-  concurrent fix, not this plan author's product implementation.
-- UNIT-001 must preserve, statically verify, and integrate that repair. It must
-  not overwrite the shared edit with the stale select-then-insert design.
-
-### 2.5 Existing assets to preserve
-
-- D1 conversation/message ledger, owner checks, client message idempotency,
-  unread flags, email correlation, message attachments, triage, and drafts.
-- Owner/admin short-lived realtime token policy and per-conversation hibernating
-  `SUPPORT_INBOX` Durable Object.
-- User/admin TanStack Query clients and identifier-only invalidation shape.
-- Private R2 attachment patterns and authenticated admin attachment route.
-- Repository Dialog, Modal, Sheet, controls, file upload pattern, toast, badges,
-  message cards, and Phosphor icons.
-- Existing privacy support-data export/erase entry points, which require
-  extension rather than replacement.
-
-## 3. Accepted requirements
+## 3. Accepted Requirements
 
 | ID | Role | Requirement | Units | Criterion |
 | --- | --- | --- | --- | --- |
-| OPS-001 | CORE | Restore admin support reads, preserve/verify the concurrent atomic draft repair, and make every support attention item open its exact canonical record. | 001 | AC-001 |
-| DATA-001 | CORE | Make `support_conversations` and `support_messages` the only new user complaint/feedback ledger and import every legacy beta-feedback row exactly once. | 002, 006, 007 | AC-002 |
-| UX-001 | CORE | Replace Type, Severity, Project UUID, and Subject with one required message, one optional screenshot, disclosed included details, and one send action. | 003, 004 | AC-003 |
-| SEC-001 | CORE | Derive actor identity server-side, sanitize route/context, validate resource ownership, apply same-origin/rate-limit checks, and expose minimal DTOs. | 002, 003, 007 | AC-004 |
-| SEC-002 | CORE | Store one validated image screenshot privately in R2 with idempotent D1 ownership, authorized preview/download, cleanup, and no hosted body-limit mismatch. | 002, 003, 007 | AC-005 |
-| UX-002 | CORE | Give users a private Support Center with request list, statuses, unread badge, conversation history, replies, retries, and responsive/accessibility states. | 004, 005 | AC-006 |
-| DATA-002 | CORE | Persist message/unread/status changes before DO fanout; realtime failure cannot lose or falsely acknowledge a message. | 002, 003, 005, 006 | AC-007 |
-| UX-003 | CORE | Show every new report, screenshot, safe context, priority, assignment, and conversation state coherently in `/admin/support` and `/admin/today`. | 001, 006 | AC-008 |
-| PERF-001 | CORE | Add no runtime dependency, keep heavy admin Tiptap out of user support, preserve small client boundaries, and avoid unmeasured virtualization/poll storms. | 004, 005, 006 | AC-009 |
-| OPS-002 | CORE | Extend privacy export/erase, redacted observability, orphan repair, legacy cutover, documentation, and release-readiness evidence. | 007 | AC-010 |
+| OPS-001 | CORE | Restore mailbox/action reliability, preserve the draft concurrency repair, and open exact sources without bounded-set reconciliation errors. | 001, 004 | AC-001 |
+| DATA-001 | CORE | Make support conversations/messages the only new user-report ledger and import legacy beta feedback exactly once with safe user visibility. | 002, 004, 005 | AC-002 |
+| UX-001 | CORE | Replace type/severity/subject/manual IDs with one required message, one optional screenshot, and disclosed included details. | 002, 003 | AC-003 |
+| SEC-001 | CORE | Derive identity, template the route, validate optional resource ownership, enforce origin/rate limits, and expose minimal DTOs. | 002, 003, 005 | AC-004 |
+| SEC-002 | CORE | Store one normalized image privately with leased idempotency, owner/admin reads, fenced cleanup, and no body-limit mismatch. | 002, 005 | AC-005 |
+| UX-002 | CORE | Give users one responsive Support Center with requests, unread discovery, lifecycle copy, history, replies, and deterministic recovery. | 003 | AC-006 |
+| DATA-002 | CORE | Persist message/status/unread changes before capability-scoped DO invalidation; realtime failure cannot lose or falsely acknowledge data. | 002, 003, 004 | AC-007 |
+| UX-003 | CORE | Show each report once in admin Support and, while attention is required, Today; keep evidence on its owning message. | 001, 004 | AC-008 |
+| OPS-002 | CORE | Complete verified privacy fulfillment, cleanup, observability, legacy cutover, documentation, and final local evidence without a release claim. | 005 | AC-009 |
 
-## 4. Planning principles and drivers
+## 4. Resolved Decisions
 
-### Principles
+### DEC-AUTO-001: one canonical ledger
 
-1. One user intent maps to one durable support domain.
-2. Users explain impact; operators classify and prioritize it.
-3. Persist first, signal second, and reconcile from D1.
-4. Collect only diagnosis data that is safe, disclosed, and useful.
-5. Prefer current repository primitives and deletion of duplicate paths.
+All new authenticated complaints, questions, feature requests, and feedback use
+`support_conversations` and `support_messages`. Legacy beta feedback is imported
+idempotently for admin continuity. Imported threads stay out of the user's
+Requests/unread counts until an admin intentionally replies; that reply activates
+the thread as a normal user-visible conversation.
 
-### Top decision drivers
+Rejected alternatives:
 
-1. **Trust and continuity:** no complaint can disappear between Feedback, Today,
-   Support, or the user's inbox.
-2. **Privacy and authorization:** screenshots and context can expose sensitive
-   project information, so ownership and minimization are first-class.
-3. **Speed to first reliable version:** existing D1/R2/DO/UI primitives cover the
-   need; new packages and provider resources would delay the pipeline.
+- keep feedback and support as two active products;
+- destructively rewrite/drop legacy tables during MVP;
+- show old one-way feedback as a fresh unread chat request.
 
-## 5. Considered architecture options
+### DEC-AUTO-002: message-first intake
 
-### Option A: keep feedback and support as parallel products
+The user supplies only a 2 to 4,000 character message and an optional screenshot.
+No type, severity, subject, project UUID, or internal triage choice is shown.
+Admin classification uses existing labels/status/snooze/star/self-assignment.
 
-- **Pros:** smallest immediate code edit; old review queue remains untouched.
-- **Cons:** preserves duplicate forms, stores, attention semantics, and user
-  confusion; a feedback item still is not a conversation; follow-up fragments.
-- **Decision:** rejected.
+### DEC-AUTO-003: disclosed per-message context
 
-### Option B: canonical support ledger with additive legacy import
+Every new request and reply shows the same `Included details` disclosure:
 
-- **Pros:** one durable thread, one admin inbox, one user history, existing
-  realtime/unread/attachment infrastructure, non-destructive audit retention.
-- **Cons:** requires a context table, user attachment boundary, idempotent import,
-  and coordinated cutover of old entry points.
-- **Decision:** selected.
+- required and not removable: server-derived actor/conversation/message/time and
+  a server-matched route template with opaque dynamic segments replaced by
+  placeholders;
+- optional, one group toggle, default on for each composer instance and not saved
+  as a preference: validated workspace/project/estimate IDs, viewport, timezone,
+  normalized browser/OS family, and safe app release;
+- when off, admin still receives identity, time, route template, message, and any
+  user-selected screenshot, but none of the optional diagnostics.
 
-### Option C: destructive immediate rewrite/drop of beta feedback
+The client supplies only `window.location.pathname` as an untrusted
+`sourcePathname`; it never sends origin, query, or hash. A server-owned ordered
+matcher maps that value to an allowlisted authenticated route template and checks
+any optional resource IDs independently. Missing, malformed, non-authenticated,
+or unmatched input persists the constant `authenticated_route_unknown`, never the
+API route or raw client path. `Referer` is not a source of stored context.
 
-- **Pros:** removes old tables and code fastest after migration.
-- **Cons:** unnecessary data risk, harder rollback/audit, no value over a
-  read-only retained source during alpha.
-- **Decision:** rejected.
+### DEC-AUTO-004: no new runtime dependency
 
-## 6. Architecture decision record
+Reuse repository Dialog/Modal/Sheet, Button, controls, badges, alerts/toast,
+TanStack Query, native File/Clipboard/Drag APIs, native WebSocket, and existing
+image processing. Tiptap remains admin-only. Do not add Radix Dialog, shadcn
+generated Dialog, React Hook Form, Zod, react-dropzone, html2canvas, image
+compression packages, Socket.IO, another toast, or another virtual-list package.
+`RESEARCH.md` holds the dated official-source comparison.
 
-### ADR: canonical support conversation for all new feedback
+### DEC-AUTO-005: normalized small-file relay
 
-- **Decision:** every new authenticated complaint, question, feature request, or
-  feedback message creates or appends to a canonical support conversation.
-- **Drivers:** trust, follow-up continuity, D1/R2/DO reuse, admin coherence, and
-  user inbox requirements.
-- **Alternatives:** parallel feedback queue; destructive legacy rewrite.
-- **Why selected:** it deletes duplicate product behavior while preserving
-  historical evidence and reusing the strongest implemented substrate.
-- **Consequences:** `BetaFeedbackForm` and its user-facing actions are removed
-  after the new path is proven; legacy tables become read-only but still
-  participate in privacy export/erasure; Action Inbox derives only unmapped
-  legacy feedback and naturally converges to support as imports complete.
-- **Follow-ups:** an explicit later data-retention decision may remove legacy
-  tables after the audit window; email/OS notifications remain separate product
-  decisions.
+Accept no image or one PNG/JPEG/WebP source up to 3 MiB inside a request bounded
+to 4,194,304 bytes. Decode fail-closed, cap at 24 megapixels and 4,096 pixels per
+edge, re-encode a static WebP, strip source metadata, and store only the normalized
+output. Use the existing private `ARCH_UPLOADS_R2` and `IMAGES` bindings. No
+presigned URL, public bucket, signing credentials, or raw original is retained.
 
-## 7. Resolved implementation decisions
+### DEC-AUTO-006: leased intake claim
 
-- **DEC-AUTO-001: canonical ledger.** All new user reports write only to support
-  conversations/messages. Legacy feedback is imported idempotently, retained
-  read-only until a later deletion decision, and redacted by privacy erasure.
-- **DEC-AUTO-002: message-first intake.** User supplies only message and optional
-  screenshot. No user Type, Severity, Subject, or manual resource UUID. Internal
-  priority and classification live in admin triage.
-- **DEC-AUTO-003: disclosed context tiers.** Required envelope: server-derived
-  user, message/conversation IDs, timestamp, and sanitized pathname. Optional
-  diagnostics, enabled by default but visible/removable: validated resource IDs,
-  viewport, timezone, normalized browser/OS, and app release if available.
-- **DEC-AUTO-004: no new runtime package.** Reuse repository-owned Dialog/Sheet,
-  controls, upload patterns, TanStack Query, native WebSocket, and toast. Keep
-  Tiptap admin-only.
-- **DEC-AUTO-005: small-file Worker relay.** One PNG/JPEG/WebP screenshot up to
-  3 MiB per user message, private R2, no presigned upload and no new credential.
-- **DEC-AUTO-006: D1-authoritative realtime.** D1 write and unread/status update
-  complete before identifier-only DO fanout. Missed fanout triggers refetch, not
-  message loss.
+A detached claim is justified because no D1 transaction can include R2. It is the
+single pre-object intent and retry fence, not a second user-visible message ledger.
+Only the current lease token may write and commit. Followers never write R2.
+Cleanup must fence an expired claim before deletion, so it cannot race a commit.
 
-## 8. Target product design
+### DEC-AUTO-007: D1 first, capability-scoped realtime
 
-### 8.1 Global Support entry
+All D1 message/status/unread changes commit before realtime. Add support-specific
+v2 claims with separate `support:subscribe` and `support:fanout` capabilities.
+WebSocket admission accepts only subscribe capability; internal POST fanout
+requires `support:fanout` and `sub=system:support-inbox-fanout`. Use the existing
+`REALTIME_ROOM_TOKEN_SECRET`. The browser offers exactly
+`archestimator.support.v2` plus
+`archestimator.support.auth.<signed-room-token>` in
+`Sec-WebSocket-Protocol`; the DO validates the credential offer and echoes only
+the fixed non-secret protocol in the `101` response. Never place the credential
+in a URL or selected protocol. Broadcast identifiers only.
 
-- Preserve the footer lifebuoy but label it `Support`, not only `Send feedback`.
-- Add a D1-derived unread reply badge.
-- Open a responsive Support Center composition. Default to `New request` when
-  launched globally; preserve `Requests` and `Conversation` navigation.
-- Keep `/workshop/feedback` as the full-page Support Center destination to avoid
-  a route migration that adds no user value. Retitle content to `Support`.
+### DEC-AUTO-008: in-app reply discovery for MVP
 
-### 8.2 New request flow
+Support replies do not enter the general Workshop notification center and do not
+send email in MVP. The Support trigger owns a capped `9+` badge with the full
+count in its accessible label. Opening it selects the newest unread conversation;
+otherwise it opens Requests when history exists and New request when empty.
+Email notification remains a later product decision and never blocks D1 writes.
 
-1. Autofocus `How can we help?`.
-2. Accept 2 to 4,000 characters. Do not ask for a subject.
-3. Accept one optional screenshot via file picker, paste, or drop.
-4. Show object-URL preview, normalized filename, size, Remove, and a reminder to
-   exclude confidential client information.
-5. Show `Included details` as a compact disclosure with required and optional
-   fields. Optional details can be removed before send.
-6. Submit once with a stable client message ID.
-7. On success, show the created conversation, reference, and `Received` state.
+## 5. Product And Interaction Contract
 
-### 8.3 User inbox
+### 5.1 Information architecture and hosts
 
-- `Requests` list rows show user-facing status, last preview, updated time,
-  unread badge, and short stable reference.
-- Map internal status:
-  - open: `Received` for a new request, then `Waiting for support`;
-  - pending: `Waiting on you`;
-  - resolved: `Resolved`;
-  - archived: `Closed`.
-- Conversation is chronological, text-safe, and attachment-aware.
-- Opening history marks read only after it renders.
-- A user reply to resolved/archived reopens the thread and restores admin
-  attention instead of silently appending to a closed item.
+| Host | Width | Primitive/composition | Initial destination | Navigation/focus |
+| --- | --- | --- | --- | --- |
+| Global Support | `<640px` | modal `Sheet side="right" size="full"`; one view at a time | newest unread, else Requests, else New request | Conversation/New Back returns to Requests; focus moves to view heading, then back to the originating row/button; closing returns focus to Support. |
+| Global Support | `>=640px` | `AppModal size="xl"`; Requests rail plus selected Conversation/New panel | newest unread, else first recent request, else New request | selected-row and panel scroll persist while open; composer remains visible; closing returns focus to Support. |
+| `/workshop/feedback` | `<640px` | full-page one-view flow | newest unread, else Requests, else New request | visible Back, sticky header/composer, focus moves to new heading and restores to row on Back. |
+| `/workshop/feedback` | `>=640px` | full-page Requests rail plus Conversation/New panel | newest unread, else first recent request, else New request | URL may carry `?c=<id>`; selection and scroll survive refresh where source state permits. |
 
-### 8.4 Admin support
+The existing Dialog core owns trap, Escape, inert background, description, and
+focus return when the overlay closes. The Support Center owns focus for internal
+view changes. Initial focus for New request is the message textarea.
 
-- Deep links load the selected conversation by ID even if it is outside the
-  current page or folder result.
-- Thread header includes requester, status, internal priority, assignee, labels,
-  age, channel, and stable reference.
-- Context panel contains only sanitized path, validated resource links, optional
-  technical context, and screenshot preview.
-- Add `normal`, `high`, and `urgent` triage priority. Existing user-selected
-  legacy severity is preserved as legacy metadata but never trusted as current
-  operator priority.
-- Assignment accepts any current platform admin using the repository's complete
-  platform-admin predicate, including the configured email allowlist rule, not a
-  role string alone.
+### 5.2 New request and reply
 
-### 8.5 Today Action Inbox
+- Copy: `Tell us what happened or what you need help with.`
+- Message is the only required field.
+- `Add a screenshot (recommended)` supports picker, paste, and drop through one
+  normalized selection path.
+- Show a local object-URL preview, generic normalized output name, source size,
+  Remove, and confidential-information reminder. Revoke the URL on replace,
+  remove, success, or unmount.
+- Screenshot can be removed before send. After send, it remains part of the
+  support record until authorized lifecycle handling or privacy erasure; disclose
+  that consequence before submission.
+- New request and Reply use the same Included details toggle and retry contract.
+- Local draft state stays in memory while the host remains mounted. Do not put
+  sensitive support drafts into localStorage/sessionStorage or background sync.
+- `Ctrl/Cmd+Enter` sends; Enter inserts a newline.
 
-- Primary action for support is `Open conversation`.
-- Support href is `/admin/support?c=<conversationId>&folder=all`.
-- Support Resolve, Dismiss, and generic Action Inbox Snooze controls are removed.
-  Resolution and snooze happen only in canonical support triage/thread state.
-- When a qualifying support source reappears after expiry/reopen, reconciliation
-  must reopen its derived action row even if older code left that row resolved or
-  dismissed.
-- Legacy attention queries only rows without a
-  `support_legacy_feedback_imports` mapping. The source naturally disappears as
-  import succeeds, with no second deployment or flag.
+### 5.3 Conversation lifecycle
 
-### 8.6 Interaction and accessibility states
+| Event | Internal status | User label/copy | Unread effect | Admin attention |
+| --- | --- | --- | --- | --- |
+| User creates request | `open` | success `Request received`; row `Waiting for support` | admin `1`, user `0` | open |
+| Admin opens thread | unchanged | unchanged | clear admin unread only through the last successfully rendered inbound message | source remains active while open/pending |
+| Admin replies and expects response | `pending` by default | `Waiting on you` | user `1`, admin `0` | active but below unread user replies |
+| Admin closes after explanatory reply | `resolved` or `archived` | `Conversation closed` | user `1` for the reply/status change | resolved from Today by canonical truth |
+| User replies from any status | `open` | `Waiting for support` | admin `1`, user `0` | reopen/refresh exact source |
+| User opens successfully rendered history | unchanged | unchanged | clear user unread only through the last successfully rendered support message | no change |
+| Legacy import | mapped status, admin-visible | absent from Requests/unread | user `0` | active if mapped canonical status requires attention |
+| Admin first reply to hidden legacy thread | `pending` | thread becomes visible as `Waiting on you` | user `1` | canonical source continues |
 
-- Explicit loading, empty, uploading, sending, offline, reconnecting, degraded,
-  retry, idempotently recovered, upload-rejected, and stale-list states.
-- Existing Dialog/Sheet handles focus trap, Escape, inert background, title,
-  description, and focus return.
-- File input remains keyboard-accessible; paste/drop are enhancements.
-- Progress uses `aria-live="polite"`; terminal send failure uses alert semantics.
-- Status and priority are never conveyed by color alone.
-- Narrow layout is one pane at a time with a visible Back control and no
-  horizontal scrolling.
+`resolved` never claims that a bug or feature is fixed. The final admin reply says
+whether the question was answered, issue fixed, feedback recorded, or request
+declined. Status-only close without explanatory user-visible copy is not a valid
+admin flow.
 
-## 9. Data model and migration
+### 5.4 Message-scoped evidence
 
-Recheck the migration tail immediately before execution. The expected next file
-is `migrations/0100_user_support_system.sql`, but the executor must renumber
-forward if another migration lands.
+- Screenshot and Included details render on the message that produced them.
+- `SupportMessageCard` remains the chronology owner for attachments.
+- Stable conversation identity and triage stay in the thread header.
+- There is no ambiguous thread-global context panel. Admin may expand an
+  `Included details` disclosure on each applicable message.
+- User text renders as plain escaped text. Admin HTML continues through the
+  existing sanitized admin/email path and is never reused for user input.
 
-### 9.1 `support_message_context`
+### 5.5 Recovery matrix
 
-One optional row per support message:
+| State | Retained content | User-facing action/copy | Identity and accessibility |
+| --- | --- | --- | --- |
+| Offline before send | message, image preview, included-details choice | `You are offline. Send when your connection returns.` No auto-send. | same client ID; status region; focus stays in composer |
+| Invalid image | message and choice; rejected file removed from pending payload | explain size/type/decode problem; Replace or Send without screenshot | no claim yet; alert; focus image control |
+| Uploading/submitting | all local content | progress copy; duplicate send disabled | one stable client ID; polite live region |
+| Active identical retry | all local content | `Still saving. Try again in a moment.` | same client ID; server `202` plus Retry-After |
+| Uncertain/lost response | all local content | `We could not confirm the result. Try again.` | retry same client ID/fingerprint; focus Retry |
+| Idempotent recovery | canonical server result | `Request received.` Open returned thread | clear draft only after canonical response; polite announcement |
+| Changed-payload conflict | all local content | explain that this send identity already belongs to another payload; explicit Start new attempt | never auto-generate a second ID; alert |
+| Screenshot storage failure | message and preview | Retry image, or fence this attempt then Send without screenshot using a new ID | old claim reaches `cleanup_fenced` synchronously and `abandoned` only after quiet-period cleanup; alert |
+| Rate limited | all local content | show bounded retry time | same client ID; no new claim/write after denial |
+| Realtime degraded | canonical server result | `Live updates are delayed. Messages are still saved.` Refresh available | success, not send failure; status region |
+| List/thread refresh failure | last known safe cache | stale banner plus Retry; do not erase visible history | no mark-read until fresh history renders |
+| Attachment unavailable | message/context remain | attachment-specific unavailable copy plus Retry | never hide the owning message |
+| Admin mailbox failure | last known mailbox when available | visible error and Retry; Today deep link remains exact | redacted log event; no false empty state |
+
+### 5.6 Accessibility and performance
+
+- Badge, status, unread, upload, and priority-like labels are textual, not color
+  only. Use polite live regions for progress/new replies and alerts for terminal
+  failure.
+- Touch targets and visible focus follow existing authenticated UI guidance.
+- Narrow views never require horizontal scroll and expose an explicit Back.
+- Query lists are bounded and cursorable. Do not add virtualization until a
+  measured threshold. Use a visible-page 60-second unread summary refresh plus
+  focus/visibility/online refresh; do not open one socket per conversation.
+- Subscribe only to the selected conversation. Reconnect with bounded backoff and
+  jitter, mint a fresh subscribe capability, and refetch D1 on reconnect.
+
+## 6. Data, API, And Security Contract
+
+### 6.1 Additive migration
+
+Recheck the migration tail before execution. The expected file is
+`migrations/0100_user_support_system.sql`; renumber forward if another migration
+lands.
+
+#### `support_message_context`
+
+One row for each new in-app user message. Historical, admin, system, and email
+messages may have no row unless an explicit trusted path creates one:
 
 ```text
 message_id TEXT PRIMARY KEY REFERENCES support_messages(id) ON DELETE CASCADE
 workspace_id TEXT NULL REFERENCES workspaces(id) ON DELETE SET NULL
 project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL
 estimate_id TEXT NULL REFERENCES estimates(id) ON DELETE SET NULL
-route_path TEXT NOT NULL
+route_template TEXT NOT NULL
 app_release TEXT NULL
 viewport_width INTEGER NULL
 viewport_height INTEGER NULL
@@ -343,15 +320,14 @@ diagnostics_shared INTEGER NOT NULL CHECK (diagnostics_shared IN (0,1))
 created_at TEXT NOT NULL
 ```
 
-Constraints cap text lengths and sane viewport ranges. No raw user agent is
-stored. The server normalizes browser/OS or stores `unknown`. Resource context
-must form one coherent chain: the workspace is accessible to the actor, the
-project belongs to that workspace, and the estimate belongs to that project.
-Independently accessible but unrelated IDs are rejected rather than mixed.
+Text lengths and viewport ranges are constrained. The route template replaces
+UUID/opaque dynamic segments before persistence. Optional resource IDs are null
+unless they form one server-authorized workspace -> project -> estimate chain.
+No raw user agent is stored.
 
-### 9.2 `support_user_intake_claims`
+#### `support_user_intake_claims`
 
-Reserve one actor-scoped idempotency identity before any R2 write:
+One actor-scoped send identity and cross-store lease:
 
 ```text
 user_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE
@@ -359,573 +335,639 @@ client_message_id TEXT NOT NULL
 kind TEXT NOT NULL CHECK (kind IN ('new','reply'))
 conversation_id TEXT NOT NULL
 message_id TEXT NOT NULL UNIQUE
+attachment_id TEXT NULL UNIQUE
+fingerprint_version INTEGER NOT NULL DEFAULT 1
 payload_sha256 TEXT NOT NULL
 attachment_sha256 TEXT NULL
 attachment_r2_key TEXT NULL
-state TEXT NOT NULL CHECK (state IN ('reserved','committed','abandoned'))
+privacy_generation INTEGER NOT NULL CHECK (privacy_generation >= 0)
+state TEXT NOT NULL CHECK (state IN ('reserved','committed','cleanup_fenced','abandoned'))
+lease_token TEXT NULL
+lease_expires_at TEXT NULL
+cleanup_not_before TEXT NULL
 created_at TEXT NOT NULL
 updated_at TEXT NOT NULL
 PRIMARY KEY (user_id, client_message_id)
 ```
 
-`conversation_id`/`message_id` are stable winning UUIDs stored by the first
-reservation. A reservation intentionally precedes the conversation/message and
-therefore is a durable intent rather than an immediate FK child. Commit/repair
-code proves the referenced rows for `committed`; bounded cleanup may move only an
-expired, unreferenced reservation to `abandoned` after deleting its R2 object.
+- Claims precede canonical rows, so conversation/message/attachment IDs are not
+  premature foreign keys.
+- `client_message_id` is a UUID for user intake.
+- State checks require a token/expiry only while `reserved`, a non-null
+  `cleanup_not_before` only while `cleanup_fenced`, and no live lease while
+  `committed` or `abandoned`.
+- Fingerprint v1 covers actor, kind, reply target, normalized message, route
+  template, optional diagnostics, and the source screenshot byte digest.
+- Add a unique partial index on non-null claim R2 keys.
+- Add `UNIQUE(r2_key)` to `support_message_attachments`.
+- Add a defensive unique partial index on
+  `(author_user_id, client_message_id)` where sender is user, transport is
+  in-app, and both values are non-null. Preflight duplicates and fail visibly.
+- A committed claim and attachment are one immutable lineage, not competing
+  owners: claim proves the intent; attachment is the authorized readable record.
 
-Add a unique partial index on non-null `attachment_r2_key` and a defensive unique
-partial index on `(author_user_id, client_message_id)` for user-authored support
-messages. Before adding the global user-message index, run a duplicate preflight
-and fail the migration plan rather than silently discard a collision.
+#### Support quota dedupe
 
-The payload fingerprint covers actor, kind, target conversation for replies,
-normalized message, sanitized context, diagnostics choice, and screenshot
-digest. Reuse of a client ID with a different fingerprint returns conflict and
-never overwrites the winning message or object.
+Add nullable `dedupe_hash` to `security_rate_limit_events` plus a unique partial
+index on `(scope, key_hash, dedupe_hash)` when non-null. Extend the existing
+durable limiter with insert-or-ignore accounting. Support create/reply supplies
+`SHA-256(client_message_id)` as the dedupe value to both the combined message
+scope and screenshot scope, so concurrent/lost-response retries count once while
+distinct attempts still consume quota. Do not store the raw client ID in rate
+metadata.
 
-### 9.3 `support_legacy_feedback_imports`
+#### `support_subject_privacy_fences`
+
+```text
+user_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE
+generation INTEGER NOT NULL DEFAULT 0 CHECK (generation >= 0)
+state TEXT NOT NULL CHECK (state IN ('open','exporting','erasing'))
+privacy_request_id TEXT NULL REFERENCES privacy_requests(id) ON DELETE SET NULL
+updated_at TEXT NOT NULL
+```
+
+Every support writer reads the current subject generation and SQL-gates its final
+D1 mutation on the same generation with `state='open'`. Export/erasure start and
+finish each increment generation. This rejects pre-fence work even if it reaches
+commit after the privacy operation has reopened support; new post-completion work
+reads the new open generation and may proceed. User intake claims persist the
+generation they observed. A shared insert-or-ignore-then-read helper creates the
+initial `{generation:0,state:'open'}` row; writers never treat a missing/failed
+fence read as permission.
+
+#### `support_privacy_exports`
+
+```text
+privacy_request_id TEXT PRIMARY KEY REFERENCES privacy_requests(id) ON DELETE RESTRICT
+user_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE
+status TEXT NOT NULL CHECK (status IN ('ready','deleted'))
+r2_key TEXT NULL UNIQUE
+sha256 TEXT NULL
+size_bytes INTEGER NULL CHECK (size_bytes IS NULL OR size_bytes >= 0)
+created_at TEXT NOT NULL
+expires_at TEXT NOT NULL
+downloaded_at TEXT NULL
+deleted_at TEXT NULL
+```
+
+`ready` requires key/hash/size and `deleted` requires a null key plus
+`deleted_at`. The row contains no export body and becomes a content-free tombstone
+after expiry cleanup.
+
+#### `support_legacy_feedback_imports`
 
 ```text
 feedback_id TEXT PRIMARY KEY REFERENCES beta_feedback_submissions(id) ON DELETE RESTRICT
 conversation_id TEXT NOT NULL UNIQUE REFERENCES support_conversations(id) ON DELETE RESTRICT
 message_id TEXT NOT NULL UNIQUE REFERENCES support_messages(id) ON DELETE RESTRICT
+user_visible_at TEXT NULL
+activated_by_message_id TEXT NULL REFERENCES support_messages(id) ON DELETE SET NULL
 imported_at TEXT NOT NULL
 ```
 
-The mapping is the idempotency/audit record. It allows a legacy review page to
-link to canonical Support without dual-writing.
+The mapping is the exact-once audit and visibility gate. Legacy source rows stay
+read-only and participate in privacy export/erasure.
 
-### 9.4 Triage extension
+#### Privacy request execution fields
 
-Add `priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN
-('normal','high','urgent'))` to `support_conversation_triage`, with an index only
-if the Action Inbox/query plan proves it is used.
+Extend `privacy_requests` with:
 
-### 9.5 Legacy import contract
+```text
+execution_revision INTEGER NOT NULL DEFAULT 0 CHECK (execution_revision >= 0)
+subject_verified_at TEXT NULL
+subject_verified_by TEXT NULL REFERENCES profiles(id) ON DELETE SET NULL
+subject_verification_method TEXT NULL CHECK (
+  subject_verification_method IN ('authenticated_session','admin_verified')
+)
+execution_started_at TEXT NULL
+execution_error_code TEXT NULL
+```
 
-- Read only legacy rows with no mapping record.
-- Generate real UUID conversation/message IDs in application code.
-- Preserve original message, user/email, timestamps, page, workspace/project
-  hints, and original type/severity as explicitly labeled legacy metadata.
-- Validate the workspace -> project -> estimate chain; invalid/missing ownership
-  becomes null, never a fabricated or cross-project FK.
-- Map both `new` and `reviewing` to `open`; preserve the legacy reviewing label as
-  historical metadata. Map resolved/archived to resolved/archived. `pending`
-  remains reserved for the current meaning `Waiting on you`.
-- Treat legacy severity as historical user input, not admin priority.
-- Insert conversation, message, safe context, labels if selected, and mapping in
-  one D1 batch. Re-running returns the same mapping and creates no duplicate.
-- While legacy rows are retained, privacy export includes them and privacy erase
-  replaces their message/user/email/page/resource/metadata and status-event actor
-  fields with the repository's approved anonymized values while retaining the
-  mapping and minimal audit timestamps.
+The verification fields are all null or all populated. `requester_user_id` is the
+only subject identity accepted by support export/erasure. Authenticated intake
+derives it from session and records `authenticated_session`; anonymous intake
+remains intake-only until an admin verification step binds the subject and records
+`admin_verified`. Every execution compare-and-sets `status`,
+`execution_revision`, and the verified subject; retries retain a redacted stable
+`execution_error_code` and never infer identity from email/name/description.
 
-## 10. API and server contracts
+### 6.2 User API
 
-### 10.1 User list
+#### `GET /api/support/conversations`
 
-`GET /api/support/conversations`
-
-- Auth required, no-store.
-- Returns owner-only summary DTOs, total unread count, and stable ordering.
-- Never returns routing tokens, requester email, admin-only triage, or unsafe
+- authenticated, owner-only, no-store;
+- cursorable summaries, last safe preview, stable reference, user-facing status,
+  per-row unread and total unread;
+- exclude hidden legacy mappings until `user_visible_at` is set;
+- omit requester email, routing token, admin triage, raw R2 keys, and unsafe
   metadata.
 
-### 10.2 New request
+#### `POST /api/support/conversations`
 
-`POST /api/support/conversations`
+#### `POST /api/support/conversations/[id]/messages`
 
-- Replace the current JSON contract with multipart `FormData` in the same cutover
-  unit; do not keep two active write paths.
-- Required: `message`, `clientMessageId`, `routePath`.
-- Optional: one `screenshot`, `diagnosticsShared`, workspace/project/estimate
-  hints, viewport, timezone, and client-known app release.
-- Server derives user, email, and default workspace; validates the optional
-  workspace -> project -> estimate chain as one coherent hierarchy.
-- Same-origin check and durable user-scoped rate limit apply before expensive
-  object processing.
-- Reserve `(userId, clientMessageId)` before R2. A same-fingerprint retry reuses
-  the winning conversation/message/object identities; a different fingerprint
-  returns `conflict`.
-- Response returns canonical conversation/message DTO, reference, attachment,
-  and `realtimeDegraded`; 200 on idempotent recovery, 201 on insertion.
+- strict same-origin helper in a neutral security module, not an admin-named
+  import;
+- session actor and current open privacy-fence generation before mutation;
+- `readBoundedFormData(request, 4_194_304)` before `formData` parsing;
+- multipart content type/boundary, one 2-4,000 character message, UUID client ID,
+  pathname-only `sourcePathname`, capped context fields, and no file or one source
+  image up to 3 MiB; map the pathname through the server allowlist with the
+  constant fallback above;
+- use retry-neutral durable rate accounting, combined across create/reply: 5 per
+  minute, 20 per hour, 50 per day per user, plus 10 screenshot-bearing sends per
+  day; each scope dedupes by the actor/client ID;
+- new request and reply share the leased write service; reply owner check occurs
+  before claim/object access;
+- return `201` for insertion, `200` for committed idempotent recovery, and `202`
+  with Retry-After while an identical lease winner is active;
+- reply to any status reopens to `open`; admin reply transitions are owned by the
+  admin contract, not this user route.
 
-### 10.3 Reply
+#### `POST /api/support/intake/[clientMessageId]/abandon`
 
-`POST /api/support/conversations/[id]/messages`
+Owner-only and same-origin. It may compare-and-set only a noncommitted claim to
+`cleanup_fenced`, clear its lease, and set `cleanup_not_before` to 24 hours after
+the fence. It never deletes R2 synchronously. The user may then retry without a
+screenshot under a new client ID while the secret-gated cleanup owns the old key.
+This is not a post-send attachment delete endpoint.
 
-- Same multipart contract and screenshot rules.
-- Owner check precedes message/context/object access.
-- Reply to resolved/archived atomically reopens to `open`.
-- A repeated `clientMessageId` returns the original message/attachment and never
-  fans out a duplicate event.
+#### Reads
 
-### 10.4 Thread read
+- `GET /api/support/conversations/[id]/messages`: owner-only cursor/history plus
+  message-scoped context and attachment descriptors; reads never mutate unread.
+- `POST /api/support/conversations/[id]/read`: owner-only, same-origin, idempotent
+  receipt with required `throughMessageId` from the last successfully rendered
+  support-authored message. Resolve its `(created_at,id)` server-side and clear the
+  boolean only when no later user-relevant message exists. A message arriving
+  after render therefore remains unread.
+- The admin read action uses the same watermark rule against user-authored/inbound
+  messages and never clears unread during the initial server fetch.
+- `GET /api/support/attachments/[id]`: owner or platform admin by attachment ->
+  message -> conversation join; stream private normalized WebP; no-store,
+  `Content-Type: image/webp`, safe inline disposition, `nosniff`, defensive CSP,
+  and no R2 key.
+- realtime token route issues only `support:subscribe` capability.
 
-`GET /api/support/conversations/[id]/messages`
+### 6.3 Leased write algorithm
 
-- Owner-only, no-store, bounded page/history.
-- Returns safe message DTOs with owner-visible attachment descriptors.
-- Mark read after a successful read result, not before query failure.
+1. Verify origin/session, reply ownership, and the current open subject privacy
+   generation. Read bounded multipart once; validate message, client ID,
+   pathname-only source, optional diagnostics, file count/type/size, and derive
+   the allowlisted route template. Do not decode the image yet.
+2. Hash source screenshot bytes when present and compute fingerprint v1. Look up
+   `(user_id, client_message_id)` before quota accounting. A matching committed
+   claim returns canonical `200`; a matching live lease returns `202`; a different
+   fingerprint returns conflict. Matching expired `reserved` work may proceed to
+   lease takeover without a second quota charge. Fenced/abandoned work requires an
+   explicit new client ID.
+3. Only when no claim exists, apply both support quota scopes through the new
+   insert-or-ignore `dedupe_hash`. A denial writes no claim/object and returns the
+   same bounded retry result for repeated use of that client ID. Concurrent
+   identical requests count once.
+4. Generate stable conversation/message/attachment IDs and private key
+   `support-user/<conversationId>/<messageId>/<attachmentId>.webp`. No actor ID,
+   client filename, email, or raw client message ID appears in the key.
+5. Insert-or-ignore the actor/client claim with fingerprint, observed privacy
+   generation, stable IDs/key, and a random lease token/expiry; reread the winner.
+   Different fingerprint conflicts. A valid foreign lease returns `202`. Take an
+   expired lease only by compare-and-set on state/token/expiry/generation.
+6. Only the lease winner decodes and re-encodes through the existing
+   provider-aware pipeline. Reject unavailable decoder, invalid/animated-active
+   encoding, dimensions above limits, and processed output above 3 MiB. Hash and
+   persist the normalized digest separately from the source fingerprint.
+7. Only that winner writes normalized bytes to the stable private key. Followers
+   never write or delete R2.
+8. Use `runRequiredD1Batch` for conversation/message, context, attachment,
+   unread/status, and `reserved -> committed`. Every canonical insert/update is
+   SQL-gated by `EXISTS` on the same actor/client ID, `reserved` state, live lease
+   token, unexpired lease, and unchanged open privacy generation. A transaction
+   observes one stable claim; a lost lease/fence therefore produces zero gated
+   canonical effects. Remove the support repository's prepare-only D1 type and use
+   the shared D1 interfaces. Fail closed when batch is absent.
+9. Treat the batch as committed user work only when metadata proves exactly one
+   claim transition and every required insert/update count. Zero-effect success is
+   a lost-lease/fence result, not an acknowledgement. Reread canonical/claim data
+   and return the matching recovery response. Fan out only after a newly committed
+   mutation.
+10. Never immediately delete a stable key after a failed commit. The expired claim
+    remains discoverable.
+11. Cleanup first compare-and-sets an expired `reserved -> cleanup_fenced`, clears
+    the lease, and sets `cleanup_not_before = now + 24 hours`; explicit abandonment
+    uses the same fence. Commit and lease takeover are forbidden from that state.
+    At/after `cleanup_not_before`, cleanup rechecks canonical references, deletes
+    the exact key, confirms R2 absence, then sets `abandoned`. Failed deletion or
+    confirmation stays fenced and retryable. The quiet period prevents a late
+    pre-fence R2 write from recreating an object after deletion.
 
-### 10.5 User screenshot read
+### 6.4 Legacy import
 
-- `GET /api/support/attachments/[id]`: owner or admin authorization through the
-  message's conversation; no-store/private; exact safe image content type;
-  `nosniff`; defensive CSP; no raw R2 key.
-- MVP has no post-send attachment DELETE endpoint. The user can remove a local
-  screenshot before send. After send, the screenshot is part of the support
-  record and is removed only by authorized admin lifecycle or privacy erasure;
-  the UI states this before submission. Never implement a local-only hide.
+Create one server-only import service plus a same-origin platform-admin endpoint
+under `/api/admin/support/legacy-import` with dry-run/apply, cursor, and bounded
+batch size. This is the concrete bound-D1 execution surface; a normal Bun script
+cannot resolve OpenNext bindings.
 
-### 10.6 Admin reads/mutations
+- Dry-run returns counts and stable IDs only, never message/email content.
+- Import only unmapped rows, validate user/resource references, read the subject's
+  open privacy generation, and skip/fail any fenced subject.
+- Generate canonical UUIDs and preserve original message/timestamps/page and
+  type/severity as explicitly labeled legacy metadata. Legacy severity never
+  becomes current priority.
+- Map `new`/`reviewing` to `open`, resolved/archived accordingly.
+- Insert conversation/message/context and put the mapping last in one required D1
+  batch gated on the same open subject generation. Mapping collision must fail the
+  batch, then reread the winner; never use an ignore that can leave duplicate
+  canonical rows.
+- User list/unread excludes the mapping until an admin reply atomically sets
+  `user_visible_at` and `activated_by_message_id`.
+- Before, during, and after import, Today derives canonical support plus only
+  unmapped legacy rows. No feature flag or second deployment is required.
+- The endpoint is implemented locally but not invoked against remote D1 by this
+  plan.
 
-- Existing admin mailbox/messages/attachment routes remain admin-gated.
-- Selected conversation fetch is independent of the active page result.
-- Priority/assignment/status/labels are revisioned, audited, and return
-  authoritative state.
-- Action Inbox hrefs and source-aware controls derive from canonical support.
+### 6.5 Action Inbox and admin truth
 
-### 10.7 Error contract
+- Today support action is `Open conversation` to
+  `/admin/support?c=<id>&folder=all`.
+- Support items do not expose generic Resolve, Dismiss, or Snooze. Canonical
+  support status/triage owns those meanings.
+- Enforce that boundary in `action-inbox-actions.ts`, not only the component:
+  generic resolve/dismiss/snooze rejects `support` and `feedback` source kinds.
+  Reconciliation/upsert forces every still-active derived row back to canonical
+  `open` or canonical support-triage `snoozed` truth; it never preserves an
+  independently resolved/dismissed generic state.
+- Selected admin conversation loads by authorized ID even when outside the
+  current list/filter/cursor and is pinned into the view.
+- Separate display pagination from reconciliation. Upsert active sources in
+  pages; resolve with D1 `NOT EXISTS` predicates against canonical status,
+  snooze, and unmapped legacy truth. Never treat the first 25/15 source rows as
+  the complete active set.
+- Temporary legacy attention includes only `new`/`reviewing` rows and opens
+  `/workshop/settings/feedback?feedback=<id>` with that authorized record pinned
+  and visible until mapped.
+- Admin replies, status, labels, self-assignment, snooze, and star remain
+  revision-aware. `resolved`/`archived` cannot be written by the generic status
+  mutation: one unified required D1 batch must insert a non-empty user-visible
+  explanatory admin reply, apply the terminal status/unread transition, activate
+  hidden legacy when applicable, and update Today truth, all gated on the subject's
+  same open privacy generation. The direct terminal status action rejects
+  status-only closure server-side. New priority/multi-admin UI is not part of this
+  pack.
 
-Use stable internal codes with user-safe copy:
+### 6.6 Realtime contract
 
-- `unauthenticated`, `forbidden`, `not_found`, `invalid_message`,
-  `invalid_context`, `invalid_screenshot`, `screenshot_too_large`, `rate_limited`,
-  `storage_unavailable`, `conflict`, `realtime_degraded`, `unknown`.
-- Never return raw SQL, R2, provider, object key, token, email, stack, or request
-  body details.
+- Add support-specific v2 token audience/capability without breaking other
+  collaboration token consumers.
+- Browser constructs `new WebSocket(url, ["archestimator.support.v2",
+  "archestimator.support.auth.<token>"])`. The DO requires exactly one fixed offer
+  and one credential-prefixed offer, validates the subscribe capability before
+  admission, and returns `Sec-WebSocket-Protocol: archestimator.support.v2` on the
+  `101`. Missing/duplicate/unrecognized offers fail the upgrade. The credential
+  must not appear in URLs, the selected response protocol, logs, context, or
+  errors.
+- Internal fanout uses the existing internal header with a short-lived fanout
+  capability and exact system subject.
+- DO rejects a subscribe token on POST and a fanout token on socket admission.
+- Events are only:
+  `{type:'support_message_created', conversationId, messageId}` or
+  `{type:'support_conversation_changed', conversationId}`.
+- Client-authored WebSocket message bodies remain rejected. Missed invalidation
+  is repaired by D1 refetch on reconnect, visibility, focus, online, and bounded
+  summary polling.
 
-## 11. Secure screenshot pipeline
+### 6.7 Privacy and cleanup lifecycle
 
-1. Verify same-origin, session, user rate limit, conversation ownership, message
-   bounds, client ID, and total request policy; normalize context and file digest.
-2. Accept no file or exactly one file. Enforce at most 3 MiB and allow only PNG,
-   JPEG, or WebP by extension, claimed MIME, and magic-byte signature.
-3. Insert-or-ignore the actor/client claim with generated target IDs, fingerprint,
-   digest, and stable private R2 key; then re-read the winner. Different
-   fingerprint means conflict. Identical retries use the winner's identities.
-4. Write the one stable R2 key with private/no-store metadata. Identical
-   concurrent retries may overwrite only the same digest bytes.
-5. Batch insert-or-select conversation/message, attachment, context,
-   unread/status, and claim `reserved -> committed`. Attachment insertion is
-   constrained to the winning claim fingerprint/key; user message ID and R2 key
-   are uniquely owned.
-6. Determine insertion from the message statement result. Return existing data
-   and skip fanout when another identical attempt already committed.
-7. If D1 fails after R2 write, the reserved claim makes the key discoverable.
-   Delete only after proving it unreferenced, otherwise retain it for the retry.
-   The invariant is compensation-or-discoverable-repair, not impossible orphans
-   across non-atomic D1/R2 systems.
-8. Return D1 data. Fan out the message/conversation identifiers only after a new
-   committed message.
-9. Preview/download reauthorizes from D1; R2 key never enters the client DTO.
-10. Privacy erase and bounded cleanup delete R2 before removing/retiring D1
-    ownership/claim rows; failures remain retryable and visible.
+- Authenticated privacy intake derives `requester_user_id`; anonymous intake does
+  not become executable until subject verification binds a user.
+- Add platform-admin, same-origin, expected-revision export/erasure execution by
+  `privacy_requests.id`.
 
-## 12. Context collection and minimization
+#### Subject fence and writer coverage
 
-### Required envelope
+Export/erasure start uses one required batch to compare-and-set the verified
+request to `in_progress`, increment the subject fence generation, and set it to
+`exporting` or `erasing`. The following paths must read that generation and gate
+their final D1 mutation on the same `open` generation:
 
-- authenticated user ID and current email from server session;
-- canonical conversation/message/client-message IDs;
-- server timestamp;
-- sanitized pathname only, passed through `normalizePathForLog`-equivalent rules
-  and rejected if it contains query/fragment/control characters.
+- user create/reply/read/abandon and attachment access that mutates state;
+- admin reply/create/forward/retry, terminal status, triage, draft, and upload for
+  a conversation owned by the subject;
+- inbound email ingestion after routing identifies the subject conversation;
+- legacy feedback import/status/mapping for the subject; and
+- any cleanup/reconciliation mutation that could recreate a subject reference.
 
-### Optional disclosed diagnostics
+While fenced, those writers fail closed with a stable non-PII code. Every final
+mutation checks generation inside its required batch. Completion increments the
+generation again while reopening it, so pre-fence requests cannot commit after
+the privacy operation finishes and new requests can use the new generation.
 
-- validated workspace, project, and estimate IDs;
-- viewport width/height;
-- IANA timezone;
-- normalized browser family and OS family, not raw user agent;
-- safe app release/build identifier only if already available without secrets.
+#### Export format, delivery, and retention
 
-### Never captured
+An `access` or `portability` execution produces a versioned uncompressed POSIX tar
+stream containing `manifest.json` plus user-visible normalized WebP attachments.
+Write it directly to private R2 at
+`support-privacy-export/<privacyRequestId>/<random>.tar`; never buffer the bundle
+or expose source R2 keys. Record SHA-256, byte size, creation, and seven-day expiry
+in `support_privacy_exports`.
 
-- query strings or URL tokens;
-- auth/session/CSRF/cookie headers or values;
-- localStorage/sessionStorage;
-- clipboard text or unrelated clipboard files;
-- DOM HTML, form field contents, React state, network bodies, console logs;
-- client/project names, estimate titles/descriptions, quantities, rates, totals;
-- raw IP or raw user-agent string in the support context table.
+`GET /api/compliance/privacy-requests/[id]/support-export` streams the artifact
+only to the verified authenticated subject or a platform admin, with no-store,
+`application/x-tar`, safe attachment disposition, and `nosniff`. The user-facing
+privacy request view exposes the download during retention. If the verified
+subject cannot sign in, a platform admin may download for delivery through the
+separately verified request channel; this plan sends no email. Expiry deletion is
+idempotent and the D1 row remains as a content-free audit tombstone.
 
-## 13. Cloudflare architecture
+#### Table and object matrix
 
-### D1 `ARCH_DB`
+| Surface | Export handling | Erasure handling |
+| --- | --- | --- |
+| `support_conversations` and triage | stable reference, status, channel, user-visible subject, timestamps, labels/snooze | redact requester identity/subject; clear user-specific triage while retaining content-free operational IDs/timestamps |
+| `support_messages` and `support_message_context` | user-visible chronology, plain/sanitized reply content, timestamps, disclosed context | replace bodies with erasure marker; null HTML/address/provider identifiers/warnings; delete context rows |
+| `support_message_attachments` and committed R2 | safe metadata plus normalized WebP files in tar | delete R2, confirm absence, then delete attachment rows/update counts |
+| `support_drafts` and draft R2 | internal drafts excluded from subject bundle but counted in manifest | delete draft objects first, confirm absence, then delete draft rows |
+| `support_user_intake_claims` and noncommitted R2 | content-free idempotency summary only | fence, wait quiet period, delete/confirm objects, then delete claims |
+| legacy feedback, status events, and mappings | legacy message, timestamp, route template, and labeled legacy classifications | redact email/message/path and identity metadata; keep content-free mapping/status tombstones |
+| support-derived `admin_action_items` | excluded as derived admin state | resolve and redact title/detail/source linkage that carries subject content |
+| support-scoped rate events | excluded as security metadata | delete events for the subject's derived support key hashes |
+| privacy request, subject fence, export row | request/execution/retention metadata | retain minimum compliance/audit metadata without support content or object key after expiry |
 
-- Authoritative intake claim, conversation, message, context, attachment
-  ownership, unread, status, priority/assignment, legacy mapping, and rate-limit
-  ledger.
-- Use D1 batch for all-D1 support mutations. Do not claim cross-R2 atomicity.
-- Quote/map reserved SQL aliases and retain one predicate contract for list/count.
+#### Completion and cleanup
 
-### R2 `ARCH_UPLOADS_R2`
+- Export keeps the fence until D1 rows and authorized R2 bytes have been streamed,
+  the tar hash/size are recorded, a second enumeration matches the manifest, and
+  the request completion plus fence reopen commit together.
+- Erasure fences all noncommitted claims and waits for `cleanup_not_before`; it
+  enumerates all matrix rows/keys, deletes R2 idempotently, confirms absence,
+  applies the D1 redaction/deletion batch, then re-enumerates both D1 and R2 to
+  zero unredacted/owned content. Only that proof may complete the request and
+  reopen the incremented fence.
+- Any failure keeps the request `in_progress`, the subject fence active, partial
+  export objects private, and a redacted retry code. Never claim completion with
+  bytes, unredacted rows, or an unmatched manifest remaining.
+- Integrate stale-claim and expired-export reconciliation into the existing
+  bearer-secret/jobs-enabled `/api/internal/upload-cleanup` route. Preserve its
+  real contract: direct HTTP invocation is dry-run only with `dryRun=1|true` and
+  otherwise applies only when `UPLOAD_JOBS_ENABLED=1`; the scheduled caller is
+  dry-run unless both `UPLOAD_JOBS_ENABLED=1` and
+  `CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=0`. Do not add an ungated route, invert these
+  defaults, or add a standalone destructive script.
+- Account deletion remains the existing soft-retain lifecycle and does not claim
+  privacy erasure. Product copy must distinguish account closure from a verified
+  privacy erasure request.
 
-- Private screenshot bytes only; every object is owned by a committed attachment
-  or a discoverable reserved intake claim eligible for retry/repair.
-- Reuse Worker binding. No public bucket, CORS change, S3 access key, or presigned
-  URL in MVP.
-- Introduce a transport-specific HTTP attachment cap so the current 5 MB email
-  configuration cannot be mistaken for a safe Worker relay limit.
-
-### Durable Object `SUPPORT_INBOX`
-
-- One object per conversation, existing hibernation API.
-- Token admission remains owner/admin scoped and short lived.
-- Broadcast only `{type, conversationId, messageId}` after D1 commit.
-- Client-authored WebSocket message bodies remain rejected.
-- Failure is degraded realtime; list/thread refetch and visibility/online recovery
-  restore current D1 truth.
-
-### Queues and Email
-
-- No new support queue or email effect in MVP.
-- Existing queues have different domain/retry semantics and must not be reused as
-  a generic support-notification bus.
-- If email notifications are later requested, add a D1 outbox plus dedicated
-  idempotent effect/queue decision; never block message acknowledgement on email.
-
-### `wrangler.jsonc`
-
-- Expected functional change: none.
-- Recheck provider limits and compatibility date before implementation/deploy.
-- Do not add bindings speculatively.
-
-## 14. Security and privacy threat model
+### 6.8 Threat controls
 
 | Threat | Required control |
 | --- | --- |
-| Cross-user thread or screenshot access | Session-derived actor; conversation owner join on every user read/mutation; admin gate for admin path; 404 for unauthorized IDs. |
-| CSRF or cross-site send | Strict same-origin mutation check and SameSite session assumptions; no GET mutation. |
-| User impersonation/context forgery | Ignore client user/email; validate resource ownership; mark client technical fields as untrusted until normalized. |
-| Duplicate/conflicting message after retry/lost response | Actor/client claim with payload fingerprint and winning IDs; defensive user-message unique index; insert-or-select response; conflict on changed payload; fanout only for inserted row. |
-| Malicious or disguised file | Count/size/type/signature checks, image-only allowlist, private R2, `nosniff`, defensive CSP, no HTML/SVG. |
-| Worker body-limit failure | 3 MiB screenshot cap and bounded message/metadata; UI and server share transport-specific limit. |
-| R2 orphan or wrong deletion | Claim-owned stable key, unique attachment key, compensate only after reference proof, discoverable reserved state, bounded repair, R2-before-D1 privacy order. |
-| Token/query leakage | Short-lived room token, safe-path logging, no query logging, no token in support context or event payload. |
-| Sensitive automatic diagnostics | Minimal required envelope, disclosed optional tier, allowlist schema, no DOM/storage/query/raw UA, privacy notice review. |
-| Action Inbox divergence | Source-aware Open only; canonical support status/triage owns resolve/snooze; active support reconciliation reopens stale resolved/dismissed derived rows. |
-| Legacy duplication/privacy copy | Unique mapping table; legacy attention selects only unmapped rows; import batch; retained legacy PII participates in export/erasure. |
-| Admin mailbox failure hidden by generic catch | Redacted structured repository failure event with operation/query fingerprint, never SQL parameters or user content. |
+| Cross-user thread/image access | Session actor; owner join on every user access; platform-admin gate; unauthorized IDs return 404. |
+| CSRF | strict neutral same-origin helper on every mutation; no GET mutation. |
+| Forged context | pathname-only client hint; ordered server route matcher/constant fallback; coherent resource ownership; client diagnostics untrusted. |
+| Oversized/decompression image | pre-parse 4 MiB body bound; 3 MiB source/output; fail-closed decode; 24 MP/4,096 edge; static WebP re-encode. |
+| Upload/storage abuse | exact retry-neutral durable windows plus screenshot daily limit before decode/claim write. |
+| Duplicate or lost-response send | claim recovery before quota, deduped rate event, actor/client fingerprint, leased winner, required D1 batch, 200 recovery. |
+| R2 delete/commit race | lease-conditioned commit; no immediate delete; cleanup fence plus 24-hour quiet period before confirmed deletion. |
+| Token replay/amplification | separate capabilities/system subject, exact fixed/credential protocol negotiation, short TTL, identifier-only events. |
+| Sensitive diagnostics | required route template only; optional group consent; prohibited-field allowlist; no raw UA/query/storage/DOM. |
+| Active content/XSS | user message plain text; image decode/re-encode; no SVG/HTML; nosniff/CSP/private delivery. |
+| Truncated reconciliation | source-truth `NOT EXISTS`, not display arrays. |
+| Unread arrival race | explicit `throughMessageId`; server resolves `(created_at,id)` and refuses to clear when a later relevant message exists. |
+| Support lifecycle divergence | generic derived-item mutations reject support/feedback; active upsert restores source truth; terminal close requires reply batch. |
+| Wrong-subject privacy action | verified server-derived requester user ID and admin revision gate. |
+| Export/erasure race | per-subject generation gates every writer; private export manifest or delete/re-enumeration proves quiescence; completion/reopen last. |
+| Legacy surprise/duplication | exact mapping, batch collision rollback, hidden-until-reply user visibility, unmapped-only fallback. |
+| Log leakage | operation/code/correlation only; no message, email, query, token, UA, filename, R2 key, or SQL binds. |
 
-## 15. Package and component decision
+## 7. Execution Units
 
-`DEPENDENCY-DECISION.md` is authoritative. Summary:
+### UNIT-001: recover admin support and exact attention routing
 
-- no new dependency;
-- repository Dialog/Modal/Sheet, not new Radix Dialog or shadcn-generated layer;
-- `ControlTextarea`, Button, Badge/StatusBadge, Alert/Toast, EmptyState;
-- adapt the existing file upload and admin paste/drop patterns;
-- plain user composer, Tiptap remains admin email-only;
-- TanStack Query plus native WebSocket;
-- no React Hook Form, Zod, react-dropzone, html2canvas, image compression,
-  Socket.IO, new toast package, or second virtual-list package.
+- **Status/dependencies:** `READY`; none.
+- **Goal:** restore mailbox reads and make every current action open/reconcile the
+  right source before feature expansion.
+- **Owned paths:**
+  `src/lib/repositories/support-conversations-d1.ts`,
+  `src/lib/repositories/support-drafts-d1.ts`,
+  `src/lib/admin/action-inbox-repository.ts`,
+  `src/lib/admin/support-attention-repository.ts`,
+  `src/lib/admin/feedback-attention-repository.ts`,
+  `src/components/admin/AdminActionInbox.tsx`, selected-load code in
+  `src/app/admin/support/page.tsx`/admin conversation API, and exact legacy
+  selection in `src/app/workshop/settings/feedback/page.tsx`.
+- **Boundary:** fix the reserved alias; preserve the shared draft insert-or-read
+  repair; render safe internal hrefs; refresh href on conflict; make support Open
+  only in UI and server actions; force active derived rows back to canonical
+  status/snooze truth; filter legacy attention by active status; replace
+  bounded-ID closure with source-truth reconciliation; load selected
+  support/legacy IDs independently.
+- **Evidence:** exact empty/populated SQL and query predicates are valid; a source
+  count beyond old 25/15 caps is not falsely resolved; stale generic href repairs;
+  selected off-page support and feedback IDs resolve; scoped diff preserves
+  concurrent admin work.
+- **Recovery/stop:** no schema change. Revert this unit alone if needed. Stop when
+  AC-001 and the immediate admin portion of AC-008 are source-proven.
 
-## 16. Dependency DAG and ownership
+### UNIT-002: establish secure canonical intake and server contracts
+
+- **Status/dependencies:** `READY after UNIT-001`.
+- **Goal:** deliver the additive schema, leased D1/R2 intake, safe context,
+  owner APIs, import execution surface, and capability-scoped realtime.
+- **Owned paths:** next migration; support repository/shared D1 types;
+  `src/lib/http/read-bounded-body.ts` for reuse only;
+  focused new modules under `src/lib/support/`;
+  user support routes including read/abandon/attachment/token;
+  `src/lib/uploads/server-image-processing.ts` only for a focused single-output
+  extension; `src/lib/security/durable-rate-limits.ts` and
+  `src/lib/security/durable-rate-limit-d1.ts` for deduped accounting;
+  `src/lib/collaboration/realtime-room-token.ts`,
+  `src/lib/cloudflare/support-inbox.ts`, and
+  `src/lib/cloudflare/support-inbox-fanout.ts`; admin legacy-import
+  endpoint/service.
+- **Boundary:** implement sections 6.1-6.6 exactly; no UI cutover, remote import,
+  new binding, public object path, or sequential substitute for required batch.
+- **Evidence:** clean local migration replay; expected tables/columns/indexes;
+  `PRAGMA foreign_key_check` empty; duplicate preflight explicit; source trace
+  proves bound body -> fingerprint/claim recovery -> deduped rate -> lease ->
+  decode -> R2 -> generation-gated required batch -> D1 read -> optional fanout;
+  read receipts use rendered-message watermarks; fixed/credential subprotocol
+  negotiation and token capabilities reject cross-use; dry-run import emits
+  bounded non-PII counts.
+- **Recovery/stop:** schema is additive and unused until UI cutover. Fix forward
+  after migration apply. Stop when AC-002/004/005/007 server invariants are ready.
+
+### UNIT-003: replace feedback and build the user Support Center
+
+- **Status/dependencies:** `READY after UNIT-002`.
+- **Goal:** replace both user feedback surfaces with one accessible Support
+  Center over the UNIT-002 contracts.
+- **Owned paths:** `WorkshopFeedbackModal.tsx`, `WorkshopShell.tsx`,
+  `/workshop/feedback`, settings support entry, `SupportChatWidget*`, new focused
+  components/hooks under `src/components/support/`, and legacy form removal from
+  user-owned components.
+- **Boundary:** implement sections 5.1-5.6; one coordinator for modal/full page;
+  same new/reply consent and screenshot behavior; unread-owned Support badge;
+  no general notification entry, email notification, Tiptap, new package,
+  localStorage draft, or duplicate legacy write path.
+- **Evidence:** no user type/severity/subject/UUID controls or beta submit import;
+  Requests/New/Conversation and lifecycle/recovery matrices are represented in
+  source; owner DTOs exclude admin/private fields; object URLs, sockets, timers,
+  focus, Back, and unread read-after-render behavior have explicit cleanup.
+- **Recovery/stop:** old and new user writers may not remain active together.
+  Stop when AC-003/006 and the user side of AC-007 are source-complete.
+
+### UNIT-004: converge admin Support, Today, and legacy history
+
+- **Status/dependencies:** `READY after UNIT-002`; may run alongside UNIT-003 with
+  one writer per shared file.
+- **Goal:** show each canonical/imported report once with message-scoped evidence
+  and coherent founder actions.
+- **Owned paths:** admin Support page/coordinator/components/APIs/actions;
+  `action-inbox-repository.ts` after UNIT-001; support/feedback attention;
+  legacy review route; UNIT-002 import endpoint/service use.
+- **Boundary:** pin exact deep links; render screenshots and Included details on
+  owning message cards; preserve existing labels/status/snooze/star/self-assign;
+  admin reply defaults pending and activates hidden legacy; terminal closure is
+  one explanatory-reply batch and status-only terminal mutation is rejected;
+  canonical plus unmapped-only attention; admin read uses a rendered-message
+  watermark; no new priority/assignment abstraction; do not invoke remote import.
+- **Evidence:** new and imported local fixtures appear once in Support and at most
+  once in Today; old review links canonical; rerun import dedupes; hidden legacy
+  stays out of user list until reply; no-data, mailbox, attachment, and realtime
+  degraded states remain usable.
+- **Recovery/stop:** unmapped fallback remains safe if import pauses. Stop when
+  AC-002/008 and admin AC-007 behavior are source-complete.
+
+### UNIT-005: finish privacy, cleanup, observability, and cutover
+
+- **Status/dependencies:** `READY after UNIT-003 and UNIT-004`.
+- **Goal:** remove the duplicate writer and close object/data lifecycle through
+  executable verified privacy and final local evidence.
+- **Owned paths:** `src/app/api/compliance/privacy-requests/route.ts`,
+  `src/lib/compliance/privacy-request-repository.ts`, the admin fulfillment
+  surface, support privacy helpers, existing internal upload-cleanup integration;
+  focused support observability; beta feedback actions/store exports needed for
+  read-only history; privacy/support copy and operator-facing local documentation.
+- **Boundary:** implement section 6.7 and its table/object matrix; remove
+  authenticated legacy submissions; retain legacy read/import evidence; redacted
+  operation events; distinguish soft account closure from verified erasure;
+  preserve the cleanup route/scheduler's existing apply semantics; no hosted
+  release recipe or claim.
+- **Evidence:** verified-subject and generation gates cover every subject writer;
+  export tar/delivery/expiry is private and bounded; R2 deletion and zero
+  re-enumeration precede D1 redaction/completion; retry leaves in-progress;
+  direct cleanup apply versus scheduled dry-run policy is source-proven; no legacy
+  user writer remains; final requirement/risk/dependency/diff audit is clean.
+- **Recovery/stop:** never complete partial privacy work. Stop when AC-009 and all
+  preceding criteria have fresh local/static evidence and only release remains.
+
+### Dependency graph and ownership
 
 ```text
-UNIT-001 -> UNIT-002 -> UNIT-003 -> UNIT-004 --\
-                               \-> UNIT-005 ----> UNIT-006 -> UNIT-007
+UNIT-001 -> UNIT-002 -> UNIT-003 --\
+                       \-> UNIT-004 ---> UNIT-005
 ```
 
 - Ready slice: `{UNIT-001}`.
-- `UNIT-004` and `UNIT-005` may run in parallel only if they own disjoint
-  components and neither edits the support client coordinator simultaneously.
-- `UNIT-006` starts only after both user surfaces are coherent, so admin cutover
-  verifies the actual final user message/status/attachment contract.
-- One writer at a time for `support-conversations-d1.ts`, support API routes,
-  `AdminSupportInbox.tsx`, and the global workshop support host.
-- Single-agent fallback: `001, 002, 003, 004, 005, 006, 007`.
+- One lead/integrator owns the plan and final claim.
+- One writer at a time for `support-conversations-d1.ts`, support user APIs,
+  `action-inbox-repository.ts`, `AdminSupportInbox.tsx`, and the Support Center
+  coordinator.
+- UNIT-003 and UNIT-004 may run in parallel only after UNIT-002 and only while
+  their owned files remain disjoint.
+- Single-agent fallback: `001, 002, 003, 004, 005`.
 
-## 17. Route and module impact map
+## 8. Acceptance And Evidence
 
-| Surface | Planned change | Unit |
+- **AC-001:** mailbox list/count SQL works for empty/populated data; shared draft
+  insert-or-read remains; Today exposes exact Open; off-page deep link loads;
+  more sources than display caps do not cause false resolution.
+- **AC-002:** every new user report writes only one canonical message; legacy
+  mapping/import is exact-once and rerunnable; hidden legacy is admin-visible but
+  absent from user Requests until admin reply activation.
+- **AC-003:** message is the only required input; screenshot is optional with
+  pick/paste/drop/preview/remove; no type/severity/subject/manual IDs; both new
+  and reply expose the same Included details choice.
+- **AC-004:** server derives actor, maps pathname-only input through an allowlisted
+  route-template matcher with constant fallback, validates coherent optional
+  resources, enforces origin/generation/retry-neutral rate limits, and
+  persists/exposes none of the prohibited context or credentials.
+- **AC-005:** bounded request and one normalized <=3 MiB WebP obey pixel/edge
+  limits; lease winner alone writes/commits; followers do not delete; cleanup
+  fence prevents missing-object commits; owner/admin reads are private.
+- **AC-006:** Support badge opens unread correctly; rendered-message watermarks do
+  not clear later arrivals; Requests/New/Conversation, lifecycle labels, host
+  breakpoints, focus, Back, attachments, and every recovery row are coherent in
+  wide/narrow source contracts.
+- **AC-007:** all durable message/status/unread changes precede capability-scoped
+  identifier-only invalidation; fixed/credential protocol negotiation succeeds;
+  subscribe/fanout tokens cannot cross-use; D1 success remains success on fanout
+  failure; backfill recovers.
+- **AC-008:** each report appears once in admin Support and while active in Today;
+  selected deep link is exact; evidence is message-scoped; generic Today support
+  mutations fail server-side; terminal closure requires an explanatory reply;
+  reconciliation forces source truth.
+- **AC-009:** only verified subjects can execute export/erasure; every subject
+  writer is generation-fenced; private seven-day tar export and delivery are
+  defined; matrix R2/D1 proof precedes completion; cleanup semantics, logs, legacy
+  cutover, and docs are safe; release remains `NOT_EVALUATED`.
+
+### Static/local evidence plan
+
+Product tests remain `NOT_REQUIRED` for this plan. During implementation, use the
+smallest decisive source/static check after each edit. Do not retain ceremonial
+per-unit receipts or repeat broad gates solely because a document boundary moved.
+
+Run once at the relevant boundary:
+
+1. After UNIT-002 migration work:
+   `bunx wrangler d1 migrations apply ARCH_DB --local --config wrangler.jsonc`
+   and a local D1 query for expected schema plus `PRAGMA foreign_key_check`.
+2. Final local closeout:
+   `bun run type-check`, scoped `bun run lint -- <changed paths>`,
+   `bun run validate:error-handling`, targeted `rg` audits for legacy writes,
+   query-token transport, raw R2 keys, prohibited context, and new dependencies,
+   then `git diff --check` and a scoped diff review.
+3. Pack closeout:
+   `bun run validate:plan-pack -- .ai/03_plans/2026-07-22/User-Support-System`.
+
+If a future current task explicitly authorizes `TEST_TASK`, prioritize:
+
+- leased concurrent retry, retry-neutral quota, lost response, cleanup fencing,
+  and R2 failure;
+- cross-user message/context/attachment denial and token capability cross-use;
+- action reconciliation above display caps and exact deep links;
+- hidden legacy import activation and rerun dedupe;
+- read-watermark arrival races and fixed/credential WebSocket negotiation;
+- verified privacy export/erasure writer races, delivery, expiry, and failure;
+- wide/narrow keyboard, unread, paste/drop, offline, and uncertain-send flows.
+
+No such product test or browser proof ran during plan authoring.
+
+## 9. Risks And Mitigations
+
+| Risk | Mitigation | Units |
 | --- | --- | --- |
-| `src/lib/repositories/support-conversations-d1.ts` | quote count alias, context/attachment batch contracts, user summaries, safe DTOs, reopen/read semantics | 001, 002, 003 |
-| `src/lib/repositories/support-drafts-d1.ts` | preserve/verify concurrent insert-or-ignore plus scope-select repair | 001 |
-| `src/components/admin/AdminActionInbox.tsx` | source-aware Open; remove divergent support Resolve/Dismiss/Snooze | 001, 006 |
-| `src/lib/admin/action-inbox-repository.ts` | canonical deep links, active-row conflict repair, mapped-legacy convergence | 001, 006, 007 |
-| next migration | context, intake claims/unique ownership, legacy mapping, triage priority | 002 |
-| new support context/intake modules | allowlisted context normalization, image validation, idempotent R2/D1 mutation | 002, 003 |
-| `src/app/api/support/conversations/**` | multipart intake/reply, owner DTO/read/unread, screenshot descriptors | 003, 005 |
-| new user support attachment route | owner/admin private image delivery | 003 |
-| `WorkshopFeedbackModal.tsx` | Support Center host, unread badge, new composer | 004, 005 |
-| `BetaFeedbackForm.tsx` and beta actions | delete user-facing path after canonical cutover | 004, 007 |
-| `/workshop/feedback` | one full Support Center, no duplicate form | 004, 005, 007 |
-| `SupportChatWidgetClient.tsx` | replace with cohesive Requests/New/Conversation composition | 004, 005 |
-| `AdminSupportInbox.tsx` and extracted support components | selected deep link, context/screenshot, priority/assignment, coherent degraded states | 006 |
-| privacy request repositories | export context/attachment metadata; delete R2 message/draft objects; redact rows | 007 |
-| legacy feedback review/attention | link canonical import, stop duplicate derivation, retain read-only audit | 006, 007 |
-| docs/config examples | support limits, privacy disclosure, operator runbook | 007 |
+| Mailbox/action regression | exact SQL, redacted errors, source-truth reconciliation, off-page selected fetch | 001, 004 |
+| Duplicate/hidden complaint | one canonical writer, exact mapping, hidden legacy activation, unmapped fallback | 002-005 |
+| Retry delete/commit race | lease token/expiry, follower no-write, cleanup fence, 24-hour quiet period, confirmed deletion | 002, 005 |
+| Body/image resource abuse | bounded multipart read, retry-neutral durable windows, fail-closed normalize, pixel/output caps | 002 |
+| Cross-user data leak | owner joins, admin gate, 404 denial, minimal DTOs, private R2 | 002-005 |
+| Context overcollection | pathname-only ingress, server route matcher/fallback, optional consent, coherent IDs, prohibited allowlist | 002, 003, 005 |
+| Realtime replay/amplification | separate capabilities/system subject, fixed/credential negotiation, D1 refetch | 002-004 |
+| Status/unread divergence | explicit transitions, server closure boundary, read watermarks, required batch/invalidation | 001-004 |
+| Privacy completion with residual data | verified subject, generation fence for every writer, matrix re-enumeration, completion last | 005 |
+| Shared-worktree collision | reread dirty shared files, serialized writers, preserve unrelated changes | all |
+| Hosted mismatch | local action ceiling and one explicit release boundary only | 005 |
 
-## 18. Risks and mitigations
+## 10. Final Handoff
 
-- **RISK-001: mailbox/query regression.** Fix alias and add redacted operation
-  telemetry; keep list/count predicate contract; verify empty and populated SQL.
-- **RISK-002: dual-write/duplicate support.** Cut over all user entry points in
-  one unit; actor/client claims prevent request duplication; unmapped-only legacy
-  attention converges without a risky deployment toggle.
-- **RISK-003: context overcollection.** Allowlist fields, disclose optional data,
-  server-normalize, and explicitly reject queries/raw UA/content fields.
-- **RISK-004: attachment authorization/orphan.** Owner joins, magic bytes,
-  claim-owned digest keys, unique R2 ownership, conservative compensation,
-  discoverable repair, cleanup/privacy proof.
-- **RISK-005: lost/duplicated/conflicting retry.** Actor/client payload claim,
-  winning target IDs, defensive message uniqueness, insert-or-select, 409 on
-  fingerprint mismatch, and fanout only after inserted commit.
-- **RISK-006: UI client expansion/performance.** Small client islands, lazy-open
-  Support Center, plain textarea, existing query cache, bounded list/history.
-- **RISK-007: status/unread divergence.** One transition service, source-aware
-  labels, read-after-render, reopen-on-user-reply, D1 refetch after invalidation.
-- **RISK-008: privacy erase leaves bytes or legacy PII.** Enumerate message,
-  draft, and reserved-claim R2 keys; delete R2 first; then redact canonical and
-  retained legacy records/status actors while preserving minimal mapping audit.
-- **RISK-009: shared-worktree collision.** Preserve current admin support visual
-  edits, reread before patching, serialize shared files, keep units reversible.
-- **RISK-010: hosted release mismatch.** Plan stops at local implementation;
-  remote migration/deploy/live proof require an explicit execution/release task.
-
-## 19. Acceptance criteria
-
-- **AC-001:** exact mailbox SQL succeeds for empty and populated D1; the current
-  reserved alias is fixed; the shared insert-or-ignore draft repair is preserved
-  and simultaneous creation returns one owned draft;
-  Today renders `Open conversation`; deep link selects the exact ID even outside
-  the first folder page; existing action rows refresh href/priority.
-- **AC-002:** every new global/full-page support submission creates only one
-  support conversation/message through one actor/client claim; changed-payload
-  claim reuse conflicts; no user-facing beta-feedback write remains; every
-  legacy row has exactly one import mapping and canonical thread; legacy rerun is
-  idempotent and the old table remains readable/anonymizable.
-- **AC-003:** user UI contains no Type, Severity, Subject, or Project UUID input;
-  message is the only required field; optional screenshot supports pick/paste/
-  drop/preview/remove; details are disclosed; success opens the same thread.
-- **AC-004:** server derives actor, checks same origin/rate limit, sanitizes path,
-  validates one workspace -> project -> estimate chain, emits minimal DTOs, and never persists any
-  prohibited context field or raw credential/user-agent/query content.
-- **AC-005:** no file or exactly one valid <=3 MiB PNG/JPEG/WebP succeeds;
-  disguised/oversize/multiple files fail safely; R2 is private; only owner/admin
-  can read; retry does not duplicate or overwrite a changed payload; each key is
-  uniquely attached or discoverable through a reserved claim; failed D1 work is
-  compensated or repaired; privacy erase/cleanup remove bytes with retry evidence.
-- **AC-006:** Support trigger badge, Requests, New request, and Conversation work
-  at wide/narrow source contracts; list/history/status/unread/reply/retry states
-  are coherent; focus and live-region behavior meet the audit contract.
-- **AC-007:** message and unread/status mutations persist before fanout; DO sends
-  identifiers only; D1 success survives fanout failure; reconnect/visibility/
-  online backfill recovers; user reply reopens closed state without duplication.
-- **AC-008:** new/imported reports appear once in `/admin/support`; admin can see
-  screenshot and safe context, set priority/allowlisted-platform-admin assignee/
-  status, and reply; Today derives from the same state, exposes Open only, and
-  reopens stale derived rows when canonical support requires attention.
-- **AC-009:** package manifest has no new runtime dependency; user surface does
-  not import Tiptap; client boundaries remain focused; no new virtualization,
-  socket, toast, form, capture, or dropzone runtime is introduced.
-- **AC-010:** privacy export includes canonical and retained legacy support data,
-  context, and attachment metadata; erasure handles support R2/claim keys and
-  redacts both canonical and legacy PII/content; logs expose operation/code/
-  correlation without PII/content; old feedback entry points are removed; docs
-  state limits, collection, lifecycle, and release boundary; final audit is clean.
-
-## 20. Verification and test authorization
-
-### Plan-authoring evidence completed
-
-- live rendered inspection and four screenshots;
-- current source and shared worktree inspection;
-- official external platform/package research;
-- local Next 16 Server/Client, Route Handler, Forms, and Data Security docs;
-- read-only bound D1 migration/table/count/query inspection;
-- redacted local support draft error explanation;
-- static Plan Pack validation is the final closeout step and is not claimed until
-  `plan-pack.json` and all artifact hashes pass.
-
-### Implementation static evidence
-
-These are not product tests and may run during implementation:
-
-- targeted TypeScript/typecheck for changed modules;
-- lint/static analysis for changed paths;
-- migration replay/static SQL and query-plan inspection;
-- `rg` audits for duplicate feedback writes, prohibited fields, old copy, and
-  new dependencies;
-- `git diff --check` and final scoped diff review.
-
-### Per-unit static QA execution matrix
-
-These commands are the executable default evidence for each unit. They do not
-run product tests, builds, browser automation, screenshots, Storybook, or visual
-QA. Run them after the unit edit, read the output, and attach the command/output
-receipt to that unit before advancing. If a command exposes an unrelated
-pre-existing failure, isolate it with the narrow command and record the gap.
-
-1. **UNIT-001**
-   - Run `bun run type-check`.
-   - Run `bun run lint -- src/lib/repositories/support-conversations-d1.ts src/lib/repositories/support-drafts-d1.ts src/components/admin/AdminActionInbox.tsx src/lib/admin/action-inbox-repository.ts src/app/admin/support/page.tsx`.
-   - Run `! rg -n 'COUNT\\(\\*\\) AS all' src/lib/repositories/support-conversations-d1.ts`.
-   - Run `rg -n 'Open conversation|folder=all|item\\.href' src/components/admin/AdminActionInbox.tsx src/lib/admin/action-inbox-repository.ts`.
-   - Run `git diff --check -- src/lib/repositories/support-conversations-d1.ts src/lib/repositories/support-drafts-d1.ts src/components/admin/AdminActionInbox.tsx src/lib/admin/action-inbox-repository.ts src/app/admin/support/page.tsx`.
-   - Expected: type/lint/diff exit zero; the invalid alias is absent; exact href
-     rendering and `folder=all` are present; the shared `INSERT OR IGNORE` draft
-     repair remains intact.
-2. **UNIT-002**
-   - Run `bunx wrangler d1 migrations apply ARCH_DB --local --config wrangler.jsonc`.
-   - Run `bunx wrangler d1 execute ARCH_DB --local --config wrangler.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('support_user_intake_claims','support_message_context','support_legacy_feedback_imports') ORDER BY name; PRAGMA foreign_key_check;"`.
-   - Run `bun run scripts/audit-user-support-legacy-import.ts --local --dry-run`.
-   - Run `bun run type-check` and `bun run lint -- src/lib/support/support-message-context.ts src/lib/support/support-legacy-feedback-import.ts scripts/audit-user-support-legacy-import.ts src/lib/repositories/support-conversations-d1.ts`.
-   - Expected: local migration exits zero; all three new tables are listed;
-     foreign-key check emits no violations; dry-run emits only total/mapped/
-     unmapped/invalid-reference counts and stable IDs; type/lint exit zero.
-3. **UNIT-003**
-   - Run `bun run type-check`.
-   - Run `bun run lint -- src/app/api/support/conversations/route.ts 'src/app/api/support/conversations/[id]/messages/route.ts' 'src/app/api/support/attachments/[id]/route.ts' src/lib/support/user-support-intake.ts src/lib/support/support-screenshot.ts src/lib/support/support-rate-limits.ts src/lib/repositories/support-conversations-d1.ts`.
-   - Run `bun run validate:error-handling`.
-   - Run `rg -n 'support_user_intake_claims|reserved|committed|abandoned|realtimeDegraded' src/app/api/support src/lib/support src/lib/repositories/support-conversations-d1.ts`.
-   - Run `git diff --check -- src/app/api/support src/lib/support src/lib/repositories/support-conversations-d1.ts src/lib/cloudflare/support-inbox-fanout.ts`.
-   - Expected: static commands exit zero; the actor-scoped claim lifecycle and
-     degraded-success path are visible; no raw R2 key or public upload path enters
-     a user DTO; the diff is whitespace-clean.
-4. **UNIT-004**
-   - Run `bun run type-check`.
-   - Run `bun run lint -- src/components/workshop src/app/workshop/feedback src/components/support`.
-   - Run `bun run lint:design`.
-   - Run `! rg -n 'submitBetaFeedbackAction|<BetaFeedbackForm' src/app/workshop src/components/workshop`.
-   - Run `rg -n 'Send request|Included details|Add a screenshot' src/components/workshop src/components/support`.
-   - Expected: type/lint/design exit zero; authenticated user surfaces have no
-     active legacy feedback submission/render path; the message-first composer,
-     disclosed details, and optional screenshot affordance are present.
-5. **UNIT-005**
-   - Run `bun run type-check`.
-   - Run `bun run lint -- src/components/support src/app/api/support src/components/workshop/WorkshopFeedbackModal.tsx src/app/workshop/feedback/page.tsx`.
-   - Run `bun run lint:design`.
-   - Run `rg -n 'Requests|New request|Conversation|realtimeDegraded|unread' src/components/support src/components/workshop/WorkshopFeedbackModal.tsx`.
-   - Run `git diff --check -- src/components/support src/app/api/support src/components/workshop/WorkshopFeedbackModal.tsx src/app/workshop/feedback/page.tsx`.
-   - Expected: static commands exit zero; one user surface exposes list/new/thread,
-     unread and degraded states; no internal connection state is shown unless
-     degraded; diff is clean.
-6. **UNIT-006**
-   - Run `bun run type-check`.
-   - Run `bun run lint -- src/app/admin/support src/components/admin/AdminSupportInbox.tsx src/components/admin/AdminActionInbox.tsx src/components/admin/support src/app/api/admin/support src/lib/admin/action-inbox-repository.ts src/lib/admin/support-actions.ts src/lib/admin/support-attention-repository.ts src/lib/admin/feedback-attention-repository.ts`.
-   - Run `bun run lint:design`.
-   - Run `rg -n 'Open conversation|folder=all|support_legacy_feedback_imports' src/components/admin/AdminActionInbox.tsx src/lib/admin/action-inbox-repository.ts src/lib/admin/feedback-attention-repository.ts`.
-   - Run `bun run scripts/audit-user-support-legacy-import.ts --local --dry-run`.
-   - Expected: type/lint/design exit zero; support-derived Today rows expose exact
-     Open navigation and the source query contains unmapped-only legacy fallback;
-     dry-run counts reconcile without message/email output.
-7. **UNIT-007**
-   - Run `bun run type-check` and `bun run validate:error-handling`.
-   - Run `bun run lint -- src/lib/compliance/privacy-request-repository.ts src/lib/workshop/beta-feedback-actions.ts src/lib/workshop/beta-feedback-d1-store.ts src/lib/observability scripts/audit-support-screenshot-orphans.ts`.
-   - Run `! rg -n 'submitBetaFeedbackAction|<BetaFeedbackForm' src/app src/components`.
-   - Run `test -z "$(git diff -- package.json)"`.
-   - Run `bun run scripts/audit-support-screenshot-orphans.ts --local --dry-run`.
-   - Run `bun run validate:plan-pack -- .ai/03_plans/2026-07-22/User-Support-System` and `git diff --check -- .ai/03_plans/2026-07-22/User-Support-System src/lib/compliance src/lib/workshop src/lib/observability scripts/audit-support-screenshot-orphans.ts`.
-   - Expected: static commands exit zero; no authenticated legacy submission call
-     remains; `package.json` is unchanged; orphan audit reports only bounded
-     counts/hashes and performs no deletion; the final Plan Pack validates.
-
-### TEST_PROPOSAL only, not authorized by this planning task
-
-Run only if Philip explicitly makes implementation testing a current `TEST_TASK`:
-
-The five Vitest files below do not exist today. They are proposed test artifacts
-to create inside that future authorized `TEST_TASK`, then run with the named
-commands. They are not current runnable validation targets.
-
-1. `bun x vitest run tests/vitest/support-mailbox-contract.test.ts`
-   - empty/populated list+counts, quoted alias, deep link, source-aware actions,
-     preservation of the concurrent draft get-or-create repair.
-   - setup: apply migrations to an isolated temporary D1 database; seed empty and
-     populated mailbox/action rows; open two repository handles for the same draft
-     scope and assert both resolve the same authoritative row.
-2. `bun x vitest run tests/vitest/support-user-intake.test.ts`
-   - auth/origin/rate limit, context sanitization/ownership, idempotent send,
-     screenshot type/size/signature, compensation, private read.
-   - setup: isolated migrated D1, deterministic actor/resource fixtures, a fake
-     private R2 bucket, and a stubbed DO fanout that can succeed or fail; submit
-     multipart fixtures including lost-response and changed-fingerprint retries.
-3. `bun x vitest run tests/vitest/support-user-conversations.test.ts`
-   - owner isolation, status mapping, unread/read, reopen, retry, realtime
-     degraded/backfill.
-   - setup: isolated migrated D1 with two users and one platform admin; seed one
-     thread per user, force fanout degradation, and exercise refetch/backfill and
-     cross-user 404 behavior.
-4. `bun x vitest run tests/vitest/support-legacy-import.test.ts`
-   - mapping completeness, status/context preservation, rerun dedupe, Action
-     Inbox de-duplication.
-   - setup: isolated migrated D1 with `new`, `reviewing`, resolved, already-mapped,
-     and invalid-reference legacy fixtures; run dry-run, apply, and rerun while
-     asserting canonical plus unmapped-only attention counts.
-5. `bun x vitest run tests/vitest/privacy-request-repository.test.ts`
-   - export context/attachment descriptors, R2-before-D1 erase, retryable failure.
-   - setup: isolated migrated D1 and fake R2 with canonical message, draft,
-     reserved-claim, and retained legacy records; inject one object-delete failure
-     and prove erasure remains retryable before the succeeding replay redacts data.
-6. Browser/a11y scenarios for the four audited surfaces plus mobile Support
-   Center, screenshot paste/drop/remove, offline/lost-response recovery, admin
-   deep link/context/priority, and user reply badge.
-
-No proposed test or browser implementation proof was run during plan authoring.
-
-## 21. Pre-mortem
-
-Assume the launch failed. The most likely reasons are:
-
-1. **A complaint was saved but not visible to Philip.** Cause: Action Inbox,
-   mailbox predicates, or import status diverged. Prevention: canonical D1
-   transition and deep-link contracts, source completeness audit, degraded alert.
-2. **A screenshot exposed another user's project.** Cause: attachment lookup by
-   ID without conversation ownership. Prevention: join attachment -> message ->
-   conversation on every read and return 404 for unauthorized actors.
-3. **Retries created duplicate threads or orphan objects.** Cause: file write
-   preceded a non-idempotent D1 path. Prevention: stable client/digest keys,
-   insert-or-select, D1 batch, reference-aware compensation.
-4. **“Automatic context” captured confidential estimating data.** Cause: broad
-   serialization or raw URL/user-agent storage. Prevention: fixed allowlist,
-   explicit prohibited list, disclosure, server normalization, review grep.
-5. **The new modal looked better but users still could not find replies.** Cause:
-   composer-only redesign without history/unread/status. Prevention: Support
-   Center information architecture and AC-006 as a core criterion.
-6. **Legacy feedback appeared twice or disappeared.** Cause: separate attention
-   derivation switched around the import. Prevention: one deploy-safe query that
-   always combines canonical support with unmapped-only legacy fallback.
-7. **Local success did not prove production.** Cause: release boundary blurred.
-   Prevention: keep `release_status=NOT_EVALUATED`; require a separate deployment
-   task with new Worker version, remote migration proof, domain/health checks, and
-   live scenario verification.
-
-## 22. Gate applicability and release boundary
-
-- **UX gate:** active; rendered baseline and complete user/admin flows recorded.
-- **Next/React gate:** active; local Next 16 docs reviewed, client boundary
-  constrained, no package-memory assumptions.
-- **Contract/API gate:** active; request/response, idempotency, errors, and owner
-  DTO boundaries specified.
-- **D1/data gate:** active; additive schema, batch/idempotency, legacy mapping,
-  and migration order specified.
-- **Security/privacy gate:** active; threat model, minimization, authorization,
-  rate limits, private object lifecycle, and erasure specified.
-- **Performance gate:** active; no new dependency, bounded data, lazy client
-  surface, and no unmeasured virtualization.
-- **Operations gate:** active; exact current failure, redacted logging, degraded
-  semantics, cleanup, and release boundary specified.
-- **Agent gate:** active; units have ownership, DAG, evidence, recovery, and stop
-  conditions.
-
-Implementation may change bound D1/R2/DO code locally. Remote migration apply,
-deployment, credentials, DNS, paid services, and live production mutation are
-outside this pack's `IMPLEMENT_LOCAL` ceiling.
-
-## 23. Execution handoff
-
-1. Re-read current shared-file diffs and migration tail.
-2. Execute `UNIT-001`; do not start feature UI while admin support reads remain
-   broken.
-3. Reconcile baseline/hash and unit evidence after every unit.
-4. Never carry two active user write paths past `UNIT-004` completion.
-5. Keep `UNIT-006` derivation deploy-safe: canonical support plus unmapped-only
-   legacy fallback before, during, and after import.
-6. Finish `UNIT-007` with a requirement/risk/cleanup audit and leave release as
-   not evaluated unless a separate explicit task authorizes hosted execution.
+1. Recheck shared diffs and migration tail.
+2. Execute UNIT-001 before feature expansion.
+3. Keep the claim lease, truth-based reconciliation, route template, capability
+   split, and privacy write fence as non-negotiable invariants.
+4. Keep screenshots core because the user explicitly required them; do not defer
+   the secure object lifecycle to create a narrower product.
+5. Keep email notification deferred unless a newer user request changes scope.
+6. Do not start remote migration/import/deployment from this pack. A separate
+   authorized release task must reread current provider limits and prove live
+   behavior; `release_status` remains `NOT_EVALUATED` here.
