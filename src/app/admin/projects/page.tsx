@@ -11,11 +11,11 @@ export default async function AdminProjectsPage() {
     <AdminPage>
       <AdminPageHeader
         eyebrow="Admin"
-        title="Projects"
-        description="Read-only. Use search (⌘K) to find a project by name or code."
+        title="Project directory"
+        description="Inspect ownership, customer context, delivery status, estimates, sharing, and recent project activity."
       />
 
-      <Card className="p-2">
+      <Card className="overflow-hidden p-0">
         <AdminProjectsTable projects={projects} />
       </Card>
     </AdminPage>
