@@ -58,15 +58,15 @@ export function Accordion({ items, allowMultiple = false, className }: Accordion
             <button
               type="button"
               onClick={() => toggle(item.id)}
-              className="flex w-full items-center justify-between py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+              className="flex w-full cursor-pointer items-center justify-between py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
               aria-expanded={isOpen}
             >
               <span className="text-[10px] font-medium text-ink">{item.title}</span>
               <CaretDown
-                size={12}
+                size={16}
                 weight="regular"
                 className={cn(
-                  "text-tertiary transition-transform duration-200",
+                  "pointer-events-none text-tertiary transition-transform duration-200",
                   isOpen && "rotate-180"
                 )}
               />

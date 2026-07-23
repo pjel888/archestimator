@@ -130,18 +130,18 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
             getChipClassName(proposalState.tone),
           )}
         >
-          <StateIcon size={13} weight="regular" aria-hidden="true" />
+          <StateIcon size={16} weight="regular" aria-hidden="true" />
           {proposalState.label}
         </span>
         {proposal.decision ? (
           <span className="inline-flex h-6 items-center gap-1.5 rounded-xs border border-success/40 bg-white px-2 text-[10px] font-medium leading-none text-success">
-            <CheckCircle size={13} weight="regular" aria-hidden="true" />
+            <CheckCircle size={16} weight="regular" aria-hidden="true" />
             {decisionLabels[proposal.decision]}
           </span>
         ) : null}
         {proposal.expiresAt ? (
           <span className="inline-flex h-6 items-center gap-1.5 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-secondary">
-            <SealWarning size={13} weight="regular" aria-hidden="true" />
+            <SealWarning size={16} weight="regular" aria-hidden="true" />
             Expires <time dateTime={proposal.expiresAt}>{formatProposalDate(proposal.expiresAt)}</time>
           </span>
         ) : null}
@@ -166,7 +166,7 @@ export function ProposalRow({ proposal, onActionError }: ProposalRowProps) {
             aria-disabled={disabled || undefined}
             className={cn("w-full md:w-auto", disabled && "cursor-not-allowed opacity-60")}
           >
-            <ArrowSquareOut size={13} weight="regular" aria-hidden="true" />
+            <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
             {disabled ? proposalState.label : isPending ? "Opening" : "Review"}
           </Button>
         </form>

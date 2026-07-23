@@ -53,21 +53,21 @@ export function NotificationListItem({
           <button
             type="button"
             aria-label={`Mark ${notification.title} read`}
-            className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed"
             disabled={isMarkingRead}
             onClick={() => onMarkRead(notification.id)}
           >
-            <Check size={12} weight="regular" aria-hidden="true" />
+            <Check size={16} weight="regular" aria-hidden="true" />
           </button>
         ) : null}
         <button
           type="button"
           aria-label={`Dismiss ${notification.title}`}
-          className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed"
           disabled={isDismissing}
           onClick={() => onDismiss(notification.id)}
         >
-          <X size={12} weight="regular" aria-hidden="true" />
+          <X size={16} weight="regular" aria-hidden="true" />
         </button>
       </div>
     </li>

@@ -119,10 +119,10 @@ export function AdminCommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-8 min-w-8 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
+        className="inline-flex min-h-8 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
         aria-label="Open admin search"
       >
-        <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />
+        <MagnifyingGlass size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
         <span className="hidden sm:inline">Search</span>
         <kbd className="ml-1 hidden rounded-xs border border-hairline px-1 text-[8px] font-medium leading-3 text-tertiary md:inline">
           ⌘K
@@ -139,7 +139,7 @@ export function AdminCommandPalette() {
             >
               <div className="flex items-center gap-2 border-b border-hairline px-2">
                 <DialogTitle className="sr-only">Admin search</DialogTitle>
-                <MagnifyingGlass size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+                <MagnifyingGlass size={16} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                 <input
                   ref={inputRef}
                   data-dialog-initial-focus
@@ -181,7 +181,7 @@ export function AdminCommandPalette() {
                             type="button"
                             onMouseEnter={() => setActive(index)}
                             onClick={() => go(result)}
-                            className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xs px-2 py-2 text-left text-[10px] leading-4 transition sm:min-h-0 sm:py-1 ${
+                            className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xs px-2 py-2 text-left text-[10px] leading-4 transition sm:min-h-0 sm:py-1 ${
                               isActive ? "bg-surfaceMuted text-ink" : "text-ink"
                             }`}
                           >

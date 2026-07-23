@@ -35,7 +35,7 @@ export function EstimateDropZone({ label, isDragOver = false }: { label: string;
       )}
     >
       <div className={DROP_SLOT_CONTENT_CLASS}>
-        <Plus size={12} weight="regular" aria-hidden="true" />
+        <Plus size={16} weight="regular" aria-hidden="true" />
         <span>{label}</span>
       </div>
     </div>
@@ -59,7 +59,7 @@ function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
       )}
     >
       <span className={DROP_SLOT_CONTENT_CLASS}>
-        <Plus className="shrink-0" size={12} weight="regular" aria-hidden="true" />
+        <Plus className="shrink-0" size={16} weight="regular" aria-hidden="true" />
         <span className="min-w-0 truncate">Add row to {nodeName}</span>
       </span>
     </button>

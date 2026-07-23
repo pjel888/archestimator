@@ -96,7 +96,7 @@ export function HeaderIconToolbar({
       visibleLabel: addVisibleLabel,
       onClick: onAdd,
       disabled: addDisabled,
-      icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+      icon: <Plus size={16} weight="regular" aria-hidden="true" />,
     },
   ];
 
@@ -134,7 +134,7 @@ export function HeaderIconToolbar({
                 className={action.className}
               >
                 {action.icon ?? (
-                  <Plus size={12} weight="regular" aria-hidden="true" />
+                  <Plus size={16} weight="regular" aria-hidden="true" />
                 )}
               </ToolbarIconButton>
             ),
@@ -168,12 +168,12 @@ export function HeaderIconToolbar({
               label={`Filter ${labelPrefix}`}
               onClick={onFilter}
             >
-              <FunnelSimple size={12} weight="regular" aria-hidden="true" />
+              <FunnelSimple size={16} weight="regular" aria-hidden="true" />
             </ToolbarIconButton>
           ) : null}
           {showDefaultActions && onGroup ? (
             <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
-              <ListBullets size={12} weight="regular" aria-hidden="true" />
+              <ListBullets size={16} weight="regular" aria-hidden="true" />
             </ToolbarIconButton>
           ) : null}
         </div>
@@ -190,7 +190,7 @@ export function HeaderIconToolbar({
           onClick={onExpandAll}
           disabled={expandAllDisabled}
         >
-          <CaretDoubleDown size={12} weight="regular" aria-hidden="true" />
+          <CaretDoubleDown size={16} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       ) : null}
       {onCollapseAll ? (
@@ -199,7 +199,7 @@ export function HeaderIconToolbar({
           onClick={onCollapseAll}
           disabled={collapseAllDisabled}
         >
-          <CaretDoubleUp size={12} weight="regular" aria-hidden="true" />
+          <CaretDoubleUp size={16} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       ) : null}
       {leadingActions.length > 0 && hasMiddleControls ? (
@@ -234,7 +234,7 @@ export function HeaderIconToolbar({
                 className={action.className}
               >
                 {action.icon ?? (
-                  <Plus size={12} weight="regular" aria-hidden="true" />
+                  <Plus size={16} weight="regular" aria-hidden="true" />
                 )}
               </ToolbarIconButton>
             ),
@@ -277,7 +277,7 @@ export function HeaderIconToolbar({
               }
             >
               {action.icon ?? (
-                <Plus size={12} weight="regular" aria-hidden="true" />
+                <Plus size={16} weight="regular" aria-hidden="true" />
               )}
             </ToolbarIconButton>
           );

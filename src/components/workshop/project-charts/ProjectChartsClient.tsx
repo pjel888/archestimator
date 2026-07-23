@@ -287,7 +287,7 @@ export function ProjectChartsClient({
               })}
               {canAddEstimate ? (
                 <Button variant="outline" size="xs" onClick={addEstimate} className="min-w-0">
-                  <Plus size={12} weight="regular" aria-hidden="true" />
+                  <Plus size={16} weight="regular" aria-hidden="true" />
                   Add estimate
                 </Button>
               ) : null}
@@ -411,7 +411,7 @@ function CreateEstimateLink({ projectId }: { projectId: string }) {
       href={`/workshop/projects/${projectId}/estimates`}
       className="inline-flex min-h-7 items-center gap-1 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
     >
-      <Plus size={12} weight="regular" aria-hidden="true" />
+      <Plus size={16} weight="regular" aria-hidden="true" />
       Create estimate
     </Link>
   );

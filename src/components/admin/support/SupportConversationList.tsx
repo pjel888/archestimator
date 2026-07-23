@@ -45,7 +45,7 @@ export function SupportConversationList({
           onClick={() => onSelect(thread)}
           aria-pressed={selectedId === thread.id}
           className={cn(
-            "mb-1 min-h-[4.5rem] w-full rounded-xs border p-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+            "mb-1 min-h-[4.5rem] w-full cursor-pointer rounded-xs border p-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
             selectedId === thread.id ? "border-ink/25 bg-surfaceMuted" : "border-transparent hover:border-hairline hover:bg-surfaceMuted/70",
           )}
         >

@@ -167,7 +167,7 @@ export function ProjectGroupFlag({
       type="button"
       aria-label={collapsed ? `Expand ${group.label}` : `Collapse ${group.label}`}
       aria-expanded={!collapsed}
-      className="inline-flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded-xs opacity-70 hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
+      className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-xs opacity-70 hover:bg-black/5 hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
       onClick={() => onToggleCollapse?.(group.key)}
     >
       {collapsed ? (
@@ -205,7 +205,7 @@ export function ProjectGroupFlag({
             onDragEnd={onReorderDragEnd}
             onClick={(event) => event.preventDefault()}
           >
-            <DotsSixVertical size={13} weight="bold" aria-hidden="true" />
+            <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
           </button>
         ) : (
           <span
@@ -213,7 +213,7 @@ export function ProjectGroupFlag({
             className="inline-flex size-4 shrink-0 items-center justify-center opacity-80"
             data-project-group-drag-handle
           >
-            <DotsSixVertical size={13} weight="bold" />
+            <DotsSixVertical size={16} weight="bold" />
           </span>
         )
       ) : null}
@@ -256,7 +256,7 @@ export function ProjectGroupFlag({
               aria-label={`Group actions for ${group.label}`}
               title={`Group actions for ${group.label}`}
             >
-              <DotsThreeVertical size={12} weight="regular" aria-hidden="true" />
+              <DotsThreeVertical size={16} weight="regular" aria-hidden="true" />
             </Button>
           </ShadcnDropdownMenuTrigger>
           <ShadcnDropdownMenuContent align="end" sideOffset={4} className="min-w-36">

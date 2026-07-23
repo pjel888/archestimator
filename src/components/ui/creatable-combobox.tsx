@@ -212,9 +212,9 @@ export function CreatableCombobox({
             onChange({ id: null, label: "", reason: "clear" });
             close("manual");
           }}
-          className="absolute right-1.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="absolute right-1.5 top-1/2 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
-          <X size={10} weight="regular" aria-hidden="true" />
+          <X size={10} weight="regular" className="pointer-events-none" aria-hidden="true" />
         </button>
       ) : showDropdownIndicator ? (
         <span
@@ -267,7 +267,7 @@ export function CreatableCombobox({
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => selectOption(option)}
                     className={cn(
-                      "grid min-h-9 w-full grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-2 rounded-xs px-2 py-1.5 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                      "grid min-h-9 w-full cursor-pointer grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-2 rounded-xs px-2 py-1.5 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                       optionIsSelected ? "bg-accentSoft" : "bg-white",
                     )}
                   >
@@ -304,7 +304,7 @@ export function CreatableCombobox({
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => selectOption(option)}
                     className={cn(
-                      "flex min-w-0 flex-1 items-center px-2 text-left !text-[10px] leading-4 text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                      "flex min-w-0 flex-1 cursor-pointer items-center px-2 text-left !text-[10px] leading-4 text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                       canDeleteOption ? "pr-1" : "",
                       optionIsSelected ? "font-medium" : "font-normal",
                     )}
@@ -326,9 +326,9 @@ export function CreatableCombobox({
                         event.stopPropagation();
                         onDeleteOption?.(option);
                       }}
-                      className="grid w-7 shrink-0 place-items-center text-tertiary transition hover:bg-dangerSoft/50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                      className="grid w-7 shrink-0 cursor-pointer place-items-center text-tertiary transition hover:bg-dangerSoft/50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                     >
-                      <Trash size={10} weight="regular" aria-hidden="true" />
+                      <Trash size={10} weight="regular" className="pointer-events-none" aria-hidden="true" />
                     </button>
                   ) : null}
                 </div>
@@ -345,7 +345,7 @@ export function CreatableCombobox({
               onMouseDown={(event) => event.preventDefault()}
               onClick={createOption}
               className={cn(
-                "w-full border-t border-hairline text-left font-medium text-ink transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                "w-full cursor-pointer border-t border-hairline text-left font-medium text-ink transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                 usesUnitPresentation
                   ? "mt-1 flex min-h-8 items-center gap-1 rounded-xs px-2 py-1 !text-[10px] leading-4"
                   : "flex min-h-7 items-center gap-1 px-2 !text-[10px] leading-4",

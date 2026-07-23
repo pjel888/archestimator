@@ -57,9 +57,9 @@ export default function AdminFinancialsPage() {
           href="https://dashboard.stripe.com/"
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium leading-4 text-ink hover:underline"
+          className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[10px] font-medium leading-4 text-ink hover:underline"
         >
-          Open Stripe <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+          Open Stripe <ArrowSquareOut size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
         </Link>
       </Card>
     </AdminPage>

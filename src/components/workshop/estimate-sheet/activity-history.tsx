@@ -82,7 +82,7 @@ function formatSignedAdjustmentPercentage(value: number) {
 function AddTreeActionIcon() {
   return (
     <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
-      <Circle size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
+      <Circle size={16} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
       <Plus size={8} weight="regular" className="absolute right-0 top-0" />
     </span>
   );
@@ -996,7 +996,7 @@ function EventList({
     return (
       <div className="border border-amber-200 bg-amber-50 p-4 text-[10px] text-amber-900">
         <div className="flex items-center gap-2 font-medium">
-          <WarningCircle size={13} weight="regular" aria-hidden="true" />
+          <WarningCircle size={16} weight="regular" aria-hidden="true" />
           History could not load
         </div>
         <p className="mt-1 leading-4">{error}</p>
@@ -1351,7 +1351,7 @@ export function RowDetailsModal({
             <p className="truncate text-[10px] font-medium uppercase text-tertiary">{row?.nodePath.join(" / ") ?? "Current estimate row"}</p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close row details" data-dialog-initial-focus onClick={onClose}>
-            <X size={13} weight="regular" aria-hidden="true" />
+            <X size={16} weight="regular" aria-hidden="true" />
           </Button>
         </div>
         <div className="shrink-0">
@@ -1644,7 +1644,7 @@ function ActivityScopeTree({
                 >
                   {hasChildren ? (
                     <span
-                      className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surface-muted")}
+                      className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted"
                       aria-hidden="true"
                       onClick={(event) => {
                         if (normalizedSearch) return;
@@ -1655,12 +1655,12 @@ function ActivityScopeTree({
                       <CaretDown size={11} aria-hidden="true" className={expanded ? "" : "-rotate-90"} />
                     </span>
                   ) : (
-                    <span className="size-4 shrink-0" aria-hidden="true" />
+                    <span className="size-6 shrink-0" aria-hidden="true" />
                   )}
                   <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
-                    {item.kind === "sheet" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
+                    {item.kind === "sheet" ? <FolderSimple size={16} weight="regular" aria-hidden="true" /> : null}
                     {/* group and area collapse to one neutral node glyph */}
-                    {item.kind === "group" || item.kind === "area" ? <Circle size={12} weight="regular" aria-hidden="true" /> : null}
+                    {item.kind === "group" || item.kind === "area" ? <Circle size={16} weight="regular" aria-hidden="true" /> : null}
                     {item.kind === "row" ? <span className="font-sans text-[12px] font-medium" aria-hidden="true">#</span> : null}
                   </span>
                   <span className="min-w-0 truncate text-left">{item.label}</span>
@@ -1750,7 +1750,7 @@ export function ActivityHistoryModal({
             <p className="truncate text-[10px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate"}</p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Activity History" data-dialog-initial-focus onClick={onClose}>
-            <X size={13} weight="regular" aria-hidden="true" />
+            <X size={16} weight="regular" aria-hidden="true" />
           </Button>
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-[350px_minmax(0,1fr)] max-lg:grid-cols-1">
@@ -1787,7 +1787,7 @@ export function ActivityHistoryModal({
                         label: "Filter activity",
                         icon: (
                           <span className="relative inline-flex">
-                            <FunnelSimple size={12} weight="regular" aria-hidden="true" />
+                            <FunnelSimple size={16} weight="regular" aria-hidden="true" />
                             {advancedFiltersActive ? <span className="absolute -right-1 -top-1 size-1.5 rounded-xs bg-orange-600" aria-hidden="true" /> : null}
                           </span>
                         ),
@@ -1801,7 +1801,7 @@ export function ActivityHistoryModal({
                         ? [
                             {
                               label: "Reset activity filters",
-                              icon: <X size={12} weight="regular" aria-hidden="true" />,
+                              icon: <X size={16} weight="regular" aria-hidden="true" />,
                               onClick: onActivityFiltersReset,
                               className: "hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
                             },

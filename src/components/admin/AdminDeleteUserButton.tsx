@@ -74,7 +74,7 @@ export function AdminDeleteUserButton({
         aria-label={`Delete ${email}`}
         title="Delete account"
       >
-        <Trash aria-hidden size={13} />
+        <Trash aria-hidden size={16} />
         {compact ? null : "Delete"}
       </Button>
 

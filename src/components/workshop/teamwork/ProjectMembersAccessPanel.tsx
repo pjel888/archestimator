@@ -519,7 +519,7 @@ export function ProjectMembersAccessPanel({
                             disabled={isPending}
                               onClick={() => requestRemoveProjectMember(member)}
                           >
-                            <Trash size={12} aria-hidden="true" />
+                            <Trash size={16} aria-hidden="true" />
                           </Button>
                         ) : null}
                       </div>
@@ -664,7 +664,7 @@ export function ProjectMembersAccessPanel({
                         disabled={isPending}
                         onClick={() => copyPendingInvite(invitation)}
                       >
-                        <Copy size={12} aria-hidden="true" />
+                        <Copy size={16} aria-hidden="true" />
                       </Button>
                       <Button
                         type="button"
@@ -676,7 +676,7 @@ export function ProjectMembersAccessPanel({
                         disabled={isPending}
                         onClick={() => resendPendingInvite(invitation)}
                       >
-                        <PaperPlaneTilt size={12} aria-hidden="true" />
+                        <PaperPlaneTilt size={16} aria-hidden="true" />
                       </Button>
                       <Button
                         type="button"
@@ -688,7 +688,7 @@ export function ProjectMembersAccessPanel({
                         disabled={isPending}
                         onClick={() => setPendingInvitationRevocation(invitation)}
                       >
-                        <Trash size={12} aria-hidden="true" />
+                        <Trash size={16} aria-hidden="true" />
                       </Button>
                     </div>
                   ) : null}
@@ -858,7 +858,7 @@ export function ProjectMembersAccessPanel({
                                   disabled={isPending}
                                   onClick={() => requestRemoveSheetMember(sheet, member)}
                                 >
-                                  <Trash size={12} aria-hidden="true" />
+                                  <Trash size={16} aria-hidden="true" />
                                 </Button>
                               ) : null}
                             </div>

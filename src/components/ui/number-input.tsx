@@ -63,20 +63,20 @@ export function NumberInput({ className, invalid, disabled, min, max, step = 1, 
             tabIndex={-1}
             disabled={disabled}
             onClick={() => handleStep(1)}
-            className="flex h-3 w-4 items-center justify-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-3 w-4 cursor-pointer items-center justify-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Increase value"
           >
-            <CaretUp size={8} weight="regular" />
+            <CaretUp size={8} weight="regular" className="pointer-events-none" aria-hidden="true" />
           </button>
           <button
             type="button"
             tabIndex={-1}
             disabled={disabled}
             onClick={() => handleStep(-1)}
-            className="flex h-3 w-4 items-center justify-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-3 w-4 cursor-pointer items-center justify-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Decrease value"
           >
-            <CaretDown size={8} weight="regular" />
+            <CaretDown size={8} weight="regular" className="pointer-events-none" aria-hidden="true" />
           </button>
         </div>
       </div>

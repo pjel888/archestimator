@@ -79,7 +79,7 @@ export function RecentSheetsList({
             >
               <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center justify-items-center">
                 <FileText
-                  size={12}
+                  size={16}
                   weight="regular"
                   className="text-secondary"
                   aria-hidden="true"
@@ -178,7 +178,7 @@ function FavoriteSheetButton({
       <button
         type="button"
         className={cn(
-          "grid size-4 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
+          "grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
           isFavorite ? "text-secondary" : null,
         )}
         aria-label={
@@ -198,7 +198,7 @@ function FavoriteSheetButton({
         onClick={toggleFavorite}
       >
         <Star
-          size={10}
+          size={16}
           weight={isFavorite ? "fill" : "regular"}
           aria-hidden="true"
         />

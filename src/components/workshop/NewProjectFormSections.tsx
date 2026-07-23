@@ -96,7 +96,7 @@ export function ProjectCodeField({
           disabled={isSubmitting}
           onClick={onGenerate}
         >
-          <MagicWand size={13} weight="regular" aria-hidden="true" />
+          <MagicWand size={16} weight="regular" aria-hidden="true" />
         </Button>
       </span>
     </label>

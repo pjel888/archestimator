@@ -20,17 +20,17 @@ const COMPONENT_SOURCE_TABS = [
   {
     id: "library",
     label: "Library",
-    icon: <Package size={12} weight="regular" aria-hidden="true" />,
+    icon: <Package size={16} weight="regular" aria-hidden="true" />,
   },
   {
     id: "project",
     label: "Project",
-    icon: <Buildings size={12} weight="regular" aria-hidden="true" />,
+    icon: <Buildings size={16} weight="regular" aria-hidden="true" />,
   },
   {
     id: "supplier",
     label: "Supplier",
-    icon: <Storefront size={12} weight="regular" aria-hidden="true" />,
+    icon: <Storefront size={16} weight="regular" aria-hidden="true" />,
     badge: "Soon",
   },
 ] as const satisfies readonly TabItem[];
@@ -56,7 +56,7 @@ export function LibraryComponentSourceShell({
   const projectOptions: DropdownSelectOption[] = projects.map((project) => ({
     value: project.id,
     label: project.label,
-    icon: <Buildings size={12} weight="regular" aria-hidden="true" />,
+    icon: <Buildings size={16} weight="regular" aria-hidden="true" />,
   }));
 
   const changeSource = (source: string) => {

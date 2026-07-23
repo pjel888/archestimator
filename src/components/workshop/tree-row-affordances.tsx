@@ -196,7 +196,7 @@ export function TreeBulkActionBar({
           <TreeSelectionCountLabel count={selectedCount} singular={entityLabel} plural={entityLabelPlural} />
         </span>
         <Button variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" onClick={onClearSelection} aria-label="Clear selection">
-          <X size={12} weight="regular" aria-hidden="true" />
+          <X size={16} weight="regular" aria-hidden="true" />
         </Button>
         <Button
           variant="danger"
@@ -207,7 +207,7 @@ export function TreeBulkActionBar({
           title={deleteDisabled ? disabledReason : undefined}
           aria-label={deleteLabel}
         >
-          <Trash size={12} weight="regular" aria-hidden="true" />
+          <Trash size={16} weight="regular" aria-hidden="true" />
         </Button>
       </div>
     );

@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "zustand";
-import { ArrowsOutSimple, CopySimple, DotsSixVertical, DotsThreeVertical, Info, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CopySimple, DotsSixVertical, DotsThree, Info, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { ControlInput } from "@/components/ui/control-input";
@@ -960,11 +960,11 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             <button
               ref={rowActionTriggerRef}
               type="button"
-              className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
+              className="grid size-5 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
               aria-label={`Open row actions for ${computedItemLabel}`}
               onClick={(event) => event.stopPropagation()}
             >
-              <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
+              <DotsThree size={14} weight="bold" aria-hidden="true" />
             </button>
           )}
         >

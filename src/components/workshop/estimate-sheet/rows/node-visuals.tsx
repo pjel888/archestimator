@@ -5,5 +5,5 @@ import { Circle } from "@phosphor-icons/react/dist/ssr";
 // folder-vs-pin icon. A small outline mark reads as a generic node without
 // implying "container" (folder) or "location/area" (pin).
 export function NodeIcon() {
-  return <Circle size={13} weight="regular" aria-hidden="true" />;
+  return <Circle size={16} weight="regular" aria-hidden="true" />;
 }

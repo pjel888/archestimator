@@ -112,7 +112,7 @@ export function PublishedProjectQuickActions({
             disabled={isPending}
             onClick={() => void copyClientLink()}
           >
-            <LinkSimple size={12} weight="regular" aria-hidden="true" />
+            <LinkSimple size={16} weight="regular" aria-hidden="true" />
           </Button>
         </Tooltip>
         <Tooltip label="Preview link" side="top">
@@ -123,7 +123,7 @@ export function PublishedProjectQuickActions({
             className="dashboard-published-action"
             aria-label={`Preview ${projectName} shared link`}
           >
-            <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+            <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
           </Link>
         </Tooltip>
         {canManagePublication ? (
@@ -139,7 +139,7 @@ export function PublishedProjectQuickActions({
                 disabled={isPending}
                 onClick={() => setConfirmAction("rotate")}
               >
-                <LinkBreak size={12} weight="regular" aria-hidden="true" />
+                <LinkBreak size={16} weight="regular" aria-hidden="true" />
               </Button>
             </Tooltip>
             <Tooltip label="Turn off link" side="top">
@@ -153,7 +153,7 @@ export function PublishedProjectQuickActions({
                 disabled={isPending}
                 onClick={() => setConfirmAction("revoke")}
               >
-                <Prohibit size={12} weight="regular" aria-hidden="true" />
+                <Prohibit size={16} weight="regular" aria-hidden="true" />
               </Button>
             </Tooltip>
           </>

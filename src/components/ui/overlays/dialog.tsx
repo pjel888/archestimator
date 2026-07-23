@@ -441,7 +441,7 @@ export function DialogCloseButton({ className }: DialogCloseButtonProps) {
       aria-label={closeLabel}
       onClick={() => onOpenChange(false)}
     >
-      <X size={13} weight="regular" aria-hidden="true" />
+      <X size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
     </Button>
   );
 }

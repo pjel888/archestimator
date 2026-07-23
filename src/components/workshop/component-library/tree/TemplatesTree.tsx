@@ -339,8 +339,8 @@ export function TemplatesTree({
           id: expanded ? "collapse" : "expand",
           label: expanded ? "Collapse" : "Expand",
           icon: expanded
-            ? <CaretDown size={12} weight="regular" aria-hidden="true" />
-            : <CaretRight size={12} weight="regular" aria-hidden="true" />,
+            ? <CaretDown size={16} weight="regular" aria-hidden="true" />
+            : <CaretRight size={16} weight="regular" aria-hidden="true" />,
           onSelect: () => onToggle(contextNode.id),
         }]
       : [];
@@ -353,7 +353,7 @@ export function TemplatesTree({
             {
               id: "add-template",
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
               disabledReason: "Select an estimate node before adding this template.",
               onSelect: () => void onAddTemplate(datum.template),
@@ -368,7 +368,7 @@ export function TemplatesTree({
                 {
                   id: "rename-template",
                   label: "Rename",
-                  icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+                  icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
                   onSelect: () => onRenameTemplate(datum.template),
                 },
               ]
@@ -381,7 +381,7 @@ export function TemplatesTree({
                 {
                   id: "delete-template",
                   label: "Delete",
-                  icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+                  icon: <Trash size={16} weight="regular" aria-hidden="true" />,
                   tone: "destructive" as const,
                   onSelect: () => onDeleteTemplate(datum.template),
                 },
@@ -398,7 +398,7 @@ export function TemplatesTree({
             {
               id: "add-template-node",
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
               disabledReason: "Select an estimate node before adding this node.",
               onSelect: () => void onAddTemplateNode(datum.template, datum.node),
@@ -416,7 +416,7 @@ export function TemplatesTree({
             {
               id: "add-component",
               label: componentAddDisabled ? "Add component" : componentAddLabel,
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: componentAddDisabled,
               disabledReason: "Select an Area before adding this component.",
               onSelect: () => onAddComponent(datum.item),
@@ -437,7 +437,7 @@ export function TemplatesTree({
             {
               id: "add-project-source",
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || !onAddProjectSource,
               disabledReason: !canInsertTemplate
                 ? "Select an estimate node before adding this source."
@@ -459,7 +459,7 @@ export function TemplatesTree({
                 {
                   id: "new-template-in-category",
                   label: "New Template",
-                  icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+                  icon: <StackPlus size={16} weight="regular" aria-hidden="true" />,
                   onSelect: () => onCreateTemplate(datum.category),
                 },
               ]
@@ -473,7 +473,7 @@ export function TemplatesTree({
               label: canInsertTemplate
                 ? `Add ${categoryTemplates.length} ${categoryTemplates.length === 1 ? "template" : "templates"} to ${templateTargetName}`
                 : "Add all to estimate",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || categoryTemplates.length === 0,
               disabledReason: "Select an estimate node before adding these templates.",
               onSelect: () => void onAddTemplates(categoryTemplates),

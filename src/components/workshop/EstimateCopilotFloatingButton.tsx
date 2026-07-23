@@ -913,7 +913,7 @@ export function AskFlipFooterAssistant({
                 aria-label="Start new Ask Flip chat"
                 onClick={handleNewSession}
               >
-                <Plus size={13} weight="regular" aria-hidden="true" />
+                <Plus size={16} weight="regular" aria-hidden="true" />
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -925,7 +925,7 @@ export function AskFlipFooterAssistant({
                       key={session.id}
                       type="button"
                       className={cn(
-                        "flex w-full min-w-0 flex-col items-start rounded-xs border px-2 py-2 text-left transition",
+                        "flex w-full min-w-0 cursor-pointer flex-col items-start rounded-xs border px-2 py-2 text-left transition",
                         isActive ? "border-ink bg-white text-ink" : "border-transparent bg-transparent text-tertiary hover:border-hairline hover:bg-white hover:text-ink",
                       )}
                       aria-current={isActive ? "true" : undefined}
@@ -956,7 +956,7 @@ export function AskFlipFooterAssistant({
                 aria-label="Close Ask Flip"
                 onClick={() => dispatch({ type: "openChanged", open: false })}
               >
-                <X size={13} weight="regular" aria-hidden="true" />
+                <X size={16} weight="regular" aria-hidden="true" />
               </Button>
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-auto bg-surfaceMuted/35 p-2">
@@ -1010,7 +1010,7 @@ export function AskFlipFooterAssistant({
                 aria-label="Send message"
                 disabled={!input.trim() || isSending}
               >
-                <PaperPlaneRight size={13} weight="regular" aria-hidden="true" />
+                <PaperPlaneRight size={16} weight="regular" aria-hidden="true" />
               </Button>
             </form>
           </div>
@@ -1024,7 +1024,7 @@ export function AskFlipFooterAssistant({
         aria-expanded={open}
         onClick={() => dispatch({ type: "openToggled" })}
       >
-        <ChatCircleDots size={13} weight="regular" aria-hidden="true" />
+        <ChatCircleDots size={16} weight="regular" aria-hidden="true" />
         <span>Ask Flip</span>
       </Button>
     </div>

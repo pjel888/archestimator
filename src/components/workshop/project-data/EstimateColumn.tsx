@@ -70,9 +70,9 @@ export function EstimateColumn({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${estimate.name} from comparison`}
-            className="grid size-6 shrink-0 place-items-center rounded-xs text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
-            <X size={12} weight="regular" aria-hidden="true" />
+            <X size={16} weight="regular" aria-hidden="true" />
           </button>
         ) : null}
       </header>

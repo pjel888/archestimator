@@ -581,7 +581,7 @@ function TemplateEditorSurface({
             addActions={canEditTemplate ? [
               {
                 label: "Add group",
-                icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
+                icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
                 onClick: () => addNode(null, "group"),
               },
             ] : []}

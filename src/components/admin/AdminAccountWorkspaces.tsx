@@ -97,7 +97,7 @@ export function AdminAccountWorkspaces({
               aria-label={`Unlink ${ws.name}`}
               title="Unlink"
             >
-              <LinkBreak aria-hidden size={13} />
+              <LinkBreak aria-hidden size={16} />
             </Button>
           </div>
         );
@@ -152,7 +152,7 @@ export function AdminAccountWorkspaces({
                   aria-label={`Unlink ${ws.name}`}
                   className="min-h-8 shrink-0"
                 >
-                  <LinkBreak aria-hidden size={13} />
+                  <LinkBreak aria-hidden size={16} />
                   Unlink
                 </Button>
               </div>

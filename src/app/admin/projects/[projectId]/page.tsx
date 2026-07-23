@@ -86,9 +86,9 @@ export default async function AdminProjectDetailPage({
             <Badge tone={statusTone(project.status)} size="xs" className="min-w-0 px-1.5">{project.status}</Badge>
             <Link
               href={`/workshop/projects/${project.id}`}
-              className="inline-flex min-h-7 items-center gap-1 rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="inline-flex min-h-7 cursor-pointer items-center gap-1 rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
-              Open in Workshop <ArrowSquareOut size={12} aria-hidden />
+              Open in Workshop <ArrowSquareOut size={16} className="pointer-events-none" aria-hidden />
             </Link>
           </>
         }

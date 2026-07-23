@@ -364,7 +364,7 @@ function TemplatesBrowseTreePanel({
             {
               id: "new-template",
               label: "New template",
-              icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+              icon: <StackPlus size={16} weight="regular" aria-hidden="true" />,
               onSelect: () => onNewTemplate(),
             },
           ],
@@ -380,13 +380,13 @@ function TemplatesBrowseTreePanel({
             {
               id: "new-template-in-category",
               label: "New template",
-              icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+              icon: <StackPlus size={16} weight="regular" aria-hidden="true" />,
               onSelect: () => onNewTemplate(datum.category),
             },
             {
               id: "rename-category",
               label: "Rename group",
-              icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+              icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
               onSelect: () => onRenameCategory(datum.category),
             },
           ],
@@ -401,13 +401,13 @@ function TemplatesBrowseTreePanel({
           {
             id: "open-template",
             label: "Open",
-            icon: <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />,
+            icon: <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />,
             onSelect: () => onOpenTemplate(datum.template.id),
           },
           {
             id: "insert-template",
             label: "Insert into estimate…",
-            icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+            icon: <Plus size={16} weight="regular" aria-hidden="true" />,
             onSelect: () => onInsertIntoEstimate(datum.template),
           },
         ],
@@ -420,19 +420,19 @@ function TemplatesBrowseTreePanel({
             // category folders (hard rule: every drag has a non-drag path).
             id: "move-template",
             label: "Move to group…",
-            icon: <ArrowsLeftRight size={12} weight="regular" aria-hidden="true" />,
+            icon: <ArrowsLeftRight size={16} weight="regular" aria-hidden="true" />,
             onSelect: () => onMoveTemplatePrompt(datum.template),
           },
           {
             id: "rename-template",
             label: "Rename",
-            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
             onSelect: () => onRenameTemplate(datum.template),
           },
           {
             id: "duplicate-template",
             label: "Duplicate",
-            icon: <Copy size={12} weight="regular" aria-hidden="true" />,
+            icon: <Copy size={16} weight="regular" aria-hidden="true" />,
             onSelect: () => onDuplicateTemplate(datum.template),
           },
         ],
@@ -443,7 +443,7 @@ function TemplatesBrowseTreePanel({
           {
             id: "delete-template",
             label: "Delete",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
             onSelect: () => onRequestDeleteTemplate(datum.template),
           },
@@ -509,7 +509,7 @@ function TemplatesBrowseTreePanel({
           addActions={[
             {
               label: "New template",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               onClick: () => onNewTemplate(newTemplatePrefillCategory),
             },
           ]}

@@ -125,7 +125,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
     // react-doctor-disable-next-line react-doctor/no-static-element-interactions -- Command palette uses container-level arrow/enter handling for virtual selection.
     <div className="space-y-2" onKeyDown={handleKeyDown}>
       <div className="flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-2">
-        <MagnifyingGlass size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <MagnifyingGlass size={16} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
         <ControlInput
           className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 border-0 bg-transparent px-0 focus:ring-0")}
           value={query}
@@ -166,7 +166,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
                       aria-selected={selected ? "true" : "false"}
                       disabled={item.disabled}
                       className={cn(
-                        "flex w-full items-center gap-2 px-2 py-1.5 text-left text-[10px] leading-4 tracking-normal text-secondary hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50",
+                        "flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-left text-[10px] leading-4 tracking-normal text-secondary hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
                         selected && "bg-surfaceMuted text-ink",
                       )}
                       onMouseEnter={() => {

@@ -75,7 +75,7 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
           />
           <button
             type="button"
-            className="grid w-9 place-items-center text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
+            className="grid w-9 cursor-pointer place-items-center text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={isPasswordVisible ? "Hide entered value" : "Show entered value"}
             aria-pressed={isPasswordVisible}
             disabled={isSubmitting || isLocked}
@@ -94,7 +94,7 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
         </p>
       ) : null}
       <button
-        className="h-9 bg-ink px-3 text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
+        className="h-9 cursor-pointer bg-ink px-3 text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
         type="submit"
         disabled={isSubmitting || isLocked}
       >

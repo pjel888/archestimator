@@ -42,7 +42,7 @@ export function PublisherRosterCard({ copyState, onCopyLink, onSelect, row, sele
     >
       <button
         type="button"
-        className="min-w-0 px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+        className="min-w-0 cursor-pointer px-2.5 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
         aria-current={selected ? "true" : undefined}
         onClick={() => onSelect(row)}
       >
@@ -74,7 +74,7 @@ export function PublisherRosterCard({ copyState, onCopyLink, onSelect, row, sele
         <button
           type="button"
           className={cn(
-            "grid size-8 place-items-center rounded-xs text-tertiary transition-colors hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+            "grid size-8 cursor-pointer place-items-center rounded-xs text-tertiary transition-colors hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed",
             copyState === "copied" && "text-success",
           )}
           aria-label={`${copyLabel} for ${row.projectName}`}
@@ -82,7 +82,7 @@ export function PublisherRosterCard({ copyState, onCopyLink, onSelect, row, sele
           disabled={copyUnavailable}
           onClick={() => onCopyLink(row)}
         >
-          <Copy size={13} aria-hidden="true" />
+          <Copy size={16} aria-hidden="true" />
         </button>
         <ArrowRight size={11} className={selected ? "text-ink" : "text-tertiary"} aria-hidden="true" />
       </div>

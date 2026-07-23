@@ -87,7 +87,7 @@ function getFavoriteLinkOrder(favoriteProjects: MainSidebarFavoriteProject[]) {
 }
 
 const TOGGLE_ROW_CLASSNAME = cn(
-  "group relative flex h-8 w-12 items-center justify-center overflow-visible rounded-xs px-0 text-tertiary outline-none transition-[color,transform] duration-[120ms] ease-out hover:text-primary active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
+  "group relative flex h-8 w-12 cursor-pointer items-center justify-center overflow-visible rounded-xs px-0 text-tertiary outline-none transition-[color,transform] duration-[120ms] ease-out hover:text-primary active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
   "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:[border-radius:var(--glass-nav-radius)] before:[background:var(--glass-nav-hover-bg)] before:opacity-0 before:transition-opacity before:duration-[120ms] before:ease-out before:content-[''] hover:before:opacity-100",
   "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
 );
@@ -103,7 +103,7 @@ function SidebarSectionDivider() {
 
 function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
   return cn(
-    "group relative flex h-7 min-w-0 items-center gap-2 overflow-hidden rounded-xs outline-none transition-colors duration-[120ms] ease-out",
+    "group relative flex h-7 min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-xs outline-none transition-colors duration-[120ms] ease-out",
     "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
     active ? "bg-orange-50 text-primary" : "text-tertiary hover:bg-accent-soft hover:text-primary",
     depth === "project" ? "pl-[52px] pr-2" : "pl-[72px] pr-2",
@@ -422,7 +422,7 @@ export function MainSidebar({
                         onMouseLeave={() => cancel(project.href)}
                         className={getFavoriteLinkClassName(projectActive, "project")}
                       >
-                        <Folder size={13} weight="regular" aria-hidden="true" className="shrink-0" />
+                        <Folder size={16} weight="regular" aria-hidden="true" className="shrink-0" />
                         <span className="min-w-0 truncate text-[9px] font-medium leading-none">{project.name}</span>
                       </Link>
 

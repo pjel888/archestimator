@@ -427,7 +427,7 @@ export function ProjectDetailsModal({
                               disabled={imageUploadBusy || isSaving}
                               onClick={removeProjectImage}
                             >
-                              <Trash size={13} weight="regular" />
+                              <Trash size={16} weight="regular" />
                             </Button>
                           ) : null}
                         </div>
@@ -452,7 +452,7 @@ export function ProjectDetailsModal({
                             imageUploadBusy || isSaving ? "pointer-events-none opacity-60" : "",
                           ].filter(Boolean).join(" ")}
                         >
-                          <UploadSimple size={13} weight="regular" aria-hidden="true" />
+                          <UploadSimple size={16} weight="regular" aria-hidden="true" />
                           {projectImage ? "Change image" : "Upload image"}
                         </label>
                         {imageUpload.state === "uploading" ? (
@@ -550,7 +550,7 @@ export function ProjectDetailsModal({
                                 disabled={isSaving}
                                 onClick={() => dispatchDetails({ type: "generateProjectCode" })}
                               >
-                                <MagicWand size={13} weight="regular" aria-hidden="true" />
+                                <MagicWand size={16} weight="regular" aria-hidden="true" />
                               </Button>
                             </span>
                           </label>
@@ -617,7 +617,7 @@ export function ProjectDetailsModal({
                       ) : null}
                     </div>
                     <Button type="submit" variant="brand" size="md" className="h-8 min-w-[124px] gap-2 rounded-xs px-2" disabled={isSaving}>
-                      <FloppyDisk size={13} weight="regular" aria-hidden="true" />
+                      <FloppyDisk size={16} weight="regular" aria-hidden="true" />
                       {isSaving ? "Saving" : "Save details"}
                     </Button>
                   </div>

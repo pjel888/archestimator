@@ -74,10 +74,10 @@ export function Banner({ className, tone = "info", title, description, actions, 
             <button
               type="button"
               onClick={onDismiss}
-              className="flex size-6 items-center justify-center rounded-xs text-secondary hover:bg-black/5 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+              className="flex size-6 cursor-pointer items-center justify-center rounded-xs text-secondary hover:bg-black/5 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
               aria-label="Dismiss"
             >
-              <X size={12} weight="regular" />
+              <X size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
             </button>
           )}
         </div>

@@ -75,12 +75,12 @@ export function ProjectEstimateSheetCodeCell({
         <button
           type="button"
           aria-label={`Auto-generate estimate code for ${estimate.name}`}
-          className="absolute right-0 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-xs border border-hairline bg-white/90 text-tertiary opacity-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.64)] transition hover:border-accent hover:text-accent focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed group-hover/sheet-code:opacity-100 group-focus-within/sheet-code:opacity-100"
+          className="absolute right-0 top-1/2 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-xs border border-hairline bg-white/90 text-tertiary opacity-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.64)] transition hover:border-accent hover:text-accent focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed group-hover/sheet-code:opacity-100 group-focus-within/sheet-code:opacity-100"
           disabled={!canEditEstimate || isPending || isEstimateSettling || isGenerating}
           onClick={handleAutoGenerate}
           title={errorMessage ?? (canEditEstimate ? "Auto-generate the next estimate code" : "View-only estimate.")}
         >
-          <MagicWand size={12} weight="regular" aria-hidden="true" />
+          <MagicWand size={16} weight="regular" aria-hidden="true" />
         </button>
       )}
       {errorMessage ? <span className="sr-only">{errorMessage}</span> : null}

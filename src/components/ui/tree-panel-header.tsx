@@ -189,7 +189,7 @@ export function TreePanelHeader({
         {
           id: "tree-panel-search",
           label: open ? `Hide ${labelPrefix} search` : `Show ${labelPrefix} search`,
-          icon: <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />,
+          icon: <MagnifyingGlass size={16} weight="regular" aria-hidden="true" />,
           onClick: () => setOpen(!open),
           pressed: searchActive,
           ariaControls: panelId,

@@ -95,7 +95,7 @@ export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreShee
                               aria-current={active ? "page" : undefined}
                               onClick={() => onOpenChange(false)}
                               className={cn(
-                                "flex min-h-11 items-center gap-2 rounded-[var(--glass-nav-radius)] px-2.5 py-2 text-[10px] font-medium leading-4 transition-colors duration-150",
+                                "flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--glass-nav-radius)] px-2.5 py-2 text-[10px] font-medium leading-4 transition-colors duration-150",
                                 active
                                   ? "bg-orange-50 text-ink shadow-[inset_0_0_0_1px_rgb(194,65,12)]"
                                   : "bg-white/70 text-secondary hover:bg-surfaceMuted hover:text-ink",
@@ -104,7 +104,7 @@ export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreShee
                               <Icon
                                 size={15}
                                 weight="regular"
-                                className={cn("shrink-0", active ? "text-orange-700" : "text-tertiary")}
+                                className={cn("pointer-events-none shrink-0", active ? "text-orange-700" : "text-tertiary")}
                                 aria-hidden="true"
                               />
                               <span className="min-w-0 truncate">{item.label}</span>

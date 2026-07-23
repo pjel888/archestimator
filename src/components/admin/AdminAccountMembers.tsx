@@ -131,7 +131,7 @@ export function AdminAccountMembers({
               aria-label={`Remove ${member.email}`}
               title="Remove"
             >
-              <UserMinus aria-hidden size={13} />
+              <UserMinus aria-hidden size={16} />
             </Button>
           </div>
         );
@@ -217,7 +217,7 @@ export function AdminAccountMembers({
                     aria-label={`Remove ${member.email}`}
                     className="min-h-8 shrink-0"
                   >
-                    <UserMinus aria-hidden size={13} />
+                    <UserMinus aria-hidden size={16} />
                     Remove
                   </Button>
                 </div>

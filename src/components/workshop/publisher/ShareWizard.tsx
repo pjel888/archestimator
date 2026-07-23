@@ -380,7 +380,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
             <section>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Access</h3>
               <Checkbox
-                label={<><LockSimple size={13} aria-hidden="true" /> Require a password</>}
+                label={<><LockSimple size={16} aria-hidden="true" /> Require a password</>}
                 className="mt-2 min-h-9 border-y border-hairline py-1.5 text-[10px] text-ink"
                 checked={passwordRequired}
                 onChange={(event) => {

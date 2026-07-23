@@ -25,7 +25,7 @@ export function ProjectEstimateDeleteActionCell({
         disabled={!canEditEstimate || rowActionsDisabled}
         onClick={() => onDeleteRequested(estimate.id)}
       >
-        <Trash size={12} weight="regular" aria-hidden="true" />
+        <Trash size={16} weight="regular" aria-hidden="true" />
       </button>
     </div>
   );

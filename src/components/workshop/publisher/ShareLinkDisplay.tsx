@@ -66,17 +66,17 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
       />
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button type="button" variant="primary" size="sm" className="min-h-8 px-2.5 !text-[10px]" onClick={() => void copyLink()}>
-          <Copy size={13} aria-hidden="true" />
+          <Copy size={16} aria-hidden="true" />
           Copy
         </Button>
         {previewHref ? (
           <Link href={previewHref} className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={`Preview shared page for ${projectName}`}>
-            <Eye size={13} aria-hidden="true" /> Preview
+            <Eye size={16} aria-hidden="true" /> Preview
           </Link>
         ) : null}
         {nativeShareAvailable ? (
           <Button type="button" variant="secondary" size="sm" className="min-h-8 px-2.5 !text-[10px]" aria-label={`Share link for ${projectName}`} onClick={() => void shareLink()}>
-            <ShareNetwork size={13} aria-hidden="true" />
+            <ShareNetwork size={16} aria-hidden="true" />
             Share
           </Button>
         ) : null}

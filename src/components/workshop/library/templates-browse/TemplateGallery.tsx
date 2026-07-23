@@ -257,7 +257,7 @@ const TemplateGalleryRow = memo(function TemplateGalleryRow({
                 className="size-6 rounded-xs p-0 text-tertiary"
                 aria-label={`${template.name} actions`}
               >
-                <DotsThree size={12} weight="regular" aria-hidden="true" />
+                <DotsThree size={16} weight="regular" aria-hidden="true" />
               </Button>
             }
             align="end"
@@ -371,7 +371,7 @@ export function TemplateGallery({
               label: "New template",
               visibleLabel: "New template",
               showVisibleLabel: true,
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               onClick: onNewTemplate,
             },
           ]}

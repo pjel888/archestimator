@@ -3136,23 +3136,23 @@ function useEstimateRightSidebarContent({
                 onClick={() => setViewModeMenuOpen((current) => !current)}
                 aria-expanded={viewModeMenuOpen}
               >
-                <Rows size={13} weight="regular" aria-hidden="true" />
+                <Rows size={16} weight="regular" aria-hidden="true" />
               </ToolbarIconButton>
             ) : null}
             <div className="ml-auto flex items-center gap-1">
               {isLibraryTab ? (
                 <>
                   <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending} className={ADD_BUTTON_CLASSNAME}>
-                    <FolderSimple size={13} weight="regular" aria-hidden="true" />
+                    <FolderSimple size={16} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                   <ToolbarIconButton label="Add Component" onClick={() => startNewComponent()} className={ADD_BUTTON_CLASSNAME}>
-                    <Package size={13} weight="regular" aria-hidden="true" />
+                    <Package size={16} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                 </>
               ) : isTemplatesTab ? (
                 <>
                   <ToolbarIconButton label="Add Template" onClick={startNewTemplate} className={ADD_BUTTON_CLASSNAME}>
-                    <StackPlus size={13} weight="regular" aria-hidden="true" />
+                    <StackPlus size={16} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                 </>
               ) : null}
@@ -3280,7 +3280,7 @@ function useEstimateRightSidebarContent({
               ? [
                   {
                     label: "Add selected to estimate",
-                    icon: <Plus size={12} weight="regular" />,
+                    icon: <Plus size={16} weight="regular" />,
                     disabled:
                       (!canInsertTemplate || (bulkTemplateUnitCount === 0 && bulkProjectSourceTargetCount === 0)) &&
                       (!canInsert || (bulkTemplateUnits.items.length === 0 && bulkProjectSourceRowItems.length === 0)),
@@ -3290,7 +3290,7 @@ function useEstimateRightSidebarContent({
               : [
                   {
                     label: "Add selected components",
-                    icon: <Plus size={12} weight="regular" />,
+                    icon: <Plus size={16} weight="regular" />,
                     disabled: !canInsert || bulkSelectedInsertableItems.length === 0,
                     onClick: handleBulkAddSelected,
                   },
@@ -3298,7 +3298,7 @@ function useEstimateRightSidebarContent({
                     ? [
                         {
                           label: "Archive selected components",
-                          icon: <Trash size={12} weight="regular" />,
+                          icon: <Trash size={16} weight="regular" />,
                           variant: "danger" as const,
                           disabled: archiveComponentPending || bulkSelectedItems.length === 0,
                           onClick: () => {

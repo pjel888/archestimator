@@ -141,7 +141,7 @@ export function FileUpload({ className, accept, multiple, maxSize, onFilesSelect
                 className="flex items-center justify-between rounded-xs border border-hairline bg-surface px-2 py-1.5"
               >
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <FileIcon size={12} weight="regular" className="shrink-0 text-tertiary" />
+                  <FileIcon size={16} weight="regular" className="shrink-0 text-tertiary" />
                   <span className="truncate text-[10px] font-medium text-ink">{file.name}</span>
                   <span className="shrink-0 text-[9px] text-tertiary">{formatFileSize(file.size)}</span>
                 </div>
@@ -152,10 +152,10 @@ export function FileUpload({ className, accept, multiple, maxSize, onFilesSelect
                     removeFile(index);
                   }}
                   disabled={disabled}
-                  className="grid size-4 shrink-0 place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                  className="grid size-5 shrink-0 cursor-pointer place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label={`Remove ${file.name}`}
                 >
-                  <X size={10} weight="regular" />
+                  <X size={10} weight="regular" className="pointer-events-none" aria-hidden="true" />
                 </button>
               </div>
             ))}

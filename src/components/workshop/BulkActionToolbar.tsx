@@ -137,7 +137,7 @@ export function BulkActionToolbar({
           Clear
         </Button>
         <Button type="button" variant="danger" size="sm" className="h-7 gap-1 px-2" disabled={disabled} onClick={onAction}>
-          <Trash size={12} weight="regular" aria-hidden="true" />
+          <Trash size={16} weight="regular" aria-hidden="true" />
           {actionLabel}
         </Button>
       </div>

@@ -68,7 +68,7 @@ export function ProjectImagePanel({
               disabled={isSubmitting}
               onClick={onClearImage}
             >
-              <Trash size={13} weight="regular" />
+              <Trash size={16} weight="regular" />
             </Button>
           ) : null}
         </div>
@@ -95,7 +95,7 @@ export function ProjectImagePanel({
             .filter(Boolean)
             .join(" ")}
         >
-          <UploadSimple size={13} weight="regular" aria-hidden="true" />
+          <UploadSimple size={16} weight="regular" aria-hidden="true" />
           {selectedImage ? "Change image" : "Upload image"}
         </label>
       </div>

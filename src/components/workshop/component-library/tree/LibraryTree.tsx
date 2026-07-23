@@ -38,7 +38,7 @@ function getComponentIconColorClass(item: EstimateRowItem) {
 }
 
 function menuIcon(Icon: typeof Plus) {
-  return <Icon size={12} weight="regular" aria-hidden="true" />;
+  return <Icon size={16} weight="regular" aria-hidden="true" />;
 }
 
 function createFolderActionGroups({
@@ -288,7 +288,7 @@ function LibraryItemThumbnail({ item }: { item: EstimateRowItem }) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <ImageSquare size={12} weight="regular" aria-hidden="true" className={getComponentIconColorClass(item)} />
+        <ImageSquare size={16} weight="regular" aria-hidden="true" className={getComponentIconColorClass(item)} />
       )}
     </span>
   );

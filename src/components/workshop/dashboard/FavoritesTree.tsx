@@ -237,7 +237,7 @@ export function FavoritesTree({
                     tabIndex={-1}
                     aria-hidden="true"
                     onClick={() => toggle(project.id)}
-                    className="flex size-4 shrink-0 items-center justify-center rounded-xs text-tertiary hover:bg-surface-muted hover:text-secondary"
+                    className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-xs text-tertiary hover:bg-surface-muted hover:text-secondary"
                   >
                     {open ? (
                       <CaretDown size={11} weight="regular" />
@@ -246,7 +246,7 @@ export function FavoritesTree({
                     )}
                   </button>
                 ) : (
-                  <span aria-hidden="true" className="size-4 shrink-0" />
+                  <span aria-hidden="true" className="size-6 shrink-0" />
                 )}
 
                 {/* The row link is the single roving focus target for this treeitem:
@@ -262,7 +262,7 @@ export function FavoritesTree({
                   className={cn(ROW_LINK, FOCUS_RING)}
                 >
                   <Folder
-                    size={13}
+                    size={16}
                     weight="regular"
                     className="shrink-0 text-tertiary"
                   />

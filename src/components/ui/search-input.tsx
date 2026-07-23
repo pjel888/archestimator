@@ -24,7 +24,7 @@ export function SearchInput({ className, wrapperClassName, shortcutKey, onClear,
         wrapperClassName,
       )}
     >
-      <MagnifyingGlass size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+      <MagnifyingGlass size={16} weight="regular" className="pointer-events-none shrink-0 text-tertiary" aria-hidden="true" />
       <input
         ref={ref}
         type="text"
@@ -47,11 +47,11 @@ export function SearchInput({ className, wrapperClassName, shortcutKey, onClear,
       {hasValue ? (
         <button
           type="button"
-          className="grid size-5 shrink-0 place-items-center rounded-xs bg-transparent text-tertiary transition-colors hover:bg-white/45 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40"
+          className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs bg-transparent text-tertiary transition-colors hover:bg-white/45 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40"
           aria-label="Clear search"
           onClick={onClear}
         >
-          <X size={11} />
+          <X size={11} className="pointer-events-none" aria-hidden="true" />
         </button>
       ) : shortcutKey ? (
         <kbd className="shrink-0 rounded-xs bg-white/45 px-1 text-[9px] font-medium text-tertiary shadow-[inset_0_1px_0_rgba(255,255,255,0.62)]">

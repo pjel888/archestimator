@@ -26,7 +26,7 @@ export function ProjectEstimateOpenActionCell({
           aria-label={`Open ${estimate.name}`}
           aria-disabled="true"
         >
-          <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+          <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
         </span>
       ) : (
         <Link
@@ -39,7 +39,7 @@ export function ProjectEstimateOpenActionCell({
           className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           aria-label={`Open ${estimate.name}`}
         >
-          <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+          <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
         </Link>
       )}
     </div>

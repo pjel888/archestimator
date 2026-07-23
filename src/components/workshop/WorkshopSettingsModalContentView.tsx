@@ -298,7 +298,7 @@ function SettingsDetailPanel({
             className="inline-flex min-h-8 min-w-[96px] shrink-0 items-center justify-center gap-2 rounded-xs border border-divider bg-white px-2 py-1.5 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
           >
             {isEmailAction ? "Open email" : "Open page"}
-            <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+            <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
           </a>
         ) : null}
       </div>

@@ -245,7 +245,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                 className="min-h-8 min-w-0 px-2.5 !text-[10px]"
                 onClick={(event) => onEditLink(row, event.currentTarget)}
               >
-                <PencilSimple size={13} aria-hidden="true" />
+                <PencilSimple size={16} aria-hidden="true" />
                 {hasLiveLink ? "Edit client link" : "Create client link"}
               </Button>
             ) : null}
@@ -257,7 +257,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
               disabled={!summary?.clientLinkPath}
               onClick={() => void copyClientLink()}
             >
-              <LinkSimple size={13} aria-hidden="true" />
+              <LinkSimple size={16} aria-hidden="true" />
               {copyLabel}
             </Button>
             {summary?.clientLinkPath ? (
@@ -265,7 +265,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                 href={previewHref}
                 className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
               >
-                <ArrowSquareOut size={13} aria-hidden="true" />
+                <ArrowSquareOut size={16} aria-hidden="true" />
                 Preview
               </Link>
             ) : null}
@@ -274,7 +274,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                 href={row.clientPortalPath}
                 className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
               >
-                <ArrowSquareOut size={13} aria-hidden="true" />
+                <ArrowSquareOut size={16} aria-hidden="true" />
                 Open Client Portal
               </Link>
             ) : null}
@@ -283,7 +283,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
 
         {summary?.staleSnapshotWarning ? (
           <p className="mt-2.5 flex items-start gap-1.5 border border-warning/30 bg-warningSoft px-2.5 py-2 text-[10px] leading-4 text-warning">
-            <WarningCircle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <WarningCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
             {"daysBehind" in summary.staleSnapshotWarning
               ? `Client content is ${summary.staleSnapshotWarning.daysBehind} days behind the current project.`
               : "Client content is behind the current project."}{" "}
@@ -377,7 +377,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                     disabled={!canRunManagerAction}
                     onClick={() => setConfirmAction("migrate")}
                   >
-                    <ArrowSquareOut size={13} aria-hidden="true" />
+                    <ArrowSquareOut size={16} aria-hidden="true" />
                     Migrate to Client Portal
                   </Button>
                 ) : null}
@@ -390,7 +390,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                     disabled={!canRunManagerAction}
                     onClick={() => setConfirmAction("rollback_migration")}
                   >
-                    <Prohibit size={13} aria-hidden="true" />
+                    <Prohibit size={16} aria-hidden="true" />
                     Roll back Portal migration
                   </Button>
                 ) : null}
@@ -410,7 +410,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                       disabled={!canRunManagerAction}
                       onClick={() => setConfirmAction("rotate")}
                     >
-                      <LinkBreak size={13} aria-hidden="true" />
+                      <LinkBreak size={16} aria-hidden="true" />
                       Replace link
                     </Button>
                     <Button
@@ -421,7 +421,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                       disabled={!canRunManagerAction}
                       onClick={() => setConfirmAction("revoke")}
                     >
-                      <Prohibit size={13} aria-hidden="true" />
+                      <Prohibit size={16} aria-hidden="true" />
                       Turn off link
                     </Button>
                   </>

@@ -570,7 +570,7 @@ function ProjectActivityFeedPanel({ page }: { readonly page: ProjectActivityPage
                   aria-expanded={!collapsed}
                   aria-controls={groupId}
                   data-testid="project-activity-date-toggle"
-                  className="sticky top-0 z-10 flex h-[60px] w-full items-center gap-2 border-b border-[color:var(--glass-border)] bg-transparent text-left text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="sticky top-0 z-10 flex h-[60px] w-full cursor-pointer items-center gap-2 border-b border-[color:var(--glass-border)] bg-transparent text-left text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   onClick={() => toggleProjectActivityGroup(group.label)}
                 >
                   <span className="flex size-4 shrink-0 items-center justify-center text-secondary" aria-hidden="true">

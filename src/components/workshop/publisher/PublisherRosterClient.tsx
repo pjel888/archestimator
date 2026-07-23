@@ -353,7 +353,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
             </div>
             {hasFilters ? (
               <Button type="button" variant="plain" size="sm" className="min-h-8 min-w-0 px-2 !text-[9px]" onClick={clearFilters}>
-                <X size={12} aria-hidden="true" /> Clear
+                <X size={16} aria-hidden="true" /> Clear
               </Button>
             ) : null}
           </div>

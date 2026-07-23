@@ -333,7 +333,7 @@ function buildFolderSelectionNodes(nodes: LibraryFolderTreeNode[]): TreeSelectio
 }
 
 export function FolderActionIcon() {
-  return <FolderSimple size={12} weight="regular" aria-hidden="true" />;
+  return <FolderSimple size={16} weight="regular" aria-hidden="true" />;
 }
 
 export function ComponentViewControls({
@@ -670,8 +670,8 @@ export function LibraryFolderTree({
                   id: isExpanded ? "collapse" : "expand",
                   label: isExpanded ? "Collapse" : "Expand",
                   icon: isExpanded
-                    ? <CaretDown size={12} weight="regular" aria-hidden="true" />
-                    : <CaretRight size={12} weight="regular" aria-hidden="true" />,
+                    ? <CaretDown size={16} weight="regular" aria-hidden="true" />
+                    : <CaretRight size={16} weight="regular" aria-hidden="true" />,
                   onSelect: () => handleToggle(node.id),
                 },
               ]
@@ -1173,7 +1173,7 @@ export function LibraryFolderTreeSurface({
             }}
           >
             <span className="pointer-events-none inline-flex shrink-0 items-center justify-center">
-              <FolderSimple size={13} weight="regular" aria-hidden="true" />
+              <FolderSimple size={16} weight="regular" aria-hidden="true" />
             </span>
           </Button>
         ),
@@ -1318,7 +1318,7 @@ export function LibraryFolderTreeSurface({
           {
             label: `Organize by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Folders"}`,
             visibleLabel: COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Folders",
-            icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
+            icon: <SquaresFour size={16} weight="regular" aria-hidden="true" />,
             onClick: () => dispatchSurface({ type: "viewModeMenuToggled" }),
             pressed: viewModeMenuOpen,
             ariaHasPopup: "menu",

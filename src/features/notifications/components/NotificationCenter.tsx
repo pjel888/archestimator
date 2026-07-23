@@ -75,10 +75,10 @@ export function NotificationCenter() {
             <button
               type="button"
               aria-label="Retry notifications"
-              className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               onClick={() => void feedQuery.refetch()}
             >
-              <ArrowClockwise size={12} weight="regular" aria-hidden="true" />
+              <ArrowClockwise size={16} weight="regular" aria-hidden="true" />
             </button>
           </div>
 
@@ -93,7 +93,7 @@ export function NotificationCenter() {
               <p>Notifications could not load.</p>
               <button
                 type="button"
-                className="inline-flex min-h-7 items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className="inline-flex min-h-7 cursor-pointer items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 onClick={() => void feedQuery.refetch()}
               >
                 Retry

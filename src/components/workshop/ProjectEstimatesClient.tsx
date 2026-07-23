@@ -36,17 +36,17 @@ const ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS =
 const GENERATED_ESTIMATE_CODE_PREFIX = "ES";
 
 const ESTIMATE_FILTER_OPTIONS = [
-  { value: "all", label: "All estimates", icon: <FunnelSimple size={12} weight="regular" aria-hidden="true" /> },
-  { value: "favorites", label: "Favorites", icon: <Star size={12} weight="regular" aria-hidden="true" /> },
-  { value: "recent", label: "Recent", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
+  { value: "all", label: "All estimates", icon: <FunnelSimple size={16} weight="regular" aria-hidden="true" /> },
+  { value: "favorites", label: "Favorites", icon: <Star size={16} weight="regular" aria-hidden="true" /> },
+  { value: "recent", label: "Recent", icon: <ClockCounterClockwise size={16} weight="regular" aria-hidden="true" /> },
 ] as const satisfies readonly DropdownSelectOption[];
 
 type EstimateFilter = (typeof ESTIMATE_FILTER_OPTIONS)[number]["value"];
 
 const ESTIMATE_SORT_FIELD_OPTIONS = [
-  { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
-  { value: "created_at", label: "Date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
-  { value: "name", label: "Estimate name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
+  { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={16} weight="regular" aria-hidden="true" /> },
+  { value: "created_at", label: "Date created", icon: <CalendarBlank size={16} weight="regular" aria-hidden="true" /> },
+  { value: "name", label: "Estimate name", icon: <TextAa size={16} weight="regular" aria-hidden="true" /> },
 ] as const satisfies readonly DropdownSelectOption[];
 
 type EstimateSortField = (typeof ESTIMATE_SORT_FIELD_OPTIONS)[number]["value"];
@@ -144,12 +144,12 @@ function getEstimateSortDirectionOptions(field: EstimateSortField): DropdownSele
     {
       value: "desc",
       label: getEstimateSortDirectionLabel(field, "desc"),
-      icon: <SortDescending size={12} weight="regular" aria-hidden="true" />,
+      icon: <SortDescending size={16} weight="regular" aria-hidden="true" />,
     },
     {
       value: "asc",
       label: getEstimateSortDirectionLabel(field, "asc"),
-      icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
+      icon: <SortAscending size={16} weight="regular" aria-hidden="true" />,
     },
   ];
 }
@@ -341,7 +341,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
         addActions={[
           {
             label: isCreating ? "Creating estimate" : "Create Estimate",
-            icon: <NewspaperClipping size={12} weight="regular" aria-hidden="true" />,
+            icon: <NewspaperClipping size={16} weight="regular" aria-hidden="true" />,
             disabled: !canCreateEstimates || isCreating,
             onClick: () => { handleCreateEstimateSheet(); },
             className: ADD_BUTTON_CLASSNAME,

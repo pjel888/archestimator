@@ -147,7 +147,7 @@ export function ProjectEstimateFavoriteButton({
         title={currentErrorMessage ?? (isFavorite ? "Remove from favorite estimate sheets" : "Add to favorite estimate sheets")}
       >
         <Star
-          size={12}
+          size={16}
           weight={isFavorite ? "fill" : "regular"}
           data-favorite-icon-state={isFavorite ? "filled" : "outline"}
           aria-hidden="true"

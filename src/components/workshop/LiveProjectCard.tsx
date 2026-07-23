@@ -97,9 +97,9 @@ type LiveProjectCardProps = {
 const REVEAL_ON_INTENT =
   "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
 
-const CONTROL_BUTTON = "workshop-project-card-control size-6 border-hairline";
+const CONTROL_BUTTON = "workshop-project-card-control size-6 cursor-pointer border-hairline";
 const OPEN_CONTROL_LINK =
-  "workshop-project-card-control grid size-6 shrink-0 place-items-center rounded-xs border border-hairline text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
+  "workshop-project-card-control grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border border-hairline text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 const projectCardUpdatedAtFormatter = new Intl.DateTimeFormat("en", {
   month: "short",
   day: "numeric",
@@ -345,7 +345,7 @@ function LiveProjectCardImpl({
       onDragStart={handleProjectDragStart}
       onDragEnd={onProjectDragEnd}
     >
-      <DotsSixVertical size={13} weight="bold" aria-hidden="true" />
+      <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
     </button>
   ) : null;
 
@@ -426,7 +426,7 @@ function LiveProjectCardImpl({
         ) : null}
         {isPendingInvite && pendingInvite?.expiresAt ? (
           <p className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary">
-            <Clock size={12} aria-hidden="true" className="shrink-0" />
+            <Clock size={16} aria-hidden="true" className="shrink-0" />
             <span className="truncate">
               {isExpiredPendingInvite ? "Expired" : "Expires"}{" "}
               {formatUpdatedAt(pendingInvite.expiresAt)}
@@ -593,11 +593,11 @@ function LiveProjectCardImpl({
         </div>
 
         <p className="hidden min-w-0 max-w-[180px] items-center gap-1 text-[9px] leading-3 text-secondary sm:flex">
-          <MapPin size={12} aria-hidden="true" className="shrink-0" />
+          <MapPin size={16} aria-hidden="true" className="shrink-0" />
           <span className="truncate">{project.location ?? "No location"}</span>
         </p>
         <p className="hidden w-[78px] shrink-0 items-center gap-1 text-[9px] leading-3 text-secondary md:flex">
-          <Clock size={12} aria-hidden="true" className="shrink-0" />
+          <Clock size={16} aria-hidden="true" className="shrink-0" />
           <span className="sr-only">
             {isPendingInvite ? "Invite expires" : "Updated"}
           </span>

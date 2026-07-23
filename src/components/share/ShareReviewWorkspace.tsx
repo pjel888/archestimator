@@ -89,7 +89,7 @@ export default function ShareReviewWorkspace({
                 aria-selected={isActive}
                 aria-controls={`share-workspace-${view.id}`}
                 disabled={isDisabled}
-                className={`border-b-2 px-3 py-2 text-left text-[11px] font-medium leading-[16px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-w-[104px] ${isActive ? "border-accent text-ink" : "border-transparent text-secondary hover:border-hairline hover:text-ink"} disabled:cursor-not-allowed disabled:opacity-45`}
+                className={`cursor-pointer border-b-2 px-3 py-2 text-left text-[11px] font-medium leading-[16px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-w-[104px] ${isActive ? "border-accent text-ink" : "border-transparent text-secondary hover:border-hairline hover:text-ink"} disabled:cursor-not-allowed disabled:opacity-45`}
                 onClick={() => setActiveView(view.id)}
               >
                 {view.label}
@@ -140,7 +140,7 @@ export default function ShareReviewWorkspace({
         <div className="mx-auto grid max-w-[620px] grid-cols-5 gap-1 text-[10px] font-medium leading-none tracking-normal">
           {WORKSPACE_VIEWS.map((view) => {
             const isDisabled = Boolean(previewMode) && (view.id === "discussion" || view.id === "decision");
-            return <button key={view.id} type="button" disabled={isDisabled} className={`rounded-xs px-1 py-2 text-center ${activeView === view.id ? "bg-surfaceMuted text-ink" : "text-secondary hover:bg-surfaceMuted hover:text-ink"} disabled:opacity-40`} onClick={() => setActiveView(view.id)}>{view.label}</button>;
+            return <button key={view.id} type="button" disabled={isDisabled} className={`cursor-pointer rounded-xs px-1 py-2 text-center ${activeView === view.id ? "bg-surfaceMuted text-ink" : "text-secondary hover:bg-surfaceMuted hover:text-ink"} disabled:opacity-40`} onClick={() => setActiveView(view.id)}>{view.label}</button>;
           })}
         </div>
       </nav>

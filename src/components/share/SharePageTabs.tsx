@@ -621,7 +621,7 @@ export default function SharePageTabs({
                   aria-selected={isActive}
                   aria-controls={`share-estimate-panel-${activeEstimate.id}`}
                   tabIndex={isActive ? 0 : -1}
-                  className={`rounded-xs px-2.5 py-1 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                  className={`cursor-pointer rounded-xs px-2.5 py-1 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                     isActive ? "bg-surfaceMuted text-ink" : "text-secondary hover:text-ink"
                   }`}
                   onClick={() => setViewForCurrentSheet(mode)}
@@ -657,7 +657,7 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${estimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`relative cursor-pointer h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "z-10 bg-white text-ink border-hairline -mb-px"
                     : "bg-surfaceMuted text-secondary border-transparent hover:text-ink hover:border-hairline"
@@ -705,7 +705,7 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${activeEstimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`h-full flex-shrink-0 rounded-xs border px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`cursor-pointer h-full flex-shrink-0 rounded-xs border px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "bg-surfaceMuted text-ink border-hairline"
                     : "text-secondary hover:text-ink border-transparent hover:border-hairline"

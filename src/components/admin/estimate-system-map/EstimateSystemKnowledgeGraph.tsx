@@ -217,7 +217,7 @@ function RelationshipList({
               <p className="text-[10px] font-medium leading-4 text-ink">
                 <button
                   type="button"
-                  className="underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="cursor-pointer underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   onClick={() => onSelectNode(from.id)}
                 >
                   {from.title}
@@ -225,7 +225,7 @@ function RelationshipList({
                 <span className="px-1.5 text-secondary">{relation.label}</span>
                 <button
                   type="button"
-                  className="underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="cursor-pointer underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   onClick={() => onSelectNode(to.id)}
                 >
                   {to.title}
@@ -368,9 +368,9 @@ function KnowledgeCanvas({
           <p className="mt-0.5 text-[9px] leading-4 text-secondary">Drag with a pointer or use a two-finger drag on touch. Ctrl/Command + scroll zooms. Select a node to read its record.</p>
         </div>
         <div className="flex items-center gap-1" aria-label="Knowledge canvas controls">
-          <Button variant="outline" size="icon-xs" className="min-w-0" aria-label="Zoom out" title="Zoom out" onClick={() => applyTransform("out")}><MagnifyingGlassMinus size={13} /></Button>
-          <Button variant="outline" size="icon-xs" className="min-w-0" aria-label="Zoom in" title="Zoom in" onClick={() => applyTransform("in")}><MagnifyingGlassPlus size={13} /></Button>
-          <Button variant="outline" size="xs" className="min-w-0" onClick={() => applyTransform("overview")}><ArrowsOut size={13} />Overview</Button>
+          <Button variant="outline" size="icon-xs" className="min-w-0" aria-label="Zoom out" title="Zoom out" onClick={() => applyTransform("out")}><MagnifyingGlassMinus size={16} /></Button>
+          <Button variant="outline" size="icon-xs" className="min-w-0" aria-label="Zoom in" title="Zoom in" onClick={() => applyTransform("in")}><MagnifyingGlassPlus size={16} /></Button>
+          <Button variant="outline" size="xs" className="min-w-0" onClick={() => applyTransform("overview")}><ArrowsOut size={16} />Overview</Button>
           <Button variant="ghost" size="xs" className="min-w-0" onClick={() => applyTransform("readable")}>Readable</Button>
         </div>
       </div>
@@ -741,7 +741,7 @@ export function EstimateSystemKnowledgeGraph({
                         key={item.id}
                         type="button"
                         aria-pressed={item.id === selectedInventoryItem?.id}
-                        className="flex w-full items-start justify-between gap-2 px-2 py-2 text-left transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus aria-pressed:bg-white aria-pressed:shadow-[inset_0_0_0_1px_var(--divider)]"
+                        className="flex w-full cursor-pointer items-start justify-between gap-2 px-2 py-2 text-left transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus aria-pressed:bg-white aria-pressed:shadow-[inset_0_0_0_1px_var(--divider)]"
                         onClick={() => selectInventoryItem(item)}
                       >
                         <span className="min-w-0">
@@ -767,7 +767,7 @@ export function EstimateSystemKnowledgeGraph({
                       <button
                         key={node.id}
                         type="button"
-                        className="w-full px-2 py-2 text-left text-[10px] font-medium text-ink hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+                        className="w-full cursor-pointer px-2 py-2 text-left text-[10px] font-medium text-ink hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
                         onClick={() => selectNode(node.id)}
                       >
                         {node.title}

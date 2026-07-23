@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useReducer, useRef, useState, type CSSProperties, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, DotsThreeVertical, ImageSquare, PencilSimple, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, DotsThree, ImageSquare, PencilSimple, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -378,7 +378,7 @@ function MaterialVariantControl({
   const variantTitle = activeOption?.label ?? "Default";
   const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const controlClass =
-    "inline-flex h-3.5 w-fit max-w-full min-w-0 items-center justify-start gap-0.5 self-start px-0 text-[8px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40";
+    "inline-flex h-3.5 w-fit max-w-full min-w-0 cursor-pointer items-center justify-start gap-0.5 self-start px-0 text-[8px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40";
 
   if (!canEditEstimate || !onSelectVariant) {
     return (
@@ -663,7 +663,7 @@ function ExpressMaterialImageEditor({
           <button
             type="button"
             className={cn(
-              "relative grid size-11 place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
+              "relative grid size-11 cursor-pointer place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
               (imageUrl || selectedImagePreview) && "shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
             )}
             style={thumbnailImageStyle}
@@ -697,7 +697,7 @@ function ExpressMaterialImageEditor({
             {imageUploadRetryable ? (
               <button
                 type="button"
-                className="pointer-events-auto mt-0.5 rounded-xs border border-hairline bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-ink shadow-sm hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+                className="pointer-events-auto mt-0.5 cursor-pointer rounded-xs border border-hairline bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-ink shadow-sm hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
                 aria-label="Retry upload"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -776,7 +776,7 @@ function ExpressMaterialImageEditor({
             disabled={imageModalBusy}
             onClick={openImageFilePicker}
           >
-            <UploadSimple size={13} weight="regular" aria-hidden="true" />
+            <UploadSimple size={16} weight="regular" aria-hidden="true" />
             {selectedImage ? selectedImage.name : "Upload image"}
           </Button>
           <div className="space-y-1">
@@ -1308,11 +1308,11 @@ export function EstimateMaterialCell({
               <button
                 ref={componentActionTriggerRef}
                 type="button"
-                className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
+                className="grid size-5 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
                 aria-label={`Open component actions for ${componentLabel}`}
                 onClick={(event) => event.stopPropagation()}
               >
-                <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
+                <DotsThree size={14} weight="bold" aria-hidden="true" />
               </button>
             )}
           >

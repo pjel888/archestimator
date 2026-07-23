@@ -446,7 +446,7 @@ function RequestsPane({
         </h2>
         <div ref={newButtonRef}>
           <Button type="button" size="xs" variant="secondary" className="min-w-0" onClick={onNew}>
-            <Plus size={12} weight="regular" aria-hidden="true" /> New request
+            <Plus size={16} weight="regular" aria-hidden="true" /> New request
           </Button>
         </div>
       </div>
@@ -556,7 +556,7 @@ function MessageAttachment({ attachment, attribution }: { attachment: SupportMes
           <Button type="button" size="xs" variant="secondary" className="min-w-0" onClick={() => { setFailed(false); setRetry((value) => value + 1); }}>Retry screenshot</Button>
         </div>
       ) : (
-        <a href={attachment.url} target="_blank" rel="noreferrer" className="block rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={`Open screenshot attached by ${attribution}`}>
+        <a href={attachment.url} target="_blank" rel="noreferrer" className="block cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={`Open screenshot attached by ${attribution}`}>
           {/* eslint-disable-next-line @next/next/no-img-element -- Authenticated, no-store attachment endpoint supplies a private normalized WebP. */}
           <img src={source} alt={`Screenshot attached by ${attribution}`} className="max-h-48 w-full rounded-xs object-contain" onError={() => setFailed(true)} />
           <span className="mt-1 block text-[9px] leading-3 opacity-75">Private screenshot · {Math.max(1, Math.round(attachment.sizeBytes / 1024))} KB · Open preview</span>
@@ -1053,7 +1053,7 @@ export function SupportCenter({ className, host, workspaceId }: SupportCenterPro
   ) : view === "new" ? (
     <section className="flex min-h-0 flex-1 flex-col bg-white" aria-labelledby="support-new-heading">
       <div className="flex min-h-10 shrink-0 items-center gap-1 border-b border-hairline px-2 py-1.5">
-        {isNarrow ? <Button type="button" variant="ghost" size="icon-sm" aria-label="Back to requests" title="Back to requests" onClick={goBack}><ArrowLeft size={13} weight="regular" aria-hidden="true" /></Button> : null}
+        {isNarrow ? <Button type="button" variant="ghost" size="icon-sm" aria-label="Back to requests" title="Back to requests" onClick={goBack}><ArrowLeft size={16} weight="regular" aria-hidden="true" /></Button> : null}
         <div className="min-w-0">
           <h2 id="support-new-heading" className="text-[11px] font-medium leading-4 text-ink">New request</h2>
           <p className="text-[9px] leading-3 text-tertiary">Private conversation with Archestimator support</p>
@@ -1079,7 +1079,7 @@ export function SupportCenter({ className, host, workspaceId }: SupportCenterPro
   ) : view === "conversation" ? (
     <section className="flex min-h-0 flex-1 flex-col bg-white" aria-labelledby="support-conversation-heading">
       <div className="flex min-h-10 shrink-0 items-center gap-1 border-b border-hairline px-2 py-1.5">
-        {isNarrow ? <Button type="button" variant="ghost" size="icon-sm" aria-label="Back to requests" title="Back to requests" onClick={goBack}><ArrowLeft size={13} weight="regular" aria-hidden="true" /></Button> : null}
+        {isNarrow ? <Button type="button" variant="ghost" size="icon-sm" aria-label="Back to requests" title="Back to requests" onClick={goBack}><ArrowLeft size={16} weight="regular" aria-hidden="true" /></Button> : null}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <h2

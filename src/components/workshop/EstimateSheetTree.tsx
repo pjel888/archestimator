@@ -95,7 +95,7 @@ const VIEW_ONLY_ESTIMATE_REASON = "View-only estimate.";
 // caret (rendered only when the node has children), not by a folder-vs-pin
 // distinction that no longer exists under the single-node model.
 function AddTreeActionIcon() {
-  return <Log size={13} weight="regular" aria-hidden="true" />;
+  return <Log size={16} weight="regular" aria-hidden="true" />;
 }
 
 function isOptimisticEstimateNodeId(nodeId: string) {
@@ -866,7 +866,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "add-area-inside",
             label: "Add area inside",
-            icon: <Log size={12} weight="regular" aria-hidden="true" />,
+            icon: <Log size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || Boolean(templateLink),
             disabledReason: editDisabledReason ?? linkedSharedEditReason,
             onSelect: () => {
@@ -882,7 +882,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "save-as-template",
             label: "Save as template",
-            icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+            icon: <StackPlus size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || nodeIsPendingCreate,
             disabledReason: editDisabledReason ?? "Wait for this node to finish saving first.",
             onSelect: () => {
@@ -896,7 +896,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "rename",
             label: "Rename",
-            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || isTreeMutationSaving || Boolean(templateLink),
             disabledReason: editDisabledReason ?? linkedSharedEditReason ?? "Finish the current tree save before renaming another node.",
             onSelect: () => beginRenameNode(contextMenuNode, { fromContextMenu: true }),
@@ -904,7 +904,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "move",
             label: "Move...",
-            icon: <ArrowsOutCardinal size={12} weight="regular" aria-hidden="true" />,
+            icon: <ArrowsOutCardinal size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || !canReorderNow || treeSearchActive || nodeIsPendingCreate || Boolean(templateLink),
             disabledReason: editDisabledReason ?? (treeSearchActive
               ? "Clear tree search before moving areas."
@@ -925,14 +925,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "edit-source-template",
             label: "Edit source Template",
-            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
             disabled: templateLinkActionPending,
             onSelect: () => globalThis.location.assign(`/workshop/library/templates/${templateLink.templateId}`),
           },
           ...(templateLink.linkState === "failed" && templateLink.retryable ? [{
             id: "retry-template-link",
             label: `Retry update to v${templateLink.targetVersionNumber}`,
-            icon: <ArrowClockwise size={12} weight="regular" aria-hidden="true" />,
+            icon: <ArrowClockwise size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || templateLinkActionPending,
             disabledReason: editDisabledReason,
             onSelect: () => {
@@ -949,7 +949,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "duplicate-template-link",
             label: "Duplicate as linked instance",
-            icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+            icon: <StackPlus size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || templateLinkActionPending,
             disabledReason: editDisabledReason,
             onSelect: () => {
@@ -968,7 +968,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "duplicate-template-copy",
             label: "Duplicate as local copy",
-            icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+            icon: <StackPlus size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || templateLinkActionPending,
             disabledReason: editDisabledReason,
             onSelect: () => {
@@ -987,7 +987,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "detach-template-link",
             label: "Detach this instance...",
-            icon: <LinkBreak size={12} weight="regular" aria-hidden="true" />,
+            icon: <LinkBreak size={16} weight="regular" aria-hidden="true" />,
             disabled: !canEditEstimate || templateLinkActionPending,
             disabledReason: editDisabledReason,
             onSelect: () => setDetachTargetNode(contextMenuNode),
@@ -995,7 +995,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "delete-template-link-instance",
             label: "Delete linked instance...",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
             disabled: !canEditEstimate || templateLinkActionPending,
             disabledReason: editDisabledReason,
@@ -1009,7 +1009,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "delete",
             label: "Delete",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
             disabled: !canEditEstimate || isTreeMutationSaving || Boolean(templateLink),
             disabledReason: editDisabledReason ?? linkedSharedEditReason ?? "Finish the current tree save before deleting another node.",
@@ -1137,7 +1137,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                 data-estimate-tree-rename-control="true"
                 aria-label={`Confirm rename ${node.name}`}
                 title="Confirm rename"
-                className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink"
+                className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink"
                 onPointerDown={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -1152,14 +1152,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                   commitRenameNode(node);
                 }}
               >
-                <Check size={12} weight="regular" aria-hidden="true" />
+                <Check size={16} weight="regular" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 data-estimate-tree-rename-control="true"
                 aria-label={`Cancel rename ${node.name}`}
                 title="Cancel rename"
-                className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink"
+                className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink"
                 onPointerDown={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -1175,7 +1175,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                   focusRenderedTreeRow(node.id);
                 }}
               >
-                <X size={12} weight="regular" aria-hidden="true" />
+                <X size={16} weight="regular" aria-hidden="true" />
               </button>
             </>
           )}
@@ -1240,7 +1240,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           searchLabel="Search Tree"
           filterSlot={
             <FilterPopover
-              trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
+              trigger={<FunnelSimple size={16} weight="regular" aria-hidden="true" />}
               triggerLabel="Filter tree"
               triggerPressed={treeFilter.hideEmptyAreas}
               triggerVariant="ghost"
@@ -1388,7 +1388,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             actions={[
               {
                 label: "Delete selected",
-                icon: <Trash size={12} weight="regular" />,
+                icon: <Trash size={16} weight="regular" />,
                 variant: "danger",
                 disabled: !canEditEstimate || isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0,
                 title: canEditEstimate ? undefined : VIEW_ONLY_ESTIMATE_REASON,

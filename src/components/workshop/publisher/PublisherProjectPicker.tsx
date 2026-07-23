@@ -135,7 +135,7 @@ export function PublisherProjectPicker({ onOpenChange, onSelect, open, projects 
                           onClick={() => selectProject(project.id)}
                         >
                           {rowContent}
-                          <ArrowRight size={13} className="shrink-0 text-secondary group-hover:text-ink" aria-hidden="true" />
+                          <ArrowRight size={16} className="shrink-0 text-secondary group-hover:text-ink" aria-hidden="true" />
                         </button>
                       ) : (
                         <Link
@@ -149,7 +149,7 @@ export function PublisherProjectPicker({ onOpenChange, onSelect, open, projects 
                         >
                           {rowContent}
                           <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-medium text-ink">
-                            <Plus size={12} aria-hidden="true" /> Add estimate
+                            <Plus size={16} aria-hidden="true" /> Add estimate
                           </span>
                         </Link>
                       );

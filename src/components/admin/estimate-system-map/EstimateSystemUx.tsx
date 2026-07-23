@@ -217,7 +217,7 @@ function IntersectionList({
                     {fromPath.title}
                   </Button>
                 ) : null}
-                <ArrowRight size={12} className="text-tertiary" aria-hidden="true" />
+                <ArrowRight size={16} className="text-tertiary" aria-hidden="true" />
                 {toPath ? (
                   <Button aria-label={`To path: ${toPath.title}`} variant="plain" size="xs" className="h-auto min-h-6 min-w-0 px-0 py-1 !text-[9px] underline" onClick={() => onSelectRelatedPath(toPath.id)}>
                     {toPath.title}

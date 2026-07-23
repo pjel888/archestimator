@@ -66,7 +66,7 @@ const TREE_INDENT_STEP = 16;
  * (sheets tree, components tree, templates tree) must pass this to its row
  * icons so the panels read at one scale.
  */
-export const TREE_ROW_ICON_SIZE = 12;
+export const TREE_ROW_ICON_SIZE = 16;
 
 const EMPTY_TREE_ID_LIST: string[] = [];
 
@@ -628,7 +628,8 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           />
         )}
 
-        {/* Expand/collapse caret */}
+        {/* Expand/collapse caret — size-6 matches ToolbarIconButton hit area;
+            size-8 (icon-sm) would overflow the min-h-7 tree row. */}
         {expandable && isFolder && (
           <button
             type="button"
@@ -637,18 +638,18 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
               e.stopPropagation();
               state.toggle();
             }}
-            className="shrink-0 mr-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-xs hover:bg-[#E8E8E8] cursor-pointer transition-colors"
+            className="mr-0.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-xs transition-colors hover:bg-[#E8E8E8]"
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
             {isExpanded ? (
-              <CaretDown weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+              <CaretDown weight="regular" className="pointer-events-none h-2.5 w-2.5 text-tertiary" aria-hidden="true" />
             ) : (
-              <CaretRight weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+              <CaretRight weight="regular" className="pointer-events-none h-2.5 w-2.5 text-tertiary" aria-hidden="true" />
             )}
           </button>
         )}
 
-        {expandable && !isFolder && <span className="w-4 shrink-0" />}
+        {expandable && !isFolder && <span className="w-6 shrink-0" />}
 
         {node.accent !== undefined ? (
           // Occupancy dot (after the caret, before the label): olive green iff

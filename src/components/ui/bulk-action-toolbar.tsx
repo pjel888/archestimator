@@ -59,7 +59,7 @@ function FloatingDockItem({
       className={cn(
         // Named group: a plain `group` here would inherit hover state from
         // ancestor `group` containers like ResizableSidePanel.
-        "group/dock-item relative flex items-center justify-center",
+        "group/dock-item relative flex cursor-pointer items-center justify-center",
         "size-6 rounded-xs",
         "transition-all duration-200 ease-out",
         "hover:scale-[1.15] hover:z-10",
@@ -71,7 +71,7 @@ function FloatingDockItem({
       )}
       aria-label={ariaLabel ?? label}
     >
-      <span className="flex items-center justify-center transition-transform duration-200 ease-out group-hover/dock-item:scale-110">
+      <span className="pointer-events-none flex items-center justify-center transition-transform duration-200 ease-out group-hover/dock-item:scale-110">
         {icon}
       </span>
       {/* Tooltip label appears on hover */}
@@ -129,7 +129,7 @@ export function BulkActionToolbar({
           >
             <FloatingDockItem
               label="Clear selection"
-              icon={<X size={12} weight="regular" />}
+              icon={<X size={16} weight="regular" />}
               onClick={onClear}
             />
 

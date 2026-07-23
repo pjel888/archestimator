@@ -130,12 +130,12 @@ function ToolbarButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 w-7 items-center justify-center rounded-xs text-secondary transition md:h-6 md:w-6",
+        "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs text-secondary transition md:h-6 md:w-6",
         active ? "bg-surfaceMuted text-ink" : "hover:bg-surfaceMuted hover:text-ink",
-        disabled && "opacity-40",
+        disabled && "cursor-not-allowed opacity-40",
       )}
     >
-      {children}
+      <span className="pointer-events-none inline-flex items-center justify-center">{children}</span>
     </button>
   );
 }
@@ -449,7 +449,7 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleBold().run()}
         >
-          <TextB size={12} />
+          <TextB size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Italic"
@@ -457,7 +457,7 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
-          <TextItalic size={12} />
+          <TextItalic size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Underline"
@@ -465,7 +465,7 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
         >
-          <TextUnderline size={12} />
+          <TextUnderline size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Bullet list"
@@ -473,7 +473,7 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
         >
-          <ListBullets size={12} />
+          <ListBullets size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Numbered list"
@@ -481,7 +481,7 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleOrderedList().run()}
         >
-          <ListNumbers size={12} />
+          <ListNumbers size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Quote"
@@ -489,7 +489,7 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleBlockquote().run()}
         >
-          <Quotes size={12} />
+          <Quotes size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Inline code"
@@ -497,10 +497,10 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending}
           onClick={() => editor?.chain().focus().toggleCode().run()}
         >
-          <Code size={12} />
+          <Code size={16} />
         </ToolbarButton>
         <ToolbarButton label="Link" active={editor?.isActive("link")} disabled={!editor || disabled || isPending} onClick={openLinkEditor}>
-          <LinkSimple size={12} />
+          <LinkSimple size={16} />
         </ToolbarButton>
         <span className="mx-1 h-3 w-px bg-hairline" aria-hidden />
         <ToolbarButton
@@ -508,14 +508,14 @@ export function SupportRichComposer({
           disabled={!editor || disabled || isPending || !editor.can().undo()}
           onClick={() => editor?.chain().focus().undo().run()}
         >
-          <ArrowCounterClockwise size={12} />
+          <ArrowCounterClockwise size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Redo"
           disabled={!editor || disabled || isPending || !editor.can().redo()}
           onClick={() => editor?.chain().focus().redo().run()}
         >
-          <ArrowClockwise size={12} />
+          <ArrowClockwise size={16} />
         </ToolbarButton>
         <span className="mx-1 h-3 w-px bg-hairline" aria-hidden />
         <ToolbarButton
@@ -523,14 +523,14 @@ export function SupportRichComposer({
           disabled={disabled || isPending || uploading}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Paperclip size={12} />
+          <Paperclip size={16} />
         </ToolbarButton>
         <ToolbarButton
           label="Attach images"
           disabled={disabled || isPending || uploading}
           onClick={() => imageInputRef.current?.click()}
         >
-          <ImageIcon size={12} />
+          <ImageIcon size={16} />
         </ToolbarButton>
         <input
           ref={fileInputRef}
@@ -601,11 +601,11 @@ export function SupportRichComposer({
               </span>
               <button
                 type="button"
-                className="text-tertiary hover:text-ink"
+                className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 aria-label={`Remove ${draft.filename}`}
                 onClick={() => removeDraft(draft.draftId)}
               >
-                <X size={10} />
+                <X size={16} className="pointer-events-none" aria-hidden />
               </button>
             </li>
           ))}

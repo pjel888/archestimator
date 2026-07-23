@@ -37,7 +37,7 @@ export function AdminSidebar() {
           onClick={toggleSidebar}
           className="shrink-0"
         >
-          <SidebarSimple size={13} weight="regular" aria-hidden="true" />
+          <SidebarSimple size={16} weight="regular" aria-hidden="true" />
         </Button>
       </div>
 
@@ -61,13 +61,13 @@ export function AdminSidebar() {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex h-8 items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-none transition-colors",
+                    "flex h-8 cursor-pointer items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-none transition-colors",
                     active ? "bg-surfaceMuted text-ink" : "text-secondary hover:bg-surfaceMuted hover:text-ink",
                     collapsed && "justify-center px-0",
                   )}
                   title={item.label}
                 >
-                  <Icon size={14} weight="regular" className="shrink-0" aria-hidden="true" />
+                  <Icon size={14} weight="regular" className="pointer-events-none shrink-0" aria-hidden="true" />
                   <span className={cn("truncate", collapsed && "sr-only")}>{item.label}</span>
                 </Link>
               );

@@ -36,7 +36,7 @@ type DropdownPopupPlacement = "bottom" | "top";
 export type DropdownPopupCloseReason = "escape" | "outside-pointer" | "ancestor-scroll" | "resize" | "select" | "manual";
 
 const VIEWPORT_GUTTER = 8;
-const TRIGGER_PANEL_GAP = 4;
+const TRIGGER_PANEL_GAP = 2;
 const PANEL_MAX_HEIGHT = 320;
 const PANEL_MIN_VISIBLE_HEIGHT = 80;
 

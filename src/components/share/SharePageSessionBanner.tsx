@@ -39,7 +39,7 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
               type="button"
               onClick={clearRecipientSession}
               disabled={isClearingRecipientSession}
-              className="min-h-11 rounded-xs px-2.5 py-1 text-[10px] font-medium leading-[14px] text-secondary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
+              className="min-h-11 cursor-pointer rounded-xs px-2.5 py-1 text-[10px] font-medium leading-[14px] text-secondary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
             >
               Not you?
             </button>

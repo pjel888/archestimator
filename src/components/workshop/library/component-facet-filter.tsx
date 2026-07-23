@@ -232,7 +232,7 @@ export function ComponentFacetFilterPopover({
   return (
     <FilterPopover
       triggerLabel={filterActive ? `Filter components (${activeCount} active)` : "Filter components"}
-      trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
+      trigger={<FunnelSimple size={16} weight="regular" aria-hidden="true" />}
       triggerVariant="ghost"
       // icon-sm gives a clean square icon base (grid place-items-center, p-0);
       // without it the Button falls back to the default md size whose horizontal

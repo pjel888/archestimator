@@ -1866,7 +1866,7 @@ function OpenAddComponentModal({
               setVariantDrawerView("manager");
             }}
             className={cn(
-              "absolute right-[-30px] top-[-1px] z-40 grid h-[34px] w-[30px] place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition-colors transition-transform hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] before:absolute before:left-0 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-r-sm before:bg-transparent before:transition-colors",
+              "absolute right-[-30px] top-[-1px] z-40 grid h-[34px] w-[30px] cursor-pointer place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition-colors transition-transform hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] before:absolute before:left-0 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-r-sm before:bg-transparent before:transition-colors",
               "hover:before:bg-[#F24405]",
               OPENDESIGN_RAIL_SHADOW_CLASS,
               "max-[640px]:right-2 max-[640px]:top-[3px] max-[640px]:h-[26px] max-[640px]:w-[28px] max-[640px]:rounded-[6px] max-[640px]:border-l",
@@ -1918,7 +1918,7 @@ function OpenAddComponentModal({
                     htmlFor={thumbnailInputId}
                     className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
                   >
-                    <UploadSimple size={12} weight="regular" aria-hidden="true" />
+                    <UploadSimple size={16} weight="regular" aria-hidden="true" />
                     Choose image
                   </label>
                   <label className="flex min-h-6 items-center gap-2 rounded-[6px] px-1 !text-[10px] font-medium text-ink">
@@ -2200,9 +2200,9 @@ function OpenAddComponentModal({
                 type="button"
                 aria-label="Close variants panel"
                 onClick={() => setVariantDrawerOpen(false)}
-                className="grid size-7 place-items-center rounded-[3px] border border-[rgba(61,61,61,0.10)] bg-transparent text-tertiary transition hover:border-[rgba(61,61,61,0.16)] hover:bg-[#f5f5f5] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                className="grid size-7 cursor-pointer place-items-center rounded-[3px] border border-[rgba(61,61,61,0.10)] bg-transparent text-tertiary transition hover:border-[rgba(61,61,61,0.16)] hover:bg-[#f5f5f5] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
               >
-                <X size={13} weight="regular" aria-hidden="true" />
+                <X size={16} weight="regular" aria-hidden="true" />
               </button>
             </header>
 
@@ -2238,19 +2238,19 @@ function OpenAddComponentModal({
                   aria-pressed={variantDrawerView === "manager"}
                   onClick={() => setVariantDrawerView("manager")}
                   className={cn(
-                    "grid h-8 w-[30px] place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                    "grid h-8 w-[30px] cursor-pointer place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
                     OPENDESIGN_RAIL_SHADOW_CLASS,
                     variantDrawerView === "manager" && cn("z-[2] border-r-2 border-r-[#F24405] bg-[rgba(255,255,255,0.94)] text-[#c63804]", OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS),
                   )}
                 >
-                  <Dna size={13} weight="regular" aria-hidden="true" />
+                  <Dna size={16} weight="regular" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   aria-label="Add variant"
                   onClick={addVariant}
                   className={cn(
-                    "-mt-px grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary opacity-[0.82] transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                    "-mt-px grid h-[34px] w-[30px] cursor-pointer place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary opacity-[0.82] transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
                     OPENDESIGN_RAIL_SHADOW_CLASS,
                     visibleVariants.length === 0 && "rounded-br-[3px]",
                   )}
@@ -2272,7 +2272,7 @@ function OpenAddComponentModal({
                         setVariantDrawerView("variant");
                       }}
                       className={cn(
-                        "-mt-px grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] text-[9px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                        "-mt-px grid h-[34px] w-[30px] cursor-pointer place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] text-[9px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
                         isActive
                           ? "z-[2] translate-x-0 border-r-2 border-r-[#F24405] bg-[rgba(255,255,255,0.94)] text-[#c63804] opacity-100 shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]"
                           : "translate-x-[-3px] bg-[rgba(255,255,255,0.58)] text-tertiary opacity-[0.56] shadow-[7px_10px_18px_-18px_rgba(23,29,40,0.55),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)] hover:translate-x-0 hover:bg-white hover:text-ink hover:opacity-100",
@@ -2321,7 +2321,7 @@ function OpenAddComponentModal({
                             aria-label={`Move ${label} up`}
                             disabled={index === 0}
                             onClick={() => moveVariant(variant.id, -1)}
-                            className="grid size-6 place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+                            className="grid size-6 cursor-pointer place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
                           >
                             <CaretUp size={10} weight="regular" aria-hidden="true" />
                           </button>
@@ -2330,7 +2330,7 @@ function OpenAddComponentModal({
                             aria-label={`Move ${label} down`}
                             disabled={index === visibleVariants.length - 1}
                             onClick={() => moveVariant(variant.id, 1)}
-                            className="grid size-6 place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+                            className="grid size-6 cursor-pointer place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
                           >
                             <CaretDown size={10} weight="regular" aria-hidden="true" />
                           </button>
@@ -2339,7 +2339,7 @@ function OpenAddComponentModal({
                     );
                   })}
                   <Button type="button" variant="secondary" size="sm" onClick={addVariant} className="mt-1 rounded-[6px]">
-                    <Plus size={12} weight="regular" aria-hidden="true" />
+                    <Plus size={16} weight="regular" aria-hidden="true" />
                     Add variant
                   </Button>
                 </div>
@@ -2383,7 +2383,7 @@ function OpenAddComponentModal({
                         htmlFor={variantThumbnailInputId}
                         className="inline-flex h-[26px] cursor-pointer items-center justify-center justify-self-start gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
                       >
-                        <UploadSimple size={12} weight="regular" aria-hidden="true" />
+                        <UploadSimple size={16} weight="regular" aria-hidden="true" />
                         Choose image
                       </label>
                       <span className="min-h-[13px] truncate text-[9px] font-medium leading-3 text-tertiary">{activeImagePath || "No image selected"}</span>
@@ -2538,7 +2538,7 @@ function OpenAddComponentModal({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 aria-label={`Download attachment ${attachment.fileName}`}
-                                className="grid size-5 place-items-center rounded-full bg-white/74 text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                                className="grid size-6 cursor-pointer place-items-center rounded-full bg-white/74 text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
                               >
                                 <DownloadSimple size={11} weight="bold" aria-hidden="true" />
                               </a>
@@ -2547,7 +2547,7 @@ function OpenAddComponentModal({
                               type="button"
                               aria-label={`Remove attachment ${attachment.fileName}`}
                               onClick={() => removeAttachment(attachment.id)}
-                              className="grid size-5 place-items-center rounded-full border-0 bg-white/74 p-0 text-tertiary opacity-0 transition hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger group-hover:opacity-100"
+                              className="grid size-6 cursor-pointer place-items-center rounded-full border-0 bg-white/74 p-0 text-tertiary opacity-0 transition hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger group-hover:opacity-100"
                             >
                               <X size={11} weight="bold" aria-hidden="true" />
                             </button>
@@ -2577,9 +2577,9 @@ function OpenAddComponentModal({
                   type="button"
                   aria-label="Delete variant"
                   onClick={removeActiveVariant}
-                  className="grid size-7 place-items-center rounded-[6px] text-danger transition hover:bg-dangerSoft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                  className="grid size-7 cursor-pointer place-items-center rounded-[6px] text-danger transition hover:bg-dangerSoft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                 >
-                  <Trash size={12} weight="regular" aria-hidden="true" />
+                  <Trash size={16} weight="regular" aria-hidden="true" />
                 </button>
               ) : null}
             </footer>

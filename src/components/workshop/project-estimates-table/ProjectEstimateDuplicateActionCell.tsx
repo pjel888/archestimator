@@ -77,7 +77,7 @@ export function ProjectEstimateDuplicateActionCell({
         onClick={handleDuplicate}
         title={!canEditEstimate ? "View-only estimate." : isDuplicating ? "Duplicating estimate..." : "Duplicate estimate"}
       >
-        <CopySimple size={12} weight="regular" aria-hidden="true" />
+        <CopySimple size={16} weight="regular" aria-hidden="true" />
       </button>
     </div>
   );

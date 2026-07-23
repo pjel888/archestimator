@@ -320,7 +320,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
 
       <nav aria-label="Client presentation views" className="share-print-hidden sticky top-16 z-10 border-b border-hairline bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
         <div role="tablist" className="flex gap-0 overflow-x-auto">
-          {availableViews.map((view) => <button key={view} type="button" role="tab" aria-selected={selectedView === view} className={`shrink-0 border-b-2 px-4 py-3 text-[13px] font-medium transition-colors ${selectedView === view ? "border-accent text-ink" : "border-transparent text-secondary hover:border-hairline hover:text-ink"}`} onClick={() => selectView(view)}>{PORTAL_VIEW_LABELS[view]}</button>)}
+          {availableViews.map((view) => <button key={view} type="button" role="tab" aria-selected={selectedView === view} className={`cursor-pointer shrink-0 border-b-2 px-4 py-3 text-[13px] font-medium transition-colors ${selectedView === view ? "border-accent text-ink" : "border-transparent text-secondary hover:border-hairline hover:text-ink"}`} onClick={() => selectView(view)}>{PORTAL_VIEW_LABELS[view]}</button>)}
         </div>
       </nav>
 

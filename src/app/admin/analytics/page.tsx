@@ -44,7 +44,7 @@ export default function AdminAnalyticsPage() {
       <section className="grid gap-2 md:grid-cols-3" aria-label="Analytics providers">
         {tiles.map((tile) => (
           <Card key={tile.label} interactive className="p-2">
-            <Link href={tile.href} target="_blank" rel="noreferrer" className="block">
+            <Link href={tile.href} target="_blank" rel="noreferrer" className="block cursor-pointer">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                 <span className="text-[11px] font-medium leading-4 text-ink text-pretty">{tile.label}</span>
                 <Badge tone={tile.configured ? "success" : "neutral"} size="xs" className="w-fit min-w-0 px-1">
@@ -54,7 +54,7 @@ export default function AdminAnalyticsPage() {
               <p className="mt-2 text-[9px] leading-4 text-tertiary">{tile.description}</p>
               <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium leading-4 text-ink">
                 Open provider
-                <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
+                <ArrowSquareOut size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
               </span>
             </Link>
           </Card>

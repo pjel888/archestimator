@@ -234,65 +234,65 @@ const VIEW_SELECT_OPTIONS: DropdownSelectOption[] =
   PROJECT_VIEW_MODE_OPTIONS.map(({ value, label, icon: Icon }) => ({
     value,
     label,
-    icon: <Icon size={12} weight="regular" aria-hidden="true" />,
+    icon: <Icon size={16} weight="regular" aria-hidden="true" />,
   }));
 const GROUP_BY_TRIGGER_ICON = (
-  <ListBullets size={12} weight="regular" aria-hidden="true" />
+  <ListBullets size={16} weight="regular" aria-hidden="true" />
 );
 const PROJECT_SORT_FIELD_OPTIONS = [
   {
     value: "updated_at",
     label: "Last updated",
     icon: (
-      <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />
+      <ClockCounterClockwise size={16} weight="regular" aria-hidden="true" />
     ),
   },
   {
     value: "created_at",
     label: "Date created",
-    icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" />,
+    icon: <CalendarBlank size={16} weight="regular" aria-hidden="true" />,
   },
   {
     value: "client_name",
     label: "Client",
-    icon: <User size={12} weight="regular" aria-hidden="true" />,
+    icon: <User size={16} weight="regular" aria-hidden="true" />,
   },
   {
     value: "name",
     label: "Project name",
-    icon: <TextAa size={12} weight="regular" aria-hidden="true" />,
+    icon: <TextAa size={16} weight="regular" aria-hidden="true" />,
   },
 ] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_GROUP_BY_OPTIONS = [
   {
     value: "none",
     label: "No grouping",
-    icon: <StackSimple size={12} weight="regular" aria-hidden="true" />,
+    icon: <StackSimple size={16} weight="regular" aria-hidden="true" />,
   },
   {
     value: "group",
     label: "Manual group order",
-    icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
+    icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
   },
   {
     value: "updated_at",
     label: "Last updated",
     triggerIcon: GROUP_BY_TRIGGER_ICON,
     icon: (
-      <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />
+      <ClockCounterClockwise size={16} weight="regular" aria-hidden="true" />
     ),
   },
   {
     value: "created_at",
     label: "Date created",
     triggerIcon: GROUP_BY_TRIGGER_ICON,
-    icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" />,
+    icon: <CalendarBlank size={16} weight="regular" aria-hidden="true" />,
   },
   {
     value: "client_name",
     label: "Client",
     triggerIcon: GROUP_BY_TRIGGER_ICON,
-    icon: <User size={12} weight="regular" aria-hidden="true" />,
+    icon: <User size={16} weight="regular" aria-hidden="true" />,
   },
 ] as const satisfies readonly DropdownSelectOption[];
 type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
@@ -1306,7 +1306,7 @@ const ProjectCardRow = memo(function ProjectCardRow({
             aria-label={`Move ${item.project.name} to a group`}
             aria-busy={groupBusy}
           >
-            <FolderSimple size={13} weight="regular" aria-hidden="true" />
+            <FolderSimple size={16} weight="regular" aria-hidden="true" />
           </Button>
         }
       >
@@ -1342,7 +1342,7 @@ const ProjectCardRow = memo(function ProjectCardRow({
       <ShadcnDropdownMenu>
         <ShadcnDropdownMenuTrigger asChild>
           <ProjectCardDetailsControl
-            className="workshop-project-card-control size-6 border-hairline relative z-20 text-ink"
+            className="workshop-project-card-control relative z-20 size-6 cursor-pointer border-hairline text-ink"
             disabled={Boolean(setupNavigationDisabled)}
             projectName={item.project.name}
             ariaLabel={`Open actions for ${item.project.name}`}
@@ -2148,14 +2148,14 @@ export function ProjectsPageClient({
     {
       id: "add-group",
       label: "Add group",
-      icon: <FolderPlus size={12} weight="regular" aria-hidden="true" />,
+      icon: <FolderPlus size={16} weight="regular" aria-hidden="true" />,
       onClick: handleCreateDefaultGroup,
       disabled: visibleProjectGroups.length >= MAX_PROJECT_GROUPS,
       className: ADD_BUTTON_CLASSNAME,
     },
     {
       label: "Add projects",
-      icon: <Cards size={12} weight="regular" aria-hidden="true" />,
+      icon: <Cards size={16} weight="regular" aria-hidden="true" />,
       onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true }),
       className: ADD_BUTTON_CLASSNAME,
     },
@@ -2165,12 +2165,12 @@ export function ProjectsPageClient({
       {
         value: "desc",
         label: getProjectSortDirectionLabel(sortField, "desc"),
-        icon: <SortDescending size={12} weight="regular" aria-hidden="true" />,
+        icon: <SortDescending size={16} weight="regular" aria-hidden="true" />,
       },
       {
         value: "asc",
         label: getProjectSortDirectionLabel(sortField, "asc"),
-        icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
+        icon: <SortAscending size={16} weight="regular" aria-hidden="true" />,
       },
     ],
     [sortField],
@@ -3021,7 +3021,7 @@ export function ProjectsPageClient({
           {
             id: "delete-group",
             label: "Delete group",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive",
             onSelect: () => handleDeleteGroup(groupKey),
           },

@@ -199,10 +199,10 @@ export default async function AdminOverviewPage() {
             href={link.href}
             target="_blank"
             rel="noreferrer"
-            className="rounded-xs border border-hairline bg-white p-2 text-[10px] font-medium leading-4 text-ink transition hover:bg-surfaceMuted"
+            className="cursor-pointer rounded-xs border border-hairline bg-white p-2 text-[10px] font-medium leading-4 text-ink transition hover:bg-surfaceMuted"
           >
             <span>{link.label}</span>
-            <ArrowSquareOut size={12} weight="regular" className="ml-1 inline-block" aria-hidden="true" />
+            <ArrowSquareOut size={16} weight="regular" className="pointer-events-none ml-1 inline-block" aria-hidden="true" />
           </Link>
         ))}
       </section>

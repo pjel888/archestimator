@@ -107,10 +107,10 @@ function makeToastId() {
 }
 
 function ToastIcon({ tone }: { tone: ToastTone }) {
-  if (tone === "loading") return <CircleNotch size={13} weight="regular" className="animate-spin" aria-hidden="true" />;
-  if (tone === "success") return <CheckCircle size={13} weight="regular" aria-hidden="true" />;
-  if (tone === "error" || tone === "warning") return <WarningCircle size={13} weight="regular" aria-hidden="true" />;
-  return <Info size={13} weight="regular" aria-hidden="true" />;
+  if (tone === "loading") return <CircleNotch size={16} weight="regular" className="animate-spin" aria-hidden="true" />;
+  if (tone === "success") return <CheckCircle size={16} weight="regular" aria-hidden="true" />;
+  if (tone === "error" || tone === "warning") return <WarningCircle size={16} weight="regular" aria-hidden="true" />;
+  return <Info size={16} weight="regular" aria-hidden="true" />;
 }
 
 function toastToneClassName(tone: ToastTone) {
@@ -282,7 +282,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
                 className="-mr-1 -mt-0.5 size-5 min-h-0 shrink-0 rounded-xs text-current hover:bg-black/5 hover:text-current focus-visible:ring-current focus-visible:ring-offset-0"
                 onClick={() => dismissToast(toastRecord.id)}
               >
-                <X size={10} weight="regular" aria-hidden="true" />
+                <X size={10} weight="regular" className="pointer-events-none" aria-hidden="true" />
               </Button>
             )}
           </div>

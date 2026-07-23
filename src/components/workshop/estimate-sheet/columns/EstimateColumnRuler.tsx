@@ -87,12 +87,12 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
           {column.id === "actions" ? (
             <button
               type="button"
-              className="flex size-6 items-center justify-center rounded-xs text-[9px] font-medium text-tertiary outline-none hover:bg-surface-muted hover:text-secondary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/40"
+              className="flex size-6 cursor-pointer items-center justify-center rounded-xs text-[9px] font-medium text-tertiary outline-none hover:bg-surface-muted hover:text-secondary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/40"
               aria-label="Reset column widths"
               title="Reset column widths"
               onClick={resetAllWidths}
             >
-              <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
+              <ArrowCounterClockwise size={16} weight="regular" aria-hidden="true" />
             </button>
           ) : (
             <span className="truncate">

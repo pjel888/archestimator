@@ -81,7 +81,7 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
             {actionHref(item) ? (
               <Link
                 href={actionHref(item)!}
-                className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-center text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                className="min-h-8 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-center text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
               >
                 Open
               </Link>
@@ -92,7 +92,7 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
                   type="button"
                   disabled={pending}
                   onClick={() => run(item.id, snoozeActionItem)}
-                  className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                  className="min-h-8 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
                 >
                   Snooze 1d
                 </button>
@@ -100,7 +100,7 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
                   type="button"
                   disabled={pending}
                   onClick={() => run(item.id, resolveActionItem)}
-                  className="min-h-8 flex-1 rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                  className="min-h-8 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
                 >
                   Resolve
                 </button>
@@ -108,7 +108,7 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
                   type="button"
                   disabled={pending}
                   onClick={() => run(item.id, dismissActionItem)}
-                  className="min-h-8 rounded-xs px-2 py-1 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:opacity-50 sm:min-h-0 sm:py-0.5"
+                  className="min-h-8 cursor-pointer rounded-xs px-2 py-1 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-0.5"
                   aria-label="Dismiss"
                 >
                   Dismiss

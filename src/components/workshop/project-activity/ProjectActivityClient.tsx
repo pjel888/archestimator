@@ -466,7 +466,7 @@ export function ProjectActivityClient({
         body="Try refreshing the activity timeline. Project data and permissions were not changed."
         action={(
           <Button className="mt-3" variant="outline" size="xs" onClick={refreshActivity}>
-            <ArrowClockwise size={12} aria-hidden="true" />
+            <ArrowClockwise size={16} aria-hidden="true" />
             Retry
           </Button>
         )}
@@ -500,7 +500,7 @@ export function ProjectActivityClient({
               Showing {items.length} of {counts.filteredTotalCount}
             </p>
             <Button variant="outline" size="icon-xs" aria-label="Refresh activity" onClick={refreshActivity}>
-              <ArrowClockwise size={12} aria-hidden="true" />
+              <ArrowClockwise size={16} aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -526,7 +526,7 @@ export function ProjectActivityClient({
               aria-controls="project-activity-filters"
               onClick={() => setFiltersOpen((open) => !open)}
             >
-              <FunnelSimple size={12} aria-hidden="true" />
+              <FunnelSimple size={16} aria-hidden="true" />
               Filters
             </Button>
             <Button variant="plain" size="xs" className="min-w-[56px]" onClick={clearFilters} disabled={!hasFilters}>
@@ -537,7 +537,7 @@ export function ProjectActivityClient({
 
         <div className="mt-2 flex h-7 items-center rounded-xs border border-transparent bg-transparent text-[10px] leading-4" role="status" aria-live="polite">
           <span className={cn("inline-flex min-w-0 items-center gap-1 truncate", partial ? "text-ink" : "text-tertiary")}>
-            {partial ? <WarningCircle size={12} aria-hidden="true" className="shrink-0 text-warning" /> : null}
+            {partial ? <WarningCircle size={16} aria-hidden="true" className="shrink-0 text-warning" /> : null}
             <span className="truncate">{statusText}</span>
           </span>
         </div>

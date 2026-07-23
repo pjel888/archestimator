@@ -99,7 +99,8 @@ export function WorkshopTreeRow({
   const baseClassName = cn(
     // `group/tree-row` scopes row-level hover reveals (drag grip, checkbox) so
     // ancestor `group` containers like ResizableSidePanel cannot trigger them.
-    "group/tree-row group flex w-full min-w-0 items-center rounded-xs border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
+    // Tailwind v4 buttons have no default pointer cursor — put it on the row box.
+    "group/tree-row group flex w-full min-w-0 cursor-pointer items-center rounded-xs border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
     WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
     WORKSHOP_TREE_TEXT_CLASS,
     selected

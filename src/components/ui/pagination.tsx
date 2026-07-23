@@ -51,10 +51,10 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
         type="button"
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
-        className="flex h-7 w-7 items-center justify-center rounded-xs border border-hairline bg-surface text-ink transition-colors hover:bg-surfaceMuted disabled:pointer-events-none disabled:opacity-50"
+        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs border border-hairline bg-surface text-ink transition-colors hover:bg-surfaceMuted disabled:pointer-events-none disabled:opacity-50"
         aria-label="Previous page"
       >
-        <CaretLeft weight="regular" size={14} />
+        <CaretLeft weight="regular" size={14} className="pointer-events-none" aria-hidden="true" />
       </button>
 
       <div className="flex items-center gap-1">
@@ -79,7 +79,7 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
               onClick={() => onPageChange(p)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex h-7 min-w-7 items-center justify-center rounded-xs px-1.5 text-[10px] font-medium tracking-normal transition-colors",
+                "flex h-7 min-w-7 cursor-pointer items-center justify-center rounded-xs px-1.5 text-[10px] font-medium tracking-normal transition-colors",
                 isActive
                   ? "bg-primary text-white"
                   : "border border-hairline bg-surface text-ink hover:bg-surfaceMuted"
@@ -95,10 +95,10 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
         type="button"
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
-        className="flex h-7 w-7 items-center justify-center rounded-xs border border-hairline bg-surface text-ink transition-colors hover:bg-surfaceMuted disabled:pointer-events-none disabled:opacity-50"
+        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs border border-hairline bg-surface text-ink transition-colors hover:bg-surfaceMuted disabled:pointer-events-none disabled:opacity-50"
         aria-label="Next page"
       >
-        <CaretRight weight="regular" size={14} />
+        <CaretRight weight="regular" size={14} className="pointer-events-none" aria-hidden="true" />
       </button>
     </nav>
   );

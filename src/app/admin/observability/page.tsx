@@ -86,9 +86,9 @@ export default async function AdminObservabilityPage() {
       <section className="grid gap-2 md:grid-cols-2 xl:grid-cols-3" aria-label="Observability resources">
         {links.map((link) => (
           <Card key={link.href} interactive className="p-2">
-            <Link href={link.href} target="_blank" rel="noreferrer" className="block">
+            <Link href={link.href} target="_blank" rel="noreferrer" className="block cursor-pointer">
               <span className="text-[11px] font-medium leading-4 text-ink">{link.label}</span>
-              <ArrowSquareOut size={12} weight="regular" className="ml-1 inline-block text-tertiary" aria-hidden="true" />
+              <ArrowSquareOut size={16} weight="regular" className="pointer-events-none ml-1 inline-block text-tertiary" aria-hidden="true" />
               <p className="mt-2 text-[9px] leading-4 text-tertiary">{link.description}</p>
             </Link>
           </Card>

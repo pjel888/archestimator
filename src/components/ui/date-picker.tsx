@@ -42,7 +42,7 @@ export function DatePicker({ className, invalid, disabled, value, onChange, onCl
     return (
       <div className={cn("relative flex w-full items-center", className)}>
         <Calendar 
-          size={12} 
+          size={16}
           weight="regular" 
           className="pointer-events-none absolute left-2 z-10 text-tertiary" 
         />
@@ -69,10 +69,10 @@ export function DatePicker({ className, invalid, disabled, value, onChange, onCl
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-1 z-20 grid size-4 place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
+            className="absolute right-0.5 z-20 grid size-5 cursor-pointer place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
             aria-label="Clear date"
           >
-            <X size={10} weight="regular" />
+            <X size={10} weight="regular" className="pointer-events-none" aria-hidden="true" />
           </button>
         )}
       </div>

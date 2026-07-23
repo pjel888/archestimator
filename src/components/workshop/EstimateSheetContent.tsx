@@ -3161,7 +3161,7 @@ export function EstimateSheetContent({
                     <button
                       key={item.id}
                       type="button"
-                      className="grid gap-0.5 rounded-xs border border-hairline bg-white px-2 py-1.5 text-left hover:border-brand-orange hover:bg-brand-orange/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-orange"
+                      className="grid cursor-pointer gap-0.5 rounded-xs border border-hairline bg-white px-2 py-1.5 text-left hover:border-brand-orange hover:bg-brand-orange/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-orange"
                       aria-label={`Replace with ${itemLabel}`}
                       onClick={() => replaceFromComponentPicker(item)}
                     >
@@ -3373,7 +3373,7 @@ export function EstimateSheetContent({
               </p>
             </div>
             <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Project Component dialog" onClick={closeProjectSpecificDialog}>
-              <X size={13} weight="regular" aria-hidden="true" />
+              <X size={16} weight="regular" aria-hidden="true" />
             </Button>
           </div>
           <div className="mt-4 flex justify-end gap-2">
@@ -3397,7 +3397,7 @@ export function EstimateSheetContent({
           onGroupModeChange={setSheetGroupMode}
           filterSlot={
             <FilterPopover
-              trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
+              trigger={<FunnelSimple size={16} weight="regular" aria-hidden="true" />}
               triggerLabel="Filter sheet"
               triggerPressed={facetsActive}
               triggerVariant="ghost"
@@ -3492,7 +3492,7 @@ export function EstimateSheetContent({
               {
                 label: "Open Sources drawer",
                 visibleLabel: "Sources",
-                icon: <SidebarSimple size={13} weight="regular" aria-hidden="true" className="rotate-180" />,
+                icon: <SidebarSimple size={16} weight="regular" aria-hidden="true" className="rotate-180" />,
                 onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
                   event.currentTarget.focus({ preventScroll: true });
                   setSourcesDrawerOpen(true);
@@ -3506,7 +3506,7 @@ export function EstimateSheetContent({
             ...(createTabState.canCreate ? [
               {
                 label: "New tab",
-                icon: <TabsIcon size={13} weight="regular" aria-hidden="true" />,
+                icon: <TabsIcon size={16} weight="regular" aria-hidden="true" />,
                 onClick: () => void tabStripRef.current?.createTab(),
                 disabled: createTabState.pending,
                 className: ADD_BUTTON_CLASSNAME,
@@ -3625,7 +3625,7 @@ export function EstimateSheetContent({
                       label: "Delete selected rows",
                       ariaLabel: "Delete selected rows",
                       title: "Deletes selected rows immediately. Use Undo after saving to restore them.",
-                      icon: <Trash size={12} weight="regular" />,
+                      icon: <Trash size={16} weight="regular" />,
                       variant: "danger",
                       onClick: deleteSelectedRows,
                     },
@@ -3655,7 +3655,7 @@ export function EstimateSheetContent({
                 {canEditEstimate ? (
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     <Button type="button" variant="primary" size="sm" className="gap-1.5" onClick={requestRootGroupCreate}>
-                      <StackPlus size={13} weight="regular" aria-hidden="true" />
+                      <StackPlus size={16} weight="regular" aria-hidden="true" />
                       Add Area
                     </Button>
                     <Button type="button" variant="secondary" size="sm" onClick={openTemplateBrowser}>

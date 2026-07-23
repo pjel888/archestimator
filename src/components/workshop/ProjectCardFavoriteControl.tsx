@@ -57,7 +57,7 @@ export function ProjectCardFavoriteControl({
       aria-disabled={favoriteBusy}
       onClick={handleClick}
     >
-      <Star size={13} weight="regular" aria-hidden="true" />
+      <Star size={16} weight="regular" aria-hidden="true" />
     </Button>
   );
 }

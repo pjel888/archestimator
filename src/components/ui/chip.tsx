@@ -20,7 +20,7 @@ const toneClasses: Record<ChipTone, string> = {
 };
 
 const chipClasses =
-  "inline-flex min-h-5 items-center gap-1 rounded-xs border px-1.5 py-px !text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex min-h-5 cursor-pointer items-center gap-1 rounded-xs border px-1.5 py-px !text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50";
 
 export function Chip({
   className,
@@ -51,7 +51,7 @@ export function Chip({
         <button
           type={type}
           aria-pressed={active || undefined}
-          className="min-w-0 truncate text-left focus-visible:outline-none disabled:pointer-events-none"
+          className="min-w-0 cursor-pointer truncate text-left focus-visible:outline-none disabled:pointer-events-none"
           {...props}
         >
           {children}
@@ -60,10 +60,10 @@ export function Chip({
           type="button"
           aria-label={removeLabel}
           disabled={disabled}
-          className="inline-flex size-3 shrink-0 items-center justify-center rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none"
+          className="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none"
           onClick={handleRemoveClick}
         >
-          <X size={9} weight="regular" aria-hidden="true" />
+          <X size={9} weight="regular" className="pointer-events-none" aria-hidden="true" />
         </button>
       </span>
     );
@@ -77,7 +77,7 @@ export function Chip({
       {...props}
     >
       <span className="truncate">{children}</span>
-      {removable ? <X size={9} weight="regular" aria-hidden="true" /> : null}
+      {removable ? <X size={9} weight="regular" className="pointer-events-none" aria-hidden="true" /> : null}
     </button>
   );
 }

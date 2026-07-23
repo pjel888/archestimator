@@ -74,7 +74,7 @@ export function ReleaseAnnouncementModal({ announcement, returnFocusRef }: Relea
             if (!hasAction) primaryButtonRef.current = node;
           }}
           type="button"
-          className="inline-flex min-h-7 items-center justify-center rounded-xs px-2 text-[10px] font-medium leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs px-2 text-[10px] font-medium leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
           onClick={acknowledge}
         >
           Dismiss
@@ -85,7 +85,7 @@ export function ReleaseAnnouncementModal({ announcement, returnFocusRef }: Relea
               primaryButtonRef.current = node;
             }}
             href={announcement.actionHref ?? "/workshop"}
-            className="inline-flex min-h-7 items-center justify-center rounded-xs bg-primary px-2 text-[10px] font-medium leading-none text-white transition hover:bg-accentDark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+            className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs bg-primary px-2 text-[10px] font-medium leading-none text-white transition hover:bg-accentDark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
             onClick={acknowledge}
           >
             {announcement.actionLabel ?? "Open"}

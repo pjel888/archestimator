@@ -12,7 +12,7 @@ export function IconButton({ icon, label, className, variant = "ghost", size = "
     <Button
       variant={variant}
       size={size}
-      className={cn("shrink-0", className)}
+      className={cn("shrink-0 [&_svg]:pointer-events-none", className)}
       aria-label={label}
       title={label}
       {...props}

@@ -572,7 +572,7 @@ export function AdminAllowlistManager({
                     statusFilter ? (
                       <Link
                         href={ALLOWLIST_PATH}
-                        className="inline-flex min-h-7 items-center rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        className="inline-flex min-h-7 cursor-pointer items-center rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       >
                         Show all
                       </Link>

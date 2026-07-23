@@ -69,7 +69,7 @@ function ProjectMobileCard({ project }: { project: AdminProjectOverviewRow }) {
 
       <div className="mt-2 rounded-xs bg-surfaceMuted/70 p-2">
         <div className="flex items-start gap-2">
-          <User size={13} className="mt-0.5 shrink-0 text-tertiary" aria-hidden />
+          <User size={16} className="mt-0.5 shrink-0 text-tertiary" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-[8px] font-medium uppercase leading-3 text-tertiary">Owner</p>
             <OwnerIdentity project={project} />
@@ -96,16 +96,16 @@ function ProjectMobileCard({ project }: { project: AdminProjectOverviewRow }) {
         <div className="flex items-center gap-1.5">
           <Link
             href={`/admin/projects/${project.id}`}
-            className="inline-flex min-h-7 items-center gap-1 rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex min-h-7 cursor-pointer items-center gap-1 rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             View 360
           </Link>
           <Link
             href={`/workshop/projects/${project.id}`}
-            className="inline-flex size-7 items-center justify-center rounded-xs border border-hairline text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-xs border border-hairline text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             aria-label={`Open ${project.name} in Workshop`}
           >
-            <ArrowSquareOut size={13} aria-hidden />
+            <ArrowSquareOut size={16} className="pointer-events-none" aria-hidden />
           </Link>
         </div>
       </div>
@@ -194,11 +194,11 @@ export function AdminProjectsTable({ projects }: { projects: AdminProjectOvervie
         meta: { align: "right" },
         cell: ({ row }) => (
           <div className="flex justify-end gap-1">
-            <Link href={`/admin/projects/${row.original.id}`} className="inline-flex min-h-7 items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted">
+            <Link href={`/admin/projects/${row.original.id}`} className="inline-flex min-h-7 cursor-pointer items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted">
               View 360
             </Link>
-            <Link href={`/workshop/projects/${row.original.id}`} className="inline-flex size-7 items-center justify-center rounded-xs border border-hairline text-secondary hover:bg-surfaceMuted hover:text-ink" aria-label={`Open ${row.original.name} in Workshop`}>
-              <ArrowSquareOut size={13} aria-hidden />
+            <Link href={`/workshop/projects/${row.original.id}`} className="inline-flex size-7 cursor-pointer items-center justify-center rounded-xs border border-hairline text-secondary hover:bg-surfaceMuted hover:text-ink" aria-label={`Open ${row.original.name} in Workshop`}>
+              <ArrowSquareOut size={16} className="pointer-events-none" aria-hidden />
             </Link>
           </div>
         ),
@@ -237,7 +237,7 @@ export function AdminProjectsTable({ projects }: { projects: AdminProjectOvervie
                 aria-pressed={filter === item.id}
                 onClick={() => setFilter(item.id)}
                 className={cn(
-                  "min-h-7 rounded-xs border px-2 text-[10px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "min-h-7 cursor-pointer rounded-xs border px-2 text-[10px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                   filter === item.id ? "border-ink bg-ink text-white" : "border-hairline bg-white text-secondary hover:bg-surfaceMuted hover:text-ink",
                 )}
               >

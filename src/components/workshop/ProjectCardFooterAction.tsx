@@ -85,7 +85,7 @@ export function ProjectCardFooterAction({
           aria-label={`Accept invite for ${projectName}`}
         >
           Accept
-          <ArrowRight size={12} className="shrink-0" aria-hidden="true" />
+          <ArrowRight size={16} className="shrink-0" aria-hidden="true" />
         </Button>
       </form>
     );

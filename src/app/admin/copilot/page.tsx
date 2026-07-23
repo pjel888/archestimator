@@ -23,7 +23,7 @@ export default async function AdminCopilotPage() {
         eyebrow="Admin"
         title={
           <span className="flex items-center gap-1">
-            <Sparkle size={13} weight="regular" aria-hidden="true" /> AI Copilot
+            <Sparkle size={16} weight="regular" aria-hidden="true" /> AI Copilot
           </span>
         }
         description="Read-only, source-grounded assistant for the founder. Grounded in a live admin snapshot; it never mutates data and won't fabricate numbers or revenue."

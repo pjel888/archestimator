@@ -41,7 +41,7 @@ export function ProjectCardTitleBlock({
         </h2>
       </div>
       <p className="flex min-w-0 items-start gap-1.5 text-[9px] leading-3 text-secondary">
-        <MapPin size={12} aria-hidden="true" className="shrink-0" />
+        <MapPin size={16} aria-hidden="true" className="shrink-0" />
         <span className="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">
           {location ?? "No location"}
         </span>

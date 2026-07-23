@@ -635,7 +635,7 @@ export function EstimateTabStrip({
           {
             id: "rename",
             label: "Rename",
-            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
             disabled: actionPending,
             disabledReason: actionPending ? "Finish the current tab action first." : undefined,
             onSelect: () => beginRename(targetTab),
@@ -643,7 +643,7 @@ export function EstimateTabStrip({
           {
             id: "duplicate",
             label: "Duplicate",
-            icon: <CopySimple size={12} weight="regular" aria-hidden="true" />,
+            icon: <CopySimple size={16} weight="regular" aria-hidden="true" />,
             disabled: actionPending,
             disabledReason: actionPending ? "Finish the current tab action first." : undefined,
             onSelect: () => void duplicateTab(targetTab.id),
@@ -656,7 +656,7 @@ export function EstimateTabStrip({
           {
             id: "delete",
             label: "Delete",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
             disabled: actionPending || isLastTab,
             disabledReason: isLastTab

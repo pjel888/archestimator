@@ -394,7 +394,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 })
               }
             >
-              <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
+              <CaretDown size={16} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
             </Button>
           ) : (
             // Reserve the caret slot so node names stay aligned while search is

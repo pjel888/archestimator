@@ -34,7 +34,7 @@ export function SidebarNavItemRow({ item, active, expanded }: SidebarNavItemProp
       aria-current={active ? "page" : undefined}
       aria-label={expanded ? undefined : collapsedLabel}
       className={cn(
-        "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-[color,transform] duration-[120ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
+        "group relative grid h-8 w-full cursor-pointer grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-[color,transform] duration-[120ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
         "before:absolute before:top-[-2px] before:z-0 before:h-9 before:[border-radius:var(--glass-nav-radius)] before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",
         "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
         tintSpansFullRow ? "before:left-1.5 before:right-1.5" : "before:left-1.5 before:w-9",

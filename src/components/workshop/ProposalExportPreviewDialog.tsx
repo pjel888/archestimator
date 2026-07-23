@@ -304,7 +304,7 @@ export function ProposalExportPreviewDialog({
             <button
               type="button"
               aria-label="Close preview"
-              className="grid size-7 place-items-center rounded-xs border border-hairline text-[9px] font-medium leading-none text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              className="grid size-7 cursor-pointer place-items-center rounded-xs border border-hairline text-[9px] font-medium leading-none text-tertiary hover:bg-surfaceMuted hover:text-ink"
               onClick={onClose}
             >
               ×

@@ -178,7 +178,7 @@ export function TemplateStructureTree({
             {
               id: "add-root-group",
               label: "Add group",
-              icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
+              icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
               onSelect: () => handlers.onAddNode(null, "group"),
             },
           ],
@@ -196,14 +196,14 @@ export function TemplateStructureTree({
             {
               id: "add-group",
               label: "Add group",
-              icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
+              icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
               disabled: isTemporary,
               onSelect: () => handlers.onAddNode(node.id, "group"),
             },
             {
               id: "add-area",
               label: "Add area",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: isTemporary,
               onSelect: () => handlers.onAddNode(node.id, "area"),
             },
@@ -228,14 +228,14 @@ export function TemplateStructureTree({
       {
         id: "move-up",
         label: "Move up",
-        icon: <ArrowUp size={12} weight="regular" aria-hidden="true" />,
+        icon: <ArrowUp size={16} weight="regular" aria-hidden="true" />,
         disabled: isTemporary || moveIndex <= 0,
         onSelect: () => reorderNode(-1),
       },
       {
         id: "move-down",
         label: "Move down",
-        icon: <ArrowDown size={12} weight="regular" aria-hidden="true" />,
+        icon: <ArrowDown size={16} weight="regular" aria-hidden="true" />,
         disabled: isTemporary || moveIndex === -1 || moveIndex >= moveSiblings.length - 1,
         onSelect: () => reorderNode(1),
       },
@@ -250,7 +250,7 @@ export function TemplateStructureTree({
           {
             id: "rename-node",
             label: "Rename",
-            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
             disabled: isTemporary,
             onSelect: () => handlers.onRenameNode(node),
           },
@@ -262,7 +262,7 @@ export function TemplateStructureTree({
           {
             id: "delete-node",
             label: "Delete",
-            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
             disabled: isTemporary,
             onSelect: () => handlers.onDeleteNode(node),

@@ -57,14 +57,14 @@ function UserActions({
         {user.is_registered ? (
           <Link
             href={`/admin/users/${user.id}`}
-            className="inline-flex min-h-7 items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             View history
           </Link>
         ) : null}
         <Link
           href="/admin/allowlist"
-          className="inline-flex min-h-7 items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           Manage access
         </Link>
@@ -78,7 +78,7 @@ function UserActions({
         <span className="text-[9px] leading-3 text-tertiary">Protected administrator</span>
         <Link
           href={`/admin/users/${user.id}`}
-          className="inline-flex min-h-7 items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           View details
         </Link>
@@ -92,20 +92,20 @@ function UserActions({
         {user.account_status === "active" ? (
           <>
             <Button size="xs" variant="secondary" disabled={isPending} onClick={() => onAction("suspend", user.id, user.email)}>
-              <Pause aria-hidden size={13} /> Suspend
+              <Pause aria-hidden size={16} /> Suspend
             </Button>
             <Button size="xs" variant="danger" disabled={isPending} onClick={() => onAction("ban", user.id, user.email)}>
-              <Prohibit aria-hidden size={13} /> Ban
+              <Prohibit aria-hidden size={16} /> Ban
             </Button>
           </>
         ) : (
           <Button size="xs" variant="secondary" disabled={isPending} className="col-span-2" onClick={() => onAction("reactivate", user.id, user.email)}>
-            <Check aria-hidden size={13} /> Reactivate
+            <Check aria-hidden size={16} /> Reactivate
           </Button>
         )}
         <Link
           href={`/admin/users/${user.id}`}
-          className="inline-flex min-h-7 items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           View details
         </Link>
@@ -126,7 +126,7 @@ function UserActions({
             aria-label={`Suspend ${user.email}`}
             title="Suspend temporarily"
           >
-            <Pause aria-hidden size={13} />
+            <Pause aria-hidden size={16} />
           </Button>
           <Button
             size="icon-xs"
@@ -136,7 +136,7 @@ function UserActions({
             aria-label={`Ban ${user.email}`}
             title="Ban permanently"
           >
-            <Prohibit aria-hidden size={13} />
+            <Prohibit aria-hidden size={16} />
           </Button>
         </>
       ) : (
@@ -148,7 +148,7 @@ function UserActions({
           aria-label={`Reactivate ${user.email}`}
           title="Reactivate"
         >
-          <Check aria-hidden size={13} />
+          <Check aria-hidden size={16} />
         </Button>
       )}
       <AdminDeleteUserButton userId={user.id} email={user.email} />
@@ -362,7 +362,7 @@ export function AdminUsersTable({
                 aria-pressed={filter === item.id}
                 onClick={() => setFilter(item.id)}
                 className={cn(
-                  "min-h-7 rounded-xs border px-2 text-[10px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "min-h-7 cursor-pointer rounded-xs border px-2 text-[10px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                   filter === item.id ? "border-ink bg-ink text-white" : "border-hairline bg-white text-secondary hover:bg-surfaceMuted hover:text-ink",
                 )}
               >

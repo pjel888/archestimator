@@ -86,7 +86,7 @@ export function AdminSavedReplies({ initialReplies }: { initialReplies: AdminSav
                   type="button"
                   disabled={pending}
                   onClick={() => remove(reply.id)}
-                  className="min-h-8 shrink-0 rounded-xs px-2 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:opacity-50 sm:min-h-0 sm:px-0"
+                  className="min-h-8 shrink-0 cursor-pointer rounded-xs px-2 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-7"
                   aria-label={`Delete ${reply.label}`}
                 >
                   Delete

@@ -117,7 +117,7 @@ export function SupportMailboxRail({
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button type="button" variant="primary" size="xs" className="min-h-9 min-w-0 px-2 md:min-h-7" onClick={onCompose}>
-              <Plus size={12} aria-hidden /> New
+              <Plus size={16} aria-hidden /> New
             </Button>
             <Button
               type="button"
@@ -134,7 +134,7 @@ export function SupportMailboxRail({
 
         <label className="relative mt-2 block" htmlFor="support-search">
           <span className="sr-only">Search conversations</span>
-          <MagnifyingGlass size={12} className="pointer-events-none absolute left-2 top-2.5 text-tertiary" aria-hidden />
+          <MagnifyingGlass size={16} className="pointer-events-none absolute left-2 top-2.5 text-tertiary" aria-hidden />
           <input
             id="support-search"
             value={search}
@@ -151,7 +151,7 @@ export function SupportMailboxRail({
               type="button"
               aria-current={folder === item.id ? "page" : undefined}
               className={cn(
-                "flex min-h-8 items-center justify-between gap-1 rounded-xs border px-1.5 text-[9px] font-medium leading-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:min-h-7",
+                "flex min-h-8 cursor-pointer items-center justify-between gap-1 rounded-xs border px-1.5 text-[9px] font-medium leading-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:min-h-7",
                 folder === item.id
                   ? "border-ink bg-ink text-white"
                   : "border-hairline bg-white text-secondary hover:bg-surfaceMuted hover:text-ink",
@@ -195,7 +195,7 @@ export function SupportMailboxRail({
             type="button"
             aria-pressed={unreadOnly}
             className={cn(
-              "min-h-8 rounded-xs border px-2 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "min-h-8 cursor-pointer rounded-xs border px-2 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               unreadOnly ? "border-ink bg-surfaceMuted text-ink" : "border-hairline bg-white text-secondary hover:bg-surfaceMuted",
             )}
             onClick={onUnreadOnlyChange}
@@ -206,7 +206,7 @@ export function SupportMailboxRail({
             type="button"
             aria-pressed={assignedToMe}
             className={cn(
-              "min-h-8 rounded-xs border px-2 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "min-h-8 cursor-pointer rounded-xs border px-2 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               assignedToMe ? "border-ink bg-surfaceMuted text-ink" : "border-hairline bg-white text-secondary hover:bg-surfaceMuted",
             )}
             onClick={onAssignedToMeChange}
@@ -248,7 +248,7 @@ export function SupportMailboxRail({
                 key={draft.id}
                 type="button"
                 onClick={() => onResumeDraft(draft)}
-                className="block min-h-8 w-full rounded-xs border border-hairline bg-white px-2 py-1.5 text-left text-[9px] text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className="block min-h-8 w-full cursor-pointer rounded-xs border border-hairline bg-white px-2 py-1.5 text-left text-[9px] text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 <span className="font-medium text-ink">{draft.kind === "reply" ? "Reply" : "New email"}</span>
                 <span className="ml-1 line-clamp-1">{draft.subject || draft.body_text || "Untitled draft"}</span>

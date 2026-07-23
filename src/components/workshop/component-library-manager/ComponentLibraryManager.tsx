@@ -707,20 +707,20 @@ function getDenseAriaSort(sort: DenseSortState, key: DenseSortKey) {
 }
 
 const COMPONENT_VIEW_OPTIONS = [
-  { value: "cards", label: "Cards", icon: <SquaresFour size={12} weight="regular" aria-hidden="true" /> },
-  { value: "dense", label: "Dense table", icon: <Rows size={12} weight="regular" aria-hidden="true" /> },
+  { value: "cards", label: "Cards", icon: <SquaresFour size={16} weight="regular" aria-hidden="true" /> },
+  { value: "dense", label: "Dense table", icon: <Rows size={16} weight="regular" aria-hidden="true" /> },
 ] as const satisfies readonly DropdownSelectOption[];
 
 const COMPONENT_SORT_FIELD_OPTIONS = [
-  { value: "folder", label: "Folder order", icon: <FolderSimple size={12} weight="regular" aria-hidden="true" /> },
-  { value: "name", label: "Component name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
-  { value: "supplier", label: "Supplier", icon: <Storefront size={12} weight="regular" aria-hidden="true" /> },
-  { value: "brand", label: "Brand", icon: <Tag size={12} weight="regular" aria-hidden="true" /> },
-  { value: "cost", label: "Unit cost", icon: <CurrencyCircleDollar size={12} weight="regular" aria-hidden="true" /> },
-  { value: "pricingSource", label: "Pricing source", icon: <Barcode size={12} weight="regular" aria-hidden="true" /> },
-  { value: "pricingDate", label: "Pricing date", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
-  { value: "lifecycle", label: "Lifecycle", icon: <Tag size={12} weight="regular" aria-hidden="true" /> },
-  { value: "usage", label: "Last used", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "folder", label: "Folder order", icon: <FolderSimple size={16} weight="regular" aria-hidden="true" /> },
+  { value: "name", label: "Component name", icon: <TextAa size={16} weight="regular" aria-hidden="true" /> },
+  { value: "supplier", label: "Supplier", icon: <Storefront size={16} weight="regular" aria-hidden="true" /> },
+  { value: "brand", label: "Brand", icon: <Tag size={16} weight="regular" aria-hidden="true" /> },
+  { value: "cost", label: "Unit cost", icon: <CurrencyCircleDollar size={16} weight="regular" aria-hidden="true" /> },
+  { value: "pricingSource", label: "Pricing source", icon: <Barcode size={16} weight="regular" aria-hidden="true" /> },
+  { value: "pricingDate", label: "Pricing date", icon: <CalendarBlank size={16} weight="regular" aria-hidden="true" /> },
+  { value: "lifecycle", label: "Lifecycle", icon: <Tag size={16} weight="regular" aria-hidden="true" /> },
+  { value: "usage", label: "Last used", icon: <CalendarBlank size={16} weight="regular" aria-hidden="true" /> },
 ] as const satisfies readonly DropdownSelectOption[];
 
 function isDenseSortKey(value: string): value is DenseSortKey {
@@ -734,8 +734,8 @@ function getComponentSortDirectionOptions(key: DenseSortKey): DropdownSelectOpti
       ? { asc: "Oldest first", desc: "Newest first" }
       : { asc: "A to Z", desc: "Z to A" };
   return [
-    { value: "asc", label: labels.asc, icon: <SortAscending size={12} weight="regular" aria-hidden="true" /> },
-    { value: "desc", label: labels.desc, icon: <SortDescending size={12} weight="regular" aria-hidden="true" /> },
+    { value: "asc", label: labels.asc, icon: <SortAscending size={16} weight="regular" aria-hidden="true" /> },
+    { value: "desc", label: labels.desc, icon: <SortDescending size={16} weight="regular" aria-hidden="true" /> },
   ];
 }
 
@@ -852,7 +852,7 @@ function ComponentCatalogueCard({
         ) : null}
         <button
           type="button"
-          className="absolute inset-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+          className="absolute inset-0 cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
           data-component-card-image-inspect={item.id}
           aria-label={`View details for ${name}`}
           onClick={(event) => {
@@ -894,7 +894,7 @@ function ComponentCatalogueCard({
         <h3 className="line-clamp-2 text-[10px] font-medium leading-[1.25] text-ink" title={name}>
           <button
             type="button"
-            className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             data-component-card-inspect={item.id}
             aria-label={`View details for ${name}`}
             onClick={(event) => {
@@ -935,7 +935,7 @@ function ComponentCatalogueCard({
             <button
               type="button"
               className={cn(
-                "mt-1 inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
+                "mt-1 inline-flex h-6 cursor-pointer items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
                 surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
               )}
               aria-label={`Promote ${name} to library`}
@@ -1024,7 +1024,7 @@ function DenseSortableHeader({
   return (
     <button
       type="button"
-      className="inline-flex min-h-6 max-w-full items-center gap-1 text-left text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      className="inline-flex min-h-6 max-w-full cursor-pointer items-center gap-1 text-left text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       aria-label={`Sort by ${label.toLowerCase()}`}
       onClick={() => onSort(sortKey)}
     >
@@ -1131,7 +1131,7 @@ function ComponentCatalogueDenseTable({
           return (
             <button
               type="button"
-              className="block max-w-full truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="block max-w-full cursor-pointer truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               data-component-card-inspect={item.id}
               aria-label={`View details for ${name}`}
               title={name}
@@ -1225,7 +1225,7 @@ function ComponentCatalogueDenseTable({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "inline-flex h-6 cursor-pointer items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                   surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
                 )}
                 data-component-card-inspect={item.id}
@@ -1238,7 +1238,7 @@ function ComponentCatalogueDenseTable({
                 <button
                   type="button"
                   className={cn(
-                    "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
+                    "inline-flex h-6 cursor-pointer items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
                     surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
                   )}
                   aria-label={`Promote ${name} to library`}
@@ -1850,7 +1850,7 @@ function ComponentLibrarySheet({
             ? [
                 {
                   label: "Add component",
-                  icon: <Package size={13} weight="regular" aria-hidden="true" />,
+                  icon: <Package size={16} weight="regular" aria-hidden="true" />,
                   onClick: (event) => onAddComponent(event.currentTarget),
                   className: ADD_BUTTON_CLASSNAME,
                 },
@@ -1977,12 +1977,12 @@ function ComponentLibrarySheet({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-8 items-center gap-1 rounded-xs border px-3 text-[10px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "inline-flex h-8 cursor-pointer items-center gap-1 rounded-xs border px-3 text-[10px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                   surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
                 )}
                 onClick={() => changeDisplayMode("dense")}
               >
-                <Rows size={12} weight="regular" aria-hidden="true" />
+                <Rows size={16} weight="regular" aria-hidden="true" />
                 Dense
               </button>
             </div>

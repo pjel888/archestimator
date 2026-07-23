@@ -60,7 +60,7 @@ export function ProjectComparisonHeader({ view, projectName }: ProjectComparison
           data-testid="project-charts-insight"
           className="flex items-start gap-1.5 rounded-xs border border-hairline bg-surfaceMuted/60 px-2.5 py-2"
         >
-          <InsightIcon size={12} weight="regular" aria-hidden="true" className={cn("mt-px shrink-0", accentClass)} />
+          <InsightIcon size={16} weight="regular" aria-hidden="true" className={cn("mt-px shrink-0", accentClass)} />
           <p className="text-[11px] leading-snug text-foreground">{insight.sentence}</p>
         </div>
       ) : null}

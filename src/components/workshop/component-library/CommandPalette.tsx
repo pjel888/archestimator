@@ -181,7 +181,7 @@ function OpenCommandPalette({
             aria-label="Close command palette"
             onClick={onClose}
           >
-            <X size={13} weight="regular" />
+            <X size={16} weight="regular" />
           </Button>
         </div>
 

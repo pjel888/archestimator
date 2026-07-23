@@ -251,7 +251,7 @@ export function ManageGroupsPopover({
             disabled={!canCreate}
             onClick={submitCreate}
           >
-            <Plus size={12} weight="regular" aria-hidden="true" />
+            <Plus size={16} weight="regular" aria-hidden="true" />
             Add group
           </Button>
         </div>
@@ -314,7 +314,7 @@ export function ManageGroupsPopover({
                         setRecolorOpenId(null);
                       }}
                     >
-                      <X size={12} weight="regular" aria-hidden="true" />
+                      <X size={16} weight="regular" aria-hidden="true" />
                     </Button>
                   </div>
                 ) : (
@@ -325,7 +325,7 @@ export function ManageGroupsPopover({
                     aria-label={`Recolor ${group.name}`}
                     onClick={() => setRecolorOpenId(group.id)}
                   >
-                    <Palette size={12} weight="regular" aria-hidden="true" />
+                    <Palette size={16} weight="regular" aria-hidden="true" />
                   </Button>
                 )}
                 {confirmingDeleteId === group.id ? (
@@ -340,7 +340,7 @@ export function ManageGroupsPopover({
                         setConfirmingDeleteId(null);
                       }}
                     >
-                      <Check size={12} weight="regular" aria-hidden="true" />
+                      <Check size={16} weight="regular" aria-hidden="true" />
                     </Button>
                     <Button
                       type="button"
@@ -349,7 +349,7 @@ export function ManageGroupsPopover({
                       aria-label={`Cancel delete ${group.name}`}
                       onClick={() => setConfirmingDeleteId(null)}
                     >
-                      <X size={12} weight="regular" aria-hidden="true" />
+                      <X size={16} weight="regular" aria-hidden="true" />
                     </Button>
                   </span>
                 ) : (
@@ -360,7 +360,7 @@ export function ManageGroupsPopover({
                     aria-label={`Delete ${group.name}`}
                     onClick={() => setConfirmingDeleteId(group.id)}
                   >
-                    <Trash size={12} weight="regular" aria-hidden="true" />
+                    <Trash size={16} weight="regular" aria-hidden="true" />
                   </Button>
                 )}
               </li>

@@ -52,10 +52,21 @@ export function Alert({ className, tone = "info", title, description, icon, acti
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-xs opacity-70 hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-focus transition-opacity"
+              className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-focus"
               aria-label="Close alert"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="pointer-events-none"
+                aria-hidden="true"
+              >
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>

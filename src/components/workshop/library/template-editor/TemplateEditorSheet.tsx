@@ -210,7 +210,7 @@ function TemplateEditableRow({
           disabled={isTemporary}
           onClick={() => onRemoveRow(item.id)}
         >
-          <Trash size={12} weight="regular" aria-hidden="true" />
+          <Trash size={16} weight="regular" aria-hidden="true" />
         </Button>
         ) : null}
       </span>
@@ -360,7 +360,7 @@ function TemplateSheetBranch({
           className="size-6 rounded-xs p-0 text-tertiary"
           onClick={() => onToggleCollapsed(node.id)}
         >
-          <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
+          <CaretDown size={16} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
         </Button>
         <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
           <NodeIcon />
@@ -387,7 +387,7 @@ function TemplateSheetBranch({
                 disabled={isTemporary}
                 onClick={() => handlers.onAddNode(node.id, "group")}
               >
-                <FolderSimple size={12} weight="regular" aria-hidden="true" />
+                <FolderSimple size={16} weight="regular" aria-hidden="true" />
               </Button>
               <Button
                 type="button"
@@ -398,7 +398,7 @@ function TemplateSheetBranch({
                 disabled={isTemporary}
                 onClick={() => handlers.onAddNode(node.id, "area")}
               >
-                <MapPin size={12} weight="regular" aria-hidden="true" />
+                <MapPin size={16} weight="regular" aria-hidden="true" />
               </Button>
             </>
           ) : null}
@@ -411,7 +411,7 @@ function TemplateSheetBranch({
             disabled={isTemporary}
             onClick={() => handlers.onDeleteNode(node)}
           >
-            <Trash size={12} weight="regular" aria-hidden="true" />
+            <Trash size={16} weight="regular" aria-hidden="true" />
           </Button>
         </span>
         ) : null}
@@ -600,7 +600,7 @@ export function TemplateEditorSheet({
               label: "Add group",
               visibleLabel: "Add group",
               showVisibleLabel: true,
-              icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
+              icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
               className: "text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
               onClick: () => handlers.onAddNode(selectedNode?.kind === "group" ? selectedNode.id : null, "group"),
             },
@@ -608,7 +608,7 @@ export function TemplateEditorSheet({
               label: "Add area",
               visibleLabel: "Add area",
               showVisibleLabel: true,
-              icon: <MapPin size={12} weight="regular" aria-hidden="true" />,
+              icon: <MapPin size={16} weight="regular" aria-hidden="true" />,
               className: "text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
               disabled: !areaTargetGroup,
               onClick: () => {

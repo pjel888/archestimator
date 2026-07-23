@@ -230,7 +230,7 @@ export function SupportMessageComposer({
             }}
           />
           <Button type="button" size="sm" variant="secondary" disabled={screenshotLocked} onClick={() => fileInputRef.current?.click()}>
-            <Paperclip size={12} weight="regular" aria-hidden="true" />
+            <Paperclip size={16} weight="regular" aria-hidden="true" />
             {draft.screenshot ? "Replace screenshot" : "Choose screenshot"}
           </Button>
         </div>
@@ -252,7 +252,7 @@ export function SupportMessageComposer({
               disabled={locked}
               onClick={onRemoveScreenshot}
             >
-              <X size={12} weight="regular" aria-hidden="true" />
+              <X size={16} weight="regular" aria-hidden="true" />
             </Button>
           </div>
         ) : null}

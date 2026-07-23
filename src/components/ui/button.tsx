@@ -57,7 +57,7 @@ export function Button({ className, variant = "secondary", size = "md", type = "
     <button
       type={type}
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-surfaceMuted aria-pressed:text-ink",
+        "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-surfaceMuted aria-pressed:text-ink [&_svg]:pointer-events-none",
         variantClasses[variant],
         sizeClasses[size],
         className,
