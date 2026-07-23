@@ -5,13 +5,13 @@
   "profile": "standard",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
-  "implementation_status": "NOT_STARTED",
+  "package_status": "NOT_READY",
+  "implementation_status": "INCOMPLETE",
   "release_status": "NOT_EVALUATED",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
-  "next_unit": "UNIT-001",
-  "updated_at": "2026-07-21T05:15:00.000Z",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
+  "next_unit": null,
+  "updated_at": "2026-07-23T00:00:00.000Z",
   "baseline": {
     "head": null,
     "scoped_status_sha256": "9af63361db38d15af836f71d9c99e5245898a2244561f7502cab920cea3acc8c",
@@ -33,7 +33,7 @@
       "id": "ART-001",
       "path": "README.md",
       "role": "overview",
-      "sha256": "d43e26c5baaadd02174e481c73980b174ddbbbfdb5d3346c250f7fb2ab4abd84"
+      "sha256": "f3c0cc5702280815f579ce080f5b5a0c11681591c18e827e71a536468633619f"
     },
     {
       "id": "ART-002",
@@ -938,7 +938,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Truth and baseline lock",
       "depends_on": [],
       "requirement_ids": [
@@ -957,7 +957,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Route shell and content architecture",
       "depends_on": [
         "UNIT-001"
@@ -981,7 +981,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Scoped visual system and primitives",
       "depends_on": [
         "UNIT-002"
@@ -1002,7 +1002,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Real hero product proof",
       "depends_on": [
         "UNIT-002",
@@ -1028,7 +1028,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Mapped page sections",
       "depends_on": [
         "UNIT-002",
@@ -1052,7 +1052,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Motion and microinteractions",
       "depends_on": [
         "UNIT-003",
@@ -1076,7 +1076,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Responsive, accessibility, and performance hardening",
       "depends_on": [
         "UNIT-004",
@@ -1106,7 +1106,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Metadata, analytics, and route guardrails",
       "depends_on": [
         "UNIT-002",
@@ -1127,7 +1127,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "title": "Final audit, evidence, and handoff",
       "depends_on": [
         "UNIT-007",
@@ -1304,6 +1304,23 @@
         "UNIT-009"
       ],
       "artifact_path": "13-risk-register-decisions-assumptions.md"
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "title": "Superseded by PLAN-2026-07-22-landing-page-improvement",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009"
+      ],
+      "artifact_path": "README.md"
     }
   ],
   "authorization_boundaries": [],
@@ -1436,22 +1453,6 @@
       "sha256": "68e723d0734b16ea06be46872e9b51891639c007c3421fd02bf707f12cb8c28b"
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "title": "Complete /new landing page implementation slice",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009"
-      ]
-    }
-  ],
-  "manifest_sha256": "969a9a1f02c3a149a4aac3af657bdfe81d5403f6961fbe36998e0200b2eb39d5"
+  "ready_slices": [],
+  "manifest_sha256": "cf602ed405411ece57bbfb263bfd99f047521414513fd7cadf27b20375a3186a"
 }

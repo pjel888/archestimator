@@ -1,0 +1,645 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-22-landing-page-improvement",
+  "profile": "standard",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "next_unit": "UNIT-001",
+  "updated_at": "2026-07-23T02:17:21.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "baseline": {
+    "head": "fc366314c7d4e982e16bcfd06dbe9247adc1b4a9",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "overview",
+      "path": "README.md",
+      "sha256": "451a8f9e4dc70987196edd7484eaf5b2b86e8e66155e2e42b1d017b5009f5b53"
+    },
+    {
+      "id": "ART-002",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "ab51980665ad9ee1a912c2d36cc7cd913a79a848cd5d34f0899fea19ff2809ee"
+    },
+    {
+      "id": "ART-003",
+      "role": "current-state-proof-audit",
+      "path": "01-CURRENT-STATE-AND-PROOF.md",
+      "sha256": "9497581d57e1340e7f75d5a932d4d237307c88c920b89ae2caf7437d3df7403c"
+    },
+    {
+      "id": "ART-004",
+      "role": "design-reference-motion-spec",
+      "path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "sha256": "deff2f355fc6e2ff7a4ea81af7114051affe8982701684c6d90e3e3f282d258e"
+    },
+    {
+      "id": "ART-005",
+      "role": "validation-resume-audit",
+      "path": "03-VALIDATION-RESUME-AUDIT.md",
+      "sha256": "b8e186b5a167ac600b714fa4ff47538ee93043d02231b82f101da525a9a0e14c"
+    },
+    {
+      "id": "ART-006",
+      "role": "kimi-implementation-prompt",
+      "path": "KIMI-IMPLEMENTATION-PROMPT.md",
+      "sha256": "29e4d4d7c840b901f6f01f464a79e47a78068044dd3c135541f072237d6d8b0f"
+    },
+    {
+      "id": "ART-007",
+      "role": "reference-site-research",
+      "path": "research/REFERENCE-SITE-SYNTHESIS.md",
+      "sha256": "1d0e496d3cf026da2269d6529be9430fbd94d69d232a8ecde9259dbf5d633a8f"
+    },
+    {
+      "id": "ART-008",
+      "role": "kimi-prompting-research",
+      "path": "research/KIMI-PROMPTING-RESEARCH.md",
+      "sha256": "939fc16030c9a8e75c22045d0aff9af4e4f44556f2e014f47a65a12088694e8f"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "title": "Owner landing redesign and Kimi plan-pack request",
+      "source_revision": "owner-request@2026-07-23",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "UX-005",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "title": "Current root, legacy route, landing, hero, token, and dependency source",
+      "source_revision": "fc366314c7d4e982e16bcfd06dbe9247adc1b4a9@observed-2026-07-23",
+      "affected_ids": [
+        "REQ-001",
+        "UX-002",
+        "UX-003",
+        "UX-005",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "artifact_path": "01-CURRENT-STATE-AND-PROOF.md"
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "title": "First-party landing-reference research",
+      "source_revision": "live-public-pages@2026-07-23",
+      "affected_ids": [
+        "UX-001",
+        "UX-003",
+        "UX-004"
+      ],
+      "artifact_path": "research/REFERENCE-SITE-SYNTHESIS.md"
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "title": "First-party Moonshot Kimi prompting and agent research",
+      "source_revision": "moonshot-docs@2026-07-23",
+      "affected_ids": [
+        "OPS-001"
+      ],
+      "artifact_path": "research/KIMI-PROMPTING-RESEARCH.md"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": ["SRC-001", "SRC-002"],
+      "unit_ids": ["UNIT-001", "UNIT-002", "UNIT-006", "UNIT-007"],
+      "criterion_ids": ["AC-001"]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "source_ids": ["SRC-001", "SRC-003"],
+      "unit_ids": ["UNIT-002", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-002"]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "01-CURRENT-STATE-AND-PROOF.md",
+      "source_ids": ["SRC-001", "SRC-002"],
+      "unit_ids": ["UNIT-001", "UNIT-002", "UNIT-003", "UNIT-007"],
+      "criterion_ids": ["AC-003"]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "source_ids": ["SRC-001", "SRC-002", "SRC-003"],
+      "unit_ids": ["UNIT-002", "UNIT-003", "UNIT-007"],
+      "criterion_ids": ["AC-004"]
+    },
+    {
+      "id": "UX-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "source_ids": ["SRC-001", "SRC-003"],
+      "unit_ids": ["UNIT-004", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-005"]
+    },
+    {
+      "id": "UX-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "source_ids": ["SRC-001", "SRC-002"],
+      "unit_ids": ["UNIT-003", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-006"]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "source_ids": ["SRC-001", "SRC-002"],
+      "unit_ids": ["UNIT-004", "UNIT-005", "UNIT-006", "UNIT-007"],
+      "criterion_ids": ["AC-007"]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "03-VALIDATION-RESUME-AUDIT.md",
+      "source_ids": ["SRC-001", "SRC-002", "SRC-004"],
+      "unit_ids": ["UNIT-001", "UNIT-006", "UNIT-007"],
+      "criterion_ids": ["AC-008"]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "research/REFERENCE-SITE-SYNTHESIS.md",
+      "affected_ids": ["UX-001", "UX-003"],
+      "unit_ids": ["UNIT-001"],
+      "criterion_ids": ["AC-002", "AC-004"]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-002", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-003", "AC-007"]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-003", "UNIT-007"],
+      "criterion_ids": ["AC-003"]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-002", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-002"]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-004", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-005", "AC-006"]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-004", "UNIT-005", "UNIT-007"],
+      "criterion_ids": ["AC-005", "AC-007"]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-001", "UNIT-003", "UNIT-007"],
+      "criterion_ids": ["AC-004"]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-001", "UNIT-007"],
+      "criterion_ids": ["AC-001", "AC-008"]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": ["UNIT-006", "UNIT-007"],
+      "criterion_ids": ["AC-005", "AC-006", "AC-008"]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": ["REQ-001"],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Fresh route source and diff inspection provide decisive evidence without creating or running product tests.",
+      "test_ids": [],
+      "evidence_ids": ["EVID-005"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "requirement_ids": ["UX-001"],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "CSS, token, component, and diff inspection are sufficient for the specified material and banned-pattern contract.",
+      "test_ids": [],
+      "evidence_ids": ["EVID-005"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "artifact_path": "01-CURRENT-STATE-AND-PROOF.md",
+      "requirement_ids": ["UX-002"],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Exact component imports, fixture provenance, disclosure copy, and neutral-slot source can be proven decisively through source and diff evidence.",
+      "test_ids": [],
+      "evidence_ids": ["EVID-005"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "requirement_ids": ["UX-003"],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Server composition and copy inspection are the required evidence path; rendered line-wrap proof is reported separately if not authorized.",
+      "test_ids": [],
+      "evidence_ids": ["EVID-005"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "requirement_ids": ["UX-004"],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Reversible native-scroll choreography is a critical interaction invariant; cheaper non-test source evidence is insufficient to prove actual down-scroll, up-scroll, and stop behavior.",
+      "test_ids": ["TEST-001"],
+      "evidence_ids": ["EVID-006"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "requirement_ids": ["UX-005"],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Complete mobile, reduced-motion, and no-WebGL presentation is a critical accessibility invariant; cheaper non-test inspection is insufficient to prove rendered overflow and interaction states.",
+      "test_ids": ["TEST-001"],
+      "evidence_ids": ["EVID-006"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "requirement_ids": ["PERF-001"],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Dynamic import placement, DPR cap, visibility pause, explicit dimensions, and cleanup can be verified through source and static analysis.",
+      "test_ids": [],
+      "evidence_ids": ["EVID-006"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "03-VALIDATION-RESUME-AUDIT.md",
+      "requirement_ids": ["OPS-001"],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Fresh static command output, diff review, and scope inspection are the authorized decisive evidence for this local implementation.",
+      "test_ids": [],
+      "evidence_ids": ["EVID-007"],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "03-VALIDATION-RESUME-AUDIT.md",
+      "criterion_ids": ["AC-005", "AC-006"],
+      "evidence_ids": ["EVID-007"]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-UX-01",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "criterion_ids": ["AC-002", "AC-003", "AC-004", "AC-005", "AC-006"],
+      "evidence_ids": ["EVID-006"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-NEXT-01",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": ["AC-001", "AC-005", "AC-007"],
+      "evidence_ids": ["EVID-005"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-PERF-01",
+      "status": "FAIL",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "criterion_ids": ["AC-005", "AC-007"],
+      "evidence_ids": ["EVID-006"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-AGENT-01",
+      "status": "PASS",
+      "artifact_path": "KIMI-IMPLEMENTATION-PROMPT.md",
+      "criterion_ids": ["AC-008"],
+      "evidence_ids": ["EVID-004"],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "BOUNDARY",
+      "artifact_path": "03-VALIDATION-RESUME-AUDIT.md",
+      "criterion_ids": ["AC-005", "AC-006", "AC-008"],
+      "evidence_ids": ["EVID-007"],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": ["REQ-001", "UX-002", "OPS-001"],
+      "risk_ids": ["RISK-006", "RISK-007"],
+      "evidence_ids": ["EVID-005"]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": ["UNIT-001"],
+      "requirement_ids": ["REQ-001", "UX-001", "UX-002", "UX-003"],
+      "risk_ids": ["RISK-001", "RISK-003"],
+      "evidence_ids": ["EVID-005"]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": ["UNIT-002"],
+      "requirement_ids": ["UX-002", "UX-003", "UX-005"],
+      "risk_ids": ["RISK-002", "RISK-006"],
+      "evidence_ids": ["EVID-005"]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": ["UNIT-003"],
+      "requirement_ids": ["UX-004", "PERF-001"],
+      "risk_ids": ["RISK-004", "RISK-005"],
+      "evidence_ids": ["EVID-006"]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": ["UNIT-004"],
+      "requirement_ids": ["UX-001", "UX-004", "UX-005", "PERF-001"],
+      "risk_ids": ["RISK-001", "RISK-003", "RISK-004", "RISK-005"],
+      "evidence_ids": ["EVID-006"]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": ["UNIT-005"],
+      "requirement_ids": ["REQ-001", "PERF-001", "OPS-001"],
+      "risk_ids": ["RISK-008"],
+      "evidence_ids": ["EVID-007"]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": ["UNIT-006"],
+      "requirement_ids": ["REQ-001", "UX-001", "UX-002", "UX-003", "UX-004", "UX-005", "PERF-001", "OPS-001"],
+      "risk_ids": ["RISK-001", "RISK-002", "RISK-003", "RISK-004", "RISK-005", "RISK-006", "RISK-007", "RISK-008"],
+      "evidence_ids": ["EVID-007"]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["REQ-001", "UNIT-001", "UNIT-006"],
+      "rationale": "Current source and the owner request both target the public root while preserving /new as a noindex reference."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["UX-002", "UNIT-001", "UNIT-002"],
+      "rationale": "The owner-named /new hero is reconciled to the exact current component identity rather than the stale route composition."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["UX-002", "UNIT-002", "AC-003"],
+      "rationale": "Removing presentation chrome preserves literal product proof while eliminating fabricated browser framing."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["UX-002", "UNIT-003", "AC-003"],
+      "rationale": "Neutral labelled media slots honor the owner's placeholder allowance without creating approximate product UI."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["UX-001", "UNIT-002", "UNIT-005"],
+      "rationale": "A daylight material system with limited glass best matches the requested direction and current product proof."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["UX-004", "PERF-001", "UNIT-004"],
+      "rationale": "One subordinate Three.js island provides purposeful depth without splitting scroll ownership or carrying essential meaning."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["PERF-001", "OPS-001", "UNIT-004"],
+      "rationale": "The installed GSAP and Three.js stack is sufficient, so no dependency addition is justified."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["UX-003", "UNIT-002", "UNIT-003", "UNIT-006"],
+      "rationale": "Coherent section replacement and deletion are simpler and clearer than restyling every repeated card-based section."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["AUTH-001", "GATE-VERIFY-01", "UNIT-006", "UNIT-007"],
+      "rationale": "Local static implementation evidence may proceed while automated product tests and browser proof remain user-controlled."
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": ["RISK-007", "UNIT-001", "UNIT-007"],
+      "rationale": "The 2026-07-21 landing pack has stale route assumptions and is superseded rather than resumed."
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "03-VALIDATION-RESUME-AUDIT.md",
+      "affected_ids": ["GATE-VERIFY-01"]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "01-CURRENT-STATE-AND-PROOF.md",
+      "claim_ids": ["SRC-002", "REQ-001", "UX-002", "RISK-006", "RISK-007"],
+      "source_revision": "fc366314c7d4e982e16bcfd06dbe9247adc1b4a9",
+      "sha256": "9497581d57e1340e7f75d5a932d4d237307c88c920b89ae2caf7437d3df7403c",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "research/REFERENCE-SITE-SYNTHESIS.md",
+      "claim_ids": ["SRC-003", "UX-001", "UX-003", "ASSUMP-001"],
+      "source_revision": "live-public-pages@2026-07-23",
+      "sha256": "1d0e496d3cf026da2269d6529be9430fbd94d69d232a8ecde9259dbf5d633a8f",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "research/KIMI-PROMPTING-RESEARCH.md",
+      "claim_ids": ["SRC-004", "OPS-001"],
+      "source_revision": "moonshot-docs@2026-07-23",
+      "sha256": "939fc16030c9a8e75c22045d0aff9af4e4f44556f2e014f47a65a12088694e8f",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "KIMI-IMPLEMENTATION-PROMPT.md",
+      "claim_ids": ["OPS-001", "GATE-AGENT-01"],
+      "source_revision": "plan-pack@2026-07-23",
+      "sha256": "29e4d4d7c840b901f6f01f464a79e47a78068044dd3c135541f072237d6d8b0f",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": ["UNIT-001", "UNIT-002", "UNIT-003", "AC-001", "AC-002", "AC-003", "AC-004", "GATE-NEXT-01"],
+      "source_revision": "fc366314c7d4e982e16bcfd06dbe9247adc1b4a9",
+      "sha256": "ab51980665ad9ee1a912c2d36cc7cd913a79a848cd5d34f0899fea19ff2809ee",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "02-DESIGN-REFERENCE-MOTION-SPEC.md",
+      "claim_ids": ["UNIT-004", "UNIT-005", "AC-005", "AC-006", "AC-007", "GATE-UX-01", "GATE-PERF-01"],
+      "source_revision": "fc366314c7d4e982e16bcfd06dbe9247adc1b4a9",
+      "sha256": "deff2f355fc6e2ff7a4ea81af7114051affe8982701684c6d90e3e3f282d258e",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "03-VALIDATION-RESUME-AUDIT.md",
+      "claim_ids": ["UNIT-006", "UNIT-007", "AC-008", "TEST-001", "GATE-VERIFY-01"],
+      "source_revision": "fc366314c7d4e982e16bcfd06dbe9247adc1b4a9",
+      "sha256": "b8e186b5a167ac600b714fa4ff47538ee93043d02231b82f101da525a9a0e14c",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": ["UNIT-001"]
+    }
+  ],
+  "stale_triggers": [
+    "root or /new route composition or metadata changes",
+    "ProductionPublicPageShell analytics consent contact or CTA behavior changes",
+    "NewLandingHeroDemo HeroEstimateWorkspaceMockup or EstimateWorkspaceClient presentation contracts change",
+    "public landing copy claims or beta-access policy changes",
+    "shared glass tokens or one-blur performance guidance changes",
+    "GSAP Three.js React or Next.js versions and conventions change",
+    "test browser build deployment or external-action authorization changes",
+    "landing-production worktree overlap appears"
+  ],
+  "manifest_sha256": "ff68910844aeeaca4f0768559406b018ae2b3c39b82230ceaba49a4d3c32259e"
+}

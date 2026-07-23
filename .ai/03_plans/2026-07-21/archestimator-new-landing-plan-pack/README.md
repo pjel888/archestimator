@@ -1,9 +1,11 @@
 # Archestimator `/new` Landing Page Plan Pack
 
+> **Superseded 2026-07-23:** Do not resume this pack. Current source no longer matches its blank-`/new` route assumption. Use `.ai/03_plans/2026-07-22/landing-page-improvement/` for the active root-landing plan and Kimi implementation prompt.
+
 **Package ID:** `PLAN-2026-07-21-new-landing-page`  
 **Target repository:** `pjel888/archestimator`  
 **Target route:** `/new` only  
-**Package status:** implementation-ready planning; implementation not started  
+**Package status:** superseded by `PLAN-2026-07-22-landing-page-improvement`; implementation not started
 **Canonical execution document:** [`09-implementation-units.md`](./09-implementation-units.md)  
 **Prepared:** 2026-07-21
 
