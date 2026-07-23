@@ -23,13 +23,13 @@ reported a `P0`.
 | `REV-003` | P1 | Privacy erasure, access removal, legal hold, and account deletion semantics conflicted. | Split the lifecycle into workspace-scoped erasure, final-access removal, and full-account deletion; defined hold behavior, retained-row ownership, global-profile treatment, file ownership, ordering, and evidence in `01` and `03`. |
 | `REV-004` | P1 | Optional product tests were incorrectly modeled as an authorization boundary. | Removed the `AUTH-*` record. Product, build, and browser checks remain unrun `TEST_PROPOSAL` records; `UNIT-008` must keep behavioral criteria failed until fresh behavior evidence exists. |
 | `REV-005` | P2 | The whole-application audit was categorical rather than exhaustive. | Added `04-ROUTE-AND-OVERLAY-INVENTORY.md` with one disposition for all 72 active `page.tsx` routes and reconciliation rules for public exclusion, redirects, auth return, hosts, contextual targets, and help-only surfaces. |
-| `REV-006` | P2 | Modal/focus coordination lacked a whole-app signal and concrete owners. | Defined one shared `modal-lifecycle.ts` contract, exact open/close/focus-restored sequencing, shared primitive changes, and adapters for all 23 direct Workshop/Support modal owners inventoried in `04`; `UNIT-003` owns the integration. |
+| `REV-006` | P2 | Modal/focus coordination lacked a whole-app signal and concrete owners. | Defined one shared `modal-lifecycle.ts` contract, exact open/close/focus-restored sequencing, shared primitive changes, and adapters for the 23 direct Workshop/Support modal owners found by the canonical search; `UNIT-003` owns the integration. |
 | `REV-007` | P2 | Unit ownership used placeholders and allowed shared-file contention. | Replaced placeholders with exact paths, made `UNIT-001` the sole catalog writer, introduced a synchronization barrier, and made shared-path handoffs sequential. |
 | `REV-008` | P1 | The proposed state FK excluded project-only and estimate-only collaborators. | Made `workspaceRole` nullable, added `accessSource` and `effectiveRole`, authorized from current workspace/project/estimate grants, anchored state to workspace lifecycle, and prohibited synthetic membership creation. |
 | `REV-009` | P1 | Close, Escape, Skip, pause, replay, restart, and reset semantics were conflated. | Defined Close/Escape and app-modal interruption as resumable pause, Skip/Don't show again as durable dismissal, replay as non-regressive, restart as a new generation, and reset-all as an atomic server-resolved transition. |
 | `REV-010` | P1 | Events lacked idempotency/run identity and reset-all was ambiguous. | Added `request_fingerprint`, `run_id`, and `launch_mode`; specified CAS/idempotency mismatch behavior and all-or-nothing reset-all over eligible current-version flows. |
 | `REV-011` | P2 | Product metrics lacked denominators, windows, and targets. | Defined beta cohorts, observation windows, denominators, and targets for time-to-valid-total, activation conversion, dismissal, and target failure in `02`. |
-| `REV-012` | P2 | The first delivery included too many advanced tours. | Limited beta-v1 post-value guidance to task-based `library_reuse`; Client links and every other audited module remain help-only or deferred instead of extending the first-run scope. |
+| `REV-012` | P2 | The first delivery included too many advanced tours. | Initially limited beta-v1 post-value guidance to `library_reuse`. This historical resolution was later superseded by the user's explicit MVP direction in `DEC-AUTO-022`: Client links is now one task-launched manager curriculum, not part of the first-run orientation or an invitation to tour every advanced module. |
 | `REV-013` | P1 | The review record and manifest were missing. | Added this record and `plan-pack.json`; readiness remains conditional on fresh manifest/static validation and a final independent read-only review. |
 
 ## Beta Comprehension Challenge
@@ -194,6 +194,63 @@ refreshed and the read-only plan-pack validator passed.
 No product tests, builds, browser automation, screenshots, deployment, or D1
 mutation were performed.
 
+## User-Directed MVP Tutorial Expansion
+
+The user then required the Estimate Sheet onboarding to be comprehensive enough
+to literally guide a beta user and required the authenticated Client links
+master page to receive the same treatment. Two fresh read-only source-audit
+lanes examined the live Estimate Sheet and publisher route/component/action
+contracts before the pack was revised.
+
+Source-backed findings:
+
+- Estimate Sheet already exposes Project/Estimate/Tab/Area/Row hierarchy,
+  complete row math, explicit dirty/saving/saved/failed state, offline and
+  revision-conflict recovery, Component/Template integration, and virtualized
+  Rows, but no route-local lesson rail or rendering-owner target contract.
+- `/workshop/publisher` already exposes roster/search/status, manager-only
+  create/edit, exact Estimate selection, client/access review, post-save
+  verification, copy/Preview, Recipients/Activity, stale/expiry recovery, and
+  explicit Replace/Turn off confirmations, but no local guidance.
+- `/workshop/publisher/preview/[projectId]` is authenticated Preview;
+  `/share/[token]` is the separate public recipient trust boundary.
+- republish issues a new URL; Replace immediately invalidates the current URL;
+  Turn off invalidates the current URL and recipient links.
+
+The revised pack adds:
+
+- `DEC-AUTO-021`, one shared Estimate Sheet Core/Optional learning rail with
+  eight independently resumable lessons and at most four overlay steps per
+  lesson;
+- stronger `UX-005`/`AC-012`/`TEST-008` coverage for every current row-math
+  column, Tab/Area/Row ownership, save/error recovery, Component/Template
+  reuse, read-only use, virtualization, and later transfer;
+- `UX-006`, `DEC-AUTO-022`, `AC-014`, and `TEST-009` for
+  `client_link_publishing`;
+- `UNIT-006` ownership of the publisher roster/drawer/wizard, publication
+  learning adapter, targets, focus handoffs, and privacy/trust-boundary
+  integration; and
+- `RISK-019`/`RISK-020` controls against curriculum overload, false
+  completion, wrong publication scope, sensitive-data leakage, public/Portal
+  confusion, unexpected email, and destructive-link prompting.
+
+The expanded inventory now tracks 26 owners total: the canonical source search
+still finds 23 direct Workshop/Support modal owners, while the publisher
+wrapper search finds `PublisherDrawer`, `ShareWizard`, and
+`ClientPortalComposer` as three additional focus owners. `ASSUMP-003` and its
+stale triggers preserve that distinction.
+
+Client links core now requires verified create/republish plus copy/selectable
+link or authenticated Preview. Recipient email, Replace, Turn off, Portal
+migration, and public-recipient activity remain optional normal product
+actions and are never performed or required by onboarding. This revision
+supersedes only the `REV-012` Client links deferral; it preserves the short
+first-run orientation and every other help-only advanced-surface decision.
+
+The earlier starter-expansion `PASS` is historical for this newer curriculum
+scope. Fresh independent read-only review and manifest/static validation were
+required and are recorded in the final expansion review below.
+
 ## Preserved Strengths
 
 - The pack keeps profile setup, workspace setup, activation truth, and
@@ -223,7 +280,7 @@ observed:
 - the plan-pack validator passing;
 - migration head `0100` with `0101` available;
 - all 72 active `page.tsx` routes represented;
-- the current 23-file direct modal-owner search surface represented; and
+- the 23-file direct modal-owner search surface represented; and
 - no installed `react-joyride` dependency before `UNIT-001`.
 
 The reviewer requested two minimal closeout repairs:
@@ -281,3 +338,38 @@ final hash and validator refresh.
   current-source grounding, and review readiness only.
 - `EVID-006` through `EVID-011` are planned implementation evidence and remain
   non-passing until their named behavior is implemented and actually observed.
+
+## Final MVP Tutorial Expansion Review
+
+**Verdict:** `PASS` — no remaining `P0`, `P1`, or `P2` finding.
+
+One independent read-only reviewer re-audited every pack artifact plus the live
+Estimate Sheet and Client links implementation seams. The review specifically
+challenged source fidelity, instructional completeness, privacy/security,
+same-resource completion, focus ownership, unit paths/DAG, manifest
+reciprocity, and stale deferrals.
+
+| ID | Severity | Finding | Resolution |
+| --- | --- | --- | --- |
+| `REV-030` | P1 | The proposed flow-event SQL `source` CHECK omitted `publication_domain`, although the type, Unit 002, and Client links bridge required it. | Added `publication_domain` to the SQL allowlist and explicit migration/repository acceptance plus arbitrary-source rejection assertions in `TEST-001` and `TEST-009`. |
+| `REV-031` | P1 | `UNIT-005` owned a nonexistent `src/components/workshop/EstimateTabStrip.tsx` path. | Replaced it with the live `src/components/workshop/estimate-sheet/EstimateTabStrip.tsx` owner. |
+| `REV-032` | P1 | Generic publish and copy/Preview events could compose across different Projects because instructional persistence intentionally stored no resource binding. | Added one atomic same-publication/run server bridge: a short-lived in-memory HMAC receipt binds the authenticated manager, Project, current publication, action, run, revision, and expiry without serializing identifiers; consume reauthorizes/rereads, constant-time verifies, CAS-completes, and rejects A/B interleaving, replacement, expiry, tampering, stale revision, and replay. |
+| `REV-033` | P1 | Passed planning receipts again claimed still-failing implementation acceptance criteria. | Removed `AC-013`/`AC-014` from all `PASS` planning evidence; those criteria now point only to planned implementation evidence. |
+| `REV-034` | P2 | The modal stop command reproduced the 23 direct owners but could not discover publisher `Drawer`/custom-Dialog focus owners. | Added the narrow publisher wrapper search and classified `PublisherDrawer`, `ShareWizard`, and `ClientPortalComposer`; the current inventory is 72 routes, 23 direct modal owners, and 3 publisher wrappers, for 26 tracked owners. |
+
+The reviewer independently confirmed:
+
+- `publication_domain` is aligned across type, SQL, persistence assertions, and
+  Client links behavior;
+- the Estimate Tab path resolves to the live rendering owner;
+- Client links core uses the exact same current publication and active run,
+  with no persisted receipt, binding digest, URL, token, or resource ID;
+- the route/focus counts reproduce `72`, `23`, `3`, and `26`;
+- all `122` manifest IDs have zero reciprocity errors;
+- the unit dependency graph is acyclic;
+- passed planning evidence claims no failing acceptance criterion; and
+- the read-only validator had only the expected pre-closeout artifact,
+  evidence, and manifest hash drift.
+
+No product tests, builds, browser automation, screenshots, D1 mutation,
+deployment, or provider action were performed.

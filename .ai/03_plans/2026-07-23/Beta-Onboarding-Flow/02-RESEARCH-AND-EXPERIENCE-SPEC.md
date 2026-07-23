@@ -325,7 +325,8 @@ renders:
 4. starter-pack readiness, partial/resume, explicit-add, and inactive-key
    restore states when relevant;
 5. start-path choices when relevant;
-6. available Estimate Sheet lessons and contextual guides; and
+6. available Estimate Sheet lessons, Client links lessons, and contextual
+   guides; and
 7. Support entry.
 
 `/workshop/onboarding` becomes a compatibility redirect to this page.
@@ -416,8 +417,9 @@ The learning contract has three distinct levels:
 
 1. **Tutorial-core completion:** the required `price_and_save` and
    `add_and_source` actions succeed in the currently bound tutorial generation.
-2. **Optional depth:** `organize_work`, Component reuse, and the Template
-   capstone deepen the same mental model but do not block tutorial completion.
+2. **Optional depth:** row-math explanation, hierarchy organization, Component
+   source scope, Tab/Template reuse, and recovery lessons deepen the same
+   mental model but do not block tutorial completion.
 3. **Independent transfer:** a later equivalent edit in a non-starter Estimate
    Sheet supplies the product-level comprehension signal; it is reported
    separately and does not keep the tutorial flow open.
@@ -436,6 +438,26 @@ Within those levels, an editor must be able to:
 
 Tooltip views, seed generation, route visits, and a precomputed total satisfy
 none of these outcomes.
+
+### Route-local learning rail
+
+Comprehensive guidance is a resumable curriculum, not a longer Joyride. The
+Estimate Sheet route renders an **Estimate Sheet guide** rail/panel and Getting
+started renders the same server snapshot. Both show:
+
+- the current outcome in plain language;
+- **Core** versus **Optional** lesson labels;
+- completed, available, blocked, and resume states;
+- the next normal product action;
+- **Skip lesson**, **Exit guide**, **Restart lesson**, and **Support**; and
+- a truthful explanation when capability, route data, or a required target is
+  unavailable.
+
+Opening a lesson may show at most four short overlay steps. A handoff step
+closes/pauses the tooltip and focuses the real product control. The rail stays
+available after the tooltip closes and updates only from server-authoritative
+lesson facts. It never edits a field, creates data, opens a destructive
+confirmation, or simulates a failure on the user's behalf.
 
 ### Curated starter workspace pack
 
@@ -517,28 +539,44 @@ claim keeps the canonical asset key and the UI keeps its Starter label.
 Each lesson is independently resumable and uses at most four tooltip steps.
 The tooltip explains, closes, and hands control to the real editor.
 
-| Lesson | Required user action | Completion truth |
-| --- | --- | --- |
-| `read_the_sheet` | Select the named Area and inspect its Rows/roll-up. | Exact sample Area selection plus the total/read-state target observed; a tooltip view alone is insufficient. |
-| `price_and_save` | Change quantity or unit cost on the marked practice Row and leave the field. | User-origin row mutation, changed computed Row total, and authoritative saved state. |
-| `add_and_source` | Add one normal Row or insert/reuse the marked Component in the intended Area. | User-origin Row/source mutation attached to the expected sample Area. |
-| `organize_work` | Add one nested Area or move the practice Row using the normal hierarchy control. | User-origin hierarchy mutation with the sample project/version context. |
-| `graduate` | Open/create a non-starter Estimate Sheet and perform one equivalent edit. | Current domain evidence from a Project with no starter-asset identity. |
+| Lesson | User is literally guided to | Completion truth | Level |
+| --- | --- | --- | --- |
+| `read_the_workspace` | Identify Project, Estimate Sheet, current Tab, Area hierarchy, selected Area, visible Rows, and roll-up. | Exact tutorial Tab/Area selection plus the semantic hierarchy/total read target; no comprehension credit from a tooltip view alone. | Required orientation |
+| `understand_row_math` | Inspect Materials/unit cost, Qty, Contingency, Subtotal, Adjustment, Misc Cost, Total Item Cost, and estimate roll-up in that order. | User deliberately focuses/opens the marked row's help/read targets; no mutation or activation credit. | Recommended |
+| `price_and_save` | Edit the marked practice Row's quantity expression, then unit cost or adjustment; leave the field and watch saving/saved state and changed math. | Matching tutorial-generation user-origin mutation, changed computed Row and estimate total, and authoritative saved/readback success. Failed, dirty, stale, reverted, or seed state earns no credit. | Core |
+| `add_and_source` | Create an Area when needed, add a normal Row **or** insert the marked workspace Component into the intended Area, then identify project-specific versus reusable source scope. | Matching tutorial-generation user-origin add/source mutation attached to the expected Area after authoritative save/readback. | Core |
+| `organize_work` | Add a nested Area or move the practice Row through the normal hierarchy control, then reselect the owning Area. | Matching tutorial-generation hierarchy mutation and readback; rename/reorder alone remains instructional depth, not Project/Estimate checklist credit. | Optional |
+| `reuse_structure` | Switch Tabs and, when capability/data allow, insert/duplicate a starter Template through the existing picker; explain Template structure versus live estimate data. | Deliberate normal Template action and resulting authorized estimate context; merely viewing a Tab or starter Template earns no credit. | Optional |
+| `recover_and_trust` | Interpret dirty/saving/saved/failed, retry after a real save failure, recover from an actual offline or revision-conflict branch, and return after an interrupted modal/route. | Branch-aware recovery event plus successful current-resource readback when a real failure occurs; the lesson may be acknowledged without manufacturing a failure. | Optional safety |
+| `graduate` | Open/create a non-starter Estimate Sheet and repeat one qualifying quantity, cost, Area, Row, or Component action. | Current user-domain evidence from a Project with no starter or tutorial identity. | Independent transfer |
 
 `price_and_save` plus `add_and_source` are the complete tutorial-core
-requirement. `organize_work`, Component reuse, and Template capstone remain
-recommended optional depth; `graduate` records independent transfer later and
-never blocks or reopens the completed tutorial.
+requirement. The rail still exposes every applicable lesson so the tutorial can
+literally guide the full MVP without turning optional depth into a completion
+trap. `graduate` records independent transfer later and never blocks or
+reopens the completed tutorial.
+
+Every target has one rendering owner:
+
+| Target family | Rendering owner | Required recovery |
+| --- | --- | --- |
+| header/Tab/current sheet | `EstimateWorkspaceClient` / `EstimateHeaderActions` / `EstimateTabStrip` | Re-resolve current authorized route and Tab; center the lesson if a secondary target is absent. |
+| hierarchy/Add Area | `EstimateSheetTree` | Expand/select through owner state; pause on capability change, empty tree transition, rename/delete confirmation, or missing Area. |
+| Add Row/Library/source | `EstimateSheetContent` and row/source owners | Close tooltip before picker/modal; resume only after close and focus restoration. |
+| marked Row/math/price | `row-table.tsx` plus `estimate-target-adapter.ts` | Select/expand/scroll through the virtualization owner with bounded abort; never query a tenant/resource ID in a selector. |
+| total/save/error | `ProjectTotalHeader` / row mutation owner | Wait only for bounded authoritative state; surface retry/support on failure, never advance from optimistic or dirty state. |
 
 ### Read-only variant
 
 `estimate_reader_orientation` teaches a viewer/direct-estimate reader to:
 
-1. select an Area and understand which Rows are in scope;
-2. read quantity, unit cost, adjustment/misc cost, Row total, and estimate
-   roll-up;
-3. distinguish saved data from their own access limits; and
-4. find Support.
+1. identify Project, Estimate Sheet, Tab, Area, and Row scope;
+2. select an Area and understand which Rows are in scope;
+3. read Materials/unit cost, quantity, contingency, subtotal,
+   adjustment/misc cost, Row total, and estimate roll-up;
+4. distinguish current saved data, loading/error state, and their own access
+   limits; and
+5. find Support.
 
 It contains no impossible edit task and never implies that viewing equals
 editor practice.
@@ -620,22 +658,59 @@ Teach:
 Installation, opening the Library, or viewing starter assets never completes
 reuse practice. Do not target blank Library Overview.
 
+### `client_link_publishing`
+
+This is a task-launched, manager-only MVP learning path on
+`/workshop/publisher`. It is available after first Estimate Sheet value or
+whenever an eligible publication manager explicitly opens Client links or
+launches it from Getting started. It never auto-starts on the public recipient
+route.
+
+| Lesson | User is literally guided to | Completion truth | Level |
+| --- | --- | --- | --- |
+| `read_client_links` | Use project/status/search filters; select a project; interpret Live, Needs update, Expired, Off, Not shared, estimate count, recipients, opens, latest activity, password, and unavailable indicators. | Deliberate authorized roster/drawer selection; orientation only, with no publication credit. | Required orientation |
+| `scope_and_publish` | Choose **Create client link** or **Edit client link**; select at least one exact client-visible Estimate Sheet; set/review client name; choose anyone-with-link or password access; review the summary; save. | Publication-manager action succeeds and a post-save refetch verifies publication identity, non-empty estimate scope, status, and client-link availability, then returns a short-lived same-run learning receipt held only in current client memory. Client-supplied step completion, failed save, verification-pending state, or a lost receipt earns no durable core credit. | Core |
+| `verify_and_share` | Copy the verified URL or open authenticated Preview; explain that Preview is not the public recipient session and that source Estimate edit routes are never exposed. | One server consume command reauthorizes and correlates explicit copy success, selectable-link acknowledgement, or authenticated Preview to the receipt's exact current publication and active run before atomically completing core. Project-A publish plus project-B share, stale/replaced/expired/tampered receipts, and public activity are rejected. Persist no URL/token/resource identifier or receipt. | Core |
+| `recipients_and_activity` | Open Recipients, deliberately add/send/resend/remove only when desired, then read Activity/open facts and refresh state. | Optional successful manager action/readback from existing publication APIs; no email is sent by the guide and recipient email/token/content is never onboarding metadata. | Optional |
+| `keep_it_current` | Recognize a stale snapshot, edit scope/access, republish, understand that republish issues a new URL, and recover Expired/Off/Not shared states through the normal editor. | Optional verified republish/reactivation result plus current status readback. Existing expiry is preserved when omitted, cleared by explicit null, or replaced by an explicit value. | Optional |
+| `replace_or_turn_off_safely` | Read the exact consequences of Replace link and Turn off link, including recipient impact, and know where to recover. | Safety lesson completion never requires either destructive action. If the user deliberately continues, the existing confirmation and server result remain authoritative; onboarding records only the semantic outcome/reason. | Optional safety |
+
+Core completion requires `scope_and_publish` plus `verify_and_share`. It does
+not require a recipient email, Replace link, Turn off link, Portal migration,
+or public-session action. The two lessons are not composable as unrelated
+generic events: final completion is one server-correlated transition for the
+same current publication and run. Reload or route loss drops the in-memory
+receipt and resumes truthfully at `scope_and_publish` rather than guessing.
+
+Required branch guidance covers:
+
+- no projects or no links;
+- filters with no matches;
+- no publication-manager capability;
+- a project with no Estimate Sheets;
+- empty estimate selection;
+- missing/invalid required password;
+- detail-load failure and Retry;
+- post-save verification pending without a second save;
+- clipboard unavailable with selectable-link/Preview fallback;
+- stale snapshot, Expired, Off, and Not shared status;
+- query/route interruption, unsaved-change confirmation, and mobile back; and
+- recipients/activity unavailable until a verified link exists.
+
+`PublisherRosterClient`, `PublisherDrawer`, `ShareWizard`,
+`ShareLinkDisplay`, `RecipientEmailComposer`, and `PublisherActivityFeed` own
+the route targets. The guide pauses before any Drawer, wizard, recipient, or
+confirmation focus owner and resumes only after focus restoration. The
+authenticated Preview route is `RETURN_ONLY`; `/share/[token]` remains outside
+the Workshop host and never mounts or persists authenticated guidance.
+
 ### Audited help-only surfaces
 
-Project Data/Activity, Team/collaboration, Proposals, Client links, and Client
-Portals are audited in `04-ROUTE-AND-OVERLAY-INVENTORY.md`, but beta v1 does not
-create Joyride flows for them. They retain truthful empty states,
-Support/Getting started links, and ordinary inline help. A later flow-version
-decision may add a short guide only after observed support or activation data
-justifies it.
-
-### Deferred Client-link guidance
-
-Keep current product copy and help content explicit that Client links are
-sender-managed publication, audience/content/access must be reviewed, and
-Proposals and Client Portals are separate experiences. Do not add a
-`client_sharing` flow in beta v1; revisit only after the Estimate Sheet
-curriculum passes and observed beta support data justifies another guide.
+Project Data/Activity, Team/collaboration, Proposals, and Client Portals are
+audited in `04-ROUTE-AND-OVERLAY-INVENTORY.md`, but beta v1 does not create
+Joyride flows for them. They retain truthful empty states, Support/Getting
+started links, and ordinary inline help. Client links is the explicit
+user-directed exception and remains distinct from those surfaces.
 
 ## Settings: Guidance & Tours
 
@@ -784,14 +859,17 @@ user action.
 | Independent valid-total conversion | Eligible creator/editor users; all starter Projects excluded | 7 days | `>= 15%` relative lift versus the pre-onboarding matched cohort |
 | Time to first non-starter valid total | Independent activated creator/editor users | 30-day matched cohorts | `>= 20%` lower median |
 | Independent transfer | Guided practice completers | 7 days | `>= 50%` perform an equivalent edit in a non-starter Estimate Sheet |
+| Client links core completion | Eligible publication managers who start `client_link_publishing` | 7 days | `>= 60%` reach verified publish plus copy/selectable-link or authenticated Preview |
+| Client links completion integrity | Recorded Client links core completions | Rolling | `100%` have current manager authorization, non-empty verified scope, and no sensitive instructional payload |
 
 Existing activation truth supplies project, area, priced-row, valid-total,
 Library reuse, and sharing outcomes. Estimate creation/open completion is
 derived from authorized estimate rows. New sanitized events supply eligibility,
 run start/end, launch mode, step outcome, starter installation, sample
 generation, user-origin practice completion, starter recovery,
-dismissal/restart/replay, and target/recovery health. Starter/tutorial-origin
-events are reported separately and
+dismissal/restart/replay, verified Client links lesson facts, and
+target/recovery health. Starter/tutorial-origin events are reported separately
+and
 excluded from independent conversion/transfer measures. Targets are beta
 operating goals, not permission to declare comprehension or causality without
 the denominator and cohort rules above.
@@ -801,7 +879,11 @@ five consenting new-editor beta sessions through direct support follow-up:
 can the user select the intended Area, explain a Row-to-total calculation, make
 one edit, recognize saved state, and repeat the action in non-starter work? This
 manual beta evidence is separate from local implementation completion and does
-not authorize session replay or recording.
+not authorize session replay or recording. For the first five consenting
+publication managers who start Client links guidance, separately confirm they
+can choose scope/access, explain Preview versus public share, verify/copy the
+link, and state the consequence of republish, Replace, and Turn off without
+being prompted to perform a destructive action.
 
 ### Privacy exclusions
 
@@ -810,6 +892,8 @@ Never record:
 - email, name, or organization name;
 - project/estimate/title/cost data;
 - tenant/resource UUID;
+- public-link URL/token, selected Estimate ID, client/password/recipient data,
+  snapshot content, transient learning receipt, or `binding_digest`;
 - CSS selector or DOM text;
 - full pathname, query, or referrer;
 - tooltip copy;
@@ -831,8 +915,9 @@ Never record:
 11. App modal and Joyride never trap focus concurrently.
 12. Target failure has bounded Retry/Skip/Exit/Support.
 13. Returning activated users are not auto-interrupted.
-14. Only `library_reuse` ships as a beta-v1 advanced guide; every other audited
-    surface has an explicit help-only or excluded decision.
+14. `library_reuse` and the user-directed `client_link_publishing` MVP are the
+    only beta-v1 post-value task guides; every other audited advanced surface
+    has an explicit help-only or excluded decision.
 15. Exactly one versioned tutorial Project is active per eligible
     user/workspace tutorial kind; retries and concurrent starts return one
     server-confirmed generation.
@@ -847,8 +932,10 @@ Never record:
 18. Activation producer source and non-forgeable seed origin remain separate;
     starter/tutorial-origin and non-starter activation/transfer metrics are
     separated.
-19. **Area**, Row, Component, Template, source scope, and roll-up terminology
-    match the live product model.
+19. Project, Estimate Sheet, Tab, **Area**, Row, Materials/unit cost, Qty,
+    Contingency, Subtotal, Adjustment, Misc Cost, Total Item Cost, Component,
+    Template, source scope, save state, and roll-up terminology match the live
+    product model.
 20. A viewer/direct-estimate reader receives a read-only estimate lesson.
 21. Fresh-practice copy atomically archives/rebinds/creates, rejects
     stale/concurrent losers and old-generation receipts, never overwrites user
@@ -892,3 +979,16 @@ Never record:
     cleanup, re-enters an in-progress barrier if grouping capability returns
     before shared completion, and otherwise bootstraps only the current
     revision.
+32. The Estimate Sheet route and Getting started show one resumable
+    Core/Optional learning rail; every applicable lesson has a normal-action
+    handoff, semantic rendering owner, bounded recovery, and no more than four
+    overlay steps.
+33. Client links core completes only from a verified manager
+    create/republish plus copy/selectable-link or authenticated Preview; no
+    token, URL, ID, client/password/recipient data, snapshot content, transient
+    learning receipt, or binding digest enters instructional persistence or
+    diagnostics, and cross-Project/run event composition is impossible.
+34. Recipients, Activity, stale/expiry maintenance, Replace, Turn off, and
+    Portal migration remain optional; onboarding sends no email, invokes no
+    destructive action, never mounts on public share, and preserves all
+    route/product distinctions.

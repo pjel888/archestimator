@@ -139,7 +139,7 @@ trigger, not an implied onboarding target.
 | Library Components | Workspace vs project-only reusable costs | Contextual reuse guide after first estimate value. |
 | Library Templates | Browse/edit reusable estimate templates | Capability-aware contextual guide. |
 | `/workshop/proposals` | Signed-in recipient inbox | Recipient-only contextual guide when rows exist. |
-| `/workshop/publisher` | Sender-side Client links roster/wizard | Help-only in beta v1; defer a manager guide until core Estimate Sheet learning passes. |
+| `/workshop/publisher` | Sender-side Client links roster/wizard | Core manager learning path after first Estimate Sheet value or explicit eligible launch; keep public share and Client Portal boundaries distinct. |
 | `/share/[token]` | Public recipient/session review route | No authenticated Workshop Joyride. |
 | Settings | Profile, workspace, organization, account, legal, support, admin entries | Add **Guidance & tours** with status and reset/replay actions. |
 | Support Center / feedback | Persistent support overlay and dedicated route | Core recovery destination with sanitized tour context. |
@@ -355,6 +355,65 @@ practice and from a first valid total in non-starter work. The marked version-1
 sample must be archived before the version-2 tutorial copy is created; it must
 never be silently reshaped in place.
 
+### Estimate Sheet instructional-host gap
+
+The live Estimate Sheet exposes the required product actions, but it has no
+route-local lesson rail, stable instructional target ownership, or
+authoritative lesson receipt adapter:
+
+- the route server-derives edit and Library-management capability before
+  rendering `EstimateWorkspaceClient`;
+- `EstimateSheetTree` owns Area selection, search/filter, add, rename,
+  hierarchy, move/reorder, and destructive confirmation;
+- `row-table.tsx` owns quantity, contingency, unit-cost/materials, adjustment,
+  miscellaneous-cost, subtotal, total, and row-save feedback;
+- row mutations expose `idle`, `dirty`, `saving`, `saved`, and `failed`, with
+  explicit offline and revision-conflict recovery;
+- large hierarchies may virtualize Rows, so arbitrary Row DOM nodes are not
+  durable targets; and
+- current route/UI anchors are implementation details, not a typed
+  rendering-owner contract.
+
+The implementation therefore needs a resumable Estimate Sheet learning rail
+whose lessons hand control to the normal editor, assign every semantic target
+to its rendering owner, and complete only from server-confirmed user-origin
+facts plus saved/readback state. Comprehensive coverage does not mean forcing
+every optional action or manufacturing error states.
+
+### Client links instructional-host gap
+
+`/workshop/publisher` is already a coherent authenticated manager surface, but
+it has no publisher-local onboarding host or semantic lesson contract:
+
+- `PublisherRosterClient` owns search, project/status filters, the
+  project/publication roster, create entry, query-driven drawer/wizard state,
+  copy feedback, responsive detail behavior, and empty/filter states;
+- `PublisherDrawer` owns status, selected-estimate/recipient/open/activity
+  facts, authenticated Preview, Overview/Recipients/Activity tabs, stale
+  snapshot guidance, and explicit confirmation for Replace link and Turn off
+  link;
+- `ShareWizard` owns exact estimate selection, client name, open-versus-password
+  access, validation, authoritative create/republish, post-save refetch
+  verification, unsaved-change recovery, and the verified-link completion
+  screen;
+- `createProjectPublication` and `republishProjectPublication` require a
+  publication manager, reject a zero-estimate snapshot, issue a new public
+  token, and never expose that token as onboarding state;
+- the existing actions and publication audit preserve authoritative resource
+  truth but do not provide an instruction-safe cross-step binding, so generic
+  publish/share lesson events could otherwise compose across Projects;
+- Replace link invalidates the current URL immediately; Turn off link
+  invalidates the current URL and recipient URLs; and
+- `/workshop/publisher/preview/[projectId]` is an authenticated preview while
+  `/share/[token]` is the separate public recipient boundary.
+
+The current source can support a literal task-based guide, but the pack's
+former `HELP_ONLY` decision is stale after the user's MVP direction. The
+implementation must add a route-local learning rail and stable semantic
+targets without teaching Client links as Proposals or Client Portals, without
+persisting/copying tokens into instructional records, and without requiring a
+destructive or email-sending action for core completion.
+
 ## Responsive and Accessibility Audit
 
 ### Existing strengths
@@ -433,6 +492,19 @@ library.components
 library.templates
 proposals.inbox
 publisher.roster
+publisher.filters
+publisher.create
+publisher.drawer
+publisher.status
+publisher.wizard
+publisher.wizard_estimates
+publisher.wizard_client
+publisher.wizard_access
+publisher.wizard_save_state
+publisher.link
+publisher.preview
+publisher.recipients
+publisher.activity
 portal.navigation
 settings.guidance
 ```
@@ -824,6 +896,8 @@ The implementation must keep the activation taxonomy intact while ensuring:
 | Starter/tutorial seed versus ordinary activation origin | new closed `origin_class` in `beta_activation_events` and `beta_activation_outbox`; existing `source` stays producer taxonomy |
 | User-performed Estimate Sheet practice, current tutorial binding, and sample reset/archive outcomes | `beta_onboarding_flow_states` and `beta_onboarding_flow_events` |
 | Non-starter transfer signal | current domain/activation facts filtered by starter-asset metadata/ledger identity |
+| Client links learning status and sanitized verified-action outcomes | `beta_onboarding_flow_states` and `beta_onboarding_flow_events`; publication/recipient truth remains in existing publication tables/actions |
+| Same-publication Client links publish/share correlation | short-lived HMAC receipt in current client memory only; reauthorize and reread existing publication truth on consume; persist neither receipt nor binding digest |
 | Tour status, semantic resume step, flow version/instructional generation | new `beta_onboarding_flow_states` |
 | Tour lifecycle/failure/reset audit | new `beta_onboarding_flow_events` |
 | Flow definitions, copy, target and eligibility rules | typed source catalog, not D1 JSON |
@@ -868,6 +942,9 @@ ideas such as progressive guidance and replay.
 18. Live feature flags, real beta-user data, deployed migration parity, D1 FK
    integrity, and runtime focus/mobile behavior remain unproved by static
    inspection.
+19. `/workshop/publisher` has no route-local guidance despite being a core MVP;
+    a generic share tour could leak token/recipient context, confuse Preview
+    with public share or Client Portals, or encourage destructive link changes.
 
 ## Stale Triggers
 
@@ -882,6 +959,8 @@ Re-audit this artifact before implementation if any of these change:
 - privacy or account/membership deletion;
 - FirstProjectZeroState, checklist, guided sample;
 - estimate hierarchy/virtualization/total/save state;
+- publisher roster/drawer/wizard/publication actions, public share security, or
+  authenticated Preview behavior;
 - Settings, modal/dialog, Support context;
 - React Joyride current major/minor; or
 - Next.js client/dynamic/navigation contracts.

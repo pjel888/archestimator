@@ -41,6 +41,7 @@ src/lib/onboarding/
   guided-sample.ts                      tutorial subset and practice manifest
   guided-sample-actions.ts              server-only create/fresh-copy/archive
   estimate-practice.ts                  closed practice/transfer predicates
+  client-link-learning.ts               verified publication lesson receipts
   flow-types.ts                         shared semantic vocabulary
   flow-catalog.ts                       versioned flow/step definitions
   target-catalog.ts                     typed target keys and helpers
@@ -106,7 +107,8 @@ type OnboardingFlowKey =
   | "first_estimate_value"
   | "guided_estimate_practice"
   | "estimate_reader_orientation"
-  | "library_reuse";
+  | "library_reuse"
+  | "client_link_publishing";
 
 type OnboardingFlowStatus =
   | "not_started"
@@ -135,6 +137,7 @@ type OnboardingEventSource =
   | "tutorial_seed"
   | "tutorial_practice"
   | "non_starter_domain"
+  | "publication_domain"
   | "migration"
   | "system";
 
@@ -193,6 +196,12 @@ type OnboardingReasonCode =
   | "sample_seed_failed"
   | "sample_generation_changed"
   | "practice_state_changed"
+  | "publication_verification_pending"
+  | "publication_proof_missing"
+  | "publication_proof_expired"
+  | "publication_binding_mismatch"
+  | "publication_replaced"
+  | "clipboard_unavailable"
   | "viewport_changed"
   | "definition_changed"
   | "persistence_unavailable";
@@ -442,6 +451,117 @@ metadata.
 - Non-starter transfer is derived only from current authorized domain facts in
   a Project with no starter claim or starter/tutorial metadata.
 
+## Client Links Learning Contract
+
+`client_link_publishing` is ordinary instructional state. It has no tutorial
+version/generation binding and adds no publication, recipient, token, or URL
+columns. The server bridges existing publication behavior into sanitized
+lesson facts through `client-link-learning.ts`.
+
+Core completion is:
+
+```text
+current authenticated publication manager
++ current authorized project with at least one resolved Estimate Sheet
++ successful create or republish action
++ post-save refetch verifies publication identity, non-empty selected scope,
+   published status, and client-link availability
++ explicit copy success, selectable-link fallback acknowledgement,
+   or authenticated Preview launch against that verified publication
+```
+
+Those facts are not joined from two generic lesson events. A project-A
+publish event plus a project-B copy/Preview event must never complete the
+flow.
+
+### Atomic same-publication correlation
+
+In guide mode, `client-link-learning.ts` wraps the existing create/republish
+action without duplicating publication logic:
+
+1. validate the active server-issued `run_id`, flow version, expected state
+   revision, authenticated user, workspace, and publication-manager
+   capability;
+2. call the existing create/republish action;
+3. after success, reauthorize and reread the exact current publication,
+   non-empty resolved Estimate scope, published status, and link availability;
+4. return the normal product result plus a short-lived
+   `ClientLinkLearningReceipt` held only in current client memory; and
+5. do not persist `scope_and_publish` as core-complete.
+
+The receipt contains only version, active `run_id`, flow version, expected
+state revision, action kind, issue/expiry times, and a server-generated
+`binding_digest`. The digest is a domain-separated HMAC over the authenticated
+user, workspace, input Project, reread current publication, action kind,
+active run, revision, and expiry. Raw Project/publication identifiers are HMAC
+inputs only and never appear in the receipt. Use the existing server-only auth
+secret through a dedicated purpose label; never reuse the public publication
+token/hash/encryption keys. The receipt grants no publication access and is
+never stored in D1, URL/query state, cookies, browser storage, logs,
+diagnostics, analytics, or Support context. Reload/route loss discards it and
+truthfully resumes at `scope_and_publish`.
+
+After browser-confirmed copy success, selectable-link fallback acknowledgement,
+or before authenticated Preview navigation, one consume command receives the
+normal Project action input, expected flow revision, and receipt. In one
+server-owned decision it:
+
+1. reauthenticates and reauthorizes the current publication manager;
+2. rereads that Project's current publication and non-empty scope;
+3. verifies published/link-available state;
+4. recomputes and constant-time compares the receipt against that exact
+   current publication, active run, user, workspace, revision, action, and
+   expiry; and
+5. conditionally advances the flow and appends one sanitized
+   `publication_domain` completion event through the normal revision/idempotency
+   batch.
+
+Receipt expiry, replacement/republish after issuance, cross-user/workspace,
+project-A/project-B interleaving, tampering, stale revision, and replay after a
+winning completion are rejected. No generic `scope_and_publish` plus
+`verify_and_share` event join can substitute for this atomic bridge.
+
+The adapter may accept a project identifier as normal action input, but it
+reauthorizes it through the existing publication-manager boundary and persists
+only:
+
+- flow/version/generation;
+- semantic lesson/step key;
+- source `publication_domain` or `user_command`;
+- bounded route key `publisher` or `publisher_preview`;
+- outcome/reason code; and
+- timestamp/revision/idempotency fields already allowed by the flow schema.
+
+It never persists or logs the project/publication/recipient identifier, public
+token, client-link URL, selected Estimate IDs, client name, password, recipient
+email, or snapshot content.
+
+The core evaluator rejects:
+
+- roster selection, route visits, tooltip views, and client-supplied
+  completion;
+- no-op/failed create or republish;
+- zero resolved Estimate Sheets;
+- `verificationPending`, load failure, or stale post-save data;
+- an unauthorized or capability-changed project;
+- copy/preview intent with no currently verified publication; and
+- missing, expired, tampered, stale, replaced, cross-user/workspace, or
+  cross-project learning receipt;
+- public `/share/[token]` activity.
+
+Recipients/activity, stale-snapshot republish, expiry recovery, Replace link,
+Turn off link, and legacy-to-Portal migration remain optional lessons.
+Recipient email and destructive actions are never invoked by onboarding. If
+the user invokes them through normal product controls, existing publication
+authorization, confirmation, rate-limit, email, audit, and revalidation
+contracts remain authoritative. The learning adapter records only a sanitized
+semantic success/failure after server readback.
+
+Republish issues a new URL. Replace link invalidates the current URL
+immediately while preserving publication-row recipient history; Turn off link
+invalidates the current URL and recipient links. The safety lesson explains
+those consequences but can complete without either mutation.
+
 ## Semantic Target Contract
 
 ### Rendering helper
@@ -491,6 +611,24 @@ For an estimate row, `prepare` must:
 The first release registers a virtual adapter only for the known estimate-row
 target required by `first_estimate_value`. Hierarchy, toolbar, pricing, total,
 and save steps use stable non-row targets.
+
+### Rendering-owner matrix
+
+Every target is added by the component that owns its semantics:
+
+| Target family | Owner | Readiness/recovery |
+| --- | --- | --- |
+| `estimate.header`, `estimate.tab`, `estimate.hierarchy`, `estimate.add_area` | `EstimateWorkspaceClient`, `EstimateTabStrip`, `EstimateSheetTree` | Re-resolve authorized route/Tab; owner selects/expands Area; pause on capability or modal change. |
+| `estimate.add_row`, `estimate.library`, `estimate.price_input`, `estimate.row_math` | `EstimateSheetContent`, source/picker owner, `row-table.tsx` | Handoff before interaction; known Row uses bounded virtual adapter; no arbitrary selector or row ID. |
+| `estimate.total`, `estimate.save_state` | `ProjectTotalHeader` and row mutation owner | Advance only after authoritative readback; dirty/saving/failed state pauses with recovery. |
+| `publisher.roster`, `publisher.filters`, `publisher.create` | `PublisherRosterClient` | Handle empty/filter/no-permission/mobile states without false completion. |
+| `publisher.drawer`, `publisher.status`, `publisher.link`, `publisher.preview`, `publisher.recipients`, `publisher.activity` | `PublisherDrawer`, `ShareLinkDisplay`, recipient/activity owners | Pause before Drawer/confirmation focus; require a current authorized verified publication where applicable. |
+| `publisher.wizard`, `publisher.wizard_estimates`, `publisher.wizard_client`, `publisher.wizard_access`, `publisher.wizard_save_state` | `ShareWizard` and `SheetPickerList` | Pause tooltip before wizard; resume only after cancel/focus restoration or verified save refetch. |
+
+Target definitions use the typed `data-onboarding-target` helper even when a
+legacy `data-publisher-*` or aria label remains for product/testing semantics.
+Existing implementation anchors are not silently promoted into the closed
+catalog.
 
 ## Joyride Runtime Contract
 
@@ -900,7 +1038,7 @@ CREATE TABLE beta_onboarding_flow_events (
     source IN (
       'server_eligibility', 'joyride_runtime', 'user_command',
       'starter_seed', 'tutorial_seed', 'tutorial_practice',
-      'non_starter_domain',
+      'non_starter_domain', 'publication_domain',
       'migration', 'system'
     )
   ),
@@ -1409,7 +1547,8 @@ business deletion.
 | Create/reopen/fresh-copy/archive tutorial | Same user, current create/edit capability, fixed server-owned seed, and expected revision/binding for replacement. |
 | Complete shared workspace setup facts | Existing workspace owner/admin policy. |
 | Creator checklist task | Required domain capability for the real action. |
-| Collaboration/share guide | Existing project/workspace management capability. |
+| Complete Client links core lesson | Current publication-manager capability; existing publication action authorization plus verified server readback. |
+| Optional recipient/destructive Client links action | Existing publication-manager capability and ordinary product confirmation/action contract; onboarding never invokes it automatically. |
 | Admin reset of another user | Out of scope. |
 
 Clients never submit authoritative `user_id`, `workspace_id`, role, capability,
@@ -1630,11 +1769,18 @@ destination, and fall back to `/workshop`.
 
 ### `AC-012` Estimate Sheet comprehension and transfer
 
-Pass when an eligible editor completes the two required practice actions through
-normal editor controls, can follow the live Area/Row/roll-up model, observes
-saved state and total change, and later performs an equivalent edit in
-non-starter work. Pass the read-only variant separately for viewers/direct
-estimate readers.
+Pass when the Estimate Sheet route and Getting started expose the same
+resumable Core/Optional learning rail; every lesson has a closed outcome,
+normal-product handoff, rendering owner, missing/virtualized/modal recovery,
+and capability-aware variant. An eligible editor must complete the two required
+practice actions through normal editor controls, follow the live
+Project/Estimate/Tab/Area/Row model, read every current cost column in order,
+observe dirty/saving/saved/failed plus total change, and later perform an
+equivalent edit in non-starter work. Optional hierarchy, Component/Template
+reuse, and real failure recovery remain available without blocking core.
+Failed, stale, optimistic, seeded, navigational, or tooltip-only state earns no
+practice credit. Pass the expanded read-only variant separately for
+viewer/direct-estimate readers without asking for mutation.
 
 ### `AC-013` Starter-pack and tutorial integrity and recovery
 
@@ -1668,6 +1814,31 @@ old-binding receipts cannot complete a new copy; concurrent
 create/reopen/fresh-copy commands return one active winner; and all seed-origin
 metrics remain separate from practice, activation, and independent transfer.
 
+### `AC-014` Client links guided publishing
+
+Pass when an eligible publication manager can resume a route-local
+`client_link_publishing` curriculum that:
+
+- teaches roster/filter/status literacy across Live, Needs update, Expired,
+  Off, and Not shared states;
+- guides exact Estimate Sheet scope, client name, open/password access, summary
+  review, and normal create/republish;
+- grants core publish credit only after successful publication action plus
+  post-save verification of non-empty scope, published status, and link
+  availability;
+- grants final core credit only when the atomic server bridge correlates
+  explicit copy/selectable-link fallback or authenticated Preview to that
+  exact current publication in the same active run, without persisting a
+  URL/token/resource identifier or entering `/share/[token]` with Joyride;
+- exposes optional Recipients, Activity, stale/expiry maintenance, and
+  Replace/Turn off safety lessons without automatically sending email or
+  requiring a destructive action;
+- handles no data, no capability, no Estimates, invalid password, load/save/
+  verification failure, clipboard failure, stale status, unsaved changes,
+  route interruption, and mobile master/detail recovery; and
+- keeps Client links, public share, Proposals, and Client Portals semantically
+  and operationally distinct.
+
 ## Proposed Product Tests
 
 These are `TEST_PROPOSAL`, not authorized by the planning request.
@@ -1693,6 +1864,8 @@ Assertions:
   milestone/resource/value fields are recomputed only from `user_domain`
   events;
 - FK/index/check contracts;
+- the flow-event `source` CHECK and repository persistence path accept the
+  closed `publication_domain` value while rejecting arbitrary sources;
 - starter-pack state and asset-claim tables, closed asset/scope vocabulary,
   workspace-versus-user uniqueness, and non-negative
   `shared_membership_revision`;
@@ -1879,7 +2052,18 @@ Assertions:
 - practice completion requires both required actions;
 - every practice receipt carries the server-resolved tutorial version and
   generation, and only receipts matching the current state binding count;
-- Area/Row/total terminology and read-only lesson eligibility;
+- the shared route-local learning rail exposes every applicable Core/Optional
+  lesson with resume/blocked/completed state and never requires more than four
+  overlay steps per lesson;
+- Project/Estimate/Tab/Area/Row and every current row-math column use source-
+  accurate terminology; rendering-owner targets and the virtual Row adapter
+  recover from partial Tab, missing Area, modal interruption, and save state;
+- dirty/saving/failed, offline, and revision-conflict branches cannot advance
+  price/save; real recovery can complete only after authoritative readback;
+- Component source scope and Template reuse earn optional lesson credit only
+  from normal product actions; and
+- the expanded read-only lesson is eligible without any edit control or
+  mutation requirement;
 - fresh-practice copy atomically archives rather than overwrites the prior
   sample, rebinds to generation `N+1`, and rejects a stale/concurrent loser;
 - old-generation practice receipts and concurrent replay/restart events cannot
@@ -1901,6 +2085,71 @@ bun run test:dom -- \
   tests/vitest/guided-estimate-sample.test.ts \
   tests/vitest/estimate-onboarding-practice.test.ts \
   tests/vitest/estimate-onboarding-practice.test.tsx
+```
+
+### `TEST-009` Client links guided publishing
+
+Planned/affected files:
+
+```text
+tests/vitest/client-link-onboarding.test.ts
+tests/vitest/client-link-onboarding.test.tsx
+tests/vitest/publisher-roster-client.test.tsx
+tests/vitest/publisher-drawer.test.tsx
+tests/vitest/publisher-wizard.test.tsx
+tests/vitest/recipient-email-composer.test.tsx
+tests/vitest/project-publication-actions.test.ts
+tests/vitest/project-publication-rotate-resend.test.ts
+```
+
+Assertions:
+
+- `client_link_publishing` is explicit/task-launched, manager-only, resumable,
+  and absent from public `/share/[token]`;
+- migration/repository integration accepts one sanitized
+  `source='publication_domain'` lesson event and readback while rejecting
+  arbitrary event sources and every prohibited publication payload field;
+- roster/search/project/status targets handle Live, Needs update, Expired, Off,
+  Not shared, empty, filtered-empty, loading/error, and mobile selection state;
+- create/edit guidance hands control to the real wizard, requires at least one
+  resolved Estimate Sheet, validates password requirements, and never submits
+  a form from a tooltip;
+- core completion requires successful create/republish plus post-save refetch
+  verification and an explicit copy/selectable-link/Preview action correlated
+  by the short-lived server HMAC receipt to the exact current publication and
+  active run;
+- project-A publish plus project-B copy/Preview, cross-user/workspace receipt
+  use, tampering, expiry, reload/lost receipt, publication replacement,
+  stale-flow revision, and receipt replay cannot complete the flow;
+- no route visit, drawer open, tooltip view, failed action,
+  `verificationPending`, zero-scope snapshot, stale resource, or client-
+  supplied completion advances the flow;
+- copied/selected URLs, tokens, project/publication/recipient identifiers,
+  selected Estimate IDs, client names, passwords, emails, and snapshot content
+  never enter flow state/events, diagnostics, support context, or logs;
+- authenticated Preview is `RETURN_ONLY` and distinct from the public
+  recipient route;
+- recipients/activity are optional, recipient email is never sent by
+  onboarding, and recipient failures do not regress core completion;
+- stale/expired/off recovery uses normal product actions and verified readback;
+- republish issues a new URL; Replace link and Turn off link preserve their
+  existing explicit consequences/confirmations and are never required for
+  lesson completion; and
+- Client links, Proposals, and Client Portals remain distinct in copy, route,
+  target, eligibility, and completion logic.
+
+Proposed command only if the user explicitly requests this test scope:
+
+```bash
+bun run test:dom -- \
+  tests/vitest/client-link-onboarding.test.ts \
+  tests/vitest/client-link-onboarding.test.tsx \
+  tests/vitest/publisher-roster-client.test.tsx \
+  tests/vitest/publisher-drawer.test.tsx \
+  tests/vitest/publisher-wizard.test.tsx \
+  tests/vitest/recipient-email-composer.test.tsx \
+  tests/vitest/project-publication-actions.test.ts \
+  tests/vitest/project-publication-rotate-resend.test.ts
 ```
 
 ### `TEST-003` Joyride controller, targets, and Settings
@@ -1926,6 +2175,8 @@ Assertions:
 - launch-intent consume/cleanup;
 - target-not-found recovery;
 - viewport/role/feature filtering;
+- Estimate Sheet and Client links lesson-rail resume/blocked/completed state;
+- publisher Drawer/wizard/confirmation lifecycle pause and restoration;
 - Settings action semantics;
 - focus handoff around app modals; and
 - strict support allowlist.
@@ -2004,7 +2255,11 @@ Matrix:
 - keyboard-only completion/exit;
 - 200% zoom/reflow;
 - reduced motion; and
-- virtualized estimate target preparation.
+- virtualized estimate target preparation;
+- publication manager Client links core path on desktop and narrow mobile;
+- publisher verification-pending, clipboard fallback, and no-permission
+  recovery; and
+- authenticated Preview return with no Joyride mount on public share.
 
 Proposed command only if the user explicitly requests this test scope:
 

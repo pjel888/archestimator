@@ -9,8 +9,8 @@
 - **Implementation:** not started
 - **First ready unit:** `UNIT-001`
 - **Planning result:** implementation-ready after current-source audit,
-  Estimate Sheet curriculum expansion, independent challenge, and static pack
-  validation
+  comprehensive Estimate Sheet and Client links curriculum expansion,
+  independent challenge, and static pack validation
 - **Stop condition for this planning task:** the whole application and active D1
   schema are audited, current React Joyride and onboarding guidance is
   reconciled, the bounded starter workspace is exact and safely restorable,
@@ -23,9 +23,11 @@
 - **Target result:** beta users receive a bounded, immediately explorable starter
   workspace plus timely, optional, role-aware guidance. The starter set makes
   Projects, grouping, Components, Templates, and Estimate Sheet structure
-  concrete; one deep task-based tutorial gets editors to a valid saved estimate
-  and verifies independent transfer without corrupting product activation
-  truth.
+  concrete; one comprehensive task-based learning path gets editors to a valid
+  saved estimate and verifies independent transfer without corrupting product
+  activation truth; a separate manager-only path guides verified Client link
+  publication, sharing, maintenance, and safe recovery without crossing the
+  public-recipient boundary.
 - **Implementation owner:** one lead `executor` owns integration, shared-file
   ordering, evidence reconciliation, and the final claim. Optional bounded
   assignments use the packets below; they never create a second integrator.
@@ -43,7 +45,7 @@
   packet, an irreversible/external action is required, or two materially
   different local recovery attempts fail. Return the exact evidence and safe
   next action to the lead; do not broaden scope silently.
-- **Success criteria:** `AC-001` through `AC-013` are reconciled independently.
+- **Success criteria:** `AC-001` through `AC-014` are reconciled independently.
 - **Core architecture:** a server-fed, dynamically loaded client island in the
   authenticated Workshop shell uses React Joyride v3 in uncontrolled mode.
   Archestimator owns durable semantic progress, tutorial identity, task
@@ -82,7 +84,9 @@ recognize progress, teach editors how an Estimate Sheet is structured and
 priced, require user-origin practice before claiming comprehension, adapt to
 permissions and available data, provide a coherent editable starter workspace,
 recover safely from missing targets or starter/tutorial drift, and remain
-available on demand.
+available on demand. Eligible publication managers must also receive a
+literal, resumable Client links path that preserves scope, access, recipient,
+status, and public-boundary truth.
 
 ### In scope
 
@@ -93,8 +97,8 @@ available on demand.
   collaboration, project insights, Client Portals, Settings, and Support.
 - Beta-v1 implementation changes only for the authenticated shell/runtime,
   mobile navigation, Getting started/checklist, first-estimate guidance,
-  Library reuse, Settings, Support, auth return, modal ownership, and required
-  activation/onboarding data lifecycle.
+  Library reuse, Client links, Settings, Support, auth return, modal ownership,
+  and required activation/onboarding data lifecycle.
 - React Joyride `3.2.0` dependency review and exact-version installation during
   implementation.
 - Versioned flow definitions, typed targets, eligibility, route intents,
@@ -121,14 +125,24 @@ available on demand.
   one incomplete practice row, and one project-specific row; explicit Guided
   tutorial start creates/resumes a normal per-user practice Project from the
   immutable manifest outside starter-pack cardinality.
-- Lesson-sized Estimate Sheet practice covering how to read the hierarchy,
-  change quantity or price, observe row/estimate math, save successfully, add
-  or source work, organize it into an Area, and graduate to non-starter work.
+- A route-local Estimate Sheet learning rail with resumable Core/Optional
+  lessons covering Project/Estimate/Tab/Area/Row hierarchy, every current row
+  math column, quantity/cost editing, authoritative save and recovery states,
+  add/source work, organization, Component/Template reuse, and graduation to
+  non-starter work.
 - A read-only orientation variant for viewers and direct-estimate users who
   cannot complete editor tasks.
 - Optional post-value Component insertion/duplication/edit practice and a
   Template capstone through normal product actions; merely receiving or viewing
   starter assets earns no learning or activation credit.
+- A route-local `client_link_publishing` learning rail for authorized managers:
+  roster/filter/status literacy, exact Estimate Sheet scope, client/access
+  review, verified create/republish, copy/selectable-link or authenticated
+  Preview, optional recipients/activity and maintenance, and non-destructive
+  safety education.
+- Explicit separation of Client links, public `/share/[token]`, Proposals, and
+  Client Portals; no instructional URL/token persistence and no automatic
+  recipient email, Replace link, Turn off link, or Portal migration.
 - Automatic idempotent installation immediately after new workspace creation
   and for a pre-existing workspace only when the closed business-table
   predicate is empty; explicit **Add starter content** for an existing
@@ -191,7 +205,7 @@ reconciled.
 | --- | --- | --- | --- |
 | `ASSUMP-001` | Registry metadata observed 2026-07-23: `react-joyride` latest is `3.2.0`, MIT, with React/React DOM peer range `16.8 - 19`; the repository has React `19.2.7` and no installed Joyride dependency. | `UNIT-001` | Re-run package metadata and official v3 API review. If version, peer range, license, or exports changed, stop `UNIT-001`, update `DEC-AUTO-002`/`OPS-001`, and do not install by guess. |
 | `ASSUMP-002` | Active migration head is `0100_user_support_system.sql`; `0101_beta_onboarding_flow_state.sql` does not exist. | `UNIT-002` | Re-list active migrations and activation-table consumers. Renumber the new fix-forward migration and reconcile the rebuild contract if the head or schema changed. Never edit an issued migration. |
-| `ASSUMP-003` | Baseline inventory contains 72 active `page.tsx` routes and 23 direct Workshop/Support modal owners, with the route/auth/overlay rules recorded in `04-ROUTE-AND-OVERLAY-INVENTORY.md`. | `UNIT-003`, then affected UI units | Re-run the inventory commands in `04`; classify every added/removed/moved route or modal owner before implementation. Update ownership and target dispositions before writing UI. |
+| `ASSUMP-003` | Baseline inventory contains 72 active `page.tsx` routes, 23 direct Workshop/Support modal owners found by the canonical source search, and three additional publisher wrapper/focus owners (`PublisherDrawer`, `ShareWizard`, and `ClientPortalComposer`), for 26 tracked owners total, with route/auth/overlay rules recorded in `04-ROUTE-AND-OVERLAY-INVENTORY.md`. | `UNIT-003`, then affected UI units | Re-run both inventory commands in `04`; classify every added/removed/moved route, direct modal owner, or publisher wrapper owner before implementation. Update ownership and target dispositions before writing UI. |
 | `ASSUMP-004` | Current guided-sample code still creates one project, one estimate, one generic Area, and one priced row through `activation-actions.ts`; Project groups are per-user memberships; persistent Component folders/Components/Templates are D1-backed; project/node/row activation producers hard-code the existing `project`/`estimate` sources and have no separate origin class; and no closed starter-pack claim ledger exists. | `UNIT-005` | Re-read guided sample, Project/group, Estimate, activation producer, Component/folder/Template persistence, and current Projects/Library UI before editing. If the live shape, scope, producer taxonomy, or origin seam changed, reconcile `DATA-003`, `DEC-AUTO-017`–`020`, ownership, and recovery rather than layering a second starter system. |
 
 ## Requirements
@@ -204,6 +218,7 @@ reconciled.
 | `UX-003` | Feature discovery must cover relevant Workshop modules through short contextual guides without forcing irrelevant, unavailable, or unauthorized steps. | Capability/route catalog and guide eligibility evidence. |
 | `UX-004` | Guidance must be accessible, responsive, interruptible, resumable, replayable, and resettable from Settings with unambiguous semantics. | Keyboard/focus/reflow/reduced-motion/settings evidence. |
 | `UX-005` | The guided path must teach an editor to read, price, save, add/source, and organize work in one realistic Estimate Sheet, then distinguish tutorial completion from independent non-starter transfer; viewers receive a read-only equivalent. | Closed curriculum, user-action predicates, read-only variant, practice receipt, and non-starter transfer evidence. |
+| `UX-006` | The authenticated Client links master page must literally guide an eligible publication manager through status/scope/access literacy, verified create or republish, safe copy/Preview, optional recipient/activity and maintenance work, and recovery while keeping public share, Proposals, and Client Portals distinct. | Closed manager curriculum, publication-action/readback predicates, semantic target ownership, trust-boundary/privacy review, role/failure variants, and guided publishing evidence. |
 | `DATA-001` | Instructional progress must be durable, versioned, idempotent, optimistic-concurrency safe, and scoped to the authenticated user and workspace. | Migration, repository, state-transition, conflict, and retry evidence. |
 | `DATA-002` | Instructional state must coexist with activation truth and participate in backfill, privacy export/erase, retention, legal holds, account deletion, and membership deletion. | Data lifecycle and deletion-order evidence. |
 | `DATA-003` | The starter workspace and tutorial must have closed versioned manifests, exact bounded asset/scope shapes, idempotent resumable creation, inactive-key-only restore, all-eligible-user membership closure, role-downgrade-safe starter-organization cleanup, safe tutorial archive/fresh-copy recovery, persisted claims/practice binding, and non-forgeable origin classification that prevents generated data from earning practice, reuse, transfer, or activation credit. | Starter manifest and scope contract, asset claims, exact cardinalities/grouping, shared membership revision and cleanup, instructional-versus-tutorial generation binding, producer/origin propagation, lifecycle actions, and starter/tutorial/practice/non-starter metric reconciliation. |
@@ -600,6 +615,70 @@ after no-active-scope readback; final access loss keeps its separate cleanup.
 Workspace readiness returns to `complete` only when no eligible pre-existing
 user scope remains behind.
 
+### `DEC-AUTO-021` Make Estimate Sheet guidance a comprehensive learning rail
+
+The Estimate Sheet MVP uses one shared route-local **Estimate Sheet guide**
+rail plus lesson-sized Joyride handoffs, not one longer tour. Getting started
+and the route render the same server snapshot with Core/Optional labels,
+available/completed/blocked/resume state, next action, Skip lesson, Exit,
+Restart lesson, and Support.
+
+The closed lesson sequence is:
+
+1. `read_the_workspace`;
+2. `understand_row_math`;
+3. `price_and_save`;
+4. `add_and_source`;
+5. `organize_work`;
+6. `reuse_structure`;
+7. `recover_and_trust`; and
+8. `graduate`.
+
+Every lesson is independently resumable and uses at most four overlay steps.
+Handoff closes the tooltip before the user acts through the normal product UI.
+`price_and_save` plus `add_and_source` remain the only tutorial-core completion
+predicates; optional depth stays available without becoming a trap.
+`graduate` remains separate non-starter transfer. A real offline,
+revision-conflict, or save-failure branch may teach recovery, but onboarding
+never manufactures a failure. Each semantic target has one rendering owner
+and a bounded missing/modal/virtualized recovery path.
+
+### `DEC-AUTO-022` Promote Client links to a guided MVP without crossing trust boundaries
+
+Replace the former `HELP_ONLY`/deferred Client links decision with
+`client_link_publishing`, a task-launched manager-only learning path on
+`/workshop/publisher`. It is eligible after first Estimate Sheet value or an
+explicit eligible Client links/Getting started launch and never auto-starts on
+public `/share/[token]`.
+
+Core completion requires:
+
+1. a successful existing publication-manager create or republish action with
+   at least one resolved client-visible Estimate Sheet;
+2. post-save refetch that verifies current publication identity, non-empty
+   scope, published status, and client-link availability; and
+3. explicit copy/selectable-link fallback or authenticated Preview action
+   against that verified publication.
+
+The two actions are correlated by one short-lived server HMAC receipt held only
+in current client memory. It binds the active run and exact current publication
+without serializing raw resource identifiers. The consume command reauthorizes,
+rereads, constant-time verifies the binding, and atomically emits final core
+completion; separate generic events, project-A publish plus project-B share,
+reload/lost receipt, expiry, replacement, tampering, stale revision, or replay
+cannot compose into success.
+
+The learning rail also covers roster/filter/status literacy, client name,
+open/password access, recipients/activity, stale snapshot/expiry maintenance,
+and Replace/Turn off safety. Recipient email and destructive actions are
+optional normal product actions and are never invoked or required by
+onboarding. Republish truthfully explains that it issues a new URL. Replace
+link and Turn off link retain their exact existing confirmations and immediate
+recipient impact. Instructional state/events persist no token, URL, resource
+ID, selected Estimate IDs, client/password/recipient data, or snapshot content.
+Authenticated Preview is `RETURN_ONLY`; public share, Proposals, and Client
+Portals remain separate products and route contracts.
+
 ## Experience Sequence
 
 ### First-run creator
@@ -620,8 +699,9 @@ user scope remains behind.
 7. For Guided tutorial, explain that a normal workspace Project will be
    created, then idempotently create or resume the current versioned per-user
    `Practice — Residential Fit-Out` Project from the immutable tutorial
-   manifest and launch one lesson at a time: read the sheet, price and save, add
-   or source work, organize it, and graduate.
+   manifest and launch one lesson at a time through the shared learning rail:
+   read the workspace, understand row math, price and save, add or source work,
+   organize it, reuse structure, recover and trust, and graduate.
 8. Require user-origin task evidence; the generated projects, rows, totals,
    Components, and Templates
    never complete practice on their own.
@@ -629,7 +709,7 @@ user scope remains behind.
    route-local guide and continue to use authoritative domain facts.
 10. Celebrate tutorial practice separately from a later non-starter transfer
     action, then offer optional deliberate Component reuse, Template capstone,
-    or sharing guidance only when eligible.
+    or the manager-only Client links learning path when eligible.
 
 ### Invited collaborator or direct-estimate user
 
@@ -658,9 +738,10 @@ user scope remains behind.
 | `core_orientation` | New eligible Workshop user | 4 steps | Understand current workspace, navigation, guidance, and support. |
 | `collaborator_orientation` | Invited/project/estimate collaborator | 4 steps | Understand assigned work and effective access. |
 | `estimate_reader_orientation` | Can view but not edit an estimate | 4 steps | Read Area hierarchy, row math, totals, and status without impossible mutations. |
-| `guided_estimate_practice` | Can edit the tutorial generation bound in current state; required practice predicates incomplete | 4 steps per lesson | Complete read, price/save, and add/source tutorial core; optional depth and later transfer are reported separately. |
+| `guided_estimate_practice` | Can edit the tutorial generation bound in current state; required practice predicates incomplete or user explicitly resumes optional depth | 4 steps per lesson | Use one resumable rail to cover workspace/hierarchy, row math, price/save, add/source, organization, reuse, recovery, and later transfer; only price/save plus add/source are core. |
 | `first_estimate_value` | Can edit a non-tutorial estimate; valid total not reached | 5 steps | Understand hierarchy, add priced work, and confirm total/save state. |
 | `library_reuse` | Has meaningful estimate context and Component/Template capability | 3 steps | Deliberately insert/duplicate/edit a starter or user-created Component and complete an optional Template capstone through normal actions. |
+| `client_link_publishing` | Current publication manager; Client links feature/route available; at least one authorized Project, with first Estimate value or explicit eligible launch | 4 steps per lesson | Read roster/status, verify exact publish scope/access, copy or authenticated-preview the verified link, and optionally manage recipients, maintenance, and safety recovery without public-route guidance. |
 
 Installed Tutorial/Reference/Sandbox/Template and Blank/self-directed selection
 belongs to the onboarding center and relevant zero states. Blank, Reference,
@@ -669,7 +750,8 @@ Sandbox, and Template use `first_estimate_value`; Guided tutorial starts
 Proposals, Client Portals, Favorites, export, linked templates, Ask Flip,
 organization settings, and other advanced surfaces receive truthful help links
 or later versioned catalog entries, not beta-v1 tours. They never extend the
-first-run orientation.
+first-run orientation. Client links is the explicit user-directed MVP exception
+and remains task-launched rather than part of first-run orientation.
 
 ## Execution DAG
 
@@ -750,7 +832,7 @@ For a delegated assignment:
 | `UNIT-003` / `BETA-003-RUNTIME` | `executor`; Next.js App Router, auth, accessible overlays | Local Next.js server/client/navigation docs, auth chain, shell/navigation, all modal owners, frozen catalogs | Protected-return and import-boundary review; route/modal inventory reconciliation; focused type/LSP/lint evidence | `NOT_REQUIRED`; `HANDOFF BETA-003-RUNTIME RUNTIME_READY` waits at `BARRIER-001` |
 | `UNIT-004` / `BETA-004-FIRST-RUN` | Lead `executor`; onboarding UX plus authoritative domain state | Accepted `BARRIER-001` handoffs, current checklist/zero-state/dashboard writers | Start-path/checklist and starter-readiness truth matrix; role/empty/partial/error/completed-state source review; focused type/LSP/lint evidence | `NOT_REQUIRED`; `HANDOFF BETA-004-FIRST-RUN FIRST_RUN_READY` opens `UNIT-005` and `UNIT-007` |
 | `UNIT-005` / `BETA-005-STARTER-PRACTICE` | `executor`; starter workspace, tutorial seed, estimate editor, and virtualized-target integration | Accepted data/runtime/first-run handoffs, Project/group/Library writers, current guided-sample writers, exact activation producers, estimate owner APIs, performance protocol | Exact 3/4/6/3 manifest and scope receipt; asset-claim/install/restore/binding receipt; producer source/origin and non-forgeability matrix; practice, concurrency, recovery, target-owner, and bounded-wait review; focused type/LSP/lint evidence | `NOT_REQUIRED`; `HANDOFF BETA-005-STARTER-PRACTICE STARTER_PRACTICE_READY` unlocks `UNIT-006` and waits at `BARRIER-002` |
-| `UNIT-006` / `BETA-006-DISCOVERY` | `executor`; task-based reuse and capability-aware contextual UX | Accepted starter/tutorial/practice handoff plus route dispositions and existing Component/Template UI | Deliberate Component/Template action-credit receipt; eligibility/feature/resource disposition reconciliation; seeded-view exclusion review; focused type/LSP/lint evidence | `NOT_REQUIRED`; `HANDOFF BETA-006-DISCOVERY DISCOVERY_READY` waits at `BARRIER-002` |
+| `UNIT-006` / `BETA-006-DISCOVERY-SHARING` | `executor`; task-based reuse, Client links publishing, and capability-aware contextual UX | Accepted starter/tutorial/practice handoff, route dispositions, Component/Template UI, and live publisher roster/drawer/wizard/publication contracts | Deliberate Component/Template action-credit receipt; verified Client links publish/copy-or-preview receipt; permission/privacy/trust-boundary and failure-state matrix; focused type/LSP/lint evidence | `NOT_REQUIRED`; `HANDOFF BETA-006-DISCOVERY-SHARING DISCOVERY_SHARING_READY` waits at `BARRIER-002` |
 | `UNIT-007` / `BETA-007-SETTINGS` | `executor`; settings mutations, privacy, support recovery | Accepted data/runtime/first-run handoffs, frozen actions/catalogs, support allowlist | Action-semantics and non-regression matrix; privacy/support allowlist review; focused type/LSP/lint evidence | `NOT_REQUIRED`; `HANDOFF BETA-007-SETTINGS SETTINGS_READY` waits at `BARRIER-002` |
 | `UNIT-008` / `BETA-008-VERIFY` | Lead-owned `verifier`; evidence reconciliation | Entire accepted diff, all handoffs, manifest, criteria/risks/gates, current source revision | Fresh allowed static outputs; one receipt per criterion/gate; explicit unresolved behavioral gaps; manifest/diff reconciliation | Keep `TEST_PROPOSAL` commands unrun unless newly authorized; `HANDOFF BETA-008-VERIFY VERIFIED_LOCAL` ends implementation |
 
@@ -770,7 +852,10 @@ For a delegated assignment:
   define flow, step, route, viewport, capability, status, event, source, reason,
   instructional generation, starter scope/asset identity, tutorial
   identity/binding, activation path, practice predicate, and target unions;
-  define
+  include the complete Estimate Sheet lesson vocabulary plus
+  `client_link_publishing`, closed `publication_domain` source, publisher route
+  intents, manager capability/data predicates, and every roster/drawer/wizard/
+  link/recipient/activity semantic target; define
   eligible-step filtering and semantic resume resolution; prohibit v2 APIs and
   controlled `stepIndex`.
 - **Acceptance:** one typed vocabulary serves persistence, server host, client
@@ -823,9 +908,11 @@ For a delegated assignment:
   CAS, request fingerprints, run identity, and idempotency; implement
   start/resume/advance/pause/dismiss/complete/replay/restart/reset-all commands;
   persist selected start path; define closed `tutorial_seed`,
-  `tutorial_practice`, and `non_starter_domain` onboarding-event sources plus
-  deduplicated practice/transfer events; require current tutorial binding on
-  every sample/practice event and matching binding in the completion query;
+  `tutorial_practice`, `non_starter_domain`, and `publication_domain`
+  onboarding-event sources plus deduplicated practice/transfer/publishing
+  events; keep Client links state free of tutorial binding and sensitive
+  publication fields; require current tutorial binding on every sample/practice
+  event and matching binding in the completion query;
   make guidance reset preserve that binding and all starter claims/generations;
   derive estimate-task truth from authorized estimates without converting
   generated starter/tutorial value into practice, reuse, transfer, or
@@ -951,7 +1038,9 @@ For a delegated assignment:
   from the server snapshot without claiming partial content is ready; describe
   Guided tutorial as a ten-to-fifteen-minute task path rather than instant
   sample value; auto-start only the correct short orientation; suppress creator
-  guidance for unauthorized users; show
+  guidance for unauthorized users; render the available Estimate Sheet lesson
+  rail and manager-only Client links rail status/launch shell from the server
+  snapshot so later units can wire their normal-action predicates; show
   progress/recommendation/error/empty/completed states; keep Support available.
 - **Acceptance:** the first-run and Getting started surfaces render the
   server-supplied starter readiness/start-path contract for
@@ -960,7 +1049,8 @@ For a delegated assignment:
   viewer never sees impossible tasks; seeded presence, route visits, and opens
   complete no checklist task; only the server-supplied closed successful
   creation/mutation facts render the matching Project/Estimate tasks complete;
-  dismissed guidance remains accessible on demand.
+  dismissed guidance remains accessible on demand; Client links status/launch
+  is absent for non-managers and public-route context.
 - **Recovery:** keep the onboarding center and checklist available even if
   automatic orientation is temporarily disabled.
 
@@ -977,12 +1067,15 @@ For a delegated assignment:
   `src/components/workshop/ProjectEstimatesClient.tsx`,
   `src/components/workshop/EstimateWorkspaceClient.tsx`,
   `src/components/workshop/EstimateHeaderActions.tsx`,
+  `src/components/workshop/estimate-sheet/EstimateTabStrip.tsx`,
   `src/components/workshop/EstimateSheetTree.tsx`,
   `src/components/workshop/EstimateSheetContent.tsx`,
   `src/components/workshop/ProjectTotalHeader.tsx`,
   `src/components/workshop/estimate-sheet/rows/row-table.tsx`,
   `src/components/workshop/estimate-sheet/rows/virtual-branch-list.tsx`,
+  `src/hooks/use-estimate-row-mutations.ts`,
   `src/components/onboarding/GettingStartedProgress.tsx`,
+  new `src/components/onboarding/EstimateSheetLearningRail.tsx`,
   `src/lib/auth/account-actions.ts`,
   `src/lib/projects/actions.ts`,
   `src/lib/estimates/actions.ts`,
@@ -1116,18 +1209,30 @@ For a delegated assignment:
   tutorial binding and one active Project through the migration indexes; make
   reopen return the winner; require expected revision/binding for a checked
   fresh-copy batch that archives generation `N`, binds `N+1`, and creates
-  exactly one replacement. Add lesson-sized
-  `read_the_sheet`, `price_and_save`, `add_and_source`, `organize_work`, and
-  `graduate` practice; require user-origin quantity/price, total-change, save,
-  and row-or-Component evidence from events matching the current persisted
+  exactly one replacement. Add one route-local **Estimate Sheet guide** rail
+  shared with Getting started and lesson-sized `read_the_workspace`,
+  `understand_row_math`, `price_and_save`, `add_and_source`, `organize_work`,
+  `reuse_structure`, `recover_and_trust`, and `graduate` practice. Show
+  Core/Optional, completed/available/blocked/resume, next action, Skip lesson,
+  Exit, Restart lesson, and Support from one server snapshot. Limit each
+  lesson to four overlay steps and close/pause the tooltip before the real
+  action. Require user-origin quantity/price, total-change, save, and
+  row-or-Component evidence from events matching the current persisted
   tutorial binding; keep `graduate` as later non-blocking transfer evidence;
-  add a read-only reader variant; add
+  keep hierarchy, Template reuse, and real failure recovery optional; never
+  manufacture an offline/conflict/save failure. Add a read-only reader variant
+  covering Project/Estimate/Tab/Area/Row and every current row-math column; add
   instruction-only restart, explicit archive, and fresh-copy recovery; add
-  route-local targets for hierarchy, Area creation, row creation, pricing,
-  valid total, save/error state, and relevant Library/Sources affordance;
-  select/expand/scroll only a known virtual row through its owner API; use Area
-  consistently in user-facing instruction; never target arbitrary DOM rows or
-  mutate data merely to advance a tooltip.
+  route-local targets for header/Tab, hierarchy, Area creation, row creation,
+  row-math help, pricing, valid total, dirty/saving/saved/failed state, and
+  relevant Library/Sources/Template affordances. Assign header/Tab targets to
+  `EstimateWorkspaceClient`/`EstimateTabStrip`, hierarchy to
+  `EstimateSheetTree`, add/source to `EstimateSheetContent`, marked Row/math to
+  `row-table.tsx`, and total/save to `ProjectTotalHeader` plus the row mutation
+  owner. Select/expand/scroll only a known virtual Row through its owner API;
+  bound/abort every preparation; define centered/missing/modal/partial-Tab
+  recovery; use Area consistently in user-facing instruction; never target
+  arbitrary DOM rows or mutate data merely to advance a tooltip.
 - **Acceptance:** the installed manifest resolves exactly 3 shared Projects/4
   Estimate Sheets/6 Components/3 Templates with the specified per-user group,
   ungrouped Sandbox, exactly two claimed custom folders, protected
@@ -1165,29 +1270,60 @@ For a delegated assignment:
   atomically rebinds to `N+1`, rejects stale/concurrent losers, and ignores old
   receipts. Reset/restart changes instructional state without changing starter
   claims/generations or tutorial binding. The reader variant asks for no
-  mutation; the guide survives streaming, an empty or existing estimate,
-  virtualized rows, missing optional targets, read-only access, route changes,
-  resume, restart, archive, partial install, inactive-key restore, and
-  fresh-copy recovery.
+  mutation; the shared learning rail exposes the same lesson status in Getting
+  started and the Estimate Sheet; every current cost column and save/recovery
+  state is source-accurate; the guide survives streaming, an empty or existing
+  estimate, partial Tab data, virtualized Rows, missing optional targets,
+  read-only access, modal interruption, offline/revision conflict, route
+  changes, resume, restart, archive, partial install, inactive-key restore,
+  and fresh-copy recovery.
 - **Recovery:** skip the affected lesson while leaving the estimate editor and
   activation ledger untouched; resume unresolved starter claims or restore only
   an inactive manifest key; resume the bound tutorial generation or use the
   checked archive/rebind batch for a fresh copy. Never silently overwrite,
   duplicate, repeatedly auto-repair, or reuse stale practice receipts.
 
-### `UNIT-006` Add bounded post-value feature discovery
+### `UNIT-006` Add reusable-work and Client links MVP guidance
 
-- **Assignment:** `BETA-006-DISCOVERY`
+- **Assignment:** `BETA-006-DISCOVERY-SHARING`
 - **Status:** READY
 - **Depends on:** `UNIT-005`
 - **Owned production paths:**
   `src/app/workshop/library/components/page.tsx`,
   `src/app/workshop/library/templates/page.tsx`,
+  `src/app/workshop/publisher/page.tsx`,
+  `src/app/workshop/publisher/preview/[projectId]/page.tsx`,
   `src/components/workshop/library/LibraryComponentsRoute.tsx`,
   `src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx`,
-  `src/components/workshop/EstimateSheetContent.tsx`.
+  `src/components/workshop/EstimateSheetContent.tsx`,
+  `src/components/workshop/publisher/PublisherRosterClient.tsx`,
+  `src/components/workshop/publisher/PublisherRosterCard.tsx`,
+  `src/components/workshop/publisher/PublisherEmptyState.tsx`,
+  `src/components/workshop/publisher/PublisherRosterSkeleton.tsx`,
+  `src/components/workshop/publisher/PublisherProjectPicker.tsx`,
+  `src/components/workshop/publisher/PublisherDrawer.tsx`,
+  `src/components/workshop/publisher/ShareWizard.tsx`,
+  `src/components/workshop/publisher/ShareLinkDisplay.tsx`,
+  `src/components/workshop/publisher/PublisherActivityFeed.tsx`,
+  `src/components/workshop/publisher/ClientPreviewBanner.tsx`,
+  `src/components/workshop/publisher/usePublisherDrawer.ts`,
+  `src/components/workshop/publication/SheetPickerList.tsx`,
+  `src/components/workshop/publication/RecipientEmailComposer.tsx`, new
+  `src/components/onboarding/ClientLinksLearningRail.tsx`, new
+  `src/lib/onboarding/client-link-learning.ts`,
+  `src/lib/publisher/permissions.ts`,
+  `src/lib/publisher/roster-filter.ts`,
+  `src/lib/publisher/roster-repository.ts`,
+  `src/lib/publisher/drawer-actions.ts`,
+  `src/lib/publisher/activity-actions.ts`,
+  `src/lib/publication/actions.ts`.
 - **Read-only inherited contracts:** `flow-catalog.ts` and
-  `target-catalog.ts` from `UNIT-001`.
+  `target-catalog.ts` from `UNIT-001`; `src/app/share/[token]/page.tsx`,
+  `src/components/workshop/publisher/ClientPortalComposer.tsx`,
+  `src/lib/publication/security.ts`,
+  `src/lib/publication/public-repository.ts`, and
+  `src/lib/publication/types.ts` remain public/security truth and are not
+  weakened for onboarding.
 - **Sequential handoff:** `EstimateSheetContent.tsx` ownership transfers from
   `UNIT-005` only after `STARTER_PRACTICE_READY`.
 - **Work:** turn `library_reuse` into an optional task: deliberately insert,
@@ -1197,16 +1333,82 @@ For a delegated assignment:
   labels/categories understandable without treating a view as completion;
   retain only the bounded one-to-three-step reuse guide; enforce
   role/feature/resource eligibility; avoid semantically blank or irrelevant
-  Library targets; keep Client links and all other audited modules as
-  help-link/no-tour decisions in
-  `04-ROUTE-AND-OVERLAY-INVENTORY.md`.
+  Library targets.
+
+  Implement `client_link_publishing` as a task-launched, manager-only
+  route-local learning rail on `/workshop/publisher`. Reuse the Getting started
+  and Settings status/actions contract. Make it eligible after first Estimate
+  value or an explicit eligible Client links/Getting started launch; never
+  auto-start it on `/share/[token]`. Add typed rendering-owner targets for the
+  roster, filters, Create action, drawer/status, wizard, estimate selection,
+  client name, access, save/verification state, verified link,
+  authenticated Preview, Recipients, and Activity. Preserve existing
+  `data-publisher-*`/aria product semantics while adding the closed onboarding
+  helper.
+
+  Add lesson-sized `read_client_links`, `scope_and_publish`,
+  `verify_and_share`, `recipients_and_activity`, `keep_it_current`, and
+  `replace_or_turn_off_safely`; each lesson uses at most four overlay steps and
+  hands control to the normal product UI. Core completion requires a current
+  publication manager, at least one resolved Estimate Sheet, successful
+  `createProjectPublication` or `republishProjectPublication`, post-save refetch
+  verifying publication identity/non-empty scope/published status/link
+  availability, and explicit copy/selectable-link fallback or authenticated
+  Preview against that exact verified publication in the same active run.
+  Implement the bridge in `client-link-learning.ts`; in guide mode it validates
+  the server-issued run/revision, delegates to the existing publish action,
+  reauthorizes/rereads, and returns a short-lived
+  `ClientLinkLearningReceipt` held only in current client memory. Its
+  domain-separated HMAC binds authenticated user/workspace, input Project,
+  current publication, publish action, run, revision, and expiry without
+  serializing raw resource identifiers. The copy/fallback/Preview consume
+  command reauthorizes, rereads, constant-time verifies that exact current
+  binding, and conditionally appends one sanitized `publication_domain`
+  completion event in the normal CAS/idempotency batch. Persist no receipt,
+  URL/token, resource ID, selected Estimate ID, client name, password,
+  recipient/email data, or snapshot content; never place the receipt in a URL,
+  cookie, browser storage, log, diagnostic, analytics event, or Support
+  context.
+
+  Teach all live status and recovery branches: no projects/links, filtered
+  empty, no manage capability, no Estimate Sheets, empty selection, invalid
+  password, detail load/retry, post-save verification pending without a second
+  save, clipboard unavailable/selectable-link fallback, Needs update, Expired,
+  Off, Not shared, unsaved discard, query/route interruption, recipient/
+  activity prerequisites, and mobile back. Pause before Drawer, wizard,
+  recipient, unsaved-change, Replace, and Turn off focus owners; resume only
+  after restoration or verified readback. Explain that republish issues a new
+  URL and that Replace/Turn off immediately affect recipients. Never
+  automatically send email, replace/turn off a link, migrate to a Portal, open
+  a public recipient session, or require any destructive action. Keep
+  authenticated Preview `RETURN_ONLY` and keep Client links, Proposals,
+  `/share/[token]`, and Client Portals distinct.
 - **Acceptance:** no guide points to hidden, unauthorized, blank, stale, or
   semantically different UI; Component reuse and Template capstone completion
   come from deliberate normal user mutations rather than installation, seeded
   presence, catalog views, or tooltip views;
-  advanced guidance does not auto-restart core orientation.
-- **Recovery:** disable an individual catalog entry without changing shared
-  state or the rest of the onboarding system.
+  advanced guidance does not auto-restart core orientation. Client links core
+  completes only from the verified manager action plus copy/selectable-link or
+  authenticated Preview fact; visits, opens, tooltips, failures,
+  `verificationPending`, zero-scope data, stale resources, and client assertion
+  earn no credit. Project-A publish plus project-B share, cross-user/workspace,
+  lost/expired/tampered/replaced receipts, stale revision, and replay after a
+  winner are rejected; two generic lesson events cannot compose into core.
+  Every named role/data/error/mobile branch has truthful guidance. Public
+  routes never mount the Workshop host; no sensitive
+  publication/recipient value reaches onboarding persistence, diagnostics,
+  support, or logs; recipient/destructive/Portal actions remain optional normal
+  product behavior with their existing authorization and confirmations.
+- **Recovery:** disable `library_reuse` or `client_link_publishing`
+  independently without changing shared state or the rest of onboarding.
+  Retain a verified publication and any already completed core truth if later
+  recipient/activity/clipboard guidance fails. If clipboard fails before core
+  completion, keep the still-valid receipt in memory and offer selectable-link
+  or Preview fallback; pause with Retry/Support when server verification is
+  unavailable rather than saving twice or inventing success.
+  If the volatile learning receipt is lost or expires before core completion,
+  keep the publication intact and resume at `scope_and_publish`; never infer a
+  same-publication binding from timestamps or unrelated lesson events.
 
 ### `UNIT-007` Add Settings replay/reset and support recovery
 
@@ -1227,6 +1429,9 @@ For a delegated assignment:
   checklist reopen, and reset-all-guidance; make the narrow Settings layout
   usable; close Settings before launching Joyride; add typed support context
   for target/route failures without raw URLs, IDs, or free-form diagnostics;
+  list Estimate Sheet and Client links lessons with role/capability-aware
+  status while ensuring support context cannot contain a publication token,
+  URL, project/publication/recipient ID, email, or client content;
   keep reset-all guidance strictly instructional so it never archives,
   duplicates, mutates, restores, or rebinds any starter/tutorial asset.
 - **Acceptance:** each action has distinct copy and mutation semantics; replay
@@ -1255,11 +1460,17 @@ For a delegated assignment:
   starter-organization eligibility cleanup that preserves narrower progress;
   the closed successful
   Project/Estimate creation/mutation set and every named negative case;
-  tutorial idempotency/recovery; user-origin practice predicates;
+  tutorial idempotency/recovery; shared Estimate Sheet learning-rail state,
+  complete lesson coverage, rendering-owner targets, virtualized/modal/save
+  recovery, and user-origin practice predicates;
   trusted starter/tutorial origin propagation;
   instructional/tutorial/starter generation separation; concurrent
   claim/fresh-copy behavior; stale-receipt rejection; terminology; read-only
-  behavior; and seed-versus-practice-versus-non-starter metric separation.
+  behavior; seed-versus-practice-versus-non-starter metric separation; and the
+  Client links manager curriculum, verified publication/readback plus
+  copy-or-Preview predicates, target/focus ownership, every named failure
+  branch, no-sensitive-persistence boundary, public-route exclusion, and
+  optional recipient/destructive behavior.
   Leave bundle/browser/accessibility and other unrun behavioral evidence
   explicit.
 - **Acceptance:** every criterion has its own fresh PASS evidence or a precise
@@ -1276,8 +1487,9 @@ For a delegated assignment:
    current repository consumers.
 3. Use TypeScript/LSP and focused lint/static import analysis after each unit.
 4. Verify no public route or global provider imports the Joyride runtime.
-5. Verify every target key has one typed definition and at least one
-   role/viewport-appropriate owner.
+5. Verify every target key has one typed definition and exactly one semantic
+   rendering owner, including Estimate Tab/row math/save state and every
+   publisher roster/drawer/wizard/link/recipient/activity target.
 6. Verify the starter manifest against exact 3/4/6/3 cardinalities, named
    grouping/folders/categories, protected default-folder resolution,
    workspace-versus-user scope, closed auto-install predicate, partial
@@ -1289,14 +1501,20 @@ For a delegated assignment:
    current persisted tutorial binding; instructional reset preserves that
    binding and every starter claim/generation; stale-generation receipts cannot
    cross it; the viewer path requires no mutation; installed assets earn no
-   credit by generation, presence, route visit, or open; and non-starter
-   transfer is reported separately.
-8. Verify every Settings command against its data contract and activation
+   credit by generation, presence, route visit, or open; all applicable
+   Estimate Sheet lessons remain resumable; and non-starter transfer is
+   reported separately.
+8. Verify Client links core can complete only from current manager
+   create/republish plus post-save verification and copy/selectable-link or
+   authenticated Preview; verify public exclusion, no sensitive persistence,
+   no automatic email/destructive action, status/error/mobile recovery, and
+   separation from Proposals and Client Portals.
+9. Verify every Settings command against its data contract and activation
    non-regression invariant.
-9. If explicitly requested for the implementation task, run only the exact
+10. If explicitly requested for the implementation task, run only the exact
    targeted repository, component, browser, and bundle tests in
    `03-ARCHITECTURE-DATA-AND-VERIFICATION.md`.
-10. Reconcile the manifest, focused diff, migration head, and remaining risks.
+11. Reconcile the manifest, focused diff, migration head, and remaining risks.
 
 ## Implementation Gates
 
@@ -1306,12 +1524,14 @@ For a delegated assignment:
   persisted tutorial binding, atomic unique claim, stale-receipt exclusion, and
   safe starter/tutorial lifecycle.
 - `GATE-SEC-01`: server identity, membership/capability, route/telemetry
-  allowlists, and tenant privacy.
+  allowlists, tenant privacy, Client links token/recipient exclusion, and
+  authenticated-preview/public-recipient separation.
 - `GATE-NEXT-01`: client-island, dynamic import, App Router navigation, and
   server/client serialization.
-- `GATE-UX-01`: value path, deep Estimate Sheet practice, read-only
-  orientation, coherent starter workspace, user-origin completion, non-starter
-  transfer, user control, partial/empty/error/recovery states, and mobile.
+- `GATE-UX-01`: value path, comprehensive Estimate Sheet learning rail,
+  read-only orientation, coherent starter workspace, user-origin completion,
+  non-starter transfer, guided Client links core/optional lessons, user
+  control, partial/empty/error/recovery states, and mobile.
 - `GATE-A11Y-01`: alertdialog/focus, keyboard, reflow, zoom, reduced motion.
 - `GATE-PERF-01`: mount eligibility, client bundle impact, bounded waits.
 - `GATE-VERIFY-01`: actual static evidence plus explicit, unrun
@@ -1337,8 +1557,10 @@ For a delegated assignment:
 | `RISK-014` | Authentication drops or weaponizes a deep link before guidance starts. | Protected-route sanitizer, fragment/query policy, and destination reauthorization. |
 | `RISK-015` | Generated starter/tutorial Projects, rows, totals, Components, or Templates make onboarding look complete before the user learns anything, contaminate the real activation projection, or let a client forge seed/practice origin. | Preserve activation producer `source`; server-only non-forgeable `origin_class`; append seed events without the progress upsert; recompute legacy progress from user-domain events; persist current tutorial binding; require the closed successful Project/Estimate operation set plus authoritative save/readback; grant zero credit for installation, presence, route visits, opens, organizational/destructive actions, failures, stale writes, or client assertion; and report non-starter transfer separately. |
 | `RISK-016` | Replaying, refreshing, concurrent installation/restore, capability downgrade, or fresh-copy requests duplicate/overwrite work, duplicate shared assets, strand user memberships, erase retained progress, or let old receipts complete a new tutorial. | Closed manifest keys; workspace/user claim uniqueness; deterministic asset-level batches; partial/resume state; inactive-key restore generations; shared membership revision; stable bounded all-eligible-user rebind with no false complete; idempotent mid-restore starter-organization cleanup with no-active-scope readback; unique Tutorial Project indexes; state/binding CAS; checked archive/rebind/create; and stale-receipt exclusion. |
-| `RISK-017` | A toy one-row sample or Area/Branch terminology drift teaches an inaccurate mental model of Estimate Sheet hierarchy and math. | One bounded realistic hierarchy, three-to-five purposeful rows, explicit quantity × price/save instruction, Area-normalized copy, and read-only reader lesson. |
+| `RISK-017` | A toy one-row sample, incomplete cost-column explanation, or Area/Branch terminology drift teaches an inaccurate mental model of Estimate Sheet hierarchy, math, and persistence. | One bounded realistic hierarchy, three-to-five purposeful rows, explicit Project/Estimate/Tab/Area/Row and Materials/Qty/Contingency/Subtotal/Adjustment/Misc/Total sequence, authoritative price/save instruction, Area-normalized copy, rendering-owner targets, recovery lesson, and expanded read-only path. |
 | `RISK-018` | Defaults become clutter, hide the grouping model, collide with user-created names, duplicate per-user Projects, strand restored shared memberships, erase retained progress on role downgrade, or silently regenerate assets the user intentionally edited/archived/deleted. | Exact small shared 3/4/6/3 manifest; visible Starter/Tutorial/Reference/Sandbox labels; one per-user group plus one intentionally ungrouped Project; no automatic per-user practice Project; explicit Guided tutorial command with ordinary-visibility disclosure; separate workspace/user readiness with shared-membership revision equality; exact empty-workspace predicate; identity by closed claim rather than name; deterministic collision suffix without adoption; explicit add/inactive-key restore with deterministic all-user dependency closure; narrow starter-organization cleanup distinct from final-access erasure; and no recurring login repair. |
+| `RISK-019` | “Comprehensive” becomes another exhausting tour or optional depth falsely blocks/completes core learning. | One shared learning rail, Core/Optional labels, at most four overlay steps per lesson, normal-UI handoff, independent resume/skip/restart, authoritative predicates only for price/save plus add/source, and separate transfer reporting. |
+| `RISK-020` | Client links guidance exposes the wrong Estimate scope, composes publish/share facts from different Projects, leaks a token/recipient fact, confuses public share with a Portal/Proposal, sends email unexpectedly, or encourages immediate URL invalidation. | Publication-manager reauthorization; exact scope/access summary; post-save verification; short-lived in-memory HMAC receipt and atomic same-publication/run consume; A/B, stale/replaced/expired/tampered/replay rejection; no sensitive instructional fields; authenticated Preview/public-route separation; optional recipient/destructive lessons; no automatic email/replace/revoke/migration; and exact republish/Replace/Turn off consequence copy. |
 
 ## Requirement Traceability
 
@@ -1350,6 +1572,7 @@ For a delegated assignment:
 | `UX-003` | `UNIT-003`, `UNIT-006`, `UNIT-008` | `AC-004` |
 | `UX-004` | `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-007`, `UNIT-008` | `AC-005` |
 | `UX-005` | `UNIT-004`, `UNIT-005`, `UNIT-006`, `UNIT-008` | `AC-012` |
+| `UX-006` | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-004`, `UNIT-006`, `UNIT-007`, `UNIT-008` | `AC-014` |
 | `DATA-001` | `UNIT-002`, `UNIT-007`, `UNIT-008` | `AC-006` |
 | `DATA-002` | `UNIT-002`, `UNIT-004`, `UNIT-008` | `AC-007` |
 | `DATA-003` | `UNIT-001`, `UNIT-002`, `UNIT-005`, `UNIT-008` | `AC-013` |
@@ -1376,8 +1599,12 @@ For a delegated assignment:
   starter/tutorial origin propagation through every producer; instructional
   versus tutorial/starter generation binding; atomic tutorial claim/fresh copy;
   stale-receipt exclusion; required user-origin pricing/save and add/source
-  evidence; reader orientation; Area terminology; deliberate normal-action
-  Component/Template practice; and non-starter transfer reporting.
+  evidence; the shared Estimate Sheet learning rail and every closed lesson;
+  reader orientation; source-accurate Area/row-math terminology; deliberate
+  normal-action Component/Template practice; non-starter transfer reporting;
+  and the Client links manager rail, verified publish plus copy/Preview core,
+  target/focus ownership, failure/mobile states, no-sensitive-persistence
+  boundary, public-route exclusion, and optional recipient/destructive work.
 - **Implementation finish:** update evidence only from actual outputs; leave
   proposed tests unresolved when they were not requested; do not require hosted
   deployment to call local implementation complete.

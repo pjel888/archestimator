@@ -105,7 +105,7 @@ workspace-scoped onboarding state or Joyride chunk enters the Admin shell.
 | `src/app/workshop/components/page.tsx` | `/workshop/components` | `REDIRECT` | Compatibility redirect to Library; never a target. |
 | `src/app/workshop/templates/page.tsx` | `/workshop/templates` | `REDIRECT` | Compatibility redirect to Library Templates. |
 | `src/app/workshop/proposals/page.tsx` | `/workshop/proposals` | `HELP_ONLY` | Signed-in recipient inbox; no beta-v1 tour. |
-| `src/app/workshop/publisher/page.tsx` | `/workshop/publisher` | `HELP_ONLY` | Keep Client-link distinctions truthful; defer any guide until core Estimate Sheet learning passes and beta evidence justifies it. |
+| `src/app/workshop/publisher/page.tsx` | `/workshop/publisher` | `CORE_GUIDE` | Manager-only `client_link_publishing` learning path for roster/status literacy, exact estimate scope and access, verified create/republish, copy or authenticated Preview, recipients/activity, maintenance, and safety recovery. Never persist a URL/token or confuse Client links with Proposals, public share, or Client Portals. |
 | `src/app/workshop/publisher/preview/[projectId]/page.tsx` | `/workshop/publisher/preview/[projectId]` | `RETURN_ONLY` | Authenticated presentation preview; pause/omit tour overlay. |
 | `src/app/workshop/feedback/page.tsx` | `/workshop/feedback` | `SUPPORT` | Dedicated recovery route with sanitized context only. |
 | `src/app/workshop/settings/page.tsx` | `/workshop/settings` | `SETTINGS` | Primary Guidance & tours status/actions surface; guidance reset preserves starter assets, claims, generations, and tutorial binding. |
@@ -128,7 +128,13 @@ publishers. They emit `opening` only for modal dialogs and
 `closed_focus_restored` after opener restoration. Non-modal popovers do not
 pause Joyride.
 
-| Direct owner | Current mechanism | Implementation decision |
+**Current tracked-owner count:** `26`: the canonical source search finds `23`
+direct Workshop/Support modal owners, and the publisher wrapper search adds
+`PublisherDrawer`, `ShareWizard`, and `ClientPortalComposer` as three explicit
+publisher focus owners. The latter are tracked for lesson handoff/recovery
+rather than counted as new raw-search modal matches.
+
+| Tracked owner | Current mechanism | Implementation decision |
 | --- | --- | --- |
 | `src/components/support/SupportCenter.tsx` | `AppModal` | Covered by shared lifecycle; tour pauses before Support opens. |
 | `src/components/workshop/BulkDestructivePreviewModal.tsx` | `Modal` | Covered by shared lifecycle. |
@@ -146,6 +152,9 @@ pause Joyride.
 | `src/components/workshop/dashboard/PublishedProjectQuickActions.tsx` | `Modal` | Covered by shared lifecycle. |
 | `src/components/workshop/publication/RecipientEmailComposer.tsx` | Multiple `Modal` instances | Covered by shared lifecycle. |
 | `src/components/workshop/publisher/PublisherProjectPicker.tsx` | `Dialog` | Covered by shared lifecycle. |
+| `src/components/workshop/publisher/PublisherDrawer.tsx` | `Drawer` plus `ConfirmDialog` | Shared Drawer lifecycle covers detail focus; pause guidance before Replace/Turn off confirmation and never require either destructive action. |
+| `src/components/workshop/publisher/ShareWizard.tsx` | `Drawer` plus `UnsavedChangesDialog` | Shared lifecycle covers the wizard and discard confirmation; resume only after focus restoration or verified save/readback. |
+| `src/components/workshop/publisher/ClientPortalComposer.tsx` | `ConfirmDialog` | Covered by shared lifecycle; Client Portal migration stays outside Client links core, and guidance pauses/exits before this separate product action. |
 | `src/components/workshop/EstimateSheetContent.tsx` | `Modal` plus native `<dialog>` | Shared instances covered; native dialog adopts lifecycle adapter. |
 | `src/components/workshop/ProposalExportPreviewDialog.tsx` | Native `<dialog>` | Add lifecycle adapter around `showModal`/close/restoration. |
 | `src/components/workshop/component-library/CommandPalette.tsx` | Native `<dialog>` | Add lifecycle adapter around `showModal`/close/restoration. |
@@ -156,13 +165,17 @@ pause Joyride.
 
 ### Focus stop condition
 
-Implementation is not accepted until every direct owner above is either covered
-by the shared primitive or explicitly adapted, and source search finds no
-unclassified modal owner:
+Implementation is not accepted until every tracked owner above is either
+covered by the shared primitive or explicitly adapted, the three publisher
+focus owners preserve their lesson handoff/recovery contracts, and both source
+searches find no unclassified direct modal or publisher wrapper owner:
 
 ```bash
 rg -n '<(AppModal|Modal|Dialog)\b|<dialog\b|role="dialog"|aria-modal="true"' \
   src/app/workshop src/components/workshop src/components/support
+
+rg -n '<Drawer\b|<[A-Za-z][A-Za-z0-9]+Dialog\b' \
+  src/components/workshop/publisher
 ```
 
 Opening any classified application modal must leave no Joyride tooltip,

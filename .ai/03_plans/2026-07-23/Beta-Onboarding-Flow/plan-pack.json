@@ -10,7 +10,7 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-23T16:08:48.000Z",
+  "updated_at": "2026-07-23T16:55:19.000Z",
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
@@ -23,43 +23,43 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "c01ed426f0611aec82ef3ae161b935f3344c5adecbb5a17f4c3753fcb4b549bd"
+      "sha256": "761d2fe59ba34f2185df8925d71baf07c2788501f2c2d1d9043664233383d190"
     },
     {
       "id": "ART-002",
       "role": "current-state-and-d1-audit",
       "path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
-      "sha256": "c4c25dacc2b67b25f0f42f59fcb5cc16f2f4e0cdb67e0b65d8074f0cdb3ad104"
+      "sha256": "1264ba3dca33be4c13ff9ad99256b7cd6b6de4f9d56b95123011cde5ef8f8a21"
     },
     {
       "id": "ART-003",
       "role": "research-and-experience-spec",
       "path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
-      "sha256": "f52b6c9a07e960bc7b9eb166b10021e52f0dc54a499243e3e1743fc924740ab6"
+      "sha256": "a4121a407cfc09eae7bb4c53515ffa60dd17ea9cb3e79c16f7d3cacb2472f1c1"
     },
     {
       "id": "ART-004",
       "role": "architecture-data-verification",
       "path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b"
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01"
     },
     {
       "id": "ART-005",
       "role": "route-and-overlay-inventory",
       "path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
-      "sha256": "7316094399a3483a43b096279a3ceb4deb697d012920f768d2527b580b7a408d"
+      "sha256": "6fe11c1e253b754db8b554b1ba5659023e034fd28e780d040d3cb3bed76837ff"
     },
     {
       "id": "ART-006",
       "role": "independent-review",
       "path": "05-INDEPENDENT-REVIEW.md",
-      "sha256": "41e59c76237a4bc6f0360e1767642cf94246362d81a658b10de55b02b381777d"
+      "sha256": "8146b7644dafdea49edfe04cdaf983b256857ecf2130e033b8472f6cfd5c991a"
     },
     {
       "id": "ART-007",
       "role": "pack-index",
       "path": "README.md",
-      "sha256": "898f9290d529c10244c6c5b5dc8a25c1dc9bc57eea351400c19068a382118659"
+      "sha256": "94434e395ad24f3dc53eb7bd375a17e13ff01b46830111a212e074fa9cdf2496"
     }
   ],
   "sources": [
@@ -74,6 +74,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -94,6 +95,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -113,6 +115,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-003",
         "SEC-001",
         "PERF-001",
@@ -130,6 +133,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -149,6 +153,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -166,6 +171,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -308,6 +314,32 @@
       ],
       "criterion_ids": [
         "AC-012"
+      ]
+    },
+    {
+      "id": "UX-006",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-014"
       ]
     },
     {
@@ -499,7 +531,7 @@
       "id": "ASSUMP-003",
       "status": "ACTIVE",
       "artifact_path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
-      "statement": "the active route inventory remains 72 page.tsx files and the direct Workshop and Support modal-owner inventory remains 23 files with unchanged route, auth, and overlay ownership",
+      "statement": "the active route inventory remains 72 page.tsx files, the canonical source search still finds 23 direct Workshop and Support modal owners, and the publisher wrapper search still finds PublisherDrawer, ShareWizard, and ClientPortalComposer as three additional focus owners for 26 tracked owners total, with unchanged route, auth, and overlay ownership",
       "revalidate_before": [
         "UNIT-003",
         "UNIT-004",
@@ -817,6 +849,41 @@
         "AC-004",
         "AC-013"
       ]
+    },
+    {
+      "id": "RISK-019",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-012"
+      ]
+    },
+    {
+      "id": "RISK-020",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-008",
+        "AC-014"
+      ]
     }
   ],
   "criteria": [
@@ -906,7 +973,8 @@
       "test_rationale": "Single focus ownership and accessible user control are critical invariants; cheaper non-test inspection is insufficient because keyboard, modal, reflow, and restoration behavior must execute.",
       "test_ids": [
         "TEST-003",
-        "TEST-005"
+        "TEST-005",
+        "TEST-009"
       ],
       "evidence_ids": [
         "EVID-007",
@@ -965,7 +1033,8 @@
       "test_rationale": "Server-derived scope and tenant-data non-disclosure are critical invariants; cheaper non-test inspection is insufficient because negative authorization and serialization paths must execute.",
       "test_ids": [
         "TEST-004",
-        "TEST-007"
+        "TEST-007",
+        "TEST-009"
       ],
       "evidence_ids": [
         "EVID-008"
@@ -1069,6 +1138,31 @@
         "EVID-007"
       ],
       "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-014",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-006"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Client links guided publishing and atomic same-publication/run completion are critical MVP invariants. Cheaper non-test source inspection is insufficient because it cannot prove manager-only eligibility, verified non-empty publication scope, HMAC receipt correlation and cross-project/replay rejection, copy or authenticated Preview completion, failure/mobile recovery, public-route exclusion, or the absence of sensitive publication and recipient data from instructional state.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-003",
+        "TEST-005",
+        "TEST-007",
+        "TEST-009"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007",
+        "EVID-008",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
     }
   ],
   "tests": [
@@ -1079,7 +1173,8 @@
       "criterion_ids": [
         "AC-006",
         "AC-007",
-        "AC-013"
+        "AC-013",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-006"
@@ -1106,7 +1201,8 @@
         "AC-002",
         "AC-004",
         "AC-005",
-        "AC-010"
+        "AC-010",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-007"
@@ -1133,7 +1229,8 @@
         "AC-004",
         "AC-005",
         "AC-009",
-        "AC-012"
+        "AC-012",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-009"
@@ -1157,7 +1254,8 @@
       "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
       "criterion_ids": [
         "AC-008",
-        "AC-011"
+        "AC-011",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-008"
@@ -1175,6 +1273,21 @@
         "EVID-006",
         "EVID-007"
       ]
+    },
+    {
+      "id": "TEST-009",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-005",
+        "AC-008",
+        "AC-014"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-008",
+        "EVID-009"
+      ]
     }
   ],
   "gates": [
@@ -1185,7 +1298,8 @@
       "criterion_ids": [
         "AC-006",
         "AC-007",
-        "AC-013"
+        "AC-013",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-006"
@@ -1198,7 +1312,8 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-008",
-        "AC-011"
+        "AC-011",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-008"
@@ -1229,7 +1344,8 @@
         "AC-004",
         "AC-005",
         "AC-012",
-        "AC-013"
+        "AC-013",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-007",
@@ -1243,7 +1359,8 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-005",
-        "AC-012"
+        "AC-012",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-009"
@@ -1279,7 +1396,8 @@
         "AC-010",
         "AC-011",
         "AC-012",
-        "AC-013"
+        "AC-013",
+        "AC-014"
       ],
       "evidence_ids": [
         "EVID-010"
@@ -1295,6 +1413,7 @@
       "depends_on": [],
       "requirement_ids": [
         "REQ-001",
+        "UX-006",
         "DATA-003",
         "SEC-001",
         "PERF-001",
@@ -1310,7 +1429,9 @@
         "RISK-012",
         "RISK-013",
         "RISK-016",
-        "RISK-017"
+        "RISK-017",
+        "RISK-019",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1326,6 +1447,7 @@
       ],
       "requirement_ids": [
         "UX-002",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -1341,7 +1463,8 @@
         "RISK-013",
         "RISK-015",
         "RISK-016",
-        "RISK-018"
+        "RISK-018",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1360,6 +1483,7 @@
         "UX-001",
         "UX-003",
         "UX-004",
+        "UX-006",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -1374,7 +1498,8 @@
         "RISK-008",
         "RISK-011",
         "RISK-013",
-        "RISK-014"
+        "RISK-014",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1396,6 +1521,7 @@
         "UX-002",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-002"
       ],
       "risk_ids": [
@@ -1408,7 +1534,9 @@
         "RISK-013",
         "RISK-015",
         "RISK-017",
-        "RISK-018"
+        "RISK-018",
+        "RISK-019",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1440,7 +1568,8 @@
         "RISK-015",
         "RISK-016",
         "RISK-017",
-        "RISK-018"
+        "RISK-018",
+        "RISK-019"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1459,6 +1588,7 @@
       "requirement_ids": [
         "UX-003",
         "UX-005",
+        "UX-006",
         "SEC-001"
       ],
       "risk_ids": [
@@ -1470,11 +1600,15 @@
         "RISK-015",
         "RISK-016",
         "RISK-017",
-        "RISK-018"
+        "RISK-018",
+        "RISK-019",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
-        "EVID-007"
+        "EVID-007",
+        "EVID-008",
+        "EVID-009"
       ]
     },
     {
@@ -1486,6 +1620,7 @@
       ],
       "requirement_ids": [
         "UX-004",
+        "UX-006",
         "DATA-001",
         "SEC-001",
         "OPS-001"
@@ -1496,7 +1631,8 @@
         "RISK-007",
         "RISK-008",
         "RISK-010",
-        "RISK-016"
+        "RISK-016",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1520,6 +1656,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -1546,7 +1683,9 @@
         "RISK-015",
         "RISK-016",
         "RISK-017",
-        "RISK-018"
+        "RISK-018",
+        "RISK-019",
+        "RISK-020"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1830,6 +1969,46 @@
         "RISK-018"
       ],
       "rationale": "A closed shared 3-Project/4-Estimate-Sheet/6-Component/3-Template starter manifest makes product organization and reuse concrete while exact auto-install eligibility, two claimed custom folders, scoped claims, shared-membership revision closure, role-downgrade-safe starter-organization cleanup, explicit inactive-key restore, no silent per-user Project duplication, the closed successful checklist-operation set, and seed-origin exclusion prevent clutter, stranded group membership, retained-progress erasure, overwrite, duplication, or false activation."
+    },
+    {
+      "id": "DEC-AUTO-021",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-004",
+        "UX-005",
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-008",
+        "AC-005",
+        "AC-012",
+        "RISK-017",
+        "RISK-019"
+      ],
+      "rationale": "One route-local Estimate Sheet Core/Optional learning rail with eight independently resumable, action-handoff lessons teaches the complete live hierarchy, row math, save/recovery behavior, reusable structure, read-only use, and transfer without turning onboarding into one long tour or mistaking tooltip views for product mastery."
+    },
+    {
+      "id": "DEC-AUTO-022",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-003",
+        "UX-006",
+        "SEC-001",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "AC-004",
+        "AC-008",
+        "AC-014",
+        "RISK-020"
+      ],
+      "rationale": "Client links is a manager-only guided MVP whose core completion is emitted by one server-correlated bridge only after a verified non-empty create or republish and copy, selectable-link fallback, or authenticated Preview against the exact same current publication in the same active run; a short-lived HMAC receipt binds that relationship without persisting resource identifiers, while public recipient routes, publication tokens, recipient data, automatic email, and destructive link actions remain outside instructional state and required onboarding."
     }
   ],
   "authorization_boundaries": [],
@@ -1847,7 +2026,8 @@
     "active D1 migration head changes from 0100 or migration 0101 becomes occupied",
     "Workshop route, navigation, overlay, auth-return, activation, privacy, retention, or deletion source changes",
     "the active page inventory differs from 72 routes",
-    "the direct Workshop and Support modal-owner inventory differs from 23 files",
+    "the canonical direct Workshop and Support modal-owner source search differs from 23 files",
+    "the publisher Drawer/custom-Dialog wrapper search differs from PublisherDrawer, ShareWizard, and ClientPortalComposer",
     "guided-sample, activation-writer, Estimate Sheet hierarchy, Component persistence, or Template persistence contracts change before UNIT-005",
     "Next.js 16 local framework guidance changes for dynamic imports, client boundaries, or navigation"
   ],
@@ -1860,11 +2040,14 @@
         "SRC-002",
         "REQ-001",
         "UX-005",
+        "UX-006",
         "DATA-003",
-        "ASSUMP-004"
+        "ASSUMP-004",
+        "RISK-019",
+        "RISK-020"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "c4c25dacc2b67b25f0f42f59fcb5cc16f2f4e0cdb67e0b65d8074f0cdb3ad104",
+      "sha256": "1264ba3dca33be4c13ff9ad99256b7cd6b6de4f9d56b95123011cde5ef8f8a21",
       "valid_until": null
     },
     {
@@ -1875,10 +2058,11 @@
         "SRC-003",
         "ASSUMP-001",
         "UX-005",
+        "UX-006",
         "DATA-003"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "f52b6c9a07e960bc7b9eb166b10021e52f0dc54a499243e3e1743fc924740ab6",
+      "sha256": "a4121a407cfc09eae7bb4c53515ffa60dd17ea9cb3e79c16f7d3cacb2472f1c1",
       "valid_until": null
     },
     {
@@ -1888,10 +2072,11 @@
       "claim_ids": [
         "SRC-005",
         "ASSUMP-003",
-        "UX-005"
+        "UX-005",
+        "UX-006"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "7316094399a3483a43b096279a3ceb4deb697d012920f768d2527b580b7a408d",
+      "sha256": "6fe11c1e253b754db8b554b1ba5659023e034fd28e780d040d3cb3bed76837ff",
       "valid_until": null
     },
     {
@@ -1901,13 +2086,17 @@
       "claim_ids": [
         "SRC-006",
         "UX-005",
+        "UX-006",
         "DATA-003",
-        "AC-013",
         "RISK-018",
-        "DEC-AUTO-020"
+        "RISK-019",
+        "RISK-020",
+        "DEC-AUTO-020",
+        "DEC-AUTO-021",
+        "DEC-AUTO-022"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "41e59c76237a4bc6f0360e1767642cf94246362d81a658b10de55b02b381777d",
+      "sha256": "8146b7644dafdea49edfe04cdaf983b256857ecf2130e033b8472f6cfd5c991a",
       "valid_until": null
     },
     {
@@ -1923,6 +2112,7 @@
         "UX-003",
         "UX-004",
         "UX-005",
+        "UX-006",
         "DATA-001",
         "DATA-002",
         "DATA-003",
@@ -1948,6 +2138,8 @@
         "RISK-016",
         "RISK-017",
         "RISK-018",
+        "RISK-019",
+        "RISK-020",
         "UNIT-001",
         "UNIT-002",
         "UNIT-003",
@@ -1975,10 +2167,12 @@
         "DEC-AUTO-017",
         "DEC-AUTO-018",
         "DEC-AUTO-019",
-        "DEC-AUTO-020"
+        "DEC-AUTO-020",
+        "DEC-AUTO-021",
+        "DEC-AUTO-022"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "c01ed426f0611aec82ef3ae161b935f3344c5adecbb5a17f4c3753fcb4b549bd",
+      "sha256": "761d2fe59ba34f2185df8925d71baf07c2788501f2c2d1d9043664233383d190",
       "valid_until": null
     },
     {
@@ -1990,6 +2184,7 @@
         "AC-006",
         "AC-007",
         "AC-013",
+        "AC-014",
         "TEST-001",
         "TEST-008",
         "UNIT-002",
@@ -1998,7 +2193,7 @@
         "GATE-DATA-01"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01",
       "valid_until": null
     },
     {
@@ -2013,9 +2208,11 @@
         "AC-010",
         "AC-012",
         "AC-013",
+        "AC-014",
         "TEST-002",
         "TEST-003",
         "TEST-008",
+        "TEST-009",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
@@ -2024,7 +2221,7 @@
         "GATE-UX-01"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01",
       "valid_until": null
     },
     {
@@ -2035,15 +2232,18 @@
         "AC-007",
         "AC-008",
         "AC-011",
+        "AC-014",
         "TEST-004",
         "TEST-007",
+        "TEST-009",
         "UNIT-002",
         "UNIT-003",
+        "UNIT-006",
         "UNIT-007",
         "GATE-SEC-01"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01",
       "valid_until": null
     },
     {
@@ -2057,18 +2257,21 @@
         "AC-009",
         "AC-010",
         "AC-012",
+        "AC-014",
         "TEST-005",
         "TEST-006",
+        "TEST-009",
         "UNIT-001",
         "UNIT-003",
         "UNIT-005",
+        "UNIT-006",
         "GATE-NEXT-01",
         "GATE-UX-01",
         "GATE-A11Y-01",
         "GATE-PERF-01"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01",
       "valid_until": null
     },
     {
@@ -2079,10 +2282,11 @@
         "UNIT-008",
         "AC-012",
         "AC-013",
+        "AC-014",
         "GATE-VERIFY-01"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01",
       "valid_until": null
     },
     {
@@ -2093,9 +2297,9 @@
         "AC-001"
       ],
       "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
-      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
+      "sha256": "a33dcdaa2cd21813551bc5a91190940e4737cc775eef4c1c9af89cc5fb0f2a01",
       "valid_until": null
     }
   ],
-  "manifest_sha256": "b12716b384b3268ea03641b6451f00aafed6d6f63cf803b6b3bc71be444ace02"
+  "manifest_sha256": "3c1c6f2c74c4aa72e00d63179d1bed86621151e4808975944600ffbd5f7a009c"
 }
