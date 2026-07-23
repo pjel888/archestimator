@@ -1,9 +1,35 @@
 [
   {
+    "date": "2026-07-23",
+    "scope": "src/app/kimi3d",
+    "macrostructure": "Workbench",
+    "theme": "Custom cool workshop glass",
+    "theme_axes": "light / geometric-sans / warm signal",
+    "enrichment": "Real Archestimator estimate workspace and client financial proof",
+    "brief": "Replace the uneven feature-tour layout with a clear estimate-to-client-version path, remove duplicate authenticated actions and pill CTAs, and use restrained liquid glass that matches the application."
+  },
+  {
+    "date": "2026-07-23",
+    "scope": "src/app/kimi3d",
+    "macrostructure": "Guided Proof",
+    "theme": "Daylight ledger",
+    "enrichment": "Scroll-responsive Three.js wave field",
+    "brief": "Clarify the Archestimator feature story, replace the sticky workflow chapter with normal-flow handoffs, and remove black page backgrounds."
+  },
+  {
     "date": "2026-07-19",
     "scope": "src/app/new + src/components/landing-new",
     "macrostructure": "Split-stage estimate-object hero + precision chapters",
-    "components": ["Scroll-morph edge nav", "Three.js estimate bar-object hero (glass bars, orange signal bar, mono value labels)", "Live estimate sheet section (app cost model: Materials, Qty, Unit cost, Contingency, Total item cost)", "Sticky workflow rail", "Product bento (surfaces only)", "Comparison ledger", "Specialties index", "Brand-slab footer"],
+    "components": [
+      "Scroll-morph edge nav",
+      "Three.js estimate bar-object hero (glass bars, orange signal bar, mono value labels)",
+      "Live estimate sheet section (app cost model: Materials, Qty, Unit cost, Contingency, Total item cost)",
+      "Sticky workflow rail",
+      "Product bento (surfaces only)",
+      "Comparison ledger",
+      "Specialties index",
+      "Brand-slab footer"
+    ],
     "tone": "Brand-true SF Pro display (logo face, lowercase hero), financial data-object, light theme",
     "notes": "Fourth /new iteration. Owner rejected: dark stage (v1), architectural maquette tower (v2, 'structural engineering firm'), and the invisible-3D + Archivo version (v3, 'ai slop, hate the font, where is the threejs'). v4: Archivo deleted entirely; display type is the brand's own SF Pro (lowercase hero echoing the wordmark). Three.js is the hero centerpiece — the estimate as a physical bar object (heights proportional to line-item totals, signal-orange glass on the largest, floating mono labels, turntable + pointer parallax). Estimate sheet moved to its own section with scroll-triggered choreography (rows, rolling total, draft→sent→approved). Honest copy, no invented metrics, no fake chrome."
   },
@@ -19,7 +45,13 @@
     "date": "2026-06-23",
     "scope": "src/app/page.tsx",
     "macrostructure": "Restrained editorial ledger",
-    "components": ["Straight brand header", "Editorial hero", "Workflow rows", "Audience list", "Statement footer"],
+    "components": [
+      "Straight brand header",
+      "Editorial hero",
+      "Workflow rows",
+      "Audience list",
+      "Statement footer"
+    ],
     "tone": "Construction estimating workflow",
     "notes": "Rebuilt / around connected estimating work, shared proposal review, and source-backed cost knowledge without fake metrics, testimonials, customer logos, browser chrome, or borrowed product-proof language."
   },
@@ -27,7 +59,13 @@
     "date": "2026-07-06",
     "scope": "src/app/new + src/components/landing-new",
     "macrostructure": "Workbench + Narrative Workflow",
-    "components": ["N5 floating pill nav", "H8 product-workbench hero", "F4 workflow sequence", "F3 feature sheet", "Ft5 statement footer"],
+    "components": [
+      "N5 floating pill nav",
+      "H8 product-workbench hero",
+      "F4 workflow sequence",
+      "F3 feature sheet",
+      "Ft5 statement footer"
+    ],
     "tone": "Precision Editorial AEC product proof",
     "notes": "Implemented isolated /new route from an imagegen reference, preserving the existing / route and using inspectable product surfaces instead of fake metrics, testimonials, logo walls, or generated browser chrome."
   }

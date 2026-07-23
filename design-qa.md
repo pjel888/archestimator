@@ -1,4 +1,30 @@
-# Design QA
+# Design QA: Kimi3D Hero
+
+- **Source visual truth:** `/var/folders/bn/7b1mmzfj6j52jkpfny_33f840000gn/T/codex-clipboard-e963f8be-54c1-453e-9ac2-f2ed96b334c1.png`.
+- **Implementation screenshot:** `/Users/philiplewis/.codex/visualizations/2026/07/23/019f8d99-aac1-7822-9700-05617afaa108/kimi3d-hero-jersey25-final.jpg`.
+- **Combined comparison:** `/Users/philiplewis/.codex/visualizations/2026/07/23/019f8d99-aac1-7822-9700-05617afaa108/kimi3d-hero-reference-vs-actual.jpg`, with the source on the left and current implementation on the right.
+- **Viewport and density:** the final visual capture is `1872x1365` CSS pixels at `devicePixelRatio: 1.2`. Exact responsive geometry was also checked at `1280x800` and `415x843`.
+- **State:** public `/kimi3d` route at the top of the page, signed-out CTA variant, desktop navigation open, no overlays or dialogs.
+- **Full-view comparison:** the accepted panoramic architectural image remains the dominant element, now without the source reference frame. The headline, supporting copy, and CTA form a single asymmetric composition beneath it.
+- **Focused hero comparison:** the product-category eyebrow now precedes the image in DOM and visual order. The headline uses Jersey 25 at its native weight `400`; the mono subtitle and dense dot grid retain the technical voxel register.
+- **Desktop geometry:** at `1280x800`, the eyebrow is at `y=82–97`, image at `y=97–498`, headline at `y=543–610`, description at `y=571–694`, and CTA at `y=722–771`. Document width equals viewport width.
+- **Mobile geometry:** at `415x843`, document width equals viewport width; the headline wraps to two lines at `45.65px/800`, and the CTA remains single-line and visible through `y=788`.
+- **Interactions:** the hero is static apart from existing reveal motion. The primary CTA renders as one enabled link with a non-wrapping label.
+- **Console:** no browser warnings or errors in the final desktop or responsive checks.
+- **Static checks:** targeted ESLint and `git diff --check` pass for the changed hero source.
+- **Independent review:** two read-only reviewers returned `PASS`; no blocking Hallmark, hierarchy, overflow, fold-fit, typography-family, honest-copy, or CTA-readability issues remain.
+
+## Comparison History
+
+1. **Initial:** eyebrow below image, lightweight dotted display face, and supporting copy pushed out of the opening composition.
+2. **Round one:** eyebrow moved above image; headline switched to an `800`-weight geometric face; copy and CTA aligned in an eight/four-column split.
+3. **Final:** headline moved to Jersey 25, the trailing square accent was removed, responsive overflow and fold fit were rechecked, and both independent gates passed.
+
+final result: passed
+
+---
+
+# Prior Design QA: Mistral Landing
 
 - **Source visual truth:** `.omx/artifacts/visual-ralph/mistral-landing/source-desktop.png` and `.omx/artifacts/visual-ralph/mistral-landing/source-mobile.png`.
 - **Implementation screenshots:** `.omx/artifacts/visual-ralph/mistral-landing/implementation-desktop-final-v4.png`, `.omx/artifacts/visual-ralph/mistral-landing/implementation-mobile-final-v5.png`, `.omx/artifacts/visual-ralph/mistral-landing/implementation-full-final-v4.png`, and `.omx/artifacts/visual-ralph/mistral-landing/implementation-mobile-full-final-v5.png`.
