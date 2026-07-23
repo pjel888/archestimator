@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 
-import { ThreeDLanding } from "./three-d-landing";
+import { KimiLandingPage } from "./_components/kimi-landing-page";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Archestimator — Landing concept Kimi 3D",
+    absolute: "Archestimator | Construction estimates built for review",
   },
-  description: "Static landing page exploration for Archestimator.",
+  description:
+    "Build itemized construction estimates from reusable cost components, publish client-ready versions, export Excel, and keep review tied to the issued estimate.",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-static";
 
-export default function ThreeDLandingRoute() {
-  return <ThreeDLanding />;
+export default function Kimi3dLandingRoute() {
+  return <KimiLandingPage />;
 }
