@@ -3085,7 +3085,7 @@ export function ComponentLibraryManager({
           suppliers={suppliers}
           brands={brands}
           libraryItems={localLibraryItems}
-          selectedFolderId={effectiveSelectedFolderId}
+          selectedFolderId={isAllComponentsFolderId(effectiveSelectedFolderId) ? null : effectiveSelectedFolderId}
           editingItem={componentModalItem}
           expectedComponentImpactFingerprint={componentModalImpactFingerprint || undefined}
           optionUsageCounts={componentModalOptionUsageCounts}

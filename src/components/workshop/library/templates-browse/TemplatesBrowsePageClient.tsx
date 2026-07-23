@@ -68,6 +68,7 @@ type TemplatesBrowsePageClientProps = {
   templates?: EstimateTemplate[];
   componentLibrary?: ComponentRowsLibraryDataset;
   queryScope?: WorkspaceEstimateTemplatesQueryScope;
+  canManageLibrary?: boolean;
 };
 
 type TemplatesSchemaUnavailableSeed = Extract<CurrentWorkspaceEstimateTemplatesSeed, { status: "schema_unavailable" }>;
@@ -105,7 +106,12 @@ function TemplatesSchemaUnavailable({ seed }: { seed: TemplatesSchemaUnavailable
   );
 }
 
-function AvailableTemplatesBrowse({ templates, componentLibrary, queryScope }: Omit<TemplatesBrowsePageClientProps, "templateSeed">) {
+function AvailableTemplatesBrowse({
+  templates,
+  componentLibrary,
+  queryScope,
+  canManageLibrary = true,
+}: Omit<TemplatesBrowsePageClientProps, "templateSeed">) {
   const queryClient = useQueryClient();
   const queryUserId = queryScope?.userId;
   const queryWorkspaceId = queryScope?.workspaceId;
@@ -140,13 +146,20 @@ function AvailableTemplatesBrowse({ templates, componentLibrary, queryScope }: O
     <TemplatesBrowseManager
       templates={data ?? templates}
       libraryData={componentLibrary}
+      canManageLibrary={canManageLibrary}
       onTemplatesMutated={onTemplatesMutated}
       onTemplatesInvalidated={onTemplatesInvalidated}
     />
   );
 }
 
-export function TemplatesBrowsePageClient({ templateSeed, templates, componentLibrary, queryScope }: TemplatesBrowsePageClientProps = {}) {
+export function TemplatesBrowsePageClient({
+  templateSeed,
+  templates,
+  componentLibrary,
+  queryScope,
+  canManageLibrary = true,
+}: TemplatesBrowsePageClientProps = {}) {
   if (templateSeed?.status === "schema_unavailable") {
     return (
       <LibrarySurfaceVariantProvider variant="glass">
@@ -166,6 +179,7 @@ export function TemplatesBrowsePageClient({ templateSeed, templates, componentLi
         templates={availableTemplates}
         componentLibrary={componentLibrary}
         queryScope={availableQueryScope}
+        canManageLibrary={canManageLibrary}
       />
     </LibrarySurfaceVariantProvider>
   );

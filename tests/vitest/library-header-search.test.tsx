@@ -62,7 +62,7 @@ describe("Library header search", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(toggle).toHaveAttribute("aria-pressed", "true");
     expect(getHeaderSearchPanel()).toContainElement(input);
-    expect(input).toHaveAttribute("type", "search");
+    expect(input).toHaveAttribute("type", "text");
     await waitFor(() => expect(input).toHaveFocus());
   });
 

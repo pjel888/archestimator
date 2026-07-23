@@ -1164,6 +1164,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     },
   });
   const targetFolderId = normalizedComponent.libraryFolderId
+    && normalizedComponent.libraryFolderId !== "all-components"
     ? readLibraryFolderId(normalizedComponent.libraryFolderId, "Library folder not found in the current workspace.")
     : null;
   const targetFolder = await resolveLibraryFolderInWorkspaceD1(database, workspace.id, targetFolderId);
@@ -1301,6 +1302,7 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   });
   const normalizedComponent = normalizeComponentInput(input);
   const targetFolderId = normalizedComponent.libraryFolderId
+    && normalizedComponent.libraryFolderId !== "all-components"
     ? readLibraryFolderId(normalizedComponent.libraryFolderId, "Library folder not found in the current workspace.")
     : null;
   const targetFolder = await resolveLibraryFolderInWorkspaceD1(database, workspace.id, targetFolderId);
@@ -1359,11 +1361,12 @@ export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibr
   const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
   if (issues.length > 0) return buildRejectedPreviewResult("library_component", ids, issues);
 
-  const [{ workspace }] = await Promise.all([
+  const [{ workspace }, currentUser] = await Promise.all([
     ensureDefaultWorkspace(),
     requireCurrentUserContext(),
   ]);
   const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
   const preview = await previewBulkArchiveLibraryComponentsInD1(database, workspace.id, ids);
   return coerceBulkPreviewResult({
     ok: preview.eligibleIds.length > 0 && preview.blocked.length === 0,
@@ -3236,6 +3239,7 @@ export async function searchLibraryOverview(input: { query: string }): Promise<L
         SELECT id, name, category
         FROM estimate_templates
         WHERE workspace_id = ?
+          AND archived_at IS NULL
           AND LOWER(name) LIKE LOWER(?) ESCAPE '\\'
         ORDER BY updated_at DESC
         LIMIT 3

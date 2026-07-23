@@ -48,6 +48,7 @@ import {
 } from "@/lib/component-library/unit-options";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { EstimateRowItem } from "@/lib/estimates/types";
+import { isAllComponentsFolderId } from "@/components/workshop/component-library-manager/library-folder-tree-shared";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/types/json";
 import { cn } from "@/lib/ui/cn";
@@ -214,7 +215,8 @@ const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; 
   { value: "in_production", label: "In production", tone: "info" },
   { value: "available", label: "Available", tone: "success" },
   { value: "discontinued", label: "Discontinued", tone: "warning" },
-  { value: "archived", label: "Archived", tone: "danger" },
+  // Archive lives on the dedicated archive flow; editing lifecycle to
+  // "archived" here would hide the component with no restore UI.
 ];
 const ADD_COMPONENT_MODAL_TABS: Array<{ id: AddComponentModalTab; label: string }> = [
   { id: "component", label: "Component" },
@@ -1378,12 +1380,14 @@ function OpenAddComponentModal({
     const fallbackVariant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
     const defaultVariantImage = getVariantImage(draft, fallbackVariant);
     const defaultThumbnailPath = defaultVariantImage?.thumbnailUrl || defaultVariantImage?.thumbnailPath || null;
+    const rawFolderId = editingItem?.libraryFolderId ?? selectedFolderId;
+    const libraryFolderId = isAllComponentsFolderId(rawFolderId) ? null : rawFolderId;
     return {
       name: draft.name,
       description: fallbackVariant.description,
       category: draft.category.trim(),
       categoryNodeId: draft.categoryNodeId,
-      libraryFolderId: editingItem?.libraryFolderId ?? selectedFolderId,
+      libraryFolderId,
       supplier: selectedSupplier?.name ?? draft.supplierName,
       supplierId: draft.supplierId || null,
       brand: (selectedBrand?.name ?? draft.brand) || null,

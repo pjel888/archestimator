@@ -14,6 +14,7 @@ import {
   type EstimateTemplateInsertTargetResolution,
   type EstimateInsertTargetProject,
 } from "@/lib/component-library/actions";
+import { loadCurrentWorkspaceEstimateTemplateGraph } from "@/lib/component-library/template-browse-actions";
 import { insertEstimateTemplateIntoEstimate } from "@/lib/estimates/actions";
 
 type TargetsState =
@@ -180,6 +181,10 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
   const [copyFallbackRequested, setCopyFallbackRequested] = useState(false);
   const [discontinuedDependenciesReviewed, setDiscontinuedDependenciesReviewed] = useState(false);
   const [insertMode, setInsertMode] = useState<"linked" | "copy">("linked");
+  const [resolvedTemplate, setResolvedTemplate] = useState(template);
+  const [templateGraphState, setTemplateGraphState] = useState<"ready" | "loading" | "error">(
+    template.nodes.length > 0 ? "ready" : "loading",
+  );
   const {
     targets,
     selectedProjectId,
@@ -188,6 +193,36 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     submitError,
     pending,
   } = pickerState;
+
+  // Browse/editor chrome often passes summary-only templates (`nodes: []`).
+  // Hydrate the graph so linked-mode emptiness and dependency checks are accurate.
+  useEffect(() => {
+    if (template.nodes.length > 0) {
+      setResolvedTemplate(template);
+      setTemplateGraphState("ready");
+      return;
+    }
+    let active = true;
+    setTemplateGraphState("loading");
+    loadCurrentWorkspaceEstimateTemplateGraph(template.id)
+      .then((graph) => {
+        if (!active) return;
+        setResolvedTemplate({
+          ...template,
+          ...graph,
+          summary: template.summary ?? graph.summary,
+        });
+        setTemplateGraphState("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setResolvedTemplate(template);
+        setTemplateGraphState("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [template]);
 
   // The fetch only sets state from its async callbacks; the initial state
   // already reads "loading", so the mount effect does not set state itself.
@@ -247,7 +282,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
     [projects, selectedProjectId],
   );
   const estimates = useMemo(() => selectedProject?.estimates ?? [], [selectedProject]);
-  const dependencyLifecycle = useMemo(() => readTemplateDependencyLifecycle(template), [template]);
+  const dependencyLifecycle = useMemo(() => readTemplateDependencyLifecycle(resolvedTemplate), [resolvedTemplate]);
   const selectedEstimate = estimates.find((estimate) => estimate.id === selectedEstimateId) ?? null;
   const selectedProjectIdForResolution = selectedProject?.id ?? "";
   const selectedEstimateIdForResolution = selectedEstimate?.id ?? "";
@@ -262,6 +297,14 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
       : selectedTargetKey
         ? { state: "resolving" as const }
         : { state: "idle" as const };
+  const templateIsEmpty = templateGraphState === "ready" && resolvedTemplate.nodes.length === 0;
+  const templateGraphPending = templateGraphState === "loading";
+
+  useEffect(() => {
+    if (templateIsEmpty && insertMode === "linked") {
+      setInsertMode("copy");
+    }
+  }, [insertMode, templateIsEmpty]);
 
   useEffect(() => {
     if (!selectedTargetKey || !selectedProjectIdForResolution || !selectedEstimateIdForResolution) return;
@@ -400,7 +443,13 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
           result = await insert("copy", copyIntentId, "use_saved_snapshot_unlinked");
         }
       }
-      if (result.status !== "inserted") return;
+      if (result.status !== "inserted") {
+        dispatchPicker({
+          type: "submit:error",
+          message: "Could not insert the template. Choose another target or try again.",
+        });
+        return;
+      }
       retainedInsertIntentBySignature.delete(intentSignature);
       if (copyIntentSignature) retainedInsertIntentBySignature.delete(copyIntentSignature);
       onInserted(selectedEstimate.name);
@@ -424,7 +473,8 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
   ]);
 
   const canSubmit = targetResolution.state === "resolved"
-    && (insertMode === "copy" || template.nodes.length > 0)
+    && !templateGraphPending
+    && (insertMode === "copy" || !templateIsEmpty)
     && dependencyLifecycle.archived === 0
     && (dependencyLifecycle.discontinued === 0 || discontinuedDependenciesReviewed)
     && !pending;
@@ -442,6 +492,12 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
       <div className="grid gap-3" data-insert-into-estimate-picker="true">
         {submitError ? (
           <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{submitError}</p>
+        ) : null}
+
+        {templateGraphState === "error" ? (
+          <p className="border border-warning/30 bg-warning/10 p-2 text-[10px] font-medium text-ink">
+            Could not load this Template structure. Copy insert remains available.
+          </p>
         ) : null}
 
         {dependencyLifecycle.archived > 0 ? (
@@ -477,7 +533,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
               name="template-insert-mode"
               value="linked"
               checked={insertMode === "linked"}
-              disabled={pending || template.nodes.length === 0}
+              disabled={pending || templateGraphPending || templateIsEmpty}
               onChange={() => setInsertMode("linked")}
               className="mt-0.5 size-3 accent-brand-orange"
             />
@@ -492,7 +548,7 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
               name="template-insert-mode"
               value="copy"
               checked={insertMode === "copy"}
-              disabled={pending}
+              disabled={pending || templateGraphPending}
               onChange={() => setInsertMode("copy")}
               className="mt-0.5 size-3 accent-brand-orange"
             />
@@ -501,7 +557,10 @@ function OpenInsertIntoEstimatePicker({ open, onOpenChange, template, onInserted
               <span className="block text-[9px] leading-3 text-tertiary">Creates independent Estimate content with no future Template updates.</span>
             </span>
           </label>
-          {template.nodes.length === 0 ? (
+          {templateGraphPending ? (
+            <p className="text-[9px] leading-3 text-tertiary">Loading Template structure…</p>
+          ) : null}
+          {templateIsEmpty ? (
             <p className="text-[9px] leading-3 text-warning">This Template is empty, so linked insertion is unavailable. Add a root in the Template Editor or insert a copy.</p>
           ) : null}
         </fieldset>

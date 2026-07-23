@@ -182,6 +182,9 @@ function TemplateLinkedInstancesStatus({ templateId, canEdit }: { templateId: st
                 setRetrying(true);
                 void retryEstimateTemplateLinkedInstances({ templateId })
                   .then(() => queryClient.invalidateQueries({ queryKey }))
+                  .catch((error: unknown) => {
+                    console.error("[templates] linked-instance retry failed", error);
+                  })
                   .finally(() => setRetrying(false));
               }}
             >

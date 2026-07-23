@@ -37,9 +37,8 @@ async function getCurrentWorkspaceLibraryManagementCapability() {
 }
 
 /**
- * Shared server content for the Components tab. Rendered by both the
- * library index route (until the Overview home ships) and the
- * /workshop/library/components sub-route.
+ * Shared server content for the Components tab under
+ * `/workshop/library/components`.
  */
 export async function LibraryComponentsRoute({
   searchParams,
