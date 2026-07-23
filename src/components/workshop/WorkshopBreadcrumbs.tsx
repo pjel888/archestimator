@@ -18,6 +18,10 @@ function normalizeBreadcrumb(crumb: WorkshopBreadcrumb) {
   return typeof crumb === "string" ? { label: crumb } : crumb;
 }
 
+function isWorkshopRootBreadcrumb(crumb: WorkshopBreadcrumb) {
+  return normalizeBreadcrumb(crumb).label === "Workshop";
+}
+
 function getProjectSectionBreadcrumb(pathname: string | null, projectId?: string) {
   if (!projectId || !pathname) return null;
   const projectRoute = `/workshop/projects/${projectId}`;
@@ -34,7 +38,7 @@ export function WorkshopBreadcrumbs({ breadcrumbs, projectId, className }: Works
   const pathname = usePathname();
   const estimateMetadata = useProjectEstimateMetadata();
   const sectionBreadcrumb = getProjectSectionBreadcrumb(pathname, projectId);
-  const resolvedBreadcrumbs = [...breadcrumbs.map(normalizeBreadcrumb)];
+  const resolvedBreadcrumbs = breadcrumbs.filter((breadcrumb) => !isWorkshopRootBreadcrumb(breadcrumb)).map(normalizeBreadcrumb);
   const projectRoute = projectId ? `/workshop/projects/${projectId}` : null;
   const isEstimateDetailRoute = Boolean(projectRoute && pathname?.startsWith(`${projectRoute}/estimates/`));
   const estimateName = estimateMetadata && estimateMetadata.projectId === projectId ? estimateMetadata.estimateName.trim() : "";

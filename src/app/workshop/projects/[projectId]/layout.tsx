@@ -28,7 +28,6 @@ function ProjectTitleBlock({ projectId, title }: { projectId: string; title: str
       </div>
       <WorkshopBreadcrumbs
         breadcrumbs={[
-          { label: "Workshop", href: "/workshop" },
           { label: "Projects", href: "/workshop/projects" },
           { label: title, href: `/workshop/projects/${projectId}` },
         ]}
@@ -56,7 +55,6 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       title="Project"
       eyebrow="Projects"
       breadcrumbs={[
-        { label: "Workshop", href: "/workshop" },
         { label: "Projects", href: "/workshop/projects" },
         { label: "Project", href: `/workshop/projects/${projectId}` },
       ]}

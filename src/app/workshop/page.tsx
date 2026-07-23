@@ -122,7 +122,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
       showEyebrow={false}
       hideTitle
       titleSlot={<WorkshopHeaderGreeting displayName={currentUser.displayName} />}
-      breadcrumbs={["Workshop"]}
+      breadcrumbs={[]}
       contentClassName="overflow-hidden"
     >
       <WorkshopCanvasWash className="dashboard-transparent-shell" />

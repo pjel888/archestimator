@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/ui/cn";
 import { EstimateCenterColumnBoundary } from "./EstimateCenterColumnBoundary";
 import { WorkshopBreadcrumbs, type WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
+import { WorkshopHeaderBackButton } from "./WorkshopHeaderBackButton";
 
 type WorkshopTitleHeaderProps = {
   title: string;
@@ -30,27 +31,34 @@ export function WorkshopTitleHeader({
   projectId,
   className,
 }: WorkshopTitleHeaderProps) {
-  const hasBreadcrumbs = Boolean(breadcrumbs?.length);
-  const showBreadcrumbs = (breadcrumbs?.length ?? 0) > 1;
+  const visibleBreadcrumbs = breadcrumbs?.filter((breadcrumb) =>
+    (typeof breadcrumb === "string" ? breadcrumb : breadcrumb.label) !== "Workshop",
+  ) ?? [];
+  const hasBreadcrumbs = visibleBreadcrumbs.length > 0;
+  const showBreadcrumbs = visibleBreadcrumbs.length > 1;
+  const titleContent = titleSlot ?? (hideTitle ? <div className="min-w-0 flex-1" aria-hidden="true" /> : (
+    <div
+      className={cn("flex min-w-0 shrink-0 flex-col gap-0.5", hasBreadcrumbs && "translate-y-1 justify-center gap-0 pt-1")}
+      data-workshop-title-region
+    >
+      <div className="min-w-0" data-workshop-title-block>
+        <h1 className="truncate text-[12px] font-medium leading-4 tracking-normal text-ink">{title}</h1>
+        {showEyebrow && !hasBreadcrumbs ? <p className="mt-0.5 truncate text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">{eyebrow}</p> : null}
+      </div>
+      {showBreadcrumbs ? (
+        <WorkshopBreadcrumbs breadcrumbs={visibleBreadcrumbs} projectId={projectId} />
+      ) : hasBreadcrumbs ? (
+        <div className="h-3 shrink-0" aria-hidden="true" data-workshop-layout="workshop-breadcrumbs-spacer" />
+      ) : null}
+    </div>
+  ));
 
   return (
     <header className={cn("workshop-shell-glass-chrome workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between", className)}>
-      {titleSlot ?? (hideTitle ? <div className="min-w-0 flex-1" aria-hidden="true" /> : (
-        <div
-          className={cn("flex min-w-0 shrink-0 flex-col gap-0.5", hasBreadcrumbs && "translate-y-1 justify-center gap-0 pt-1")}
-          data-workshop-title-region
-        >
-          <div className="min-w-0" data-workshop-title-block>
-            <h1 className="truncate text-[12px] font-medium leading-4 tracking-normal text-ink">{title}</h1>
-            {showEyebrow && !hasBreadcrumbs ? <p className="mt-0.5 truncate text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">{eyebrow}</p> : null}
-          </div>
-          {showBreadcrumbs ? (
-            <WorkshopBreadcrumbs breadcrumbs={breadcrumbs ?? []} projectId={projectId} />
-          ) : hasBreadcrumbs ? (
-            <div className="h-3 shrink-0" aria-hidden="true" data-workshop-layout="workshop-breadcrumbs-spacer" />
-          ) : null}
-        </div>
-      ))}
+      <div className="flex min-w-0 shrink-0 items-center gap-1">
+        <WorkshopHeaderBackButton />
+        {titleContent}
+      </div>
       {centerHeader ? (
         <EstimateCenterColumnBoundary
           id="workshop-center-header"
