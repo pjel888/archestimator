@@ -115,8 +115,8 @@ describe("ProposalExportPreviewDialog", () => {
       "backdrop:backdrop-blur-md",
     );
     expect(screen.getByRole("dialog", { name: "Excel export preview" })).toHaveClass(
-      "h-[min(900px,94vh)]",
-      "w-[min(1360px,98vw)]",
+      "max-h-[min(720px,calc(100dvh-32px))]",
+      "w-[min(440px,calc(100vw-32px))]",
     );
     // D7=B: the modal is a contents summary naming the sheets, not a fake table.
     expect(screen.getByRole("heading", { name: "Export contents" })).toBeInTheDocument();
@@ -247,7 +247,7 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeDisabled();
   });
 
-  it("surfaces export validation notes in the contents summary (P1-T2, F-20)", () => {
+  it("surfaces export validation notes in the contents summary when present (P1-T2, F-20)", () => {
     const issueNodes: EstimateTreeNode[] = [
       {
         id: "group-with-rows",
@@ -261,11 +261,25 @@ describe("ProposalExportPreviewDialog", () => {
       },
     ];
     const model = buildProposalExportModel({ metadata, nodes: issueNodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    // Group-owned rows now export; the obsolete labor-split note is no longer emitted.
+    // Keep the summary free of false warnings, and still render notes when the model has them.
+    const modelWithNotes = {
+      ...model,
+      validationIssues: [
+        {
+          severity: "warning" as const,
+          code: "preview_note",
+          message: "Review Commercial Terms before sending the bid.",
+        },
+      ],
+    };
 
-    render(<ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={vi.fn()} />);
+    render(
+      <ProposalExportPreviewDialog open model={modelWithNotes} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={vi.fn()} />,
+    );
 
     const issues = screen.getByTestId("proposal-validation-issues");
-    expect(within(issues).getByText(/do not yet separate material and labor/i)).toBeInTheDocument();
+    expect(within(issues).getByText(/Review Commercial Terms before sending the bid/i)).toBeInTheDocument();
     expect(within(issues).queryByText(/Rows on group node/i)).not.toBeInTheDocument();
   });
 
@@ -424,7 +438,12 @@ describe("ProposalExportPreviewDialog", () => {
     await user.type(quantityInput, "12");
 
     await waitFor(() => expect(screen.getByText("Preview current")).toBeInTheDocument());
-    expect(downloadButton).toBeEnabled();
+    // Re-query after sheet edits remount preview chrome; also wait for the unsaved
+    // warning to clear so download eligibility matches the restored row values.
+    await waitFor(() => {
+      expect(screen.queryByTestId("proposal-unsaved-edits-warning")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeEnabled();
+    });
   });
 
   it("defaults multi-tab preview downloads to all-tabs export and lets users switch to the active-tab route", async () => {

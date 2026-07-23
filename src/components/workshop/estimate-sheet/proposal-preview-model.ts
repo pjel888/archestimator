@@ -64,6 +64,19 @@ export function countUnsavedEditableRows(
   editableRows: Record<string, EditableRowValue>,
 ) {
   let unsavedRowCount = 0;
+  // Only fields that change the materialized export preview / totals. Cosmetic or
+  // transient editor keys (e.g. quantityExpression while quantity matches) must not
+  // block download after the user restores the saved numeric values.
+  const exportRelevantKeys = [
+    "quantity",
+    "quantityBase",
+    "quantityContingencyAmount",
+    "contingencyMode",
+    "contingencyPercentage",
+    "adjustmentPercentage",
+    "miscCost",
+    "unitCost",
+  ] as const satisfies ReadonlyArray<keyof EditableRowValue>;
 
   function visit(node: EstimateTreeNode) {
     node.estimateRowItems?.forEach((item) => {
@@ -71,9 +84,7 @@ export function countUnsavedEditableRows(
       if (!editableRow) return;
 
       const initialRow = getInitialEditableRow(item);
-      const hasUnsavedEdit = (Object.keys(initialRow) as Array<keyof EditableRowValue>).some(
-        (key) => editableRow[key] !== initialRow[key],
-      );
+      const hasUnsavedEdit = exportRelevantKeys.some((key) => editableRow[key] !== initialRow[key]);
       if (hasUnsavedEdit) unsavedRowCount += 1;
     });
     node.children?.forEach(visit);
