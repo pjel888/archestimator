@@ -12,6 +12,16 @@ import {
 
 const links = [
   {
+    label: "Cloudflare Log Explorer",
+    href: "https://dash.cloudflare.com/?to=/:account/log-explorer",
+    description: "Investigate retained HTTP request logs and 5xx responses alongside the redacted client-error ledger above.",
+  },
+  {
+    label: "Manage Log Explorer datasets",
+    href: "https://dash.cloudflare.com/?to=/:account/log-explorer/manage-sources",
+    description: "Confirm the HTTP Requests dataset remains enabled for the Archestimator production zone.",
+  },
+  {
     label: "Workers Observability",
     href: "https://developers.cloudflare.com/workers/observability/",
     description: "Cloudflare guide for runtime logs, traces, metrics, and dashboards.",
@@ -41,7 +51,7 @@ export default async function AdminObservabilityPage() {
       <AdminPageHeader
         eyebrow="Admin"
         title="Observability"
-        description="Local D1 event readers plus provider documentation links. This page does not claim hosted log or alert readiness."
+        description="Redacted D1 event readers plus Cloudflare request-log investigation. Client errors stay in D1; use Log Explorer for retained edge requests and 5xx responses."
       />
       <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="Recent observability events">
         <Card className="p-2">
@@ -73,7 +83,7 @@ export default async function AdminObservabilityPage() {
           ))}
         </Card>
       </section>
-      <section className="grid gap-2 md:grid-cols-3" aria-label="Observability resources">
+      <section className="grid gap-2 md:grid-cols-2 xl:grid-cols-3" aria-label="Observability resources">
         {links.map((link) => (
           <Card key={link.href} interactive className="p-2">
             <Link href={link.href} target="_blank" rel="noreferrer" className="block">
