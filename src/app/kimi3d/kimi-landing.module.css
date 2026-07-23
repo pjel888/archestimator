@@ -486,7 +486,7 @@
     clamp(4.5rem, 9vw, 7.5rem);
   background-image: radial-gradient(
     circle,
-    color-mix(in srgb, var(--k-ink) 8.25%, transparent) 1px,
+    color-mix(in srgb, var(--k-ink) 6.19%, transparent) 1px,
     transparent 1.1px
   );
   background-size: 0.48rem 0.48rem;
