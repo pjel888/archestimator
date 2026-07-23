@@ -15,7 +15,7 @@ import {
 } from "@/lib/support/privacy-fence";
 
 export const dynamic = "force-dynamic";
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 function exceedsByteLimit(value: string, limit: number) {
   return new TextEncoder().encode(value).byteLength > limit;

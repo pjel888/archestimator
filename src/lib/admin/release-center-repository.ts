@@ -103,7 +103,7 @@ export async function setReleaseStatus(
       .prepare(
         `
           UPDATE admin_release_records
-          SET status = ?, shipped_at = COALESCE(?, shipped_at), updated_at = ?
+          SET status = ?, shipped_at = ?, updated_at = ?
           WHERE id = ?
         `,
       )

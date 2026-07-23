@@ -24,6 +24,21 @@ const NOTIFICATION_KINDS = new Set([
 const NOTIFICATION_SEVERITIES = new Set(["info", "success", "warning", "critical"]);
 const NOTIFICATION_SURFACES = new Set(["center", "modal", "toast_and_center"]);
 
+function isValidActionHref(value: string): boolean {
+  const lower = value.toLowerCase();
+  return (value === "/workshop" || value.startsWith("/workshop/"))
+    && !value.startsWith("//")
+    && !/\s/u.test(value)
+    && !value.includes("\\")
+    && !lower.includes("javascript:")
+    && !lower.includes("http:")
+    && !lower.includes("https:")
+    && !lower.includes("%2f")
+    && !lower.includes("%5c")
+    && !lower.includes("../")
+    && !lower.includes("%2e%2e");
+}
+
 /**
  * Creates a notification definition and delivers it to all active users.
  * This is the admin broadcast surface for the notification system.
@@ -58,6 +73,9 @@ export async function broadcastNotification(input: {
   // actionHref must be a /workshop path (per the notification schema constraint).
   const actionHref = input.actionHref?.trim() || null;
   const actionLabel = input.actionLabel?.trim() || null;
+  if (actionLabel && actionLabel.length > 40) return { ok: false, error: "validation" };
+  if ((actionLabel === null) !== (actionHref === null)) return { ok: false, error: "validation" };
+  if (actionHref && !isValidActionHref(actionHref)) return { ok: false, error: "validation" };
 
   const db = await getCloudflareD1Database();
   if (!db) return { ok: false, error: "d1_unavailable" };

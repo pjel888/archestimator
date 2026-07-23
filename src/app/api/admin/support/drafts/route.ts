@@ -70,10 +70,13 @@ export async function POST(request: Request) {
   );
   const [result] = await runRequiredD1Batch(db, [insert], "Support draft could not be created.");
   const draft = await getSupportDraftByScopeForAdminInD1(db, payload.scopeKey, gate.context.userId);
-  if ((result.meta?.changes ?? 0) !== 1 || !draft) {
+  if (!draft) {
     return Response.json({ error: "support_subject_fenced" }, { status: 409, headers: NO_STORE_HEADERS });
   }
-  return Response.json({ draft }, { status: 201, headers: NO_STORE_HEADERS });
+  return Response.json(
+    { draft },
+    { status: (result.meta?.changes ?? 0) === 1 ? 201 : 200, headers: NO_STORE_HEADERS },
+  );
 }
 
 export async function GET() {

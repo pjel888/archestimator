@@ -61,7 +61,18 @@ export async function listSupportDraftsForAdminInD1(
   const result = await db.prepare<SupportDraftRow>(
     `SELECT ${DRAFT_SELECT}
      FROM support_drafts
-     WHERE admin_user_id = ? AND lifecycle = 'editing'
+     WHERE admin_user_id = ?
+       AND lifecycle = 'editing'
+       AND (
+         NULLIF(TRIM(COALESCE(subject, '')), '') IS NOT NULL
+         OR NULLIF(TRIM(COALESCE(body_text, '')), '') IS NOT NULL
+         OR NULLIF(TRIM(COALESCE(to_json, '')), '') IS NOT NULL
+         OR EXISTS (
+           SELECT 1
+           FROM support_draft_attachments attachment
+           WHERE attachment.draft_id = support_drafts.id
+         )
+       )
      ORDER BY updated_at DESC, id DESC
      LIMIT ?`,
   ).bind(adminUserId, Math.max(1, Math.min(limit, 100))).all<SupportDraftRow>();

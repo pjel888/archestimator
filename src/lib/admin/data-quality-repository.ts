@@ -14,6 +14,7 @@ export type DataQualityFinding = {
   label: string;
   severity: DataQualitySeverity;
   count: number;
+  available: boolean;
   detail: string;
 };
 
@@ -27,13 +28,13 @@ async function runCount(
   detail: string,
 ): Promise<DataQualityFinding> {
   const db = await getCloudflareD1Database();
-  if (!db) return { key, label, severity, count: 0, detail: "D1 unavailable — check skipped." };
+  if (!db) return { key, label, severity, count: 0, available: false, detail: "D1 unavailable — check skipped." };
   try {
     const row = await db.prepare<CountRow>(sql).first<CountRow>();
     const count = row?.c ?? 0;
-    return { key, label, severity, count, detail };
+    return { key, label, severity, count, available: true, detail };
   } catch {
-    return { key, label, severity, count: 0, detail: `${detail} (check could not run in this environment).` };
+    return { key, label, severity, count: 0, available: false, detail: `${detail} (check could not run in this environment).` };
   }
 }
 
@@ -66,5 +67,5 @@ export async function runDataQualityChecks(): Promise<DataQualityFinding[]> {
 }
 
 export function isFindingActionable(finding: DataQualityFinding): boolean {
-  return finding.count > 0;
+  return finding.available && finding.count > 0;
 }
