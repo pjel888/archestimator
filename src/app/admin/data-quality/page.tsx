@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminDataQualityPage() {
   const findings = await runDataQualityChecks();
   const actionable = findings.filter(isFindingActionable);
+  const unavailable = findings.filter((finding) => !finding.available);
 
   return (
     <AdminPage>
@@ -30,8 +31,8 @@ export default async function AdminDataQualityPage() {
       <AdminSection
         title="Findings"
         actions={
-          <Badge tone={actionable.length > 0 ? "warning" : "success"} size="xs" className="min-w-0 px-1">
-            {actionable.length} actionable
+          <Badge tone={actionable.length > 0 || unavailable.length > 0 ? "warning" : "success"} size="xs" className="min-w-0 px-1">
+            {actionable.length} actionable{unavailable.length > 0 ? ` · ${unavailable.length} unavailable` : ""}
           </Badge>
         }
       >
@@ -45,8 +46,8 @@ export default async function AdminDataQualityPage() {
                 <p className="text-[10px] font-medium leading-4 text-ink text-pretty">{finding.label}</p>
                 <p className="text-[9px] leading-3 text-tertiary text-pretty">{finding.detail}</p>
               </div>
-              <Badge tone={SEVERITY_TONE[finding.severity]} size="xs" className="mt-0.5 shrink-0 min-w-0 px-1">
-                {finding.count}
+              <Badge tone={finding.available ? SEVERITY_TONE[finding.severity] : "warning"} size="xs" className="mt-0.5 shrink-0 min-w-0 px-1">
+                {finding.available ? finding.count : "Unavailable"}
               </Badge>
             </li>
           ))}

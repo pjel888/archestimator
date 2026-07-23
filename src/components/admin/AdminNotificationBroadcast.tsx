@@ -52,7 +52,7 @@ export function AdminNotificationBroadcast() {
         setActionHref("");
       } else {
         const messages: Record<string, string> = {
-          validation: "Invalid input. Check title and body lengths.",
+          validation: "Invalid input. Check field lengths and use a /workshop action link.",
           d1_unavailable: "Database is unavailable.",
           failed: "Broadcast failed. Check the audit log.",
         };
@@ -91,12 +91,12 @@ export function AdminNotificationBroadcast() {
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[9px] font-medium uppercase leading-3 text-tertiary">Title (max 200)</span>
+        <span className="text-[9px] font-medium uppercase leading-3 text-tertiary">Title (max 120)</span>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          maxLength={200}
+          maxLength={120}
           required
           className="rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
         />
@@ -132,8 +132,11 @@ export function AdminNotificationBroadcast() {
           <input
             type="text"
             value={actionLabel}
-            onChange={(e) => setActionLabel(e.target.value)}
-            maxLength={100}
+            onChange={(e) => {
+              setActionLabel(e.target.value);
+              if (!e.target.value) setActionHref("");
+            }}
+            maxLength={40}
             placeholder="e.g. View changes"
             className="rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
           />
@@ -148,6 +151,8 @@ export function AdminNotificationBroadcast() {
             value={actionHref}
             onChange={(e) => setActionHref(e.target.value)}
             placeholder="/workshop/…"
+            pattern="^/workshop(?:$|/.*)"
+            required={Boolean(actionLabel)}
             className="rounded-xs border border-hairline px-2 py-1 text-[11px] text-ink"
           />
         </label>

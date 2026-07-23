@@ -9,7 +9,7 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ search?: string }>;
 }) {
   const { search = "" } = await searchParams;
-  const result = await listAdminUsers({ page: 1, limit: 50 });
+  const result = await listAdminUsers({ page: 1, limit: 50, search });
   const users = result.data;
   const error = result.error;
   const count = result.count ?? 0;

@@ -33,8 +33,13 @@ export function AdminSavedReplies({ initialReplies }: { initialReplies: AdminSav
   }
 
   function remove(id: string) {
+    setNotice(null);
     startTransition(async () => {
-      await deleteSavedReplyAction(id);
+      const result = await deleteSavedReplyAction(id);
+      if (!result.ok) {
+        setNotice("Could not delete saved reply.");
+        return;
+      }
       router.refresh();
     });
   }

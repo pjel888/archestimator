@@ -44,8 +44,13 @@ export function AdminReleaseCenter({ initialRecords }: { initialRecords: AdminRe
   }
 
   function changeStatus(recordId: string, status: ReleaseStatus) {
+    setNotice(null);
     startTransition(async () => {
-      await setReleaseStatusAction(recordId, status);
+      const result = await setReleaseStatusAction(recordId, status);
+      if (!result.ok) {
+        setNotice("Could not update release status.");
+        return;
+      }
       router.refresh();
     });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -46,6 +46,11 @@ type SupportComposerDraftFields = {
   cc_json?: string | null;
   subject?: string | null;
   from_identity_id?: string | null;
+};
+
+type SupportDraftSnapshot = SupportComposerDraftFields & {
+  body_html: string | null;
+  body_text: string | null;
 };
 
 type SupportRichComposerProps = {
@@ -167,7 +172,10 @@ export function SupportRichComposer({
   const [draftContent, setDraftContent] = useState({ bodyHtml: "", bodyText: "" });
   const [linkEditorOpen, setLinkEditorOpen] = useState(false);
   const [linkHref, setLinkHref] = useState("");
+  const [persistedDraftId, setPersistedDraftId] = useState<string | null>(null);
   const persistedDraftRef = useRef<PersistedSupportDraft | null>(null);
+  const draftSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const draftBlockedRef = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -234,6 +242,7 @@ export function SupportRichComposer({
   useEffect(() => {
     let cancelled = false;
     persistedDraftRef.current = null;
+    draftBlockedRef.current = false;
     void fetch("/api/admin/support/drafts", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -245,6 +254,7 @@ export function SupportRichComposer({
         return;
       }
       persistedDraftRef.current = payload.draft;
+      setPersistedDraftId(payload.draft.id);
       if (payload.draft.body_html && editor?.isEmpty) {
         editor.commands.setContent(payload.draft.body_html);
         setDraftContent({ bodyHtml: payload.draft.body_html, bodyText: htmlToText(payload.draft.body_html) });
@@ -256,37 +266,57 @@ export function SupportRichComposer({
     return () => { cancelled = true; };
   }, [conversationId, draftId, draftKind, editor]);
 
-  useEffect(() => {
-    if (!persistedDraftRef.current || draftStatus === "conflict" || draftStatus === "degraded") return;
-    const timer = window.setTimeout(() => {
+  const enqueueDraftSave = useCallback((snapshot: SupportDraftSnapshot) => {
+    const expectedDraftId = persistedDraftRef.current?.id;
+    if (!expectedDraftId) return Promise.resolve(false);
+
+    const task = draftSaveQueueRef.current.then(async () => {
       const persisted = persistedDraftRef.current;
-      if (!persisted) return;
+      if (!persisted || persisted.id !== expectedDraftId || draftBlockedRef.current) return false;
       setDraftStatus("saving");
-      void fetch(`/api/admin/support/drafts/${persisted.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          revision: persisted.revision,
-        body_html: draftContent.bodyHtml || null,
-        body_text: draftContent.bodyText || null,
-        ...draftFields,
-        }),
-      }).then(async (response) => {
+      try {
+        const response = await fetch(`/api/admin/support/drafts/${persisted.id}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            revision: persisted.revision,
+            ...snapshot,
+          }),
+        });
         const payload = await response.json() as { draft?: PersistedSupportDraft };
         if (response.status === 409) {
+          draftBlockedRef.current = true;
           setDraftStatus("conflict");
-          return;
+          return false;
         }
         if (!response.ok || !payload.draft) {
           setDraftStatus("degraded");
-          return;
+          return false;
         }
         persistedDraftRef.current = payload.draft;
         setDraftStatus("saved");
-      }).catch(() => setDraftStatus("degraded"));
+        return true;
+      } catch {
+        setDraftStatus("degraded");
+        return false;
+      }
+    });
+
+    draftSaveQueueRef.current = task.then(() => undefined, () => undefined);
+    return task;
+  }, []);
+
+  useEffect(() => {
+    if (!persistedDraftId || draftBlockedRef.current) return;
+    const timer = window.setTimeout(() => {
+      void enqueueDraftSave({
+        body_html: draftContent.bodyHtml || null,
+        body_text: draftContent.bodyText || null,
+        ...draftFields,
+      });
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [draftContent, draftFields, draftStatus]);
+  }, [draftContent.bodyHtml, draftContent.bodyText, draftFields, enqueueDraftSave, persistedDraftId]);
 
   async function addFiles(files: File[]) {
     if (files.length === 0) return;
@@ -337,36 +367,11 @@ export function SupportRichComposer({
   }
 
   async function persistCurrentDraft(html: string, text: string) {
-    const persisted = persistedDraftRef.current;
-    if (!persisted) return false;
-    setDraftStatus("saving");
-    try {
-      const response = await fetch(`/api/admin/support/drafts/${persisted.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          revision: persisted.revision,
-          body_html: html || null,
-          body_text: text || null,
-          ...draftFields,
-        }),
-      });
-      const payload = await response.json() as { draft?: PersistedSupportDraft };
-      if (response.status === 409) {
-        setDraftStatus("conflict");
-        return false;
-      }
-      if (!response.ok || !payload.draft) {
-        setDraftStatus("degraded");
-        return false;
-      }
-      persistedDraftRef.current = payload.draft;
-      setDraftStatus("saved");
-      return true;
-    } catch {
-      setDraftStatus("degraded");
-      return false;
-    }
+    return enqueueDraftSave({
+      body_html: html || null,
+      body_text: text || null,
+      ...draftFields,
+    });
   }
 
   async function submitCurrent() {
