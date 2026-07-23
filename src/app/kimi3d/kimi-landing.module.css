@@ -1,7 +1,6 @@
-/* Hallmark · genre: modern-minimal · macrostructure: Workbench · theme: custom cool workshop glass · enrichment: real Archestimator product proofs · nav: restrained N1b SaaS rail · footer: Ft5 statement close */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · contrast: pass (40–41) · nav: N1b · footer: Ft5 · slop: pass (42–49) · mobile: pass (34, 49, 50–57) */
-/* /kimi3d workbench landing. Route-owned styles with a cool glass canvas,
-   graphite interaction surfaces, and one brand-orange operational signal. */
+/* Hallmark · genre: technical SaaS · macrostructure: aligned product narrative · theme: approved hero continuation · enrichment: real proposal proof · nav: preserved N1b rail · footer: restrained statement */
+/* /kimi3d landing. The approved hero remains the visual source; every section
+   below it follows the same grid, pale dotted canvas, and restrained orange. */
 
 .root {
   --k-canvas: oklch(0.972 0.006 251);
@@ -69,6 +68,7 @@
     var(--font-geist), var(--font-sf-pro), -apple-system, sans-serif;
   --k-font-mono: var(--font-roboto-mono), ui-monospace, monospace;
   --k-font-display: var(--k-font-sans);
+  --k-font-pixel: var(--font-doto), var(--k-font-mono);
   --k-radius-panel: var(--glass-radius, 12px);
   --k-radius-inner: 9px;
   --k-radius-control: var(--glass-nav-radius, 8px);
@@ -297,9 +297,13 @@
 /* Primary CTA with a nested arrow plate. */
 .root a.ctaButton {
   display: inline-flex;
+  flex: none;
+  inline-size: 12rem;
+  block-size: 3rem;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.42rem 0.46rem 0.42rem 0.9rem;
+  padding: 0.4375rem 0.4375rem 0.4375rem 1rem;
   border: 1px solid var(--k-signal-dark);
   border-radius: var(--k-radius-control);
   background: var(--k-signal-dark);
@@ -332,8 +336,9 @@
 
 .ctaArrow {
   display: grid;
-  inline-size: 1.5rem;
-  block-size: 1.5rem;
+  flex: none;
+  inline-size: 2rem;
+  block-size: 2rem;
   place-items: center;
   border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--k-canvas) 16%, transparent);
@@ -348,16 +353,6 @@
   background: var(--k-canvas);
   color: var(--k-signal-dark);
   transform: translate(2px, -1px);
-}
-
-.ctaButtonLarge {
-  padding: 0.6rem 0.6rem 0.6rem 1.5rem;
-  font-size: 0.9375rem;
-}
-
-.ctaButtonLarge .ctaArrow {
-  inline-size: 2.1rem;
-  block-size: 2.1rem;
 }
 
 /* Mobile menu */
@@ -537,10 +532,10 @@
 
 .heroTitle {
   color: var(--k-display-ink);
-  font-size: clamp(3.666rem, 6.933vw, 7.133rem);
+  font-size: clamp(2.444rem, 4.622vw, 4.755rem);
   font-weight: 400;
   line-height: 1;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.06em;
   overflow-wrap: anywhere;
   white-space: nowrap;
 }
@@ -1229,6 +1224,11 @@
 .proofModuleSlot {
   grid-column: 6 / -1;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .proofModuleTitle {
@@ -1690,12 +1690,6 @@
   }
 }
 
-@media (max-width: 420px) {
-  .closingCta .ctaButton {
-    font-size: 0.9375rem;
-  }
-}
-
 /* ── Reduced motion ────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1709,5 +1703,451 @@
 
   .storyPathProgress {
     stroke-dashoffset: 0 !important;
+  }
+}
+
+
+/* ── Aligned SaaS continuation of the approved hero ──────────────────── */
+
+.sectionTitle,
+.storyTitle,
+.proofModuleTitle,
+.faqTitle {
+  min-width: 0;
+  color: var(--k-display-ink);
+  font-family: var(--k-font-pixel);
+  font-variation-settings: "ROND" 0;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.sectionTitle,
+.storyTitle {
+  font-size: clamp(2.35rem, 4vw, 3.9rem);
+  line-height: 1;
+}
+
+.sectionLead,
+.storyIntro {
+  color: var(--k-body);
+  font-family: var(--k-font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+.story,
+.proofModules,
+.company {
+  background-color: var(--k-canvas);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--k-ink) 6.19%, transparent) 1px,
+    transparent 1.1px
+  );
+  background-size: 0.48rem 0.48rem;
+}
+
+.story {
+  padding-block: clamp(5.5rem, 10vw, 8.5rem);
+  border-block: 1px solid var(--k-hairline);
+  color: var(--k-ink);
+}
+
+.storyHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  max-width: 64rem;
+  margin-block-end: clamp(3rem, 6vw, 5rem);
+}
+
+.storyTitle {
+  grid-column: 1;
+  max-width: 15ch;
+}
+
+.storyIntro {
+  grid-column: 1;
+  justify-self: start;
+  max-width: 62ch;
+}
+
+.stageRunway {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  align-items: stretch;
+  padding: 0;
+  border-block: 1px solid var(--k-hairline-strong);
+}
+
+.stageItem {
+  display: flex;
+  min-width: 0;
+  min-height: 25rem;
+  flex-direction: column;
+  margin: 0;
+  padding: clamp(1.5rem, 2.25vw, 2.25rem);
+  border: 0;
+  border-inline-end: 1px solid var(--k-hairline-strong);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--k-surface) 78%, transparent);
+  box-shadow: none;
+}
+
+.stageItem:last-child {
+  border-inline-end: 0;
+}
+
+.stageItemHead {
+  display: flex;
+  min-height: 7.5rem;
+  flex-direction: column;
+  gap: 1.1rem;
+  align-items: flex-start;
+}
+
+.stageIndex {
+  color: var(--k-signal-dark);
+  font-family: var(--k-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.stageName {
+  color: var(--k-ink);
+  font-family: var(--k-font-sans);
+  font-size: clamp(1.1rem, 1.35vw, 1.35rem);
+  font-weight: 680;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.stageBody {
+  margin-block-start: 0;
+  color: var(--k-body);
+  font-size: 0.9375rem;
+  line-height: 1.62;
+}
+
+.stageHandoff {
+  margin-block-start: auto;
+  padding-block-start: 1.25rem;
+  border-block-start: 1px solid var(--k-hairline);
+  color: var(--k-secondary);
+  font-family: var(--k-font-mono);
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.proofModules {
+  border-block-end: 1px solid var(--k-hairline);
+}
+
+.proofChapter {
+  padding-block: clamp(5.5rem, 10vw, 8.5rem);
+  border-block-start: 0;
+}
+
+.proofModule {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2.5rem var(--k-gutter);
+  align-items: center;
+}
+
+.proofModuleCopy {
+  grid-column: 1 / span 4;
+}
+
+.proofModuleSlot {
+  grid-column: 6 / -1;
+  min-width: 0;
+}
+
+.proofModuleTitle {
+  font-size: clamp(2.1rem, 3.4vw, 3.4rem);
+  line-height: 1.02;
+}
+
+.proofModuleBody {
+  margin-block-start: 1.25rem;
+  max-width: 48ch;
+  color: var(--k-body);
+  font-size: 1.0625rem;
+  line-height: 1.62;
+}
+
+.currentProductProof {
+  padding: clamp(7px, 1vw, 10px);
+  border: 1px solid var(--k-glass-border);
+  border-top-color: var(--k-glass-border-top);
+  border-radius: var(--k-radius-panel);
+  background: var(--k-glass);
+  box-shadow: var(--k-glass-shadow);
+  -webkit-backdrop-filter: blur(var(--k-glass-blur))
+    saturate(var(--k-glass-saturate));
+  backdrop-filter: blur(var(--k-glass-blur)) saturate(var(--k-glass-saturate));
+}
+
+.currentProductProofInner {
+  border-radius: var(--k-radius-inner);
+}
+
+.company {
+  padding-block: clamp(5.5rem, 10vw, 8.5rem);
+  border-block-start: 0;
+  color: var(--k-ink);
+}
+
+.companyGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 4rem var(--k-gutter);
+  align-items: start;
+}
+
+.audience {
+  grid-column: 1 / span 6;
+}
+
+.audienceLead {
+  margin-block-start: 1.25rem;
+  max-width: 52ch;
+}
+
+.roleList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 2rem;
+  margin-block-start: 2.5rem;
+  border-block-start: 1px solid var(--k-hairline-strong);
+}
+
+.roleItem {
+  display: flex;
+  min-width: 0;
+  min-height: 3.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 0;
+  border: 0;
+  border-block-end: 1px solid var(--k-hairline);
+  background: transparent;
+  box-shadow: none;
+  color: var(--k-ink);
+  font-size: 0.9375rem;
+  font-weight: 620;
+}
+
+.roleItem::before {
+  content: "";
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  background: var(--k-signal);
+  box-shadow: none;
+}
+
+.faq {
+  grid-column: 8 / -1;
+  margin-block-start: 0;
+}
+
+.faqTitle {
+  font-size: clamp(1.9rem, 2.8vw, 2.8rem);
+  line-height: 1.04;
+}
+
+.faqList {
+  display: block;
+  margin-block-start: 1.75rem;
+  border-block-start: 1px solid var(--k-hairline-strong);
+}
+
+.faqItem {
+  border: 0;
+  border-block-end: 1px solid var(--k-hairline);
+  background: transparent;
+}
+
+.faqItem summary {
+  min-height: 3.75rem;
+  padding: 1rem 0;
+  color: var(--k-ink);
+  font-size: 1rem;
+}
+
+.faqMark::before,
+.faqMark::after {
+  background: var(--k-signal-dark);
+}
+
+.faqAnswer {
+  padding: 0 2.5rem 1.25rem 0;
+  color: var(--k-body);
+}
+
+.closing {
+  padding-block: clamp(4.75rem, 8vw, 7rem);
+  border-block-start: 1px solid var(--k-hairline);
+  overflow: visible;
+  background: var(--k-signal-soft);
+  color: var(--k-ink);
+}
+
+.closingGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2rem var(--k-gutter);
+  align-items: end;
+}
+
+.closingCopy {
+  grid-column: 1 / span 8;
+}
+
+.closingBody {
+  margin-block-start: 1.25rem;
+  max-width: 48ch;
+  color: var(--k-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.closingCta {
+  grid-column: 10 / -1;
+  justify-self: end;
+}
+
+.footer {
+  padding-block: 3.75rem 3rem;
+  border-block-start: 0;
+  overflow: visible;
+  background: var(--k-footer);
+  color: var(--k-footer-ink);
+}
+
+.footer .container {
+  padding-block-start: 0;
+}
+
+@media (max-width: 1080px) {
+  .stageRunway {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stageItem {
+    min-height: 22rem;
+    border-block-end: 1px solid var(--k-hairline-strong);
+  }
+
+  .stageItem:nth-child(2n) {
+    border-inline-end: 0;
+  }
+
+  .stageItem:nth-last-child(-n + 2) {
+    border-block-end: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .proofModuleCopy,
+  .proofModuleSlot,
+  .audience,
+  .faq,
+  .closingCopy,
+  .closingCta {
+    grid-column: 1 / -1;
+  }
+
+  .proofModuleSlot {
+    margin-block-start: 0.75rem;
+  }
+
+  .companyGrid {
+    row-gap: 4.5rem;
+  }
+
+  .closingCta {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .sectionTitle,
+  .storyTitle {
+    font-size: clamp(2.15rem, 10vw, 3rem);
+    line-height: 1.04;
+  }
+
+  .story,
+  .proofChapter,
+  .company {
+    padding-block: 4.75rem;
+  }
+
+  .stageRunway {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stageItem {
+    min-height: auto;
+    padding: 1.5rem 0;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--k-hairline-strong);
+    background: transparent;
+  }
+
+  .stageItem:nth-last-child(-n + 2) {
+    border-block-end: 1px solid var(--k-hairline-strong);
+  }
+
+  .stageItem:last-child {
+    border-block-end: 0;
+  }
+
+  .stageItemHead {
+    min-height: auto;
+    gap: 0.8rem;
+  }
+
+  .stageBody {
+    margin-block-start: 1rem;
+  }
+
+  .stageHandoff {
+    margin-block-start: 1.5rem;
+  }
+
+  .proofModuleTitle {
+    font-size: clamp(2rem, 9vw, 2.75rem);
+  }
+
+  .companyGrid {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4rem;
+    column-gap: 0;
+  }
+
+  .audience,
+  .faq {
+    grid-column: 1;
+  }
+
+  .roleList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .closing {
+    padding-block: 4.75rem;
   }
 }

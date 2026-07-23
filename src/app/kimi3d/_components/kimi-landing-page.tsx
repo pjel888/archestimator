@@ -87,7 +87,7 @@ export function KimiLandingPage() {
                   {heroCopy.lead}
                 </p>
                 <div className={styles.heroCtas} data-hero-reveal>
-                  <PrimaryCtaLink large />
+                  <PrimaryCtaLink />
                 </div>
               </div>
             </div>
@@ -173,7 +173,7 @@ export function KimiLandingPage() {
                 <p className={styles.closingBody}>{closingCopy.body}</p>
               </div>
               <div className={styles.closingCta}>
-                <PrimaryCtaLink large />
+                <PrimaryCtaLink />
               </div>
             </div>
           </div>

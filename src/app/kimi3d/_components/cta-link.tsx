@@ -22,27 +22,17 @@ import styles from "../kimi-landing.module.css";
  * closed), so hydration matches.
  */
 
-export function PrimaryCtaLink({
-  className,
-  large = false,
-}: {
-  className?: string;
-  large?: boolean;
-}) {
+export function PrimaryCtaLink({ className }: { className?: string }) {
   const isLoggedIn = useLandingAuthHint();
 
   return (
     <Link
       href={isLoggedIn ? WORKSPACE_HREF : BETA_ACCESS_MAILTO_HREF}
-      className={cn(
-        styles.ctaButton,
-        large && styles.ctaButtonLarge,
-        className,
-      )}
+      className={cn(styles.ctaButton, className)}
     >
       <span>{isLoggedIn ? SIGNED_IN_CTA_LABEL : PRIMARY_CTA_LABEL}</span>
       <span className={styles.ctaArrow} aria-hidden="true">
-        <ArrowRight size={large ? 16 : 14} weight="bold" />
+        <ArrowRight size={16} weight="bold" />
       </span>
     </Link>
   );
