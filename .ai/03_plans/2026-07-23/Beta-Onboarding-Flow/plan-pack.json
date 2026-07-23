@@ -1,0 +1,1770 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-23-beta-onboarding-flow",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-23T09:14:06.000Z",
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "f2c02314d92d2b88a6e413d7e81b53737067f23927c987519b3a15e6bc5c7b83"
+    },
+    {
+      "id": "ART-002",
+      "role": "current-state-and-d1-audit",
+      "path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
+      "sha256": "3422342033870ac9d5f6514d323e811f4e743c54fee5aa1e11ae7b8d1da696bc"
+    },
+    {
+      "id": "ART-003",
+      "role": "research-and-experience-spec",
+      "path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
+      "sha256": "14afc7ca303dbfac7ab8ebaf960c8fa16f9054d816efb708220690d8c1b7363a"
+    },
+    {
+      "id": "ART-004",
+      "role": "architecture-data-verification",
+      "path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5"
+    },
+    {
+      "id": "ART-005",
+      "role": "route-and-overlay-inventory",
+      "path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
+      "sha256": "c98ce31321d798e0e0c304bd16d3676c87901caeb4a9ecb92f1fcdceef8b8b4d"
+    },
+    {
+      "id": "ART-006",
+      "role": "independent-review",
+      "path": "05-INDEPENDENT-REVIEW.md",
+      "sha256": "5644651e736cb825d2c8531fd54fc76fd578efa497fd6c37369c9b8ed4e83036"
+    },
+    {
+      "id": "ART-007",
+      "role": "pack-index",
+      "path": "README.md",
+      "sha256": "d0293ed7b60f13d7635aa1a62a20500583a64afecf21b9d399759ea1840f2f19"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "SEC-001",
+        "PERF-001",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "artifact_path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-003",
+        "UX-004",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ]
+    },
+    {
+      "id": "SRC-006",
+      "status": "CURRENT",
+      "artifact_path": "05-INDEPENDENT-REVIEW.md",
+      "affected_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "UX-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-010"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
+      "statement": "react-joyride latest remains 3.2.0 with MIT license, React and React DOM peer range 16.8 - 19, and the required v3 exports; the repository remains on compatible React and has no installed Joyride dependency",
+      "revalidate_before": [
+        "UNIT-001"
+      ],
+      "failure_action": "Stop UNIT-001, refresh official package/API evidence, and reconcile DEC-AUTO-002 and OPS-001 before installation",
+      "affected_ids": [
+        "OPS-001",
+        "PERF-001",
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "artifact_path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
+      "statement": "the active migration head remains 0100_user_support_system.sql and 0101_beta_onboarding_flow_state.sql remains available",
+      "revalidate_before": [
+        "UNIT-002"
+      ],
+      "failure_action": "Stop UNIT-002, renumber the fix-forward migration, and reconcile the activation rebuild against current schema and consumers",
+      "affected_ids": [
+        "DATA-001",
+        "DATA-002",
+        "UNIT-002"
+      ]
+    },
+    {
+      "id": "ASSUMP-003",
+      "status": "ACTIVE",
+      "artifact_path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
+      "statement": "the active route inventory remains 72 page.tsx files and the direct Workshop and Support modal-owner inventory remains 23 files with unchanged route, auth, and overlay ownership",
+      "revalidate_before": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "failure_action": "Stop the first affected UI unit, rerun the inventory searches, classify drift, and update ownership before writing UI",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-004",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-004",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-011",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-009",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-012",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "RISK-013",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-007",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-014",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-011"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "NOT_REQUIRED",
+      "test_trigger": "NONE",
+      "test_rationale": "Fresh source, route, migration, and diff inspection is decisive planning evidence; no product test is required to establish the starting baseline.",
+      "test_ids": [],
+      "evidence_ids": [
+        "EVID-011"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Correct cohort eligibility and optional orientation are critical invariants; cheaper non-test inspection is insufficient because client lifecycle and viewport behavior must execute.",
+      "test_ids": [
+        "TEST-003",
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Activation from real domain state is a critical invariant; cheaper non-test inspection is insufficient because mutations, imports, and checklist derivation must execute.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Capability-correct contextual targeting is a critical invariant; cheaper non-test inspection is insufficient because route, data, viewport, and feature states must execute.",
+      "test_ids": [
+        "TEST-003",
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-004"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Single focus ownership and accessible user control are critical invariants; cheaper non-test inspection is insufficient because keyboard, modal, reflow, and restoration behavior must execute.",
+      "test_ids": [
+        "TEST-003",
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Monotonic durable state under retries and races is a critical invariant; cheaper non-test inspection is insufficient because D1 transitions and conflicts must execute.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Row-preserving migration and lifecycle integrity are critical invariants; cheaper non-test inspection is insufficient because foreign keys, holds, backfill, and deletion ordering must execute.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Server-derived scope and tenant-data non-disclosure are critical invariants; cheaper non-test inspection is insufficient because negative authorization and serialization paths must execute.",
+      "test_ids": [
+        "TEST-004",
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-009",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Public and ineligible bundle exclusion is a critical invariant; cheaper non-test inspection is insufficient because emitted chunks, mounts, waits, and cancellation must be measured.",
+      "test_ids": [
+        "TEST-005",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-010",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Joyride v3 and Next.js 16 runtime correctness is a critical invariant; cheaper non-test inspection is insufficient because lifecycle, import, recovery, and bundle contracts must execute.",
+      "test_ids": [
+        "TEST-003",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-011",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Safe protected return intent is a critical invariant; cheaper non-test inspection is insufficient because login, callback, setup, terms, sanitization, and reauthorization paths must execute.",
+      "test_ids": [
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-003",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-010"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-009",
+        "AC-010"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-008",
+        "AC-011"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-DATA-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-SEC-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-008",
+        "AC-011"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-NEXT-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-009",
+        "AC-010"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-UX-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-A11Y-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-PERF-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-009"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "FAIL",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "AC-010",
+        "AC-011"
+      ],
+      "evidence_ids": [
+        "EVID-010"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "SEC-001",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-006",
+        "RISK-008",
+        "RISK-011",
+        "RISK-012",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-006",
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "UX-003",
+        "UX-004",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-008",
+        "RISK-011",
+        "RISK-013",
+        "RISK-014"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-007",
+        "EVID-008",
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "UX-002",
+        "UX-004",
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-009",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "UX-004",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-011"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-007",
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "UX-003",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-005",
+        "RISK-008",
+        "RISK-013"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "UX-004",
+        "DATA-001",
+        "SEC-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-004",
+        "RISK-007",
+        "RISK-008",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-006",
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-008",
+      "status": "READY",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010",
+        "RISK-011",
+        "RISK-012",
+        "RISK-013",
+        "RISK-014"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-010"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "rationale": "A short orientation, domain checklist, and route-local guides reach value without a brittle whole-application grand tour."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "PERF-001",
+        "UNIT-001",
+        "UNIT-003"
+      ],
+      "rationale": "Current Joyride v3 uncontrolled mode avoids external numeric-index drift and keeps the library state machine authoritative during a run."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-002",
+        "DATA-002",
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "rationale": "Business activation must remain true independently of whether a user views or dismisses instructional UI."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "SEC-001",
+        "UNIT-002"
+      ],
+      "rationale": "User, workspace, semantic flow, and version form the smallest durable scope that supports resume, upgrades, and tenant isolation."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "OPS-001",
+        "UNIT-002"
+      ],
+      "rationale": "One state table and one append-only event table provide idempotency and diagnostics without creating a parallel workflow platform."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-003",
+        "PERF-001",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "rationale": "Rendering components can keep semantic target identifiers stable while allowing internal markup and responsive layout to evolve."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-003",
+        "PERF-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "rationale": "Route-local guides bound readiness, cancellation, recovery, and ownership better than one monolithic cross-route tour."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-002",
+        "DATA-002",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "rationale": "Authoritative project, estimate, activation, and total facts must complete value tasks; tooltip exposure cannot manufacture activation."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-004",
+        "PERF-001",
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "rationale": "Mobile onboarding cannot truthfully target desktop-only navigation, so shared authorized mobile navigation is a prerequisite."
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-004",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "rationale": "Pausing the tour before an application modal opens prevents nested focus traps and ambiguous Escape or restoration behavior."
+    },
+    {
+      "id": "DEC-AUTO-011",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-004",
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "rationale": "Resume, replay, restart, checklist reopen, and reset have different persistence consequences and therefore require distinct commands and copy."
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "DATA-002",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "rationale": "Semantic allowlisted telemetry supports recovery while excluding tenant content, resource identifiers, selectors, URLs, and free-form errors."
+    },
+    {
+      "id": "DEC-AUTO-013",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001",
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "rationale": "The archived Supabase-era plan contains superseded architecture and cannot be executable authority for the current D1 application."
+    },
+    {
+      "id": "DEC-AUTO-014",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-008",
+        "GATE-VERIFY-01"
+      ],
+      "rationale": "Unrequested product tests remain explicit proposals and evidence gaps rather than artificial authorization or technical blockers."
+    },
+    {
+      "id": "DEC-AUTO-015",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "SEC-001",
+        "DATA-002",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "rationale": "Current workspace, project, and estimate grants all confer legitimate access and must work without synthetic workspace membership."
+    },
+    {
+      "id": "DEC-AUTO-016",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "SEC-002",
+        "UNIT-003",
+        "UNIT-008"
+      ],
+      "rationale": "Sanitized protected return intent preserves user context without enabling open redirects, token exposure, nested auth loops, or authorization bypass."
+    }
+  ],
+  "authorization_boundaries": [],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "stale_triggers": [
+    "baseline HEAD changes before UNIT-001",
+    "react-joyride latest stable version or v3 API contract changes",
+    "active D1 migration head changes from 0100 or migration 0101 becomes occupied",
+    "Workshop route, navigation, overlay, auth-return, activation, privacy, retention, or deletion source changes",
+    "the active page inventory differs from 72 routes",
+    "the direct Workshop and Support modal-owner inventory differs from 23 files",
+    "Next.js 16 local framework guidance changes for dynamic imports, client boundaries, or navigation"
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
+      "claim_ids": [
+        "SRC-002",
+        "REQ-001"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "3422342033870ac9d5f6514d323e811f4e743c54fee5aa1e11ae7b8d1da696bc",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
+      "claim_ids": [
+        "SRC-003",
+        "ASSUMP-001"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "14afc7ca303dbfac7ab8ebaf960c8fa16f9054d816efb708220690d8c1b7363a",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
+      "claim_ids": [
+        "SRC-005",
+        "ASSUMP-003"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "c98ce31321d798e0e0c304bd16d3676c87901caeb4a9ecb92f1fcdceef8b8b4d",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "05-INDEPENDENT-REVIEW.md",
+      "claim_ids": [
+        "SRC-006"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "5644651e736cb825d2c8531fd54fc76fd578efa497fd6c37369c9b8ed4e83036",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "claim_ids": [
+        "SRC-001",
+        "SRC-004",
+        "REQ-001",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "UX-004",
+        "DATA-001",
+        "DATA-002",
+        "SEC-001",
+        "SEC-002",
+        "PERF-001",
+        "OPS-001",
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010",
+        "RISK-011",
+        "RISK-012",
+        "RISK-013",
+        "RISK-014",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "DEC-AUTO-001",
+        "DEC-AUTO-002",
+        "DEC-AUTO-003",
+        "DEC-AUTO-004",
+        "DEC-AUTO-005",
+        "DEC-AUTO-006",
+        "DEC-AUTO-007",
+        "DEC-AUTO-008",
+        "DEC-AUTO-009",
+        "DEC-AUTO-010",
+        "DEC-AUTO-011",
+        "DEC-AUTO-012",
+        "DEC-AUTO-013",
+        "DEC-AUTO-014",
+        "DEC-AUTO-015",
+        "DEC-AUTO-016"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "f2c02314d92d2b88a6e413d7e81b53737067f23927c987519b3a15e6bc5c7b83",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "claim_ids": [
+        "AC-003",
+        "AC-006",
+        "AC-007",
+        "TEST-001",
+        "UNIT-002",
+        "UNIT-007",
+        "GATE-DATA-01"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "claim_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-010",
+        "TEST-002",
+        "TEST-003",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "GATE-NEXT-01",
+        "GATE-UX-01"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "claim_ids": [
+        "AC-007",
+        "AC-008",
+        "AC-011",
+        "TEST-004",
+        "TEST-007",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007",
+        "GATE-SEC-01"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "claim_ids": [
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-009",
+        "AC-010",
+        "TEST-005",
+        "TEST-006",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "GATE-NEXT-01",
+        "GATE-UX-01",
+        "GATE-A11Y-01",
+        "GATE-PERF-01"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "claim_ids": [
+        "UNIT-008",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-011",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "claim_ids": [
+        "AC-001"
+      ],
+      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "valid_until": null
+    }
+  ],
+  "manifest_sha256": "69c3180320d32c4be36af0dfffccac781a66bce9e60e3dda57c0d28be01b080e"
+}
