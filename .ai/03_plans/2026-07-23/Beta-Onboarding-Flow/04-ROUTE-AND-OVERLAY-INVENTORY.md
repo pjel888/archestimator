@@ -2,7 +2,7 @@
 
 ## Audit Contract
 
-- **Baseline:** `8aca41a3f06463ec53f59e20e7a53c92391b3a88`
+- **Baseline:** `a25eb56c69d4cea6e6ae2ffc1692229ae8382059`
 - **Page discovery:** `rg --files src/app | rg '/page\.tsx$' | sort`
 - **Observed active pages:** `72`
 - **Breakdown:** `16` public/auth-boundary pages, `23` Admin pages, `33`
@@ -85,12 +85,12 @@ workspace-scoped onboarding state or Joyride chunk enters the Admin shell.
 | Source page | Route | Disposition | Decision |
 | --- | --- | --- | --- |
 | `src/app/workshop/page.tsx` | `/workshop` | `CORE_HOST` | Shell orientation host, dashboard progress, Getting started entry. |
-| `src/app/workshop/getting-started/page.tsx` | `/workshop/getting-started` | `CENTER` | Replace redirect with checklist, recommendation, start paths, and on-demand guides. |
+| `src/app/workshop/getting-started/page.tsx` | `/workshop/getting-started` | `CENTER` | Replace redirect with checklist, starter workspace readiness/partial/add/restore states, exact start paths, and on-demand guides. |
 | `src/app/workshop/onboarding/page.tsx` | `/workshop/onboarding` | `REDIRECT` | Compatibility redirect to `/workshop/getting-started`. |
-| `src/app/workshop/projects/page.tsx` | `/workshop/projects` | `CORE_HOST` | Project task destination; existing zero state owns Blank/Template/Guided sample. |
+| `src/app/workshop/projects/page.tsx` | `/workshop/projects` | `CORE_HOST` | Project task destination; show shared Tutorial/Reference in the per-user **Starter Examples** group and shared Sandbox ungrouped without treating generation, presence, route visits, or opens as checklist/activation. An explicitly created practice Project uses ordinary workspace visibility. |
 | `src/app/workshop/projects/[projectId]/page.tsx` | `/workshop/projects/[projectId]` | `HELP_ONLY` | Authorized dashboard context; no beta-v1 tour. Direct-estimate redirects remain authoritative. |
-| `src/app/workshop/projects/[projectId]/estimates/page.tsx` | `/workshop/projects/[projectId]/estimates` | `CORE_GUIDE` | Estimate existence/creation task and route preparation. |
-| `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx` | `/workshop/projects/[projectId]/estimates/[nodeId]` | `CORE_GUIDE` | First-estimate hierarchy, area/row, total/save guide. |
+| `src/app/workshop/projects/[projectId]/estimates/page.tsx` | `/workshop/projects/[projectId]/estimates` | `CORE_GUIDE` | Estimate task destination and route preparation; seeded existence and opens earn no progress, while only the closed successful Estimate Sheet creation/mutation families may establish the authorized context after authoritative save/readback. |
+| `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx` | `/workshop/projects/[projectId]/estimates/[nodeId]` | `CORE_GUIDE` | First-estimate guidance plus the lesson-sized tutorial practice host for hierarchy, row math, save state, source scope, and transfer. |
 | `src/app/workshop/projects/[projectId]/data/page.tsx` | `/workshop/projects/[projectId]/data` | `HELP_ONLY` | Inline help only after readable project facts; no beta-v1 tour. |
 | `src/app/workshop/projects/[projectId]/charts/page.tsx` | `/workshop/projects/[projectId]/charts` | `REDIRECT` | Compatibility redirect to Data; never a target. |
 | `src/app/workshop/projects/[projectId]/activity/page.tsx` | `/workshop/projects/[projectId]/activity` | `HELP_ONLY` | No tour until feed/permission state is truthful; Support remains available. |
@@ -99,16 +99,16 @@ workspace-scoped onboarding state or Joyride chunk enters the Admin shell.
 | `src/app/workshop/projects/[projectId]/client-portals/[portalId]/page.tsx` | `/workshop/projects/[projectId]/client-portals/[portalId]` | `HELP_ONLY` | Portal control center; preserve distinction from Client links. |
 | `src/app/workshop/projects/[projectId]/client-portals/[portalId]/discussions/page.tsx` | `/workshop/projects/[projectId]/client-portals/[portalId]/discussions` | `HELP_ONLY` | Discussion inbox; no beta-v1 tour. |
 | `src/app/workshop/library/page.tsx` | `/workshop/library` | `HELP_ONLY` | Blank Overview is never a Joyride target. |
-| `src/app/workshop/library/components/page.tsx` | `/workshop/library/components` | `CONTEXT_GUIDE` | `library_reuse` only when content/state/capability is truthful. |
-| `src/app/workshop/library/templates/page.tsx` | `/workshop/library/templates` | `CONTEXT_GUIDE` | `library_reuse` template step; capability-aware. |
+| `src/app/workshop/library/components/page.tsx` | `/workshop/library/components` | `CONTEXT_GUIDE` | Show six labeled starter Components across two claimed custom folders plus protected Uncategorized resolved/ensured by default-category identity without a starter folder claim; `library_reuse` still requires a real user action and explains that starter presence is not completion. |
+| `src/app/workshop/library/templates/page.tsx` | `/workshop/library/templates` | `CONTEXT_GUIDE` | Show three labeled persisted starter Templates by category; guide preview/insert/duplicate/edit/archive without treating installation as reuse. |
 | `src/app/workshop/library/templates/[templateId]/page.tsx` | `/workshop/library/templates/[templateId]` | `HELP_ONLY` | Editor is not a beta-v1 tour; ordinary inline help. |
 | `src/app/workshop/components/page.tsx` | `/workshop/components` | `REDIRECT` | Compatibility redirect to Library; never a target. |
 | `src/app/workshop/templates/page.tsx` | `/workshop/templates` | `REDIRECT` | Compatibility redirect to Library Templates. |
 | `src/app/workshop/proposals/page.tsx` | `/workshop/proposals` | `HELP_ONLY` | Signed-in recipient inbox; no beta-v1 tour. |
-| `src/app/workshop/publisher/page.tsx` | `/workshop/publisher` | `CONTEXT_GUIDE` | `client_sharing` only for eligible manager with valid content. |
+| `src/app/workshop/publisher/page.tsx` | `/workshop/publisher` | `HELP_ONLY` | Keep Client-link distinctions truthful; defer any guide until core Estimate Sheet learning passes and beta evidence justifies it. |
 | `src/app/workshop/publisher/preview/[projectId]/page.tsx` | `/workshop/publisher/preview/[projectId]` | `RETURN_ONLY` | Authenticated presentation preview; pause/omit tour overlay. |
 | `src/app/workshop/feedback/page.tsx` | `/workshop/feedback` | `SUPPORT` | Dedicated recovery route with sanitized context only. |
-| `src/app/workshop/settings/page.tsx` | `/workshop/settings` | `SETTINGS` | Primary Guidance & tours status/actions surface. |
+| `src/app/workshop/settings/page.tsx` | `/workshop/settings` | `SETTINGS` | Primary Guidance & tours status/actions surface; guidance reset preserves starter assets, claims, generations, and tutorial binding. |
 | `src/app/workshop/settings/profile/page.tsx` | `/workshop/settings/profile` | `SETTINGS` | Account/profile/delete surface; no tour target; lifecycle integration applies. |
 | `src/app/workshop/settings/workspace/page.tsx` | `/workshop/settings/workspace` | `SETTINGS` | Workspace settings; no beta-v1 tour. |
 | `src/app/workshop/settings/organization/page.tsx` | `/workshop/settings/organization` | `SETTINGS` | Organization settings; no beta-v1 tour. |

@@ -10,11 +10,11 @@
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-23T09:14:06.000Z",
+  "updated_at": "2026-07-23T16:08:48.000Z",
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
-    "head": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
+    "head": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
@@ -23,43 +23,43 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "f2c02314d92d2b88a6e413d7e81b53737067f23927c987519b3a15e6bc5c7b83"
+      "sha256": "c01ed426f0611aec82ef3ae161b935f3344c5adecbb5a17f4c3753fcb4b549bd"
     },
     {
       "id": "ART-002",
       "role": "current-state-and-d1-audit",
       "path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
-      "sha256": "3422342033870ac9d5f6514d323e811f4e743c54fee5aa1e11ae7b8d1da696bc"
+      "sha256": "c4c25dacc2b67b25f0f42f59fcb5cc16f2f4e0cdb67e0b65d8074f0cdb3ad104"
     },
     {
       "id": "ART-003",
       "role": "research-and-experience-spec",
       "path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
-      "sha256": "14afc7ca303dbfac7ab8ebaf960c8fa16f9054d816efb708220690d8c1b7363a"
+      "sha256": "f52b6c9a07e960bc7b9eb166b10021e52f0dc54a499243e3e1743fc924740ab6"
     },
     {
       "id": "ART-004",
       "role": "architecture-data-verification",
       "path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5"
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b"
     },
     {
       "id": "ART-005",
       "role": "route-and-overlay-inventory",
       "path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
-      "sha256": "c98ce31321d798e0e0c304bd16d3676c87901caeb4a9ecb92f1fcdceef8b8b4d"
+      "sha256": "7316094399a3483a43b096279a3ceb4deb697d012920f768d2527b580b7a408d"
     },
     {
       "id": "ART-006",
       "role": "independent-review",
       "path": "05-INDEPENDENT-REVIEW.md",
-      "sha256": "5644651e736cb825d2c8531fd54fc76fd578efa497fd6c37369c9b8ed4e83036"
+      "sha256": "41e59c76237a4bc6f0360e1767642cf94246362d81a658b10de55b02b381777d"
     },
     {
       "id": "ART-007",
       "role": "pack-index",
       "path": "README.md",
-      "sha256": "d0293ed7b60f13d7635aa1a62a20500583a64afecf21b9d399759ea1840f2f19"
+      "sha256": "898f9290d529c10244c6c5b5dc8a25c1dc9bc57eea351400c19068a382118659"
     }
   ],
   "sources": [
@@ -73,8 +73,10 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -91,8 +93,10 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -108,6 +112,8 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
+        "DATA-003",
         "SEC-001",
         "PERF-001",
         "OPS-001"
@@ -123,8 +129,10 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -140,6 +148,7 @@
         "UX-001",
         "UX-003",
         "UX-004",
+        "UX-005",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -156,8 +165,10 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -277,6 +288,29 @@
       ]
     },
     {
+      "id": "UX-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
       "id": "DATA-001",
       "status": "ACCEPTED",
       "completion_role": "CORE",
@@ -314,6 +348,28 @@
       ],
       "criterion_ids": [
         "AC-007"
+      ]
+    },
+    {
+      "id": "DATA-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-013"
       ]
     },
     {
@@ -459,6 +515,22 @@
         "UNIT-005",
         "UNIT-006",
         "UNIT-007"
+      ]
+    },
+    {
+      "id": "ASSUMP-004",
+      "status": "ACTIVE",
+      "artifact_path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
+      "statement": "the guided-sample writer still creates one project, one estimate, one generic Area, and one priced row through activation-actions.ts, and no persisted starter Component or Template catalog is guaranteed",
+      "revalidate_before": [
+        "UNIT-005"
+      ],
+      "failure_action": "Stop UNIT-005, re-read current sample and Library persistence, and reconcile DATA-003, DEC-AUTO-017 through DEC-AUTO-019, ownership, and recovery before editing",
+      "affected_ids": [
+        "UX-005",
+        "DATA-003",
+        "UNIT-005",
+        "UNIT-006"
       ]
     }
   ],
@@ -680,6 +752,71 @@
       "criterion_ids": [
         "AC-011"
       ]
+    },
+    {
+      "id": "RISK-015",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-012",
+        "AC-013"
+      ]
+    },
+    {
+      "id": "RISK-016",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-013"
+      ]
+    },
+    {
+      "id": "RISK-017",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "RISK-018",
+      "status": "OPEN",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-013"
+      ]
     }
   ],
   "criteria": [
@@ -728,13 +865,12 @@
       ],
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Activation from real domain state is a critical invariant; cheaper non-test inspection is insufficient because mutations, imports, and checklist derivation must execute.",
+      "test_rationale": "Checklist progress from qualifying user-domain state and mutation context is a critical invariant; cheaper non-test inspection is insufficient because seeded presence/opens, mutations, imports, and checklist derivation must execute.",
       "test_ids": [
         "TEST-002"
       ],
       "evidence_ids": [
-        "EVID-006",
-        "EVID-007"
+        "EVID-006"
       ],
       "authorization_boundary_id": null
     },
@@ -892,6 +1028,47 @@
         "EVID-008"
       ],
       "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-012",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-005"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Estimate Sheet comprehension and transfer are critical beta invariants; cheaper source inspection cannot prove that a user performs, saves, and later repeats the required editor actions.",
+      "test_ids": [
+        "TEST-005",
+        "TEST-008"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-009"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-013",
+      "status": "FAIL",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "DATA-003"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Starter manifest cardinality/scope, exact auto-install eligibility, protected default-folder resolution, asset claims, resumable installation, inactive-key restore, shared-membership revision closure across every eligible user, role-downgrade-safe starter-organization cleanup, the closed successful Project/Estimate operation set, explicit practice identity/binding, concurrency, and generated-versus-user origin separation are critical invariants; cheaper inspection cannot prove real writes, races, bounded resume, partial recovery, no-false-complete behavior, narrower-progress preservation, non-overwrite, stale-receipt exclusion, archives, negative action cases, or event classification.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-008"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
     }
   ],
   "tests": [
@@ -901,7 +1078,8 @@
       "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
       "criterion_ids": [
         "AC-006",
-        "AC-007"
+        "AC-007",
+        "AC-013"
       ],
       "evidence_ids": [
         "EVID-006"
@@ -913,7 +1091,8 @@
       "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
       "criterion_ids": [
         "AC-003",
-        "AC-007"
+        "AC-007",
+        "AC-013"
       ],
       "evidence_ids": [
         "EVID-007"
@@ -953,7 +1132,8 @@
         "AC-002",
         "AC-004",
         "AC-005",
-        "AC-009"
+        "AC-009",
+        "AC-012"
       ],
       "evidence_ids": [
         "EVID-009"
@@ -982,6 +1162,19 @@
       "evidence_ids": [
         "EVID-008"
       ]
+    },
+    {
+      "id": "TEST-008",
+      "status": "PLANNED",
+      "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-012",
+        "AC-013"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007"
+      ]
     }
   ],
   "gates": [
@@ -991,7 +1184,8 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
         "AC-006",
-        "AC-007"
+        "AC-007",
+        "AC-013"
       ],
       "evidence_ids": [
         "EVID-006"
@@ -1033,7 +1227,9 @@
         "AC-002",
         "AC-003",
         "AC-004",
-        "AC-005"
+        "AC-005",
+        "AC-012",
+        "AC-013"
       ],
       "evidence_ids": [
         "EVID-007",
@@ -1046,7 +1242,8 @@
       "status": "FAIL",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "criterion_ids": [
-        "AC-005"
+        "AC-005",
+        "AC-012"
       ],
       "evidence_ids": [
         "EVID-009"
@@ -1080,7 +1277,9 @@
         "AC-008",
         "AC-009",
         "AC-010",
-        "AC-011"
+        "AC-011",
+        "AC-012",
+        "AC-013"
       ],
       "evidence_ids": [
         "EVID-010"
@@ -1096,6 +1295,7 @@
       "depends_on": [],
       "requirement_ids": [
         "REQ-001",
+        "DATA-003",
         "SEC-001",
         "PERF-001",
         "OPS-001"
@@ -1108,7 +1308,9 @@
         "RISK-008",
         "RISK-011",
         "RISK-012",
-        "RISK-013"
+        "RISK-013",
+        "RISK-016",
+        "RISK-017"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1126,6 +1328,7 @@
         "UX-002",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001"
       ],
       "risk_ids": [
@@ -1135,7 +1338,10 @@
         "RISK-008",
         "RISK-009",
         "RISK-010",
-        "RISK-013"
+        "RISK-013",
+        "RISK-015",
+        "RISK-016",
+        "RISK-018"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1189,6 +1395,7 @@
         "UX-001",
         "UX-002",
         "UX-004",
+        "UX-005",
         "DATA-002"
       ],
       "risk_ids": [
@@ -1198,7 +1405,10 @@
         "RISK-004",
         "RISK-005",
         "RISK-009",
-        "RISK-013"
+        "RISK-013",
+        "RISK-015",
+        "RISK-017",
+        "RISK-018"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1215,6 +1425,8 @@
       "requirement_ids": [
         "UX-002",
         "UX-004",
+        "UX-005",
+        "DATA-003",
         "PERF-001"
       ],
       "risk_ids": [
@@ -1224,10 +1436,15 @@
         "RISK-004",
         "RISK-005",
         "RISK-006",
-        "RISK-011"
+        "RISK-011",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017",
+        "RISK-018"
       ],
       "evidence_ids": [
         "EVID-005",
+        "EVID-006",
         "EVID-007",
         "EVID-009"
       ]
@@ -1237,10 +1454,11 @@
       "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
-        "UNIT-004"
+        "UNIT-005"
       ],
       "requirement_ids": [
         "UX-003",
+        "UX-005",
         "SEC-001"
       ],
       "risk_ids": [
@@ -1248,7 +1466,11 @@
         "RISK-003",
         "RISK-005",
         "RISK-008",
-        "RISK-013"
+        "RISK-013",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017",
+        "RISK-018"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1273,7 +1495,8 @@
         "RISK-004",
         "RISK-007",
         "RISK-008",
-        "RISK-010"
+        "RISK-010",
+        "RISK-016"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1296,8 +1519,10 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -1317,7 +1542,11 @@
         "RISK-011",
         "RISK-012",
         "RISK-013",
-        "RISK-014"
+        "RISK-014",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017",
+        "RISK-018"
       ],
       "evidence_ids": [
         "EVID-005",
@@ -1339,7 +1568,7 @@
         "UNIT-005",
         "UNIT-006"
       ],
-      "rationale": "A short orientation, domain checklist, and route-local guides reach value without a brittle whole-application grand tour."
+      "rationale": "A short orientation, domain checklist, one task-based Estimate Sheet curriculum, and route-local guides reach value and comprehension without a brittle whole-application grand tour."
     },
     {
       "id": "DEC-AUTO-002",
@@ -1360,10 +1589,12 @@
       "affected_ids": [
         "UX-002",
         "DATA-002",
+        "DATA-003",
         "UNIT-002",
-        "UNIT-004"
+        "UNIT-004",
+        "UNIT-005"
       ],
-      "rationale": "Business activation must remain true independently of whether a user views or dismisses instructional UI."
+      "rationale": "Business activation, generated sample value, user-origin tutorial practice, and independent transfer must remain distinguishable regardless of instructional UI exposure."
     },
     {
       "id": "DEC-AUTO-004",
@@ -1423,12 +1654,14 @@
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "affected_ids": [
         "UX-002",
+        "UX-005",
         "DATA-002",
+        "DATA-003",
         "UNIT-002",
         "UNIT-004",
         "UNIT-005"
       ],
-      "rationale": "Authoritative project, estimate, activation, and total facts must complete value tasks; tooltip exposure cannot manufacture activation."
+      "rationale": "Authoritative project, estimate, activation, and total facts complete real value tasks, while tutorial-seed writes remain classified and cannot manufacture practice or independent activation."
     },
     {
       "id": "DEC-AUTO-009",
@@ -1530,6 +1763,73 @@
         "UNIT-008"
       ],
       "rationale": "Sanitized protected return intent preserves user context without enabling open redirects, token exposure, nested auth loops, or authorization bypass."
+    },
+    {
+      "id": "DEC-AUTO-017",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-005",
+        "DATA-003",
+        "UNIT-005",
+        "UNIT-008",
+        "RISK-016",
+        "RISK-017"
+      ],
+      "rationale": "One shared bounded Tutorial makes the starter workspace immediately legible; an explicit per-user practice Project derived from the immutable blueprint teaches hierarchy and row variety without silently duplicating Projects for joining editors."
+    },
+    {
+      "id": "DEC-AUTO-018",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-002",
+        "UX-005",
+        "DATA-003",
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-008",
+        "AC-012",
+        "AC-013",
+        "RISK-015"
+      ],
+      "rationale": "Closed user-origin price/save and add/source predicates plus a separate non-starter transfer signal are stronger comprehension evidence than generated totals or tooltip completion."
+    },
+    {
+      "id": "DEC-AUTO-019",
+      "status": "SUPERSEDED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-003",
+        "UX-005",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008",
+        "RISK-016"
+      ],
+      "rationale": "The earlier user-created-only reusable-asset decision was explicitly superseded by the user's 2026-07-23 direction to install a bounded default starter workspace."
+    },
+    {
+      "id": "DEC-AUTO-020",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "UX-002",
+        "UX-003",
+        "UX-005",
+        "DATA-003",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-008",
+        "AC-003",
+        "AC-013",
+        "RISK-015",
+        "RISK-016",
+        "RISK-018"
+      ],
+      "rationale": "A closed shared 3-Project/4-Estimate-Sheet/6-Component/3-Template starter manifest makes product organization and reuse concrete while exact auto-install eligibility, two claimed custom folders, scoped claims, shared-membership revision closure, role-downgrade-safe starter-organization cleanup, explicit inactive-key restore, no silent per-user Project duplication, the closed successful checklist-operation set, and seed-origin exclusion prevent clutter, stranded group membership, retained-progress erasure, overwrite, duplication, or false activation."
     }
   ],
   "authorization_boundaries": [],
@@ -1548,6 +1848,7 @@
     "Workshop route, navigation, overlay, auth-return, activation, privacy, retention, or deletion source changes",
     "the active page inventory differs from 72 routes",
     "the direct Workshop and Support modal-owner inventory differs from 23 files",
+    "guided-sample, activation-writer, Estimate Sheet hierarchy, Component persistence, or Template persistence contracts change before UNIT-005",
     "Next.js 16 local framework guidance changes for dynamic imports, client boundaries, or navigation"
   ],
   "evidence_index": [
@@ -1557,10 +1858,13 @@
       "artifact_path": "01-CURRENT-STATE-AND-D1-AUDIT.md",
       "claim_ids": [
         "SRC-002",
-        "REQ-001"
+        "REQ-001",
+        "UX-005",
+        "DATA-003",
+        "ASSUMP-004"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "3422342033870ac9d5f6514d323e811f4e743c54fee5aa1e11ae7b8d1da696bc",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "c4c25dacc2b67b25f0f42f59fcb5cc16f2f4e0cdb67e0b65d8074f0cdb3ad104",
       "valid_until": null
     },
     {
@@ -1569,10 +1873,12 @@
       "artifact_path": "02-RESEARCH-AND-EXPERIENCE-SPEC.md",
       "claim_ids": [
         "SRC-003",
-        "ASSUMP-001"
+        "ASSUMP-001",
+        "UX-005",
+        "DATA-003"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "14afc7ca303dbfac7ab8ebaf960c8fa16f9054d816efb708220690d8c1b7363a",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "f52b6c9a07e960bc7b9eb166b10021e52f0dc54a499243e3e1743fc924740ab6",
       "valid_until": null
     },
     {
@@ -1581,10 +1887,11 @@
       "artifact_path": "04-ROUTE-AND-OVERLAY-INVENTORY.md",
       "claim_ids": [
         "SRC-005",
-        "ASSUMP-003"
+        "ASSUMP-003",
+        "UX-005"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "c98ce31321d798e0e0c304bd16d3676c87901caeb4a9ecb92f1fcdceef8b8b4d",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "7316094399a3483a43b096279a3ceb4deb697d012920f768d2527b580b7a408d",
       "valid_until": null
     },
     {
@@ -1592,10 +1899,15 @@
       "status": "PASS",
       "artifact_path": "05-INDEPENDENT-REVIEW.md",
       "claim_ids": [
-        "SRC-006"
+        "SRC-006",
+        "UX-005",
+        "DATA-003",
+        "AC-013",
+        "RISK-018",
+        "DEC-AUTO-020"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "5644651e736cb825d2c8531fd54fc76fd578efa497fd6c37369c9b8ed4e83036",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "41e59c76237a4bc6f0360e1767642cf94246362d81a658b10de55b02b381777d",
       "valid_until": null
     },
     {
@@ -1610,8 +1922,10 @@
         "UX-002",
         "UX-003",
         "UX-004",
+        "UX-005",
         "DATA-001",
         "DATA-002",
+        "DATA-003",
         "SEC-001",
         "SEC-002",
         "PERF-001",
@@ -1630,6 +1944,10 @@
         "RISK-012",
         "RISK-013",
         "RISK-014",
+        "RISK-015",
+        "RISK-016",
+        "RISK-017",
+        "RISK-018",
         "UNIT-001",
         "UNIT-002",
         "UNIT-003",
@@ -1653,10 +1971,14 @@
         "DEC-AUTO-013",
         "DEC-AUTO-014",
         "DEC-AUTO-015",
-        "DEC-AUTO-016"
+        "DEC-AUTO-016",
+        "DEC-AUTO-017",
+        "DEC-AUTO-018",
+        "DEC-AUTO-019",
+        "DEC-AUTO-020"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "f2c02314d92d2b88a6e413d7e81b53737067f23927c987519b3a15e6bc5c7b83",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "c01ed426f0611aec82ef3ae161b935f3344c5adecbb5a17f4c3753fcb4b549bd",
       "valid_until": null
     },
     {
@@ -1667,13 +1989,16 @@
         "AC-003",
         "AC-006",
         "AC-007",
+        "AC-013",
         "TEST-001",
+        "TEST-008",
         "UNIT-002",
+        "UNIT-005",
         "UNIT-007",
         "GATE-DATA-01"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
       "valid_until": null
     },
     {
@@ -1686,8 +2011,11 @@
         "AC-004",
         "AC-005",
         "AC-010",
+        "AC-012",
+        "AC-013",
         "TEST-002",
         "TEST-003",
+        "TEST-008",
         "UNIT-003",
         "UNIT-004",
         "UNIT-005",
@@ -1695,8 +2023,8 @@
         "GATE-NEXT-01",
         "GATE-UX-01"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
       "valid_until": null
     },
     {
@@ -1714,8 +2042,8 @@
         "UNIT-007",
         "GATE-SEC-01"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
       "valid_until": null
     },
     {
@@ -1728,6 +2056,7 @@
         "AC-005",
         "AC-009",
         "AC-010",
+        "AC-012",
         "TEST-005",
         "TEST-006",
         "UNIT-001",
@@ -1738,8 +2067,8 @@
         "GATE-A11Y-01",
         "GATE-PERF-01"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
       "valid_until": null
     },
     {
@@ -1748,10 +2077,12 @@
       "artifact_path": "03-ARCHITECTURE-DATA-AND-VERIFICATION.md",
       "claim_ids": [
         "UNIT-008",
+        "AC-012",
+        "AC-013",
         "GATE-VERIFY-01"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
       "valid_until": null
     },
     {
@@ -1761,10 +2092,10 @@
       "claim_ids": [
         "AC-001"
       ],
-      "source_revision": "8aca41a3f06463ec53f59e20e7a53c92391b3a88",
-      "sha256": "611ffd18e03729f9cb0dd0839fe6b5aaa3e54459b84a6a0809776622a0ad08d5",
+      "source_revision": "a25eb56c69d4cea6e6ae2ffc1692229ae8382059",
+      "sha256": "9820b0a48153b7b090e19487e6c6fa675851721133ee9284d8763d1ea85fb29b",
       "valid_until": null
     }
   ],
-  "manifest_sha256": "69c3180320d32c4be36af0dfffccac781a66bce9e60e3dda57c0d28be01b080e"
+  "manifest_sha256": "b12716b384b3268ea03641b6451f00aafed6d6f63cf803b6b3bc71be444ace02"
 }

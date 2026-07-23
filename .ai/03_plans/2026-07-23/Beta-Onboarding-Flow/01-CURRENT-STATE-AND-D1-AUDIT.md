@@ -2,10 +2,11 @@
 
 ## Audit Contract
 
-- **Repository revision:** `8aca41a3f06463ec53f59e20e7a53c92391b3a88`
+- **Repository revision:** `a25eb56c69d4cea6e6ae2ffc1692229ae8382059`
 - **Observed migration head:** `0100_user_support_system.sql`
 - **Scope:** authenticated/public entry, Workshop and Admin route families,
   navigation, permissions, onboarding/help affordances, activation producers,
+  guided-sample and reusable-asset truth, Estimate Sheet teaching surface,
   active migrations, Better Auth schema boundary, repositories, privacy,
   retention, account deletion, and support context.
 - **Method:** current source, migration, configuration, local installed
@@ -31,19 +32,27 @@ Archestimator does not need a new onboarding platform. It already has:
 - persistent Settings and Support entry points.
 
 The missing layer is a coherent instructional experience and its small durable
-state projection. Current onboarding is fragmented:
+state projection. Current onboarding is fragmented and the current guided
+sample is not yet a tutorial:
 
 - `/workshop/onboarding` redirects to Settings;
 - `/workshop/getting-started` redirects to Workshop home;
 - `FirstEstimateChecklist` is not mounted;
 - its milestone logic is stale;
 - `selected_path` has no current writer;
+- guided-sample creation can earn area, priced-row, and valid-total milestones
+  before the user performs or understands an Estimate Sheet action;
+- the sample contains one generic area and one allowance row;
+- new workspaces have no guaranteed persisted starter Project collection,
+  Component set, or Template set;
 - there is no per-flow version/resume/reset/replay state; and
 - `react-joyride` is not installed.
 
 The correct implementation is to preserve business activation truth, add a
-separate instructional projection, and use Joyride only as a lazy authenticated
-presentation adapter.
+separate instructional projection, replace the single guided sample with one
+bounded starter workspace pack plus task-based practice, distinguish generated
+starter value from user-performed and non-starter value, and use Joyride only
+as a lazy authenticated presentation adapter.
 
 ## Installed Runtime Baseline
 
@@ -130,7 +139,7 @@ trigger, not an implied onboarding target.
 | Library Components | Workspace vs project-only reusable costs | Contextual reuse guide after first estimate value. |
 | Library Templates | Browse/edit reusable estimate templates | Capability-aware contextual guide. |
 | `/workshop/proposals` | Signed-in recipient inbox | Recipient-only contextual guide when rows exist. |
-| `/workshop/publisher` | Sender-side Client links roster/wizard | Manager-only sharing guide. |
+| `/workshop/publisher` | Sender-side Client links roster/wizard | Help-only in beta v1; defer a manager guide until core Estimate Sheet learning passes. |
 | `/share/[token]` | Public recipient/session review route | No authenticated Workshop Joyride. |
 | Settings | Profile, workspace, organization, account, legal, support, admin entries | Add **Guidance & tours** with status and reset/replay actions. |
 | Support Center / feedback | Persistent support overlay and dedicated route | Core recovery destination with sanitized tour context. |
@@ -161,6 +170,31 @@ Workspace
 - `FirstProjectZeroState.tsx` already offers Blank project, Workspace template,
   and Guided sample.
 - Guided-sample creation routes directly into the generated estimate area.
+- `guided-sample.ts` currently defines one project, one estimate, one generic
+  area, and one project-source allowance row totaling PHP 30,000.
+- `activation-actions.ts` marks the Project with server-owned
+  `activation_sample = 1` and `activation_sample_version = 1`, providing a safe
+  legacy-classification seam.
+- Project groups and memberships are per user. A Project with no membership is
+  rendered in the virtual **Ungrouped** section, so the same shared starter
+  Projects can be organized differently for each workspace user.
+- Components are persisted workspace-wide in `cost_library_items`; custom
+  `library_folders` coexist with the protected **Uncategorized** folder.
+- Templates are persisted workspace-wide in D1 and organized by required
+  category strings. The three static entries in
+  `src/lib/component-library/estimate-templates.ts` are in-memory fixtures, not
+  installed workspace records.
+  compatibility seam that does not depend on names.
+- `activation-actions.ts` creates that whole chain through normal project,
+  estimate, area, and row mutations. The area/row writes can emit
+  `first_area_created`, `first_row_priced`, and `first_valid_total` before the
+  user changes anything.
+- `EstimateSheetTree.tsx` supports a nested area tree in which any area can hold
+  rows and child areas; the novice model is not a strictly linear
+  Project → Estimate → Tab → Area → Row chain.
+- Current copy alternates between **Area** and **Branch** for the same
+  hierarchy operation. Onboarding cannot attach stable teaching language until
+  this terminology is normalized.
 - `ProjectMiniSidebar.tsx` exposes Dashboard, Estimates, Data, Activity, and
   Portals.
 - Team and publication are separate header actions in
@@ -292,6 +326,34 @@ Direct event insertion uses `ON CONFLICT ... DO NOTHING`, but the progress
 upsert still runs. A duplicate call can return `already_recorded` while
 incrementing progress version and refreshing `updated_at`. The implementation
 must make duplicate onboarding/activation integration genuinely no-op.
+
+### Guided-sample and reusable-asset gap
+
+The current guided sample is a first-value fixture, not a learning curriculum:
+
+- it has no lesson/chapter model, instructional target manifest, marked
+  practice row, user-action requirement, completion boundary, graduation task,
+  reset/recreate command, or archive/cleanup affordance;
+- sample generation can satisfy the same activation projection used to decide
+  that `first_estimate_value` is no longer eligible;
+- `estimateTemplates` and `sampleEstimateTree` are source fixtures/default
+  values, not guaranteed persisted workspace starter content;
+- the live Library reads D1 workspace Components and Templates, so a new
+  workspace can truthfully be empty; and
+- current Library guidance explains distinctions but does not require a user
+  to create/reuse a Component or create/insert a Template.
+
+Beta onboarding therefore needs one versioned, recoverable starter workspace
+pack: a deep tutorial Project, a completed reference Project, an ungrouped
+Sandbox Project, four bounded Estimate Sheets, six persisted Components, and
+three persisted Templates. The tutorial keeps a small nested hierarchy,
+purposeful rows, and marked user-edit tasks; the additional defaults make
+Projects grouping, multi-sheet work, Component folders, Uncategorized content,
+and Template categories visible before the user has to invent examples.
+Generated starter records must remain distinguishable from user-performed
+practice and from a first valid total in non-starter work. The marked version-1
+sample must be archived before the version-2 tutorial copy is created; it must
+never be silently reshaped in place.
 
 ## Responsive and Accessibility Audit
 
@@ -695,8 +757,10 @@ grant.
 The same implementation program must distinguish:
 
 1. workspace-scoped privacy erasure;
-2. removal of one access grant and final access to a workspace; and
-3. full-account deletion, including the global `user_onboarding_profiles` row.
+2. loss of starter-organization/grouping capability while narrower workspace
+   resource access and instructional/activation state remain;
+3. removal of one access grant and final access to a workspace; and
+4. full-account deletion, including the global `user_onboarding_profiles` row.
 
 An active activation legal hold retains only the allowlisted activation and
 instructional rows after access/identity removal; it cannot retain or recreate a
@@ -717,6 +781,36 @@ rows before identity teardown.
 New instructional state should extend these boundaries rather than create a
 second privacy framework.
 
+### `DATA-FINDING-08` Generated starter value can masquerade as comprehension
+
+The current sample path uses normal domain writers, so generated areas, priced
+rows, and totals can advance `beta_activation_progress`. The planned starter
+Reference/Sandbox Projects will use the same integrity primitives. Without
+separate starter/tutorial generation classification and a user-performed
+practice outcome, generated defaults could report activation while teaching
+nothing.
+
+The implementation must keep the activation taxonomy intact while ensuring:
+
+1. shared Tutorial/Reference/Sandbox seeding writes
+   `origin_class='starter_seed'`, while explicit per-user practice seeding
+   records `sample_generated` and writes
+   `origin_class='tutorial_seed'`; both preserve the existing activation
+   producer `source`;
+2. both origins remain auditable in events but never advance
+   `beta_activation_progress`; legacy derived progress is recomputed from
+   backfilled `user_domain` events;
+3. installation, seeded asset presence, route visits, and seeded opens cannot
+   satisfy checklist, user-performed practice, Library reuse, activation, or
+   transfer; only the closed successful Blank/Duplicate/Template-derived
+   creation and seven Estimate Sheet mutation families remain eligible
+   `user_domain` checklist facts after authoritative save/readback;
+4. starter/tutorial-origin activation events remain identifiable and excluded
+   from non-starter conversion/transfer measures; and
+5. at least one user edit and one user row/source action matching the currently
+   persisted tutorial version/generation are required for tutorial-core
+   completion; later non-starter transfer remains a separate outcome.
+
 ## Data Placement Decision
 
 | Data | Canonical owner |
@@ -724,9 +818,13 @@ second privacy framework.
 | Persona, region, primary use, consent | `user_onboarding_profiles` |
 | Organization name/type, currency, workspace defaults | `workspace_account_settings` |
 | Real activation milestones after estimate existence and first value | `beta_activation_*` |
-| Estimate-created/open checklist truth | authorized `estimates` row and current resource context |
-| Selected Blank/Template/Guided-sample path | `beta_activation_progress.selected_path` |
-| Tour status, semantic resume step, flow version/generation | new `beta_onboarding_flow_states` |
+| Project/Estimate checklist truth | successful user-domain Blank/Duplicate/Template-derived creation or one of the closed seven Estimate Sheet mutation families after authoritative save/readback in an authorized current resource context |
+| Selected Blank/Template/Guided/Reference/Sandbox path | expanded closed `beta_activation_progress.selected_path` |
+| Starter pack/version/assets and tutorial generation/owner | new starter-install ledger plus existing Project/group/estimate/node/row/Component/folder/Template persistence with a closed server-owned manifest and unique claims |
+| Starter/tutorial seed versus ordinary activation origin | new closed `origin_class` in `beta_activation_events` and `beta_activation_outbox`; existing `source` stays producer taxonomy |
+| User-performed Estimate Sheet practice, current tutorial binding, and sample reset/archive outcomes | `beta_onboarding_flow_states` and `beta_onboarding_flow_events` |
+| Non-starter transfer signal | current domain/activation facts filtered by starter-asset metadata/ledger identity |
+| Tour status, semantic resume step, flow version/instructional generation | new `beta_onboarding_flow_states` |
 | Tour lifecycle/failure/reset audit | new `beta_onboarding_flow_events` |
 | Flow definitions, copy, target and eligibility rules | typed source catalog, not D1 JSON |
 
@@ -757,7 +855,17 @@ ideas such as progressive guidance and replay.
 12. Settings/Joyride focus ownership can conflict.
 13. Project-only and estimate-only collaborators have no workspace membership,
     so membership-owned instructional state would exclude supported users.
-14. Live feature flags, real beta-user data, deployed migration parity, D1 FK
+14. Guided-sample generation can complete first-value milestones before any
+    user-performed Estimate Sheet practice.
+15. The current one-area/one-row sample cannot teach nested hierarchy, row
+    arithmetic, source scope, reuse, or transfer to independent work.
+16. Generated starter/tutorial value and non-starter activation are not
+    separated in the current outcome metrics.
+17. Starter content can become clutter or overwrite intent unless identity is
+    claim-based, grouping is deliberate, auto-install uses a closed business
+    emptiness predicate, **Uncategorized** is resolved rather than claimed, and
+    restore is explicit/inactive-key-only.
+18. Live feature flags, real beta-user data, deployed migration parity, D1 FK
    integrity, and runtime focus/mobile behavior remain unproved by static
    inspection.
 
