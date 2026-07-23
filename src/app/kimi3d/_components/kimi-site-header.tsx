@@ -144,7 +144,7 @@ export function KimiSiteHeader() {
         <div className={cn(styles.container, styles.headerMain)}>
           <Link
             ref={brandLinkRef}
-            href="/kimi3d"
+            href="/"
             className={styles.brandLink}
             aria-label={`${headerCopy.wordmark} home`}
           >
