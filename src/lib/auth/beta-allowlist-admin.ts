@@ -7,10 +7,8 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 
 export const CLOSED_BETA_ALLOWLIST_STATUSES = ["invited", "active", "revoked"] as const;
 export const CLOSED_BETA_ALLOWLIST_ADMIN_PATH = "/admin/allowlist";
-export const CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH = "/workshop/settings/users";
 const CLOSED_BETA_ALLOWLIST_RETURN_PATHS = new Set([
   CLOSED_BETA_ALLOWLIST_ADMIN_PATH,
-  CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH,
 ]);
 const MAX_BULK_ALLOWLIST_EMAILS = 50;
 

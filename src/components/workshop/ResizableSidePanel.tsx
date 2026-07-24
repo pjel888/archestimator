@@ -1,10 +1,11 @@
 "use client";
 
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SidebarSimple, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import {
   clampSidePanelContentWidth,
   getSidePanelWidthConfig,
@@ -162,6 +163,7 @@ export function ResizableSidePanel({
   const drawerRef = useRef<HTMLDivElement | null>(null);
   const drawerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const [modalLifecycle] = useState(createModalLifecyclePublisher);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => setCollapsed(persistedCollapsed));
@@ -238,20 +240,22 @@ export function ResizableSidePanel({
     });
   }
 
-  function openDrawer() {
+  const openDrawer = useCallback(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
+    modalLifecycle.opening();
     setDrawerOpen(true);
-  }
+  }, [modalLifecycle]);
 
-  function closeDrawer() {
+  const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
     window.requestAnimationFrame(() => {
       const target = previousFocusRef.current ?? drawerTriggerRef.current;
-      if (target?.isConnected) target.focus();
+      if (target?.isConnected) target.focus({ preventScroll: true });
+      modalLifecycle.closedFocusRestored();
     });
-  }
+  }, [modalLifecycle]);
 
   function handleDrawerKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -375,9 +379,16 @@ export function ResizableSidePanel({
 
   useEffect(() => {
     if (compactViewport || !drawerOpen) return;
-    const frameId = window.requestAnimationFrame(() => setDrawerOpen(false));
+    const frameId = window.requestAnimationFrame(closeDrawer);
     return () => window.cancelAnimationFrame(frameId);
-  }, [compactViewport, drawerOpen]);
+  }, [closeDrawer, compactViewport, drawerOpen]);
+
+  useEffect(
+    () => () => {
+      modalLifecycle.closedFocusRestored();
+    },
+    [modalLifecycle],
+  );
 
   if (compactViewport && !compactDrawer) {
     return null;

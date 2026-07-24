@@ -827,6 +827,7 @@ function ExpressMaterialImageEditor({
 
 function ExpressMaterialEditor({
   item,
+  rowIndex,
   editableRow,
   brandOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
   supplierOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
@@ -842,6 +843,7 @@ function ExpressMaterialEditor({
   onDeleteDraft,
 }: {
   item: EstimateRowItem;
+  rowIndex: number;
   editableRow: EditableRowValue;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
@@ -1082,7 +1084,9 @@ function ExpressMaterialEditor({
               }}
               onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unitCost", onRevert })}
               data-estimate-row-id={item.id}
+              data-estimate-row-index={rowIndex}
               data-express-field="unitCost"
+              data-estimate-price-input="unit-cost"
               ariaLabel="Unit cost"
               align="right"
             />
@@ -1146,6 +1150,7 @@ export function EstimateMaterialCell({
   canManageLibrary = false,
   componentSyncPending = false,
   item,
+  rowIndex,
   editableRow,
   brandOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
   supplierOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
@@ -1176,6 +1181,7 @@ export function EstimateMaterialCell({
   canManageLibrary?: boolean;
   componentSyncPending?: boolean;
   item: EstimateRowItem;
+  rowIndex: number;
   editableRow: EditableRowValue;
   brandOptions?: CreatableComboboxOption[];
   supplierOptions?: CreatableComboboxOption[];
@@ -1393,6 +1399,7 @@ export function EstimateMaterialCell({
           <ExpressMaterialEditor
             key={`${item.id}:${editableRow.imageUrl}`}
             item={item}
+            rowIndex={rowIndex}
             editableRow={editableRow}
             brandOptions={brandOptions}
             supplierOptions={supplierOptions}
@@ -1434,6 +1441,7 @@ export function MoneyInput({
   "data-estimate-row-id"?: string;
   "data-estimate-cell-index"?: number;
   "data-express-field"?: string;
+  "data-estimate-price-input"?: "unit-cost";
   disabled?: boolean;
   onFocus?: InputHTMLAttributes<HTMLInputElement>["onFocus"];
   onBlur?: InputHTMLAttributes<HTMLInputElement>["onBlur"];

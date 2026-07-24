@@ -6,6 +6,7 @@ import { ArrowClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 
 import type { ProposalExportModel } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
+import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import { clampRate } from "./proposal-export-preview-utils";
 
 const FOCUSABLE_SELECTOR =
@@ -154,6 +155,8 @@ export function ProposalExportPreviewDialog({
   onClose,
 }: ProposalExportPreviewDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const [modalLifecycle] = useState(createModalLifecyclePublisher);
   // Local draft strings for the rate inputs (RV-4). A controlled number input bound to the
   // committed rate can never show empty, so clearing it would snap back and "clear then type"
   // would append onto the old value (e.g. 12 → 128 → clamped 100). The draft lets the field
@@ -172,10 +175,25 @@ export function ProposalExportPreviewDialog({
 
   const openDialogElement = useCallback(
     (node: HTMLDialogElement | null) => {
-      dialogRef.current?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
+      const previousDialog = dialogRef.current;
+      if (previousDialog === node) return;
+      previousDialog?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
       dialogRef.current = node;
-      if (!node) return;
+      if (!node) {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        queueMicrotask(() => {
+          if (opener?.isConnected) opener.focus({ preventScroll: true });
+          modalLifecycle.closedFocusRestored();
+        });
+        return;
+      }
 
+      openerRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      modalLifecycle.opening();
       node.addEventListener("pointerdown", handleNativeDialogPointerDown);
       if (node.open) return;
 
@@ -190,7 +208,7 @@ export function ProposalExportPreviewDialog({
 
       node.setAttribute("open", "");
     },
-    [handleNativeDialogPointerDown],
+    [handleNativeDialogPointerDown, modalLifecycle],
   );
 
   // F-06 (P1-T3): keyboard accessibility — initial focus on open, Esc-to-close, and a Tab

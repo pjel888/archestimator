@@ -6,17 +6,25 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   use,
+  useCallback,
   useEffect,
   useEffectEvent,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
+  useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
 import { X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
+import {
+  createModalLifecycleToken,
+  publishModalClosedFocusRestored,
+  publishModalOpening,
+} from "./modal-lifecycle";
 
 type DialogContextValue = {
   open: boolean;
@@ -75,6 +83,18 @@ function useDialogContext(component: string) {
   return context;
 }
 
+function subscribeToClientDocument() {
+  return () => {};
+}
+
+function getClientDocumentSnapshot() {
+  return true;
+}
+
+function getServerDocumentSnapshot() {
+  return false;
+}
+
 export function Dialog({
   open,
   onOpenChange,
@@ -90,40 +110,46 @@ export function Dialog({
   const titleId = useId();
   const descriptionId = useId();
   const openerRef = useRef<HTMLElement | null>(null);
-  const wasOpenRef = useRef(false);
+  const modalLifecycleTokenRef = useRef(createModalLifecycleToken());
   const overlayDismissAfterRef = useRef(0);
-  const overlayGraceArmedRef = useRef(false);
   const closeDialog = useEffectEvent(() => onOpenChange(false));
-  const isOverlayDismissReady = useEffectEvent(() => {
+  const isOverlayDismissReady = useCallback(() => {
     const until = overlayDismissAfterRef.current;
     return until === 0 || Date.now() >= until;
-  });
+  }, []);
 
-  // Arm overlay grace synchronously on open so a mobile ghost-click that lands
-  // before effects flush cannot dismiss the freshly mounted dialog.
-  if (open) {
-    if (!overlayGraceArmedRef.current) {
-      overlayDismissAfterRef.current =
-        overlayCloseGraceMs > 0 ? Date.now() + overlayCloseGraceMs : 0;
-      overlayGraceArmedRef.current = true;
-    }
-  } else if (overlayGraceArmedRef.current) {
-    overlayGraceArmedRef.current = false;
-    overlayDismissAfterRef.current = 0;
-  }
-
-  useEffect(() => {
-    if (open && !wasOpenRef.current) {
-      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  useLayoutEffect(() => {
+    if (!open) {
+      overlayDismissAfterRef.current = 0;
+      return;
     }
 
-    if (!open && wasOpenRef.current && returnFocusOnClose) {
-      openerRef.current?.focus?.();
+    overlayDismissAfterRef.current =
+      overlayCloseGraceMs > 0 ? Date.now() + overlayCloseGraceMs : 0;
+    return () => {
+      overlayDismissAfterRef.current = 0;
+    };
+  }, [open, overlayCloseGraceMs]);
+
+  useLayoutEffect(() => {
+    if (!open || !modal) return;
+
+    const token = modalLifecycleTokenRef.current;
+    openerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    publishModalOpening(token);
+
+    return () => {
+      const opener = openerRef.current;
       openerRef.current = null;
-    }
-
-    wasOpenRef.current = open;
-  }, [open, returnFocusOnClose]);
+      if (returnFocusOnClose && opener?.isConnected) {
+        opener.focus({ preventScroll: true });
+      }
+      publishModalClosedFocusRestored(token);
+    };
+  }, [modal, open, returnFocusOnClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -232,7 +258,12 @@ function DialogTrigger({ children, className, disabled }: DialogTriggerProps) {
 
 export function DialogPortal({ children }: { children: ReactNode }) {
   const { open } = useDialogContext("DialogPortal");
-  if (!open || typeof document === "undefined") return null;
+  const hasClientDocument = useSyncExternalStore(
+    subscribeToClientDocument,
+    getClientDocumentSnapshot,
+    getServerDocumentSnapshot,
+  );
+  if (!open || !hasClientDocument) return null;
   return createPortal(children, document.body);
 }
 

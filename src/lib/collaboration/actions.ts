@@ -25,6 +25,7 @@ import {
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/transactional-email-client";
 import { isUuid } from "@/lib/ids";
+import { reconcileOnboardingAfterAccessChange } from "@/lib/onboarding/flow-retention";
 import { emitLogRecord } from "@/lib/observability/logger";
 
 type CollaborationActionResult = {
@@ -1819,6 +1820,10 @@ export async function removeProjectCollaborator({
     );
   }
   await context.db.batch(removalStatements);
+  await reconcileOnboardingAfterAccessChange(context.db, {
+    userId,
+    workspaceId: context.project.workspace_id,
+  });
 
   await Promise.all([
     revokeCollaborationRoomSubject({ topic: `project:${context.project.id}`, subject: userId }),
@@ -1908,6 +1913,10 @@ export async function removeEstimateSheetCollaborator({
       },
       timestamp,
     }),
+  });
+  await reconcileOnboardingAfterAccessChange(context.db, {
+    userId,
+    workspaceId: context.project.workspace_id,
   });
 
   await revokeCollaborationRoomSubject({ topic: `estimate:${context.estimate.id}`, subject: userId });

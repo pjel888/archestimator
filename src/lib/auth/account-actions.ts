@@ -21,9 +21,13 @@ import {
   type ProfileSettingsPayload,
   type WorkspaceSettingsPayload,
 } from "@/lib/auth/account-data";
-import { DEFAULT_AUTH_DESTINATION, sanitizeNextPath } from "@/lib/auth/redirects";
+import {
+  DEFAULT_AUTH_DESTINATION,
+  sanitizeProtectedReturnPath,
+} from "@/lib/auth/redirects";
 import { requireCurrentUserContext, requireWorkshopWriteContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { installStarterPackForEligibleWorkspace } from "@/lib/onboarding/starter-pack-actions";
 
 type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 
@@ -46,7 +50,7 @@ export type AccountSetupState = {
 };
 
 async function completeOnboarding(formData: FormData) {
-  const next = sanitizeNextPath(formData.get("next"));
+  const next = sanitizeProtectedReturnPath(formData.get("next"));
   const context = await requireCurrentUserContext();
   const database = await requireAccountActionsD1Database();
   const accountMembership = await readFirstAccountWorkspaceMembership(context.userId);
@@ -70,6 +74,10 @@ async function completeOnboarding(formData: FormData) {
     await saveWorkspaceSettings(database, workspaceId, parsed.workspace);
 
     await updateDefaultWorkspaceId(database, context.userId, workspaceId);
+    await installStarterPackForEligibleWorkspace(database, {
+      workspaceId,
+      userId: context.userId,
+    });
 
     await recordAccountSecurityEvent({
       eventType: "onboarding_completed",
@@ -80,6 +88,10 @@ async function completeOnboarding(formData: FormData) {
   } else {
     if (accountMembership?.workspaceId) {
       await updateDefaultWorkspaceId(database, context.userId, accountMembership.workspaceId);
+      await installStarterPackForEligibleWorkspace(database, {
+        workspaceId: accountMembership.workspaceId,
+        userId: context.userId,
+      });
     }
 
     await recordAccountSecurityEvent({
@@ -92,7 +104,7 @@ async function completeOnboarding(formData: FormData) {
 
   revalidatePath("/workshop");
   revalidatePath("/workshop/settings");
-  // react-doctor-disable-next-line react-doctor/clickjacking-redirect-risk -- `next` is constrained by sanitizeNextPath to an internal path, with auth callback and unsafe nested next values rejected.
+  // react-doctor-disable-next-line react-doctor/clickjacking-redirect-risk -- `next` is constrained to a sanitized protected return path and is reauthorized by the destination layout.
   redirect(next);
 }
 
@@ -352,7 +364,7 @@ function toWorkspaceRole(value: string | null | undefined): WorkspaceRole | null
 function onboardingErrorUrl(code: string, next: string) {
   const params = new URLSearchParams({
     error: code,
-    next: sanitizeNextPath(next, DEFAULT_AUTH_DESTINATION),
+    next: sanitizeProtectedReturnPath(next, DEFAULT_AUTH_DESTINATION),
   });
   return `/workshop/onboarding?${params.toString()}`;
 }

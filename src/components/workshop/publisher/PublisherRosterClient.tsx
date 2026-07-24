@@ -27,6 +27,7 @@ import type {
   ProjectPublicationRosterRow as ProjectPublicationRosterRowData,
   ProjectPublicationRosterShareOption,
 } from "@/lib/publisher/roster-repository";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { cn } from "@/lib/ui/cn";
 
 type PublisherRosterClientProps = {
@@ -287,12 +288,13 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
 
   return (
     <section
+      {...onboardingTarget("publisher.roster")}
       aria-label="Client link workspace"
       aria-busy={isPending}
       className="flex h-full min-h-0 flex-col overflow-hidden rounded-xs border border-hairline bg-white shadow-xs"
       data-publisher-roster="true"
     >
-      <div className={cn(
+      <div {...onboardingTarget("publisher.filters")} className={cn(
         "shrink-0 grid-cols-2 gap-1.5 border-b border-hairline bg-white p-2 xl:grid-cols-[minmax(14rem,1fr)_9rem_12rem_auto] xl:items-center",
         mobileDetailOpen && selectedRow ? "hidden lg:grid" : "grid",
       )}>
@@ -325,6 +327,7 @@ export function PublisherRosterClient({ filters, roster }: PublisherRosterClient
         />
         <div className="col-span-2 xl:col-span-1">
           <Button
+            {...onboardingTarget("publisher.create")}
             type="button"
             variant="brand"
             size="sm"

@@ -5,17 +5,29 @@ export const AUTH_REQUEST_PATH_HEADER = "x-archestimator-request-path";
 
 const LOCALHOST_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/;
+const PROTECTED_RETURN_PREFIXES = ["/workshop", "/admin"] as const;
+const PROTECTED_RETURN_LOOP_PATHS = new Set([
+  AUTH_CALLBACK_PATH,
+  LOGIN_PATH,
+  "/signup",
+  "/access-required",
+  "/workshop/terms",
+]);
+const SENSITIVE_RETURN_QUERY_KEY_PATTERN =
+  /(?:^|[_-])(next|token|code|secret|email|password)(?:$|[_-])/i;
+const MAX_PROTECTED_RETURN_LENGTH = 2_048;
 const MAX_DECODE_PASSES = 3;
 
 type OriginEnv = Partial<Pick<NodeJS.ProcessEnv, "NODE_ENV">> & Record<string, string | undefined>;
 
-export function sanitizeNextPath(
+export function sanitizeProtectedReturnPath(
   value: FormDataEntryValue | string | null | undefined,
   fallback = DEFAULT_AUTH_DESTINATION,
 ) {
-  const safeFallback = sanitizePathOnly(fallback) ?? DEFAULT_AUTH_DESTINATION;
+  const safeFallback =
+    sanitizeProtectedPathOnly(fallback) ?? DEFAULT_AUTH_DESTINATION;
   const raw = typeof value === "string" ? value.trim() : "";
-  return sanitizePathOnly(raw) ?? safeFallback;
+  return sanitizeProtectedPathOnly(raw) ?? safeFallback;
 }
 
 function getAllowedAppOrigins(env: OriginEnv = process.env) {
@@ -84,12 +96,17 @@ export function buildLoginRedirectUrl({
 }) {
   const loginUrl = new URL(LOGIN_PATH, origin);
   loginUrl.searchParams.set("error", code);
-  loginUrl.searchParams.set("next", sanitizeNextPath(next));
+  loginUrl.searchParams.set("next", sanitizeProtectedReturnPath(next));
   return loginUrl;
 }
 
-function sanitizePathOnly(value: string) {
-  if (!value || CONTROL_CHARACTER_PATTERN.test(value) || /\\/.test(value)) {
+function sanitizeProtectedPathOnly(value: string) {
+  if (
+    !value ||
+    value.length > MAX_PROTECTED_RETURN_LENGTH ||
+    CONTROL_CHARACTER_PATTERN.test(value) ||
+    /\\/.test(value)
+  ) {
     return null;
   }
 
@@ -98,6 +115,7 @@ function sanitizePathOnly(value: string) {
 
   for (const candidate of decodedCandidates) {
     if (
+      candidate.length > MAX_PROTECTED_RETURN_LENGTH ||
       !candidate.startsWith("/") ||
       candidate.startsWith("//") ||
       /\\/.test(candidate) ||
@@ -117,16 +135,26 @@ function sanitizePathOnly(value: string) {
   }
 
   if (parsed.origin !== "https://archestimator.local") return null;
-  if (parsed.pathname === AUTH_CALLBACK_PATH) return null;
-  if (hasUnsafeNestedNextPath(parsed)) return null;
+  if (!isProtectedReturnPath(parsed.pathname)) return null;
+  if (
+    PROTECTED_RETURN_LOOP_PATHS.has(parsed.pathname) ||
+    parsed.pathname.startsWith(`${AUTH_CALLBACK_PATH}/`) ||
+    parsed.pathname.startsWith(`${LOGIN_PATH}/`)
+  ) {
+    return null;
+  }
+  if (parsed.searchParams.has("next")) return null;
+  for (const key of parsed.searchParams.keys()) {
+    if (SENSITIVE_RETURN_QUERY_KEY_PATTERN.test(key)) return null;
+  }
 
-  return decodedValue;
+  return `${parsed.pathname}${parsed.search}`;
 }
 
-function hasUnsafeNestedNextPath(parsed: URL) {
-  // react-doctor-disable-next-line react-doctor/url-prefilled-privileged-action -- This sanitizer inspects nested next values so attacker-controlled redirect chains are rejected.
-  const nestedNextValues = parsed.searchParams.getAll("next");
-  return nestedNextValues.some((nextValue) => sanitizePathOnly(nextValue) === null);
+function isProtectedReturnPath(pathname: string) {
+  return PROTECTED_RETURN_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 function decodeCandidates(value: string) {

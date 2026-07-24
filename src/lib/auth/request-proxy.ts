@@ -12,9 +12,8 @@ import {
   AUTH_REQUEST_PATH_HEADER,
   DEFAULT_AUTH_DESTINATION,
   LOGIN_PATH,
-  sanitizeNextPath,
+  sanitizeProtectedReturnPath,
 } from "@/lib/auth/redirects";
-import { shouldBypassTermsAcceptanceGate } from "@/lib/legal/terms-gate";
 
 const PROTECTED_PREFIXES = ["/workshop", "/admin"];
 const AUTH_ROUTES = [LOGIN_PATH];
@@ -105,7 +104,7 @@ function createRequestPathResponse(
   clearProtectedRouteGateRequestHeaders(requestHeaders);
   requestHeaders.set(
     AUTH_REQUEST_PATH_HEADER,
-    sanitizeNextPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
   );
   if (protectedRouteGateState) {
     markProtectedRouteGateRequestHeaders(
@@ -137,7 +136,10 @@ function redirectStateMismatchToCleanLogin(request: NextRequest) {
   }
 
   const loginUrl = new URL(LOGIN_PATH, request.url);
-  loginUrl.searchParams.set("next", DEFAULT_AUTH_DESTINATION);
+  loginUrl.searchParams.set(
+    "next",
+    sanitizeProtectedReturnPath(request.nextUrl.searchParams.get("next")),
+  );
   loginUrl.searchParams.set(OAUTH_STATE_RESET_PARAM, "1");
 
   const response = redirectWithSensitiveRouteCacheControl(loginUrl);
@@ -156,8 +158,6 @@ function redirectStateMismatchToCleanLogin(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const requestPath = sanitizeNextPath(`${pathname}${request.nextUrl.search}`);
-  const bypassesTermsGate = shouldBypassTermsAcceptanceGate(requestPath);
 
   if (
     pathname.includes(".") ||
@@ -216,7 +216,9 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL(LOGIN_PATH, request.url);
       loginUrl.searchParams.set(
         "next",
-        sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
+        sanitizeProtectedReturnPath(
+          `${pathname}${request.nextUrl.search}`,
+        ),
       );
       return redirectWithSensitiveRouteCacheControl(loginUrl);
     }
@@ -229,7 +231,9 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL(LOGIN_PATH, request.url);
     loginUrl.searchParams.set(
       "next",
-      sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
+      sanitizeProtectedReturnPath(
+        `${pathname}${request.nextUrl.search}`,
+      ),
     );
     return redirectWithSensitiveRouteCacheControl(loginUrl);
   }

@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type MouseEvent,
+} from "react";
 import { Copy, Eye, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
+import { useClientLinksLearning } from "./ClientLinksLearningRail";
 
 type ShareLinkDisplayProps = {
   projectName: string;
+  projectId: string;
   clientLinkPath: string;
   previewHref?: string;
 };
@@ -16,8 +24,15 @@ function subscribeToBrowserState() {
   return () => undefined;
 }
 
-export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: ShareLinkDisplayProps) {
+export function ShareLinkDisplay({
+  clientLinkPath,
+  previewHref,
+  projectId,
+  projectName,
+}: ShareLinkDisplayProps) {
   const [message, setMessage] = useState<string | null>(null);
+  const [selectableFallback, setSelectableFallback] = useState(false);
+  const learning = useClientLinksLearning();
   const browserOrigin = useSyncExternalStore(subscribeToBrowserState, () => window.location.origin, () => null);
   const nativeShareAvailable = useSyncExternalStore(subscribeToBrowserState, () => typeof navigator.share === "function", () => false);
   const absoluteLink = /^https?:\/\//i.test(clientLinkPath) || !browserOrigin
@@ -34,10 +49,30 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       await navigator.clipboard.writeText(absoluteLink);
-      setMessage("Shared link copied.");
+      setSelectableFallback(false);
+      const completion = await learning?.complete(projectId, "copy");
+      setMessage(completion?.message ?? "Shared link copied.");
     } catch {
       setMessage("Copy unavailable. Select the link to copy it.");
+      setSelectableFallback(true);
     }
+  }
+
+  async function acknowledgeSelectableLink() {
+    const completion = await learning?.complete(projectId, "selectable_link");
+    setMessage(completion?.message ?? "Selectable link acknowledged.");
+  }
+
+  async function openPreview(event: MouseEvent<HTMLAnchorElement>) {
+    if (!previewHref) return;
+    if (!learning?.active) return;
+    event.preventDefault();
+    const completion = await learning.complete(projectId, "authenticated_preview");
+    if (completion && !completion.ok) {
+      setMessage(completion.message);
+      return;
+    }
+    window.location.assign(previewHref);
   }
 
   async function shareLink() {
@@ -55,7 +90,11 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
   }
 
   return (
-    <section aria-label="Shared link" className="space-y-2 rounded-xs border border-hairline bg-surfaceMuted/50 p-3">
+    <section
+      {...onboardingTarget("publisher.link")}
+      aria-label="Shared link"
+      className="space-y-2 rounded-xs border border-hairline bg-surfaceMuted/50 p-3"
+    >
       <label htmlFor="share-wizard-link" className="text-[10px] font-medium leading-4 text-ink">Client link</label>
       <input
         id="share-wizard-link"
@@ -70,7 +109,13 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
           Copy
         </Button>
         {previewHref ? (
-          <Link href={previewHref} className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" aria-label={`Preview shared page for ${projectName}`}>
+          <Link
+            {...onboardingTarget("publisher.preview")}
+            href={previewHref}
+            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            aria-label={`Preview shared page for ${projectName}`}
+            onClick={(event) => void openPreview(event)}
+          >
             <Eye size={16} aria-hidden="true" /> Preview
           </Link>
         ) : null}
@@ -81,6 +126,17 @@ export function ShareLinkDisplay({ clientLinkPath, previewHref, projectName }: S
           </Button>
         ) : null}
       </div>
+      {selectableFallback ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="min-h-8 px-2.5 !text-[10px]"
+          onClick={() => void acknowledgeSelectableLink()}
+        >
+          I copied the selected link
+        </Button>
+      ) : null}
       {message ? <p role="status" className="text-[10px] leading-4 text-secondary">{message}</p> : null}
     </section>
   );

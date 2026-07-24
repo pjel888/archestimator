@@ -11,6 +11,10 @@ import {
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { readBoundedFormData } from "@/lib/http/read-bounded-body";
+import {
+  sanitizeOnboardingSupportContext,
+  type OnboardingSupportContext,
+} from "@/lib/onboarding/support-context";
 
 export const SUPPORT_INTAKE_BODY_LIMIT = 4_194_304;
 export const SUPPORT_SCREENSHOT_LIMIT = 3 * 1024 * 1024;
@@ -34,6 +38,12 @@ const ALLOWED_FIELDS = new Set([
   "browserFamily",
   "osFamily",
   "screenshot",
+  "flowKey",
+  "flowVersion",
+  "stepKey",
+  "reasonCode",
+  "routeKey",
+  "viewportClass",
 ]);
 const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/jpeg",
@@ -53,12 +63,8 @@ const STATIC_AUTHENTICATED_ROUTES = new Set([
   "/workshop/proposals",
   "/workshop/publisher",
   "/workshop/settings",
-  "/workshop/settings/feedback",
   "/workshop/settings/organization",
   "/workshop/settings/profile",
-  "/workshop/settings/scan-overrides",
-  "/workshop/settings/upload-operations",
-  "/workshop/settings/users",
   "/workshop/settings/workspace",
   "/workshop/templates",
   "/workshop/terms",
@@ -71,6 +77,7 @@ const STATIC_AUTHENTICATED_ROUTES = new Set([
   "/admin/copilot",
   "/admin/data-quality",
   "/admin/estimate-system",
+  "/admin/feedback",
   "/admin/financials",
   "/admin/flags",
   "/admin/notifications",
@@ -78,8 +85,10 @@ const STATIC_AUTHENTICATED_ROUTES = new Set([
   "/admin/projects",
   "/admin/releases",
   "/admin/saved-replies",
+  "/admin/scan-overrides",
   "/admin/support",
   "/admin/today",
+  "/admin/upload-operations",
   "/admin/users",
 ]);
 
@@ -113,6 +122,7 @@ export type SupportIntakeContext = {
   viewportHeight: number | null;
   viewportWidth: number | null;
   workspaceId: string | null;
+  onboarding: OnboardingSupportContext | null;
 };
 
 export type ValidatedSupportIntake = {
@@ -387,6 +397,28 @@ export async function readValidatedSupportIntake(
   }
 
   const diagnosticsShared = diagnosticsFlag(singleString(form, "diagnosticsShared"));
+  const onboardingValues = [
+    "flowKey",
+    "flowVersion",
+    "stepKey",
+    "reasonCode",
+    "routeKey",
+    "viewportClass",
+  ].map((field) => singleString(form, field));
+  const hasOnboardingContext = onboardingValues.some(Boolean);
+  const onboarding = hasOnboardingContext
+    ? sanitizeOnboardingSupportContext({
+        flowKey: onboardingValues[0],
+        flowVersion: onboardingValues[1],
+        stepKey: onboardingValues[2],
+        reasonCode: onboardingValues[3],
+        routeKey: onboardingValues[4],
+        viewportClass: onboardingValues[5],
+      })
+    : null;
+  if (hasOnboardingContext && !onboarding) {
+    throw new SupportIntakeValidationError("Onboarding support context is invalid.");
+  }
   const routeTemplate = matchAuthenticatedRouteTemplate(singleString(form, "sourcePathname"));
   const resources = diagnosticsShared
     ? await resolveResourceContext(database, user, {
@@ -402,6 +434,7 @@ export async function readValidatedSupportIntake(
         appRelease: optionalText(singleString(form, "appRelease"), 120, "appRelease"),
         browserFamily: normalizeFamily(singleString(form, "browserFamily"), BROWSER_FAMILIES, "browserFamily"),
         diagnosticsShared,
+        onboarding,
         osFamily: normalizeFamily(singleString(form, "osFamily"), OS_FAMILIES, "osFamily"),
         routeTemplate,
         timezone: optionalText(singleString(form, "timezone"), 100, "timezone"),
@@ -413,6 +446,7 @@ export async function readValidatedSupportIntake(
         appRelease: null,
         browserFamily: null,
         diagnosticsShared,
+        onboarding,
         osFamily: null,
         routeTemplate,
         timezone: null,

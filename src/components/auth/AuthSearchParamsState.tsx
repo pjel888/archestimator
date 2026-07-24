@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { AuthStatusBanner } from "@/components/auth/AuthStatusBanner";
 import { ClosedBetaGate } from "@/components/auth/ClosedBetaGate";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { sanitizeNextPath } from "@/lib/auth/redirects";
+import { sanitizeProtectedReturnPath } from "@/lib/auth/redirects";
 
 function getSearchParam(searchParams: ReturnType<typeof useSearchParams>, key: string) {
   const value = searchParams.get(key);
@@ -24,10 +24,18 @@ export function AuthStatusBannerFromSearchParams() {
 
 export function LoginFormFromSearchParams() {
   const searchParams = useSearchParams();
-  return <LoginForm next={sanitizeNextPath(getSearchParam(searchParams, "next"))} />;
+  return (
+    <LoginForm
+      next={sanitizeProtectedReturnPath(getSearchParam(searchParams, "next"))}
+    />
+  );
 }
 
 export function ClosedBetaGateFromSearchParams() {
   const searchParams = useSearchParams();
-  return <ClosedBetaGate next={sanitizeNextPath(getSearchParam(searchParams, "next"))} />;
+  return (
+    <ClosedBetaGate
+      next={sanitizeProtectedReturnPath(getSearchParam(searchParams, "next"))}
+    />
+  );
 }

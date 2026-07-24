@@ -1,3 +1,5 @@
+import type { OnboardingSupportContext } from "@/lib/onboarding/support-context";
+
 export type SupportConversationStatus = "open" | "pending" | "resolved" | "archived";
 
 export type SupportConversationSummary = {
@@ -29,6 +31,7 @@ export type SupportMessage = {
     diagnosticsShared: boolean;
     estimateId: string | null;
     osFamily: string | null;
+    onboarding: OnboardingSupportContext | null;
     projectId: string | null;
     routeTemplate: string;
     timezone: string | null;

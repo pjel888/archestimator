@@ -22,6 +22,7 @@ import {
 import { getLibraryDashboardSpotlight } from "@/lib/repositories/component-library-repository";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/lib";
+import { loadCurrentOnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-actions";
 
 /**
  * Library overview is a best-effort enhancement (spotlight + counts). It must
@@ -31,6 +32,14 @@ import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/
 async function loadDashboardLibrarySpotlight(): Promise<DashboardLibrarySpotlight | null> {
   try {
     return await traced("workshop.branch.library-dashboard-spotlight", () => getLibraryDashboardSpotlight());
+  } catch {
+    return null;
+  }
+}
+
+async function loadDashboardOnboardingSnapshot() {
+  try {
+    return await loadCurrentOnboardingEligibilitySnapshot();
   } catch {
     return null;
   }
@@ -104,7 +113,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
   // Fetch the dashboard's data in one server render wave. Some repository calls
   // are request-cached; homebase and the library spotlight also carry their own
   // guarded measurement labels because they are the dashboard's performance path.
-  const [homebase, currentUser, { workspace }, favoriteProjects, librarySpotlight] = await withPerfTraceRequest(
+  const [homebase, currentUser, { workspace }, favoriteProjects, librarySpotlight, onboardingSnapshot] = await withPerfTraceRequest(
     "workshop.dashboard",
     () => Promise.all([
       traced("workshop.branch.homebase", () => getWorkshopHomebaseData()),
@@ -112,6 +121,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
       traced("workshop.branch.workspace", () => ensureDefaultWorkspace()),
       traced("workshop.branch.sidebar-favorites", () => listMainSidebarFavoriteProjects()),
       loadDashboardLibrarySpotlight(),
+      loadDashboardOnboardingSnapshot(),
     ]),
   );
   const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
@@ -138,6 +148,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
           favoriteProjects={favoriteProjects}
           favoritesScope={favoritesScope}
           librarySpotlight={librarySpotlight}
+          onboardingSnapshot={onboardingSnapshot}
         />
       </WorkshopHomebaseClient>
     </WorkshopRouteHeader>

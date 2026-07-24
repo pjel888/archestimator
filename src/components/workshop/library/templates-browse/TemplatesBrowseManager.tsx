@@ -1168,6 +1168,7 @@ export function TemplatesBrowseManager({
       )}
       data-template-library-workspace="true"
       data-library-surface={surfaceVariant}
+      data-onboarding-target="library.templates"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
         <section className="flex h-full min-h-0 overflow-hidden bg-transparent" aria-label="Template library workspace">

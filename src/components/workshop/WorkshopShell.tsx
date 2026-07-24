@@ -7,6 +7,7 @@ import { MainSidebarWithStoreStatus } from "@/components/workshop/MainSidebarWit
 import { WorkshopGlassBackdrop } from "@/components/workshop/WorkshopGlassBackdrop";
 import { WebVitalsProbe } from "@/components/workshop/WebVitalsProbe";
 import { WorkshopFeedbackModal } from "@/components/workshop/WorkshopFeedbackModal";
+import { AuthenticatedOnboardingHost } from "@/components/onboarding/AuthenticatedOnboardingHost";
 import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import {
@@ -20,6 +21,7 @@ import {
   getSidePanelWidthCookieName,
   SIDE_PANEL_WIDTH_CONFIGS,
 } from "./side-panel-widths";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 
 // Flag-gated copilot: only rendered when isAskFlipUiEnabled() (defaults OFF).
 const AskFlipFooterAssistant = dynamic(() =>
@@ -98,7 +100,10 @@ async function AuthenticatedWorkshopSupport() {
  * Layout-owned persistent workshop chrome (sidebar, glass, footer).
  * Per-page headers live in WorkshopRouteHeader; canvas washes sync via WorkshopCanvasWash.
  */
-export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellProps) {
+export async function WorkshopShell({
+  children,
+  sidebarStatus,
+}: WorkshopShellProps) {
   const [sidePanelWidthCssVariables, disabledNavIdSet, maintenanceMode, showAskFlip] = await Promise.all([
     getSidePanelWidthCssVariables(),
     getDisabledWorkshopNavIds(),
@@ -114,6 +119,7 @@ export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellPr
       aria-label="Workshop"
     >
       <WebVitalsProbe />
+      <AuthenticatedOnboardingHost />
       <WorkshopGlassBackdrop />
       <Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} disabledNavIds={disabledNavIds} />}>
         <AuthenticatedMainSidebar status={sidebarStatus} disabledNavIds={disabledNavIds} />
@@ -126,6 +132,7 @@ export async function WorkshopShell({ children, sidebarStatus }: WorkshopShellPr
       >
         <div
           data-workshop-workspace-surface
+          {...onboardingTarget("shell.workspace")}
           className="sidebar-glass-shadow workshop-workspace-glass-surface flex h-full min-h-0 flex-col overflow-hidden rounded-xs border"
         >
           {maintenanceMode ? (

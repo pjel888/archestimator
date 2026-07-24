@@ -277,6 +277,7 @@ async function payloadFingerprint(input: {
     estimateId: input.context.estimateId,
     kind: input.kind,
     message: input.message,
+    onboarding: input.context.onboarding,
     osFamily: input.context.osFamily,
     projectId: input.context.projectId,
     replyTarget: input.replyTarget,
@@ -402,9 +403,11 @@ function buildCommitStatements(input: {
     `INSERT INTO support_message_context (
        message_id, workspace_id, project_id, estimate_id, route_template,
        app_release, viewport_width, viewport_height, timezone, browser_family,
-       os_family, diagnostics_shared, created_at
+       os_family, diagnostics_shared, onboarding_flow_key,
+       onboarding_flow_version, onboarding_step_key, onboarding_reason_code,
+       onboarding_route_key, onboarding_viewport_class, created_at
      )
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
      WHERE ${gate}`,
     [
       claim.message_id,
@@ -419,6 +422,12 @@ function buildCommitStatements(input: {
       context.browserFamily,
       context.osFamily,
       context.diagnosticsShared ? 1 : 0,
+      context.onboarding?.flowKey ?? null,
+      context.onboarding?.flowVersion ?? null,
+      context.onboarding?.stepKey ?? null,
+      context.onboarding?.reasonCode ?? null,
+      context.onboarding?.routeKey ?? null,
+      context.onboarding?.viewportClass ?? null,
       commitAt,
       ...gateBinds,
     ],

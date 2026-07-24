@@ -52,6 +52,10 @@ import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { DEFAULT_PROJECT_STATUS, normalizeProjectStatus, type ProjectStatus } from "@/lib/projects/status";
 import type { Json } from "@/lib/types/json";
+import {
+  installStarterPackForEligibleWorkspace,
+  installStarterPackForNewWorkspace,
+} from "@/lib/onboarding/starter-pack-actions";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 import { filterMapBy } from "@/lib/util/array";
 
@@ -1412,6 +1416,10 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
   if (context.profile.default_workspace_id) {
     const existingWorkspace = await readWorkspaceById(database, context.profile.default_workspace_id);
     if (existingWorkspace && await canUseWorkspaceAsDefault(database, existingWorkspace, context)) {
+      await installStarterPackForEligibleWorkspace(database, {
+        workspaceId: existingWorkspace.id,
+        userId: context.userId,
+      });
       return { workspace: existingWorkspace, profile: context.profile };
     }
   }
@@ -1429,6 +1437,10 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
         [memberWorkspace.id, now, context.userId],
       );
       const profile = await readProfileById(database, context.userId);
+      await installStarterPackForEligibleWorkspace(database, {
+        workspaceId: memberWorkspace.id,
+        userId: context.userId,
+      });
       return { workspace: memberWorkspace, profile: profile ?? withDefaultWorkspace(context.profile, memberWorkspace.id) };
     }
 
@@ -1469,6 +1481,10 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
      WHERE id = ?`,
     [workspace.id, now, context.userId],
   );
+  await installStarterPackForNewWorkspace(database, {
+    workspaceId: workspace.id,
+    userId: context.userId,
+  });
   const profile = await readProfileById(database, context.userId);
 
   return { workspace, profile: profile ?? withDefaultWorkspace(context.profile, workspace.id) };
@@ -1930,6 +1946,7 @@ function assertWorkspaceRecord(value: Record<string, unknown>, path: string): Ta
     created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
     name: assertRpcString(value.name, `${path}.name`),
     slug: assertRpcOptionalString(value.slug, `${path}.slug`),
+    closed_at: assertRpcOptionalString(value.closed_at, `${path}.closed_at`),
     created_at: assertRpcString(value.created_at, `${path}.created_at`),
     updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
   };

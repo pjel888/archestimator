@@ -9,10 +9,10 @@ import { updateBetaFeedbackReviewStatusInD1 } from "@/lib/workshop/beta-feedback
 
 export async function updateBetaFeedbackReviewStatus(formData: FormData) {
   const parsed = parseBetaFeedbackStatusUpdate(formData);
-  if (!parsed.ok) redirect("/workshop/settings/feedback?error=invalid");
+  if (!parsed.ok) redirect("/admin/feedback?error=invalid");
 
   const context = await requireCurrentUserContext();
-  if (!canReviewBetaFeedback(context)) redirect("/workshop/settings/feedback?error=forbidden");
+  if (!canReviewBetaFeedback(context)) redirect("/admin/feedback?error=forbidden");
 
   try {
     await updateBetaFeedbackReviewStatusInD1({
@@ -21,9 +21,9 @@ export async function updateBetaFeedbackReviewStatus(formData: FormData) {
       status: parsed.status,
     });
   } catch {
-    redirect("/workshop/settings/feedback?error=save");
+    redirect("/admin/feedback?error=save");
   }
 
-  revalidatePath("/workshop/settings/feedback");
-  redirect("/workshop/settings/feedback?saved=1");
+  revalidatePath("/admin/feedback");
+  redirect("/admin/feedback?saved=1");
 }

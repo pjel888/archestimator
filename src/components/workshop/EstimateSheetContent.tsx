@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useReducer, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type SetStateAction } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode, type SetStateAction } from "react";
 import { FunnelSimple, SidebarSimple, StackPlus, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { FilterPopover } from "@/components/ui/overlays/popover";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
-import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
+import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { dispatchProjectTotalChange } from "@/components/workshop/project-total-events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,6 +49,7 @@ import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal
 import { getProjectComponentIdentity, isExpressComponentRow } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { filterMapBy } from "@/lib/util/array";
 import { estimateSurfaceClass } from "./estimate-surface-class";
 import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
@@ -57,7 +58,9 @@ import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-st
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand, ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/types/json";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import { useToast } from "@/components/ui/toast";
+import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
 // Interaction-gated overlay: only mounts when its `open` prop is true, so it
@@ -114,6 +117,7 @@ const ProposalExportPreviewDialog = dynamic(
   { ssr: false },
 );
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import { EstimateSheetLearningRail } from "./EstimateSheetLearningRail";
 import {
   DEFAULT_ACTIVITY_FILTERS,
   // Aliased: the helpers barrel re-exported below also has a
@@ -310,6 +314,8 @@ function buildInlineLibraryPriceOptions(
 
 function useNativeModalDialog(onClose: () => void) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const [modalLifecycle] = useState(createModalLifecyclePublisher);
 
   const handleDialogMouseDown = useCallback(
     (event: MouseEvent) => {
@@ -320,10 +326,25 @@ function useNativeModalDialog(onClose: () => void) {
 
   return useCallback(
     (node: HTMLDialogElement | null) => {
-      dialogRef.current?.removeEventListener("mousedown", handleDialogMouseDown);
+      const previousDialog = dialogRef.current;
+      if (previousDialog === node) return;
+      previousDialog?.removeEventListener("mousedown", handleDialogMouseDown);
       dialogRef.current = node;
-      if (!node) return;
+      if (!node) {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        queueMicrotask(() => {
+          if (opener?.isConnected) opener.focus({ preventScroll: true });
+          modalLifecycle.closedFocusRestored();
+        });
+        return;
+      }
 
+      openerRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      modalLifecycle.opening();
       node.addEventListener("mousedown", handleDialogMouseDown);
       if (node.open) return;
 
@@ -338,7 +359,7 @@ function useNativeModalDialog(onClose: () => void) {
 
       node.setAttribute("open", "");
     },
-    [handleDialogMouseDown],
+    [handleDialogMouseDown, modalLifecycle],
   );
 }
 
@@ -359,6 +380,7 @@ type EstimateSheetContentProps = {
   canEditEstimate?: boolean;
   /** Server-resolved shared library management capability. */
   canManageLibrary?: boolean;
+  onboardingSnapshot?: OnboardingEligibilitySnapshot | null;
   initialTabId?: string;
   disableRouteSync?: boolean;
   onActiveTabChange?: (tabId: string) => void;
@@ -1101,6 +1123,7 @@ export function EstimateSheetContent({
   dataTabId,
   canEditEstimate = false,
   canManageLibrary = false,
+  onboardingSnapshot = null,
   initialTabId,
   disableRouteSync = false,
   onActiveTabChange,
@@ -1163,6 +1186,7 @@ export function EstimateSheetContent({
   );
   const {
     saveState,
+    rowMutationError,
     rowMutationStatuses,
     hasPendingRowMutation,
     markRowDirty: markRowDirtyNow,
@@ -3488,19 +3512,42 @@ export function EstimateSheetContent({
           // C3/Req 13+6: New-tab button relocated here from the tab strip.
           // Hidden entirely when canCreate is false (non-editors see no affordance).
           addActions={[
+            ...(canEditEstimate && selectedNode ? [
+              {
+                label: "Add row",
+                element: (
+                  <ToolbarIconButton
+                    label="Add row"
+                    visibleLabel="Add row"
+                    onClick={() => insertBlankRow(selectedNode.id)}
+                    className={ADD_BUTTON_CLASSNAME}
+                    {...onboardingTarget("estimate.add_row")}
+                  >
+                    <StackPlus size={16} weight="regular" aria-hidden="true" />
+                  </ToolbarIconButton>
+                ),
+              },
+            ] : []),
             ...(renderSidebar ? [
               {
                 label: "Open Sources drawer",
-                visibleLabel: "Sources",
-                icon: <SidebarSimple size={16} weight="regular" aria-hidden="true" className="rotate-180" />,
-                onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
-                  event.currentTarget.focus({ preventScroll: true });
-                  setSourcesDrawerOpen(true);
-                },
-                ariaControls: ESTIMATE_SOURCES_DRAWER_ID,
-                ariaExpanded: sourcesDrawerOpen,
-                ariaHasPopup: "dialog" as const,
-                className: "min-[1720px]:hidden text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
+                element: (
+                  <ToolbarIconButton
+                    label="Open Sources drawer"
+                    visibleLabel="Sources"
+                    onClick={(event) => {
+                      event.currentTarget.focus({ preventScroll: true });
+                      setSourcesDrawerOpen(true);
+                    }}
+                    aria-controls={ESTIMATE_SOURCES_DRAWER_ID}
+                    aria-expanded={sourcesDrawerOpen}
+                    aria-haspopup="dialog"
+                    className="min-[1720px]:hidden text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink"
+                    {...onboardingTarget("estimate.library")}
+                  >
+                    <SidebarSimple size={16} weight="regular" aria-hidden="true" className="rotate-180" />
+                  </ToolbarIconButton>
+                ),
               },
             ] : []),
             ...(createTabState.canCreate ? [
@@ -3528,6 +3575,34 @@ export function EstimateSheetContent({
             onCreateTabStateChange={setCreateTabState}
           />
         ) : null}
+        <EstimateSheetLearningRail
+          snapshot={onboardingSnapshot}
+          canEditEstimate={canEditEstimate}
+        />
+        <div
+          className={cn(
+            "mx-2 mt-1 flex min-h-6 shrink-0 items-center justify-between rounded-xs border px-2 text-[9px] font-medium",
+            saveState === "failed"
+              ? "border-dangerSoft bg-red-50 text-danger"
+              : "border-hairline bg-white/70 text-secondary",
+          )}
+          role={saveState === "failed" ? "alert" : "status"}
+          data-estimate-save-state={saveState}
+          {...onboardingTarget("estimate.save_state")}
+        >
+          <span>
+            {saveState === "saving"
+              ? "Saving changes"
+              : saveState === "saved"
+                ? "Changes saved"
+                : saveState === "failed"
+                  ? rowMutationError?.message ?? "Could not save changes"
+                  : "Ready to save"}
+          </span>
+          <span className="text-[8px] font-normal text-tertiary">
+            {canEditEstimate ? "Edits save automatically" : "Read-only access"}
+          </span>
+        </div>
         <output
           className="sr-only"
           aria-live="polite"

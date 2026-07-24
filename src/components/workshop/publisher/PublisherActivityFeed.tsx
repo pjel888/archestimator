@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { loadPublisherWorkspaceActivity } from "@/lib/publisher/activity-actions";
 
 type PublisherActivityFeedProps = {
@@ -21,13 +22,15 @@ export function PublisherActivityFeed({ projectId = null }: PublisherActivityFee
   );
 
   return (
-    <SharedLinkActivityFeed
-      loadActivity={loadActivity}
-      feedLabel={projectId ? "Shared link project activity" : "Shared link workspace activity"}
-      loadingLabel="Loading shared link activity"
-      emptyLabel="No shared link activity yet."
-      footerLabel="Shared link activity refreshes when you reopen this tab. Use Refresh for the latest."
-      isOwner
-    />
+    <div {...onboardingTarget("publisher.activity")}>
+      <SharedLinkActivityFeed
+        loadActivity={loadActivity}
+        feedLabel={projectId ? "Shared link project activity" : "Shared link workspace activity"}
+        loadingLabel="Loading shared link activity"
+        emptyLabel="No shared link activity yet."
+        footerLabel="Shared link activity refreshes when you reopen this tab. Use Refresh for the latest."
+        isOwner
+      />
+    </div>
   );
 }

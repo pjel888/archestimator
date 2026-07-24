@@ -3,7 +3,10 @@ import "server-only";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
 import { anonymizeActivityActor, type ActivityOutboxDatabase } from "@/lib/activity/activity-outbox";
-import { eraseActivationPrivacyData, exportActivationPrivacyData } from "@/lib/onboarding/activation-retention";
+import {
+  eraseOnboardingPrivacyData,
+  exportOnboardingPrivacyData,
+} from "@/lib/onboarding/flow-retention";
 import { getSupportUploadsR2 } from "@/lib/email/support-outbound-attachments";
 import {
   deleteSupportDraftsForPrivacyRequestInD1,
@@ -456,7 +459,7 @@ export async function exportPrivacyRequestActivationData(
   input: { requesterUserId: string; workspaceId: string },
   dbOverride?: D1DatabaseLike,
 ) {
-  return exportActivationPrivacyData(dbOverride ?? await getCloudflareD1Database(), {
+  return exportOnboardingPrivacyData(dbOverride ?? await getCloudflareD1Database(), {
     userId: input.requesterUserId,
     workspaceId: input.workspaceId,
   });
@@ -466,7 +469,7 @@ export async function erasePrivacyRequestActivationData(
   input: { requesterUserId: string; workspaceId: string },
   dbOverride?: D1DatabaseLike,
 ) {
-  return eraseActivationPrivacyData(dbOverride ?? await getCloudflareD1Database(), {
+  return eraseOnboardingPrivacyData(dbOverride ?? await getCloudflareD1Database(), {
     userId: input.requesterUserId,
     workspaceId: input.workspaceId,
   });

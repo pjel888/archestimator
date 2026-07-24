@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { sanitizeProtectedReturnPath } from "@/lib/auth/redirects";
+
 export function AuthStateMismatchRecoveryScript() {
   const hasRun = useRef(false);
 
@@ -19,10 +21,7 @@ export function AuthStateMismatchRecoveryScript() {
 
       if (!hasStateMismatch && !isResetHop) return;
 
-      let next = params.get("next") || "/workshop";
-      if (next.charAt(0) !== "/" || next.indexOf("//") === 0) {
-        next = "/workshop";
-      }
+      const next = sanitizeProtectedReturnPath(params.get("next"));
 
       if ("caches" in window) {
         void window.caches

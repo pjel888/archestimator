@@ -20,7 +20,7 @@ import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { FilterPopover } from "@/components/ui/overlays/popover";
 import { Button } from "@/components/ui/button";
-import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
+import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Modal } from "@/components/ui/modal";
@@ -36,6 +36,7 @@ import {
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { estimateSurfaceClass } from "./estimate-surface-class";
 import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import { validateEstimateTreeDrop } from "@/lib/estimates/estimate-tree-reorder";
@@ -1267,11 +1268,18 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           }
           addActions={[
             {
-              label: "Add Branch",
-              icon: <AddTreeActionIcon />,
-              onClick: () => handleAddArea(),
-              disabled: !canEditEstimate,
-              className: ADD_BUTTON_CLASSNAME,
+              label: "Add Area",
+              element: (
+                <ToolbarIconButton
+                  label="Add Area"
+                  onClick={() => handleAddArea()}
+                  disabled={!canEditEstimate}
+                  className={ADD_BUTTON_CLASSNAME}
+                  {...onboardingTarget("estimate.add_area")}
+                >
+                  <AddTreeActionIcon />
+                </ToolbarIconButton>
+              ),
             },
           ]}
           tabs={ESTIMATE_TREE_TABS}
@@ -1292,7 +1300,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             }}
           >
             <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
-              <nav aria-label={`${projectName} estimate areas`}>
+              <nav
+                aria-label={`${projectName} estimate areas`}
+                {...onboardingTarget("estimate.hierarchy")}
+              >
                 <output aria-live="polite" className="sr-only">
                   {templateLinkStatus.statusMessage}
                 </output>

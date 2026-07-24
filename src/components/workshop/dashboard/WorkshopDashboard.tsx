@@ -2,6 +2,8 @@ import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
+import { FirstEstimateChecklist } from "@/components/workshop/FirstEstimateChecklist";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
 import { LibraryCardLink, LibraryHubCard } from "./LibraryHubCard";
@@ -19,6 +21,7 @@ import {
 
 type WorkshopDashboardProps = WorkshopDashboardData & {
   favoritesScope: { workspaceId: string; userId: string };
+  onboardingSnapshot?: OnboardingEligibilitySnapshot | null;
 };
 
 const DASHBOARD_COUNT_COLUMN_WIDTH = "203px";
@@ -151,6 +154,7 @@ export function WorkshopDashboard({
   favoriteProjects,
   favoritesScope,
   librarySpotlight,
+  onboardingSnapshot,
 }: WorkshopDashboardProps) {
   const continueEstimate = pickContinueEstimate(homebase);
   const componentCount = librarySpotlight?.componentCount;
@@ -164,6 +168,9 @@ export function WorkshopDashboard({
   return (
     <div className="h-full min-h-0 overflow-y-auto">
       <div className="dashboard-root w-full p-2">
+        {onboardingSnapshot ? (
+          <FirstEstimateChecklist snapshot={onboardingSnapshot} />
+        ) : null}
         {/* Destination field — a big Projects mountain hero (2×2), three
             supporting color blocks, the Library hub, and a wide display
             numeral. */}

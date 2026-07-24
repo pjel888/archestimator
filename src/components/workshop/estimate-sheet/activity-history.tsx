@@ -14,6 +14,7 @@ import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
+import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import { filterMap } from "@/lib/util/array";
 import type { EstimateRowItem } from "../estimate-tree-data";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "../tree-visual-style";
@@ -1143,8 +1144,11 @@ function useNativeModalDialog(onClose: () => void) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const onCloseRef = useRef(onClose);
   const openerRef = useRef<HTMLElement | null>(null);
+  const [modalLifecycle] = useState(createModalLifecyclePublisher);
 
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const handleDialogMouseDown = useCallback(
     (event: MouseEvent) => {
@@ -1165,13 +1169,15 @@ function useNativeModalDialog(onClose: () => void) {
         const opener = openerRef.current;
         openerRef.current = null;
         queueMicrotask(() => {
-          if (opener?.isConnected) opener.focus();
+          if (opener?.isConnected) opener.focus({ preventScroll: true });
+          modalLifecycle.closedFocusRestored();
         });
         return;
       }
 
       node.addEventListener("mousedown", handleDialogMouseDown);
       openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      modalLifecycle.opening();
       if (!node.open) {
         if (typeof node.showModal === "function") {
           try {
@@ -1190,7 +1196,7 @@ function useNativeModalDialog(onClose: () => void) {
         (initialFocusTarget ?? node).focus();
       });
     },
-    [handleDialogMouseDown],
+    [handleDialogMouseDown, modalLifecycle],
   );
 }
 

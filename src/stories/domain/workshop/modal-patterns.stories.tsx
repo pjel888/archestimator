@@ -81,14 +81,17 @@ function SettingsPatternModal({ open, onOpenChange }: { open: boolean; onOpenCha
       open={open}
       onOpenChange={onOpenChange}
       title="Settings"
-      description="Manage account, workspace, and beta operations."
+      description="Manage account, workspace, support, and guidance."
       closeLabel="Close settings"
       className="max-w-[920px]"
       bodyClassName="bg-white p-0"
       initialFocus="content"
       location="Workshop / Modal patterns / Settings"
     >
-      <WorkshopSettingsModalContentView canManagePlatform renderSignOutControl={() => <StaticSignOutControl />} />
+      <WorkshopSettingsModalContentView
+        onboardingSnapshot={null}
+        renderSignOutControl={() => <StaticSignOutControl />}
+      />
     </AppModal>
   );
 }

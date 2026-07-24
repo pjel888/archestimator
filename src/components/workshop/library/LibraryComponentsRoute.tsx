@@ -7,11 +7,13 @@ import {
   type LibraryComponentProjectOption,
   type LibraryComponentSource,
 } from "@/components/workshop/library/LibraryComponentSourceShell";
+import { LibraryReuseRail } from "@/components/workshop/library/LibraryReuseRail";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { getProjectOnlyComponentRowsLibraryPage } from "@/lib/component-library/project-component-projection";
 import { isExpressComponentPromotionEnabled } from "@/lib/estimates/express-components";
+import { loadCurrentOnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-actions";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceComponentRowsLibraryPage } from "@/lib/repositories/component-library-repository";
 import { ensureDefaultWorkspace, listCurrentWorkspaceProjects } from "@/lib/repositories/workspace-repository";
@@ -109,18 +111,31 @@ export async function LibraryComponentsRoute({
   // The server fetch seeds the client TanStack Query cache via initialData. This
   // route renders the browse/table surfaces first, so it skips the unbounded
   // audit/attachment graph and hydrates a selected row on demand in the inspector.
-  const [componentLibrary, canManageLibrary] = await withPerfTraceRequest("workshop.library.components", () =>
+  const [componentLibrary, canManageLibrary, onboardingSnapshot] = await withPerfTraceRequest("workshop.library.components", () =>
     Promise.all([
       traced("library.components.rows", () =>
         getCurrentWorkspaceComponentRowsLibraryPage(),
       ),
       traced("library.components.canManage", getCurrentWorkspaceLibraryManagementCapability),
+      traced("library.components.onboarding", () =>
+        loadCurrentOnboardingEligibilitySnapshot().catch(() => null),
+      ),
     ]),
   );
 
   return (
     <LibraryComponentSourceShell activeSource="library">
-      <LibraryPageClient initialLibrary={componentLibrary} canManageLibrary={canManageLibrary} />
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <LibraryReuseRail
+          snapshot={onboardingSnapshot}
+          surface="components"
+          hasReusableComponents={componentLibrary.libraryItems.length > 0}
+          hasMeaningfulTemplates={false}
+        />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <LibraryPageClient initialLibrary={componentLibrary} canManageLibrary={canManageLibrary} />
+        </div>
+      </div>
     </LibraryComponentSourceShell>
   );
 }

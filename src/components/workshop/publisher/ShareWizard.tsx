@@ -18,7 +18,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RecipientEmailComposer } from "@/components/workshop/publication/RecipientEmailComposer";
 import { SheetPickerList } from "@/components/workshop/publication/SheetPickerList";
 import type { ProjectPublicationRosterRow } from "@/lib/publisher/roster-repository";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { cn } from "@/lib/ui/cn";
+import { useClientLinksLearning } from "./ClientLinksLearningRail";
 import { ShareLinkDisplay } from "./ShareLinkDisplay";
 import { usePublisherDrawer } from "./usePublisherDrawer";
 
@@ -50,8 +52,10 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
   const [feedback, setFeedback] = useState<WizardFeedback | null>(null);
   const [complete, setComplete] = useState(false);
   const [verificationPending, setVerificationPending] = useState(false);
+  const [learningPending, setLearningPending] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const drawer = usePublisherDrawer(row?.projectId ?? null, open);
+  const learning = useClientLinksLearning();
   const summary = drawer.data?.summary;
   const estimates = drawer.data?.estimateSheets ?? [];
   const isLoading = drawer.query.isPending && !drawer.data;
@@ -78,7 +82,8 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
       && hasEstimates
       && selectedEstimateIds.length > 0
       && !passwordMissing
-      && !drawer.isMutating,
+      && !drawer.isMutating
+      && !learningPending,
   );
   const clientLinkPath = summary?.clientLinkPath;
   const usesCurrentProjectClientName = clientNameState.projectId === row?.projectId;
@@ -162,12 +167,20 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
         const clientResult = await drawer.clientNameMutation.mutateAsync({ clientName, projectId });
         setClientNameState({ projectId, savedValue: clientResult.clientName ?? "", value: clientResult.clientName ?? "" });
       }
-      const result = await drawer.republishMutation.mutateAsync({
+      setLearningPending(true);
+      const learningResult = await learning?.publish({
+        actionKind: isExistingLink ? "republish" : "create",
         clearPassword: !passwordRequired,
         password: passwordRequired ? password.trim() || undefined : undefined,
         projectId,
         selectedEstimateIds,
       });
+      const result = learningResult ?? await drawer.republishMutation.mutateAsync({
+          clearPassword: !passwordRequired,
+          password: passwordRequired ? password.trim() || undefined : undefined,
+          projectId,
+          selectedEstimateIds,
+        });
       setFeedback({ text: result.message, tone: result.ok ? "success" : "error" });
       if (!result.ok) return;
       if (await verifySavedLink()) {
@@ -180,6 +193,8 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
         text: "The client link could not be saved. Please try again.",
         tone: "error",
       });
+    } finally {
+      setLearningPending(false);
     }
   }
 
@@ -214,7 +229,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
         disabled={!canShare}
         onClick={() => void saveClientLink()}
       >
-        <ShareNetwork size={14} aria-hidden="true" /> {drawer.isMutating ? "Saving…" : submitLabel}
+        <ShareNetwork size={14} aria-hidden="true" /> {drawer.isMutating || learningPending ? "Saving…" : submitLabel}
       </Button>
     </div>
   );
@@ -241,14 +256,23 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
       footer={footer}
     >
       {complete ? (
-        <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center space-y-3 p-3 sm:p-4" data-share-wizard="true">
+        <div
+          {...onboardingTarget("publisher.wizard")}
+          className="mx-auto flex min-h-full max-w-3xl flex-col justify-center space-y-3 p-3 sm:p-4"
+          data-share-wizard="true"
+        >
           <div className="text-center">
             <CheckCircle size={24} weight="fill" className="mx-auto text-success" aria-hidden="true" />
             <h3 className="mt-2 text-[12px] font-medium leading-4 text-ink">Ready to send</h3>
             <p className="mt-1 text-[10px] leading-4 text-secondary">Copy the link, preview the client page, or send it directly to recipients.</p>
           </div>
           {clientLinkPath ? (
-            <ShareLinkDisplay clientLinkPath={clientLinkPath} previewHref={previewHref} projectName={row.projectName} />
+            <ShareLinkDisplay
+              clientLinkPath={clientLinkPath}
+              previewHref={previewHref}
+              projectId={projectId}
+              projectName={row.projectName}
+            />
           ) : (
             <p role="status" className="text-center text-[10px] leading-4 text-secondary">Refreshing the client link…</p>
           )}
@@ -265,7 +289,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
           ) : null}
         </div>
       ) : isLoading ? (
-        <div className="grid min-h-full gap-0 md:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]" data-share-wizard="true" aria-busy="true">
+        <div {...onboardingTarget("publisher.wizard")} className="grid min-h-full gap-0 md:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]" data-share-wizard="true" aria-busy="true">
           <section className="border-b border-hairline p-3 md:border-b-0 md:border-r">
             <p className="text-[11px] font-medium text-ink">Loading project estimates…</p>
             <p className="mt-1 text-[10px] leading-4 text-secondary">The editor will open as soon as the project link settings are ready.</p>
@@ -283,7 +307,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
           </aside>
         </div>
       ) : loadFailed ? (
-        <div className="grid min-h-full place-items-center p-4 text-center" data-share-wizard="true">
+        <div {...onboardingTarget("publisher.wizard")} className="grid min-h-full place-items-center p-4 text-center" data-share-wizard="true">
           <div className="max-w-md">
             <WarningCircle size={28} className="mx-auto text-warning" aria-hidden="true" />
             <h3 className="mt-3 text-[12px] font-medium leading-4 text-ink">
@@ -327,8 +351,8 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
           </div>
         </div>
       ) : (
-        <div className="grid min-h-full lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]" data-share-wizard="true">
-          <section className="border-b border-hairline p-3 lg:border-b-0 lg:border-r">
+        <div {...onboardingTarget("publisher.wizard")} className="grid min-h-full lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]" data-share-wizard="true">
+          <section {...onboardingTarget("publisher.wizard_estimates")} className="border-b border-hairline p-3 lg:border-b-0 lg:border-r">
             <h3 className="text-[11px] font-medium leading-4 text-ink">Client-visible estimates</h3>
             <p className="mt-1 text-[10px] leading-4 text-secondary">Choose exactly which estimates the client can open from this link.</p>
             <div className="mt-3">
@@ -351,7 +375,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
           </section>
 
           <aside className="space-y-3 p-3">
-            <section>
+            <section {...onboardingTarget("publisher.wizard_client")}>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Client</h3>
               <ControlField label="Client name" className="mt-2 [&>label]:!text-[9px]">
                 <ControlInput
@@ -377,7 +401,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
               </div>
             </section>
 
-            <section>
+            <section {...onboardingTarget("publisher.wizard_access")}>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Access</h3>
               <Checkbox
                 label={<><LockSimple size={16} aria-hidden="true" /> Require a password</>}
@@ -409,7 +433,7 @@ export function ShareWizard({ onOpenChange, open, row }: ShareWizardProps) {
               ) : null}
             </section>
 
-            <section>
+            <section {...onboardingTarget("publisher.wizard_save_state")}>
               <h3 className="text-[11px] font-medium leading-4 text-ink">Summary</h3>
               <dl className="mt-1.5 divide-y divide-hairline border-y border-hairline text-[10px] leading-4">
                 <div className="flex items-center justify-between gap-3 py-2"><dt className="text-secondary">Estimates</dt><dd className="font-medium text-ink">{selectedEstimateIds.length} of {estimates.length}</dd></div>

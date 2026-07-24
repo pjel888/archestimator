@@ -628,15 +628,34 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
     statements.push(db.prepare(`
       INSERT OR IGNORE INTO beta_activation_outbox (
         id, domain_mutation_id, user_id, workspace_id, project_id, estimate_id,
-        milestone, source, occurred_at, dedupe_key, metadata_json, state, attempt_count,
-        next_attempt_at, created_at, updated_at
+        milestone, source, origin_class, occurred_at, dedupe_key, metadata_json,
+        state, attempt_count, next_attempt_at, created_at, updated_at
       )
-      SELECT ?, ?, ?, ?, ?, NULL, 'publication_created', 'publication', ?, ?, '{}', 'pending', 0, ?, ?, ?
+      SELECT ?, ?, ?, ?, ?, NULL, 'publication_created', 'publication',
+             'user_domain', ?, ?, '{}', 'pending', 0, ?, ?, ?
       WHERE EXISTS (
-        SELECT 1 FROM project_publications committed_publication
+        SELECT 1
+        FROM project_publications committed_publication
+        JOIN projects committed_project
+          ON committed_project.id = committed_publication.project_id
         WHERE committed_publication.id = ?
           AND committed_publication.project_id = ?
           AND committed_publication.status = 'published'
+          AND committed_project.workspace_id = ?
+          AND (
+            EXISTS (
+              SELECT 1
+              FROM workspace_members membership
+              WHERE membership.workspace_id = committed_project.workspace_id
+                AND membership.user_id = ?
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM project_members membership
+              WHERE membership.project_id = committed_project.id
+                AND membership.user_id = ?
+            )
+          )
       )
     `).bind(
       randomUUID(),
@@ -651,6 +670,9 @@ async function replaceProjectPublication(db: D1DatabaseLike, args: Record<string
       at,
       publicationId,
       normalizeD1Value(args.target_project_id),
+      normalizeD1Value(args.target_workspace_id),
+      normalizeD1Value(args.p_published_by),
+      normalizeD1Value(args.p_published_by),
     ));
   }
 

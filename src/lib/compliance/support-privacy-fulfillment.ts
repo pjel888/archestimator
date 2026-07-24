@@ -82,6 +82,12 @@ type ExportContext = {
   diagnostics_shared: number;
   estimate_id: string | null;
   message_id: string;
+  onboarding_flow_key: string | null;
+  onboarding_flow_version: number | null;
+  onboarding_reason_code: string | null;
+  onboarding_route_key: string | null;
+  onboarding_step_key: string | null;
+  onboarding_viewport_class: string | null;
   os_family: string | null;
   project_id: string | null;
   route_template: string;
@@ -707,7 +713,11 @@ async function enumerateSupportExport(database: D1DatabaseLike, userId: string):
       SELECT context.message_id, context.workspace_id, context.project_id,
              context.estimate_id, context.route_template, context.viewport_width,
              context.viewport_height, context.timezone, context.browser_family,
-             context.os_family, context.diagnostics_shared, context.created_at
+             context.os_family, context.diagnostics_shared,
+             context.onboarding_flow_key, context.onboarding_flow_version,
+             context.onboarding_step_key, context.onboarding_reason_code,
+             context.onboarding_route_key, context.onboarding_viewport_class,
+             context.created_at
       FROM support_message_context context
       INNER JOIN support_messages message ON message.id = context.message_id
       INNER JOIN support_conversations conversation ON conversation.id = message.conversation_id

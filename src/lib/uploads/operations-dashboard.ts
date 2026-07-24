@@ -374,7 +374,7 @@ export async function readUploadOperationsDashboardSnapshot(
       event: "upload_operations_dashboard_metrics_error",
       action: "load_upload_operations_dashboard",
       context: {
-        route: "/workshop/uploads/operations",
+        route: "/admin/upload-operations",
       },
     });
     return {

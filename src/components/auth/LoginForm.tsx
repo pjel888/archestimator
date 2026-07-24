@@ -31,6 +31,8 @@ export interface LoginFormProps {
 const HONEYPOT_CLASS = "absolute -z-10 h-0 w-0 opacity-0";
 
 export function LoginForm({ next }: LoginFormProps) {
+  const signupHref = `/signup?${new URLSearchParams({ next }).toString()}`;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Google OAuth leaf */}
@@ -98,7 +100,7 @@ export function LoginForm({ next }: LoginFormProps) {
       <p className="text-[14px] leading-5 text-landing-ink-secondary">
         New to Archestimator?{" "}
         <Link
-          href="/signup"
+          href={signupHref}
           className="font-medium text-[color:var(--brand-orange-dark)] underline decoration-landing-hairline-strong underline-offset-2 transition-colors hover:decoration-[color:var(--brand-orange-dark)]"
         >
           Start free →

@@ -4,7 +4,7 @@ import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import {
   buildLoginRedirectUrl,
   resolveAuthOrigin,
-  sanitizeNextPath,
+  sanitizeProtectedReturnPath,
 } from "@/lib/auth/redirects";
 
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     requestUrl: request.url,
   });
   const code = requestUrl.searchParams.get("code");
-  const next = sanitizeNextPath(requestUrl.searchParams.get("next"));
+  const next = sanitizeProtectedReturnPath(requestUrl.searchParams.get("next"));
   const auditRequest = {
     requestId: request.headers.get("x-request-id") ?? request.headers.get("cf-ray"),
     ipAddress: request.headers.get("cf-connecting-ip")?.trim() ?? null,

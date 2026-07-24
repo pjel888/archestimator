@@ -160,11 +160,19 @@ export const DEFAULT_RETENTION_RULES: readonly RetentionRule[] = [
           SELECT 1 FROM beta_activation_retention_holds hold
           WHERE hold.user_id = event.user_id
             AND hold.workspace_id = event.workspace_id
-            AND hold.starts_at <= datetime('now')
-            AND hold.expires_at > datetime('now')
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
         )
       LIMIT 500`,
-    applySql: "DELETE FROM beta_activation_events WHERE id IN (SELECT value FROM json_each(?1))",
+    applySql: `DELETE FROM beta_activation_events
+      WHERE id IN (SELECT value FROM json_each(?1))
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = beta_activation_events.user_id
+            AND hold.workspace_id = beta_activation_events.workspace_id
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
+        )`,
   },
   {
     className: "beta_activation_outbox_delivered",
@@ -177,11 +185,20 @@ export const DEFAULT_RETENTION_RULES: readonly RetentionRule[] = [
           SELECT 1 FROM beta_activation_retention_holds hold
           WHERE hold.user_id = outbox.user_id
             AND hold.workspace_id = outbox.workspace_id
-            AND hold.starts_at <= datetime('now')
-            AND hold.expires_at > datetime('now')
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
         )
       LIMIT 500`,
-    applySql: "DELETE FROM beta_activation_outbox WHERE id IN (SELECT value FROM json_each(?1))",
+    applySql: `DELETE FROM beta_activation_outbox
+      WHERE id IN (SELECT value FROM json_each(?1))
+        AND state = 'delivered'
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = beta_activation_outbox.user_id
+            AND hold.workspace_id = beta_activation_outbox.workspace_id
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
+        )`,
   },
   {
     className: "beta_activation_outbox_unresolved",
@@ -190,15 +207,34 @@ export const DEFAULT_RETENTION_RULES: readonly RetentionRule[] = [
     selectSql: `SELECT outbox.id
       FROM beta_activation_outbox outbox
       WHERE outbox.state != 'delivered' AND outbox.created_at < ?1
+        AND (
+          outbox.state != 'processing'
+          OR outbox.lease_expires_at IS NULL
+          OR datetime(outbox.lease_expires_at) <= datetime('now')
+        )
         AND NOT EXISTS (
           SELECT 1 FROM beta_activation_retention_holds hold
           WHERE hold.user_id = outbox.user_id
             AND hold.workspace_id = outbox.workspace_id
-            AND hold.starts_at <= datetime('now')
-            AND hold.expires_at > datetime('now')
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
         )
       LIMIT 500`,
-    applySql: "DELETE FROM beta_activation_outbox WHERE id IN (SELECT value FROM json_each(?1))",
+    applySql: `DELETE FROM beta_activation_outbox
+      WHERE id IN (SELECT value FROM json_each(?1))
+        AND state != 'delivered'
+        AND (
+          state != 'processing'
+          OR lease_expires_at IS NULL
+          OR datetime(lease_expires_at) <= datetime('now')
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = beta_activation_outbox.user_id
+            AND hold.workspace_id = beta_activation_outbox.workspace_id
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
+        )`,
   },
   {
     className: "privacy_requests_completed",

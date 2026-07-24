@@ -8,6 +8,7 @@ import { fanoutSupportInboxInvalidation } from "@/lib/cloudflare/support-inbox-f
 import { isUuid } from "@/lib/ids";
 import { requireOpenSupportPrivacyFence } from "@/lib/support/privacy-fence";
 import { getSupportRuntimeBindings } from "@/lib/support/runtime";
+import type { OnboardingSupportContext } from "@/lib/onboarding/support-context";
 
 type SupportCursor = { id: string; timestamp: string };
 
@@ -29,6 +30,12 @@ type UserMessageRow = {
   estimate_id: string | null;
   id: string;
   os_family: string | null;
+  onboarding_flow_key: string | null;
+  onboarding_flow_version: number | null;
+  onboarding_reason_code: string | null;
+  onboarding_route_key: string | null;
+  onboarding_step_key: string | null;
+  onboarding_viewport_class: string | null;
   project_id: string | null;
   route_template: string | null;
   sender_role: "user" | "admin" | "system";
@@ -62,6 +69,7 @@ export type UserSupportMessage = {
     diagnosticsShared: boolean;
     estimateId: string | null;
     osFamily: string | null;
+    onboarding: OnboardingSupportContext | null;
     projectId: string | null;
     routeTemplate: string;
     timezone: string | null;
@@ -233,7 +241,10 @@ export async function listUserSupportMessages(input: {
               context.workspace_id, context.project_id, context.estimate_id,
               context.route_template, context.app_release, context.viewport_width,
               context.viewport_height, context.timezone, context.browser_family,
-              context.os_family, context.diagnostics_shared
+              context.os_family, context.diagnostics_shared,
+              context.onboarding_flow_key, context.onboarding_flow_version,
+              context.onboarding_step_key, context.onboarding_reason_code,
+              context.onboarding_route_key, context.onboarding_viewport_class
        FROM support_messages message
        LEFT JOIN support_message_context context ON context.message_id = message.id
        WHERE message.conversation_id = ?
@@ -285,6 +296,16 @@ export async function listUserSupportMessages(input: {
           diagnosticsShared: row.diagnostics_shared === 1,
           estimateId: row.estimate_id,
           osFamily: row.os_family,
+          onboarding: row.onboarding_flow_key
+            ? {
+                flowKey: row.onboarding_flow_key as OnboardingSupportContext["flowKey"],
+                flowVersion: Number(row.onboarding_flow_version),
+                stepKey: row.onboarding_step_key as OnboardingSupportContext["stepKey"],
+                reasonCode: row.onboarding_reason_code as OnboardingSupportContext["reasonCode"],
+                routeKey: row.onboarding_route_key as OnboardingSupportContext["routeKey"],
+                viewportClass: row.onboarding_viewport_class as OnboardingSupportContext["viewportClass"],
+              }
+            : null,
           projectId: row.project_id,
           routeTemplate: row.route_template,
           timezone: row.timezone,

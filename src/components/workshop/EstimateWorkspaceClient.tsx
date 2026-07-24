@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/ui/cn";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import {
   EstimateSurfaceVariantProvider,
   type EstimateSurfaceVariant,
@@ -18,6 +19,7 @@ import { estimateQueryKeys, useEstimateEditCapabilityQuery, useEstimateTabsQuery
 import { useEstimateActiveTab } from "@/hooks/use-estimate-workspace-state";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
@@ -80,6 +82,7 @@ type EstimateWorkspaceClientProps = {
   canEditEstimate?: boolean;
   /** Server-resolved shared library management capability. */
   canManageLibrary?: boolean;
+  onboardingSnapshot?: OnboardingEligibilitySnapshot | null;
   collaborationUserId?: string | null;
   collaborationDisplayName?: string | null;
   proposalExportMetadata?: ProposalExportMetadata;
@@ -121,6 +124,7 @@ export function EstimateWorkspaceClient({
   sheetAdjustment,
   canEditEstimate = false,
   canManageLibrary = false,
+  onboardingSnapshot = null,
   collaborationUserId,
   collaborationDisplayName,
   proposalExportMetadata,
@@ -197,6 +201,7 @@ export function EstimateWorkspaceClient({
       )}
       aria-label={`${projectName} estimates`}
       data-estimate-workspace
+      {...onboardingTarget("estimate.header")}
     >
       <EstimateSheetTree
         projectId={dataProjectId}
@@ -223,6 +228,7 @@ export function EstimateWorkspaceClient({
         sheetAdjustment={sheetAdjustment}
         canEditEstimate={resolvedCanEditEstimate}
         canManageLibrary={presentationMode ? false : canManageLibrary}
+        onboardingSnapshot={presentationMode ? null : onboardingSnapshot}
         initialTabId={activeTabId ?? undefined}
         disableRouteSync={disableRouteSync}
         onActiveTabChange={setActiveTabId}

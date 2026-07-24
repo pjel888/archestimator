@@ -5,6 +5,7 @@ import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
+import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import type { EstimateRowItem } from "../estimate-tree-data";
 import {
   getComponentName,
@@ -69,6 +70,8 @@ function OpenCommandPalette({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const [modalLifecycle] = useState(createModalLifecyclePublisher);
 
   const results = useMemo(() => searchComponents(items, query).slice(0, 10), [items, query]);
   const clampedSelectedIndex = Math.min(selectedIndex, Math.max(0, results.length - 1));
@@ -128,10 +131,25 @@ function OpenCommandPalette({
 
   const openDialogElement = useCallback(
     (node: HTMLDialogElement | null) => {
-      dialogRef.current?.removeEventListener("keydown", handleNativeDialogKeyDown);
-      dialogRef.current?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
+      const previousDialog = dialogRef.current;
+      if (previousDialog === node) return;
+      previousDialog?.removeEventListener("keydown", handleNativeDialogKeyDown);
+      previousDialog?.removeEventListener("pointerdown", handleNativeDialogPointerDown);
       dialogRef.current = node;
-      if (!node) return;
+      if (!node) {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        queueMicrotask(() => {
+          if (opener?.isConnected) opener.focus({ preventScroll: true });
+          modalLifecycle.closedFocusRestored();
+        });
+        return;
+      }
+      openerRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      modalLifecycle.opening();
       node.addEventListener("keydown", handleNativeDialogKeyDown);
       node.addEventListener("pointerdown", handleNativeDialogPointerDown);
       if (node.open) return;
@@ -145,7 +163,7 @@ function OpenCommandPalette({
         node.setAttribute("open", "");
       }
     },
-    [handleNativeDialogKeyDown, handleNativeDialogPointerDown],
+    [handleNativeDialogKeyDown, handleNativeDialogPointerDown, modalLifecycle],
   );
 
   return (

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { Drawer } from "@/components/ui/overlays/sheet-drawer";
+import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
@@ -45,6 +46,7 @@ import { buildLibraryFolderReorderPlan, type LibraryFolderRecord } from "@/lib/c
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { createBulkActionCorrelationId } from "@/lib/mass-deletion/bulk-action";
 import type { BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import {
   getReusableEstimateOutline,
   listReusableProjectEstimateSources,
@@ -223,6 +225,8 @@ const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
 
 function useNativeSidebarDialog(onClose: () => void) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const [modalLifecycle] = useState(createModalLifecyclePublisher);
 
   const handleDialogMouseDown = useCallback(
     (event: MouseEvent) => {
@@ -233,10 +237,25 @@ function useNativeSidebarDialog(onClose: () => void) {
 
   return useCallback(
     (node: HTMLDialogElement | null) => {
-      dialogRef.current?.removeEventListener("mousedown", handleDialogMouseDown);
+      const previousDialog = dialogRef.current;
+      if (previousDialog === node) return;
+      previousDialog?.removeEventListener("mousedown", handleDialogMouseDown);
       dialogRef.current = node;
-      if (!node) return;
+      if (!node) {
+        const opener = openerRef.current;
+        openerRef.current = null;
+        queueMicrotask(() => {
+          if (opener?.isConnected) opener.focus({ preventScroll: true });
+          modalLifecycle.closedFocusRestored();
+        });
+        return;
+      }
 
+      openerRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      modalLifecycle.opening();
       node.addEventListener("mousedown", handleDialogMouseDown);
       if (node.open) return;
 
@@ -251,7 +270,7 @@ function useNativeSidebarDialog(onClose: () => void) {
 
       node.setAttribute("open", "");
     },
-    [handleDialogMouseDown],
+    [handleDialogMouseDown, modalLifecycle],
   );
 }
 
@@ -3084,7 +3103,11 @@ function useEstimateRightSidebarContent({
     /* group/tree on the panel keeps the tree's drag/select rail space open
        while the pointer or focus is anywhere in this sidebar, matching the
        estimate tree's behavior. */
-    <aside className={cn("group/tree flex h-full min-h-0 min-w-0 flex-col !text-[10px] sm:min-w-[320px]", estimateSurfaceClass(surfaceVariant, "libraryRail"))} aria-label="Sources">
+    <aside
+      className={cn("group/tree flex h-full min-h-0 min-w-0 flex-col !text-[10px] sm:min-w-[320px]", estimateSurfaceClass(surfaceVariant, "libraryRail"))}
+      aria-label="Sources"
+      {...onboardingTarget("estimate.library")}
+    >
         {/* Sticky header */}
         <TreePanelHeader
           className={estimateSurfaceClass(surfaceVariant, "railPanelHeader")}

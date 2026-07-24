@@ -14,6 +14,7 @@ export type ExpressComponentMetadata = {
 
 export type EstimateRowMetadata = {
   expressComponent?: ExpressComponentMetadata;
+  guidedPracticeRole?: "price_and_save";
   projectComponentProjection?: ProjectComponentProjectionMetadata;
   [key: string]: Json | undefined;
 };

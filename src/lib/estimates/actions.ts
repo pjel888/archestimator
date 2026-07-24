@@ -25,7 +25,7 @@ import {
   isEstimateRowRevisionConflict,
 } from "@/lib/estimates/row-revision-conflict";
 import { recordEstimateMutationEvent } from "@/lib/estimates/estimate-mutation-telemetry";
-import { applySheetAdjustment, validateEstimateCalculationInput } from "@/lib/estimates/estimate-row-total";
+import { applySheetAdjustment, computeEstimateRowCostParts, validateEstimateCalculationInput } from "@/lib/estimates/estimate-row-total";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { isUuid } from "@/lib/ids";
@@ -36,6 +36,11 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getCurrentWorkspaceProjectForEstimate, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
+import {
+  recordEstimatePracticeMutation,
+  recordOnboardingChecklistActionFact,
+} from "@/lib/onboarding/estimate-practice";
+import { recordLibraryLearningMutation } from "@/lib/onboarding/library-learning";
 import {
   canEditEstimate,
   canEditProject,
@@ -701,6 +706,28 @@ function readHistoryRowResult(value: unknown) {
     linkState: row.linkState as Tables<"estimate_row_items">["link_state"],
     rowRevision: readNumber(row.rowRevision, 1),
   } satisfies UpdateEstimateRowItemResult;
+}
+
+function readPersistedEstimateRowTotal(row: {
+  quantity: number;
+  quantity_base: number | null;
+  quantity_contingency_amount: number | null;
+  unit_cost: number;
+  misc_cost: number;
+  contingency_percentage: number;
+  adjustment_percentage: number;
+}) {
+  const result = computeEstimateRowCostParts({
+    quantity: row.quantity,
+    quantity_base: row.quantity_base,
+    quantity_contingency_amount: row.quantity_contingency_amount,
+    unit_cost: row.unit_cost,
+    misc_cost: row.misc_cost,
+    contingency_percentage: row.contingency_percentage,
+    adjustment_percentage: row.adjustment_percentage,
+    currency_code: "PHP",
+  });
+  return result.ok ? result.value.total : 0;
 }
 
 function readRowMutationConflictResult(value: Record<string, unknown>): EstimateRowMutationConflictResult | null {
@@ -1776,6 +1803,14 @@ export async function createEstimate(projectId: string, formData: FormData) {
     name,
     sheetCode,
   });
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_blank_created",
+    mutationId: estimate.id,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: true,
+  });
 
   revalidateProjectEstimatePaths(project.id);
   redirect(`/workshop/projects/${project.id}/estimates/${firstNodeId ?? estimate.id}`);
@@ -1797,6 +1832,14 @@ export async function createEstimateSheetDraft(projectId: string, input?: { name
     project: project as ProjectDatabaseRow,
     name: requestedName || `${sheetCode} Estimate`,
     sheetCode,
+  });
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_blank_created",
+    mutationId: estimate.id,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: true,
   });
 
   revalidateProjectEstimatePaths(project.id);
@@ -1825,6 +1868,14 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   const duplicated = await duplicateEstimateRecordGraph(database, currentUser, {
     projectId: project.id,
     estimateId: input.estimateId,
+  });
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_duplicated",
+    mutationId: duplicated.estimate.id,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: true,
   });
 
   revalidateProjectEstimatePaths(project.id);
@@ -2200,6 +2251,16 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   } catch (error) {
     throwUserFacingError("Could not create estimate tree node.", error, { action: "estimates_actions" });
   }
+  if (kind === "area") {
+    await recordOnboardingChecklistActionFact(database, {
+      family: "estimate_area_added",
+      mutationId: nodeResult.nodeId,
+      userId: currentUser.userId,
+      workspaceId: project.workspace_id,
+      authoritativeWriteSucceeded: true,
+      authoritativeReadbackConfirmed: true,
+    });
+  }
 
   return {
     nodeId: nodeResult.nodeId,
@@ -2403,14 +2464,35 @@ export async function insertEstimateTemplateIntoEstimate({
   if (!refreshedProject || !refreshedEstimate) {
     throw new Error("Estimate not found after inserting the template.");
   }
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_template_instantiated",
+    mutationId: intentId,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: insertedRootNodeIds.length > 0,
+  });
+  const instanceId = "instanceId" in copyResult && typeof copyResult.instanceId === "string"
+    ? copyResult.instanceId
+    : undefined;
+  if (insertedRootNodeIds[0]) {
+    await recordLibraryLearningMutation(database, {
+      kind: "template_inserted",
+      mutationId: intentId,
+      userId: currentUser.userId,
+      workspaceId: project.workspace_id,
+      templateId,
+      estimateId,
+      insertedRootNodeId: insertedRootNodeIds[0],
+      ...(instanceId ? { instanceId } : {}),
+    });
+  }
   return {
     status: "inserted",
     mode,
     tree,
     insertedRootNodeIds,
-    ...("instanceId" in copyResult && typeof copyResult.instanceId === "string"
-      ? { instanceId: copyResult.instanceId }
-      : {}),
+    ...(instanceId ? { instanceId } : {}),
   };
 }
 
@@ -2462,6 +2544,14 @@ export async function insertEstimateTemplatesIntoEstimate({
   if (!refreshedProject || !refreshedEstimate) {
     throw new Error("Estimate not found after inserting the templates.");
   }
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_template_instantiated",
+    mutationId: intentId,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: insertedRootNodeIds.length > 0,
+  });
   return { status: "inserted", mode: "copy", tree, insertedRootNodeIds };
 }
 
@@ -2539,6 +2629,14 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   if (!refreshedProject || !refreshedEstimate) {
     throw new Error("Estimate not found after inserting the template node.");
   }
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_template_instantiated",
+    mutationId: intentId,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: true,
+  });
   return { status: "inserted", tree, insertedRootNodeId };
 }
 
@@ -2691,7 +2789,39 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
     },
     correlationId: getMutationCorrelationId(mutationId),
   });
-  return readHistoryRowResult(insertData);
+  const result = readHistoryRowResult(insertData);
+  const actionFamily = sourceLibraryItemId
+    ? "estimate_component_inserted"
+    : "estimate_row_added";
+  await recordOnboardingChecklistActionFact(database, {
+    family: actionFamily,
+    mutationId: persistedRowId,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: result.rowId === persistedRowId,
+  });
+  await recordEstimatePracticeMutation(database, {
+    kind: sourceLibraryItemId ? "component_inserted" : "row_created",
+    mutationId: getMutationCorrelationId(mutationId),
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    projectId: project.id,
+    estimateId,
+    rowId: result.rowId,
+  });
+  if (sourceLibraryItemId) {
+    await recordLibraryLearningMutation(database, {
+      kind: "component_inserted",
+      mutationId: getMutationCorrelationId(mutationId),
+      userId: currentUser.userId,
+      workspaceId: project.workspace_id,
+      estimateId,
+      rowId: result.rowId,
+      sourceComponentId: sourceLibraryItemId,
+    });
+  }
+  return result;
 }
 
 export async function updateEstimateSheetAdjustment({
@@ -2713,6 +2843,7 @@ export async function updateEstimateSheetAdjustment({
   const normalizedMode = normalizeEstimateSheetAdjustmentMode(mode);
   const normalizedPercentage = normalizeEstimateSheetAdjustmentPercentage(percentage, normalizedMode);
   assertValidEstimateSheetAdjustment(normalizedMode, normalizedPercentage);
+  const correlationId = getMutationCorrelationId(mutationId);
 
   let adjustmentResult: Awaited<ReturnType<typeof updateEstimateSheetAdjustmentWithHistory>>;
   try {
@@ -2722,7 +2853,7 @@ export async function updateEstimateSheetAdjustment({
       mode: normalizedMode,
       percentage: normalizedPercentage,
       expectedRowRevision: expectedRowRevision ?? null,
-      correlationId: getMutationCorrelationId(mutationId),
+      correlationId,
     });
   } catch (error) {
     throwEstimateRowMutationError(error);
@@ -2730,12 +2861,23 @@ export async function updateEstimateSheetAdjustment({
 
   clearEstimateRouteContextProcessCache(project.id);
   revalidateProjectEstimatePaths(project.id);
-  return readEstimateSheetAdjustmentRpcResult(adjustmentResult);
+  const result = readEstimateSheetAdjustmentRpcResult(adjustmentResult);
+  await recordOnboardingChecklistActionFact(database, {
+    family: "estimate_adjustment_changed",
+    mutationId: correlationId,
+    userId: currentUser.userId,
+    workspaceId: project.workspace_id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: true,
+  });
+  return result;
 }
 
 export async function updateEstimateRowItem({ projectId, estimateId, rowId, componentMutationIntent, material, description, supplier, unit, unitCost, priceOptionLabel, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, sourceLibraryItemId, linkState, expectedComponentImpactFingerprint, removedPriceOptionReplacements, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, database, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireWorkshopWriteContext();
+  const correlationId = getMutationCorrelationId(mutationId);
+  const previousTotal = readPersistedEstimateRowTotal(row);
   let sourceSnapshotPatch: Json | null | undefined;
   if (sourceSnapshot === null) {
     sourceSnapshotPatch = null;
@@ -2804,7 +2946,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
   };
 
   try {
-    const result = await updateEstimateRowItemWithHistory(database, currentUser, {
+    const mutationResult = await updateEstimateRowItemWithHistory(database, currentUser, {
       projectId: project.id,
       estimateId,
       rowId: row.id,
@@ -2813,9 +2955,42 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, comp
       ...(componentMutationIntent !== undefined ? { componentMutationIntent } : {}),
       ...(expectedComponentImpactFingerprint !== undefined ? { expectedComponentImpactFingerprint } : {}),
       ...(removedPriceOptionReplacements !== undefined ? { removedPriceOptionReplacements } : {}),
-      correlationId: getMutationCorrelationId(mutationId),
+      correlationId,
     });
-    return readHistoryRowResult(result);
+    const result = readHistoryRowResult(mutationResult);
+    const changedFamilies = [
+      quantity !== undefined && quantity !== row.quantity ? "estimate_quantity_changed" : null,
+      unitCost !== undefined && unitCost !== row.unit_cost ? "estimate_unit_cost_changed" : null,
+      adjustmentPercentage !== undefined && adjustmentPercentage !== row.adjustment_percentage
+        ? "estimate_adjustment_changed"
+        : null,
+      miscCost !== undefined && miscCost !== row.misc_cost ? "estimate_misc_cost_changed" : null,
+    ].filter((family): family is "estimate_quantity_changed" | "estimate_unit_cost_changed" | "estimate_adjustment_changed" | "estimate_misc_cost_changed" => family !== null);
+    await Promise.all(changedFamilies.map((family) => recordOnboardingChecklistActionFact(database, {
+      family,
+      mutationId: `${correlationId}:${family}`,
+      userId: currentUser.userId,
+      workspaceId: project.workspace_id,
+      authoritativeWriteSucceeded: true,
+      authoritativeReadbackConfirmed: result.rowId === row.id,
+    })));
+    if (quantity !== undefined && quantity !== row.quantity || unitCost !== undefined && unitCost !== row.unit_cost) {
+      await recordEstimatePracticeMutation(database, {
+        kind: unitCost !== undefined && unitCost !== row.unit_cost
+          ? "unit_cost_changed"
+          : "quantity_changed",
+        mutationId: correlationId,
+        userId: currentUser.userId,
+        workspaceId: project.workspace_id,
+        projectId: project.id,
+        estimateId,
+        rowId: result.rowId,
+        previousQuantity: row.quantity,
+        previousUnitCost: row.unit_cost,
+        previousTotal,
+      });
+    }
+    return result;
   } catch (error) {
     throwEstimateRowMutationError(error);
   }
@@ -2843,17 +3018,36 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
     misc_cost: replacementPayload.miscCost,
     currency_code: project.currency_code,
   });
+  const correlationId = getMutationCorrelationId(mutationId);
   try {
-    const result = await replaceEstimateRowItemWithHistory(database, currentUser, {
+    const mutationResult = await replaceEstimateRowItemWithHistory(database, currentUser, {
       projectId: project.id,
       estimateId,
       rowId: row.id,
       expectedRowRevision: expectedRowRevision ?? row.row_revision,
       replacementPayload,
       librarySource: libraryItem,
-      correlationId: getMutationCorrelationId(mutationId),
+      correlationId,
     });
-    return readHistoryRowResult(result);
+    const result = readHistoryRowResult(mutationResult);
+    await recordOnboardingChecklistActionFact(database, {
+      family: "estimate_component_inserted",
+      mutationId: correlationId,
+      userId: currentUser.userId,
+      workspaceId: project.workspace_id,
+      authoritativeWriteSucceeded: true,
+      authoritativeReadbackConfirmed: result.rowId === row.id,
+    });
+    await recordEstimatePracticeMutation(database, {
+      kind: "component_inserted",
+      mutationId: correlationId,
+      userId: currentUser.userId,
+      workspaceId: project.workspace_id,
+      projectId: project.id,
+      estimateId,
+      rowId: result.rowId,
+    });
+    return result;
   } catch (error) {
     throwEstimateRowMutationError(error);
   }

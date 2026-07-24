@@ -10,6 +10,7 @@ import { ControlInput } from "@/components/ui/control-input";
 import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
+import { registerEstimateOnboardingTargetAdapter } from "@/components/onboarding/estimate-target-adapter";
 import type { EstimateRowMutationStatus } from "@/hooks/use-estimate-row-mutations";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import {
@@ -169,6 +170,43 @@ const ESTIMATE_COLUMN_HELP: Partial<Record<EstimateColumnId, string>> = {
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
 type ScrollMarginAction = { type: "reset" } | { type: "measure"; value: number };
+const ONBOARDING_TARGET_PREPARE_TIMEOUT_MS = 1_200;
+
+function waitForOwnedEstimateElement(
+  resolveElement: () => HTMLElement | null,
+  signal: AbortSignal,
+) {
+  const immediate = resolveElement();
+  if (immediate || signal.aborted) return Promise.resolve(immediate);
+
+  return new Promise<HTMLElement | null>((resolve) => {
+    let frameId = 0;
+    let settled = false;
+    const timeoutId = window.setTimeout(
+      () => finish(null),
+      ONBOARDING_TARGET_PREPARE_TIMEOUT_MS,
+    );
+    const finish = (element: HTMLElement | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      window.cancelAnimationFrame(frameId);
+      signal.removeEventListener("abort", onAbort);
+      resolve(element);
+    };
+    const check = () => {
+      const element = resolveElement();
+      if (element || signal.aborted) {
+        finish(element);
+        return;
+      }
+      frameId = window.requestAnimationFrame(check);
+    };
+    const onAbort = () => finish(null);
+    signal.addEventListener("abort", onAbort, { once: true });
+    frameId = window.requestAnimationFrame(check);
+  });
+}
 
 function formatCompactNumber(value: number) {
   if (!Number.isFinite(value)) return "0";
@@ -685,6 +723,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           canManageLibrary={canManageLibrary}
           componentSyncPending={componentSyncPending || Boolean(rowMutationStatus?.phase === "pending" && rowMutationStatus.componentSync)}
           item={computedItem}
+          rowIndex={rowIndex}
           editableRow={resolvedEditableRow}
           brandOptions={brandOptions}
           supplierOptions={supplierOptions}
@@ -1086,6 +1125,69 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
     useFlushSync: virtualization.useFlushSync ?? false,
     initialRect: { height: virtualization.initialViewportHeight ?? 720, width: 0 },
   });
+
+  useEffect(() => {
+    const owner = () => scrollRootRef.current;
+    const guidedPracticePriceRowIndex = () =>
+      items.findIndex(
+        (item) =>
+          isExpressComponentRow(item)
+          && item.metadata?.guidedPracticeRole === "price_and_save",
+      );
+    const clearOwnedTarget = (target: string) => {
+      const root = owner();
+      if (root?.dataset.onboardingTarget === target) {
+        root.removeAttribute("data-onboarding-target");
+      }
+      root
+        ?.querySelectorAll<HTMLElement>(`[data-onboarding-target="${target}"]`)
+        .forEach((element) => element.removeAttribute("data-onboarding-target"));
+    };
+    const registerRowMath = registerEstimateOnboardingTargetAdapter({
+      target: "estimate.row_math",
+      owner,
+      prepare: async (signal) => {
+        const root = owner();
+        if (!root || signal.aborted) return null;
+        root.scrollIntoView({ block: "nearest", inline: "nearest" });
+        root.setAttribute("data-onboarding-target", "estimate.row_math");
+        return root;
+      },
+    });
+    const registerPriceInput = registerEstimateOnboardingTargetAdapter({
+      target: "estimate.price_input",
+      owner,
+      priority: () => guidedPracticePriceRowIndex() >= 0 ? 1 : 0,
+      prepare: async (signal) => {
+        const guidedRowIndex = guidedPracticePriceRowIndex();
+        const priceRowIndex = guidedRowIndex >= 0
+          ? guidedRowIndex
+          : items.findIndex((item) => isExpressComponentRow(item));
+        if (priceRowIndex < 0) return null;
+        if (virtualEnabled) {
+          rowVirtualizer.scrollToIndex(priceRowIndex, { align: "center" });
+        }
+        const input = await waitForOwnedEstimateElement(
+          () =>
+            owner()?.querySelector<HTMLElement>(
+              `[data-estimate-price-input="unit-cost"][data-estimate-row-index="${priceRowIndex}"]`,
+            ) ?? null,
+          signal,
+        );
+        if (!input) return null;
+        input.scrollIntoView({ block: "center", inline: "nearest" });
+        input.setAttribute("data-onboarding-target", "estimate.price_input");
+        return input;
+      },
+    });
+
+    return () => {
+      registerRowMath();
+      registerPriceInput();
+      clearOwnedTarget("estimate.row_math");
+      clearOwnedTarget("estimate.price_input");
+    };
+  }, [items, rowVirtualizer, virtualEnabled]);
 
   const requestFocusByRowId = useCallback(
     (rowId: string, cellIndex: number) => {

@@ -14,7 +14,6 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import {
   canManageClosedBetaAllowlist,
   CLOSED_BETA_ALLOWLIST_ADMIN_PATH,
-  CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH,
   parseClosedBetaAllowlistBulkCreate,
   parseClosedBetaAllowlistCreate,
   parseClosedBetaAllowlistUpdate,
@@ -23,7 +22,6 @@ import {
 
 function revalidateAllowlistPaths() {
   revalidatePath(CLOSED_BETA_ALLOWLIST_ADMIN_PATH);
-  revalidatePath(CLOSED_BETA_ALLOWLIST_WORKSHOP_PATH);
 }
 
 export async function createClosedBetaAllowlistEntry(formData: FormData) {

@@ -45,6 +45,7 @@ import {
 } from "@/lib/repositories/workspace-repository";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { isUuid } from "@/lib/ids";
+import { recordLibraryLearningMutation } from "@/lib/onboarding/library-learning";
 import {
   loadComponentLibraryUserPreferencesFromCloudflareD1,
   recordComponentLibraryTelemetryEventInCloudflareD1,
@@ -1125,6 +1126,14 @@ export async function duplicateCostLibraryComponent(input: { itemId: string }) {
     },
     priceOptions,
   });
+  await recordLibraryLearningMutation(database, {
+    kind: "component_duplicated",
+    mutationId: result.itemId,
+    userId: currentUser.userId,
+    workspaceId: workspace.id,
+    componentId: result.itemId,
+    sourceComponentId: input.itemId,
+  });
   return { ...result, omittedAttachmentCount, omittedImageCount };
 }
 
@@ -1273,6 +1282,24 @@ async function loadUpdatedCostLibraryComponentResult(result: UpdateCostLibraryCo
   return { ...result, component, rowPatches: {} as Record<string, EstimateRowItemPatch> };
 }
 
+async function recordComponentUpdateLearning(
+  database: D1DatabaseLike,
+  input: {
+    mutationId: string;
+    userId: string;
+    workspaceId: string;
+    componentId: string;
+    previousVersionNumber: number;
+    resultingVersionNumber: number;
+    resultingUpdatedAt: string;
+  },
+) {
+  await recordLibraryLearningMutation(database, {
+    kind: "component_updated",
+    ...input,
+  });
+}
+
 export async function updateCostLibraryComponentWithPriceOptions(itemId: string, input: UpdateCostLibraryComponentWithPriceOptionsInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const database = await requireComponentLibraryActionsD1Database();
@@ -1290,7 +1317,19 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     requestFingerprint: createMutationRequestFingerprint({ itemId, ...requestInput }),
   };
   const committedReceipt = await readUpdatedComponentReceiptInD1(database, receiptIdentity);
-  if (committedReceipt) return loadUpdatedCostLibraryComponentResult(committedReceipt);
+  if (committedReceipt) {
+    const result = await loadUpdatedCostLibraryComponentResult(committedReceipt);
+    await recordComponentUpdateLearning(database, {
+      mutationId: intentId,
+      userId: currentUser.userId,
+      workspaceId: workspace.id,
+      componentId: itemId,
+      previousVersionNumber: input.expectedVersionNumber,
+      resultingVersionNumber: result.versionNumber,
+      resultingUpdatedAt: result.updatedAt,
+    });
+    return result;
+  }
 
   const context = await loadComponentUpdateContextInD1(database, {
     workspaceId: workspace.id,
@@ -1341,7 +1380,19 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
     expectedComponentImpactFingerprint: input.expectedComponentImpactFingerprint,
     removedPriceOptionReplacements: input.removedPriceOptionReplacements ?? {},
   });
-  if (mutation.kind === "replayed") return loadUpdatedCostLibraryComponentResult(mutation.receipt);
+  if (mutation.kind === "replayed") {
+    const result = await loadUpdatedCostLibraryComponentResult(mutation.receipt);
+    await recordComponentUpdateLearning(database, {
+      mutationId: intentId,
+      userId: currentUser.userId,
+      workspaceId: workspace.id,
+      componentId: itemId,
+      previousVersionNumber: input.expectedVersionNumber,
+      resultingVersionNumber: result.versionNumber,
+      resultingUpdatedAt: result.updatedAt,
+    });
+    return result;
+  }
 
   for (const affectedEstimate of mutation.receipt.affectedEstimates) {
     revalidatePath(`/workshop/projects/${affectedEstimate.projectId}/estimates/${affectedEstimate.estimateId}`);
@@ -1349,11 +1400,21 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   const persistedComponent = await getCurrentWorkspaceComponentRowDetail(itemId);
   if (!persistedComponent) throw new Error("Component was saved but could not be reloaded.");
   revalidateLibraryRoutes();
-  return {
+  const result = {
     ...mutation.receipt,
     component: persistedComponent,
     ...mutation.sync,
   };
+  await recordComponentUpdateLearning(database, {
+    mutationId: intentId,
+    userId: currentUser.userId,
+    workspaceId: workspace.id,
+    componentId: itemId,
+    previousVersionNumber: input.expectedVersionNumber,
+    resultingVersionNumber: result.versionNumber,
+    resultingUpdatedAt: result.updatedAt,
+  });
+  return result;
 }
 export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibraryComponentsInput): Promise<BulkActionPreviewResult> {
   const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
@@ -2757,7 +2818,17 @@ export async function duplicateEstimateTemplate(input: { intentId?: string; temp
     request: { templateId: input.templateId },
   });
   const replay = await readTemplateGraphReplay(database, identity, "Could not read back the duplicated template.");
-  if (replay) return replay;
+  if (replay) {
+    await recordLibraryLearningMutation(database, {
+      kind: "template_duplicated",
+      mutationId: replay.template.id,
+      userId: currentUser.userId,
+      workspaceId: workspace.id,
+      templateId: replay.template.id,
+      sourceTemplateId: input.templateId,
+    });
+    return replay;
+  }
   await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
   const sourceTemplate = await first<EstimateTemplateD1Row>(
     database,
@@ -2870,7 +2941,20 @@ export async function duplicateEstimateTemplate(input: { intentId?: string; temp
   }
 
   revalidateTemplateSurfaces();
-  return readTemplateGraphResult(database, insertedTemplate.row.id, "Could not read back the duplicated template.");
+  const result = await readTemplateGraphResult(
+    database,
+    insertedTemplate.row.id,
+    "Could not read back the duplicated template.",
+  );
+  await recordLibraryLearningMutation(database, {
+    kind: "template_duplicated",
+    mutationId: result.template.id,
+    userId: currentUser.userId,
+    workspaceId: workspace.id,
+    templateId: result.template.id,
+    sourceTemplateId: input.templateId,
+  });
+  return result;
 }
 
 /** Moves a template to another category (group), optionally repositioning it. */

@@ -29,6 +29,7 @@ import {
 } from "@/lib/projects/status";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { prepareActivationOutboxIntent } from "@/lib/onboarding/activation-outbox";
+import { recordOnboardingChecklistActionFact } from "@/lib/onboarding/estimate-practice";
 import type { Json } from "@/lib/types/json";
 import { isUuid } from "@/lib/ids";
 import { logAppError } from "@/lib/observability/logger";
@@ -1181,6 +1182,14 @@ export async function createProjectRecord(formData: FormData) {
     throw new Error(
       "Something went wrong. Try again in a moment.",
     );
+  await recordOnboardingChecklistActionFact(database, {
+    family: "project_blank_created",
+    mutationId: projectId,
+    userId: profile.id,
+    workspaceId: workspace.id,
+    authoritativeWriteSucceeded: true,
+    authoritativeReadbackConfirmed: true,
+  });
 
   revalidatePath("/workshop/projects");
   return toProjectRecord(project);

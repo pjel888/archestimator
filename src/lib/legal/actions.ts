@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { sanitizeNextPath } from "@/lib/auth/redirects";
+import { sanitizeProtectedReturnPath } from "@/lib/auth/redirects";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { CURRENT_TERMS } from "@/lib/legal/terms-content";
 import { recordCurrentTermsAcceptance } from "@/lib/legal/terms-acceptance";
@@ -17,7 +17,10 @@ function buildAcceptanceErrorRedirect(errorCode: string, next: string) {
 }
 
 export async function acceptCurrentTermsAction(formData: FormData) {
-  const next = sanitizeNextPath(formData.get("next"), TERMS_GATE_FALLBACK_NEXT);
+  const next = sanitizeProtectedReturnPath(
+    formData.get("next"),
+    TERMS_GATE_FALLBACK_NEXT,
+  );
   const submittedVersion = String(formData.get("terms_version") ?? "").trim();
   const acceptedResponsibility = formData.get("accepted_responsibility") === "on";
 
@@ -36,6 +39,6 @@ export async function acceptCurrentTermsAction(formData: FormData) {
     redirect(buildAcceptanceErrorRedirect("save_failed", next));
   }
 
-  // react-doctor-disable-next-line react-doctor/clickjacking-redirect-risk -- `next` is constrained by sanitizeNextPath to an internal terms-gate destination.
+  // react-doctor-disable-next-line react-doctor/clickjacking-redirect-risk -- `next` is constrained to a sanitized protected destination and is reauthorized by its layout.
   redirect(next);
 }

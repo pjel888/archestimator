@@ -2,84 +2,52 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartBar, ChartBarHorizontal, ClipboardText, ClockCounterClockwise, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
-import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
+import { ProjectMobileNavigation } from "./navigation/ProjectMobileNavigation";
+import {
+  getProjectNavigationItems,
+  isProjectNavigationItemActive,
+} from "./navigation/project-navigation";
 
 type ProjectMiniSidebarProps = {
   projectId: string;
-};
-
-type ProjectSectionLink = {
-  href: string;
-  label: string;
-  icon: PhosphorIcon;
-  exact: boolean;
 };
 
 export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
   const pathname = usePathname();
   const estimateSheetPathPrefix = `/workshop/projects/${projectId}/estimates/`;
   const isEstimateSheetRoute = Boolean(pathname?.startsWith(estimateSheetPathPrefix));
-  const links: ProjectSectionLink[] = [
-    {
-      href: `/workshop/projects/${projectId}`,
-      label: "Dashboard",
-      icon: ChartBar,
-      exact: true,
-    },
-    {
-      href: `/workshop/projects/${projectId}/estimates`,
-      label: "Estimates",
-      icon: ClipboardText,
-      exact: false,
-    },
-    {
-      href: `/workshop/projects/${projectId}/data`,
-      label: "Data",
-      icon: ChartBarHorizontal,
-      exact: false,
-    },
-    {
-      href: `/workshop/projects/${projectId}/activity`,
-      label: "Activity",
-      icon: ClockCounterClockwise,
-      exact: false,
-    },
-    {
-      href: `/workshop/projects/${projectId}/client-portals`,
-      label: "Portals",
-      icon: ShareNetwork,
-      exact: false,
-    },
-  ];
+  const links = getProjectNavigationItems(projectId);
 
   if (isEstimateSheetRoute) return null;
 
   return (
-    <aside className="relative z-10 hidden w-[104px] shrink-0 lg:block" aria-label="Project navigation">
-      <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
-        {links.map((link) => {
-          const Icon = link.icon;
-          const active = link.exact ? pathname === link.href : pathname === link.href || Boolean(pathname?.startsWith(`${link.href}/`));
+    <>
+      <ProjectMobileNavigation items={links} />
+      <aside className="relative z-10 hidden w-[104px] shrink-0 lg:block" aria-label="Project navigation">
+        <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
+          {links.map((link) => {
+            const Icon = link.icon;
+            const active = isProjectNavigationItemActive(pathname, link);
 
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={active ? "page" : undefined}
-              className={[
-                "flex h-8 items-center gap-1 rounded-xs border border-transparent p-1 text-[10px] font-medium leading-none transition-colors",
-                active
-                  ? "workshop-project-card-control text-ink"
-                  : "text-tertiary hover:border-[color:var(--glass-border)] hover:bg-white/45 hover:text-ink",
-              ].join(" ")}
-            >
-              <Icon size={14} aria-hidden="true" />
-              <span className="truncate">{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={[
+                  "flex h-8 items-center gap-1 rounded-xs border border-transparent p-1 text-[10px] font-medium leading-none transition-colors",
+                  active
+                    ? "workshop-project-card-control text-ink"
+                    : "text-tertiary hover:border-[color:var(--glass-border)] hover:bg-white/45 hover:text-ink",
+                ].join(" ")}
+              >
+                <Icon size={14} aria-hidden="true" />
+                <span className="truncate">{link.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+    </>
   );
 }

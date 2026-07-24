@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { EstimateSheetRouteSkeleton } from "@/components/workshop/EstimateSheetRouteSkeleton";
+import { loadCurrentOnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-actions";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
+import { getCurrentGuidedPracticeBindingForEstimate } from "@/lib/onboarding/estimate-practice";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
@@ -29,6 +32,7 @@ type EstimateWorkspaceResolvedProps = {
   tabs: EstimateRouteContext["tabs"];
   prefetchedCanEditEstimate: EstimateRouteContext["canEditEstimate"];
   canManageLibrary: boolean;
+  onboardingSnapshot: OnboardingEligibilitySnapshot | null;
   loadLimitState: EstimateRouteContext["loadLimitState"];
   sheetAdjustment?: EstimateSheetAdjustment;
   proposalExportMetadata: {
@@ -65,6 +69,50 @@ function readEstimateVersionLabel(metadata: Json): string {
   return "V1";
 }
 
+function scopeOnboardingSnapshotToEstimate(
+  snapshot: OnboardingEligibilitySnapshot | null,
+  input: {
+    workspaceId: string;
+    projectId: string;
+    estimateId: string;
+    nodeId: string | null;
+    canEditEstimate: boolean;
+    tutorialBindingCurrent: boolean;
+  },
+) {
+  if (!snapshot || snapshot.workspaceId !== input.workspaceId) return null;
+  const capabilities = new Set(snapshot.capabilities);
+  capabilities.add("view_estimate");
+  capabilities.add("view_assigned_project");
+  if (input.canEditEstimate) capabilities.add("edit_estimate");
+  else capabilities.delete("edit_estimate");
+  const availableRoutes = new Set(snapshot.availableRoutes);
+  availableRoutes.add("assigned_project");
+  availableRoutes.add("assigned_estimate");
+  availableRoutes.add("estimate_sheet");
+  const guidedState = snapshot.flowStates.find(
+    (state) => state.flowKey === "guided_estimate_practice",
+  );
+
+  return {
+    ...snapshot,
+    resourceContext: {
+      projectId: input.projectId,
+      estimateId: input.estimateId,
+      nodeId: input.nodeId ?? undefined,
+    },
+    capabilities: [...capabilities],
+    availableRoutes: [...availableRoutes],
+    dataPredicates: {
+      ...snapshot.dataPredicates,
+      estimate_context_available: true,
+      tutorial_binding_current: input.tutorialBindingCurrent,
+      tutorial_core_incomplete:
+        input.tutorialBindingCurrent && guidedState?.status !== "completed",
+    },
+  } satisfies OnboardingEligibilitySnapshot;
+}
+
 export default function ProjectEstimateNodePage({ params, searchParams }: ProjectEstimateNodePageProps) {
   return (
     <Suspense fallback={<EstimateSheetRouteSkeleton />}>
@@ -85,12 +133,43 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
   const { project, estimate, selectedNodeId, tree, tab, tabs, canEditEstimate: prefetchedCanEditEstimate, loadLimitState, sheetAdjustment } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
-  const [resolvedCanEditEstimate, canManageLibrary] = await Promise.all([
+  const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([
     prefetchedCanEditEstimate === true
       ? Promise.resolve(true)
       : traced("estimate-sheet.edit-capability", () => resolveEstimateEditCapability(estimate.id)),
     traced("estimate-sheet.library-management-capability", () => resolveLibraryManagementCapability(project.workspace_id)),
+    traced("estimate-sheet.onboarding-snapshot", async () => {
+      try {
+        return await loadCurrentOnboardingEligibilitySnapshot();
+      } catch {
+        return null;
+      }
+    }),
   ]);
+  const onboardingDatabase = onboardingSnapshot
+    ? await getCloudflareD1Database()
+    : null;
+  const tutorialBindingCurrent = Boolean(
+    onboardingSnapshot
+    && onboardingDatabase
+    && await getCurrentGuidedPracticeBindingForEstimate(onboardingDatabase, {
+      userId: onboardingSnapshot.userId,
+      workspaceId: project.workspace_id,
+      projectId: project.id,
+      estimateId: estimate.id,
+    }),
+  );
+  const scopedOnboardingSnapshot = scopeOnboardingSnapshotToEstimate(
+    onboardingSnapshot,
+    {
+      workspaceId: project.workspace_id,
+      projectId: project.id,
+      estimateId: estimate.id,
+      nodeId: selectedNodeId,
+      canEditEstimate: resolvedCanEditEstimate,
+      tutorialBindingCurrent,
+    },
+  );
 
   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
   const proposalExportMetadata = {
@@ -115,6 +194,7 @@ async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNod
       tabs={tabs}
       prefetchedCanEditEstimate={resolvedCanEditEstimate}
       canManageLibrary={canManageLibrary}
+      onboardingSnapshot={scopedOnboardingSnapshot}
       loadLimitState={loadLimitState}
       sheetAdjustment={sheetAdjustment}
       proposalExportMetadata={proposalExportMetadata}
@@ -131,6 +211,7 @@ function EstimateWorkspaceResolved({
   tabs,
   prefetchedCanEditEstimate,
   canManageLibrary,
+  onboardingSnapshot,
   loadLimitState,
   sheetAdjustment,
   proposalExportMetadata,
@@ -157,6 +238,7 @@ function EstimateWorkspaceResolved({
       sheetAdjustment={sheetAdjustment}
       canEditEstimate={prefetchedCanEditEstimate === true}
       canManageLibrary={canManageLibrary}
+      onboardingSnapshot={onboardingSnapshot}
       proposalExportMetadata={proposalExportMetadata}
       surfaceVariant="glass"
     />

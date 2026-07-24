@@ -2,9 +2,11 @@ import { Suspense } from "react";
 
 import { PublisherRosterClient } from "@/components/workshop/publisher/PublisherRosterClient";
 import { PublisherRosterSkeleton } from "@/components/workshop/publisher/PublisherRosterSkeleton";
+import { ClientLinksLearningRail } from "@/components/workshop/publisher/ClientLinksLearningRail";
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { assertBetaFeaturePathAllowed } from "@/lib/feature-gates/enforce";
+import { loadCurrentOnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-actions";
 import { parseRosterFilters } from "@/lib/publisher/roster-filter";
 import { readWorkspacePublicationsRoster } from "@/lib/publisher/roster-repository";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
@@ -29,22 +31,27 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
       }
     : resolvedSearchParams;
   const filters = parseRosterFilters(filterSearchParams);
-  const roster = await withPerfTraceRequest("workshop.publisher.data", async () => {
-    const [currentUser, { workspace }] = await Promise.all([
-      traced("publisher.route.current-user", () => requireCurrentUserContext()),
-      traced("publisher.route.workspace", () => ensureDefaultWorkspace()),
-    ]);
-    return traced("publisher.route.roster", () =>
-      readWorkspacePublicationsRoster(workspace.id, currentUser.userId, filters),
-    );
-  });
+  const [roster, onboardingSnapshot] = await Promise.all([
+    withPerfTraceRequest("workshop.publisher.data", async () => {
+      const [currentUser, { workspace }] = await Promise.all([
+        traced("publisher.route.current-user", () => requireCurrentUserContext()),
+        traced("publisher.route.workspace", () => ensureDefaultWorkspace()),
+      ]);
+      return traced("publisher.route.roster", () =>
+        readWorkspacePublicationsRoster(workspace.id, currentUser.userId, filters),
+      );
+    }),
+    loadCurrentOnboardingEligibilitySnapshot().catch(() => null),
+  ]);
 
   return (
-    <PublisherRosterClient
-      key={`${filters.status}:${filters.projectId ?? ""}:${filters.page}`}
-      roster={roster}
-      filters={filters}
-    />
+    <ClientLinksLearningRail snapshot={onboardingSnapshot}>
+      <PublisherRosterClient
+        key={`${filters.status}:${filters.projectId ?? ""}:${filters.page}`}
+        roster={roster}
+        filters={filters}
+      />
+    </ClientLinksLearningRail>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { getBudgetHealthGradientStop } from "@/lib/project-charts/budget-health-gradient";
 import {
   PROJECT_BUDGET_CHANGE_EVENT,
@@ -253,6 +254,7 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
       className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 px-2"
       data-estimate-center-column="project-total-header"
       aria-label="Estimate running totals"
+      {...onboardingTarget("estimate.total")}
     >
       <div className="flex min-w-[118px] shrink-0 flex-col items-start justify-center text-left">
         <span className={`font-sans text-[12px] font-medium leading-4 tabular-nums ${BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS}`}>{formatPeso(budget)}</span>

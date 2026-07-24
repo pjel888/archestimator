@@ -5,6 +5,7 @@ import { SignOut } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/actions";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 
 // Heavy settings body kept out of the shared workshop client chunk. The settings
 // dialog renders nothing while closed (the dialog portal returns null), so this
@@ -27,10 +28,14 @@ function renderSignOutControl() {
   );
 }
 
-export function WorkshopSettingsModalContent({ canManagePlatform }: { canManagePlatform: boolean }) {
+export function WorkshopSettingsModalContent({
+  onboardingSnapshot,
+}: {
+  onboardingSnapshot: OnboardingEligibilitySnapshot | null;
+}) {
   return (
     <WorkshopSettingsModalContentView
-      canManagePlatform={canManagePlatform}
+      onboardingSnapshot={onboardingSnapshot}
       renderSignOutControl={renderSignOutControl}
     />
   );

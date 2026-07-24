@@ -3,18 +3,18 @@
 import {
   ArrowSquareOut,
   Buildings,
-  ChartLineUp,
+  Compass,
   FileText,
   Lifebuoy,
-  ShieldCheck,
   SignOut,
   Trash,
   UserCircle,
   UsersThree,
-  Wrench,
 } from "@phosphor-icons/react/dist/ssr";
 import { useState, type ReactNode } from "react";
 
+import { GuidanceToursSettings } from "@/components/workshop/settings/GuidanceToursSettings";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import { cn } from "@/lib/ui/cn";
 
 type SettingsPage = Readonly<{
@@ -34,6 +34,14 @@ type SettingsGroup = Readonly<{
 }>;
 
 const accountSettings = [
+  {
+    category: "Account",
+    description: "Control automatic guidance, continue or restart guides, and reopen the getting-started checklist.",
+    icon: <Compass size={15} weight="regular" aria-hidden="true" />,
+    id: "guidance-tours",
+    notes: ["Automatic guidance on or off", "Continue or restart guides", "Checklist visibility", "Restart guides without changing work"],
+    title: "Guidance & tours",
+  },
   {
     category: "Account",
     description: "Name, email, and personal defaults used across the workshop.",
@@ -115,55 +123,10 @@ const supportSettings = [
   },
 ] as const satisfies readonly SettingsPage[];
 
-const platformSettings = [
-  {
-    category: "Access operations",
-    description: "Add, activate, revoke, and annotate allowlist rows.",
-    href: "/workshop/settings/users",
-    icon: <UsersThree size={15} weight="regular" aria-hidden="true" />,
-    id: "users",
-    notes: ["Allowlist rows", "Access status", "User notes"],
-    title: "Users",
-  },
-  {
-    category: "Access operations",
-    description: "Review authenticated feedback and keep triage status current.",
-    href: "/workshop/settings/feedback",
-    icon: <Wrench size={15} weight="regular" aria-hidden="true" />,
-    id: "feedback-triage",
-    notes: ["Authenticated feedback", "Triage status", "Workflow evidence"],
-    title: "Feedback triage",
-  },
-  {
-    category: "Upload operations",
-    description: "Review upload throughput, scan queue health, cleanup backlog, and operational event counters.",
-    href: "/workshop/settings/upload-operations",
-    icon: <ChartLineUp size={15} weight="regular" aria-hidden="true" />,
-    id: "upload-operations",
-    notes: ["Upload throughput", "Scan backlog", "Cleanup backlog", "Quota and backpressure signals"],
-    title: "Upload operations",
-  },
-  {
-    category: "Upload operations",
-    description: "Review failed or unsupported attachment scans before approving temporary overrides.",
-    href: "/workshop/settings/scan-overrides",
-    icon: <ShieldCheck size={15} weight="regular" aria-hidden="true" />,
-    id: "scan-overrides",
-    notes: ["Failed scans", "Checksum-bound approvals", "Override expiry"],
-    title: "Scan overrides",
-  },
-] as const satisfies readonly SettingsPage[];
-
 const baseSettingsGroups: readonly SettingsGroup[] = [
   { id: "account", pages: accountSettings, title: "Account" },
   { id: "support", pages: supportSettings, title: "Support and legal" },
 ] as const;
-
-const platformSettingsGroup: SettingsGroup = {
-  id: "access-operations",
-  pages: platformSettings,
-  title: "Access operations",
-} as const;
 
 function SettingsRailRow({
   active,
@@ -246,12 +209,17 @@ function SettingsRail({
 }
 
 function SettingsDetailPanel({
+  onboardingSnapshot,
   page,
   renderSignOutControl,
 }: {
+  onboardingSnapshot: OnboardingEligibilitySnapshot | null;
   page: SettingsPage;
   renderSignOutControl: () => ReactNode;
 }) {
+  if (page.id === "guidance-tours") {
+    return <GuidanceToursSettings snapshot={onboardingSnapshot} />;
+  }
   const isSignOut = page.id === "sign-out";
   const isEmailAction = page.href?.startsWith("mailto:");
 
@@ -307,28 +275,30 @@ function SettingsDetailPanel({
 }
 
 export function WorkshopSettingsModalContentView({
-  canManagePlatform,
+  onboardingSnapshot,
   renderSignOutControl,
 }: {
-  canManagePlatform: boolean;
+  onboardingSnapshot: OnboardingEligibilitySnapshot | null;
   renderSignOutControl: () => ReactNode;
 }) {
   const [activePageId, setActivePageId] = useState("profile");
-  const settingsGroups: readonly SettingsGroup[] = canManagePlatform
-    ? [...baseSettingsGroups, platformSettingsGroup]
-    : baseSettingsGroups;
+  const settingsGroups = baseSettingsGroups;
   const settingsPages = settingsGroups.flatMap((group) => group.pages);
   const activePage = settingsPages.find((page) => page.id === activePageId) ?? accountSettings[0];
 
   return (
-    <div className="grid h-[min(640px,calc(100dvh-96px))] min-h-[460px] grid-cols-[148px_minmax(0,1fr)] overflow-hidden bg-white sm:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="grid h-[min(640px,calc(100dvh-48px))] min-h-0 grid-cols-[112px_minmax(0,1fr)] overflow-hidden bg-white sm:h-[min(640px,calc(100dvh-96px))] sm:min-h-[460px] sm:grid-cols-[260px_minmax(0,1fr)]">
       <SettingsRail activePageId={activePage.id} groups={settingsGroups} onSelect={setActivePageId} />
       <main
         id="settings-detail-panel"
         className="min-h-0 overflow-y-auto bg-white"
         aria-label={activePage ? `${activePage.title} settings` : "Settings detail panel"}
       >
-        <SettingsDetailPanel page={activePage} renderSignOutControl={renderSignOutControl} />
+        <SettingsDetailPanel
+          onboardingSnapshot={onboardingSnapshot}
+          page={activePage}
+          renderSignOutControl={renderSignOutControl}
+        />
       </main>
     </div>
   );

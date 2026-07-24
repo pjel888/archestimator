@@ -29,6 +29,10 @@ import {
   SUPPORT_REALTIME_CREDENTIAL_PROTOCOL_PREFIX,
   SUPPORT_REALTIME_FIXED_PROTOCOL,
 } from "@/lib/support/realtime-protocol";
+import {
+  sanitizeOnboardingSupportContext,
+  type OnboardingSupportContext,
+} from "@/lib/onboarding/support-context";
 import { cn } from "@/lib/ui/cn";
 
 import { SupportMessageComposer } from "./SupportMessageComposer";
@@ -98,7 +102,12 @@ function routeResourceIds(pathname: string, workspaceId?: string | null) {
   };
 }
 
-function buildSupportFormData(draft: SupportDraft, pathname: string, workspaceId?: string | null) {
+function buildSupportFormData(
+  draft: SupportDraft,
+  pathname: string,
+  workspaceId?: string | null,
+  onboardingContext?: OnboardingSupportContext | null,
+) {
   const form = new FormData();
   form.append("message", draft.message.trim());
   form.append("clientMessageId", draft.clientMessageId);
@@ -118,6 +127,14 @@ function buildSupportFormData(draft: SupportDraft, pathname: string, workspaceId
     if (release) form.append("appRelease", release.slice(0, 120));
   }
   if (draft.screenshot) form.append("screenshot", draft.screenshot.file);
+  if (onboardingContext) {
+    form.append("flowKey", onboardingContext.flowKey);
+    form.append("flowVersion", String(onboardingContext.flowVersion));
+    if (onboardingContext.stepKey) form.append("stepKey", onboardingContext.stepKey);
+    form.append("reasonCode", onboardingContext.reasonCode);
+    if (onboardingContext.routeKey) form.append("routeKey", onboardingContext.routeKey);
+    form.append("viewportClass", onboardingContext.viewportClass);
+  }
   return form;
 }
 
@@ -181,6 +198,10 @@ function isMessageContext(value: unknown): value is NonNullable<SupportMessage["
     && isNullableString(value.browserFamily)
     && typeof value.diagnosticsShared === "boolean"
     && isNullableString(value.estimateId)
+    && (
+      value.onboarding === null
+      || sanitizeOnboardingSupportContext(value.onboarding) !== null
+    )
     && isNullableString(value.osFamily)
     && isNullableString(value.projectId)
     && typeof value.routeTemplate === "string"
@@ -536,6 +557,18 @@ function MessageDetails({ message }: { message: SupportMessage }) {
         {context.viewportWidth && context.viewportHeight ? <><dt>Viewport</dt><dd>{context.viewportWidth} × {context.viewportHeight}</dd></> : null}
         {context.timezone ? <><dt>Timezone</dt><dd>{context.timezone}</dd></> : null}
         {context.appRelease ? <><dt>Release</dt><dd className="break-all">{context.appRelease}</dd></> : null}
+        {context.onboarding ? (
+          <>
+            <dt>Guidance</dt>
+            <dd>{context.onboarding.flowKey} v{context.onboarding.flowVersion}</dd>
+            <dt>Recovery</dt>
+            <dd>{context.onboarding.reasonCode}</dd>
+            {context.onboarding.stepKey ? <><dt>Step</dt><dd>{context.onboarding.stepKey}</dd></> : null}
+            {context.onboarding.routeKey ? <><dt>Route intent</dt><dd>{context.onboarding.routeKey}</dd></> : null}
+            <dt>Guidance viewport</dt>
+            <dd>{context.onboarding.viewportClass}</dd>
+          </>
+        ) : null}
         {context.workspaceId ? <><dt>Workspace</dt><dd>Validated</dd></> : null}
         {context.projectId ? <><dt>Project</dt><dd>Validated</dd></> : null}
         {context.estimateId ? <><dt>Estimate</dt><dd>Validated</dd></> : null}
@@ -598,10 +631,16 @@ function MessageCard({
 type SupportCenterProps = {
   className?: string;
   host: SupportCenterHost;
+  onboardingContext?: OnboardingSupportContext | null;
   workspaceId?: string | null;
 };
 
-export function SupportCenter({ className, host, workspaceId }: SupportCenterProps) {
+export function SupportCenter({
+  className,
+  host,
+  onboardingContext = null,
+  workspaceId,
+}: SupportCenterProps) {
   const pathname = usePathname() ?? "/workshop/feedback";
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -846,7 +885,10 @@ export function SupportCenter({ className, host, workspaceId }: SupportCenterPro
     clearPendingTimer(key);
     updateDraft(key, (current) => ({ ...current, error: null, fileError: null, phase: "sending", retryAfterSeconds: null }));
     try {
-      const response = await fetch(endpoint, { method: "POST", body: buildSupportFormData(draft, pathname, workspaceId) });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: buildSupportFormData(draft, pathname, workspaceId, onboardingContext),
+      });
       const payload = await responseJson(response);
       if (response.status === 202) {
         const retryAfter = Math.max(1, Math.min(30, Number(response.headers.get("Retry-After")) || 1));

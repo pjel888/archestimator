@@ -10,7 +10,7 @@ import {
   buildLoginRedirectUrl,
   LOGIN_PATH,
   resolveAuthOrigin,
-  sanitizeNextPath,
+  sanitizeProtectedReturnPath,
 } from "@/lib/auth/redirects";
 import { requireAuth } from "@/lib/auth/session";
 import { clearBetterAuthOAuthStateCookies, forwardSetCookieHeaders } from "@/lib/auth/set-cookie-forwarding";
@@ -94,7 +94,7 @@ async function clearBetterAuthSessionCookies() {
 
 export async function signInWithEmail(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const next = sanitizeNextPath(formData.get("next"));
+  const next = sanitizeProtectedReturnPath(formData.get("next"));
 
   if (!email) {
     const request = await getRequestMetadata();
@@ -162,7 +162,7 @@ export async function signInWithEmail(formData: FormData) {
 }
 
 export async function signInWithGoogle(formData: FormData) {
-  const next = sanitizeNextPath(formData.get("next"));
+  const next = sanitizeProtectedReturnPath(formData.get("next"));
   const request = await getRequestMetadata();
   const origin = request.origin;
   const auth = await createBetterAuthForAction(origin);

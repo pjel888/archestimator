@@ -24,6 +24,7 @@ import type {
   ProjectPublicationSummary,
 } from "@/lib/publication/types";
 import type { ProjectPublicationRosterRow as ProjectPublicationRosterRowData } from "@/lib/publisher/roster-repository";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { cn } from "@/lib/ui/cn";
 import { usePublisherDrawer } from "./usePublisherDrawer";
 
@@ -215,6 +216,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
 
   const content = (
     <div
+      {...onboardingTarget("publisher.drawer")}
       className="flex h-full min-h-0 flex-col bg-white"
       data-publisher-drawer="true"
       data-publisher-detail-pane={embedded ? "true" : undefined}
@@ -224,7 +226,9 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="truncate text-[12px] font-medium leading-4 text-ink">{row.projectName}</h2>
-              <StatusBadge status={status.badge} showDot className="min-w-0 px-1.5 py-1 !text-[10px]">{status.label}</StatusBadge>
+              <span {...onboardingTarget("publisher.status")}>
+                <StatusBadge status={status.badge} showDot className="min-w-0 px-1.5 py-1 !text-[10px]">{status.label}</StatusBadge>
+              </span>
               {summary?.passwordRequired ? (
                 <span className="inline-flex min-h-5 items-center gap-1 text-[9px] leading-3 text-secondary">
                   <LockSimple size={11} aria-hidden="true" /> Password protected
@@ -262,6 +266,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
             </Button>
             {summary?.clientLinkPath ? (
               <Link
+                {...onboardingTarget("publisher.preview")}
                 href={previewHref}
                 className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
               >
@@ -319,7 +324,14 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
         idBase="publisher-drawer"
         variant="underline"
         className="shrink-0 px-2 sm:px-4"
-        getTabButtonProps={() => ({ className: "min-h-8 px-3 !text-[10px]" })}
+        getTabButtonProps={(tab) => ({
+          ...(tab.id === "recipients"
+            ? onboardingTarget("publisher.recipients")
+            : tab.id === "activity"
+              ? onboardingTarget("publisher.activity")
+              : {}),
+          className: "min-h-8 px-3 !text-[10px]",
+        })}
       />
 
       <div
@@ -335,6 +347,7 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
               <h3 className="text-[11px] font-medium leading-4 text-ink">Client link</h3>
               {summary?.clientLinkPath ? (
                 <input
+                  {...onboardingTarget("publisher.link")}
                   readOnly
                   value={readAbsoluteClientLink(summary.clientLinkPath)}
                   aria-label={`Client link for ${row.projectName}`}

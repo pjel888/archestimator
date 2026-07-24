@@ -4,10 +4,17 @@ import Link from "next/link";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/ui/cn";
+import {
+  onboardingTarget,
+  type OnboardingTargetKey,
+} from "@/lib/onboarding/target-catalog";
 import type { SidebarNavItem } from "./sidebar-types";
 
 type SidebarNavItemProps = {
-  item: SidebarNavItem & { icon: PhosphorIcon };
+  item: SidebarNavItem & {
+    icon: PhosphorIcon;
+    onboardingTargetKey?: OnboardingTargetKey;
+  };
   active: boolean;
   expanded: boolean;
 };
@@ -33,6 +40,9 @@ export function SidebarNavItemRow({ item, active, expanded }: SidebarNavItemProp
       prefetch
       aria-current={active ? "page" : undefined}
       aria-label={expanded ? undefined : collapsedLabel}
+      {...(item.onboardingTargetKey
+        ? onboardingTarget(item.onboardingTargetKey)
+        : {})}
       className={cn(
         "group relative grid h-8 w-full cursor-pointer grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-[color,transform] duration-[120ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
         "before:absolute before:top-[-2px] before:z-0 before:h-9 before:[border-radius:var(--glass-nav-radius)] before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",

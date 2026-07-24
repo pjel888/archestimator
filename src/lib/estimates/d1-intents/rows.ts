@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import type { D1DatabaseLike, D1PreparedStatementLike } from "@/lib/cloudflare/d1";
+import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 import {
   computeEstimateRowCostParts,
   ESTIMATE_CALCULATION_CURRENCY_SCALE,
@@ -306,6 +306,47 @@ function estimateRowTotalMinorUnits(row: EstimateRowRecord) {
   const total = computeEstimateRowCostParts(row);
   if (!total.ok) throw new Error(`Estimate row total is invalid (${total.code}:${total.field}).`);
   return total.value.totalMinorUnits;
+}
+
+function preparePricedRowActivationStatements(
+  database: D1DatabaseLike,
+  input: {
+    domainMutationId: string;
+    estimateId: string;
+    occurredAt: string;
+    projectId: string;
+    row: EstimateRowRecord;
+    userId: string;
+    workspaceId: string;
+  },
+) {
+  if (estimateRowTotalMinorUnits(input.row) <= 0) return [];
+  return (["first_row_priced", "first_valid_total"] as const).map((milestone) => {
+    const activationIntent = validateActivationProducerIntent({
+      domainMutationId: input.domainMutationId,
+      estimateId: input.estimateId,
+      milestone,
+      occurredAt: input.occurredAt,
+      projectId: input.projectId,
+      source: "estimate",
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+    });
+    if (activationIntent.status !== "accepted") {
+      throw new Error("Activation priced-row intent is invalid.");
+    }
+    return prepareActivationOutboxIntent(database, {
+      domainMutationId: input.domainMutationId,
+      dedupeKey: activationIntent.dedupeKey,
+      estimateId: input.estimateId,
+      milestone,
+      occurredAt: input.occurredAt,
+      projectId: input.projectId,
+      source: "estimate",
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+    });
+  });
 }
 
 function minorUnitsToAmount(minorUnits: number) {
@@ -1984,54 +2025,16 @@ export async function insertEstimateRowItemWithHistory(
   });
   const insertedRow = insert.record;
   const occurredAt = nowIso();
-  const activationStatements: D1PreparedStatementLike[] = [];
-  const rowIntent = validateActivationProducerIntent({
+  const activationStatements = preparePricedRowActivationStatements(database, {
     domainMutationId: rowId,
     estimateId: input.estimateId,
-    milestone: "first_row_priced",
     occurredAt,
     projectId: input.projectId,
-    source: "estimate",
     userId: intent.actorUserId,
     workspaceId: intent.workspaceId,
+    row: insertedRow,
   });
-  if (rowIntent.status !== "accepted") throw new Error("Activation priced row intent is invalid.");
-  activationStatements.push(prepareActivationOutboxIntent(database, {
-    domainMutationId: rowId,
-    dedupeKey: rowIntent.dedupeKey,
-    estimateId: input.estimateId,
-    milestone: "first_row_priced",
-    occurredAt,
-    projectId: input.projectId,
-    source: "estimate",
-    userId: intent.actorUserId,
-    workspaceId: intent.workspaceId,
-  }));
   const insertedRowTotalMinorUnits = estimateRowTotalMinorUnits(insertedRow);
-  if (insertedRowTotalMinorUnits > 0) {
-    const totalIntent = validateActivationProducerIntent({
-      domainMutationId: rowId,
-      estimateId: input.estimateId,
-      milestone: "first_valid_total",
-      occurredAt,
-      projectId: input.projectId,
-      source: "estimate",
-      userId: intent.actorUserId,
-      workspaceId: intent.workspaceId,
-    });
-    if (totalIntent.status !== "accepted") throw new Error("Activation valid total intent is invalid.");
-    activationStatements.push(prepareActivationOutboxIntent(database, {
-      domainMutationId: rowId,
-      dedupeKey: totalIntent.dedupeKey,
-      estimateId: input.estimateId,
-      milestone: "first_valid_total",
-      occurredAt,
-      projectId: input.projectId,
-      source: "estimate",
-      userId: intent.actorUserId,
-      workspaceId: intent.workspaceId,
-    }));
-  }
   const history = await prepareHistoryEventInsert(database, {
     projectId: input.projectId,
     estimateId: input.estimateId,
@@ -2179,32 +2182,15 @@ export async function duplicateEstimateRowItemWithHistory(
     ...rowItemHistoryResult(duplicatedRow, history.eventId),
     sourceRowId: input.sourceRowId,
   };
-  const activationStatements: D1PreparedStatementLike[] = [];
-  for (const milestone of ["first_row_priced", "first_valid_total"] as const) {
-    if (milestone === "first_valid_total" && estimateRowTotalMinorUnits(duplicatedRow) <= 0) continue;
-    const activationIntent = validateActivationProducerIntent({
-      domainMutationId: input.duplicatedRowId,
-      estimateId: input.estimateId,
-      milestone,
-      occurredAt: timestamp,
-      projectId: input.projectId,
-      source: "estimate",
-      userId: intent.actorUserId,
-      workspaceId: intent.workspaceId,
-    });
-    if (activationIntent.status !== "accepted") throw new Error("Activation duplicated row intent is invalid.");
-    activationStatements.push(prepareActivationOutboxIntent(database, {
-      domainMutationId: input.duplicatedRowId,
-      dedupeKey: activationIntent.dedupeKey,
-      estimateId: input.estimateId,
-      milestone,
-      occurredAt: timestamp,
-      projectId: input.projectId,
-      source: "estimate",
-      userId: intent.actorUserId,
-      workspaceId: intent.workspaceId,
-    }));
-  }
+  const activationStatements = preparePricedRowActivationStatements(database, {
+    domainMutationId: input.duplicatedRowId,
+    estimateId: input.estimateId,
+    occurredAt: timestamp,
+    projectId: input.projectId,
+    row: duplicatedRow,
+    userId: intent.actorUserId,
+    workspaceId: intent.workspaceId,
+  });
   const statements: D1IntentStatement[] = [
     destination.guard,
     ownershipGuard,
@@ -2459,15 +2445,33 @@ async function patchEstimateRowItem(
     ),
   });
   const result = rowItemHistoryResult(updated, history.eventId);
+  const qualifyingChecklistMutation = eventType === "row_replaced"
+    || columns.some(([column]) => (
+      column === "quantity"
+      || column === "unit_cost"
+      || column === "adjustment_percentage"
+      || column === "misc_cost"
+    ));
+  const activationStatements = qualifyingChecklistMutation
+    ? preparePricedRowActivationStatements(database, {
+        domainMutationId: intent.intentId,
+        estimateId: input.estimateId,
+        occurredAt: nowIso(),
+        projectId: input.projectId,
+        row: updated,
+        userId: intent.actorUserId,
+        workspaceId: intent.workspaceId,
+      })
+    : [];
   const statements: D1IntentStatement[] = [
     ...mutationStatements,
     buildProjectPublicationRevisionForEstimate(input.projectId, intent.workspaceId, input.estimateId),
     ...(history.statement ? [history.statement, history.outboxStatement] : []),
     buildEstimateMutationReceiptStatement(intent, "estimate_row_item", input.rowId, result, nowIso()),
   ];
-  assertD1MutationStatementLimit(statements.length);
+  assertD1MutationStatementLimit(statements.length + activationStatements.length);
   try {
-    await runD1Batch(database, statements);
+    await runPreparedD1Batch(database, statements, activationStatements);
   } catch (error) {
     const concurrentReceipt = await readConcurrentEstimateMutationReceipt<EstimateRowHistoryResult>(database, intent);
     if (concurrentReceipt) return concurrentReceipt;

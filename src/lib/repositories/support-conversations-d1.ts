@@ -116,6 +116,12 @@ export type SupportMessageContextRow = {
   timezone: string | null;
   browser_family: string | null;
   os_family: string | null;
+  onboarding_flow_key: string | null;
+  onboarding_flow_version: number | null;
+  onboarding_step_key: string | null;
+  onboarding_reason_code: string | null;
+  onboarding_route_key: string | null;
+  onboarding_viewport_class: string | null;
   diagnostics_shared: number;
   created_at: string;
 };
@@ -785,7 +791,10 @@ export async function listSupportMessageContextsForConversationInD1(
               context.estimate_id, context.route_template, context.app_release,
               context.viewport_width, context.viewport_height, context.timezone,
               context.browser_family, context.os_family,
-              context.diagnostics_shared, context.created_at
+              context.diagnostics_shared, context.onboarding_flow_key,
+              context.onboarding_flow_version, context.onboarding_step_key,
+              context.onboarding_reason_code, context.onboarding_route_key,
+              context.onboarding_viewport_class, context.created_at
        FROM support_message_context context
        INNER JOIN support_messages message ON message.id = context.message_id
        WHERE message.conversation_id = ?

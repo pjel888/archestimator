@@ -20,6 +20,7 @@ import {
 } from "@/lib/estimates/tab-display";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { useToast } from "@/components/ui/toast";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE } from "../component-library/templates";
@@ -770,7 +771,11 @@ export function EstimateTabStrip({
   );
 
   return (
-    <div className={cn("shrink-0 border-b border-hairline bg-white", className)} data-estimate-tab-strip>
+    <div
+      className={cn("shrink-0 border-b border-hairline bg-white", className)}
+      data-estimate-tab-strip
+      {...onboardingTarget("estimate.tab")}
+    >
       <div className="flex min-h-10 items-stretch gap-1 px-2" data-estimate-tab-strip-row>
         <div className="relative flex min-w-0 flex-1 items-end">
           {lifecycleActionsReady ? (

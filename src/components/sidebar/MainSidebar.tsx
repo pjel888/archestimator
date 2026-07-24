@@ -4,8 +4,7 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRe
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Books, FileText, Folder, Presentation, ShareNetwork, SidebarSimple, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
-import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
+import { FileText, Folder, SidebarSimple, Star } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
 import { Button } from "@/components/ui/button";
@@ -20,8 +19,11 @@ import {
   SIDEBAR_WIDTH_COLLAPSED,
   SIDEBAR_WIDTH_EXPANDED,
   type MainSidebarFavoriteProject,
-  type SidebarNavItem,
 } from "./sidebar-types";
+import {
+  getWorkshopNavigationItems,
+  isWorkshopNavigationItemActive,
+} from "@/components/workshop/navigation/workshop-navigation";
 
 type MainSidebarUser = {
   displayName?: string | null;
@@ -45,27 +47,7 @@ type MainSidebarProps = {
 
 const EMPTY_FAVORITE_PROJECTS: MainSidebarFavoriteProject[] = [];
 
-const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
-  id: "workshop",
-  href: "/workshop",
-  label: "Workshop",
-  icon: SquaresFour,
-  shortcut: "⌘1",
-};
-
-const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
-  dashboardItem,
-  { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
-  { id: "library", href: "/workshop/library", label: "Library", icon: Books, shortcut: "⌘3" },
-  { id: "proposals", href: "/workshop/proposals", label: "Proposals", icon: Presentation, shortcut: "⌘4" },
-  { id: "publisher", href: "/workshop/publisher", label: "Share", icon: ShareNetwork, shortcut: "⌘5" },
-];
-
 const isActiveHref = (pathname: string | null, href: string) => pathname === href || Boolean(pathname?.startsWith(`${href}/`));
-
-function formatPendingInviteBadgeLabel(count: number) {
-  return `${count} pending ${count === 1 ? "invite" : "invites"}`;
-}
 
 function createFavoritePrefetchRoutes(favoriteProjects: MainSidebarFavoriteProject[]) {
   return favoriteProjects.flatMap((project) => [
@@ -223,18 +205,10 @@ export function MainSidebar({
   const collapseExpandedFromKeyDown = useEffectEvent(() => collapseExpanded());
 
   const resolvedSidebarNavItems = useMemo(() => {
-    const projectsBadgeCount = status?.projectsBadgeCount ?? 0;
-    const disabled = new Set(disabledNavIds);
-    return sidebarNavItems
-      .filter((item) => !disabled.has(item.id))
-      .map((item) => {
-        if (item.id !== "projects" || projectsBadgeCount <= 0) return item;
-        return {
-          ...item,
-          badgeCount: projectsBadgeCount,
-          badgeLabel: formatPendingInviteBadgeLabel(projectsBadgeCount),
-        };
-      });
+    return getWorkshopNavigationItems({
+      disabledNavIds,
+      projectsBadgeCount: status?.projectsBadgeCount ?? 0,
+    });
   }, [disabledNavIds, status?.projectsBadgeCount]);
 
   useEffect(() => {
@@ -350,7 +324,7 @@ export function MainSidebar({
                 <SidebarNavItemRow
                   key={item.id}
                   item={item}
-                  active={item.id === dashboardItem.id ? pathname === item.href : isActiveHref(pathname, item.href)}
+                  active={isWorkshopNavigationItemActive(pathname, item)}
                   expanded={expanded}
                 />
               ))}

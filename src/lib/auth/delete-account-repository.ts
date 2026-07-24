@@ -8,6 +8,7 @@ import type {
   DeleteAccountBlocker,
   DeleteAccountPreview,
 } from "@/lib/auth/delete-account-shared";
+import { prepareOnboardingAccountDeletionStatements } from "@/lib/onboarding/flow-retention";
 
 export type { DeleteAccountBlocker, DeleteAccountPreview } from "@/lib/auth/delete-account-shared";
 export {
@@ -22,7 +23,7 @@ export type DeleteAccountResult =
 type WorkspaceMembershipRow = {
   workspace_id: string;
   workspace_name: string;
-  role: string;
+  role: string | null;
   closed_at: string | null;
   other_member_count: number;
   other_owner_count: number;
@@ -54,22 +55,42 @@ async function listUserWorkspaceMemberships(
   const result = await database
     .prepare<WorkspaceMembershipRow>(
       `
+        WITH accessible_workspaces AS (
+          SELECT workspace_id
+          FROM workspace_members
+          WHERE user_id = ?
+
+          UNION
+
+          SELECT project.workspace_id
+          FROM project_members membership
+          JOIN projects project ON project.id = membership.project_id
+          WHERE membership.user_id = ?
+
+          UNION
+
+          SELECT project.workspace_id
+          FROM estimate_sheet_members membership
+          JOIN estimates estimate ON estimate.id = membership.estimate_id
+          JOIN projects project ON project.id = estimate.project_id
+          WHERE membership.user_id = ?
+        )
         SELECT
-          membership.workspace_id AS workspace_id,
+          accessible.workspace_id AS workspace_id,
           workspace.name AS workspace_name,
           membership.role AS role,
           workspace.closed_at AS closed_at,
           (
             SELECT COUNT(*)
             FROM workspace_members AS other_member
-            WHERE other_member.workspace_id = membership.workspace_id
-              AND other_member.user_id != membership.user_id
+            WHERE other_member.workspace_id = accessible.workspace_id
+              AND other_member.user_id != ?
           ) AS other_member_count,
           (
             SELECT COUNT(*)
             FROM workspace_members AS other_owner
-            WHERE other_owner.workspace_id = membership.workspace_id
-              AND other_owner.user_id != membership.user_id
+            WHERE other_owner.workspace_id = accessible.workspace_id
+              AND other_owner.user_id != ?
               AND other_owner.role = 'owner'
           ) AS other_owner_count,
           (
@@ -79,8 +100,8 @@ async function listUserWorkspaceMemberships(
               FROM project_members AS project_member
               INNER JOIN projects AS project
                 ON project.id = project_member.project_id
-              WHERE project.workspace_id = membership.workspace_id
-                AND project_member.user_id != membership.user_id
+              WHERE project.workspace_id = accessible.workspace_id
+                AND project_member.user_id != ?
 
               UNION
 
@@ -90,18 +111,29 @@ async function listUserWorkspaceMemberships(
                 ON estimate.id = estimate_member.estimate_id
               INNER JOIN projects AS project
                 ON project.id = estimate.project_id
-              WHERE project.workspace_id = membership.workspace_id
-                AND estimate_member.user_id != membership.user_id
+              WHERE project.workspace_id = accessible.workspace_id
+                AND estimate_member.user_id != ?
             ) AS other_collaborators
           ) AS other_collaborator_count
-        FROM workspace_members AS membership
+        FROM accessible_workspaces AS accessible
         INNER JOIN workspaces AS workspace
-          ON workspace.id = membership.workspace_id
-        WHERE membership.user_id = ?
+          ON workspace.id = accessible.workspace_id
+        LEFT JOIN workspace_members AS membership
+          ON membership.workspace_id = accessible.workspace_id
+         AND membership.user_id = ?
         ORDER BY workspace.created_at ASC, workspace.id ASC
       `,
     )
-    .bind(userId)
+    .bind(
+      userId,
+      userId,
+      userId,
+      userId,
+      userId,
+      userId,
+      userId,
+      userId,
+    )
     .all<WorkspaceMembershipRow>();
 
   return result.results ?? [];
@@ -341,6 +373,14 @@ export async function executeDeleteAccount(
 
   const corporateRows = await listUserCorporateMemberships(database, input.userId);
   const corporatePlan = classifyCorporateMemberships(corporateRows);
+  const onboardingCleanup = await Promise.all(
+    [...closedIds, ...leftIds].map((workspaceId) =>
+      prepareOnboardingAccountDeletionStatements(database, {
+        userId: input.userId,
+        workspaceId,
+      })
+    ),
+  );
 
   statements.push(
     stmt(
@@ -436,6 +476,8 @@ export async function executeDeleteAccount(
     );
   }
 
+  statements.push(...onboardingCleanup.flat());
+
   // Leave shared workspaces: remove memberships only (never close teammate data).
   for (const workspaceId of leftIds) {
     statements.push(
@@ -481,6 +523,11 @@ export async function executeDeleteAccount(
   }
 
   statements.push(
+    stmt(
+      database,
+      `DELETE FROM user_onboarding_profiles WHERE user_id = ?`,
+      [input.userId],
+    ),
     stmt(
       database,
       `
