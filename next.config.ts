@@ -10,6 +10,8 @@ const __impeccableLiveDev =
   process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
 const isCloudflareWorkersProofBuild = process.env.ARCHESTIMATOR_CLOUDFLARE_BUILD === "1";
 const useCloudflareImageLoader = isCloudflareWorkersProofBuild;
+const isolatedDevelopmentDistDir =
+  process.env.ARCHESTIMATOR_NEXT_DEV_DIST_DIR?.trim();
 
 if (process.env.NODE_ENV === "development" && !isCloudflareWorkersProofBuild) {
   // Strict === "1" is deliberate: remote bindings mutate production D1/R2.
@@ -82,6 +84,9 @@ const localImagePatterns: ImageLocalPattern[] = [
 // conflicts with DEC-03 auth-gate (SEC-T1/T2). Spike evidence: perf-baseline.md I-8.
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  ...(process.env.NODE_ENV === "development" && isolatedDevelopmentDistDir
+    ? { distDir: isolatedDevelopmentDistDir }
+    : {}),
   compiler: {
     defineServer: {
       __ARCHESTIMATOR_CLOUDFLARE_WORKERS_PROOF_BUILD__: isCloudflareWorkersProofBuild,
@@ -165,11 +170,6 @@ const nextConfig: NextConfig = {
       {
         source: "/beta",
         destination: "/access-required",
-        permanent: false,
-      },
-      {
-        source: "/workshop/settings/beta-users",
-        destination: "/workshop/settings/users",
         permanent: false,
       },
     ];

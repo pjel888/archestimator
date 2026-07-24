@@ -168,6 +168,7 @@
     "react": "19.2.7",
     "react-complex-tree": "^2.6.2",
     "react-dom": "19.2.7",
+    "react-joyride": "3.2.0",
     "recharts": "^3.10.0",
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",

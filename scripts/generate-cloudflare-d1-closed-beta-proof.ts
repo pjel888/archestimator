@@ -917,7 +917,7 @@ export function buildCloudflareD1ClosedBetaProof(
         "src/lib/auth/closed-beta-access.ts",
         "src/lib/auth/beta-allowlist-admin.ts",
         "src/lib/auth/beta-allowlist-admin-actions.ts",
-        "src/app/workshop/settings/users/page.tsx",
+        "src/app/admin/allowlist/page.tsx",
       ],
       currentSupabaseMigrations: [
         "supabase/migrations/20260601182522_closed_beta_allowed_emails.sql",

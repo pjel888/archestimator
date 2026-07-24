@@ -20,6 +20,8 @@ trust boundary.
 - `04-ROUTE-AND-OVERLAY-INVENTORY.md` — exhaustive page disposition and modal
   integration ownership.
 - `05-INDEPENDENT-REVIEW.md` — adversarial review and resolution record.
+- `06-IMPLEMENTATION-AND-VERIFICATION-EVIDENCE.md` — final requirement audit,
+  static validation, and explicit unrun-test/external-proof boundaries.
 - `plan-pack.json` — machine-readable traceability manifest.
 
 ## Executive Direction
@@ -84,15 +86,13 @@ Core publish/share completion uses one short-lived in-memory server receipt so
 the copy/Preview action must match the exact publication just verified in that
 active run; the receipt and its binding digest are never stored or logged.
 
-## Execution Start
+## Completion
 
-Start with `UNIT-001` in `IMPLEMENTATION_PLAN.md`. Revalidate `ASSUMP-001`
-through `ASSUMP-004` at their named unit boundaries. Do not start product
-implementation from the archived 2026-06-03 Joyride plan; it describes a
-superseded Supabase-era architecture.
+All eight implementation units and fourteen acceptance criteria are complete
+for local repository scope. The final evidence receipt is
+`06-IMPLEMENTATION-AND-VERIFICATION-EVIDENCE.md`.
 
-## Planning Boundary
-
-This pack contains no product implementation, migration apply, dependency
-installation, automated test execution, build, browser automation, screenshot,
-or deployment.
+No automated product test, build, browser automation, screenshot, local or
+remote D1 migration apply, deployment, or provider mutation was performed.
+Those proof boundaries remain explicit `TEST_PROPOSAL` or release evidence,
+not unfinished repository implementation.

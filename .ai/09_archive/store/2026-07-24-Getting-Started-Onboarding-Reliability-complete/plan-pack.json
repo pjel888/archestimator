@@ -1,0 +1,533 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-24-getting-started-onboarding-reliability",
+  "profile": "focused",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "NOT_EVALUATED",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "updated_at": "2026-07-24T06:35:58.000Z",
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "next_unit": null,
+  "baseline": {
+    "head": "31943957c42f090c09bca383501358ee2391df11",
+    "scoped_status_sha256": "6a6698865e3860bcc57a8f88d72eb54cd3bc79004115c8bc94c8c6ec0cd28c47",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "eb4f39f75deeaa8c0f612440b7d936720b6f888013bcee95fa6f9b19fba9d7b6"
+    },
+    {
+      "id": "ART-002",
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "a04f86ab22ceed6f5e349fbf063666c0911a7d21a9bd7d7ab8ce54193d1e81a8"
+    },
+    {
+      "id": "ART-003",
+      "role": "implementation-evidence",
+      "path": "IMPLEMENTATION-EVIDENCE.md",
+      "sha256": "1679dffa5f864a803c84b53159664dbc2e96c69f0ca9b776f06ee2e27d0c1732"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "UX-001",
+        "UX-002",
+        "SEC-001",
+        "REQ-004"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly requested comprehensive tests of guided-practice creation, persistence, and role boundaries.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "requirement_ids": [
+        "REQ-003",
+        "UX-001",
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly requested comprehensive tests of every Getting Started action and starter-content state.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "requirement_ids": [
+        "UX-002",
+        "REQ-004"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly requested comprehensive regression testing across the complete onboarding runtime and Settings lifecycle.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "requirement_ids": [
+        "UX-002",
+        "SEC-001",
+        "REQ-004"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The user explicitly requested browser and visual verification for new and existing onboarding journeys.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-VERIFY-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-003",
+        "UX-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "SEC-001",
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-002",
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "UNIT-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-004",
+        "UNIT-003",
+        "UNIT-004"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "sha256": "1679dffa5f864a803c84b53159664dbc2e96c69f0ca9b776f06ee2e27d0c1732",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001",
+        "TEST-001",
+        "GATE-VERIFY-001"
+      ],
+      "source_revision": "31943957c42f090c09bca383501358ee2391df11",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "sha256": "1679dffa5f864a803c84b53159664dbc2e96c69f0ca9b776f06ee2e27d0c1732",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "TEST-001",
+        "TEST-002",
+        "GATE-VERIFY-001"
+      ],
+      "source_revision": "31943957c42f090c09bca383501358ee2391df11",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "sha256": "1679dffa5f864a803c84b53159664dbc2e96c69f0ca9b776f06ee2e27d0c1732",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-003",
+        "TEST-002",
+        "GATE-VERIFY-001"
+      ],
+      "source_revision": "31943957c42f090c09bca383501358ee2391df11",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION-EVIDENCE.md",
+      "sha256": "1679dffa5f864a803c84b53159664dbc2e96c69f0ca9b776f06ee2e27d0c1732",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-004",
+        "TEST-003",
+        "GATE-VERIFY-001"
+      ],
+      "source_revision": "31943957c42f090c09bca383501358ee2391df11",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [],
+  "stale_triggers": [
+    "guided-practice-or-starter-contract-change",
+    "onboarding-flow-catalog-or-settings-change",
+    "authorized-test-or-browser-evidence-change"
+  ],
+  "manifest_sha256": "abbb8271b719051bbc59cd4474531167d56ab8b132cf033a3f5281f247d842ae"
+}

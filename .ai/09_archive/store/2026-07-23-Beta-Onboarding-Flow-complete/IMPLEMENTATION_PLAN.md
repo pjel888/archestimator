@@ -6,17 +6,14 @@
 - **Profile:** high-blast-radius
 - **Package:** `PLAN-2026-07-23-beta-onboarding-flow`
 - **Baseline:** `a25eb56c69d4cea6e6ae2ffc1692229ae8382059`
-- **Implementation:** not started
-- **First ready unit:** `UNIT-001`
-- **Planning result:** implementation-ready after current-source audit,
-  comprehensive Estimate Sheet and Client links curriculum expansion,
-  independent challenge, and static pack validation
-- **Stop condition for this planning task:** the whole application and active D1
-  schema are audited, current React Joyride and onboarding guidance is
-  reconciled, the bounded starter workspace is exact and safely restorable,
-  seeded assets cannot masquerade as learning, implementation ownership is
-  acyclic, every requirement maps to evidence, and no product code or database
-  is changed.
+- **Implementation:** complete
+- **Next unit:** none
+- **Terminal result:** `ACHIEVED` for local repository implementation;
+  release remains not evaluated
+- **Closeout evidence:** `06-IMPLEMENTATION-AND-VERIFICATION-EVIDENCE.md`
+- **Proof boundary:** static source, lint, TypeScript, SQL inspection, diff, and
+  plan-contract evidence only. Product tests, builds, browser proof, local or
+  remote D1 apply, deployment, and provider mutation remain unrun.
 
 ## Execution Contract
 
@@ -841,7 +838,7 @@ For a delegated assignment:
 ### `UNIT-001` Freeze dependency, flow, and target contracts
 
 - **Assignment:** `BETA-001-CONTRACTS`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** none
 - **Owned production paths:** `package.json`, `bun.lock`, new
   `src/lib/onboarding/flow-types.ts`, new
@@ -867,7 +864,7 @@ For a delegated assignment:
 ### `UNIT-002` Add durable instructional state and lifecycle integrity
 
 - **Assignment:** `BETA-002-DATA`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-001`
 - **Owned production paths:** new
   `migrations/0101_beta_onboarding_flow_state.sql`, new
@@ -961,7 +958,7 @@ For a delegated assignment:
 ### `UNIT-003` Repair auth return and build the shell runtime
 
 - **Assignment:** `BETA-003-RUNTIME`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-001`
 - **Owned production paths:** `src/components/workshop/WorkshopShell.tsx`,
   `src/components/workshop/WorkshopRouteHeader.tsx`,
@@ -1013,7 +1010,7 @@ For a delegated assignment:
 ### `UNIT-004` Activate first-run orientation and Getting started
 
 - **Assignment:** `BETA-004-FIRST-RUN`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-002`, `UNIT-003`
 - **Owned production paths:**
   `src/app/workshop/getting-started/page.tsx`,
@@ -1057,7 +1054,7 @@ For a delegated assignment:
 ### `UNIT-005` Install starter content and guide the first estimate
 
 - **Assignment:** `BETA-005-STARTER-PRACTICE`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-004`
 - **Owned production paths:**
   `src/app/workshop/getting-started/page.tsx`,
@@ -1286,7 +1283,7 @@ For a delegated assignment:
 ### `UNIT-006` Add reusable-work and Client links MVP guidance
 
 - **Assignment:** `BETA-006-DISCOVERY-SHARING`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-005`
 - **Owned production paths:**
   `src/app/workshop/library/components/page.tsx`,
@@ -1413,7 +1410,7 @@ For a delegated assignment:
 ### `UNIT-007` Add Settings replay/reset and support recovery
 
 - **Assignment:** `BETA-007-SETTINGS`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-004`
 - **Owned production paths:** `src/app/workshop/settings/page.tsx`,
   `src/components/workshop/WorkshopSettingsModal.tsx`,
@@ -1445,7 +1442,7 @@ For a delegated assignment:
 ### `UNIT-008` Reconcile static and proposed evidence
 
 - **Assignment:** `BETA-008-VERIFY`
-- **Status:** READY
+- **Status:** VERIFIED
 - **Depends on:** `UNIT-005`, `UNIT-006`, `UNIT-007`
 - **Owned paths:** plan/evidence artifacts only. No production ownership.
 - **Work:** run permitted type/lint/static/SQL/diff checks; execute product

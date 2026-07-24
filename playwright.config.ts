@@ -5,6 +5,7 @@ loadEnvConfig(process.cwd(), true);
 
 const port = process.env.PLAYWRIGHT_PORT ?? "3020";
 const baseURL = `http://127.0.0.1:${port}`;
+const isolatedDevelopmentDistDir = `.next/playwright-${port}`;
 const libraryBrowserMatrixEnabled = process.env.ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX === "1";
 
 const defaultProjects = [
@@ -55,7 +56,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `bun run predev && bun x next dev --webpack --port ${port}`,
+    command: `bun run predev && ARCHESTIMATOR_NEXT_DEV_DIST_DIR=${isolatedDevelopmentDistDir} bun x next dev --webpack --port ${port}`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,

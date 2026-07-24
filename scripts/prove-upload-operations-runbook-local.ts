@@ -190,7 +190,7 @@ async function main() {
       expiresAt: "2026-07-04T03:30:00.000Z",
     }, NOW);
     const overrideDrill = {
-      route: "/workshop/settings/scan-overrides",
+      route: "/admin/scan-overrides",
       apiRoute: "/api/component-library/attachments/scan-override",
       parsed: overrideRequest.ok,
       targetStatus: "override_approved",

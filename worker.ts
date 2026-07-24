@@ -9,6 +9,7 @@ import { reconcileTemplatePropagationJobs } from "./src/lib/component-library/te
 import { reconcileExpiredTemplateMutationIntents } from "./src/lib/component-library/template-intent-recovery-d1";
 import { enqueuePendingClientPortalNotifications, runClientPortalNotificationQueueBatch, type ClientPortalNotificationQueueEnv, CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME } from "./src/lib/cloudflare/client-portal-notification-queue";
 import { purgeExpiredActivationData } from "./src/lib/onboarding/activation-retention";
+import { purgeExpiredOnboardingEvents } from "./src/lib/onboarding/flow-retention";
 import { normalizePathForLog } from "./src/lib/observability/safe-path";
 import { redactMessage } from "./src/lib/observability/redact";
 import { recordCronRunEvent } from "./src/lib/admin/observability-repository";
@@ -292,21 +293,22 @@ export default {
       }),
     );
     // ponytail: P1.8 retention pass — dispatch on the "30 3 * * *" cron only.
-    // Runs in parallel to the upload-jobs waitUntil; both are awaited by ctx.
+    // Reconcile delivery before applying retention so live outbox work cannot be purged.
     if (controller.cron === "30 3 * * *") {
       ctx.waitUntil(
-        Promise.all([
-          runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }),
-          reconcileActivityOutbox(env.ARCH_DB),
-          reconcileActivationOutbox(env.ARCH_DB),
-          enqueuePendingClientPortalNotifications(env),
-          purgeExpiredActivationData(env.ARCH_DB),
-        ]).then(([results, outbox, activationOutbox, notificationOutbox, activationRetention]) => {
+        (async () => {
+          const outbox = await reconcileActivityOutbox(env.ARCH_DB);
+          const activationOutbox = await reconcileActivationOutbox(env.ARCH_DB);
+          const notificationOutbox = await enqueuePendingClientPortalNotifications(env);
+          const results = await runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() });
+          const activationRetention = await purgeExpiredActivationData(env.ARCH_DB);
+          const onboardingRetention = await purgeExpiredOnboardingEvents(env.ARCH_DB);
           console.log("Retention pass completed", JSON.stringify(results));
           console.log("Activity outbox reconciliation completed", JSON.stringify(outbox));
           console.log("Activation outbox reconciliation completed", JSON.stringify(activationOutbox));
           console.log("Client Portal notification outbox enqueue completed", JSON.stringify(notificationOutbox));
           console.log("Activation retention purge completed", JSON.stringify(activationRetention));
+          console.log("Onboarding event retention purge completed", JSON.stringify(onboardingRetention));
           recordCronRunEvent({
             cronName: `retention-pass:${cronName}`,
             startedAt,
@@ -315,7 +317,7 @@ export default {
             summaryJson: JSON.stringify(results),
             errorClass: null,
           }).catch(() => undefined);
-        }).catch((error) => {
+        })().catch((error) => {
           console.error("Retention pass failed", error);
           recordCronRunEvent({
             cronName: `retention-pass:${cronName}`,
