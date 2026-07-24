@@ -42,6 +42,7 @@ const MARKETING_PAGE_PATHS = new Set([
   "/signup",
 ]);
 const MARKETING_PAGE_CACHE_CONTROL = "s-maxage=31536000";
+const ROOT_LANDING_CACHE_CONTROL = `${MARKETING_PAGE_CACHE_CONTROL}, no-transform`;
 const SENSITIVE_ROUTE_CACHE_CONTROL =
   "private, no-cache, no-store, max-age=0, must-revalidate";
 const STATE_MISMATCH_ERROR = "state_mismatch";
@@ -200,7 +201,12 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicRoute(pathname)) {
     if (isMarketingPage(pathname)) {
-      response.headers.set("Cache-Control", MARKETING_PAGE_CACHE_CONTROL);
+      response.headers.set(
+        "Cache-Control",
+        pathname === "/"
+          ? ROOT_LANDING_CACHE_CONTROL
+          : MARKETING_PAGE_CACHE_CONTROL,
+      );
     } else if (isShareRoute(pathname)) {
       return createRequestPathResponse(request, {
         "Cache-Control": SENSITIVE_ROUTE_CACHE_CONTROL,
