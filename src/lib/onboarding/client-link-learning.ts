@@ -223,7 +223,7 @@ export async function publishClientLinkForLearning(
     return {
       ok: false,
       code: "publication_binding_changed",
-      message: "This lesson changed in another session. Resume it before publishing.",
+      message: "This lesson changed before publishing. Resume it before publishing.",
     };
   }
 
@@ -421,7 +421,7 @@ export async function completeClientLinkLearning(input: {
     return {
       ok: false,
       code: "publication_state_changed",
-      message: "This lesson changed in another session. Resume it before sharing.",
+      message: "This lesson changed before sharing. Resume it before sharing.",
     };
   }
 

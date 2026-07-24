@@ -1929,7 +1929,7 @@ export async function restoreStarterContent(input: {
     ],
   );
   if ((result.meta?.changes ?? 0) !== 1) {
-    throw new Error("Starter content changed in another session. Refresh and try again.");
+    throw new Error("Starter content changed before recovery finished. Refresh and try again.");
   }
   if (requiresMembershipRebind) {
     await run(

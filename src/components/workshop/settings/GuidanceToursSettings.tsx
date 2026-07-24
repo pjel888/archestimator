@@ -291,15 +291,17 @@ export function GuidanceToursSettings({
             snapshot.flowStates.map((state) => [state.flowKey, state.revision]),
           ),
         });
-        setNotice(
-          result.status === "conflict"
-            ? "Guidance changed in another session. Close and reopen Settings to review the latest state."
-            : "All guides were restarted. Your projects, estimates, client links, starter examples, and checklist progress were not changed.",
-        );
-        if (result.status !== "conflict") {
+
+        if (result.status === "conflict") {
+          setNotice("Guidance changed while Settings was open. The latest progress is loading; review it, then choose Restart all guides again.");
           setConfirmReset(false);
           router.refresh();
+          return;
         }
+
+        setNotice("All guides were restarted. Your projects, estimates, client links, starter examples, and checklist progress were not changed.");
+        setConfirmReset(false);
+        router.refresh();
       } catch {
         setNotice("Guides could not be restarted. Your work and current guide progress were not changed.");
       }

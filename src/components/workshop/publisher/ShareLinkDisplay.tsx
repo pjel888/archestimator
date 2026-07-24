@@ -50,29 +50,49 @@ export function ShareLinkDisplay({
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       await navigator.clipboard.writeText(absoluteLink);
       setSelectableFallback(false);
-      const completion = await learning?.complete(projectId, "copy");
-      setMessage(completion?.message ?? "Shared link copied.");
     } catch {
       setMessage("Copy unavailable. Select the link to copy it.");
       setSelectableFallback(true);
+      return;
+    }
+
+    try {
+      const completion = await learning?.complete(projectId, "copy");
+      setMessage(completion?.message ?? "Shared link copied.");
+    } catch {
+      setMessage(
+        "Shared link copied, but guide completion could not be verified. Resume the guide and try again.",
+      );
     }
   }
 
   async function acknowledgeSelectableLink() {
-    const completion = await learning?.complete(projectId, "selectable_link");
-    setMessage(completion?.message ?? "Selectable link acknowledged.");
+    try {
+      const completion = await learning?.complete(projectId, "selectable_link");
+      setMessage(completion?.message ?? "Selectable link acknowledged.");
+    } catch {
+      setMessage(
+        "The selected link is ready, but guide completion could not be verified. Resume the guide and try again.",
+      );
+    }
   }
 
   async function openPreview(event: MouseEvent<HTMLAnchorElement>) {
     if (!previewHref) return;
     if (!learning?.active) return;
     event.preventDefault();
-    const completion = await learning.complete(projectId, "authenticated_preview");
-    if (completion && !completion.ok) {
-      setMessage(completion.message);
-      return;
+    try {
+      const completion = await learning.complete(projectId, "authenticated_preview");
+      if (completion && !completion.ok) {
+        setMessage(completion.message);
+        return;
+      }
+      window.location.assign(previewHref);
+    } catch {
+      setMessage(
+        "Preview could not be verified for this guide. Resume the guide and try again.",
+      );
     }
-    window.location.assign(previewHref);
   }
 
   async function shareLink() {

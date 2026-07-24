@@ -72,9 +72,12 @@ export function OnboardingTourClient({
   const router = useRouter();
   const [portalElement, setPortalElement] = useState<HTMLDivElement | null>(null);
   const [recovery, setRecovery] = useState<{
+    canRetry: boolean;
+    canSkip: boolean;
     message: string;
     context: OnboardingSupportContext;
     retryMode: "latest" | "step";
+    stepKey: OnboardingStepKey | null;
   } | null>(null);
   const [applicationModalActive, setApplicationModalActive] = useState(
     () => hasActiveApplicationModal(),
@@ -154,9 +157,15 @@ export function OnboardingTourClient({
             runId: runIdRef.current,
           });
           if (result.status === "conflict") {
-            if (isInitialLaunchCommand) {
-              launchPersistedRef.current = false;
+            if (
+              isInitialLaunchCommand
+              || result.code === "ONBOARDING_STATE_CONFLICT"
+            ) {
+              if (isInitialLaunchCommand) {
+                launchPersistedRef.current = false;
+              }
               revisionRef.current = result.state?.revision ?? revisionRef.current;
+              runIdRef.current = result.state?.runId ?? runIdRef.current;
               programmaticStopRef.current = true;
               controlsRef.current?.stop();
               router.refresh();
@@ -166,9 +175,12 @@ export function OnboardingTourClient({
             programmaticStopRef.current = true;
             controlsRef.current?.stop();
             setRecovery({
+              canRetry: true,
+              canSkip: false,
               message: "Guidance progress changed. Retry to continue from the latest saved step.",
               context: recoveryContext(expectedStepKey, "practice_state_changed"),
               retryMode: "latest",
+              stepKey: expectedStepKey,
             });
             return result;
           }
@@ -199,9 +211,12 @@ export function OnboardingTourClient({
           programmaticStopRef.current = true;
           controlsRef.current?.stop();
           setRecovery({
+            canRetry: true,
+            canSkip: false,
             message: "Guidance progress could not be saved. Retry when your connection is available.",
             context: recoveryContext(expectedStepKey, "persistence_unavailable"),
             retryMode: "latest",
+            stepKey: expectedStepKey,
           });
           return null;
         }
@@ -287,12 +302,15 @@ export function OnboardingTourClient({
                   programmaticStopRef.current = true;
                   controlsRef.current?.stop();
                   setRecovery({
+                    canRetry: definition.missingTarget !== "stop",
+                    canSkip: definition.missingTarget === "skip",
                     message:
                       reasonCode === "target_timeout"
                         ? "The next control is not available in the current view."
                         : "The guide could not prepare the next step.",
                     context: recoveryContext(definition.key, reasonCode),
                     retryMode: "step",
+                    stepKey: definition.key,
                   });
                   void persist(
                     "pause",
@@ -407,29 +425,37 @@ export function OnboardingTourClient({
       }
       if (event.type === "error:target_not_found") {
         if (routeFailureRef.current?.stepKey === stepKey) return;
+        const definition = flow.steps.find((candidate) => candidate.key === stepKey);
         programmaticStopRef.current = true;
         eventControls.stop();
         if (launchMode !== "replay") {
           void persist("pause", stepKey, stepKey, "target_timeout");
         }
         setRecovery({
+          canRetry: definition?.missingTarget !== "stop",
+          canSkip: definition?.missingTarget === "skip",
           message: "The next control is not available in the current view.",
           context: recoveryContext(stepKey, "target_timeout"),
           retryMode: "step",
+          stepKey,
         });
         return;
       }
       if (event.type === "error") {
         if (routeFailureRef.current?.stepKey === stepKey) return;
+        const definition = flow.steps.find((candidate) => candidate.key === stepKey);
         programmaticStopRef.current = true;
         eventControls.stop();
         if (launchMode !== "replay") {
           void persist("pause", stepKey, stepKey, "route_not_ready");
         }
         setRecovery({
+          canRetry: definition?.missingTarget !== "stop",
+          canSkip: definition?.missingTarget === "skip",
           message: "The guide could not prepare the next step.",
           context: recoveryContext(stepKey, "route_not_ready"),
           retryMode: "step",
+          stepKey,
         });
       }
     },
@@ -534,32 +560,88 @@ export function OnboardingTourClient({
         <OnboardingRecovery
           message={recovery.message}
           supportContext={recovery.context}
-          onRetry={() => {
-            const retryMode = recovery.retryMode;
-            setRecovery(null);
-            routeFailureRef.current = null;
-            eventKeysRef.current.clear();
-            if (retryMode === "latest") {
-              const nextUrl = new URL(window.location.href);
-              nextUrl.searchParams.set("tour", flow.definition.key);
-              nextUrl.searchParams.set("mode", "resume");
-              router.replace(
-                `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
-              );
-              router.refresh();
-              return;
-            }
-            controls.replay();
-          }}
-          onSkip={() => {
-            setRecovery(null);
-            routeFailureRef.current = null;
-            controls.next();
-          }}
+          onRetry={recovery.canRetry
+            ? () => {
+                const retryMode = recovery.retryMode;
+                const retryStepKey = recovery.stepKey;
+                setRecovery(null);
+                routeFailureRef.current = null;
+                eventKeysRef.current.clear();
+                if (retryMode === "latest") {
+                  const nextUrl = new URL(window.location.href);
+                  nextUrl.searchParams.set("tour", flow.definition.key);
+                  nextUrl.searchParams.set("mode", "resume");
+                  router.replace(
+                    `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
+                  );
+                  router.refresh();
+                  return;
+                }
+                const retryIndex = flow.steps.findIndex(
+                  (step) => step.key === retryStepKey,
+                );
+                controls.start(retryIndex >= 0 ? retryIndex : state.index);
+              }
+            : undefined}
+          onSkip={recovery.canSkip
+            ? () => {
+                const skippedStepKey = recovery.stepKey;
+                const skippedIndex = flow.steps.findIndex(
+                  (step) => step.key === skippedStepKey,
+                );
+                const nextStep = flow.steps[skippedIndex + 1];
+                setRecovery(null);
+                routeFailureRef.current = null;
+                eventKeysRef.current.clear();
+
+                if (skippedIndex < 0 || !skippedStepKey) {
+                  onLaunchIntentConsumed();
+                  return;
+                }
+                if (launchMode === "replay") {
+                  if (nextStep) {
+                    controls.start(skippedIndex + 1);
+                  } else {
+                    onLaunchIntentConsumed();
+                  }
+                  return;
+                }
+
+                const advance = persist(
+                  "advance",
+                  skippedStepKey,
+                  nextStep?.key ?? skippedStepKey,
+                  recovery.context.reasonCode,
+                );
+                if (nextStep) {
+                  void advance.then((result) => {
+                    if (result && result.status !== "conflict") {
+                      controls.start(skippedIndex + 1);
+                    }
+                  });
+                  return;
+                }
+                if (
+                  flow.definition.key === "library_reuse"
+                  || flow.definition.key === "client_link_publishing"
+                ) {
+                  void advance.finally(onLaunchIntentConsumed);
+                  return;
+                }
+                void advance
+                  .then((result) =>
+                    result && result.status !== "conflict"
+                      ? persist("complete", skippedStepKey)
+                      : null
+                  )
+                  .finally(onLaunchIntentConsumed);
+              }
+            : undefined}
           onExit={() => {
             setRecovery(null);
             routeFailureRef.current = null;
             controls.stop();
+            onLaunchIntentConsumed();
           }}
         />
       ) : null}

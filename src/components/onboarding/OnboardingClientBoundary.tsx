@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -77,6 +77,8 @@ export function OnboardingClientBoundary({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const currentSearch = searchParams.toString();
+  const hasTourQuery = searchParams.has("tour");
   const [suppressedFlowKey, setSuppressedFlowKey] = useState<string | null>(
     null,
   );
@@ -86,13 +88,15 @@ export function OnboardingClientBoundary({
   );
   const launchIntent = parseOnboardingLaunchIntent(searchParams);
   const selection = useMemo(() => {
-    if (launchIntent) {
+    if (hasTourQuery) {
+      if (!launchIntent) return null;
       const requested = eligibleFlows.find(
         (flow) => flow.definition.key === launchIntent.flowKey,
       );
       if (requested) {
         return { flow: requested, launchMode: launchIntent.mode };
       }
+      return null;
     }
     if (
       pathname === "/workshop/settings"
@@ -113,6 +117,7 @@ export function OnboardingClientBoundary({
       : null;
   }, [
     eligibleFlows,
+    hasTourQuery,
     launchIntent,
     pathname,
     snapshot.activation.automaticGuidanceEnabled,
@@ -122,8 +127,13 @@ export function OnboardingClientBoundary({
       setSuppressedFlowKey(selection.flow.definition.key);
     }
     if (!launchIntent) return;
-    router.replace(`${pathname}${removeOnboardingLaunchIntent(window.location.search)}`);
-  }, [launchIntent, pathname, router, selection]);
+    router.replace(`${pathname}${removeOnboardingLaunchIntent(currentSearch)}`);
+  }, [currentSearch, launchIntent, pathname, router, selection]);
+
+  useEffect(() => {
+    if (!hasTourQuery || selection) return;
+    router.replace(`${pathname}${removeOnboardingLaunchIntent(currentSearch)}`);
+  }, [currentSearch, hasTourQuery, pathname, router, selection]);
 
   if (
     !selection

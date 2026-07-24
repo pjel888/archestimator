@@ -2,7 +2,7 @@
 
 import { Check, Circle, Compass } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -20,13 +20,22 @@ export function FirstEstimateChecklist({
   snapshot: OnboardingEligibilitySnapshot;
 }) {
   const router = useNavigationRouter();
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const checklist = deriveFirstEstimateChecklist(snapshot);
   if (!checklist.canShow) return null;
 
-  const setVisibility = (action: () => Promise<void>) => startTransition(async () => {
-    await action();
-    router.refresh();
+  const setVisibility = (
+    action: () => Promise<void>,
+    errorMessage: string,
+  ) => startTransition(async () => {
+    setVisibilityError(null);
+    try {
+      await action();
+      router.refresh();
+    } catch {
+      setVisibilityError(errorMessage);
+    }
   });
 
   if (checklist.isDismissed || checklist.isComplete) {
@@ -45,6 +54,11 @@ export function FirstEstimateChecklist({
               ? "All 4 steps are complete."
               : `${checklist.completedCount} of ${checklist.items.length} tasks complete.`}
           </p>
+          {visibilityError ? (
+            <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">
+              {visibilityError}
+            </p>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Link
@@ -59,7 +73,10 @@ export function FirstEstimateChecklist({
               size="xs"
               variant="secondary"
               disabled={isPending}
-              onClick={() => setVisibility(reopenActivationChecklist)}
+              onClick={() => setVisibility(
+                reopenActivationChecklist,
+                "The checklist could not be reopened. Your saved progress was not changed.",
+              )}
             >
               Reopen
             </Button>
@@ -92,13 +109,21 @@ export function FirstEstimateChecklist({
           <p aria-live="polite" className="mt-1.5 text-[9px] leading-4 text-tertiary">
             Progress comes only from saved project and Estimate Sheet work, never from opening a guide.
           </p>
+          {visibilityError ? (
+            <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">
+              {visibilityError}
+            </p>
+          ) : null}
         </div>
         <Button
           size="xs"
           variant="ghost"
           disabled={isPending}
           title="You can reopen it in Settings."
-          onClick={() => setVisibility(dismissActivationChecklist)}
+          onClick={() => setVisibility(
+            dismissActivationChecklist,
+            "The checklist could not be hidden. Your saved progress was not changed.",
+          )}
         >
           Hide checklist
         </Button>

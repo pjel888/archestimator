@@ -1,4 +1,5 @@
 import type { OnboardingEligibilitySnapshot } from "./flow-types";
+import { PROJECT_START_CHOOSER_HREF } from "@/lib/projects/project-start-intent";
 
 export type FirstEstimateChecklistItem = {
   href: string;
@@ -44,8 +45,8 @@ export function deriveFirstEstimateChecklist(
     {
       id: "project",
       label: "Start a project",
-      description: "Create blank work, duplicate a project, or use a workspace template.",
-      href: "/workshop/projects",
+      description: "Create blank work, use a workspace template, or follow guided practice.",
+      href: PROJECT_START_CHOOSER_HREF,
     },
     {
       id: "estimate",

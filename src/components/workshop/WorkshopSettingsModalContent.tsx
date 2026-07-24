@@ -29,12 +29,15 @@ function renderSignOutControl() {
 }
 
 export function WorkshopSettingsModalContent({
+  initialPageId,
   onboardingSnapshot,
 }: {
+  initialPageId?: string;
   onboardingSnapshot: OnboardingEligibilitySnapshot | null;
 }) {
   return (
     <WorkshopSettingsModalContentView
+      initialPageId={initialPageId}
       onboardingSnapshot={onboardingSnapshot}
       renderSignOutControl={renderSignOutControl}
     />

@@ -275,15 +275,19 @@ function SettingsDetailPanel({
 }
 
 export function WorkshopSettingsModalContentView({
+  initialPageId = "profile",
   onboardingSnapshot,
   renderSignOutControl,
 }: {
+  initialPageId?: string;
   onboardingSnapshot: OnboardingEligibilitySnapshot | null;
   renderSignOutControl: () => ReactNode;
 }) {
-  const [activePageId, setActivePageId] = useState("profile");
   const settingsGroups = baseSettingsGroups;
   const settingsPages = settingsGroups.flatMap((group) => group.pages);
+  const [activePageId, setActivePageId] = useState(
+    settingsPages.some((page) => page.id === initialPageId) ? initialPageId : "profile",
+  );
   const activePage = settingsPages.find((page) => page.id === activePageId) ?? accountSettings[0];
 
   return (

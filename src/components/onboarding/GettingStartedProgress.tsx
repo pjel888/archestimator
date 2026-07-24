@@ -24,6 +24,8 @@ import {
 } from "@/lib/onboarding/activation-actions";
 import { deriveFirstEstimateChecklist } from "@/lib/onboarding/first-estimate-checklist";
 import { selectCurrentOnboardingPath } from "@/lib/onboarding/first-run-actions";
+import { getEligibleOnboardingFlows } from "@/lib/onboarding/flow-eligibility";
+import { PROJECT_START_BLANK_HREF } from "@/lib/projects/project-start-intent";
 import type {
   ActivationPath,
   OnboardingEligibilitySnapshot,
@@ -79,7 +81,7 @@ const PATHS: readonly PathCard[] = [
     title: "Blank project",
     description: "Start from scratch and build the estimate around your own scope.",
     action: "Start from scratch",
-    href: "/workshop/projects",
+    href: PROJECT_START_BLANK_HREF,
   },
 ] as const;
 
@@ -217,6 +219,17 @@ export function GettingStartedProgress({
     ? "first_estimate_value"
     : "estimate_reader_orientation";
   const selectedPath = snapshot.activation.selectedPath;
+  const launchableFlowKeys = useMemo(
+    () =>
+      new Set<OnboardingFlowKey>(
+        (["desktop", "mobile"] as const).flatMap((viewport) =>
+          getEligibleOnboardingFlows(snapshot, viewport).map(
+            (flow) => flow.definition.key,
+          ),
+        ),
+      ),
+    [snapshot],
+  );
 
   const recommendation = useMemo(() => {
     if (!isCreator) return "Open the work shared with you, then use the reader guide for hierarchy, row math, totals, and access.";
@@ -357,7 +370,7 @@ export function GettingStartedProgress({
             </p>
           </div>
           <Link
-            href="/workshop/settings#guidance"
+            href="/workshop/settings?page=guidance-tours"
             className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-xs border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
           >
             Open Guidance settings
@@ -493,6 +506,8 @@ export function GettingStartedProgress({
               : "Hierarchy, row math, totals, status, access, and help."}
             unavailableReason={!hasEstimateContext
               ? "Start or open an accessible Estimate Sheet before launching this route-local guide."
+              : !launchableFlowKeys.has(estimateFlowKey)
+                ? "This guide is not available with the current access or saved state."
               : undefined}
           />
           {isCreator ? (
@@ -501,8 +516,10 @@ export function GettingStartedProgress({
               flowKey="guided_estimate_practice"
               title="Guided estimate practice"
               description="Complete practice through normal Estimate Sheet actions, then apply the skill to your own work."
-              unavailableReason={!hasEstimateContext
+              unavailableReason={snapshot.dataPredicates.tutorial_binding_current !== true
                 ? "Create the guided practice project before opening its lessons."
+                : !launchableFlowKeys.has("guided_estimate_practice")
+                  ? "This guide is not available with the current access or saved state."
                 : undefined}
             />
           ) : null}
@@ -514,6 +531,8 @@ export function GettingStartedProgress({
               description="Choose scope, publish, verify the current link, and understand optional recipients and activity."
               unavailableReason={snapshot.dataPredicates.client_link_project_available === false
                 ? "A manageable Project is required before this guide can launch."
+                : !launchableFlowKeys.has("client_link_publishing")
+                  ? "This guide is not available with the current access or saved state."
                 : undefined}
             />
           ) : null}

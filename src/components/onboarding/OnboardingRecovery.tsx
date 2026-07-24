@@ -17,8 +17,8 @@ export function OnboardingRecovery({
   supportContext,
 }: {
   message: string;
-  onRetry: () => void;
-  onSkip: () => void;
+  onRetry?: () => void;
+  onSkip?: () => void;
   onExit: () => void;
   supportContext: OnboardingSupportContext;
 }) {
@@ -34,12 +34,16 @@ export function OnboardingRecovery({
       <h2 id={titleId} className="text-[11px] font-medium">Guidance paused</h2>
       <p id={messageId} className="mt-1 text-[10px] leading-4 text-secondary">{message}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="primary" size="sm" onClick={onRetry}>
-          Try again
-        </Button>
-        <Button variant="secondary" size="sm" onClick={onSkip}>
-          Skip this step
-        </Button>
+        {onRetry ? (
+          <Button variant="primary" size="sm" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : null}
+        {onSkip ? (
+          <Button variant="secondary" size="sm" onClick={onSkip}>
+            Skip this step
+          </Button>
+        ) : null}
         <Button variant="ghost" size="sm" onClick={onExit}>
           Stop guide
         </Button>
