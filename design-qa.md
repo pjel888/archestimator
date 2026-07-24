@@ -24,6 +24,34 @@ final result: passed
 
 ---
 
+# Design QA: Workshop First Estimate Checklist
+
+- **Source visual truth:** `.omx/artifacts/visual-ralph/first-estimate-checklist/baseline-workshop.png` and `.omx/artifacts/visual-ralph/first-estimate-checklist/baseline-checklist.jpg`.
+- **Implementation screenshots:** `.omx/artifacts/visual-ralph/first-estimate-checklist/final-workshop-3440.png`, `.omx/artifacts/visual-ralph/first-estimate-checklist/final-checklist-3440.jpg`, and `.omx/artifacts/visual-ralph/first-estimate-checklist/collapsed-1440-checklist.png`.
+- **Combined comparison:** `.omx/artifacts/visual-ralph/first-estimate-checklist/comparison-wide.png`; `.omx/artifacts/visual-ralph/first-estimate-checklist/pixel-diff-wide.png` is secondary evidence of the intentional structural redesign.
+- **Viewport and density:** primary implementation capture is `3440x1322` CSS pixels at `devicePixelRatio: 1`. The focused baseline is `510x246` pixels; the focused final comparison canvas is `987x254` pixels, with the rendered checklist at `946.84x214` CSS pixels.
+- **State:** authenticated `/workshop`, expanded checklist, saved-work progress `2/4`, next step “Add an area and priced row.”
+- **Full-view comparison:** the checklist now participates in the dashboard grid instead of reading as an undersized lower-left modal. It spans the appropriate adaptive columns while preserving the surrounding dashboard hierarchy.
+- **Focused comparison:** global progress and controls occupy an architectural summary rail; the four tasks form one continuous matrix with hairline divisions, restrained green saved states, orange next-step emphasis, and neutral pending treatment.
+- **Responsive evidence:** `.omx/artifacts/visual-ralph/first-estimate-checklist/responsive-1024-checklist.png`, `.omx/artifacts/visual-ralph/first-estimate-checklist/responsive-768-checklist.png`, `.omx/artifacts/visual-ralph/first-estimate-checklist/responsive-414-checklist.png`, `.omx/artifacts/visual-ralph/first-estimate-checklist/responsive-375-checklist.png`, and `.omx/artifacts/visual-ralph/first-estimate-checklist/responsive-320-checklist.png`.
+- **Responsive geometry:** no checklist or document overflow at any checked width. The `1024px` card is `653.42x133.11`; narrower layouts stack into a single flow with an exact `8px` gap to the next dashboard region.
+- **Primary interactions:** Hide checklist produced the `758.84x64` collapsed strip at `1440px`; Reopen restored the expanded `2/4` state. Existing guide and task links remain real links, and visibility controls remain buttons.
+- **Console:** no console errors or page errors in the final desktop, responsive, collapsed, or reopened checks.
+- **Static evidence:** targeted ESLint and `git diff --check` pass. Full TypeScript checking remains blocked only by unrelated stale `.next/types` imports and existing `src/lib/admin/user-actions.ts` nullability errors; neither changed file appears in the error output.
+- **Independent verdict:** Visual Ralph scored the final artifacts `97/100`, with empty P0, P1, and P2 findings. The read-only code review also found no P0, P1, or P2 behavior, accessibility, or responsive-CSS issues.
+
+## Comparison History
+
+1. **Baseline:** weak hierarchy, generic nested cards, undersized dashboard presence, and limited brand expression.
+2. **First implementation:** introduced the summary rail, continuous task matrix, saved/next/pending state system, and adaptive desktop column spans.
+3. **Responsive repair:** removed mobile clipping and tablet overlap, restored normal-flow height below `1024px`, and verified the `8px` dashboard gap.
+4. **92/100 refinement:** retained descriptions at `1024px`, strengthened the Doto title weight, and relaxed the `320px` task rhythm.
+5. **97/100 final:** no actionable P0, P1, or P2 visual findings remain.
+
+final result: passed
+
+---
+
 # Prior Design QA: Mistral Landing
 
 - **Source visual truth:** `.omx/artifacts/visual-ralph/mistral-landing/source-desktop.png` and `.omx/artifacts/visual-ralph/mistral-landing/source-mobile.png`.

@@ -2746,6 +2746,247 @@ input[type="number"] {
   box-shadow: var(--dashboard-tile-glass-inset);
 }
 
+.dashboard-first-estimate,
+.dashboard-first-estimate--collapsed {
+  grid-column: span 2 / span 2;
+}
+
+.dashboard-first-estimate {
+  display: grid;
+  grid-template-columns: minmax(218px, 0.72fr) minmax(0, 1.78fr);
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+.dashboard-first-estimate__summary {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 12px;
+  border-right: 1px solid var(--destination-inner-border);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+}
+
+.dashboard-first-estimate__tasks {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.dashboard-first-estimate__task {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  transition:
+    background-color 180ms ease-out,
+    color 180ms ease-out;
+}
+
+.dashboard-first-estimate__task:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--destination-inner-list-border);
+}
+
+.dashboard-first-estimate__task:nth-child(odd) {
+  border-right: 1px solid var(--destination-inner-list-border);
+}
+
+.dashboard-first-estimate__task:hover {
+  background: color-mix(in srgb, var(--surface) 64%, transparent);
+}
+
+.dashboard-first-estimate__task[data-checklist-status="next"] {
+  background: color-mix(
+    in srgb,
+    var(--brand-orange-soft) 72%,
+    transparent
+  );
+}
+
+.dashboard-first-estimate__task[data-checklist-status="next"]::before {
+  position: absolute;
+  inset-block: 11px;
+  left: 0;
+  width: 2px;
+  background: var(--brand-orange);
+  content: "";
+}
+
+.dashboard-first-estimate__step {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  place-items: center;
+  border: 1px solid var(--destination-inner-border);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  color: var(--secondary);
+  font-family: var(--font-numeric);
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.dashboard-first-estimate__task[data-checklist-status="complete"]
+  .dashboard-first-estimate__step {
+  border-color: color-mix(in srgb, var(--success) 24%, transparent);
+  background: color-mix(in srgb, var(--success-soft) 72%, transparent);
+  color: var(--success);
+}
+
+.dashboard-first-estimate__task[data-checklist-status="next"]
+  .dashboard-first-estimate__step {
+  border-color: color-mix(in srgb, var(--brand-orange) 28%, transparent);
+  background: var(--brand-orange-soft);
+  color: var(--brand-orange-dark);
+}
+
+.dashboard-first-estimate__action {
+  color: var(--ink);
+  transition:
+    background-color 180ms ease-out,
+    color 180ms ease-out;
+}
+
+.dashboard-first-estimate__action:hover {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--brand-orange-dark);
+}
+
+.dashboard-first-estimate__task[data-checklist-status="next"]
+  .dashboard-first-estimate__action {
+  color: var(--brand-orange-dark);
+}
+
+.dashboard-first-estimate--collapsed {
+  min-height: 64px;
+  align-self: start;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-first-estimate__task,
+  .dashboard-first-estimate__action {
+    transition: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .dashboard-first-estimate,
+  .dashboard-first-estimate--collapsed {
+    grid-column: span 5 / span 5;
+  }
+}
+
+@media (min-width: 1400px) and (max-width: 1799px) {
+  .dashboard-first-estimate,
+  .dashboard-first-estimate--collapsed {
+    grid-column: span 4 / span 4;
+  }
+}
+
+@media (min-width: 1800px) and (max-width: 2599px) {
+  .dashboard-first-estimate,
+  .dashboard-first-estimate--collapsed {
+    grid-column: span 3 / span 3;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .dashboard-first-estimate__summary {
+    padding: 8px 10px;
+  }
+
+  .dashboard-first-estimate__title {
+    margin-top: 4px;
+    font-size: 16px;
+  }
+
+  .dashboard-first-estimate__principle {
+    display: none;
+  }
+
+  .dashboard-first-estimate__description {
+    display: block;
+    overflow: hidden;
+    margin-top: 2px;
+    font-size: 8px;
+    line-height: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-first-estimate__summary-actions {
+    padding-top: 4px;
+  }
+
+  .dashboard-first-estimate__task {
+    gap: 8px;
+    padding: 5px 9px;
+  }
+
+  .dashboard-first-estimate__task[data-checklist-status="next"]::before {
+    inset-block: 5px;
+  }
+
+  .dashboard-first-estimate__action {
+    min-height: 18px;
+  }
+
+  .dashboard-first-estimate__task-title {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .dashboard-first-estimate,
+  .dashboard-first-estimate--collapsed {
+    grid-column: auto;
+    overflow: visible;
+  }
+
+  .dashboard-first-estimate {
+    height: max-content;
+    min-height: 0;
+    align-self: start;
+  }
+}
+
+@media (max-width: 639px) {
+  .dashboard-first-estimate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-first-estimate__summary {
+    border-right: 0;
+    border-bottom: 1px solid var(--destination-inner-border);
+  }
+
+  .dashboard-first-estimate__tasks {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  .dashboard-first-estimate__task:nth-child(-n + 2),
+  .dashboard-first-estimate__task:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .dashboard-first-estimate__task:not(:last-child) {
+    border-bottom: 1px solid var(--destination-inner-list-border);
+  }
+
+  .dashboard-first-estimate--collapsed {
+    align-items: flex-start;
+  }
+}
+
 /* ─── Deferred liquid-glass — ARMED state ───────────────────────────────────
    The blur for every glass surface is applied ONLY after <html data-glass="ready">
    is set (post first-paint + idle, by LiquidGlassReady). The radius rides the
