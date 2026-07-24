@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 
 type FirstProjectZeroStateProps = {
@@ -48,10 +50,10 @@ export function FirstProjectZeroState({
         <div className="max-w-[440px]">
           <h2 className="text-[14px] font-semibold text-ink">Create your first project</h2>
           <p className="mt-1 text-[11px] leading-5 text-secondary">
-            Start with a blank project, reuse a workspace template, or explore the guided sample path.
+            Start from scratch, reuse a workspace Template, explore an example, or follow guided practice.
           </p>
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="flex min-h-40 flex-col rounded-[10px] border border-divider bg-surface px-4 py-4">
             <h3 className="text-[12px] font-semibold text-ink">Blank project</h3>
             <p className="mt-1 text-[10px] leading-4 text-secondary">Set up a project with your own details.</p>
@@ -67,8 +69,8 @@ export function FirstProjectZeroState({
             </Button>
           </article>
           <article className="flex min-h-40 flex-col rounded-[10px] border border-divider bg-surface px-4 py-4">
-            <h3 className="text-[12px] font-semibold text-ink">Guided sample</h3>
-            <p className="mt-1 text-[10px] leading-4 text-secondary">See the recommended setup path before you begin.</p>
+            <h3 className="text-[12px] font-semibold text-ink">Guided practice</h3>
+            <p className="mt-1 text-[10px] leading-4 text-secondary">Spend about 10–15 minutes completing real Estimate Sheet practice tasks.</p>
             <Button
               aria-busy={isGuidedSamplePending}
               className="mt-auto w-full"
@@ -77,8 +79,18 @@ export function FirstProjectZeroState({
               variant="secondary"
               onClick={onGuidedSample}
             >
-              {isGuidedSamplePending ? "Creating guided sample..." : "Explore guided sample"}
+              {isGuidedSamplePending ? "Preparing practice..." : "Start guided practice"}
             </Button>
+          </article>
+          <article className="flex min-h-40 flex-col rounded-[10px] border border-divider bg-surface px-4 py-4">
+            <h3 className="text-[12px] font-semibold text-ink">All start paths</h3>
+            <p className="mt-1 text-[10px] leading-4 text-secondary">Compare every available starting point in one place.</p>
+            <Link
+              href="/workshop/getting-started"
+              className="mt-auto inline-flex min-h-8 w-full items-center justify-center rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+            >
+              Open Getting Started
+            </Link>
           </article>
         </div>
       </div>

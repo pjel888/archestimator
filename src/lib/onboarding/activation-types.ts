@@ -1,3 +1,15 @@
+import {
+  ACTIVATION_ORIGIN_CLASSES,
+  type ActivationOriginClass,
+} from "./flow-types";
+
+export {
+  ACTIVATION_ORIGIN_CLASSES,
+  ACTIVATION_PATHS,
+  type ActivationOriginClass,
+  type ActivationPath,
+} from "./flow-types";
+
 export const ACTIVATION_MILESTONES = [
   "invite_accepted",
   "workspace_ready",
@@ -26,10 +38,6 @@ export const ACTIVATION_SOURCES = [
 ] as const;
 
 export type ActivationSource = (typeof ACTIVATION_SOURCES)[number];
-
-export const ACTIVATION_PATHS = ["guided_sample", "workspace_template", "blank"] as const;
-
-export type ActivationPath = (typeof ACTIVATION_PATHS)[number];
 
 export const ACTIVATION_OUTBOX_STATES = ["pending", "processing", "delivered", "dead"] as const;
 
@@ -60,4 +68,8 @@ export function isActivationMilestone(value: string): value is ActivationMilesto
 
 export function isActivationSource(value: string): value is ActivationSource {
   return (ACTIVATION_SOURCES as readonly string[]).includes(value);
+}
+
+export function isActivationOriginClass(value: string): value is ActivationOriginClass {
+  return (ACTIVATION_ORIGIN_CLASSES as readonly string[]).includes(value);
 }

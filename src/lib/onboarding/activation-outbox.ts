@@ -4,15 +4,27 @@ import { type D1DatabaseLike, type D1PreparedStatementLike } from "@/lib/cloudfl
 
 import {
   ActivationRepositoryError,
+  assertActivationResourceChain,
   prepareActivationLedgerStatements,
   validateActivationMilestoneInput,
 } from "./activation-repository";
 import {
   isActivationMilestone,
+  isActivationOriginClass,
   isActivationSource,
   type ActivationMilestoneInput,
   type ActivationOutboxState,
 } from "./activation-types";
+import {
+  assertTrustedActivation,
+  prepareStarterSeedActivation,
+  prepareTutorialSeedActivation,
+  prepareUserDomainActivation,
+  restorePersistedActivationClassification,
+  type StarterSeedActivationCapability,
+  type TrustedActivationMilestoneInput,
+  type TutorialSeedActivationCapability,
+} from "./activation-origin";
 
 const RETRY_MINUTES = [1, 5, 15, 60, 360] as const;
 
@@ -25,6 +37,7 @@ type ActivationOutboxRow = {
   estimate_id: string | null;
   milestone: string;
   source: string;
+  origin_class: string;
   occurred_at: string;
   dedupe_key: string;
   metadata_json: string;
@@ -37,8 +50,12 @@ function nextAttemptAt(attemptCount: number, now: Date) {
   return new Date(now.getTime() + delayMinutes * 60_000).toISOString();
 }
 
-function parseInput(row: ActivationOutboxRow): ActivationMilestoneInput {
-  if (!isActivationMilestone(row.milestone) || !isActivationSource(row.source)) {
+function parseInput(row: ActivationOutboxRow): TrustedActivationMilestoneInput {
+  if (
+    !isActivationMilestone(row.milestone)
+    || !isActivationSource(row.source)
+    || !isActivationOriginClass(row.origin_class)
+  ) {
     throw new ActivationRepositoryError("activation_write_failed", "Activation outbox contains an unknown producer value.");
   }
   let metadata: Record<string, string | number | boolean | null>;
@@ -59,7 +76,7 @@ function parseInput(row: ActivationOutboxRow): ActivationMilestoneInput {
     workspaceId: row.workspace_id,
   };
   validateActivationMilestoneInput(input);
-  return input;
+  return restorePersistedActivationClassification(input, row.origin_class);
 }
 
 export async function enqueueActivationMilestone(
@@ -73,11 +90,23 @@ export async function enqueueActivationMilestone(
   if (!input.domainMutationId.trim()) {
     throw new ActivationRepositoryError("activation_invalid_input", "Activation requires a domain mutation id.");
   }
+  await assertActivationResourceChain(database, input);
   const result = await prepareActivationOutboxIntent(database, input).run();
   if (result.success === false) {
     throw new ActivationRepositoryError("activation_write_failed", "Activation outbox write failed.");
   }
-  return { status: (result.meta?.changes ?? 0) > 0 ? "enqueued" : "already_enqueued" };
+  if ((result.meta?.changes ?? 0) > 0) return { status: "enqueued" };
+  const existing = await database.prepare<{ present: number }>(`
+    SELECT 1 AS present
+    FROM beta_activation_outbox
+    WHERE workspace_id = ? AND dedupe_key = ?
+    LIMIT 1
+  `).bind(input.workspaceId, input.dedupeKey).first<{ present: number }>();
+  if (existing) return { status: "already_enqueued" };
+  throw new ActivationRepositoryError(
+    "activation_resource_not_found",
+    "Activation resource chain changed before the outbox write.",
+  );
 }
 
 export function prepareActivationOutboxIntent(
@@ -85,22 +114,224 @@ export function prepareActivationOutboxIntent(
   input: ActivationMilestoneInput & { domainMutationId: string },
   now = new Date().toISOString(),
 ): D1PreparedStatementLike {
+  return prepareClassifiedActivationOutboxIntent(
+    database,
+    prepareUserDomainActivation(input),
+    input.domainMutationId,
+    now,
+  );
+}
+
+export function prepareStarterSeedActivationOutboxIntent(
+  database: D1DatabaseLike,
+  capability: StarterSeedActivationCapability,
+  input: ActivationMilestoneInput & { domainMutationId: string },
+  now = new Date().toISOString(),
+): D1PreparedStatementLike {
+  return prepareClassifiedActivationOutboxIntent(
+    database,
+    prepareStarterSeedActivation(capability, input),
+    input.domainMutationId,
+    now,
+  );
+}
+
+export function prepareTutorialSeedActivationOutboxIntent(
+  database: D1DatabaseLike,
+  capability: TutorialSeedActivationCapability,
+  input: ActivationMilestoneInput & { domainMutationId: string },
+  now = new Date().toISOString(),
+): D1PreparedStatementLike {
+  return prepareClassifiedActivationOutboxIntent(
+    database,
+    prepareTutorialSeedActivation(capability, input),
+    input.domainMutationId,
+    now,
+  );
+}
+
+function prepareClassifiedActivationOutboxIntent(
+  database: D1DatabaseLike,
+  input: TrustedActivationMilestoneInput,
+  domainMutationId: string,
+  now: string,
+): D1PreparedStatementLike {
   validateActivationMilestoneInput(input);
-  if (!input.domainMutationId.trim()) {
+  assertTrustedActivation(input);
+  if (!domainMutationId.trim()) {
     throw new ActivationRepositoryError("activation_invalid_input", "Activation requires a domain mutation id.");
   }
   return database.prepare(`
+    WITH intent (
+      id, domain_mutation_id, user_id, workspace_id, project_id, estimate_id,
+      milestone, source, origin_class, occurred_at, dedupe_key, metadata_json,
+      next_attempt_at, created_at, updated_at
+    ) AS (
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    )
     INSERT INTO beta_activation_outbox (
       id, domain_mutation_id, user_id, workspace_id, project_id, estimate_id,
-      milestone, source, occurred_at, dedupe_key, metadata_json, state, attempt_count,
-      next_attempt_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)
+      milestone, source, origin_class, occurred_at, dedupe_key, metadata_json,
+      state, attempt_count, next_attempt_at, created_at, updated_at
+    )
+    SELECT
+      intent.id, intent.domain_mutation_id, intent.user_id, intent.workspace_id,
+      intent.project_id, intent.estimate_id, intent.milestone, intent.source,
+      intent.origin_class, intent.occurred_at, intent.dedupe_key,
+      intent.metadata_json, 'pending', 0, intent.next_attempt_at,
+      intent.created_at, intent.updated_at
+    FROM intent
+    WHERE EXISTS (
+      SELECT 1
+      FROM workspaces workspace
+      WHERE workspace.id = intent.workspace_id
+        AND (
+          intent.project_id IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM projects project
+            WHERE project.id = intent.project_id
+              AND project.workspace_id = workspace.id
+          )
+        )
+        AND (
+          intent.estimate_id IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM estimates estimate
+            JOIN projects project ON project.id = estimate.project_id
+            WHERE estimate.id = intent.estimate_id
+              AND project.workspace_id = workspace.id
+              AND (intent.project_id IS NULL OR project.id = intent.project_id)
+          )
+        )
+        AND (
+          (
+            intent.project_id IS NULL
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM workspace_members membership
+                WHERE membership.workspace_id = workspace.id
+                  AND membership.user_id = intent.user_id
+              )
+              OR EXISTS (
+                SELECT 1
+                FROM project_members membership
+                JOIN projects project ON project.id = membership.project_id
+                WHERE project.workspace_id = workspace.id
+                  AND membership.user_id = intent.user_id
+              )
+              OR EXISTS (
+                SELECT 1
+                FROM estimate_sheet_members membership
+                JOIN estimates estimate ON estimate.id = membership.estimate_id
+                JOIN projects project ON project.id = estimate.project_id
+                WHERE project.workspace_id = workspace.id
+                  AND membership.user_id = intent.user_id
+              )
+            )
+          )
+          OR (
+            intent.project_id IS NOT NULL
+            AND intent.estimate_id IS NULL
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM workspace_members membership
+                WHERE membership.workspace_id = workspace.id
+                  AND membership.user_id = intent.user_id
+              )
+              OR EXISTS (
+                SELECT 1
+                FROM project_members membership
+                WHERE membership.project_id = intent.project_id
+                  AND membership.user_id = intent.user_id
+              )
+            )
+          )
+          OR (
+            intent.estimate_id IS NOT NULL
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM estimate_sheet_members membership
+                WHERE membership.estimate_id = intent.estimate_id
+                  AND membership.user_id = intent.user_id
+              )
+              OR (
+                COALESCE((
+                  SELECT setting.inherit_project_access
+                  FROM estimate_sheet_access_settings setting
+                  WHERE setting.estimate_id = intent.estimate_id
+                  LIMIT 1
+                ), 1) = 1
+                AND (
+                  EXISTS (
+                    SELECT 1
+                    FROM workspace_members membership
+                    WHERE membership.workspace_id = workspace.id
+                      AND membership.user_id = intent.user_id
+                  )
+                  OR EXISTS (
+                    SELECT 1
+                    FROM project_members membership
+                    WHERE membership.project_id = intent.project_id
+                      AND membership.user_id = intent.user_id
+                  )
+                )
+              )
+            )
+          )
+        )
+    )
     ON CONFLICT(workspace_id, dedupe_key) DO NOTHING
   `).bind(
-    crypto.randomUUID(), input.domainMutationId, input.userId, input.workspaceId,
+    crypto.randomUUID(), domainMutationId, input.userId, input.workspaceId,
     input.projectId ?? null, input.estimateId ?? null, input.milestone, input.source,
-    input.occurredAt, input.dedupeKey, JSON.stringify(input.metadata ?? {}), now, now, now,
+    input.originClass, input.occurredAt, input.dedupeKey,
+    JSON.stringify(input.metadata ?? {}), now, now, now,
   );
+}
+
+async function hasValidOutboxResourceChain(
+  database: D1DatabaseLike,
+  row: ActivationOutboxRow,
+) {
+  const valid = await database.prepare<{ valid: number }>(`
+    SELECT 1 AS valid
+    FROM workspaces workspace
+    WHERE workspace.id = ?
+      AND (
+        ? IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM projects project
+          WHERE project.id = ? AND project.workspace_id = workspace.id
+        )
+      )
+      AND (
+        ? IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM estimates estimate
+          JOIN projects project ON project.id = estimate.project_id
+          WHERE estimate.id = ?
+            AND project.workspace_id = workspace.id
+            AND (? IS NULL OR project.id = ?)
+        )
+      )
+    LIMIT 1
+  `).bind(
+    row.workspace_id,
+    row.project_id,
+    row.project_id,
+    row.estimate_id,
+    row.estimate_id,
+    row.project_id,
+    row.project_id,
+  ).first<{ valid: number }>();
+  return valid?.valid === 1;
 }
 
 export async function reconcileActivationOutbox(
@@ -113,7 +344,8 @@ export async function reconcileActivationOutbox(
   const limit = Math.max(1, Math.min(options.limit ?? 100, 500));
   const selected = await database.prepare<ActivationOutboxRow>(`
     SELECT id, domain_mutation_id, user_id, workspace_id, project_id, estimate_id,
-           milestone, source, occurred_at, dedupe_key, metadata_json, state, attempt_count
+           milestone, source, origin_class, occurred_at, dedupe_key, metadata_json,
+           state, attempt_count
     FROM beta_activation_outbox
     WHERE (state = 'pending' AND next_attempt_at <= ?)
        OR (state = 'processing' AND lease_expires_at <= ?)
@@ -151,16 +383,43 @@ export async function reconcileActivationOutbox(
     if (claimed.success === false) throw new ActivationRepositoryError("activation_write_failed", "Activation lease claim failed.");
     if ((claimed.meta?.changes ?? 0) === 0) continue;
     try {
+      if (!await hasValidOutboxResourceChain(database, row)) {
+        const invalid = await database.prepare(`
+          UPDATE beta_activation_outbox
+          SET state = 'dead', lease_token = NULL, lease_expires_at = NULL,
+              last_error_code = 'resource_chain_invalid', updated_at = ?
+          WHERE id = ? AND state = 'processing' AND lease_token = ?
+        `).bind(nowIso, row.id, leaseToken).run();
+        if (invalid.success === false) {
+          throw new ActivationRepositoryError(
+            "activation_write_failed",
+            "Activation invalid-resource dead-letter update failed.",
+          );
+        }
+        dead += invalid.meta?.changes ?? 0;
+        continue;
+      }
       const input = parseInput(row);
-      const { insertEvent, updateProgress } = prepareActivationLedgerStatements(database, input, nowIso);
+      const { insertEvent, updateProgress } = prepareActivationLedgerStatements(database, input, nowIso, {
+        outboxId: row.id,
+        leaseToken,
+        now: nowIso,
+      });
       const deliveredStatement = database.prepare(`
         UPDATE beta_activation_outbox
         SET state = 'delivered', delivered_at = ?, lease_token = NULL, lease_expires_at = NULL,
             last_error_code = NULL, updated_at = ?
         WHERE id = ? AND state = 'processing' AND lease_token = ? AND lease_expires_at > ?
       `).bind(nowIso, nowIso, row.id, leaseToken, nowIso);
-      const results = await database.batch([insertEvent, updateProgress, deliveredStatement]);
-      if (results.some((result) => result.success === false) || (results[2]?.meta?.changes ?? 0) !== 1) {
+      const statements = updateProgress
+        ? [insertEvent, updateProgress, deliveredStatement]
+        : [insertEvent, deliveredStatement];
+      const deliveredIndex = statements.length - 1;
+      const results = await database.batch(statements);
+      if (
+        results.some((result) => result.success === false)
+        || (results[deliveredIndex]?.meta?.changes ?? 0) !== 1
+      ) {
         throw new ActivationRepositoryError("activation_write_failed", "Activation outbox delivery acknowledgement failed.");
       }
       delivered += 1;

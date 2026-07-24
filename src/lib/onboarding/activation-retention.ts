@@ -19,6 +19,7 @@ export type ActivationPrivacyProgress = {
   firstValueCompletedAt: string | null;
   checklistDismissedAt: string | null;
   checklistReopenedAt: string | null;
+  automaticGuidanceDisabledAt: string | null;
   supportState: string;
   lastEventAt: string | null;
   version: number;
@@ -31,6 +32,7 @@ export type ActivationPrivacyEvent = {
   estimateId: string | null;
   milestone: string;
   source: string;
+  originClass: string;
   occurredAt: string;
   metadata: Record<string, string | number | boolean | null>;
   createdAt: string;
@@ -44,6 +46,7 @@ type ActivationPrivacyProgressRow = {
   first_value_completed_at: string | null;
   checklist_dismissed_at: string | null;
   checklist_reopened_at: string | null;
+  automatic_guidance_disabled_at: string | null;
   support_state: string;
   last_event_at: string | null;
   version: number;
@@ -56,6 +59,7 @@ type ActivationPrivacyEventRow = {
   estimate_id: string | null;
   milestone: string;
   source: string;
+  origin_class: string;
   occurred_at: string;
   metadata_json: string;
   created_at: string;
@@ -82,6 +86,7 @@ function mapPrivacyProgress(row: ActivationPrivacyProgressRow): ActivationPrivac
     firstValueCompletedAt: row.first_value_completed_at,
     checklistDismissedAt: row.checklist_dismissed_at,
     checklistReopenedAt: row.checklist_reopened_at,
+    automaticGuidanceDisabledAt: row.automatic_guidance_disabled_at,
     supportState: row.support_state,
     lastEventAt: row.last_event_at,
     version: Number(row.version),
@@ -96,23 +101,26 @@ function mapPrivacyEvent(row: ActivationPrivacyEventRow): ActivationPrivacyEvent
     estimateId: row.estimate_id,
     milestone: row.milestone,
     source: row.source,
+    originClass: row.origin_class,
     occurredAt: row.occurred_at,
     metadata: parseExportMetadata(row.metadata_json),
     createdAt: row.created_at,
   };
 }
 
-async function hasActiveActivationHold(
+export async function hasActiveActivationHold(
   database: D1DatabaseLike,
   input: { userId: string; workspaceId: string },
 ): Promise<boolean> {
+  const nowIso = new Date().toISOString();
   const row = await database.prepare<ActiveHoldRow>(`
     SELECT 1 AS active
     FROM beta_activation_retention_holds
     WHERE user_id = ? AND workspace_id = ?
-      AND starts_at <= ? AND expires_at > ?
+      AND datetime(starts_at) <= datetime(?)
+      AND datetime(expires_at) > datetime(?)
     LIMIT 1
-  `).bind(input.userId, input.workspaceId, new Date().toISOString(), new Date().toISOString()).first<ActiveHoldRow>();
+  `).bind(input.userId, input.workspaceId, nowIso, nowIso).first<ActiveHoldRow>();
   return row?.active === 1;
 }
 
@@ -125,13 +133,14 @@ export async function exportActivationPrivacyData(
     database.prepare<ActivationPrivacyProgressRow>(`
       SELECT selected_path, project_id, estimate_id, last_milestone,
              first_value_completed_at, checklist_dismissed_at, checklist_reopened_at,
-             support_state, last_event_at, version, created_at, updated_at
+             automatic_guidance_disabled_at, support_state, last_event_at, version, created_at, updated_at
       FROM beta_activation_progress
       WHERE user_id = ? AND workspace_id = ?
       LIMIT 1
     `).bind(input.userId, input.workspaceId).first<ActivationPrivacyProgressRow>(),
     database.prepare<ActivationPrivacyEventRow>(`
-      SELECT project_id, estimate_id, milestone, source, occurred_at, metadata_json, created_at
+      SELECT project_id, estimate_id, milestone, source, origin_class, occurred_at,
+             metadata_json, created_at
       FROM beta_activation_events
       WHERE user_id = ? AND workspace_id = ?
       ORDER BY occurred_at ASC, id ASC
@@ -150,15 +159,49 @@ export async function eraseActivationPrivacyData(
   if (!database?.batch) return { status: "unavailable" };
   if (await hasActiveActivationHold(database, input)) return { status: "skipped_legal_hold" };
   const statements = [
-    database.prepare("DELETE FROM beta_activation_outbox WHERE user_id = ? AND workspace_id = ?").bind(input.userId, input.workspaceId),
-    database.prepare("DELETE FROM beta_activation_events WHERE user_id = ? AND workspace_id = ?").bind(input.userId, input.workspaceId),
-    database.prepare("DELETE FROM beta_activation_progress WHERE user_id = ? AND workspace_id = ?").bind(input.userId, input.workspaceId),
+    database.prepare(`
+      DELETE FROM beta_activation_outbox
+      WHERE user_id = ? AND workspace_id = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = beta_activation_outbox.user_id
+            AND hold.workspace_id = beta_activation_outbox.workspace_id
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
+        )
+    `).bind(input.userId, input.workspaceId),
+    database.prepare(`
+      DELETE FROM beta_activation_events
+      WHERE user_id = ? AND workspace_id = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = beta_activation_events.user_id
+            AND hold.workspace_id = beta_activation_events.workspace_id
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
+        )
+    `).bind(input.userId, input.workspaceId),
+    database.prepare(`
+      DELETE FROM beta_activation_progress
+      WHERE user_id = ? AND workspace_id = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = beta_activation_progress.user_id
+            AND hold.workspace_id = beta_activation_progress.workspace_id
+            AND datetime(hold.starts_at) <= datetime('now')
+            AND datetime(hold.expires_at) > datetime('now')
+        )
+    `).bind(input.userId, input.workspaceId),
   ];
   const results = await database.batch(statements);
   if (results.some((result) => result.success === false)) {
     throw new ActivationRepositoryError("activation_write_failed", "Activation privacy erase failed.");
   }
-  return { status: "erased" };
+  return {
+    status: await hasActiveActivationHold(database, input)
+      ? "skipped_legal_hold"
+      : "erased",
+  };
 }
 
 export async function purgeExpiredActivationData(
@@ -177,23 +220,31 @@ export async function purgeExpiredActivationData(
       FROM beta_activation_retention_holds hold
       WHERE hold.user_id = beta_activation_outbox.user_id
         AND hold.workspace_id = beta_activation_outbox.workspace_id
-        AND hold.starts_at <= ? AND hold.expires_at > ?
+        AND datetime(hold.starts_at) <= datetime(?)
+        AND datetime(hold.expires_at) > datetime(?)
     )
   `;
   const withoutActiveEventHold = withoutActiveHold.replaceAll("beta_activation_outbox", "beta_activation_events");
   const results = await database.batch([
     database.prepare(`
       DELETE FROM beta_activation_events
-      WHERE occurred_at < ? AND ${withoutActiveEventHold}
+      WHERE datetime(occurred_at) < datetime(?) AND ${withoutActiveEventHold}
     `).bind(eventCutoff, activeHoldAt, activeHoldAt),
     database.prepare(`
       DELETE FROM beta_activation_outbox
-      WHERE state = 'delivered' AND delivered_at < ? AND ${withoutActiveHold}
+      WHERE state = 'delivered'
+        AND datetime(delivered_at) < datetime(?)
+        AND ${withoutActiveHold}
     `).bind(deliveredOutboxCutoff, activeHoldAt, activeHoldAt),
     database.prepare(`
       DELETE FROM beta_activation_outbox
-      WHERE state IN ('pending', 'processing', 'dead') AND created_at < ? AND ${withoutActiveHold}
-    `).bind(unresolvedOutboxCutoff, activeHoldAt, activeHoldAt),
+      WHERE (
+          state IN ('pending', 'dead')
+          OR (state = 'processing' AND (lease_expires_at IS NULL OR datetime(lease_expires_at) <= datetime(?)))
+        )
+        AND datetime(created_at) < datetime(?)
+        AND ${withoutActiveHold}
+    `).bind(activeHoldAt, unresolvedOutboxCutoff, activeHoldAt, activeHoldAt),
   ]);
   if (results.some((result) => result.success === false)) {
     throw new ActivationRepositoryError("activation_write_failed", "Activation retention purge failed.");

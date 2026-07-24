@@ -1,52 +1,86 @@
-import type { ActivationMilestone } from "./activation-types";
-import type { ActivationProgress } from "./activation-repository";
+import type { OnboardingEligibilitySnapshot } from "./flow-types";
 
 export type FirstEstimateChecklistItem = {
   href: string;
-  id: "project" | "estimate" | "area" | "priced-row" | "total" | "publish";
+  id: "project" | "estimate" | "area-and-priced-row" | "valid-total";
   label: string;
-  status: "complete" | "next" | "not_available";
+  description: string;
+  status: "complete" | "next" | "pending";
 };
 
-const milestoneRank: Record<ActivationMilestone, number> = {
-  invite_accepted: 0,
-  workspace_ready: 1,
-  project_created: 2,
-  first_area_created: 3,
-  first_row_priced: 4,
-  first_valid_total: 5,
-  health_reviewed: 6,
-  export_completed: 7,
-  publication_created: 8,
-  recipient_opened: 9,
-  recipient_engaged: 10,
-  recipient_decided: 11,
-};
-
-function hasMilestone(progress: ActivationProgress | null, milestone: ActivationMilestone) {
-  if (!progress?.lastMilestone) return false;
-  return milestoneRank[progress.lastMilestone] >= milestoneRank[milestone];
+function getEstimateHref(snapshot: OnboardingEligibilitySnapshot) {
+  const projectId = snapshot.resourceContext.projectId;
+  return projectId
+    ? `/workshop/projects/${encodeURIComponent(projectId)}/estimates`
+    : "/workshop/projects";
 }
 
-export function deriveFirstEstimateChecklist(progress: ActivationProgress | null) {
-  const projectHref = progress?.projectId ? `/workshop/projects/${progress.projectId}` : "/workshop/projects";
-  const estimateHref = progress?.projectId && progress?.estimateId
-    ? `/workshop/projects/${progress.projectId}/estimates/${progress.estimateId}`
-    : projectHref;
-  const items: FirstEstimateChecklistItem[] = [
-    { id: "project", label: "Create a project", href: projectHref, status: hasMilestone(progress, "project_created") ? "complete" : "next" },
-    { id: "estimate", label: "Create an estimate", href: estimateHref, status: hasMilestone(progress, "workspace_ready") ? "complete" : "next" },
-    { id: "area", label: "Add an area", href: estimateHref, status: hasMilestone(progress, "first_area_created") ? "complete" : "next" },
-    { id: "priced-row", label: "Price a row", href: estimateHref, status: hasMilestone(progress, "first_row_priced") ? "complete" : "next" },
-    { id: "total", label: "Confirm a total", href: estimateHref, status: hasMilestone(progress, "first_valid_total") ? "complete" : "next" },
-    { id: "publish", label: "Publish when ready", href: "/workshop/publisher", status: "not_available" },
+export function deriveFirstEstimateChecklist(
+  snapshot: OnboardingEligibilitySnapshot,
+) {
+  const canShow = snapshot.accessSource === "workspace"
+    && snapshot.capabilities.includes("create_projects")
+    && snapshot.capabilities.includes("edit_estimate");
+  if (!canShow) {
+    return {
+      canShow,
+      completedCount: 0,
+      isComplete: false,
+      isDismissed: false,
+      items: [] satisfies FirstEstimateChecklistItem[],
+    };
+  }
+
+  const estimateHref = getEstimateHref(snapshot);
+  const completion = [
+    snapshot.activation.projectStarted,
+    snapshot.activation.estimateStarted,
+    snapshot.activation.firstAreaCreated
+      && snapshot.activation.firstRowPriced,
+    snapshot.activation.firstValidTotalReached,
   ];
+  const firstIncompleteIndex = completion.findIndex((complete) => !complete);
+  const baseItems: Omit<FirstEstimateChecklistItem, "status">[] = [
+    {
+      id: "project",
+      label: "Start a project",
+      description: "Create blank work, duplicate a project, or use a workspace template.",
+      href: "/workshop/projects",
+    },
+    {
+      id: "estimate",
+      label: "Start an estimate",
+      description: "Create, duplicate, or begin editing an Estimate Sheet.",
+      href: estimateHref,
+    },
+    {
+      id: "area-and-priced-row",
+      label: "Add an area and priced row",
+      description: "Build one real scope area with at least one priced row.",
+      href: estimateHref,
+    },
+    {
+      id: "valid-total",
+      label: "Reach a valid saved total",
+      description: "Confirm the current Estimate Sheet saves with a valid total.",
+      href: estimateHref,
+    },
+  ];
+  const items: FirstEstimateChecklistItem[] = baseItems.map((item, index) => ({
+    ...item,
+    status: completion[index]
+      ? "complete" as const
+      : index === firstIncompleteIndex
+        ? "next" as const
+        : "pending" as const,
+  }));
+  const completedCount = completion.filter(Boolean).length;
+
   return {
+    canShow,
+    completedCount,
+    isComplete: completedCount === items.length,
+    isDismissed: snapshot.activation.checklistDismissed,
     items,
-    isComplete: items.filter((item) => item.status !== "not_available").every((item) => item.status === "complete"),
-    isDismissed: Boolean(
-      progress?.checklistDismissedAt &&
-        (!progress.checklistReopenedAt || progress.checklistDismissedAt >= progress.checklistReopenedAt),
-    ),
   };
 }
