@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter as useNextRouter } from "next/navigation";
 import {
   Suspense,
   memo,
@@ -74,6 +75,10 @@ import {
   type ProjectStatus,
 } from "@/lib/projects/status";
 import {
+  PROJECT_START_QUERY_PARAM,
+  type ProjectStartIntent,
+} from "@/lib/projects/project-start-intent";
+import {
   createBulkActionCorrelationId,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
@@ -140,6 +145,7 @@ type ProjectsPageClientProps = {
   // Consumed by Part 7d (group-mode rendering); wired here with a safe default.
   projectGroups?: ProjectGroupSummary[];
   workspaceRole?: "owner" | "admin" | "member" | "viewer" | null;
+  initialProjectStartIntent?: ProjectStartIntent | null;
 };
 
 export type ProjectListItem = {
@@ -204,6 +210,10 @@ const PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS =
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
 const NewProjectModal = dynamic(
   () => import("./NewProjectModal").then((mod) => mod.NewProjectModal),
+  { ssr: false },
+);
+const ProjectStartModal = dynamic(
+  () => import("./ProjectStartModal").then((mod) => mod.ProjectStartModal),
   { ssr: false },
 );
 const ProjectDetailsModal = dynamic(
@@ -446,9 +456,11 @@ function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
     : value;
 }
 
-function createProjectsPageClientState(): ProjectsPageClientState {
+function createProjectsPageClientState(
+  initialProjectStartIntent: ProjectStartIntent | null,
+): ProjectsPageClientState {
   return {
-    isModalOpen: false,
+    isModalOpen: initialProjectStartIntent === "blank",
     expandedProject: null,
     activeStatusTab: "all",
     searchQuery: "",
@@ -1422,9 +1434,18 @@ export function ProjectsPageClient({
   googleMapsMapId = null,
   projectGroups = EMPTY_PROJECT_GROUPS,
   workspaceRole = null,
+  initialProjectStartIntent = null,
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
+  const nextRouter = useNextRouter();
   const { toast } = useToast();
+  const canCreateProjects =
+    workspaceRole === "owner" ||
+    workspaceRole === "admin" ||
+    workspaceRole === "member";
+  const allowedProjectStartIntent = canCreateProjects
+    ? initialProjectStartIntent
+    : null;
   const toggleProjectFavoriteMutation =
     useToggleProjectFavorite(favoritesScope);
   const serverProjectItems = useMemo(
@@ -1434,9 +1455,31 @@ export function ProjectsPageClient({
   );
   const [pageState, dispatchPageState] = useReducer(
     projectsPageClientReducer,
-    undefined,
+    allowedProjectStartIntent,
     createProjectsPageClientState,
   );
+  const [isProjectStartModalOpen, setIsProjectStartModalOpen] = useState(
+    allowedProjectStartIntent === "chooser",
+  );
+  useEffect(() => {
+    if (!initialProjectStartIntent) return;
+    if (canCreateProjects) {
+      queueMicrotask(() => {
+        if (initialProjectStartIntent === "chooser") {
+          setIsProjectStartModalOpen(true);
+        } else {
+          dispatchPageState({ type: "setIsModalOpen", value: true });
+        }
+      });
+    }
+    const currentUrl = new URL(window.location.href);
+    if (!currentUrl.searchParams.has(PROJECT_START_QUERY_PARAM)) return;
+    currentUrl.searchParams.delete(PROJECT_START_QUERY_PARAM);
+    nextRouter.replace(
+      `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+      { scroll: false },
+    );
+  }, [canCreateProjects, initialProjectStartIntent, nextRouter]);
   const {
     isModalOpen,
     expandedProject,
@@ -1619,11 +1662,31 @@ export function ProjectsPageClient({
     () => projectItems.filter((item) => item.accessKind === "owned"),
     [projectItems],
   );
-  const canCreateProjects =
-    workspaceRole === "owner" ||
-    workspaceRole === "admin" ||
-    workspaceRole === "member";
   const [isGuidedSamplePending, startGuidedSampleTransition] = useTransition();
+  const openBlankProjectForm = () => {
+    if (!canCreateProjects) return;
+    setIsProjectStartModalOpen(false);
+    dispatchPageState({ type: "setIsModalOpen", value: true });
+  };
+  const browseProjectTemplates = () => {
+    setIsProjectStartModalOpen(false);
+    router.push("/workshop/library/templates");
+  };
+  const createGuidedPracticeProject = () =>
+    startGuidedSampleTransition(async () => {
+      try {
+        const sample = await startGuidedSample();
+        router.push(
+          `/workshop/projects/${sample.projectId}/estimates/${sample.areaId}`,
+        );
+      } catch {
+        toast({
+          tone: "error",
+          message:
+            "Could not create the guided sample. You can retry or start a blank project.",
+        });
+      }
+    });
   useEffect(() => {
     if (Object.keys(optimisticProjectStatusOverrides).length === 0) return;
     const serverStatusById = new Map(
@@ -3277,21 +3340,9 @@ export function ProjectsPageClient({
           {hasAuthoritativeZeroProjects ? (
             <FirstProjectZeroState
               canCreateProjects={canCreateProjects}
-              onCreateBlank={() => dispatchPageState({ type: "setIsModalOpen", value: true })}
-              onBrowseTemplates={() => router.push("/workshop/library/templates")}
-              onGuidedSample={() =>
-                startGuidedSampleTransition(async () => {
-                  try {
-                    const sample = await startGuidedSample();
-                    router.push(`/workshop/projects/${sample.projectId}/estimates/${sample.areaId}`);
-                  } catch {
-                    toast({
-                      tone: "error",
-                      message: "Could not create the guided sample. You can retry or start a blank project.",
-                    });
-                  }
-                })
-              }
+              onCreateBlank={openBlankProjectForm}
+              onBrowseTemplates={browseProjectTemplates}
+              onGuidedSample={createGuidedPracticeProject}
               isGuidedSamplePending={isGuidedSamplePending}
             />
           ) : hasNoSearchResults ? (
@@ -3456,7 +3507,16 @@ export function ProjectsPageClient({
         </section>
       </section>
       <Suspense fallback={null}>
-        {isModalOpen && (
+        {isProjectStartModalOpen && canCreateProjects ? (
+          <ProjectStartModal
+            onClose={() => setIsProjectStartModalOpen(false)}
+            onCreateBlank={openBlankProjectForm}
+            onBrowseTemplates={browseProjectTemplates}
+            onGuidedSample={createGuidedPracticeProject}
+            isGuidedSamplePending={isGuidedSamplePending}
+          />
+        ) : null}
+        {isModalOpen && canCreateProjects ? (
           <NewProjectModal
             onClose={() => setIsModalOpen(false)}
             onOptimisticProjectChange={handleOptimisticProjectChange}
@@ -3464,7 +3524,7 @@ export function ProjectsPageClient({
             googleMapsMapId={googleMapsMapId}
             clientOptions={projectClientOptions}
           />
-        )}
+        ) : null}
         {expandedProject ? (
           <ProjectDetailsModal
             project={expandedProject}
