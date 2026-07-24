@@ -96,10 +96,10 @@ describe("beta admin action boundaries", () => {
       } = await import("@/lib/auth/beta-allowlist-admin-actions");
 
       await expect(createClosedBetaAllowlistEntry(createAllowlistForm())).rejects.toThrow(
-        "NEXT_REDIRECT:/workshop/settings/users?error=forbidden",
+        "NEXT_REDIRECT:/admin/allowlist?error=forbidden",
       );
       await expect(updateClosedBetaAllowlistEntry(updateAllowlistForm())).rejects.toThrow(
-        "NEXT_REDIRECT:/workshop/settings/users?error=forbidden",
+        "NEXT_REDIRECT:/admin/allowlist?error=forbidden",
       );
 
       expect(allowlistStoreMocks.createClosedBetaAllowlistEntryInD1).not.toHaveBeenCalled();
@@ -116,7 +116,7 @@ describe("beta admin action boundaries", () => {
 
     authMocks.requireCurrentUserContext.mockResolvedValue(currentUser("admin"));
     await expect(createClosedBetaAllowlistEntry(createAllowlistForm())).rejects.toThrow(
-      "NEXT_REDIRECT:/workshop/settings/users?created=1",
+      "NEXT_REDIRECT:/admin/allowlist?created=1",
     );
     expect(allowlistStoreMocks.createClosedBetaAllowlistEntryInD1).toHaveBeenCalledWith({
       actorUserId: "user-1",
@@ -124,12 +124,12 @@ describe("beta admin action boundaries", () => {
       notes: "Pilot reviewer",
       status: "invited",
     });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/settings/users");
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/admin/allowlist");
 
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue(currentUser("ceo"));
     await expect(updateClosedBetaAllowlistEntry(updateAllowlistForm())).rejects.toThrow(
-      "NEXT_REDIRECT:/workshop/settings/users?saved=1",
+      "NEXT_REDIRECT:/admin/allowlist?saved=1",
     );
     expect(allowlistStoreMocks.updateClosedBetaAllowlistEntryInD1).toHaveBeenCalledWith({
       actorUserId: "user-1",
@@ -137,7 +137,7 @@ describe("beta admin action boundaries", () => {
       notes: "Paused",
       status: "revoked",
     });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/settings/users");
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/admin/allowlist");
   });
 
   it.each(["member", "owner", "client", null])(
@@ -147,7 +147,7 @@ describe("beta admin action boundaries", () => {
       const { updateBetaFeedbackReviewStatus } = await import("@/lib/workshop/beta-feedback-review-actions");
 
       await expect(updateBetaFeedbackReviewStatus(feedbackReviewForm())).rejects.toThrow(
-        "NEXT_REDIRECT:/workshop/settings/feedback?error=forbidden",
+        "NEXT_REDIRECT:/admin/feedback?error=forbidden",
       );
 
       expect(feedbackStoreMocks.updateBetaFeedbackReviewStatusInD1).not.toHaveBeenCalled();
@@ -160,7 +160,7 @@ describe("beta admin action boundaries", () => {
     const { updateBetaFeedbackReviewStatus } = await import("@/lib/workshop/beta-feedback-review-actions");
 
     await expect(updateBetaFeedbackReviewStatus(feedbackReviewForm())).rejects.toThrow(
-      "NEXT_REDIRECT:/workshop/settings/feedback?saved=1",
+      "NEXT_REDIRECT:/admin/feedback?saved=1",
     );
 
     expect(feedbackStoreMocks.updateBetaFeedbackReviewStatusInD1).toHaveBeenCalledWith({
@@ -168,6 +168,6 @@ describe("beta admin action boundaries", () => {
       id: "feedback-row-1",
       status: "reviewing",
     });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/settings/feedback");
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/admin/feedback");
   });
 });

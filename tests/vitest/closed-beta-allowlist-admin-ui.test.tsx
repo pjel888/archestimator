@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
-import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { AdminStatusSelect } from "@/components/admin/AdminStatusSelect";
 import {
   CLOSED_BETA_ALLOWLIST_STATUSES,
   parseClosedBetaAllowlistCreate,
@@ -9,7 +9,7 @@ import {
   type ClosedBetaAllowlistStatus,
 } from "@/lib/auth/beta-allowlist-admin";
 
-// Mirrors the option derivation in src/app/workshop/settings/beta-users/page.tsx
+// Mirrors the option derivation in the admin allowlist surface.
 // so the harness drifts together with the status contract.
 const statusLabels: Record<ClosedBetaAllowlistStatus, string> = {
   active: "Active",
@@ -32,7 +32,7 @@ function queryString(form: HTMLFormElement) {
 describe("beta users admin select islands", () => {
   it("GET filter form serializes ?status=<value> and keeps ?status= for All statuses", () => {
     render(
-      <form data-testid="filter-form" action="/workshop/settings/beta-users">
+      <form data-testid="filter-form" action="/admin/allowlist">
         <label>
           Status
           <AdminStatusSelect

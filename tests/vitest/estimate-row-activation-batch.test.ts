@@ -8,15 +8,25 @@ const insertRowItemSource = source.slice(
   source.indexOf("export async function insertEstimateRowItemWithHistory"),
   source.indexOf("export async function duplicateEstimateRowItemWithHistory"),
 );
+const pricedRowActivationSource = source.slice(
+  source.indexOf("function preparePricedRowActivationStatements"),
+  source.indexOf("function minorUnitsToAmount"),
+);
 
 describe("estimate row activation producers", () => {
   it("writes priced-row and positive-total intents in the same insert batch after idempotency handling", () => {
-    expect(insertRowItemSource.indexOf('if (existingEvent)')).toBeLessThan(insertRowItemSource.indexOf('milestone: "first_row_priced"'));
-    expect(insertRowItemSource).toContain('milestone: "first_row_priced"');
-    expect(insertRowItemSource).toContain("if (insertedRowTotalMinorUnits > 0)");
-    expect(insertRowItemSource).toContain('milestone: "first_valid_total"');
-    expect(insertRowItemSource).toContain('dedupeKey: rowIntent.dedupeKey');
-    expect(insertRowItemSource).toContain('dedupeKey: totalIntent.dedupeKey');
+    expect(insertRowItemSource.indexOf("if (existingEvent)")).toBeLessThan(
+      insertRowItemSource.indexOf("preparePricedRowActivationStatements"),
+    );
+    expect(pricedRowActivationSource).toContain(
+      '(["first_row_priced", "first_valid_total"] as const)',
+    );
+    expect(pricedRowActivationSource).toContain(
+      "if (estimateRowTotalMinorUnits(input.row) <= 0) return [];",
+    );
+    expect(pricedRowActivationSource).toContain(
+      "dedupeKey: activationIntent.dedupeKey",
+    );
     expect(insertRowItemSource).toContain("runPreparedD1Batch(database, statements, activationStatements)");
   });
 });

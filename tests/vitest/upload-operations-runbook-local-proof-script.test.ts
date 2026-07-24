@@ -18,7 +18,7 @@ describe("upload operations runbook local proof script", () => {
     expect(script).toContain("Orphan Cleanup Backlog");
     expect(script).toContain("Scan Backlog");
     expect(script).toContain("Scan Override Review");
-    expect(script).toContain("/workshop/settings/scan-overrides");
+    expect(script).toContain("/admin/scan-overrides");
     expect(script).toContain("/api/component-library/attachments/scan-override");
     expect(script).not.toContain("createClient(");
     expect(script).not.toContain("SUPABASE_SERVICE_ROLE_KEY");

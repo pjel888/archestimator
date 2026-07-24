@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FirstEstimateChecklist } from "@/components/workshop/FirstEstimateChecklist";
-import type { ActivationProgress } from "@/lib/onboarding/activation-repository";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 
 const mocks = vi.hoisted(() => ({
   dismiss: vi.fn(),
@@ -20,22 +20,35 @@ vi.mock("@/hooks/use-navigation-router", () => ({
   useNavigationRouter: () => ({ refresh: mocks.refresh }),
 }));
 
-function progress(overrides: Partial<ActivationProgress> = {}): ActivationProgress {
+function snapshot(
+  overrides: Partial<OnboardingEligibilitySnapshot> = {},
+): OnboardingEligibilitySnapshot {
   return {
     userId: "user-1",
     workspaceId: "workspace-1",
-    selectedPath: "guided_sample",
-    projectId: "project-1",
-    estimateId: "estimate-1",
-    lastMilestone: "project_created",
-    firstValueCompletedAt: null,
-    checklistDismissedAt: null,
-    checklistReopenedAt: null,
-    supportState: "none",
-    lastEventAt: "2026-07-12T00:00:00.000Z",
-    version: 1,
-    createdAt: "2026-07-12T00:00:00.000Z",
-    updatedAt: "2026-07-12T00:00:00.000Z",
+    workspaceRole: "owner",
+    accessSource: "workspace",
+    effectiveRole: "owner",
+    entryKind: "workspace_creator",
+    viewportHint: "unknown",
+    resourceContext: { projectId: "project-1", estimateId: "estimate-1" },
+    activation: {
+      selectedPath: "guided_sample",
+      projectStarted: true,
+      estimateStarted: false,
+      firstAreaCreated: false,
+      firstRowPriced: false,
+      firstValidTotalReached: false,
+      automaticGuidanceEnabled: true,
+      checklistDismissed: false,
+    },
+    starter: null,
+    audience: ["workspace_creator"],
+    capabilities: ["view_workshop", "view_projects", "create_projects", "view_estimate", "edit_estimate"],
+    dataPredicates: {},
+    availableRoutes: ["getting_started", "projects", "estimate_sheet"],
+    availableTargets: [],
+    flowStates: [],
     ...overrides,
   };
 }
@@ -49,45 +62,63 @@ describe("FirstEstimateChecklist", () => {
     mocks.reopen.mockResolvedValue(undefined);
   });
 
-  it("renders incomplete checklist items with scoped links and a non-blocking degraded support CTA", () => {
-    render(<FirstEstimateChecklist progress={progress()} />);
+  it("renders the four-task saved-work checklist from its snapshot", () => {
+    render(<FirstEstimateChecklist snapshot={snapshot()} />);
 
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.textContent === "Create a project (complete)")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Open" })[0]).toHaveAttribute("href", "/workshop/projects/project-1");
-    expect(screen.getByText(/some checklist steps are not available yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/some checklist steps are not available yet/i).closest("[data-checklist-availability]")).toHaveAttribute("data-checklist-availability", "degraded");
-    expect(screen.getByRole("link", { name: "contact support" })).toHaveAttribute("href", "mailto:support@archestimator.com?subject=Archestimator%20getting%20started");
+    expect(screen.getByRole("button", { name: "Hide checklist" })).toBeInTheDocument();
+    expect(screen.getByText("Your first estimate")).toBeInTheDocument();
+    expect(screen.getByText("1/4")).toBeInTheDocument();
+    expect(screen.getByText(/progress comes only from saved project and estimate sheet work/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getByText("Add an area and priced row")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Continue" })[0]).toHaveAttribute(
+      "href",
+      "/workshop/projects/project-1/estimates",
+    );
   });
 
-  it("collapses completed progress with a polite announcement and a reopen control", () => {
-    render(<FirstEstimateChecklist progress={progress({ lastMilestone: "first_valid_total" })} />);
-
-    expect(screen.getByText("Your first estimate is ready.")).toHaveAttribute("aria-live", "polite");
-    expect(screen.queryByRole("list")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reopen checklist" })).toBeInTheDocument();
-  });
-
-  it("uses persisted dismissed and reopened states to select the correct control", () => {
-    const { rerender } = render(<FirstEstimateChecklist progress={progress({ checklistDismissedAt: "2026-07-12T01:00:00.000Z" })} />);
-
-    expect(screen.getByRole("button", { name: "Reopen checklist" })).toBeInTheDocument();
-    rerender(<FirstEstimateChecklist progress={progress({
-      checklistDismissedAt: "2026-07-12T01:00:00.000Z",
-      checklistReopenedAt: "2026-07-12T02:00:00.000Z",
+  it("collapses completed progress without offering a visibility reopen", () => {
+    render(<FirstEstimateChecklist snapshot={snapshot({
+      activation: {
+        ...snapshot().activation,
+        estimateStarted: true,
+        firstAreaCreated: true,
+        firstRowPriced: true,
+        firstValidTotalReached: true,
+      },
     })} />);
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
+
+    expect(screen.getByText("Your first estimate is ready")).toBeInTheDocument();
+    expect(screen.getByText("All 4 steps are complete.")).toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
   });
 
-  it("refreshes only after a dismiss action resolves", async () => {
+  it("uses persisted hidden state and reopens through the server action", async () => {
+    const user = userEvent.setup();
+    render(<FirstEstimateChecklist snapshot={snapshot({
+      activation: {
+        ...snapshot().activation,
+        checklistDismissed: true,
+      },
+    })} />);
+
+    expect(screen.getByText("Getting started is hidden")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reopen" }));
+
+    expect(mocks.reopen).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("refreshes only after the dismiss action resolves", async () => {
     let resolveDismiss: (() => void) | undefined;
     mocks.dismiss.mockReturnValueOnce(new Promise<void>((resolve) => {
       resolveDismiss = resolve;
     }));
     const user = userEvent.setup();
-    render(<FirstEstimateChecklist progress={progress()} />);
+    render(<FirstEstimateChecklist snapshot={snapshot()} />);
 
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await user.click(screen.getByRole("button", { name: "Hide checklist" }));
     expect(mocks.dismiss).toHaveBeenCalledTimes(1);
     expect(mocks.refresh).not.toHaveBeenCalled();
 
@@ -95,12 +126,11 @@ describe("FirstEstimateChecklist", () => {
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
   });
 
-  it("keeps unavailable activation data actionable without redirecting or fabricating completion", () => {
-    render(<FirstEstimateChecklist progress={null} />);
+  it("does not render for a snapshot without creator editing access", () => {
+    const { container } = render(<FirstEstimateChecklist snapshot={snapshot({
+      capabilities: ["view_workshop", "view_projects", "view_estimate"],
+    })} />);
 
-    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
-    expect(screen.getByText("Create a project")).toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.textContent === "Publish when ready (not available)")).toBeInTheDocument();
-    expect(screen.getByText(/some checklist steps are not available yet/i)).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });

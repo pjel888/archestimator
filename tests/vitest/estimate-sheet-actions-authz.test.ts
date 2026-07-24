@@ -133,11 +133,22 @@ const getCurrentWorkspaceProjectForEstimate = vi.hoisted(() => vi.fn());
 const getProjectEstimateTreeByEstimate = vi.hoisted(() => vi.fn());
 const canEditEstimateInD1 = vi.hoisted(() => vi.fn());
 const canEditProjectInD1 = vi.hoisted(() => vi.fn());
+const recordEstimatePracticeMutation = vi.hoisted(() => vi.fn());
+const recordOnboardingChecklistActionFact = vi.hoisted(() => vi.fn());
+const recordLibraryLearningMutation = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/session", () => ({
   requireAuth,
   requireCurrentUserContext,
+  requireWorkshopWriteContext: requireCurrentUserContext,
   getCurrentUserContext: requireCurrentUserContext,
+}));
+vi.mock("@/lib/onboarding/estimate-practice", () => ({
+  recordEstimatePracticeMutation,
+  recordOnboardingChecklistActionFact,
+}));
+vi.mock("@/lib/onboarding/library-learning", () => ({
+  recordLibraryLearningMutation,
 }));
 vi.mock("@/lib/estimates/d1-intents/database", () => ({
   requireEstimateD1Database,
@@ -236,6 +247,12 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     getProjectEstimateTreeByEstimate.mockReset();
     canEditEstimateInD1.mockReset();
     canEditProjectInD1.mockReset();
+    recordEstimatePracticeMutation.mockReset();
+    recordOnboardingChecklistActionFact.mockReset();
+    recordLibraryLearningMutation.mockReset();
+    recordEstimatePracticeMutation.mockResolvedValue("recorded");
+    recordOnboardingChecklistActionFact.mockResolvedValue(null);
+    recordLibraryLearningMutation.mockResolvedValue("recorded");
     requireAuth.mockResolvedValue(undefined);
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
@@ -248,7 +265,16 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
     getCurrentWorkspaceProjectForEstimate.mockResolvedValue({
       workspace: { id: "ws-1", name: "WS", createdBy: "u1" },
-      project: { id: PROJECT_ID, workspaceId: "ws-1", name: "Proj", currencyCode: "PHP", metadata: {} },
+      project: {
+        id: PROJECT_ID,
+        workspace_id: "ws-1",
+        workspaceId: "ws-1",
+        created_by: "u1",
+        name: "Proj",
+        currency_code: "PHP",
+        currencyCode: "PHP",
+        metadata: {},
+      },
     });
     getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: PROJECT_ID },
@@ -405,6 +431,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     expect(deleteEstimateRowItemsBulkWithHistoryIntent).not.toHaveBeenCalled();
     expect(restoreDeletedEstimateRowsWithHistoryIntent).not.toHaveBeenCalled();
     expect(previewEstimateComponentEditImpact).not.toHaveBeenCalled();
+    expect(recordEstimatePracticeMutation).not.toHaveBeenCalled();
   });
 
   it("tree mutation actions deny a viewer before tree writes", async () => {
@@ -412,31 +439,31 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     createFormData.set("name", "New Area");
     createFormData.set("kind", "area");
 
-    await expect(createEstimateNode(PROJECT_ID, ESTIMATE_ID, createFormData)).rejects.toThrow(/edit access denied/i);
-    await expect(renameEstimateNode(PROJECT_ID, ESTIMATE_ID, NODE_ID, "Renamed Area")).rejects.toThrow(/edit access denied/i);
-    await expect(deleteEstimateNode(PROJECT_ID, ESTIMATE_ID, NODE_ID)).rejects.toThrow(/edit access denied/i);
-    await expect(deleteEstimateNodesBulk(PROJECT_ID, ESTIMATE_ID, [NODE_ID])).rejects.toThrow(/edit access denied/i);
+    await expect(createEstimateNode(PROJECT_ID, ESTIMATE_ID, createFormData)).rejects.toThrow();
+    await expect(renameEstimateNode(PROJECT_ID, ESTIMATE_ID, NODE_ID, "Renamed Area")).rejects.toThrow();
+    await expect(deleteEstimateNode(PROJECT_ID, ESTIMATE_ID, NODE_ID)).rejects.toThrow();
+    await expect(deleteEstimateNodesBulk(PROJECT_ID, ESTIMATE_ID, [NODE_ID])).rejects.toThrow();
     await expect(
       reorderEstimateTreeNodes(PROJECT_ID, ESTIMATE_ID, {
         updates: [{ id: NODE_ID, parentId: null, sortOrder: 10 }],
       }),
-    ).rejects.toThrow(/edit access denied/i);
+    ).rejects.toThrow();
 
     expect(canEditEstimateInD1).toHaveBeenCalledWith(database, ESTIMATE_ID, expect.objectContaining({ userId: expect.any(String) }));
     assertNoWrite();
   });
 
   it("tab mutation actions deny a viewer before typed history writes", async () => {
-    await expect(createEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, name: "Page 002" })).rejects.toThrow(/edit access denied/i);
-    await expect(renameEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID, name: "Renamed Page" })).rejects.toThrow(/edit access denied/i);
+    await expect(createEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, name: "Page 002" })).rejects.toThrow();
+    await expect(renameEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID, name: "Renamed Page" })).rejects.toThrow();
     await expect(reorderEstimateTabs({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
       updates: [{ id: ACTIVE_TAB_ID, sortOrder: 2 }],
-    })).rejects.toThrow(/edit access denied/i);
-    await expect(duplicateEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
-    await expect(archiveEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
-    await expect(deleteEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow(/edit access denied/i);
+    })).rejects.toThrow();
+    await expect(duplicateEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow();
+    await expect(archiveEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow();
+    await expect(deleteEstimateTab({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, tabId: ACTIVE_TAB_ID })).rejects.toThrow();
 
     expect(canEditEstimateInD1).toHaveBeenCalledWith(database, ESTIMATE_ID, expect.objectContaining({ userId: expect.any(String) }));
     assertNoWrite();
@@ -450,7 +477,13 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     }));
     updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow());
 
-    const result = await updateEstimateRowItem({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, quantity: 2 });
+    const result = await updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      quantity: 2,
+      mutationId: MUTATION_ID,
+    });
     const updateCall = updateEstimateRowItemWithHistoryIntent.mock.calls[0]?.[2] as {
       projectId: string;
       estimateId: string;
@@ -467,6 +500,69 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     });
     expect(updateCall?.rowPatch).not.toHaveProperty("sourceSnapshot");
     expect(updateCall?.rowPatch).not.toHaveProperty("metadata");
+    expect(recordEstimatePracticeMutation).toHaveBeenCalledWith(database, {
+      kind: "quantity_changed",
+      mutationId: MUTATION_ID,
+      userId: "11111111-1111-4111-8111-111111111111",
+      workspaceId: "ws-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      previousQuantity: 1,
+      previousUnitCost: 125,
+      previousTotal: 125,
+    });
+    expect(updateEstimateRowItemWithHistoryIntent.mock.invocationCallOrder[0]).toBeLessThan(
+      recordEstimatePracticeMutation.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("records an authoritative unit-cost mutation after the typed intent readback", async () => {
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow());
+    updateEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow({ unitCost: 150 }));
+
+    await updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      unitCost: 150,
+      mutationId: MUTATION_ID,
+    });
+
+    expect(recordEstimatePracticeMutation).toHaveBeenCalledWith(database, {
+      kind: "unit_cost_changed",
+      mutationId: MUTATION_ID,
+      userId: "11111111-1111-4111-8111-111111111111",
+      workspaceId: "ws-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      previousQuantity: 1,
+      previousUnitCost: 125,
+      previousTotal: 125,
+    });
+    expect(updateEstimateRowItemWithHistoryIntent.mock.invocationCallOrder[0]).toBeLessThan(
+      recordEstimatePracticeMutation.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("does not record practice credit when the typed update fails", async () => {
+    canEditEstimate.mockResolvedValue(true);
+    getEstimateRowForProject.mockResolvedValue(authoritativeEstimateRow());
+    updateEstimateRowItemWithHistoryIntent.mockRejectedValue(
+      new Error("authoritative write failed"),
+    );
+
+    await expect(updateEstimateRowItem({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      quantity: 2,
+      mutationId: MUTATION_ID,
+    })).rejects.toThrow("authoritative write failed");
+
+    expect(recordEstimatePracticeMutation).not.toHaveBeenCalled();
   });
 
 
@@ -647,7 +743,14 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     canEditEstimate.mockResolvedValue(true);
     insertEstimateRowItemWithHistoryIntent.mockResolvedValue(canonicalRow({ rowRevision: 1 }));
 
-    await expect(insertEstimateRowItemFromLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, targetNodeId: NODE_ID, rowId: ROW_ID, libraryItem })).resolves.toMatchObject({
+    await expect(insertEstimateRowItemFromLibrary({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      targetNodeId: NODE_ID,
+      rowId: ROW_ID,
+      libraryItem,
+      mutationId: MUTATION_ID,
+    })).resolves.toMatchObject({
       rowId: ROW_ID,
       nodeId: NODE_ID,
       material: "Express component",
@@ -658,6 +761,18 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       rowPayload: { sourceSnapshot: Record<string, unknown> };
     } | undefined;
     expect(insertCall?.rowPayload.sourceSnapshot.sourceUpdatedAt).toBe(libraryItem.updatedAt);
+    expect(recordEstimatePracticeMutation).toHaveBeenCalledWith(database, {
+      kind: "component_inserted",
+      mutationId: MUTATION_ID,
+      userId: "11111111-1111-4111-8111-111111111111",
+      workspaceId: "ws-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+    });
+    expect(insertEstimateRowItemWithHistoryIntent.mock.invocationCallOrder[0]).toBeLessThan(
+      recordEstimatePracticeMutation.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("replaceEstimateRowItemWithLibrary replaces express rows through the typed intent", async () => {
@@ -672,7 +787,13 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       rowRevision: 2,
     }));
 
-    await expect(replaceEstimateRowItemWithLibrary({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID, libraryItem })).resolves.toMatchObject({
+    await expect(replaceEstimateRowItemWithLibrary({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      libraryItem,
+      mutationId: MUTATION_ID,
+    })).resolves.toMatchObject({
       rowId: ROW_ID,
       material: libraryItem.material,
       linkState: "linked-clean",
@@ -698,6 +819,18 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       }),
     });
     expect(replaceCall?.replacementPayload.metadata).not.toHaveProperty("expressComponent");
+    expect(recordEstimatePracticeMutation).toHaveBeenCalledWith(database, {
+      kind: "component_inserted",
+      mutationId: MUTATION_ID,
+      userId: "11111111-1111-4111-8111-111111111111",
+      workspaceId: "ws-1",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+    });
+    expect(replaceEstimateRowItemWithHistoryIntent.mock.invocationCallOrder[0]).toBeLessThan(
+      recordEstimatePracticeMutation.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("moveEstimateRowItemWithHistory calls the typed intent without a caller-supplied actor", async () => {

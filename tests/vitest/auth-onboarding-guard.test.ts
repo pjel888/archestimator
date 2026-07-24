@@ -10,8 +10,14 @@ const nextHeadersMocks = vi.hoisted(() => ({
   headers: vi.fn(async () => new Headers()),
 }));
 
+const starterPackMocks = vi.hoisted(() => ({
+  installStarterPackForEligibleWorkspace: vi.fn(async () => undefined),
+  installStarterPackForNewWorkspace: vi.fn(async () => undefined),
+}));
+
 vi.mock("next/navigation", () => nextNavigationMocks);
 vi.mock("next/headers", () => nextHeadersMocks);
+vi.mock("@/lib/onboarding/starter-pack-actions", () => starterPackMocks);
 
 type MockAccountWorkspaceMembership = {
   role: string | null;
@@ -144,10 +150,10 @@ describe("auth onboarding workspace guard", () => {
     nextHeadersMocks.headers.mockResolvedValue(new Headers());
   });
 
-  it("resolves ordinary successful post-auth destinations to the workshop homebase", async () => {
+  it("preserves protected post-auth destinations and rejects public or nested return paths", async () => {
     const { resolvePostAuthDestination } = await import("@/lib/auth/account-setup");
 
-    expect(resolvePostAuthDestination("/workshop/projects")).toBe("/workshop");
+    expect(resolvePostAuthDestination("/workshop/projects")).toBe("/workshop/projects");
     expect(resolvePostAuthDestination("/pricing")).toBe("/workshop");
     expect(resolvePostAuthDestination("/workshop/onboarding?next=/workshop/projects")).toBe("/workshop");
     expect(resolvePostAuthDestination("https://evil.example")).toBe("/workshop");
@@ -218,6 +224,11 @@ describe("auth onboarding workspace guard", () => {
         payload: { default_workspace_id: workspace.id },
       },
     ]);
+    expect(starterPackMocks.installStarterPackForEligibleWorkspace).toHaveBeenCalledWith(
+      expect.any(Object),
+      { workspaceId: workspace.id, userId: profile.id },
+    );
+    expect(starterPackMocks.installStarterPackForNewWorkspace).not.toHaveBeenCalled();
   });
 
   it("reuses an invited project collaborator workspace before creating a fallback workspace", async () => {
@@ -270,6 +281,11 @@ describe("auth onboarding workspace guard", () => {
 
     expect(queryOrder).toEqual(["workspaces", "profiles"]);
     expect(inserts).toEqual([]);
+    expect(starterPackMocks.installStarterPackForEligibleWorkspace).toHaveBeenCalledWith(
+      expect.any(Object),
+      { workspaceId: workspace.id, userId: profile.id },
+    );
+    expect(starterPackMocks.installStarterPackForNewWorkspace).not.toHaveBeenCalled();
   });
 
   it("reuses an invited estimate collaborator workspace before creating a fallback workspace", async () => {
@@ -322,6 +338,11 @@ describe("auth onboarding workspace guard", () => {
 
     expect(queryOrder).toEqual(["workspaces", "profiles"]);
     expect(inserts).toEqual([]);
+    expect(starterPackMocks.installStarterPackForEligibleWorkspace).toHaveBeenCalledWith(
+      expect.any(Object),
+      { workspaceId: workspace.id, userId: profile.id },
+    );
+    expect(starterPackMocks.installStarterPackForNewWorkspace).not.toHaveBeenCalled();
   });
 
   it("does not create a fallback workspace when an estimate membership parent project is unavailable", async () => {
@@ -450,6 +471,7 @@ describe("auth onboarding workspace guard", () => {
     const result = await ensureDefaultWorkspace();
     expect(result.workspace).toEqual({
       ...workspace,
+      closed_at: null,
       id: expect.any(String),
     });
     expect(result.profile).toEqual({
@@ -459,7 +481,10 @@ describe("auth onboarding workspace guard", () => {
     expect(nextHeadersMocks.headers).not.toHaveBeenCalled();
     expect(queryOrder).toEqual(["profiles"]);
     expect(inserts).toEqual([
-      { table: "workspaces", payload: result.workspace },
+      {
+        table: "workspaces",
+        payload: { ...workspace, id: result.workspace.id },
+      },
       {
         table: "workspace_members",
         payload: {
@@ -477,6 +502,11 @@ describe("auth onboarding workspace guard", () => {
         payload: { default_workspace_id: result.workspace.id },
       },
     ]);
+    expect(starterPackMocks.installStarterPackForNewWorkspace).toHaveBeenCalledWith(
+      expect.any(Object),
+      { workspaceId: result.workspace.id, userId: profile.id },
+    );
+    expect(starterPackMocks.installStarterPackForEligibleWorkspace).not.toHaveBeenCalled();
   });
 
   it("denies forged cross-workspace account-actions workspace settings updates before writing", async () => {
@@ -514,13 +544,15 @@ describe("auth onboarding workspace guard", () => {
       }),
     };
 
+    const currentUserContext = {
+      userId: profile.id,
+      email: profile.email,
+      displayName: profile.display_name,
+      profile,
+    };
     vi.doMock("@/lib/auth/session", () => ({
-      requireCurrentUserContext: vi.fn(async () => ({
-        userId: profile.id,
-        email: profile.email,
-        displayName: profile.display_name,
-        profile,
-      })),
+      requireCurrentUserContext: vi.fn(async () => currentUserContext),
+      requireWorkshopWriteContext: vi.fn(async () => currentUserContext),
     }));
     vi.doMock("@/lib/cloudflare/d1", () => ({
       getCloudflareD1Database: vi.fn(async () => database),

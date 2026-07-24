@@ -1,66 +1,92 @@
-import type { ReactElement } from "react";
+import { Children, type ReactElement } from "react";
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { FirstEstimateChecklist } from "@/components/workshop/FirstEstimateChecklist";
 import GettingStartedPage from "@/app/workshop/getting-started/page";
-import { deriveFirstEstimateChecklist } from "@/lib/onboarding/first-estimate-checklist";
-import type { ActivationProgress } from "@/lib/onboarding/activation-repository";
+import { GettingStartedProgress } from "@/components/onboarding/GettingStartedProgress";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 
 const mocks = vi.hoisted(() => ({
-  getCurrentActivationProgress: vi.fn(),
+  loadSnapshot: vi.fn(),
 }));
 
-vi.mock("@/lib/onboarding/activation-actions", () => ({
-  getCurrentActivationProgress: mocks.getCurrentActivationProgress,
+vi.mock("@/lib/onboarding/flow-actions", () => ({
+  loadCurrentOnboardingEligibilitySnapshot: mocks.loadSnapshot,
 }));
 
-function progress(overrides: Partial<ActivationProgress> = {}): ActivationProgress {
+function snapshot(): OnboardingEligibilitySnapshot {
   return {
     userId: "viewer-1",
     workspaceId: "workspace-1",
-    selectedPath: "blank",
-    projectId: "project-1",
-    estimateId: "estimate-1",
-    lastMilestone: "project_created",
-    firstValueCompletedAt: null,
-    checklistDismissedAt: "2026-07-12T01:00:00.000Z",
-    checklistReopenedAt: "2026-07-12T02:00:00.000Z",
-    supportState: "none",
-    lastEventAt: "2026-07-12T00:00:00.000Z",
-    version: 1,
-    createdAt: "2026-07-12T00:00:00.000Z",
-    updatedAt: "2026-07-12T02:00:00.000Z",
-    ...overrides,
+    workspaceRole: "owner",
+    accessSource: "workspace",
+    effectiveRole: "owner",
+    entryKind: "workspace_creator",
+    viewportHint: "unknown",
+    resourceContext: { projectId: "project-1", estimateId: "estimate-1" },
+    activation: {
+      selectedPath: "blank",
+      projectStarted: true,
+      estimateStarted: false,
+      firstAreaCreated: false,
+      firstRowPriced: false,
+      firstValidTotalReached: false,
+      automaticGuidanceEnabled: false,
+      checklistDismissed: false,
+    },
+    starter: null,
+    audience: ["workspace_creator"],
+    capabilities: ["view_workshop", "view_projects", "create_projects", "view_estimate", "edit_estimate"],
+    dataPredicates: {},
+    availableRoutes: ["getting_started", "projects", "estimate_sheet"],
+    availableTargets: [],
+    flowStates: [],
   };
 }
 
 describe("Getting Started route", () => {
-  it("renders the authorized viewer's persisted progress without starting a project", async () => {
-    const viewerProgress = progress();
-    mocks.getCurrentActivationProgress.mockResolvedValueOnce(viewerProgress);
-
-    const page = await GettingStartedPage();
-    const checklist = page.props.children as ReactElement<{ progress: ActivationProgress | null }>;
-
-    expect(mocks.getCurrentActivationProgress).toHaveBeenCalledTimes(1);
-    expect(page.props).toMatchObject({
-      breadcrumbs: ["Getting Started"],
-      eyebrow: "Workspace",
-      title: "Getting Started",
-    });
-    expect(checklist.type).toBe(FirstEstimateChecklist);
-    expect(checklist.props.progress).toEqual(viewerProgress);
+  beforeEach(() => {
+    mocks.loadSnapshot.mockReset();
   });
 
-  it("preserves a later reopen timestamp so the checklist is visible again", async () => {
-    const reopenedProgress = progress();
-    mocks.getCurrentActivationProgress.mockResolvedValueOnce(reopenedProgress);
+  it("loads the authorized snapshot and passes it to GettingStartedProgress", async () => {
+    const currentSnapshot = snapshot();
+    mocks.loadSnapshot.mockResolvedValueOnce(currentSnapshot);
 
     const page = await GettingStartedPage();
-    const checklist = page.props.children as ReactElement<{ progress: ActivationProgress | null }>;
+    const routeChildren = Children.toArray(page.props.children) as ReactElement[];
+    const progress = routeChildren[1]?.props.children as ReactElement<{
+      snapshot: OnboardingEligibilitySnapshot;
+    }>;
 
-    expect(checklist.props.progress?.checklistReopenedAt).toBe("2026-07-12T02:00:00.000Z");
-    expect(deriveFirstEstimateChecklist(checklist.props.progress).isDismissed).toBe(false);
+    expect(mocks.loadSnapshot).toHaveBeenCalledTimes(1);
+    expect(page.props).toMatchObject({
+      breadcrumbs: ["Getting Started"],
+      eyebrow: "Guidance",
+      title: "Getting Started",
+    });
+    expect(progress.type).toBe(GettingStartedProgress);
+    expect(progress.props.snapshot).toBe(currentSnapshot);
+  });
+
+  it("preserves visibility preferences without creating onboarding work", async () => {
+    const currentSnapshot = snapshot();
+    currentSnapshot.activation.automaticGuidanceEnabled = false;
+    currentSnapshot.activation.checklistDismissed = true;
+    mocks.loadSnapshot.mockResolvedValueOnce(currentSnapshot);
+
+    const page = await GettingStartedPage();
+    const routeChildren = Children.toArray(page.props.children) as ReactElement[];
+    const progress = routeChildren[1]?.props.children as ReactElement<{
+      snapshot: OnboardingEligibilitySnapshot;
+    }>;
+
+    expect(progress.props.snapshot.activation).toMatchObject({
+      automaticGuidanceEnabled: false,
+      checklistDismissed: true,
+      projectStarted: true,
+      estimateStarted: false,
+    });
+    expect(mocks.loadSnapshot).toHaveBeenCalledTimes(1);
   });
 });

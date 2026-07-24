@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { UploadOperationsDashboardPanel } from "@/components/workshop/UploadOperationsDashboardPanel";
+import { UploadOperationsDashboardPanel } from "@/components/admin/UploadOperationsDashboardPanel";
 import type { UploadOperationsDashboardSnapshot } from "@/lib/uploads/operations-dashboard";
 
 const snapshot: UploadOperationsDashboardSnapshot = {
@@ -96,11 +96,11 @@ describe("upload operations dashboard UI", () => {
     expect(container.textContent).not.toMatch(/storage_path|private\/path|signed url|access_token|Bearer/i);
   });
 
-  it("keeps the settings page role-gated and wired to the path-safe snapshot reader", () => {
-    const pageSource = readFileSync("src/app/workshop/settings/upload-operations/page.tsx", "utf8");
+  it("keeps the admin page wired to the role-gated path-safe snapshot reader", () => {
+    const pageSource = readFileSync("src/app/admin/upload-operations/page.tsx", "utf8");
 
     expect(pageSource).toContain("readUploadOperationsDashboardSnapshot({ windowHours })");
-    expect(pageSource).toContain('action="/workshop/settings/upload-operations"');
+    expect(pageSource).toContain('action="/admin/upload-operations"');
     expect(pageSource).toContain("Only platform admins can review upload operations.");
     expect(pageSource).toContain("UploadOperationsDashboardPanel");
     expect(pageSource).toContain("windowHours");

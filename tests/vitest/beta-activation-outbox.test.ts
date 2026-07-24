@@ -8,7 +8,12 @@ import {
 
 type Prepared = { sql: string; values: unknown[] };
 
-function createOutboxDatabase(options: { rows?: unknown[]; insertChanges?: number } = {}) {
+function createOutboxDatabase(options: {
+  rows?: unknown[];
+  insertChanges?: number;
+  resourceChainValid?: boolean;
+  existingIntent?: boolean;
+} = {}) {
   const prepared: Prepared[] = [];
   const batch = vi.fn().mockResolvedValue([
     { success: true, meta: { changes: 1 } },
@@ -24,7 +29,15 @@ function createOutboxDatabase(options: { rows?: unknown[]; insertChanges?: numbe
           prepared.push({ sql, values });
           return statement;
         },
-        first: vi.fn(),
+        first: vi.fn(async () => {
+          if (sql.includes("SELECT 1 AS valid") && sql.includes("FROM workspaces")) {
+            return options.resourceChainValid === false ? null : { valid: 1 };
+          }
+          if (sql.includes("SELECT 1 AS present") && sql.includes("FROM beta_activation_outbox")) {
+            return options.existingIntent === false ? null : { present: 1 };
+          }
+          return null;
+        }),
         run: vi.fn().mockResolvedValue({ success: true, meta: { changes: options.insertChanges ?? 1 } }),
       };
       return statement;
@@ -53,8 +66,19 @@ describe("activation outbox", () => {
     const statement = prepared.find(({ sql }) => sql.includes("INSERT INTO beta_activation_outbox"));
     expect(statement?.sql).toContain("ON CONFLICT(workspace_id, dedupe_key) DO NOTHING");
     expect(statement?.values).toEqual(expect.arrayContaining([
-      "mutation-a", "user-a", "workspace-a", "project-a", "project_created", "project",
+      "mutation-a", "user-a", "workspace-a", "project-a", "project_created", "project", "user_domain",
     ]));
+  });
+
+  it("rejects an unavailable tenant resource chain before inserting an intent", async () => {
+    const { database, prepared } = createOutboxDatabase({ resourceChainValid: false });
+
+    await expect(enqueueActivationMilestone(database as never, input)).rejects.toMatchObject({
+      code: "activation_resource_not_found",
+      message: "Activation resource chain is unavailable.",
+    });
+
+    expect(prepared.some(({ sql }) => sql.includes("INSERT INTO beta_activation_outbox"))).toBe(false);
   });
 
   it("claims an eligible row and atomically records its event, progress, and delivery acknowledgement", async () => {
@@ -68,6 +92,7 @@ describe("activation outbox", () => {
         estimate_id: null,
         milestone: "project_created",
         source: "project",
+        origin_class: "user_domain",
         occurred_at: "2026-07-12T00:00:00.000Z",
         dedupe_key: "workspace-a:mutation-a:project_created",
         metadata_json: "{}",
@@ -84,6 +109,12 @@ describe("activation outbox", () => {
     expect(database.batch).toHaveBeenCalledTimes(1);
     expect(database.batch.mock.calls[0]?.[0]).toHaveLength(3);
     expect(prepared.some(({ sql }) => sql.includes("SET state = 'delivered'"))).toBe(true);
+    expect(prepared.filter(({ sql }) => sql.includes("beta_activation_events")).some(({ sql }) => (
+      sql.includes("lease_token = ?") && sql.includes("lease_expires_at > ?")
+    ))).toBe(true);
+    expect(prepared.filter(({ sql }) => sql.includes("beta_activation_progress")).some(({ sql }) => (
+      sql.includes("lease_token = ?") && sql.includes("lease_expires_at > ?")
+    ))).toBe(true);
   });
 
   it("returns malformed claimed rows to the retry path and repairs only the matching dead tenant row", async () => {
@@ -95,8 +126,9 @@ describe("activation outbox", () => {
         workspace_id: "workspace-a",
         project_id: null,
         estimate_id: null,
-        milestone: "forged",
+        milestone: "project_created",
         source: "project",
+        origin_class: "forged",
         occurred_at: "2026-07-12T00:00:00.000Z",
         dedupe_key: "workspace-a:mutation-a:project_created",
         metadata_json: "{}",

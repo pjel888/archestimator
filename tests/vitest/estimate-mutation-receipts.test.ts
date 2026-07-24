@@ -81,9 +81,9 @@ describe("estimate mutation receipts", () => {
   it("enforces the inclusive D1 hard statement ceiling", () => {
     expect(() => assertD1MutationStatementLimit(D1_MUTATION_HARD_STATEMENT_LIMIT)).not.toThrow();
     expect(() => assertD1MutationStatementLimit(D1_MUTATION_HARD_STATEMENT_LIMIT + 1)).toThrow(
-      "This action requires more than 1000 atomic D1 statements.",
+      "Something went wrong. Try again in a moment.",
     );
-    expect(() => assertD1MutationStatementLimit(-1)).toThrow("D1 mutation statement count is invalid.");
+    expect(() => assertD1MutationStatementLimit(-1)).toThrow("Something went wrong. Try again in a moment.");
   });
 
   it("returns matching committed results and rejects fingerprint or actor reuse", async () => {

@@ -78,11 +78,15 @@ describe("workshop dashboard baseline", () => {
     const sidebar = await Bun.file("src/components/sidebar/MainSidebar.tsx").text();
     const sidebarHeader = await Bun.file("src/components/sidebar/SidebarHeader.tsx").text();
     const sidebarNavItemRow = await Bun.file("src/components/sidebar/SidebarNavItemRow.tsx").text();
+    const workshopNavigation = await Bun.file(
+      "src/components/workshop/navigation/workshop-navigation.ts",
+    ).text();
 
     expect(source).toContain("SIDEBAR_WIDTH_EXPANDED = 288");
     expect(source).toContain("SIDEBAR_WIDTH_COLLAPSED = SIDEBAR_PADDING * 2 + SIDEBAR_ICON_SLOT");
     expect(sidebar).toContain("sidebar-glass fixed left-2 top-2 z-[100]");
-    expect(sidebar).toContain("sidebarNavItems");
+    expect(sidebar).toContain("getWorkshopNavigationItems");
+    expect(workshopNavigation).toContain("WORKSHOP_NAVIGATION_ITEMS");
     expect(sidebar).toContain("data-sidebar-primary-nav-group");
     expect(sidebar).not.toContain("data-sidebar-primary-nav-divider");
     expect(sidebar).toContain("data-sidebar-section-divider");
@@ -92,14 +96,14 @@ describe("workshop dashboard baseline", () => {
     expect(sidebar).toContain("sidebar-glass-grain");
     expect(sidebar).not.toContain("data-refraction");
     expect(sidebar).toContain("width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED");
-    expect(sidebar).toContain("href: \"/workshop/projects\"");
-    expect(sidebar).toContain("href: \"/workshop/library\"");
-    expect(sidebar).toContain("label: \"Library\"");
-    expect(sidebar).not.toContain("href: \"/workshop/templates\"");
-    expect(sidebar).not.toContain("label: \"Templates\"");
-    expect(sidebar).not.toContain("icon: Copy");
-    expect(sidebar).not.toContain("Reports");
-    expect(sidebar).not.toContain("Cost Library");
+    expect(workshopNavigation).toContain("href: \"/workshop/projects\"");
+    expect(workshopNavigation).toContain("href: \"/workshop/library\"");
+    expect(workshopNavigation).toContain("label: \"Library\"");
+    expect(workshopNavigation).not.toContain("href: \"/workshop/templates\"");
+    expect(workshopNavigation).not.toContain("label: \"Templates\"");
+    expect(workshopNavigation).not.toContain("icon: Copy");
+    expect(workshopNavigation).not.toContain("Reports");
+    expect(workshopNavigation).not.toContain("Cost Library");
     expect(sidebar).not.toContain("grid-cols-[var(--sidebar-grid-columns)]");
     expect(sidebar).not.toContain("NavGroup");
     expect(sidebar).not.toContain("group.label");
@@ -108,7 +112,7 @@ describe("workshop dashboard baseline", () => {
     expect(sidebar).not.toContain("border-b border-hairline");
     expect(sidebar).not.toContain("mt-auto");
     expect(sidebarHeader).not.toContain("absolute bottom-0 border-b border-hairline");
-    expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
+    expect(sidebarNavItemRow).toContain("grid-cols-[48px_minmax(0,1fr)_auto]");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-bg)");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-bg)");
     expect(sidebarNavItemRow).toContain("text-brand-orange-dark");
@@ -117,7 +121,7 @@ describe("workshop dashboard baseline", () => {
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-shadow)");
     expect(sidebarNavItemRow).toContain('weight="regular"');
     expect(sidebar).toContain('<Star size={15} weight="regular"');
-    expect(sidebar).toContain('<Folder size={13} weight="regular"');
+    expect(sidebar).toContain('<Folder size={16} weight="regular"');
     expect(sidebar).toContain('<FileText size={11} weight="regular"');
     expect(sidebar).toContain('<SidebarSimple');
     expect(sidebar).toContain('aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}');

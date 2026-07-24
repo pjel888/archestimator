@@ -82,7 +82,7 @@ describeProof("upload operations runbook local proof evidence", () => {
       failed_permanent: 0,
     });
     expect(proof.overrideDrill).toEqual({
-      route: "/workshop/settings/scan-overrides",
+      route: "/admin/scan-overrides",
       apiRoute: "/api/component-library/attachments/scan-override",
       parsed: true,
       targetStatus: "override_approved",

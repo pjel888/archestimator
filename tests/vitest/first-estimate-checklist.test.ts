@@ -1,63 +1,134 @@
 import { describe, expect, it } from "vitest";
 
 import { deriveFirstEstimateChecklist } from "@/lib/onboarding/first-estimate-checklist";
-import type { ActivationProgress } from "@/lib/onboarding/activation-repository";
+import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 
-function progress(overrides: Partial<ActivationProgress> = {}): ActivationProgress {
+function snapshot(
+  overrides: Partial<OnboardingEligibilitySnapshot> = {},
+): OnboardingEligibilitySnapshot {
   return {
     userId: "user-1",
     workspaceId: "workspace-1",
-    selectedPath: "guided_sample",
-    projectId: "project-1",
-    estimateId: "estimate-1",
-    lastMilestone: "project_created",
-    firstValueCompletedAt: null,
-    checklistDismissedAt: null,
-    checklistReopenedAt: null,
-    supportState: "none",
-    lastEventAt: "2026-07-12T00:00:00.000Z",
-    version: 1,
-    createdAt: "2026-07-12T00:00:00.000Z",
-    updatedAt: "2026-07-12T00:00:00.000Z",
+    workspaceRole: "owner",
+    accessSource: "workspace",
+    effectiveRole: "owner",
+    entryKind: "workspace_creator",
+    viewportHint: "unknown",
+    resourceContext: {
+      projectId: "project-1",
+      estimateId: "estimate-1",
+    },
+    activation: {
+      selectedPath: "guided_sample",
+      projectStarted: false,
+      estimateStarted: false,
+      firstAreaCreated: false,
+      firstRowPriced: false,
+      firstValidTotalReached: false,
+      automaticGuidanceEnabled: true,
+      checklistDismissed: false,
+    },
+    starter: null,
+    audience: ["workspace_creator"],
+    capabilities: ["view_workshop", "view_projects", "create_projects", "view_estimate", "edit_estimate"],
+    dataPredicates: {},
+    availableRoutes: ["getting_started", "projects", "estimate_sheet"],
+    availableTargets: [],
+    flowStates: [],
     ...overrides,
   };
 }
 
 describe("deriveFirstEstimateChecklist", () => {
-  it("derives completion from the authoritative milestone rather than client claims", () => {
-    const checklist = deriveFirstEstimateChecklist(progress({ lastMilestone: "first_valid_total" }));
-
-    expect(checklist.items.filter((item) => item.status === "complete")).toHaveLength(5);
-    expect(checklist.isComplete).toBe(true);
-    expect(checklist.items.find((item) => item.id === "publish")).toMatchObject({ status: "not_available" });
-  });
-
-  it("keeps late/incomplete milestones actionable with scoped estimate links", () => {
-    const checklist = deriveFirstEstimateChecklist(progress({ lastMilestone: "first_area_created" }));
-
-    expect(checklist.items.find((item) => item.id === "priced-row")).toMatchObject({
-      href: "/workshop/projects/project-1/estimates/estimate-1",
-      status: "next",
-    });
-    expect(checklist.isComplete).toBe(false);
-  });
-
-  it("uses persisted dismissal/reopen timestamps without changing completion", () => {
-    const dismissed = deriveFirstEstimateChecklist(progress({ checklistDismissedAt: "2026-07-12T01:00:00.000Z" }));
-    const reopened = deriveFirstEstimateChecklist(progress({
-      checklistDismissedAt: "2026-07-12T01:00:00.000Z",
-      checklistReopenedAt: "2026-07-12T02:00:00.000Z",
+  it("derives four tasks only from authoritative saved-work evidence", () => {
+    const checklist = deriveFirstEstimateChecklist(snapshot({
+      activation: {
+        ...snapshot().activation,
+        projectStarted: true,
+        estimateStarted: true,
+        firstAreaCreated: true,
+        firstRowPriced: true,
+        firstValidTotalReached: true,
+      },
     }));
 
-    expect(dismissed.isDismissed).toBe(true);
-    expect(reopened.isDismissed).toBe(false);
-    expect(reopened.items.find((item) => item.id === "project")?.status).toBe("complete");
+    expect(checklist.items.map(({ id, status }) => ({ id, status }))).toEqual([
+      { id: "project", status: "complete" },
+      { id: "estimate", status: "complete" },
+      { id: "area-and-priced-row", status: "complete" },
+      { id: "valid-total", status: "complete" },
+    ]);
+    expect(checklist.completedCount).toBe(4);
+    expect(checklist.isComplete).toBe(true);
   });
 
-  it("does not fabricate progress when activation data is unavailable", () => {
-    const checklist = deriveFirstEstimateChecklist(null);
+  it("requires both an area and priced row before advancing to a valid total", () => {
+    const checklist = deriveFirstEstimateChecklist(snapshot({
+      activation: {
+        ...snapshot().activation,
+        projectStarted: true,
+        estimateStarted: true,
+        firstAreaCreated: true,
+        firstRowPriced: false,
+        firstValidTotalReached: false,
+      },
+    }));
 
-    expect(checklist.items.filter((item) => item.status === "complete")).toHaveLength(0);
-    expect(checklist.items.find((item) => item.id === "project")?.href).toBe("/workshop/projects");
+    expect(checklist.items.map(({ id, status }) => ({ id, status }))).toEqual([
+      { id: "project", status: "complete" },
+      { id: "estimate", status: "complete" },
+      { id: "area-and-priced-row", status: "next" },
+      { id: "valid-total", status: "pending" },
+    ]);
+    expect(checklist.items[2]?.href).toBe("/workshop/projects/project-1/estimates");
+  });
+
+  it("does not award checklist credit for completed guide state", () => {
+    const checklist = deriveFirstEstimateChecklist(snapshot({
+      flowStates: [{
+        flowKey: "guided_estimate_practice",
+        status: "completed",
+        currentStepKey: null,
+        completedStepKeys: [],
+        skippedStepKeys: [],
+        definitionVersion: 1,
+        startedAt: "2026-07-24T00:00:00.000Z",
+        completedAt: "2026-07-24T00:10:00.000Z",
+        dismissedAt: null,
+        lastEventAt: "2026-07-24T00:10:00.000Z",
+        revision: 1,
+      }],
+    }));
+
+    expect(checklist.completedCount).toBe(0);
+    expect(checklist.items[0]?.status).toBe("next");
+  });
+
+  it("uses persisted visibility state without changing completion", () => {
+    const checklist = deriveFirstEstimateChecklist(snapshot({
+      activation: {
+        ...snapshot().activation,
+        projectStarted: true,
+        checklistDismissed: true,
+      },
+    }));
+
+    expect(checklist.isDismissed).toBe(true);
+    expect(checklist.completedCount).toBe(1);
+  });
+
+  it("stays hidden outside workspace creator editing access", () => {
+    const checklist = deriveFirstEstimateChecklist(snapshot({
+      accessSource: "estimate",
+      capabilities: ["view_workshop", "view_estimate"],
+    }));
+
+    expect(checklist).toMatchObject({
+      canShow: false,
+      completedCount: 0,
+      isComplete: false,
+      isDismissed: false,
+      items: [],
+    });
   });
 });

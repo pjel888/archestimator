@@ -1,135 +1,94 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  createEstimateNode: vi.fn(),
-  createEstimateSheetDraft: vi.fn(),
-  createProjectRecord: vi.fn(),
-  insertEstimateRowItemFromLibrary: vi.fn(),
-  requireCurrentUserContext: vi.fn(),
-  ensureDefaultWorkspace: vi.fn(),
-  role: "member" as "owner" | "admin" | "member" | "viewer",
-  existingProjectId: null as string | null,
-  existingEstimateId: null as string | null,
-  existingAreaId: null as string | null,
-  existingRowId: null as string | null,
-  preparedSql: [] as string[],
+  addStarterContent: vi.fn(),
+  revalidatePath: vi.fn(),
+  restoreStarterContent: vi.fn(),
+  resumeStarterContent: vi.fn(),
+  startGuidedPractice: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/session", () => ({
-  requireCurrentUserContext: mocks.requireCurrentUserContext,
+vi.mock("next/cache", () => ({
+  revalidatePath: mocks.revalidatePath,
 }));
 
-vi.mock("@/lib/repositories/workspace-repository", () => ({
-  ensureDefaultWorkspace: mocks.ensureDefaultWorkspace,
+vi.mock("@/lib/onboarding/guided-sample-actions", () => ({
+  startGuidedPractice: mocks.startGuidedPractice,
 }));
 
-vi.mock("@/lib/projects/actions", () => ({
-  createProjectRecord: mocks.createProjectRecord,
+vi.mock("@/lib/onboarding/starter-pack-actions", () => ({
+  addStarterContent: mocks.addStarterContent,
+  restoreStarterContent: mocks.restoreStarterContent,
+  resumeStarterContent: mocks.resumeStarterContent,
 }));
 
-vi.mock("@/lib/estimates/actions", () => ({
-  createEstimateNode: mocks.createEstimateNode,
-  createEstimateSheetDraft: mocks.createEstimateSheetDraft,
-  insertEstimateRowItemFromLibrary: mocks.insertEstimateRowItemFromLibrary,
-}));
-
-vi.mock("@/lib/cloudflare/d1", () => ({
-  getCloudflareD1Database: vi.fn(async () => ({
-    prepare: (sql: string) => {
-      mocks.preparedSql.push(sql);
-      return {
-        bind: (..._values: unknown[]) => ({
-          first: async () => {
-            if (sql.includes("FROM workspace_members")) return { role: mocks.role };
-            if (sql.includes("FROM projects")) return mocks.existingProjectId ? { id: mocks.existingProjectId } : null;
-            if (sql.includes("FROM estimates")) return mocks.existingEstimateId ? { id: mocks.existingEstimateId } : null;
-            if (sql.includes("FROM estimate_nodes")) return mocks.existingAreaId ? { id: mocks.existingAreaId } : null;
-            if (sql.includes("FROM estimate_row_items")) return mocks.existingRowId ? { id: mocks.existingRowId } : null;
-            return null;
-          },
-          run: async () => ({ success: true, meta: { changes: 1 } }),
-        }),
-      };
-    },
-  })),
-}));
-
-import { startGuidedSample } from "@/lib/onboarding/activation-actions";
 import {
-  GUIDED_SAMPLE_AREA_NAME,
-  GUIDED_SAMPLE_ESTIMATE_NAME,
-  GUIDED_SAMPLE_PROJECT_NAME,
-  GUIDED_SAMPLE_ROW_MATERIAL,
-} from "@/lib/onboarding/guided-sample";
+  addCurrentStarterContent,
+  restoreCurrentStarterContent,
+  resumeCurrentStarterContent,
+  startGuidedSample,
+} from "@/lib/onboarding/activation-actions";
 
 describe("startGuidedSample", () => {
   beforeEach(() => {
-    mocks.role = "member";
-    mocks.existingProjectId = null;
-    mocks.existingEstimateId = null;
-    mocks.existingAreaId = null;
-    mocks.existingRowId = null;
-    mocks.preparedSql.length = 0;
-    mocks.createProjectRecord.mockClear();
-    mocks.createEstimateSheetDraft.mockClear();
-    mocks.createEstimateNode.mockClear();
-    mocks.insertEstimateRowItemFromLibrary.mockClear();
-    mocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1" });
-    mocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: "workspace-1" } });
-    mocks.createProjectRecord.mockResolvedValue({ id: "project-1" });
-    mocks.createEstimateSheetDraft.mockResolvedValue({ estimateId: "estimate-1" });
-    mocks.createEstimateNode.mockResolvedValue({ nodeId: "area-1" });
-    mocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
+    vi.clearAllMocks();
   });
 
-  it("creates the safe versioned sample through existing project and estimate seams", async () => {
-    await expect(startGuidedSample()).resolves.toEqual({
+  it("delegates sample startup to the current guided-practice action", async () => {
+    const result = {
       projectId: "project-1",
       estimateId: "estimate-1",
       areaId: "area-1",
-    });
+      tutorialVersion: 2,
+      tutorialGeneration: 1,
+      resumed: false,
+    };
+    mocks.startGuidedPractice.mockResolvedValue(result);
 
-    const projectForm = mocks.createProjectRecord.mock.calls[0]?.[0] as FormData;
-    expect(projectForm.get("name")).toBe(GUIDED_SAMPLE_PROJECT_NAME);
-    expect(mocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1", { name: GUIDED_SAMPLE_ESTIMATE_NAME });
-    const areaForm = mocks.createEstimateNode.mock.calls[0]?.[2] as FormData;
-    expect(areaForm.get("name")).toBe(GUIDED_SAMPLE_AREA_NAME);
-    expect(areaForm.get("kind")).toBe("area");
-    expect(mocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-      targetNodeId: "area-1",
-      libraryItem: expect.objectContaining({ material: GUIDED_SAMPLE_ROW_MATERIAL }),
-    }));
-    expect(mocks.preparedSql.some((sql) => sql.includes("activation_sample_version"))).toBe(true);
+    await expect(startGuidedSample()).resolves.toEqual(result);
+
+    expect(mocks.startGuidedPractice).toHaveBeenCalledTimes(1);
+    expect(mocks.startGuidedPractice).toHaveBeenCalledWith();
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop", "layout");
   });
 
-  it("denies a viewer before any project or estimate lookup/write", async () => {
-    mocks.role = "viewer";
+  it("preserves guided-practice authorization failures", async () => {
+    const error = new Error(
+      "Guided practice requires permission to create and edit workspace Projects.",
+    );
+    mocks.startGuidedPractice.mockRejectedValue(error);
 
-    await expect(startGuidedSample()).rejects.toThrow(/do not have permission/i);
+    await expect(startGuidedSample()).rejects.toBe(error);
 
-    expect(mocks.createProjectRecord).not.toHaveBeenCalled();
-    expect(mocks.createEstimateSheetDraft).not.toHaveBeenCalled();
-    expect(mocks.preparedSql).toHaveLength(1);
-    expect(mocks.preparedSql[0]).toContain("FROM workspace_members");
+    expect(mocks.startGuidedPractice).toHaveBeenCalledTimes(1);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("resumes an existing complete sample without duplicate writes", async () => {
-    mocks.existingProjectId = "project-existing";
-    mocks.existingEstimateId = "estimate-existing";
-    mocks.existingAreaId = "area-existing";
-    mocks.existingRowId = "row-existing";
+  it.each([
+    ["add", addCurrentStarterContent, "addStarterContent"],
+    ["resume", resumeCurrentStarterContent, "resumeStarterContent"],
+  ] as const)(
+    "revalidates the workshop shell after starter %s",
+    async (_label, action, mockKey) => {
+      mocks[mockKey].mockResolvedValue({ status: "complete" });
 
-    await expect(startGuidedSample()).resolves.toEqual({
-      projectId: "project-existing",
-      estimateId: "estimate-existing",
-      areaId: "area-existing",
+      await expect(action()).resolves.toEqual({ status: "complete" });
+
+      expect(mocks[mockKey]).toHaveBeenCalledTimes(1);
+      expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop", "layout");
+    },
+  );
+
+  it("passes the guarded revision through starter restore before revalidating", async () => {
+    mocks.restoreStarterContent.mockResolvedValue({ status: "complete" });
+
+    await expect(restoreCurrentStarterContent(7)).resolves.toEqual({
+      status: "complete",
     });
 
-    expect(mocks.createProjectRecord).not.toHaveBeenCalled();
-    expect(mocks.createEstimateSheetDraft).not.toHaveBeenCalled();
-    expect(mocks.createEstimateNode).not.toHaveBeenCalled();
-    expect(mocks.insertEstimateRowItemFromLibrary).not.toHaveBeenCalled();
+    expect(mocks.restoreStarterContent).toHaveBeenCalledWith({
+      expectedRevision: 7,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop", "layout");
   });
 });

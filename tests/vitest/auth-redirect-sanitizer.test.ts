@@ -3,42 +3,42 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_AUTH_DESTINATION,
   resolveAuthOrigin,
-  sanitizeNextPath,
+  sanitizeProtectedReturnPath,
 } from "@/lib/auth/redirects";
 
-describe("sanitizeNextPath", () => {
-  it("keeps same-origin app paths with query strings", () => {
-    expect(sanitizeNextPath("/workshop/projects?view=active")).toBe(
+describe("sanitizeProtectedReturnPath", () => {
+  it("keeps protected app paths with non-sensitive query strings", () => {
+    expect(sanitizeProtectedReturnPath("/workshop/projects?view=active")).toBe(
       "/workshop/projects?view=active",
     );
-    expect(sanitizeNextPath("/workshop/library#items")).toBe(
-      "/workshop/library#items",
+    expect(sanitizeProtectedReturnPath("/workshop/library#items")).toBe(
+      "/workshop/library",
     );
-    expect(sanitizeNextPath("/invite/public-token-123")).toBe(
-      "/invite/public-token-123",
+    expect(sanitizeProtectedReturnPath("/admin/support?status=open")).toBe(
+      "/admin/support?status=open",
     );
   });
 
-  it("rejects encoded external invite next values", () => {
+  it("rejects protected paths with nested external return intent", () => {
     expect(
-      sanitizeNextPath(
-        "/invite/public-token-123?next=https%3A%2F%2Fevil.example%2Fphish",
+      sanitizeProtectedReturnPath(
+        "/workshop/projects?next=https%3A%2F%2Fevil.example%2Fphish",
       ),
     ).toBe(DEFAULT_AUTH_DESTINATION);
     expect(
-      sanitizeNextPath(
-        "/invite/public-token-123?next=%2F%2Fevil.example%2Fphish",
+      sanitizeProtectedReturnPath(
+        "/admin/support?next=%2F%2Fevil.example%2Fphish",
       ),
     ).toBe(DEFAULT_AUTH_DESTINATION);
   });
 
-  it("rejects auth callback recursion while preserving invite retry fallback", () => {
+  it("rejects auth callback recursion while preserving a protected fallback", () => {
     expect(
-      sanitizeNextPath(
-        "/auth/callback?next=%2Finvite%2Fpublic-token-123",
-        "/invite/public-token-123",
+      sanitizeProtectedReturnPath(
+        "/auth/callback?next=%2Fworkshop%2Fprojects",
+        "/workshop/projects",
       ),
-    ).toBe("/invite/public-token-123");
+    ).toBe("/workshop/projects");
   });
 
   it.each([
@@ -59,20 +59,22 @@ describe("sanitizeNextPath", () => {
     "/%zz",
     "/%E0%A4%A",
     "not-a-path",
+    "/invite/public-token-123",
+    "/pricing",
     "/auth/callback",
     "/auth/callback?next=/workshop",
     "/%61uth/callback?next=/workshop",
   ])("falls back for unsafe next value %s", (value) => {
-    expect(sanitizeNextPath(value)).toBe(DEFAULT_AUTH_DESTINATION);
+    expect(sanitizeProtectedReturnPath(value)).toBe(DEFAULT_AUTH_DESTINATION);
   });
 
   it("uses the supplied fallback only when it is safe", () => {
-    expect(sanitizeNextPath("//evil.example", "/workshop/settings")).toBe(
-      "/workshop/settings",
-    );
-    expect(sanitizeNextPath("//evil.example", "https://evil.example")).toBe(
-      DEFAULT_AUTH_DESTINATION,
-    );
+    expect(
+      sanitizeProtectedReturnPath("//evil.example", "/workshop/settings"),
+    ).toBe("/workshop/settings");
+    expect(
+      sanitizeProtectedReturnPath("//evil.example", "/invite/public-token-123"),
+    ).toBe(DEFAULT_AUTH_DESTINATION);
   });
 });
 

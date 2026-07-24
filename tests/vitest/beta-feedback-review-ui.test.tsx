@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
-import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { AdminStatusSelect } from "@/components/admin/AdminStatusSelect";
 import { BETA_FEEDBACK_STATUSES, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { parseBetaFeedbackStatusUpdate } from "@/lib/workshop/beta-feedback-review";
 
-// Mirrors the option derivation in src/app/workshop/settings/feedback/page.tsx
+// Mirrors the option derivation in src/app/admin/feedback/page.tsx.
 // so the harness drifts together with the status contract.
 const statusLabels: Record<BetaFeedbackStatus, string> = {
   archived: "Archived",
@@ -29,7 +29,7 @@ function queryString(form: HTMLFormElement) {
 describe("beta feedback review select islands", () => {
   it("GET filter form serializes ?status=<value> and keeps ?status= for All statuses", () => {
     render(
-      <form data-testid="filter-form" action="/workshop/settings/feedback">
+      <form data-testid="filter-form" action="/admin/feedback">
         <label>
           Status
           <AdminStatusSelect

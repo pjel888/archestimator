@@ -14,7 +14,8 @@ import {
 const migration = readFileSync("supabase/migrations/20260602005649_beta_allowlist_admin_queue.sql", "utf8");
 const hardeningMigration = readFileSync("supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql", "utf8");
 const d1Migration = readFileSync("migrations/0001_closed_beta_feedback.sql", "utf8");
-const pageSource = readFileSync("src/app/workshop/settings/users/page.tsx", "utf8");
+const pageSource = readFileSync("src/app/admin/allowlist/page.tsx", "utf8");
+const managerSource = readFileSync("src/components/admin/AdminAllowlistManager.tsx", "utf8");
 const helperSource = readFileSync("src/lib/auth/beta-allowlist-admin.ts", "utf8");
 const actionSource = readFileSync("src/lib/auth/beta-allowlist-admin-actions.ts", "utf8");
 
@@ -74,9 +75,10 @@ describe("closed beta allowlist admin", () => {
     expect(actionSource).toContain("canManageClosedBetaAllowlist");
     expect(actionSource).toContain("createClosedBetaAllowlistEntryInD1");
     expect(actionSource).toContain("updateClosedBetaAllowlistEntryInD1");
-    expect(pageSource).toContain("Only platform admins can manage users.");
-    expect(pageSource).toContain("Manage the email allowlist without exposing it to regular members.");
-    expect(pageSource).toContain("Showing {queue.rows.length} latest allowlist rows.");
+    expect(pageSource).toContain("AdminAllowlistManager");
+    expect(managerSource).toContain("Only platform admins can manage the closed-beta allowlist.");
+    expect(managerSource).toContain("Listed emails can complete Google or magic-link sign-in");
+    expect(managerSource).toContain("Closed-beta allowlist");
     expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS closed_beta_allowed_emails");
     expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS closed_beta_allowlist_audit_events");
   });

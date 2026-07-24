@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UploadScanOverridePanel } from "@/components/workshop/UploadScanOverridePanel";
+import { UploadScanOverridePanel } from "@/components/admin/UploadScanOverridePanel";
 import type { UploadScanOverrideReviewRow } from "@/lib/uploads/scan-override-review";
 
 const authMocks = vi.hoisted(() => ({

@@ -17,7 +17,7 @@ const allMigrations = readdirSync("supabase/migrations")
   .join("\n");
 const actionSource = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");
 const pageSource = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
-const reviewPageSource = readFileSync("src/app/workshop/settings/feedback/page.tsx", "utf8");
+const reviewPageSource = readFileSync("src/app/admin/feedback/page.tsx", "utf8");
 const reviewSource = readFileSync("src/lib/workshop/beta-feedback-review.ts", "utf8");
 const reviewActionSource = readFileSync("src/lib/workshop/beta-feedback-review-actions.ts", "utf8");
 
@@ -111,7 +111,7 @@ describe("closed beta feedback", () => {
     expect(reviewActionSource).toContain("parseBetaFeedbackStatusUpdate");
     expect(reviewActionSource).toContain("updateBetaFeedbackReviewStatusInD1");
     expect(reviewPageSource).toContain("Only platform admins can review feedback.");
-    expect(reviewPageSource).toContain("Showing {queue.submissions.length} latest feedback submissions.");
+    expect(reviewPageSource).toContain("Showing {submissions.length} latest feedback submissions.");
   });
 
   it("keeps the protected feedback page tied to persistence and fallback", () => {

@@ -831,7 +831,7 @@ describeProof("upload release gates", () => {
         result: "3 files, 11 tests passed",
       }),
       expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/operations-dashboard.ts src/components/workshop/UploadOperationsDashboardPanel.tsx src/app/workshop/settings/upload-operations/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx tests/vitest/upload-operations-dashboard.test.ts tests/vitest/upload-operations-dashboard-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx",
+        command: "bunx eslint src/lib/uploads/operations-dashboard.ts src/components/admin/UploadOperationsDashboardPanel.tsx src/app/admin/upload-operations/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx tests/vitest/upload-operations-dashboard.test.ts tests/vitest/upload-operations-dashboard-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx",
         exit: 0,
         result: "Scoped upload operations dashboard page, panel, query, settings rail, and focused tests lint passed with no errors",
       }),
@@ -931,7 +931,7 @@ describeProof("upload release gates", () => {
         result: "8 files, 29 tests passed",
       }),
       expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/scan-override-review.ts src/components/workshop/UploadScanOverridePanel.tsx src/app/workshop/settings/scan-overrides/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx src/app/api/component-library/attachments/route.ts scripts/prove-upload-operations-runbook-local.ts tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts tests/vitest/upload-release-gates.test.ts",
+        command: "bunx eslint src/lib/uploads/scan-override-review.ts src/components/admin/UploadScanOverridePanel.tsx src/app/admin/scan-overrides/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx src/app/api/component-library/attachments/route.ts scripts/prove-upload-operations-runbook-local.ts tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts tests/vitest/upload-release-gates.test.ts",
         exit: 0,
         result: "Scoped scan override operator UI, download gate, runbook, and release-gate lint passed with no errors",
       }),

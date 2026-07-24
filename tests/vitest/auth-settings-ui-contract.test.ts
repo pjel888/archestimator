@@ -24,12 +24,13 @@ describe("auth onboarding and settings route contracts", () => {
     expect(read("src/app/workshop/settings/workspace/page.tsx")).toMatch(/updateWorkspaceSettings/);
   });
 
-  it("keeps settings as a discoverable hub for beta operations", () => {
+  it("keeps member settings separate from platform operations", () => {
     const wrapperSource = read("src/components/workshop/WorkshopSettingsModalContent.tsx");
     const source = read("src/components/workshop/WorkshopSettingsModalContentView.tsx");
     const modalSource = read("src/components/workshop/WorkshopSettingsModal.tsx");
     const pageSource = read("src/app/workshop/settings/page.tsx");
     const nextConfigSource = read("next.config.ts");
+    const adminNavSource = read("src/components/admin/admin-nav.ts");
 
     expect(source).toContain('aria-label="Settings navigation"');
     expect(source).toContain('id="settings-detail-panel"');
@@ -40,11 +41,17 @@ describe("auth onboarding and settings route contracts", () => {
     expect(source).toContain('href: "/terms"');
     expect(source).toContain("Support and legal");
     expect(source).toContain("support@archestimator.com");
-    expect(source).toContain('href: "/workshop/settings/users"');
-    expect(source).not.toContain('href: "/workshop/settings/beta-users"');
-    expect(source).toContain('href: "/workshop/settings/feedback"');
-    expect(nextConfigSource).toContain('source: "/workshop/settings/beta-users"');
-    expect(nextConfigSource).toContain('destination: "/workshop/settings/users"');
+    expect(source).not.toContain("Access operations");
+    expect(source).not.toContain("canManagePlatform");
+    expect(source).not.toContain('href: "/workshop/settings/users"');
+    expect(source).not.toContain('href: "/workshop/settings/feedback"');
+    expect(source).not.toContain('href: "/workshop/settings/upload-operations"');
+    expect(source).not.toContain('href: "/workshop/settings/scan-overrides"');
+    expect(nextConfigSource).not.toContain('source: "/workshop/settings/beta-users"');
+    expect(adminNavSource).toContain('href: "/admin/allowlist"');
+    expect(adminNavSource).toContain('href: "/admin/feedback"');
+    expect(adminNavSource).toContain('href: "/admin/upload-operations"');
+    expect(adminNavSource).toContain('href: "/admin/scan-overrides"');
     expect(wrapperSource).toContain('import { signOut } from "@/lib/auth/actions"');
     expect(wrapperSource).toContain("action={signOut}");
     expect(source).toContain("Sign out");
@@ -52,7 +59,7 @@ describe("auth onboarding and settings route contracts", () => {
     expect(modalSource).toContain('bodyClassName="bg-white p-0"');
     expect(modalSource).toContain("PROJECT_HEADER_ACTION_BUTTON_CLASS");
     expect(modalSource).toContain("window.location.assign(closeHref)");
-    expect(pageSource).toContain("isPlatformAdminRole(context.role)");
+    expect(pageSource).not.toContain("isPlatformAdmin");
     expect(pageSource).toContain('trigger="none"');
     expect(pageSource).toContain('closeHref="/workshop/projects"');
     expect(pageSource).toContain('location="Workshop / Settings"');
