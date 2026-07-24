@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
@@ -15,6 +21,7 @@ import type {
   EstimateTreeNode,
 } from "@/components/workshop/estimate-tree-data";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { cn } from "@/lib/ui/cn";
 
 import { heroCopy } from "../_content";
@@ -28,13 +35,16 @@ import styles from "../kimi-landing.module.css";
  *
  * SSR and the first client render always show the static final phase, so the
  * proof is meaningful before hydration. The sequence starts only when the
- * proof is in view, the viewport is desktop-sized, and reduced motion is off.
- * It pauses while the document is hidden and freezes again if the motion
+ * proof is in view, the viewport is tablet-sized or larger, and reduced motion
+ * is off. It pauses while the document is hidden and freezes again if the motion
  * preference changes while the page is open.
  */
 
 type ProofPhase =
   | "ready"
+  | "jon-select-root"
+  | "jon-add-branch"
+  | "jon-branch-created"
   | "hover-faucet"
   | "drag-faucet"
   | "faucet-inserted"
@@ -45,8 +55,13 @@ type ProofPhase =
   | "drag-fauxwood"
   | "fauxwood-replaced";
 
+type ProofDataStage = "base" | "faucet" | "ceramic" | "fauxwood";
+
 const PROOF_PHASES: ProofPhase[] = [
   "ready",
+  "jon-select-root",
+  "jon-add-branch",
+  "jon-branch-created",
   "hover-faucet",
   "drag-faucet",
   "faucet-inserted",
@@ -58,6 +73,22 @@ const PROOF_PHASES: ProofPhase[] = [
   "fauxwood-replaced",
 ];
 
+const PROOF_DATA_STAGE_BY_PHASE: Record<ProofPhase, ProofDataStage> = {
+  ready: "base",
+  "jon-select-root": "base",
+  "jon-add-branch": "base",
+  "jon-branch-created": "base",
+  "hover-faucet": "base",
+  "drag-faucet": "base",
+  "faucet-inserted": "faucet",
+  "hover-ceramic": "faucet",
+  "drag-ceramic": "faucet",
+  "ceramic-inserted": "ceramic",
+  "hover-fauxwood": "ceramic",
+  "drag-fauxwood": "ceramic",
+  "fauxwood-replaced": "fauxwood",
+};
+
 const PROOF_DRAG_PHASES = new Set<ProofPhase>([
   "drag-faucet",
   "drag-ceramic",
@@ -65,11 +96,12 @@ const PROOF_DRAG_PHASES = new Set<ProofPhase>([
 ]);
 
 const STATIC_PHASE: ProofPhase = "fauxwood-replaced";
-const STATIC_PHASE_INDEX = PROOF_PHASES.indexOf(STATIC_PHASE);
-const PROOF_SEQUENCE_END_INDEX = STATIC_PHASE_INDEX + PROOF_PHASES.length;
 
 const PROOF_PHASE_DURATION_MS: Record<ProofPhase, number> = {
   ready: 1000,
+  "jon-select-root": 1400,
+  "jon-add-branch": 1400,
+  "jon-branch-created": 2600,
   "hover-faucet": 1200,
   "drag-faucet": 2400,
   "faucet-inserted": 2200,
@@ -81,16 +113,35 @@ const PROOF_PHASE_DURATION_MS: Record<ProofPhase, number> = {
   "fauxwood-replaced": 5000,
 };
 
-const DESKTOP_LOOP_QUERY = "(min-width: 821px)";
+const MOTION_VIEWPORT_QUERY = "(min-width: 768px) and (min-height: 600px)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
-const PROOF_WORKSPACE_ID = "hero-sanitized-workspace";
-const PROOF_PROJECT_ID = "hero-sanitized-project";
-const PROOF_ESTIMATE_ID = "hero-sanitized-estimate";
-const PROOF_TAB_ID = "hero-sanitized-tab-page-001";
+const PROOF_WORKSPACE_ID = "kimi3d-proof-workspace";
+const PROOF_PROJECT_ID = "kimi3d-proof-project";
+const PROOF_ESTIMATE_ID = "kimi3d-proof-estimate";
+const PROOF_TAB_ID = "kimi3d-proof-tab-page-001";
+const PROOF_ROOT_NODE_ID = "hero-node-lot-24a";
 const PROOF_KITCHEN_NODE_ID = "hero-node-kitchen";
+const PROOF_EXTERIOR_WORKS_NODE_ID = "hero-node-exterior-works";
+const PROOF_BASE_CABINET_ROW_ID =
+  "hero-estimate-row-kitchen-base-cabinet-run";
+const PROOF_COUNTERTOP_ROW_ID = "hero-estimate-row-kitchen-countertop";
+const PROOF_SINK_ROW_ID = "hero-estimate-row-kitchen-sink";
 const PROOF_FAUCET_ROW_ID = "hero-estimate-row-kitchen-faucet";
 const PROOF_FLOOR_FINISH_ROW_ID = "hero-estimate-row-kitchen-floor-finish";
+const PROOF_FAUCET_LIBRARY_HANDLE_SELECTOR =
+  '[data-tree-row="hero-library-item-single-lever-faucet"] [data-tree-rail="drag"]';
+
+const johnCursorColor = getCollaborationColorForUser("john");
+const janeCursorColor = getCollaborationColorForUser("jane-4");
+const johnCursorStyle = {
+  "--proof-cursor-color": johnCursorColor.cursor,
+  "--proof-cursor-ring": johnCursorColor.ring,
+} as CSSProperties;
+const janeCursorStyle = {
+  "--proof-cursor-color": janeCursorColor.cursor,
+  "--proof-cursor-ring": janeCursorColor.ring,
+} as CSSProperties;
 
 function getProofPhaseAtIndex(index: number): ProofPhase {
   const normalized =
@@ -98,17 +149,15 @@ function getProofPhaseAtIndex(index: number): ProofPhase {
   return PROOF_PHASES[normalized] ?? "ready";
 }
 
-const proofEstimateTabs: EstimateTabSummary[] = [
-  {
-    id: PROOF_TAB_ID,
-    name: "Page 001",
-    sortOrder: 0,
-    isDefault: true,
-    nodeCount: 8,
-    rowCount: 3,
-    totalCost: 228940,
-  },
-];
+const proofEstimateTabBase: Omit<
+  EstimateTabSummary,
+  "nodeCount" | "rowCount" | "totalCost"
+> = {
+  id: PROOF_TAB_ID,
+  name: "Page 001",
+  sortOrder: 0,
+  isDefault: true,
+};
 
 const proofLibraryFolders: LibraryFolderRecord[] = [
   createFolder("hero-library-folder-fixture", null, "Fixture", 10),
@@ -124,6 +173,25 @@ const proofLibraryFolders: LibraryFolderRecord[] = [
     "hero-library-folder-finishes",
     "Floor",
     10,
+  ),
+  createFolder(
+    "hero-library-folder-countertop",
+    "hero-library-folder-finishes",
+    "Countertop",
+    20,
+  ),
+  createFolder("hero-library-folder-casework", null, "Casework", 30),
+  createFolder(
+    "hero-library-folder-cabinetry",
+    "hero-library-folder-casework",
+    "Cabinetry",
+    10,
+  ),
+  createFolder(
+    "hero-library-folder-sink",
+    "hero-library-folder-fixture",
+    "Sink",
+    20,
   ),
 ];
 
@@ -177,33 +245,82 @@ const fauxWoodTileItem = createRow({
   pricingSource: "Supplier catalog",
 });
 
-const proofLibraryItems = [faucetItem, ceramicTileItem, fauxWoodTileItem];
+const baseCabinetItem = createRow({
+  id: "hero-library-item-kitchen-base-cabinet-run",
+  material: "Kitchen base cabinet run",
+  description: "Modular base cabinets with soft-close hardware.",
+  supplier: "Cabinetry Works",
+  source: "supplier",
+  unit: "lm",
+  itemCost: 14500,
+  miscCost: 20800,
+  quantity: 6.4,
+  category: "Casework",
+  libraryFolderId: "hero-library-folder-cabinetry",
+  imageUrl: "/component-thumbnails/kitchen-base-cabinets.jpg",
+  pricingSource: "Supplier quotation",
+});
 
-function getProofKitchenRows(phase: ProofPhase): EstimateRowItem[] {
-  const rows: EstimateRowItem[] = [];
-  if (
-    phase === "faucet-inserted" ||
-    phase === "hover-ceramic" ||
-    phase === "drag-ceramic" ||
-    phase === "ceramic-inserted" ||
-    phase === "hover-fauxwood" ||
-    phase === "drag-fauxwood" ||
-    phase === "fauxwood-replaced"
-  ) {
+const countertopItem = createRow({
+  id: "hero-library-item-engineered-stone-countertop",
+  material: "20 mm engineered-stone countertop",
+  description: "Countertop with eased edges and a sink cutout.",
+  supplier: "StoneMasters Countertops",
+  source: "library",
+  unit: "lm",
+  itemCost: 8500,
+  miscCost: 15000,
+  quantity: 7.2,
+  category: "Finishes",
+  libraryFolderId: "hero-library-folder-countertop",
+  imageUrl: "/component-thumbnails/kitchen-quartz-countertop.jpg",
+  pricingSource: "Supplier quotation",
+});
+
+const sinkItem = createRow({
+  id: "hero-library-item-single-bowl-kitchen-sink",
+  material: "Single-bowl stainless kitchen sink",
+  description: "Undermount sink with drain fittings and installation allowance.",
+  supplier: "Franke Philippines",
+  source: "library",
+  unit: "pc",
+  itemCost: 18500,
+  miscCost: 2200,
+  quantity: 1,
+  category: "Kitchen Fixtures",
+  libraryFolderId: "hero-library-folder-sink",
+  imageUrl: "/component-thumbnails/lib-franke-single-bowl-sink.jpg",
+  pricingSource: "Supplier catalog",
+});
+
+const proofBaseKitchenRows: EstimateRowItem[] = [
+  { ...baseCabinetItem, id: PROOF_BASE_CABINET_ROW_ID },
+  { ...countertopItem, id: PROOF_COUNTERTOP_ROW_ID },
+  { ...sinkItem, id: PROOF_SINK_ROW_ID },
+];
+
+const proofLibraryItems = [
+  faucetItem,
+  ceramicTileItem,
+  fauxWoodTileItem,
+  countertopItem,
+  sinkItem,
+  baseCabinetItem,
+];
+
+function getProofKitchenRows(stage: ProofDataStage): EstimateRowItem[] {
+  const rows = proofBaseKitchenRows.map((row) => ({ ...row }));
+  if (stage !== "base") {
     rows.push({ ...faucetItem, id: PROOF_FAUCET_ROW_ID, quantity: 1 });
   }
-  if (
-    phase === "ceramic-inserted" ||
-    phase === "hover-fauxwood" ||
-    phase === "drag-fauxwood"
-  ) {
+  if (stage === "ceramic") {
     rows.push({
       ...ceramicTileItem,
       id: PROOF_FLOOR_FINISH_ROW_ID,
       quantity: 24,
     });
   }
-  if (phase === "fauxwood-replaced") {
+  if (stage === "fauxwood") {
     rows.push({
       ...fauxWoodTileItem,
       id: PROOF_FLOOR_FINISH_ROW_ID,
@@ -229,15 +346,15 @@ function getDragGhost(phase: ProofPhase) {
 export function HeroWorkspaceProof({ className }: { className?: string }) {
   const queryClient = useQueryClient();
   const rootRef = useRef<HTMLDivElement>(null);
+  const wasSequencePlayingRef = useRef(false);
   const [isInView, setIsInView] = useState(false);
-  const [desktopMotionAllowed, setDesktopMotionAllowed] = useState(false);
+  const [motionViewportAllowed, setMotionViewportAllowed] = useState(false);
   const [documentHidden, setDocumentHidden] = useState(false);
-  const [phaseIndex, setPhaseIndex] = useState(STATIC_PHASE_INDEX);
+  const [phaseIndex, setPhaseIndex] = useState(0);
   const [workspaceReady, setWorkspaceReady] = useState(false);
-  const sequenceComplete = phaseIndex >= PROOF_SEQUENCE_END_INDEX;
 
   const playback =
-    isInView && desktopMotionAllowed && !sequenceComplete
+    isInView && motionViewportAllowed && workspaceReady
       ? "sequence"
       : "static";
   const isPaused = playback === "static" || documentHidden;
@@ -245,37 +362,62 @@ export function HeroWorkspaceProof({ className }: { className?: string }) {
     playback === "static" ? STATIC_PHASE : getProofPhaseAtIndex(phaseIndex);
   const dragGhost = playback === "static" ? null : getDragGhost(phase);
 
-  const nodes = useMemo(() => createProofEstimateTree(phase), [phase]);
+  const dataStage = PROOF_DATA_STAGE_BY_PHASE[phase];
+  const hasJonBranch =
+    phase !== "ready" &&
+    phase !== "jon-select-root" &&
+    phase !== "jon-add-branch";
+  const selectedNodeId =
+    phase === "jon-select-root" || phase === "jon-add-branch"
+      ? PROOF_ROOT_NODE_ID
+      : phase === "jon-branch-created"
+        ? PROOF_EXTERIOR_WORKS_NODE_ID
+        : PROOF_KITCHEN_NODE_ID;
+  const kitchenRows = useMemo(
+    () => getProofKitchenRows(dataStage),
+    [dataStage],
+  );
+  const nodes = useMemo(
+    () => createProofEstimateTree(kitchenRows, hasJonBranch),
+    [hasJonBranch, kitchenRows],
+  );
   const estimateTabs = useMemo(() => {
-    const kitchenRows = getProofKitchenRows(phase);
-    const first = proofEstimateTabs[0];
     return [
       {
-        ...first,
+        ...proofEstimateTabBase,
+        nodeCount: countProofEstimateNodes(nodes),
         rowCount: kitchenRows.length,
         totalCost: getKitchenRowsTotal(kitchenRows),
       },
     ];
-  }, [phase]);
+  }, [kitchenRows, nodes]);
 
   useEffect(() => {
-    const desktopQuery = window.matchMedia(DESKTOP_LOOP_QUERY);
+    const motionViewportQuery = window.matchMedia(MOTION_VIEWPORT_QUERY);
     const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
 
     const evaluate = () => {
-      setDesktopMotionAllowed(
-        desktopQuery.matches && !reducedMotionQuery.matches,
+      setMotionViewportAllowed(
+        motionViewportQuery.matches && !reducedMotionQuery.matches,
       );
     };
     evaluate();
 
-    desktopQuery.addEventListener("change", evaluate);
+    motionViewportQuery.addEventListener("change", evaluate);
     reducedMotionQuery.addEventListener("change", evaluate);
     return () => {
-      desktopQuery.removeEventListener("change", evaluate);
+      motionViewportQuery.removeEventListener("change", evaluate);
       reducedMotionQuery.removeEventListener("change", evaluate);
     };
   }, []);
+
+  useEffect(() => {
+    const shouldPlay = playback === "sequence";
+    if (!shouldPlay && wasSequencePlayingRef.current) {
+      setPhaseIndex(0);
+    }
+    wasSequencePlayingRef.current = shouldPlay;
+  }, [playback]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -306,14 +448,82 @@ export function HeroWorkspaceProof({ className }: { className?: string }) {
       const hasWorkspaceSurface = Boolean(
         root.querySelector('section[aria-label="Kitchen"]'),
       );
-      setWorkspaceReady(!hasDynamicSkeleton && hasWorkspaceSurface);
+      const libraryHandle = root.querySelector<HTMLElement>(
+        PROOF_FAUCET_LIBRARY_HANDLE_SELECTOR,
+      );
+      const libraryRow =
+        libraryHandle?.closest<HTMLElement>("[data-tree-row]");
+      const libraryRowRect = libraryRow?.getBoundingClientRect();
+      const hasVisibleLibrarySource = Boolean(
+        libraryHandle &&
+          libraryRowRect &&
+          libraryRowRect.width > 0 &&
+          libraryRowRect.height > 0,
+      );
+      if (
+        !hasDynamicSkeleton &&
+        hasWorkspaceSurface &&
+        hasVisibleLibrarySource
+      ) {
+        setWorkspaceReady(true);
+        observer.disconnect();
+      }
     };
 
-    evaluateWorkspaceReadiness();
     const observer = new MutationObserver(evaluateWorkspaceReadiness);
     observer.observe(root, { childList: true, subtree: true });
+    evaluateWorkspaceReadiness();
     return () => observer.disconnect();
   }, []);
+
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !workspaceReady || playback === "static") return;
+
+    let frame = 0;
+    const update = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        positionProofCursors(root, phaseRef.current);
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(update);
+    const mutationObserver = new MutationObserver(update);
+    resizeObserver.observe(root);
+    mutationObserver.observe(root, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [playback, workspaceReady]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !workspaceReady || playback === "static") return;
+
+    const frame = window.requestAnimationFrame(() => {
+      positionProofCursors(root, phase);
+    });
+    const delayedUpdate = window.setTimeout(() => {
+      positionProofCursors(root, phase);
+    }, 160);
+
+    return () => {
+      window.clearTimeout(delayedUpdate);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [phase, playback, workspaceReady]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -375,36 +585,39 @@ export function HeroWorkspaceProof({ className }: { className?: string }) {
           already, and inert here keeps its many controls out of the tab order
           and accessibility tree. The region label plus the visible disclosure
           communicate what it is. */}
-      <div inert className={styles.proofScale}>
-        <EstimateWorkspaceClient
-          projectId={PROOF_PROJECT_ID}
-          workspaceId={PROOF_WORKSPACE_ID}
-          estimateId={PROOF_ESTIMATE_ID}
-          projectName="Lot 24A"
-          selectedNodeId={PROOF_KITCHEN_NODE_ID}
-          nodes={nodes}
-          estimateTabs={estimateTabs}
-          activeTabId={PROOF_TAB_ID}
-          canEditEstimate
-          libraryItems={proofLibraryItems}
-          libraryTemplates={[]}
-          libraryCategoryTree={[]}
-          librarySuppliers={[]}
-          libraryBrands={[]}
-          libraryFolders={proofLibraryFolders}
-          libraryUseStoredPreferences={false}
-          libraryEnableReusableProjectSources={false}
-          surfaceVariant="glass"
-          disableRouteSync
-          presentationMode
-        />
-      </div>
-      {!workspaceReady ? (
-        <div className={styles.proofLoading} role="status" aria-live="polite">
-          <span>Preparing the estimate workspace</span>
-          <p>Project scope, working sheet, and cost library</p>
+      <div className={styles.proofSurfaceClip}>
+        <div inert className={styles.proofScale}>
+          <EstimateWorkspaceClient
+            projectId={PROOF_PROJECT_ID}
+            workspaceId={PROOF_WORKSPACE_ID}
+            estimateId={PROOF_ESTIMATE_ID}
+            projectName="Lot 24A"
+            selectedNodeId={selectedNodeId}
+            nodes={nodes}
+            estimateTabs={estimateTabs}
+            activeTabId={PROOF_TAB_ID}
+            canEditEstimate
+            libraryItems={proofLibraryItems}
+            libraryTemplates={[]}
+            libraryCategoryTree={[]}
+            librarySuppliers={[]}
+            libraryBrands={[]}
+            libraryFolders={proofLibraryFolders}
+            libraryUseStoredPreferences={false}
+            libraryEnableReusableProjectSources={false}
+            surfaceVariant="glass"
+            disableRouteSync
+            presentationMode
+            forceDesktopRails
+          />
         </div>
-      ) : null}
+        {!workspaceReady ? (
+          <div className={styles.proofLoading} role="status" aria-live="polite">
+            <span>Preparing the estimate workspace</span>
+            <p>Project scope, working sheet, and cost library</p>
+          </div>
+        ) : null}
+      </div>
       <div className={styles.proofAnimationLayer} aria-hidden="true">
         {dragGhost ? (
           <div className={styles.proofDragGhost}>
@@ -412,23 +625,39 @@ export function HeroWorkspaceProof({ className }: { className?: string }) {
             <small>{dragGhost.meta}</small>
           </div>
         ) : null}
-        <div className={styles.proofMouse}>
-          <svg viewBox="0 0 20 26" focusable="false" aria-hidden="true">
-            <path d="M2.2 1.4 18.1 15.9l-8.2 1.2-3.7 7.5L2.2 1.4Z" />
-          </svg>
+        <div
+          className={styles.proofCollaboratorCursor}
+          style={johnCursorStyle}
+          data-proof-cursor="john"
+        >
+          <span className={styles.proofCollaboratorCursorMarker} />
+          <span className={styles.proofCollaboratorCursorName}>Philip</span>
+        </div>
+        <div
+          className={cn(
+            styles.proofCollaboratorCursor,
+            styles.proofCollaboratorCursorJane,
+          )}
+          style={janeCursorStyle}
+          data-proof-cursor="jane"
+        >
+          <span className={styles.proofCollaboratorCursorMarker} />
+          <span className={styles.proofCollaboratorCursorName}>Jon</span>
         </div>
       </div>
     </div>
   );
 }
 
-function createProofEstimateTree(phase: ProofPhase): EstimateTreeNode[] {
-  const kitchenRows = getProofKitchenRows(phase);
+function createProofEstimateTree(
+  kitchenRows: EstimateRowItem[],
+  includeJonBranch: boolean,
+): EstimateTreeNode[] {
   const kitchenTotal = formatProofPeso(getKitchenRowsTotal(kitchenRows));
 
   return [
     {
-      id: "hero-node-lot-24a",
+      id: PROOF_ROOT_NODE_ID,
       name: "Lot 24A",
       kind: "group",
       total: kitchenTotal,
@@ -462,9 +691,26 @@ function createProofEstimateTree(phase: ProofPhase): EstimateTreeNode[] {
             createArea("hero-node-bedroom-b", "Bedroom B", "PHP 0"),
           ],
         },
+        ...(includeJonBranch
+          ? [
+              createArea(
+                PROOF_EXTERIOR_WORKS_NODE_ID,
+                "Exterior Works",
+                "PHP 0",
+              ),
+            ]
+          : []),
       ],
     },
   ];
+}
+
+function countProofEstimateNodes(nodes: EstimateTreeNode[]): number {
+  return nodes.reduce(
+    (count, node) =>
+      count + 1 + countProofEstimateNodes(node.children ?? []),
+    0,
+  );
 }
 
 function getKitchenRowsTotal(rows: EstimateRowItem[]) {
@@ -515,4 +761,152 @@ function createRow(
       input.linkState ??
       (input.source === "project" ? "unlinked" : "linked-clean"),
   };
+}
+
+type ProofCursorAnchor = {
+  selector: string;
+  xRatio?: number;
+  yRatio?: number;
+};
+
+const proofJohnCursorAnchors: Record<ProofPhase, ProofCursorAnchor> = {
+  ready: {
+    selector: 'button[aria-label="Add Component"]',
+    xRatio: 0.5,
+    yRatio: 0.5,
+  },
+  "jon-select-root": {
+    selector: 'button[aria-label="Add Component"]',
+    xRatio: 0.5,
+    yRatio: 0.5,
+  },
+  "jon-add-branch": {
+    selector: 'button[aria-label="Add Component"]',
+    xRatio: 0.5,
+    yRatio: 0.5,
+  },
+  "jon-branch-created": {
+    selector: 'button[aria-label="Add Component"]',
+    xRatio: 0.5,
+    yRatio: 0.5,
+  },
+  "hover-faucet": {
+    selector: PROOF_FAUCET_LIBRARY_HANDLE_SELECTOR,
+  },
+  "drag-faucet": {
+    selector: 'section[aria-label="Kitchen"] .border-dashed',
+  },
+  "faucet-inserted": {
+    selector: 'input[aria-label="Single-lever kitchen faucet quantity"]',
+  },
+  "hover-ceramic": {
+    selector:
+      '[data-tree-row="hero-library-item-600x600-ceramic-tiles"] [data-tree-rail="drag"]',
+  },
+  "drag-ceramic": {
+    selector: 'section[aria-label="Kitchen"] .border-dashed',
+  },
+  "ceramic-inserted": {
+    selector: 'input[aria-label="600x600 ceramic tiles quantity"]',
+  },
+  "hover-fauxwood": {
+    selector:
+      '[data-tree-row="hero-library-item-200x1200-faux-wood-tiles"] [data-tree-rail="drag"]',
+  },
+  "drag-fauxwood": {
+    selector:
+      '[aria-label="600x600 ceramic tiles replaceable estimate component"]',
+    xRatio: 0.42,
+  },
+  "fauxwood-replaced": {
+    selector: 'input[aria-label="200x1200 faux wood tiles quantity"]',
+  },
+};
+
+function getProofJaneCursorAnchor(phase: ProofPhase): ProofCursorAnchor {
+  if (phase === "jon-select-root") {
+    return { selector: `[data-tree-row="${PROOF_ROOT_NODE_ID}"]` };
+  }
+
+  if (phase === "jon-add-branch") {
+    return { selector: 'button[aria-label="Add Branch"]' };
+  }
+
+  if (phase !== "ready") {
+    return {
+      selector: `[data-tree-row="${PROOF_EXTERIOR_WORKS_NODE_ID}"]`,
+    };
+  }
+
+  return {
+    selector:
+      'input[aria-label="20 mm engineered-stone countertop adjustment percentage"]',
+  };
+}
+
+function positionProofCursors(root: HTMLDivElement, phase: ProofPhase) {
+  const rootRect = root.getBoundingClientRect();
+  const johnAnchor =
+    proofJohnCursorAnchors[phase] ?? proofJohnCursorAnchors.ready;
+  const johnPosition = getProofCursorPosition(
+    root,
+    rootRect,
+    johnAnchor,
+    { x: 0.87, y: 0.19 },
+  );
+  const janePosition = getProofCursorPosition(
+    root,
+    rootRect,
+    getProofJaneCursorAnchor(phase),
+    { x: 0.55, y: 0.62 },
+  );
+
+  setProofCursorPosition(root, "john", johnPosition);
+  setProofCursorPosition(root, "jane", janePosition);
+}
+
+function getProofCursorPosition(
+  root: HTMLDivElement,
+  rootRect: DOMRect,
+  anchor: ProofCursorAnchor,
+  fallback: { x: number; y: number },
+) {
+  const target = root.querySelector<HTMLElement>(anchor.selector);
+  const targetRect = target?.getBoundingClientRect();
+  if (!targetRect) {
+    return {
+      x: rootRect.width * fallback.x,
+      y: rootRect.height * fallback.y,
+    };
+  }
+
+  const rawX =
+    targetRect.left -
+    rootRect.left +
+    targetRect.width * (anchor.xRatio ?? 0.5);
+  const rawY =
+    targetRect.top -
+    rootRect.top +
+    targetRect.height * (anchor.yRatio ?? 0.5);
+  const x = Math.min(Math.max(rawX, 8), Math.max(rootRect.width - 56, 8));
+  const y = Math.min(Math.max(rawY, 8), Math.max(rootRect.height - 18, 8));
+
+  return { x, y };
+}
+
+function setProofCursorPosition(
+  root: HTMLDivElement,
+  name: "john" | "jane",
+  position: { x: number; y: number },
+) {
+  const xProperty = `--proof-${name}-x`;
+  const yProperty = `--proof-${name}-y`;
+  const x = `${position.x.toFixed(3)}px`;
+  const y = `${position.y.toFixed(3)}px`;
+  if (root.style.getPropertyValue(xProperty) !== x) {
+    root.style.setProperty(xProperty, x);
+  }
+  if (root.style.getPropertyValue(yProperty) !== y) {
+    root.style.setProperty(yProperty, y);
+  }
 }

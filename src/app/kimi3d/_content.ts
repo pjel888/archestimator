@@ -50,46 +50,56 @@ export const headerCopy = {
 } as const;
 
 export const heroCopy = {
-  context: "Construction cost intelligence software for winning AEC teams",
+  context: "Construction cost intelligence software",
   title: "BUILD WITH AMBITION",
   subtitle: "Build with Archestimator",
-  lead: "Structure itemized scope and costs, reuse materials and assemblies, publish selected estimate content to a client portal or Excel, and keep comments, decisions, and revisions tied to the issued version.",
+  leadTitleStart: "From cost estimate to client approval.",
+  leadTitleHighlight: "All in one workflow.",
+  lead: "Build detailed estimates, issue professional proposals, collect client feedback, and keep every decision and revision connected.",
+  audiences: [
+    "Architects",
+    "Engineers",
+    "Contractors",
+    "Subcontractors",
+    "Home Builders",
+    "Design-Build Teams",
+    "Suppliers",
+    "Procurement Teams",
+    "Project Managers",
+    "Cost Estimators",
+    "Construction Managers",
+    "Facilities Managers",
+    "Renovation Specialists",
+    "Real Estate Developers",
+    "Interior Designers",
+    "Quantity Surveyors",
+    "Property Owners",
+    "DIYers",
+  ],
   primaryCta: PRIMARY_CTA_LABEL,
   demoRegionLabel: "Estimate workspace preview",
 } as const;
 
 export const workflowCopy = {
-  headline: "From working estimate to client review and the next revision.",
+  eyebrow: "Estimate sheet workspace",
+  headline: "Build estimates your way.",
   intro:
-    "The working estimate remains the source. A published version gives clients a defined document to review while your team prepares the next revision.",
-  stages: [
+    "Structure the scope, move priced work into place, and carry proven cost knowledge from one estimate to the next.",
+  features: [
     {
-      id: "build",
-      index: "01",
-      title: "Build the estimate",
-      body: "Organize scope by area, phase, package, trade, or room. Add quantities, unit costs, suppliers, and totals, then reuse materials, labor, services, assemblies, and source notes from the cost library.",
-      handoff: "Structured, priced scope",
+      id: "tree",
+      title: "Project-driven branch tree",
+      body: "Organize scope by area, phase, package, trade, room, or any hierarchy the project needs.",
     },
     {
-      id: "publish",
-      index: "02",
-      title: "Publish a client version",
-      body: "Choose estimate content for the client portal, or generate an editable Excel workbook from the working estimate.",
-      handoff: "Published client version or Excel workbook",
+      id: "rows",
+      title: "Drag and drop estimate rows",
+      body: "Move materials, labor, services, and assemblies between branches without rebuilding the priced row.",
     },
     {
-      id: "review",
-      index: "03",
-      title: "Review the published version",
-      body: "Clients can browse estimate and financial views, discuss specific scope, and, when permitted, approve, request changes, or decline.",
-      handoff: "Feedback tied to the issued version",
-    },
-    {
-      id: "revise",
-      index: "04",
-      title: "Revise with history",
-      body: "Update the working estimate while version snapshots and activity preserve what changed after the client reviewed that version.",
-      handoff: "Recorded changes and review history",
+      id: "components",
+      title: "Reusable cost components",
+      body: "Save and reuse materials, labor, services, and assemblies so proven cost knowledge carries into the next estimate.",
     },
   ],
 } as const;

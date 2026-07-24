@@ -5,7 +5,7 @@ import { Jersey_25 } from "next/font/google";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { cn } from "@/lib/ui/cn";
 
-import LandingPageHero from "../../../../public/Landing-Page-Hero-v2.png";
+import AfterHeroSection from "../../../../public/After-Hero-Section-4K.png";
 import {
   SUPPORT_EMAIL,
   audienceCopy,
@@ -17,6 +17,10 @@ import {
   heroCopy,
 } from "../_content";
 import { PrimaryCtaLink } from "./cta-link";
+import { HeroAmbitionText } from "./hero-ambition-text";
+import { HeroAudienceRoles } from "./hero-audience-roles";
+import { HeroVoxelRippleImage } from "./hero-voxel-ripple-image";
+import { HeroWorkspaceProof } from "./hero-workspace-proof";
 import { KimiSiteHeader } from "./kimi-site-header";
 import { LandingMotion } from "./landing-motion";
 import { ProposalOutputProof } from "./proposal-output-proof";
@@ -26,6 +30,7 @@ import styles from "../kimi-landing.module.css";
 const jersey25 = Jersey_25({
   display: "swap",
   subsets: ["latin"],
+  variable: "--font-jersey-25",
   weight: "400",
 });
 
@@ -37,7 +42,7 @@ const jersey25 = Jersey_25({
  */
 export function KimiLandingPage() {
   return (
-    <div className={styles.root} data-kimi-landing>
+    <div className={cn(styles.root, jersey25.variable)} data-kimi-landing>
       <a href="#main" className={styles.skipLink}>
         {headerCopy.skipLink}
       </a>
@@ -56,41 +61,100 @@ export function KimiLandingPage() {
           aria-labelledby="hero-title"
         >
           <div className={styles.container}>
-            <p className={styles.heroEyebrow} data-hero-reveal>
+            <p
+              className={styles.heroEyebrow}
+              data-hero-reveal="eyebrow"
+            >
               {heroCopy.context}
             </p>
-            <div className={styles.heroImage} data-hero-reveal>
-              <Image
-                src={LandingPageHero}
-                alt="The ancient Parthenon seen from across the Acropolis at an orange sunset"
-                fill
-                priority
-                sizes="(max-width: 1664px) calc(100vw - 40px), 1600px"
-              />
+            <div className={styles.heroImage} data-hero-reveal="visual">
+              <HeroVoxelRippleImage />
+              <div className={styles.heroAudienceOverlay}>
+                <HeroAudienceRoles roles={heroCopy.audiences} />
+              </div>
             </div>
             <div className={styles.heroCopy}>
               <div className={styles.heroStatement}>
                 <h1
                   id="hero-title"
                   className={cn(styles.heroTitle, jersey25.className)}
-                  data-hero-reveal
+                  data-hero-reveal="title"
                 >
-                  {heroCopy.title}
-                  <span className={styles.heroTitlePeriod}>.</span>
+                  BUILD WITH{" "}
+                  <HeroAmbitionText className={styles.heroTitleAmbition} />
                 </h1>
-                <p className={styles.heroSubtitle} data-hero-reveal>
+                <p
+                  className={styles.heroSubtitle}
+                  data-hero-reveal="subtitle"
+                >
                   {heroCopy.subtitle}
                 </p>
               </div>
               <div className={styles.heroDetails}>
-                <p className={styles.heroLead} data-hero-reveal>
+                <p
+                  className={styles.heroLeadTitle}
+                  data-hero-reveal="lead-title"
+                >
+                  {heroCopy.leadTitleStart}
+                  <span className={styles.heroLeadTitleHighlight}>
+                    {heroCopy.leadTitleHighlight}
+                  </span>
+                </p>
+                <p
+                  className={styles.heroLead}
+                  data-hero-reveal="lead-body"
+                >
                   {heroCopy.lead}
                 </p>
-                <div className={styles.heroCtas} data-hero-reveal>
+                <div
+                  className={styles.heroCtas}
+                  data-hero-reveal="cta"
+                >
                   <PrimaryCtaLink />
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <div className={styles.pyramidBanner} aria-hidden="true" />
+
+        <section
+          className={styles.afterHero}
+          aria-label="Intuitive estimating workflow"
+        >
+          <Image
+            src={AfterHeroSection}
+            alt=""
+            fill
+            sizes="100vw"
+            loading="eager"
+          />
+          <div
+            className={styles.afterHeroTabs}
+            role="tablist"
+            aria-label="Estimating workflow views"
+          >
+            <div className={cn(styles.container, styles.afterHeroTabsInner)}>
+              <button
+                id="intuitive-estimating-tab"
+                className={styles.afterHeroTab}
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="intuitive-estimating-panel"
+              >
+                Intuitive Estimating Workflow
+              </button>
+            </div>
+          </div>
+          <div
+            id="intuitive-estimating-panel"
+            className={cn(styles.container, styles.afterHeroContent)}
+            role="tabpanel"
+            aria-labelledby="intuitive-estimating-tab"
+          >
+            <HeroWorkspaceProof className={styles.afterHeroProof} />
           </div>
         </section>
 

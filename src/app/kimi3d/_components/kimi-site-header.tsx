@@ -150,7 +150,7 @@ export function KimiSiteHeader() {
           >
             <ArchestimatorLogo
               tone="dark"
-              markSize={24}
+              markSize={48}
               className={styles.headerLogo}
               wordmarkClassName={styles.headerLogoWordmark}
               separatorClassName={styles.headerLogoSeparator}
