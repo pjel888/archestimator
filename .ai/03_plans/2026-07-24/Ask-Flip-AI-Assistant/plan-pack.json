@@ -1,0 +1,1166 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-24-ask-flip-ai-assistant",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-07-24T10:10:24.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": "UNIT-001",
+  "baseline": {
+    "head": "ff8c2e2759e29276d30e9232805303728b410265",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stale_triggers": [
+    "HEAD changes any AI route, handler, provider, reader, draft, Apply, audit, quota, feature-flag, or Workshop Ask Flip file",
+    "HEAD changes canonical project, estimate, node, row, template, component, history/outbox, receipt, access, statement-limit, or money primitives",
+    "another active plan lands overlapping Ask Flip mutation, money, D1 runtime, or feature-gate work",
+    "the next free migration number is no longer 0104",
+    "server-side AI entitlement or product-plan authority changes",
+    "the OpenAI, Anthropic, Google, or Cloudflare model, pricing, retention, endpoint, Gateway, or billing contract changes",
+    "the GitNexus index is refreshed and contradicts this pack's HIGH impact findings",
+    "provider secrets, AI Gateway, deployment, feature enablement, or automated product testing becomes newly authorized"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb"
+    },
+    {
+      "id": "ART-002",
+      "role": "index",
+      "path": "README.md",
+      "sha256": "47ab8171e1fcaa849f1e8f0cd3c4d6b749989d198dcf66df35eb2f7aec06e3b6"
+    },
+    {
+      "id": "ART-003",
+      "role": "current-state-audit",
+      "path": "01-CURRENT-STATE-HISTORY-AND-BLAST-RADIUS.md",
+      "sha256": "118a6a65d723cf7a4e29d04a5a4de55dc1bf3741f448133ae35571337dcdcd57"
+    },
+    {
+      "id": "ART-004",
+      "role": "architecture-safety",
+      "path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "sha256": "6f9c28eabefc4fff43cb23d494b6b9e08e7685c17524bb25db089f75d6004391"
+    },
+    {
+      "id": "ART-005",
+      "role": "model-research",
+      "path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "sha256": "cc170a6f97a21f41fbe8a7a42da5617fbf075f4ac1c8702ee9ea902573947349"
+    },
+    {
+      "id": "ART-006",
+      "role": "experience-verification",
+      "path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "sha256": "23a049371efaa053f0f1887dd2fceed8cdcb2ff371f12b4b0c4c97700d2f7db4"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "01-CURRENT-STATE-HISTORY-AND-BLAST-RADIUS.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "DATA-001",
+        "OPS-001",
+        "OPS-002"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "DATA-001"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "affected_ids": [
+        "SEC-003",
+        "OPS-001",
+        "OPS-002"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "DATA-001",
+        "OPS-001",
+        "OPS-002"
+      ]
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "DATA-001",
+        "OPS-001",
+        "OPS-002"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "SEC-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "01-CURRENT-STATE-HISTORY-AND-BLAST-RADIUS.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "01-CURRENT-STATE-HISTORY-AND-BLAST-RADIUS.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "OPEN",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "OPEN",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "OPEN",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "OPEN",
+      "artifact_path": "01-CURRENT-STATE-HISTORY-AND-BLAST-RADIUS.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "OPEN",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "unit_ids": [
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical conversation-to-approval invariant is that one grounded request reaches exactly one terminal state and a reachable confirmation surface; cheaper non-test inspection is insufficient to prove streamed event ordering and client-state transitions.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-010",
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "UX-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical Rivera 2BR data invariant is exact money equality with atomic rollback and replay safety; cheaper non-test evidence is insufficient because those properties emerge only from executed D1 state transitions.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical security invariant is that neither model output nor client input grants authority; cheaper non-test registry inspection is insufficient to prove forged-tool, identity, source-handle, and cross-workspace requests are denied at runtime.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-009",
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "requirement_ids": [
+        "SEC-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical approval invariant is that confirmation authorizes only one immutable plan and stale or replayed execution is denied; cheaper non-test source review is insufficient to prove concurrent state-transition failures.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "requirement_ids": [
+        "SEC-003"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical privacy and security invariant is that retrieved instructions cannot escape tool policy and raw conversations are never persisted; cheaper non-test inspection is insufficient to prove adversarial containment and redaction across runtime branches.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-008",
+        "EVID-013",
+        "EVID-014"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical integrity invariant is one atomic canonical D1 commit with history, outbox, receipt, revision, and exact money parity; cheaper non-test evidence is insufficient to prove rollback and concurrency behavior.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-007",
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical operational invariant is that every quota, deadline, refusal, malformed-output, and disconnect branch terminates safely with audit evidence; cheaper non-test inspection is insufficient across asynchronous route branches.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-009",
+        "EVID-013"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "TEST_PROPOSAL",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "The critical model-selection invariant is acceptable Archestimator task quality and safety within latency and cost budgets; cheaper non-test vendor documentation is insufficient, so a sanitized billed corpus bakeoff is decisive when authorized.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-012",
+        "EVID-014"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-013"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PLANNED",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-014"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-TEST-01",
+      "status": "BOUNDARY",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-013"
+      ],
+      "authorization_boundary_id": "AUTH-002"
+    },
+    {
+      "id": "GATE-PROVIDER-01",
+      "status": "BOUNDARY",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "criterion_ids": [
+        "AC-005",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-014"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "DATA-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-008",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "SEC-002",
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "SEC-001",
+        "SEC-003"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "SEC-001",
+        "SEC-002",
+        "SEC-003",
+        "OPS-001",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-006",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-009"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "UX-002",
+        "SEC-003",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-010"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "UX-001",
+        "SEC-001",
+        "SEC-002",
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-011"
+      ]
+    },
+    {
+      "id": "UNIT-007",
+      "status": "READY",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "UX-002",
+        "SEC-003",
+        "DATA-001",
+        "OPS-001",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-005",
+        "RISK-007",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-012"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "SEC-001",
+        "SEC-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "rationale": "A source-grounded proposal-and-execution loop gives conversational utility without making the model an authority or executor."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "DATA-001",
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "rationale": "Authentication, policy, calculations, confirmations, D1 writes, and receipts are application invariants and cannot be delegated to a probabilistic provider."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "rationale": "One server route removes client privilege routing and allows the pre-beta package-builder route to be deleted after parity."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "SEC-002",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "rationale": "An explicit typed registry makes every capability, permission, source rule, confirmation, executor, and prohibition reviewable."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-003",
+        "DATA-001",
+        "UNIT-001",
+        "UNIT-005"
+      ],
+      "rationale": "Persisting structured plans and receipts but not raw conversations preserves prior privacy decisions while supporting durable approval and recovery."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-002",
+        "DATA-001",
+        "UNIT-002"
+      ],
+      "rationale": "The Rivera scenario needs one domain-owned aggregate command so project, estimate, tree, rows, history/outbox, and receipts share a transaction."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-002",
+        "DATA-001",
+        "UNIT-001"
+      ],
+      "rationale": "The specialized apply-command table cannot represent general plan versions, approval binding, leases, policy state, and per-action receipts."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-002",
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "rationale": "Current official docs make GPT-5.6 Terra the reasonable balanced integration target, but only the Archestimator corpus can lock the release model."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "AUTH-001",
+        "UNIT-004",
+        "UNIT-007"
+      ],
+      "rationale": "AI Gateway can supply transport observability and limits, but keeping correctness in the app avoids a provider-specific control-plane dependency."
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-002",
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-007"
+      ],
+      "rationale": "Construction estimate trust requires source-backed or explicitly reviewed values and one canonical server money calculation."
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "GATE-PROVIDER-01"
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "GATE-TEST-01"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "01-CURRENT-STATE-HISTORY-AND-BLAST-RADIUS.md",
+      "claim_ids": [
+        "SRC-001",
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-009"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "118a6a65d723cf7a4e29d04a5a4de55dc1bf3741f448133ae35571337dcdcd57",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "02-ARCHITECTURE-SAFETY-AND-DATA-CONTRACT.md",
+      "claim_ids": [
+        "SRC-002",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-006",
+        "RISK-008"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "6f9c28eabefc4fff43cb23d494b6b9e08e7685c17524bb25db089f75d6004391",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "claim_ids": [
+        "SRC-003",
+        "RISK-007",
+        "RISK-010"
+      ],
+      "source_revision": "retrieved-2026-07-24",
+      "sha256": "cc170a6f97a21f41fbe8a7a42da5617fbf075f4ac1c8702ee9ea902573947349",
+      "valid_until": "2026-08-07T00:00:00.000Z"
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "claim_ids": [
+        "SRC-004"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "23a049371efaa053f0f1887dd2fceed8cdcb2ff371f12b4b0c4c97700d2f7db4",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "SRC-005",
+        "DEC-AUTO-001",
+        "DEC-AUTO-002",
+        "DEC-AUTO-003",
+        "DEC-AUTO-004",
+        "DEC-AUTO-005",
+        "DEC-AUTO-006",
+        "DEC-AUTO-007",
+        "DEC-AUTO-008",
+        "DEC-AUTO-009",
+        "DEC-AUTO-010"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-004"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "AC-006"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-005"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-009",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-003",
+        "AC-007"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-010",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-001"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-011",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-006"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-012",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "UNIT-007",
+        "AC-008"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "0f9ffea8e694b20038945938b0c0a40e8992b5be95ef601d82e28fdb201d58fb",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-013",
+      "status": "PLANNED",
+      "artifact_path": "04-EXPERIENCE-SCENARIOS-AND-VERIFICATION.md",
+      "claim_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "TEST-001",
+        "GATE-TEST-01"
+      ],
+      "source_revision": "ff8c2e2759e29276d30e9232805303728b410265",
+      "sha256": "23a049371efaa053f0f1887dd2fceed8cdcb2ff371f12b4b0c4c97700d2f7db4",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-014",
+      "status": "PLANNED",
+      "artifact_path": "03-MODEL-RESEARCH-AND-EVALUATION.md",
+      "claim_ids": [
+        "AC-005",
+        "AC-008",
+        "TEST-002",
+        "GATE-PROVIDER-01"
+      ],
+      "source_revision": "retrieved-2026-07-24",
+      "sha256": "cc170a6f97a21f41fbe8a7a42da5617fbf075f4ac1c8702ee9ea902573947349",
+      "valid_until": "2026-08-07T00:00:00.000Z"
+    }
+  ],
+  "ready_slices": [
+    {
+      "id": "SLICE-001",
+      "unit_ids": [
+        "UNIT-001"
+      ]
+    }
+  ],
+  "manifest_sha256": "2e48e88cce856fed5c5c27522879d3c0cc1cd8a567129d849b29da1b238159b2"
+}
