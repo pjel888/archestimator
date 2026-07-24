@@ -8,6 +8,12 @@ import type { ProjectPublicationRosterRow } from "@/lib/publisher/roster-reposit
 
 const navigationMocks = vi.hoisted(() => ({ refresh: vi.fn() }));
 const drawerActionMocks = vi.hoisted(() => ({ readPublisherPublicationDrawerData: vi.fn() }));
+const clientLinksLearningMocks = vi.hoisted(() => ({
+  active: false,
+  complete: vi.fn(),
+  enabled: false,
+  publish: vi.fn(),
+}));
 const publicationActionMocks = vi.hoisted(() => ({
   addSharedLinkRecipients: vi.fn(),
   listSharedLinkRecipients: vi.fn(),
@@ -20,6 +26,16 @@ const publicationActionMocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({ useRouter: () => navigationMocks }));
 vi.mock("@/lib/publisher/drawer-actions", () => drawerActionMocks);
 vi.mock("@/lib/publication/actions", () => publicationActionMocks);
+vi.mock("@/components/workshop/publisher/ClientLinksLearningRail", () => ({
+  useClientLinksLearning: () =>
+    clientLinksLearningMocks.enabled
+      ? {
+          active: clientLinksLearningMocks.active,
+          complete: clientLinksLearningMocks.complete,
+          publish: clientLinksLearningMocks.publish,
+        }
+      : null,
+}));
 
 const row: ProjectPublicationRosterRow = {
   canManagePublication: true,
@@ -84,6 +100,8 @@ function renderWizard(overrides: Partial<React.ComponentProps<typeof ShareWizard
 describe("ShareWizard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clientLinksLearningMocks.active = false;
+    clientLinksLearningMocks.enabled = false;
     drawerActionMocks.readPublisherPublicationDrawerData.mockResolvedValue({
       collaborationSummary: null,
       currentUserEmail: "owner@example.test",
@@ -239,13 +257,61 @@ describe("ShareWizard", () => {
 });
 
 describe("ShareLinkDisplay", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clientLinksLearningMocks.active = false;
+    clientLinksLearningMocks.enabled = false;
+  });
+
   it("falls back to copying when native Web Share is unavailable", async () => {
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
     Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
-    render(<ShareLinkDisplay clientLinkPath="/share/token" projectName="Kitchen Remodel" />);
+    render(<ShareLinkDisplay clientLinkPath="/share/token" projectId="project-1" projectName="Kitchen Remodel" />);
 
     expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(new URL("/share/token", window.location.origin).toString()));
+  });
+
+  it("keeps a successful copy distinct from guide verification failure", async () => {
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    clientLinksLearningMocks.enabled = true;
+    clientLinksLearningMocks.complete.mockRejectedValueOnce(new Error("verification unavailable"));
+    render(<ShareLinkDisplay clientLinkPath="/share/token" projectId="project-1" projectName="Kitchen Remodel" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+
+    expect(await screen.findByText(/shared link copied, but guide completion could not be verified/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I copied the selected link" })).not.toBeInTheDocument();
+  });
+
+  it("reports selectable-link verification failures without an unhandled rejection", async () => {
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+    clientLinksLearningMocks.enabled = true;
+    clientLinksLearningMocks.complete.mockRejectedValueOnce(new Error("verification unavailable"));
+    render(<ShareLinkDisplay clientLinkPath="/share/token" projectId="project-1" projectName="Kitchen Remodel" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    fireEvent.click(await screen.findByRole("button", { name: "I copied the selected link" }));
+
+    expect(await screen.findByText(/selected link is ready, but guide completion could not be verified/i)).toBeInTheDocument();
+  });
+
+  it("keeps an active guided preview in place when verification fails", async () => {
+    clientLinksLearningMocks.active = true;
+    clientLinksLearningMocks.enabled = true;
+    clientLinksLearningMocks.complete.mockRejectedValueOnce(new Error("verification unavailable"));
+    render(
+      <ShareLinkDisplay
+        clientLinkPath="/share/token"
+        previewHref="/workshop/publisher/preview"
+        projectId="project-1"
+        projectName="Kitchen Remodel"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "Preview shared page for Kitchen Remodel" }));
+
+    expect(await screen.findByText(/preview could not be verified for this guide/i)).toBeInTheDocument();
   });
 });

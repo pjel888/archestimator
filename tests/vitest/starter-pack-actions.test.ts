@@ -300,6 +300,29 @@ describe("starter pack actions", () => {
     );
   });
 
+  it("reports stale starter restore revision without blaming another session", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    const missingClaim = database.sqlite.prepare(`
+      SELECT resource_id
+      FROM beta_starter_asset_claims
+      WHERE workspace_id = ? AND scope_kind = 'workspace'
+        AND asset_key = 'component.interior_paint_finish'
+        AND lifecycle_state = 'active'
+    `).get(WORKSPACE_ID);
+    database.sqlite.prepare(
+      "DELETE FROM cost_library_items WHERE id = ? AND workspace_id = ?",
+    ).run(missingClaim?.resource_id, WORKSPACE_ID);
+
+    await expect(
+      restoreStarterContent({ expectedRevision: 999 }),
+    ).rejects.toThrow(
+      "Starter content changed before recovery finished. Refresh and try again.",
+    );
+  });
+
   it("rejects automatic shared installation for non-managers and nonempty workspaces", async () => {
     database.sqlite.prepare(`
       INSERT INTO workspace_members (

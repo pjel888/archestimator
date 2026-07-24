@@ -197,6 +197,19 @@ function genericErrorEvent(stepId: string, index = 0): EventData {
   } as EventData;
 }
 
+function targetNotFoundEvent(stepId: string, index = 0): EventData {
+  return {
+    action: "update",
+    index,
+    lifecycle: "ready",
+    origin: null,
+    size: index + 1,
+    status: "running",
+    step: { id: stepId },
+    type: "error:target_not_found",
+  } as EventData;
+}
+
 describe("OnboardingTourClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -392,7 +405,7 @@ describe("OnboardingTourClient", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("reloads the latest saved run when a mid-guide mutation conflicts", async () => {
+  it("silently reloads the latest saved run when a mid-guide state mutation conflicts", async () => {
     const eligibleFlow = flow();
     eligibleFlow.state = {
       flowKey: eligibleFlow.definition.key,
@@ -429,21 +442,79 @@ describe("OnboardingTourClient", () => {
       mocks.onEvent?.(nextEvent(eligibleFlow.steps[0]?.key ?? ""));
       await Promise.resolve();
     });
-    await screen.findByText(
-      "Guidance progress changed. Retry to continue from the latest saved step.",
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
+    expect(mocks.stop).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("heading", { name: "Guidance paused" }),
+    ).not.toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("silently reconciles an advance and modal-pause race from the same tab", async () => {
+    const eligibleFlow = flow();
+    const currentStepKey = eligibleFlow.steps[0]?.key ?? null;
+    const nextStepKey = eligibleFlow.steps[1]?.key ?? currentStepKey;
+    eligibleFlow.state = {
+      flowKey: eligibleFlow.definition.key,
+      flowVersion: eligibleFlow.definition.version,
+      status: "in_progress",
+      currentStepKey,
+      generation: 1,
+      revision: 2,
+      resetCount: 0,
+      tutorialBinding: null,
+      runId: "run-1",
+    };
+    const mutate = vi.fn()
+      .mockResolvedValueOnce({
+        status: "applied",
+        state: {
+          ...eligibleFlow.state,
+          currentStepKey: nextStepKey,
+          revision: 3,
+        },
+        runId: "run-1",
+      })
+      .mockResolvedValueOnce({
+        status: "conflict",
+        code: "ONBOARDING_STATE_CONFLICT",
+        state: {
+          ...eligibleFlow.state,
+          currentStepKey: nextStepKey,
+          revision: 3,
+        },
+      });
+
+    render(
+      <OnboardingTourClient
+        flow={eligibleFlow}
+        launchMode="resume"
+        snapshot={snapshot()}
+        mutate={mutate}
+        reducedMotion={false}
+        onLaunchIntentConsumed={vi.fn()}
+      />,
     );
 
     await act(async () => {
-      screen.getByRole("button", { name: "Try again" }).click();
+      mocks.onEvent?.(nextEvent(currentStepKey ?? ""));
+      mocks.modalListener?.({ activeModalCount: 1, type: "opening" });
       await Promise.resolve();
     });
 
-    expect(mocks.replace).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "tour=core_orientation&mode=resume",
-      ),
-    );
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(2));
+    expect(mutate.mock.calls.map(([command]) => command.command)).toEqual([
+      "advance",
+      "pause",
+    ]);
+    expect(mutate.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      expectedRevision: 3,
+      expectedStepKey: currentStepKey,
+    }));
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("heading", { name: "Guidance paused" }),
+    ).not.toBeInTheDocument();
   });
 
   it("persists one precise pause when route preparation already handled the failure", async () => {
@@ -499,6 +570,173 @@ describe("OnboardingTourClient", () => {
     expect(
       screen.getByText("The next control is not available in the current view."),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Skip this step" })).toBeInTheDocument();
+
+    mocks.start.mockClear();
+    await act(async () => {
+      screen.getByRole("button", { name: "Try again" }).click();
+    });
+    expect(mocks.start).toHaveBeenCalledWith(
+      eligibleFlow.steps.findIndex((step) => step.key === routedStepKey),
+    );
+  });
+
+  it("advances an optional missing-target step through persisted state", async () => {
+    const eligibleFlow = flow();
+    const skippedIndex = eligibleFlow.steps.findIndex(
+      (step) => step.key === "workspace_map",
+    );
+    const skippedStep = eligibleFlow.steps[skippedIndex];
+    const nextStep = eligibleFlow.steps[skippedIndex + 1];
+    if (!skippedStep || !nextStep) {
+      throw new Error("Core orientation optional step sequence is unavailable.");
+    }
+    eligibleFlow.state = {
+      flowKey: eligibleFlow.definition.key,
+      flowVersion: eligibleFlow.definition.version,
+      status: "in_progress",
+      currentStepKey: skippedStep.key,
+      generation: 1,
+      revision: 2,
+      resetCount: 0,
+      tutorialBinding: null,
+      runId: "run-1",
+    };
+    const mutate = vi.fn()
+      .mockResolvedValueOnce({
+        status: "applied",
+        state: { ...eligibleFlow.state, revision: 3 },
+        runId: "run-1",
+      })
+      .mockResolvedValueOnce({
+        status: "applied",
+        state: {
+          ...eligibleFlow.state,
+          currentStepKey: nextStep.key,
+          revision: 4,
+        },
+        runId: "run-1",
+      });
+    mocks.prepareRoute.mockResolvedValueOnce({
+      ok: false,
+      reason: "target_timeout",
+    });
+
+    render(
+      <OnboardingTourClient
+        flow={eligibleFlow}
+        launchMode="resume"
+        snapshot={snapshot()}
+        mutate={mutate}
+        reducedMotion={false}
+        onLaunchIntentConsumed={vi.fn()}
+      />,
+    );
+
+    const routedStep = mocks.steps.find((step) => step.id === skippedStep.key);
+    await act(async () => {
+      await expect(routedStep?.before?.()).rejects.toThrow("target_timeout");
+    });
+    await act(async () => {
+      mocks.onEvent?.(genericErrorEvent(skippedStep.key, skippedIndex));
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1));
+
+    mocks.start.mockClear();
+    await act(async () => {
+      screen.getByRole("button", { name: "Skip this step" }).click();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(2));
+    expect(mutate.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      command: "advance",
+      expectedRevision: 3,
+      expectedStepKey: skippedStep.key,
+      nextStepKey: nextStep.key,
+      reasonCode: "target_timeout",
+    }));
+    expect(mocks.start).toHaveBeenCalledWith(skippedIndex + 1);
+  });
+
+  it("does not offer skip for required targets and exits stop-policy failures", async () => {
+    const eligibleFlow = flow();
+    const requiredStep = eligibleFlow.steps.find(
+      (step) => step.key === "projects_entry",
+    );
+    const stopStep = eligibleFlow.steps.find(
+      (step) => step.key === "welcome",
+    );
+    if (!requiredStep || !stopStep) {
+      throw new Error("Core orientation recovery steps are unavailable.");
+    }
+    const mutate = vi.fn().mockResolvedValue({
+      status: "applied",
+      state: {
+        flowKey: eligibleFlow.definition.key,
+        flowVersion: eligibleFlow.definition.version,
+        status: "in_progress",
+        currentStepKey: requiredStep.key,
+        generation: 1,
+        revision: 1,
+        resetCount: 0,
+        tutorialBinding: null,
+      },
+      runId: "run-1",
+    });
+    const onLaunchIntentConsumed = vi.fn();
+
+    const view = render(
+      <OnboardingTourClient
+        flow={eligibleFlow}
+        launchMode="resume"
+        snapshot={snapshot()}
+        mutate={mutate}
+        reducedMotion={false}
+        onLaunchIntentConsumed={onLaunchIntentConsumed}
+      />,
+    );
+
+    await act(async () => {
+      mocks.onEvent?.(
+        targetNotFoundEvent(
+          requiredStep.key,
+          eligibleFlow.steps.indexOf(requiredStep),
+        ),
+      );
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip this step" })).not.toBeInTheDocument();
+    view.unmount();
+
+    render(
+      <OnboardingTourClient
+        flow={eligibleFlow}
+        launchMode="resume"
+        snapshot={snapshot()}
+        mutate={mutate}
+        reducedMotion={false}
+        onLaunchIntentConsumed={onLaunchIntentConsumed}
+      />,
+    );
+    await act(async () => {
+      mocks.onEvent?.(
+        targetNotFoundEvent(
+          stopStep.key,
+          eligibleFlow.steps.indexOf(stopStep),
+        ),
+      );
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip this step" })).not.toBeInTheDocument();
+    await act(async () => {
+      screen.getByRole("button", { name: "Stop guide" }).click();
+    });
+    expect(onLaunchIntentConsumed).toHaveBeenCalledTimes(1);
   });
 
   it("refreshes the server snapshot after a guide completes", async () => {

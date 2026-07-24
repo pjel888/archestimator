@@ -62,6 +62,16 @@ describe("deriveFirstEstimateChecklist", () => {
     expect(checklist.isComplete).toBe(true);
   });
 
+  it("opens the project-start chooser instead of a passive project list", () => {
+    const checklist = deriveFirstEstimateChecklist(snapshot());
+
+    expect(checklist.items[0]).toMatchObject({
+      id: "project",
+      href: "/workshop/projects?start=project",
+      description: "Create blank work, use a workspace template, or follow guided practice.",
+    });
+  });
+
   it("requires both an area and priced row before advancing to a valid total", () => {
     const checklist = deriveFirstEstimateChecklist(snapshot({
       activation: {

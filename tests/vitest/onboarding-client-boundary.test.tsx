@@ -115,6 +115,46 @@ describe("OnboardingClientBoundary", () => {
     expect(screen.getByTestId("onboarding-tour")).toHaveTextContent("start");
   });
 
+  it("clears an explicit launch intent that is not eligible in the current snapshot", () => {
+    mocks.search = "tour=guided_estimate_practice&mode=start&keep=1";
+
+    render(
+      <OnboardingClientBoundary snapshot={snapshot()} mutate={vi.fn()} />,
+    );
+
+    expect(screen.queryByTestId("onboarding-tour")).not.toBeInTheDocument();
+    expect(mocks.replace).toHaveBeenCalledWith("/workshop?keep=1");
+  });
+
+  it.each([
+    "tour=not-a-real-guide&mode=start&keep=1",
+    "tour=core_orientation&mode=not-a-real-mode&keep=1",
+    "tour=core_orientation&keep=1",
+  ])(
+    "clears malformed launch params without starting unrelated automatic guidance: %s",
+    (search) => {
+      mocks.search = search;
+
+      render(
+        <OnboardingClientBoundary snapshot={snapshot()} mutate={vi.fn()} />,
+      );
+
+      expect(screen.queryByTestId("onboarding-tour")).not.toBeInTheDocument();
+      expect(mocks.replace).toHaveBeenCalledWith("/workshop?keep=1");
+    },
+  );
+
+  it("preserves route-owned mode params when no onboarding tour is requested", () => {
+    mocks.search = "sheet=estimate-1&mode=supplier";
+
+    render(
+      <OnboardingClientBoundary snapshot={snapshot()} mutate={vi.fn()} />,
+    );
+
+    expect(screen.getByTestId("onboarding-tour")).toHaveTextContent("auto");
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
   it.each(["/workshop", "/workshop/projects"])(
     "does not auto-resume an in-progress guide on %s without an explicit launch",
     (pathname) => {

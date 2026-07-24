@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -86,7 +86,10 @@ function snapshot(
     ],
     dataPredicates: {
       estimate_context_available: true,
+      tutorial_binding_current: true,
+      tutorial_core_incomplete: true,
       client_link_project_available: true,
+      client_link_core_incomplete: true,
     },
     availableRoutes: [
       "workshop_home",
@@ -136,7 +139,7 @@ describe("GettingStartedProgress", () => {
     ["Open example", "starter_reference", "/workshop/projects"],
     ["Open practice project", "starter_sandbox", "/workshop/projects"],
     ["Browse templates", "workspace_template", "/workshop/library/templates"],
-    ["Start from scratch", "blank", "/workshop/projects"],
+    ["Start from scratch", "blank", "/workshop/projects?start=blank"],
   ])("selects %s before routing", async (buttonName, path, href) => {
     const user = userEvent.setup();
     render(<GettingStartedProgress snapshot={snapshot()} />);
@@ -221,7 +224,7 @@ describe("GettingStartedProgress", () => {
     expect(screen.getByText("First estimate checklist hidden")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open Guidance settings" })).toHaveAttribute(
       "href",
-      "/workshop/settings#guidance",
+      "/workshop/settings?page=guidance-tours",
     );
   });
 
@@ -237,5 +240,39 @@ describe("GettingStartedProgress", () => {
     ).toBeInTheDocument();
     expect(mocks.selectPath).not.toHaveBeenCalled();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it("does not offer a dead guided-practice lesson launch before the practice binding exists", () => {
+    render(
+      <GettingStartedProgress
+        snapshot={snapshot({
+          dataPredicates: {
+            estimate_context_available: true,
+            tutorial_binding_current: false,
+            tutorial_core_incomplete: false,
+            client_link_project_available: true,
+            client_link_core_incomplete: true,
+          },
+        })}
+      />,
+    );
+
+    const card = screen.getByText("Guided estimate practice").closest("article");
+    expect(card).not.toBeNull();
+    expect(
+      within(card!).getByText(/create the guided practice project before opening its lessons/i),
+    ).toBeInTheDocument();
+    expect(within(card!).queryByRole("link", { name: /start guide/i })).not.toBeInTheDocument();
+  });
+
+  it("offers guided-practice lesson launch only after the practice binding is current", () => {
+    render(<GettingStartedProgress snapshot={snapshot()} />);
+
+    const card = screen.getByText("Guided estimate practice").closest("article");
+    expect(card).not.toBeNull();
+    expect(within(card!).getByRole("link", { name: "Start guide" })).toHaveAttribute(
+      "href",
+      "/workshop/getting-started?tour=guided_estimate_practice&mode=start",
+    );
   });
 });

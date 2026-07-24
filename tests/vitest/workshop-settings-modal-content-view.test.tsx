@@ -1,11 +1,16 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { WorkshopSettingsModalContentView } from "@/components/workshop/WorkshopSettingsModalContentView";
 
-function renderSettings() {
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+function renderSettings(initialPageId?: string) {
   return render(
     <WorkshopSettingsModalContentView
+      initialPageId={initialPageId}
       onboardingSnapshot={null}
       renderSignOutControl={() => <button type="button">Real sign out action</button>}
     />,
@@ -24,6 +29,23 @@ describe("WorkshopSettingsModalContentView", () => {
     );
     expect(screen.getByRole("main", { name: "Profile settings" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
+  });
+
+  it("opens a valid requested settings page and rejects unknown page ids", () => {
+    const guidance = renderSettings("guidance-tours");
+
+    expect(
+      screen.getByRole("button", { name: "Show Guidance & tours settings" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getByRole("main", { name: "Guidance & tours settings" }),
+    ).toBeInTheDocument();
+    guidance.unmount();
+
+    renderSettings("unknown-page");
+    expect(
+      screen.getByRole("button", { name: "Show Profile settings" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("keeps category dividers, pointer rows, and in-panel selection behavior", () => {

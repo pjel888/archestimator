@@ -101,6 +101,9 @@ describe("onboarding flow catalog", () => {
 
       const stepKeys = definition.steps.map((step) => step.key);
       expect(new Set(stepKeys).size).toBe(stepKeys.length);
+      for (const step of definition.steps) {
+        expect(step.missingTarget === "skip").toBe(step.optional);
+      }
       for (const [previousKey, currentKey] of Object.entries(definition.compatibility)) {
         expect(stepKeys).not.toContain(previousKey);
         expect(stepKeys).toContain(currentKey);

@@ -8,10 +8,10 @@ function read(relativePath: string) {
 }
 
 describe("auth onboarding and settings route contracts", () => {
-  it("keeps stale onboarding traffic non-blocking and points users to settings", () => {
+  it("keeps stale onboarding traffic non-blocking and points users to Getting Started", () => {
     const source = read("src/app/workshop/onboarding/page.tsx");
 
-    expect(source).toContain('redirect("/workshop/settings")');
+    expect(source).toContain('redirect("/workshop/getting-started")');
     expect(source).not.toMatch(/completeOnboarding/);
     expect(source).not.toMatch(/Complete setup/);
   });
@@ -34,7 +34,8 @@ describe("auth onboarding and settings route contracts", () => {
 
     expect(source).toContain('aria-label="Settings navigation"');
     expect(source).toContain('id="settings-detail-panel"');
-    expect(source).toContain('useState("profile")');
+    expect(source).toContain('initialPageId = "profile"');
+    expect(source).toContain("page.id === initialPageId");
     expect(source).toContain('href: "/workshop/settings/profile"');
     expect(source).toContain('href: "/workshop/settings/workspace"');
     expect(source).toContain('href: "/workshop/feedback"');
@@ -63,6 +64,8 @@ describe("auth onboarding and settings route contracts", () => {
     expect(pageSource).toContain('trigger="none"');
     expect(pageSource).toContain('closeHref="/workshop/projects"');
     expect(pageSource).toContain('location="Workshop / Settings"');
+    expect(pageSource).toContain("resolvedSearchParams.page");
+    expect(pageSource).toContain("initialPageId={");
     expect(pageSource).toContain('aria-hidden="true"');
     expect(pageSource).not.toContain('className="h-full bg-white"');
     expect(pageSource).toContain("initialOpen");

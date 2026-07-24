@@ -207,6 +207,27 @@ describe("client-link onboarding proof", () => {
     });
   });
 
+  it("reports stale publication binding without blaming another session", async () => {
+    mocks.getBinding.mockResolvedValueOnce(binding({
+      runId: "run-2",
+    }));
+
+    const result = await publishClientLinkForLearning({
+      projectId: "project-1",
+      actionKind: "create",
+      runId: "run-1",
+      expectedRevision: 7,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "publication_binding_changed",
+      message: "This lesson changed before publishing. Resume it before publishing.",
+    });
+    expect(result.message).not.toMatch(/another session/i);
+    expect(mocks.createPublication).not.toHaveBeenCalled();
+  });
+
   it("forwards every republish option through the established publication action", async () => {
     await expect(
       publishClientLinkForLearning({
@@ -396,9 +417,10 @@ describe("client-link onboarding proof", () => {
         method: "copy",
         mutationId: "mutation-stale",
       }),
-    ).resolves.toMatchObject({
+    ).resolves.toEqual({
       ok: false,
       code: "publication_state_changed",
+      message: "This lesson changed before sharing. Resume it before sharing.",
     });
   });
 

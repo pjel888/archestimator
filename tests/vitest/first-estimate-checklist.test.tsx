@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -77,6 +77,21 @@ describe("FirstEstimateChecklist", () => {
     );
   });
 
+  it("links Start a project to an actionable chooser intent", () => {
+    render(<FirstEstimateChecklist snapshot={snapshot({
+      activation: {
+        ...snapshot().activation,
+        projectStarted: false,
+      },
+    })} />);
+
+    const projectTask = screen.getByText("Start a project").closest("li");
+    expect(projectTask).not.toBeNull();
+    expect(
+      within(projectTask as HTMLElement).getByRole("link", { name: "Continue" }),
+    ).toHaveAttribute("href", "/workshop/projects?start=project");
+  });
+
   it("collapses completed progress without offering a visibility reopen", () => {
     render(<FirstEstimateChecklist snapshot={snapshot({
       activation: {
@@ -124,6 +139,37 @@ describe("FirstEstimateChecklist", () => {
 
     resolveDismiss?.();
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows a failure when the checklist cannot be hidden", async () => {
+    mocks.dismiss.mockRejectedValueOnce(new Error("unavailable"));
+    const user = userEvent.setup();
+    render(<FirstEstimateChecklist snapshot={snapshot()} />);
+
+    await user.click(screen.getByRole("button", { name: "Hide checklist" }));
+
+    expect(
+      await screen.findByRole("alert"),
+    ).toHaveTextContent(/checklist could not be hidden/i);
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows a failure when the checklist cannot be reopened", async () => {
+    mocks.reopen.mockRejectedValueOnce(new Error("unavailable"));
+    const user = userEvent.setup();
+    render(<FirstEstimateChecklist snapshot={snapshot({
+      activation: {
+        ...snapshot().activation,
+        checklistDismissed: true,
+      },
+    })} />);
+
+    await user.click(screen.getByRole("button", { name: "Reopen" }));
+
+    expect(
+      await screen.findByRole("alert"),
+    ).toHaveTextContent(/checklist could not be reopened/i);
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 
   it("does not render for a snapshot without creator editing access", () => {

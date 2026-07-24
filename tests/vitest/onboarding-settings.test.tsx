@@ -126,7 +126,7 @@ describe("GuidanceToursSettings", () => {
         })),
     );
     mocks.reopenChecklist.mockResolvedValue(undefined);
-    mocks.resetGuidance.mockResolvedValue({ status: "reset" });
+    mocks.resetGuidance.mockResolvedValue({ status: "applied", states: [] });
     mocks.setAutomaticGuidance.mockResolvedValue(undefined);
   });
 
@@ -216,8 +216,14 @@ describe("GuidanceToursSettings", () => {
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("surfaces reset conflicts without refreshing stale settings", async () => {
-    mocks.resetGuidance.mockResolvedValueOnce({ status: "conflict" });
+  it("does not overwrite newer guide progress after a reset conflict", async () => {
+    mocks.resetGuidance.mockResolvedValueOnce({
+      status: "conflict",
+      states: [
+        { ...snapshot().flowStates[0], revision: 5 },
+        { ...snapshot().flowStates[1], revision: 7 },
+      ],
+    });
     const user = userEvent.setup();
     render(<GuidanceToursSettings snapshot={snapshot()} />);
 
@@ -228,10 +234,12 @@ describe("GuidanceToursSettings", () => {
       screen.getByRole("button", { name: "Restart all guides" }),
     );
 
+    await waitFor(() => expect(mocks.resetGuidance).toHaveBeenCalledTimes(1));
     expect(
-      await screen.findByText(/guidance changed in another session/i),
+      screen.getByText(/latest progress is loading; review it, then choose restart all guides again/i),
     ).toBeInTheDocument();
-    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(screen.queryByText(/another session/i)).not.toBeInTheDocument();
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("keeps current settings unchanged when an action fails", async () => {
