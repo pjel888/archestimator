@@ -27,7 +27,7 @@ export function Switch({ className, checked = false, onChange, label, invalid, d
         onClick={() => onChange?.(!checked)}
         ref={ref}
         className={cn(
-          "relative inline-flex h-3.5 w-6 shrink-0 cursor-pointer items-center rounded-xs border transition-colors",
+          "relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-xs border transition-colors",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus focus-visible:ring-offset-1",
           checked ? "border-primary bg-primary" : "border-hairline bg-surface",
           invalid && (checked ? "border-danger bg-danger" : "border-danger bg-dangerSoft"),
@@ -37,8 +37,8 @@ export function Switch({ className, checked = false, onChange, label, invalid, d
       >
         <span
           className={cn(
-            "pointer-events-none block size-2.5 rounded-xs shadow-sm transition-transform",
-            checked ? "translate-x-3 bg-surface" : "translate-x-0.5 bg-tertiary"
+            "pointer-events-none block size-4 rounded-xs shadow-sm transition-transform",
+            checked ? "translate-x-5 bg-surface" : "translate-x-1 bg-tertiary"
           )}
         />
       </button>

@@ -9,6 +9,7 @@ import { FileText, Folder, SidebarSimple, Star } from "@phosphor-icons/react/dis
 import { cn } from "@/lib/ui/cn";
 import { Button } from "@/components/ui/button";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 import { useSidebarFavoritesAnnouncer } from "@/hooks/use-sidebar-favorites-announcer";
 import { SidebarHeader } from "./SidebarHeader";
@@ -46,6 +47,7 @@ type MainSidebarProps = {
 };
 
 const EMPTY_FAVORITE_PROJECTS: MainSidebarFavoriteProject[] = [];
+const EMPTY_DISABLED_NAV_IDS: readonly string[] = [];
 
 const isActiveHref = (pathname: string | null, href: string) => pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
@@ -108,7 +110,7 @@ export function MainSidebar({
   favoritesScope,
   status,
   user,
-  disabledNavIds = [],
+  disabledNavIds = EMPTY_DISABLED_NAV_IDS,
 }: MainSidebarProps) {
   const pathname = usePathname();
   const favoritesScopeKey = favoritesScope ? `${favoritesScope.workspaceId}:${favoritesScope.userId}` : null;
@@ -129,7 +131,10 @@ export function MainSidebar({
     initialDataFresh: favoriteProjectsFresh,
     enabled: favoritesQueryEnabled, // stale shell seeds hydrate only after hover/focus/expand
   });
-  const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? EMPTY_FAVORITE_PROJECTS : favoriteProjects;
+  const hydrated = useIsHydrated();
+  const liveFavoriteProjects = favoritesScope && hydrated
+    ? favoritesQuery.data ?? EMPTY_FAVORITE_PROJECTS
+    : favoriteProjects;
   const showEmptyHint = favoritesQueryEnabled && !favoritesQuery.isFetching && !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
   const { politeText, assertiveText } = useSidebarFavoritesAnnouncer();
   const navRef = useRef<HTMLElement | null>(null);

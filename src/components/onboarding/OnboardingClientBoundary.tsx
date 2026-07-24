@@ -103,12 +103,6 @@ export function OnboardingClientBoundary({
     if (!snapshot.activation.automaticGuidanceEnabled) {
       return null;
     }
-    const resumable = eligibleFlows.find(
-      (flow) => flow.state?.status === "in_progress",
-    );
-    if (resumable) {
-      return { flow: resumable, launchMode: "resume" as const };
-    }
     const automatic = eligibleFlows.find(
       (flow) =>
         flow.definition.autoStart === "first_eligible_session" &&

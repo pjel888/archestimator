@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 
@@ -44,7 +45,10 @@ export function FavoritesTree({
     scope: favoritesScope,
     initialData: favoriteProjects,
   });
-  const projects = favoritesQuery.data ?? favoriteProjects;
+  const hydrated = useIsHydrated();
+  const projects = hydrated
+    ? favoritesQuery.data ?? favoriteProjects
+    : favoriteProjects;
 
   // Default: expand every project that actually has favorite sheets, so the
   // tree is useful on first paint.

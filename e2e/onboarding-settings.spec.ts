@@ -115,6 +115,70 @@ function seedFixture() {
   clearOnboardingState();
 }
 
+function seedInProgressCoreOrientation() {
+  clearOnboardingState();
+  executeLocalD1(`
+    INSERT INTO beta_onboarding_flow_states (
+      user_id, workspace_id, flow_key, flow_version, generation, status,
+      current_step_key, revision, reset_count, started_at, created_at, updated_at
+    ) VALUES (
+      '${FIXTURE_USER_ID}',
+      '${FIXTURE_WORKSPACE_ID}',
+      'core_orientation',
+      1,
+      1,
+      'in_progress',
+      'workspace_map',
+      1,
+      0,
+      '2026-07-24T00:00:00.000Z',
+      '2026-07-24T00:00:00.000Z',
+      '2026-07-24T00:00:01.000Z'
+    );
+
+    INSERT INTO beta_onboarding_flow_events (
+      id, user_id, workspace_id, flow_key, flow_version, generation,
+      run_id, launch_mode, step_key, event_type, source,
+      idempotency_key, request_fingerprint, state_revision,
+      occurred_at, ingested_at
+    ) VALUES (
+      'evt_onboarding_e2e_core_started',
+      '${FIXTURE_USER_ID}',
+      '${FIXTURE_WORKSPACE_ID}',
+      'core_orientation',
+      1,
+      1,
+      'run_onboarding_e2e_core_0001',
+      'auto',
+      'welcome',
+      'flow_started',
+      'user_command',
+      'onboarding-e2e-core-started',
+      'onboarding-e2e-core-started',
+      0,
+      '2026-07-24T00:00:00.000Z',
+      '2026-07-24T00:00:00.000Z'
+    ), (
+      'evt_onboarding_e2e_core_advanced',
+      '${FIXTURE_USER_ID}',
+      '${FIXTURE_WORKSPACE_ID}',
+      'core_orientation',
+      1,
+      1,
+      'run_onboarding_e2e_core_0001',
+      'auto',
+      'welcome',
+      'step_completed',
+      'joyride_runtime',
+      'onboarding-e2e-core-advanced',
+      'onboarding-e2e-core-advanced',
+      1,
+      '2026-07-24T00:00:01.000Z',
+      '2026-07-24T00:00:01.000Z'
+    );
+  `);
+}
+
 function deactivateFixture() {
   clearOnboardingState();
   executeLocalD1(`
@@ -158,6 +222,44 @@ test.describe("onboarding settings and runtime", () => {
 
   test.beforeEach(async ({ context }) => {
     await installLocalDevAuthBypass(context, auth);
+  });
+
+  test("does not let saved guide progress take over normal Projects navigation", async ({
+    page,
+  }) => {
+    seedInProgressCoreOrientation();
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    try {
+      const response = await page.goto("/workshop/projects", {
+        waitUntil: "domcontentloaded",
+      });
+      expect(response?.status()).toBeLessThan(500);
+      await expect(page).not.toHaveURL(/\/login(?:[/?#]|$)/u);
+      await page.waitForTimeout(1_500);
+      expect(new URL(page.url()).pathname).toBe("/workshop/projects");
+      await expect(
+        page.getByRole("heading", { name: "Guidance paused", exact: true }),
+      ).toHaveCount(0);
+      await expect(page.locator("#archestimator-onboarding-portal")).toHaveCount(0);
+
+      await page.goto(
+        "/workshop/projects?tour=core_orientation&mode=resume",
+        { waitUntil: "domcontentloaded" },
+      );
+      await expect(
+        page.getByRole("heading", { name: "Your Workshop", exact: true }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator("#archestimator-onboarding-portal")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(
+        page.getByRole("heading", { name: "Your Workshop", exact: true }),
+      ).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    } finally {
+      clearOnboardingState();
+    }
   });
 
   test("launches automatically and supports pause, deactivate, manual relaunch, reset, and reactivate", async ({

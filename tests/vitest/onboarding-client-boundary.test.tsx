@@ -115,7 +115,90 @@ describe("OnboardingClientBoundary", () => {
     expect(screen.getByTestId("onboarding-tour")).toHaveTextContent("start");
   });
 
-  it("does not auto-resume a guide again after it exits in the same shell", () => {
+  it.each(["/workshop", "/workshop/projects"])(
+    "does not auto-resume an in-progress guide on %s without an explicit launch",
+    (pathname) => {
+      const currentSnapshot = snapshot();
+      currentSnapshot.flowStates = [{
+        flowKey: "core_orientation",
+        flowVersion: 1,
+        status: "in_progress",
+        currentStepKey: "projects_entry",
+        generation: 1,
+        revision: 2,
+        resetCount: 0,
+        tutorialBinding: null,
+        runId: "run-1",
+      }];
+      mocks.pathname = pathname;
+
+      render(
+        <OnboardingClientBoundary
+          snapshot={currentSnapshot}
+          mutate={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByTestId("onboarding-tour")).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not auto-resume guided estimate practice on Projects", () => {
+    const currentSnapshot = snapshot();
+    currentSnapshot.capabilities = [
+      ...currentSnapshot.capabilities,
+      "view_estimate",
+      "edit_estimate",
+    ];
+    currentSnapshot.availableRoutes = [
+      ...currentSnapshot.availableRoutes,
+      "estimate_sheet",
+    ];
+    currentSnapshot.availableTargets = [
+      ...currentSnapshot.availableTargets,
+      "estimate.library",
+    ];
+    currentSnapshot.dataPredicates = {
+      tutorial_binding_current: true,
+      tutorial_core_incomplete: true,
+    };
+    currentSnapshot.flowStates = [
+      {
+        flowKey: "core_orientation",
+        flowVersion: 1,
+        status: "completed",
+        currentStepKey: null,
+        generation: 1,
+        revision: 5,
+        resetCount: 0,
+        tutorialBinding: null,
+        runId: "run-core",
+      },
+      {
+        flowKey: "guided_estimate_practice",
+        flowVersion: 1,
+        status: "in_progress",
+        currentStepKey: "practice_add_and_source",
+        generation: 1,
+        revision: 4,
+        resetCount: 0,
+        tutorialBinding: { version: 2, generation: 1 },
+        runId: "run-practice",
+      },
+    ];
+    mocks.pathname = "/workshop/projects";
+
+    render(
+      <OnboardingClientBoundary
+        snapshot={currentSnapshot}
+        mutate={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("onboarding-tour")).not.toBeInTheDocument();
+  });
+
+  it("resumes an in-progress guide only from an explicit launch intent", () => {
     const currentSnapshot = snapshot();
     currentSnapshot.flowStates = [{
       flowKey: "core_orientation",
@@ -128,6 +211,21 @@ describe("OnboardingClientBoundary", () => {
       tutorialBinding: null,
       runId: "run-1",
     }];
+    mocks.pathname = "/workshop/projects";
+    mocks.search = "tour=core_orientation&mode=resume";
+
+    render(
+      <OnboardingClientBoundary
+        snapshot={currentSnapshot}
+        mutate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("onboarding-tour")).toHaveTextContent("resume");
+  });
+
+  it("does not auto-launch a guide again after it exits in the same shell", () => {
+    const currentSnapshot = snapshot();
 
     const { rerender } = render(
       <OnboardingClientBoundary
@@ -136,7 +234,7 @@ describe("OnboardingClientBoundary", () => {
       />,
     );
 
-    expect(screen.getByTestId("onboarding-tour")).toHaveTextContent("resume");
+    expect(screen.getByTestId("onboarding-tour")).toHaveTextContent("auto");
     fireEvent.click(screen.getByTestId("onboarding-tour"));
     expect(screen.queryByTestId("onboarding-tour")).not.toBeInTheDocument();
 
