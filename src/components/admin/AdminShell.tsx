@@ -49,9 +49,10 @@ export function AdminShell({ children, displayName, email }: AdminShellProps) {
         <AdminHeader displayName={displayName} email={email} />
         <div
           className={[
-            "min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-y-contain bg-white",
+            "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-white",
             "px-3 py-3 sm:p-4",
-            "pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-4",
+            "pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-4",
+            "scroll-pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:scroll-pb-4",
           ].join(" ")}
         >
           {children}

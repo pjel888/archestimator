@@ -37,7 +37,7 @@ export function AdminPageHeader({ title, description, actions, eyebrow, classNam
       ) : null}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h1 className="truncate text-[12px] font-medium leading-4 text-ink">{title}</h1>
+          <h1 className="break-words text-pretty text-[12px] font-medium leading-4 text-ink">{title}</h1>
           {description ? (
             <p className="text-[10px] font-normal leading-[14px] text-muted text-pretty">{description}</p>
           ) : null}

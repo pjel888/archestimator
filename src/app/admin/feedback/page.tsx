@@ -93,18 +93,18 @@ export default async function AdminFeedbackPage({
         </section>
       ) : (
         <>
-          <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/admin/feedback">
-            <div className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
+          <form className="grid gap-2 border border-hairline bg-white p-2 sm:flex sm:flex-wrap sm:items-end" action="/admin/feedback">
+            <div className="grid min-w-0 gap-1 text-[10px] font-medium leading-none text-secondary">
               Status
               <AdminStatusSelect
                 name="status"
                 defaultValue={params.status && isBetaFeedbackStatus(params.status) ? params.status : ""}
                 options={statusFilterOptions}
                 aria-label="Status filter"
-                className="min-w-36"
+                className="min-h-10 w-full sm:min-h-7 sm:w-auto sm:min-w-36"
               />
             </div>
-            <Button type="submit" variant="secondary" size="sm">
+            <Button type="submit" variant="secondary" size="sm" className="min-h-10 w-full sm:min-h-8 sm:w-auto">
               Filter
             </Button>
           </form>
@@ -124,49 +124,97 @@ export default async function AdminFeedbackPage({
                 No feedback matches this view.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-left text-[10px] leading-4">
-                  <thead className="bg-surfaceMuted text-secondary">
-                    <tr>
-                      <th className="border-b border-hairline px-2 py-1 font-medium">Created</th>
-                      <th className="border-b border-hairline px-2 py-1 font-medium">Reporter</th>
-                      <th className="border-b border-hairline px-2 py-1 font-medium">Type</th>
-                      <th className="border-b border-hairline px-2 py-1 font-medium">Severity</th>
-                      <th className="border-b border-hairline px-2 py-1 font-medium">Message</th>
-                      <th className="border-b border-hairline px-2 py-1 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {submissions.map((item) => (
-                      <tr key={item.id} className="align-top">
-                        <td className="border-b border-hairline px-2 py-2 text-tertiary">{formatDate(item.created_at)}</td>
-                        <td className="border-b border-hairline px-2 py-2 text-secondary">
-                          <div>{item.user_email}</div>
-                          <div className="text-tertiary">{item.page_path ?? "No page path"}</div>
-                        </td>
-                        <td className="border-b border-hairline px-2 py-2 text-secondary">{item.feedback_type}</td>
-                        <td className="border-b border-hairline px-2 py-2 text-secondary">{item.severity}</td>
-                        <td className="max-w-md border-b border-hairline px-2 py-2 text-ink">{item.message}</td>
-                        <td className="border-b border-hairline px-2 py-2">
-                          <form action={updateBetaFeedbackReviewStatus} className="flex items-center gap-1">
-                            <input type="hidden" name="id" value={item.id} />
-                            <AdminStatusSelect
-                              name="status"
-                              defaultValue={item.status}
-                              options={statusOptions}
-                              aria-label={`Review status for feedback from ${item.user_email}`}
-                              className="min-w-28"
-                            />
-                            <Button type="submit" variant="secondary" size="sm">
-                              Save
-                            </Button>
-                          </form>
-                        </td>
+              <>
+                <div className="divide-y divide-hairline md:hidden">
+                  {submissions.map((item) => (
+                    <article key={item.id} className="grid gap-3 p-3">
+                      <header className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="break-all text-[10px] font-medium leading-4 text-ink">{item.user_email}</p>
+                          <p className="break-all text-[9px] leading-3 text-tertiary">{item.page_path ?? "No page path"}</p>
+                        </div>
+                        <time className="shrink-0 text-right text-[9px] leading-3 text-tertiary" dateTime={item.created_at}>
+                          {formatDate(item.created_at)}
+                        </time>
+                      </header>
+
+                      <dl className="grid grid-cols-2 gap-2 rounded-xs bg-surfaceMuted/50 p-2 text-[9px] leading-3">
+                        <div>
+                          <dt className="font-medium uppercase text-tertiary">Type</dt>
+                          <dd className="mt-0.5 break-words text-secondary">{item.feedback_type}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium uppercase text-tertiary">Severity</dt>
+                          <dd className="mt-0.5 break-words text-secondary">{item.severity}</dd>
+                        </div>
+                      </dl>
+
+                      <p className="break-words text-[10px] leading-4 text-ink">{item.message}</p>
+
+                      <form action={updateBetaFeedbackReviewStatus} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+                        <input type="hidden" name="id" value={item.id} />
+                        <div className="grid min-w-0 gap-1 text-[9px] font-medium leading-3 text-tertiary">
+                          <span>Review status</span>
+                          <AdminStatusSelect
+                            name="status"
+                            defaultValue={item.status}
+                            options={statusOptions}
+                            aria-label={`Review status for feedback from ${item.user_email}`}
+                            className="min-h-10 w-full"
+                          />
+                        </div>
+                        <Button type="submit" variant="secondary" size="sm" className="min-h-10 min-w-20">
+                          Save
+                        </Button>
+                      </form>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="min-w-full border-collapse text-left text-[10px] leading-4">
+                    <thead className="bg-surfaceMuted text-secondary">
+                      <tr>
+                        <th className="border-b border-hairline px-2 py-1 font-medium">Created</th>
+                        <th className="border-b border-hairline px-2 py-1 font-medium">Reporter</th>
+                        <th className="border-b border-hairline px-2 py-1 font-medium">Type</th>
+                        <th className="border-b border-hairline px-2 py-1 font-medium">Severity</th>
+                        <th className="border-b border-hairline px-2 py-1 font-medium">Message</th>
+                        <th className="border-b border-hairline px-2 py-1 font-medium">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {submissions.map((item) => (
+                        <tr key={item.id} className="align-top">
+                          <td className="border-b border-hairline px-2 py-2 text-tertiary">{formatDate(item.created_at)}</td>
+                          <td className="border-b border-hairline px-2 py-2 text-secondary">
+                            <div>{item.user_email}</div>
+                            <div className="text-tertiary">{item.page_path ?? "No page path"}</div>
+                          </td>
+                          <td className="border-b border-hairline px-2 py-2 text-secondary">{item.feedback_type}</td>
+                          <td className="border-b border-hairline px-2 py-2 text-secondary">{item.severity}</td>
+                          <td className="max-w-md border-b border-hairline px-2 py-2 text-ink">{item.message}</td>
+                          <td className="border-b border-hairline px-2 py-2">
+                            <form action={updateBetaFeedbackReviewStatus} className="flex items-center gap-1">
+                              <input type="hidden" name="id" value={item.id} />
+                              <AdminStatusSelect
+                                name="status"
+                                defaultValue={item.status}
+                                options={statusOptions}
+                                aria-label={`Review status for feedback from ${item.user_email}`}
+                                className="min-w-28"
+                              />
+                              <Button type="submit" variant="secondary" size="sm">
+                                Save
+                              </Button>
+                            </form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </section>
         </>

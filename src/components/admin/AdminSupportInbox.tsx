@@ -861,7 +861,7 @@ export function AdminSupportInbox({
             <div className="border-b border-hairline px-3 py-2.5">
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-start gap-2">
-                  <Button type="button" variant="ghost" size="xs" className="min-h-8 min-w-0 shrink-0 px-2 md:hidden" onClick={() => setMobileThreadOpen(false)}>
+                  <Button type="button" variant="ghost" size="xs" className="min-h-10 min-w-0 shrink-0 px-2 md:hidden" onClick={() => setMobileThreadOpen(false)}>
                     Back
                   </Button>
                   <div className="min-w-0 flex-1">
@@ -890,7 +890,7 @@ export function AdminSupportInbox({
                         value={selected.status}
                         onChange={(event) => handleStatus(event.currentTarget.value as SupportConversationStatus)}
                         disabled={isPending}
-                        className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        className="h-10 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus md:h-8"
                         aria-label="Conversation status"
                       >
                         {selected.status === "resolved" || selected.status === "archived" ? (
@@ -906,7 +906,7 @@ export function AdminSupportInbox({
                       size="xs"
                       variant="outline"
                       disabled={isPending}
-                      className="min-h-8 min-w-0 px-2"
+                      className="min-h-10 min-w-0 px-2 md:min-h-8"
                       onClick={() => handleTriage({ starredForAdmin: !(selectedTriage?.starred_for_admin ?? false) })}
                     >
                       {selectedTriage?.starred_for_admin ? "Unstar" : "Star"}
@@ -916,7 +916,7 @@ export function AdminSupportInbox({
                       size="xs"
                       variant="outline"
                       disabled={isPending}
-                      className="min-h-8 min-w-0 px-2"
+                      className="min-h-10 min-w-0 px-2 md:min-h-8"
                       onClick={() => handleTriage({ assignToSelf: !selectedTriage?.assignee_user_id })}
                     >
                       {selectedTriage?.assignee_user_id ? "Unassign" : "Assign me"}
@@ -933,7 +933,7 @@ export function AdminSupportInbox({
                             : null,
                         });
                       }}
-                      className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-4 text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      className="h-10 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-4 text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus md:h-8"
                       aria-label="Snooze conversation"
                     >
                       <option value="" disabled>{selectedTriage?.snoozed_until ? "Change snooze" : "Snooze"}</option>
@@ -948,7 +948,7 @@ export function AdminSupportInbox({
                         size="xs"
                         variant="outline"
                         disabled={isPending}
-                        className="min-h-8 min-w-0 px-2"
+                        className="min-h-10 min-w-0 px-2 md:min-h-8"
                         onClick={() => setShowForward((visible) => !visible)}
                       >
                         Forward
@@ -958,7 +958,7 @@ export function AdminSupportInbox({
                 ) : null}
                 {selected ? (
                   <details className="group rounded-xs border border-hairline bg-surfaceMuted/45 px-2 py-1.5">
-                    <summary className="flex min-h-6 cursor-pointer list-none items-center justify-between text-[9px] font-medium leading-3 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                    <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between text-[9px] font-medium leading-3 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:min-h-6">
                       Conversation details
                       <span className="font-normal text-tertiary">
                         {selectedTriage?.labels.length ? selectedTriage.labels.join(", ") : "No labels"}
@@ -971,12 +971,12 @@ export function AdminSupportInbox({
                           key={selected.id}
                           ref={labelInputRef}
                           defaultValue={selectedTriage?.labels.join(", ") ?? ""}
-                          className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          className="h-10 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal normal-case text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus md:h-8"
                           placeholder="billing, onboarding, bug"
                           aria-label="Conversation labels"
                         />
                       </label>
-                      <Button type="button" size="xs" variant="secondary" disabled={isPending} className="min-h-8" onClick={handleLabels}>
+                      <Button type="button" size="xs" variant="secondary" disabled={isPending} className="min-h-10 md:min-h-8" onClick={handleLabels}>
                         Save labels
                       </Button>
                     </div>
@@ -1006,7 +1006,7 @@ export function AdminSupportInbox({
                       type="button"
                       variant="ghost"
                       size="xs"
-                      className="min-h-6 shrink-0 px-1.5"
+                      className="min-h-9 shrink-0 px-1.5 md:min-h-6"
                       onClick={() => {
                         void threadQuery.refetch();
                         void mailboxQuery.refetch();

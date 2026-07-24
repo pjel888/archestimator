@@ -135,7 +135,7 @@ function ToolbarButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs text-secondary transition md:h-6 md:w-6",
+        "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xs text-secondary transition md:h-6 md:w-6",
         active ? "bg-surfaceMuted text-ink" : "hover:bg-surfaceMuted hover:text-ink",
         disabled && "cursor-not-allowed opacity-40",
       )}

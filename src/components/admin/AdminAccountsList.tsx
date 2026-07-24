@@ -17,7 +17,7 @@ function AccountMobileCard({ account }: { account: CorporateAccountWithCountRow 
         <div className="min-w-0">
           <Link
             href={`/admin/accounts/${account.id}`}
-            className="truncate text-[11px] font-medium leading-4 text-ink hover:underline"
+            className="line-clamp-2 break-words text-[11px] font-medium leading-4 text-ink hover:underline"
           >
             {account.name}
           </Link>

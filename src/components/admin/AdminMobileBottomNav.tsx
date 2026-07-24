@@ -28,19 +28,13 @@ const AdminMobileMoreSheet = dynamic(
  */
 export function AdminMobileBottomNav() {
   const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreOpenPathname, setMoreOpenPathname] = useState<string | null>(null);
   const [moreMounted, setMoreMounted] = useState(false);
-  const moreActive = moreOpen || isAdminPrimaryNavRoute(pathname, ADMIN_MOBILE_PRIMARY_HREFS);
+  const moreOpen = moreOpenPathname === pathname;
+  const primaryRouteActive = isAdminPrimaryNavRoute(pathname, ADMIN_MOBILE_PRIMARY_HREFS);
+  const moreActive = moreOpen || !primaryRouteActive;
 
   useEffect(() => {
-    setMoreOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (moreOpen) {
-      setMoreMounted(true);
-      return;
-    }
     if (moreMounted || typeof window === "undefined") return;
 
     let cancelled = false;
@@ -61,11 +55,15 @@ export function AdminMobileBottomNav() {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [moreMounted, moreOpen]);
+  }, [moreMounted]);
+
+  function setMoreOpen(open: boolean) {
+    setMoreOpenPathname(open ? pathname : null);
+  }
 
   function openMore() {
     setMoreMounted(true);
-    setMoreOpen(true);
+    setMoreOpenPathname(pathname);
   }
 
   return (
@@ -74,7 +72,7 @@ export function AdminMobileBottomNav() {
         aria-label="Admin mobile navigation"
         className={cn(
           "pointer-events-none fixed inset-x-0 bottom-0 z-[900] md:hidden",
-          "px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1",
+          "px-3 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-1",
           moreOpen && "invisible",
         )}
       >
@@ -97,8 +95,8 @@ export function AdminMobileBottomNav() {
                 aria-current={active ? "page" : undefined}
                 onClick={() => setMoreOpen(false)}
                 className={cn(
-                  "flex min-h-11 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[var(--glass-nav-radius)] px-1 py-1",
-                  "text-[8px] font-medium leading-3 transition-[background-color,color,transform] duration-150",
+                  "flex min-h-12 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[var(--glass-nav-radius)] px-1 py-1",
+                  "text-[9px] font-medium leading-3 transition-[background-color,color,transform] duration-150",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                   "active:scale-[0.97] motion-reduce:active:scale-100",
                   active
@@ -106,7 +104,7 @@ export function AdminMobileBottomNav() {
                     : "text-tertiary hover:bg-[var(--glass-nav-hover-bg)] hover:text-ink",
                 )}
               >
-                <Icon size={18} weight="regular" className="pointer-events-none" aria-hidden="true" />
+                <Icon size={19} weight="regular" className="pointer-events-none" aria-hidden="true" />
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -125,8 +123,8 @@ export function AdminMobileBottomNav() {
               else openMore();
             }}
             className={cn(
-              "flex min-h-11 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[var(--glass-nav-radius)] px-1 py-1",
-              "text-[8px] font-medium leading-3 transition-[background-color,color,transform] duration-150",
+              "flex min-h-12 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[var(--glass-nav-radius)] px-1 py-1",
+              "text-[9px] font-medium leading-3 transition-[background-color,color,transform] duration-150",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               "active:scale-[0.97] motion-reduce:active:scale-100",
               moreActive
@@ -134,7 +132,7 @@ export function AdminMobileBottomNav() {
                 : "text-tertiary hover:bg-[var(--glass-nav-hover-bg)] hover:text-ink",
             )}
           >
-            <DotsThreeOutline size={18} weight="regular" className="pointer-events-none" aria-hidden="true" />
+            <DotsThreeOutline size={19} weight="regular" className="pointer-events-none" aria-hidden="true" />
             <span>More</span>
           </button>
         </div>

@@ -65,7 +65,7 @@ export function AdminMobileMoreSheet({ open, onOpenChange }: AdminMobileMoreShee
               "absolute inset-x-0 bottom-0 max-h-[min(78dvh,640px)] w-full rounded-none rounded-t-[var(--glass-radius)] border-b-0",
               "bg-[var(--glass-bg-fallback)] shadow-[var(--glass-shadow)]",
               "supports-[backdrop-filter]:bg-[var(--glass-bg)] supports-[backdrop-filter]:backdrop-blur-[var(--glass-blur)] supports-[backdrop-filter]:backdrop-saturate-[var(--glass-saturate)]",
-              "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+              "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
             )}
           >
             <DialogHeader className="px-3 py-2">

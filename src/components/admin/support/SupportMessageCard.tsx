@@ -87,7 +87,7 @@ export function SupportMessageCard({
 
       {context ? (
         <details className="mt-2 rounded-xs border border-hairline bg-surfaceMuted/45 px-2 py-1.5">
-          <summary className="min-h-6 cursor-pointer text-[9px] font-medium leading-6 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+          <summary className="min-h-9 cursor-pointer text-[9px] font-medium leading-6 text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:min-h-6">
             Included details
           </summary>
           <dl className="grid gap-x-3 gap-y-1 border-t border-hairline pt-1.5 text-[9px] leading-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
@@ -149,9 +149,9 @@ export function SupportMessageCard({
                     </span>
                   </a>
                 ) : (
-                  <div className="flex items-center gap-1 rounded-xs border border-dashed border-hairline px-1.5 py-1 text-[9px] leading-3 text-tertiary">
+                  <div className="flex min-h-9 items-center gap-1 rounded-xs border border-dashed border-hairline px-1.5 py-1 text-[9px] leading-3 text-tertiary md:min-h-0">
                     <span>{attachment.filename} is unavailable ({attachment.storage_status}). The message remains available.</span>
-                    <Button type="button" variant="ghost" size="xs" className="min-h-6 px-1.5" onClick={onRetryAttachments}>
+                    <Button type="button" variant="ghost" size="xs" className="min-h-9 px-1.5 md:min-h-6" onClick={onRetryAttachments}>
                       Retry
                     </Button>
                   </div>
