@@ -1,3 +1,80 @@
+# Design QA: Pyramids Workflow Tab
+
+- **Source visual:** `.omx/artifacts/visual-ralph/pyramid-tab/reference.png`. It supplies the tab-strip anatomy only; the final one-tab count, palette, height, and marker treatment follow the user's later direction.
+- **Implementation screenshots:** `.omo/evidence/pyramid-tab/final-desktop-v4.png`, `.omo/evidence/pyramid-tab/final-tablet-v4.png`, and `.omo/evidence/pyramid-tab/final-mobile-v4.png`.
+- **Focused comparison:** `.omo/evidence/pyramid-tab/final-tab-strip-comparison-v4.png`, with the source strip above and the implementation strip below.
+- **Viewport and dimensions:** desktop `1280x720`, tablet `1024x900`, and mobile `390x844`.
+- **State:** public root route, signed-out header, pyramids workflow section aligned beneath the sticky header, and the single workflow tab selected.
+- **Final geometry:** the rail and selected tab are `32px` high; the desktop/tablet tab is `448px` wide; the mobile tab fills the `350px` content container.
+- **Final color treatment:** the remaining rail uses the sampled pyramid-sky color `rgb(64 80 96)`. The selected tab shares `--k-panel-strong` with the future-logo banner, while its centered `10px` label uses the same pyramid-sky color as the rail.
+- **Borders and state:** the rail has no top border, the selected tab pseudo-marker is disabled, and focus-visible styling remains available.
+- **Responsive findings:** all three browser measurements report zero horizontal page overflow; the label stays visible and centered at tablet and mobile widths.
+- **Console:** the final browser pass produced no warnings or errors.
+- **Static checks:** targeted ESLint, `git diff --check`, and GitNexus change detection pass. GitNexus reports low risk and no affected execution processes across the current shared-worktree diff.
+- **Independent review:** two fresh read-only visual reviewers returned `PASS` after checking post-edit captures and source values.
+- **Diff note:** the raw strip diff is intentionally non-comparable because the inspiration has four white tabs with an active blue line, while the approved implementation has one light blue-gray tab on a dark sky rail with no marker. The visual comparison and user-specific contract are authoritative.
+
+## Comparison History
+
+1. **Initial:** light rail, tall label area, and an active top marker.
+2. **Round one:** compact `48px` rail with smaller type.
+3. **Round two:** `32px` dark sky rail, `10px` centered white label, and no marker.
+4. **Final:** only the selected tab changed to the logo banner's light blue-gray, and its label changed to the rail's dark sky blue.
+
+final result: passed
+
+---
+
+# Design QA: Estimate Feature Cards
+
+- **Source visual:** `.omx/artifacts/visual-ralph/estimate-sheet-features/reference.png`.
+- **Implementation screenshot:** `.omo/evidence/estimate-sheet-features/desktop-viewport-final.png`.
+- **Focused comparison:** `.omo/evidence/estimate-sheet-features/reference-vs-actual-final.png`, with the source on the left and the implementation on the right.
+- **Viewport and dimensions:** browser viewport `1663x1364`; the focused source and implementation regions are normalized to matching `1744x744` dimensions for comparison.
+- **State:** public root route, signed-out header, estimate-sheet workspace section aligned at the top of the viewport.
+- **Background treatment:** all three cards use different real images from `public/Pixel_Images`, with separate focal points, zoom levels, and a subdued foreground treatment.
+- **Mockup treatment:** the tree, row, and component screenshots use separate image assets plus card-specific scale, offset, clipping, and corner-radius rules. The row sheet intentionally exceeds the right and bottom edges; the other two use different alignments and reveal amounts.
+- **Canvas and captions:** the section uses a clean white field, square media frames, increased caption spacing, sans-serif titles, and serif descriptions to follow the reference hierarchy.
+- **Console:** the final reload produced only React development and Fast Refresh messages; no fresh browser warnings or runtime errors.
+- **Static checks:** targeted ESLint and `git diff --check` pass. GitNexus change detection reports the public landing routes as the relevant affected surface; the high aggregate score includes pre-existing shared-worktree changes in the same landing stylesheet.
+- **Independent review:** two fresh visual reviewers returned `PASS`; a separate code-fidelity reviewer also returned `PASS`.
+
+## Comparison History
+
+1. **Initial:** schematic div art sat inside identical dotted gray cards.
+2. **Round one:** real pixel backgrounds and screenshot assets were introduced, but mockups remained too centered and the art was too saturated.
+3. **Round two:** screenshots grew and shifted, artwork became more textural, card-specific radii were added, and the dotted section canvas was removed.
+4. **Final:** stronger asymmetric clipping and softer artwork treatment passed both independent visual gates and the code-fidelity gate.
+
+final result: passed
+
+---
+
+# Design QA: Hero Product Proof Accuracy
+
+- **Source visual truth:** the current real workspace components in `src/components/workshop/EstimateWorkspaceClient.tsx`, `src/components/workshop/EstimateSheetContent.tsx`, and `src/components/workshop/EstimateSheetTree.tsx`. This audit checks product-truth fidelity rather than a separate Figma or screenshot clone.
+- **Implementation screenshots:** `.omx/evidence/hero-product-proof-2026-07-24/desktop-jon-add-branch-settled.png`, `.omx/evidence/hero-product-proof-2026-07-24/desktop-jon-branch-created-viewport.png`, `.omx/evidence/hero-product-proof-2026-07-24/desktop-final-proof.png`, and `.omx/evidence/hero-product-proof-2026-07-24/mobile-static-proof-390x844.png`.
+- **Viewport and density:** desktop captures are `1695x1364`; responsive capture is `390x844`.
+- **State:** public root route, signed-out header, desktop proof in motion, and mobile proof in its reduced/static final state.
+- **Jon task flow:** Jon moves from the working sheet to `Lot 24A`, selects the root, lands on the real `Add Branch` toolbar action, then leaves a selected `Exterior Works` area that persists through Philip's component-insertion sequence.
+- **Product chrome:** the proof now exposes the real tree search/filter/expand/collapse/Add Branch controls; tree collapse and resize controls; tab search/filter/group/expand/collapse/New tab controls; and source search/expand/collapse, collapse, and resize controls.
+- **Mutation boundary:** `New tab` is visually present only through `presentationMode`; its handler is a no-op in the inert public proof, while the live workspace keeps the existing default behavior.
+- **Desktop visual findings:** collaborator labels remain fully visible above the software frame, Jon's action lands on the intended toolbar control and created row, and the populated final estimate retains the three-rail workspace hierarchy.
+- **Responsive findings:** the `390x844` proof is static, has `390px` document and body width, preserves the complete underlying fixture, and introduces no horizontal page overflow. Metadata is intentionally small at this preview scale.
+- **Console:** a runtime cursor-anchor error found during QA was fixed. A fresh `32s` motion run completed with no warnings or errors; the mobile capture also logged none.
+- **Static checks:** targeted ESLint and `git diff --check` pass. Full TypeScript checking reaches only unrelated existing failures in `src/lib/admin/user-actions.ts` and `src/lib/repositories/workspace-repository.ts`.
+- **Independent review:** functional/product-truth and visual-fidelity reviewers both returned `PASS` with no P0 or P1 findings.
+
+## Comparison History
+
+1. **Initial:** Jon remained idle, proof-only CSS hid real toolbar/collapse/resize controls, and presentation mode suppressed the real `New tab` action.
+2. **Implementation:** Jon gained a deterministic branch-creation sequence, the fixture gained `Exterior Works`, hidden product chrome was restored, and `New tab` received a presentation-only no-mutation path.
+3. **Final:** live QA caught and fixed a cursor-anchor runtime edge case, then reverified desktop task states, the populated end state, one complete motion interval, and the mobile static layout.
+
+final result: passed
+
+---
+
 # Design QA: Kimi3D Hero
 
 - **Source visual truth:** `/var/folders/bn/7b1mmzfj6j52jkpfny_33f840000gn/T/codex-clipboard-e963f8be-54c1-453e-9ac2-f2ed96b334c1.png`.
