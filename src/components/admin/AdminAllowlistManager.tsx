@@ -8,7 +8,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import { AdminOverviewStrip, AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
-import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { AdminStatusSelect } from "@/components/admin/AdminStatusSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

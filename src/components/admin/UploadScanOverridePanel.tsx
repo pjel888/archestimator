@@ -11,9 +11,9 @@ type SubmissionState =
   | { status: "approved"; message: string }
   | { status: "failed"; message: string };
 
-type UploadScanOverridePanelProps = {
+type UploadScanOverridePanelProps = Readonly<{
   rows: readonly UploadScanOverrideReviewRow[];
-};
+}>;
 
 const dateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",

@@ -176,7 +176,7 @@ function buildFeedbackUpsert(db: D1DatabaseLike, now: string): ActionStatement {
           CASE WHEN feedback.page_path IS NOT NULL AND feedback.page_path <> ''
             THEN 'page: ' || feedback.page_path ELSE NULL END,
           'warning',
-          '/workshop/settings/feedback?feedback=' || feedback.id,
+          '/admin/feedback?feedback=' || feedback.id,
           'open',
           45,
           ?,

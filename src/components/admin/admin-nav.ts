@@ -7,6 +7,7 @@ import {
   Buildings,
   Chats,
   ChartLine,
+  ChartLineUp,
   Coins,
   ClipboardText,
   Database,
@@ -27,7 +28,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { ADMIN_MOBILE_PRIMARY_NAV } from "@/components/admin/admin-mobile-primary-nav";
-import { isAdminNavActive, isAdminPrimaryNavRoute as matchPrimaryRoute } from "@/components/admin/admin-nav-utils";
+import { isAdminPrimaryNavRoute as matchPrimaryRoute } from "@/components/admin/admin-nav-utils";
 
 type PhosphorIcon = ComponentType<
   SVGProps<SVGSVGElement> & {
@@ -65,6 +66,7 @@ export const ADMIN_NAV_GROUPS = [
       { href: "/admin/allowlist", label: "Allowlist", icon: EnvelopeSimple },
       { href: "/admin/accounts", label: "Accounts", icon: Buildings },
       { href: "/admin/support", label: "Support", icon: Headset },
+      { href: "/admin/feedback", label: "Feedback", icon: Chats },
       { href: "/admin/saved-replies", label: "Saved Replies", icon: Notepad },
     ],
   },
@@ -83,6 +85,8 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { href: "/admin/releases", label: "Releases", icon: Rocket },
       { href: "/admin/data-quality", label: "Data Quality", icon: Database },
+      { href: "/admin/upload-operations", label: "Upload Operations", icon: ChartLineUp },
+      { href: "/admin/scan-overrides", label: "Scan Overrides", icon: ShieldCheck },
       { href: "/admin/observability", label: "Observability", icon: Pulse },
     ],
   },

@@ -43,11 +43,13 @@ function MetricTile({
   );
 }
 
+type UploadOperationsDashboardPanelProps = {
+  snapshot: UploadOperationsDashboardSnapshot;
+};
+
 export function UploadOperationsDashboardPanel({
   snapshot,
-}: {
-  snapshot: UploadOperationsDashboardSnapshot;
-}) {
+}: UploadOperationsDashboardPanelProps) {
   const surfaceRows = Object.entries(snapshot.bySurface);
 
   return (

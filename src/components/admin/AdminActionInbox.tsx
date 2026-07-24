@@ -34,7 +34,7 @@ function actionHref(item: AdminActionItemRow): string | null {
     return `/admin/support?${new URLSearchParams({ c: item.source_id, folder: "all" }).toString()}`;
   }
   if (item.source_kind === "feedback") {
-    return `/workshop/settings/feedback?${new URLSearchParams({ feedback: item.source_id }).toString()}`;
+    return `/admin/feedback?${new URLSearchParams({ feedback: item.source_id }).toString()}`;
   }
   return safeInternalHref(item.href);
 }

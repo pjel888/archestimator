@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 
 import { DevRemoteBindingsBanner } from "@/components/workshop/DevRemoteBindingsBanner";
 import { WorkshopShell } from "@/components/workshop/WorkshopShell";
-import { AUTH_REQUEST_PATH_HEADER } from "@/lib/auth/redirects";
+import {
+  AUTH_REQUEST_PATH_HEADER,
+  LOGIN_PATH,
+  sanitizeProtectedReturnPath,
+} from "@/lib/auth/redirects";
 import { isProtectedRouteGateSatisfied } from "@/lib/auth/protected-route-gate";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
@@ -24,6 +28,13 @@ function withWorkshopChrome(children: ReactNode) {
       <WorkshopShell>{children}</WorkshopShell>
     </>
   );
+}
+
+function buildWorkshopLoginRedirectPath(requestPath: string) {
+  const params = new URLSearchParams({
+    next: sanitizeProtectedReturnPath(requestPath),
+  });
+  return `${LOGIN_PATH}?${params.toString()}`;
 }
 
 /**
@@ -49,7 +60,7 @@ export default async function WorkshopLayout({ children }: { children: ReactNode
   }
 
   const currentUser = await getCurrentUserContext();
-  if (!currentUser) redirect("/login");
+  if (!currentUser) redirect(buildWorkshopLoginRedirectPath(requestPath));
 
   const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(currentUser.userId);
   if (acceptanceStatus.requiresAcceptance) {

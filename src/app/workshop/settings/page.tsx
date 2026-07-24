@@ -1,12 +1,12 @@
 import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { WorkshopSettingsModal } from "@/components/workshop/WorkshopSettingsModal";
 import { WorkshopSettingsModalContent } from "@/components/workshop/WorkshopSettingsModalContent";
-import { isPlatformAdmin } from "@/lib/auth/roles";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { loadCurrentOnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-actions";
 
 export default async function WorkshopSettingsPage() {
-  const context = await requireCurrentUserContext();
-  const canManagePlatform = isPlatformAdmin(context);
+  await requireCurrentUserContext();
+  const onboardingSnapshot = await loadCurrentOnboardingEligibilitySnapshot().catch(() => null);
 
   return (
     <WorkshopRouteHeader
@@ -23,7 +23,9 @@ export default async function WorkshopSettingsPage() {
         trigger="none"
         location="Workshop / Settings"
       >
-        <WorkshopSettingsModalContent canManagePlatform={canManagePlatform} />
+        <WorkshopSettingsModalContent
+          onboardingSnapshot={onboardingSnapshot}
+        />
       </WorkshopSettingsModal>
     </WorkshopRouteHeader>
   );

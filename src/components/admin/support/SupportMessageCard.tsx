@@ -106,6 +106,18 @@ export function SupportMessageCard({
                 {context.timezone ? <><dt className="text-tertiary">Timezone</dt><dd className="text-secondary">{context.timezone}</dd></> : null}
                 {context.browser_family || context.os_family ? <><dt className="text-tertiary">Browser / OS</dt><dd className="text-secondary">{[context.browser_family, context.os_family].filter(Boolean).join(" / ")}</dd></> : null}
                 {context.app_release ? <><dt className="text-tertiary">App release</dt><dd className="break-all text-secondary">{context.app_release}</dd></> : null}
+                {context.onboarding_flow_key ? (
+                  <>
+                    <dt className="text-tertiary">Guidance</dt>
+                    <dd className="text-secondary">{context.onboarding_flow_key} v{context.onboarding_flow_version}</dd>
+                    <dt className="text-tertiary">Recovery</dt>
+                    <dd className="text-secondary">{context.onboarding_reason_code}</dd>
+                    {context.onboarding_step_key ? <><dt className="text-tertiary">Step</dt><dd className="text-secondary">{context.onboarding_step_key}</dd></> : null}
+                    {context.onboarding_route_key ? <><dt className="text-tertiary">Route intent</dt><dd className="text-secondary">{context.onboarding_route_key}</dd></> : null}
+                    <dt className="text-tertiary">Guidance viewport</dt>
+                    <dd className="text-secondary">{context.onboarding_viewport_class}</dd>
+                  </>
+                ) : null}
               </>
             ) : null}
           </dl>
