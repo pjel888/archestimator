@@ -2068,19 +2068,19 @@
 }
 
 .estimateFeatureMedia[data-feature-visual="tree"] {
-  background-image: url("/Pixel_Images/ChatGPT%20Image%20Jul%2023,%202026,%2001_28_39%20PM.png");
+  background-image: url("/estimate-feature-tree-bg.webp");
   background-position: 58% 54%;
   background-size: 205% auto;
 }
 
 .estimateFeatureMedia[data-feature-visual="rows"] {
-  background-image: url("/Pixel_Images/ChatGPT%20Image%20Jul%2023,%202026,%2001_28_48%20PM.png");
+  background-image: url("/estimate-feature-rows-bg.webp");
   background-position: 49% 52%;
   background-size: auto 185%;
 }
 
 .estimateFeatureMedia[data-feature-visual="components"] {
-  background-image: url("/Pixel_Images/ChatGPT%20Image%20Jul%2023,%202026,%2005_03_16%20PM.png");
+  background-image: url("/estimate-feature-components-bg.webp");
   background-position: 50% 59%;
   background-size: 205% auto;
 }

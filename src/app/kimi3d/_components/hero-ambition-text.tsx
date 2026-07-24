@@ -1,13 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
-import { gsap } from "gsap";
-import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+import { useEffect, useRef } from "react";
 
 import styles from "../kimi-landing.module.css";
-
-gsap.registerPlugin(ScrambleTextPlugin, useGSAP);
 
 const ROTATING_WORDS = [
   "AMBITION",
@@ -22,6 +17,7 @@ const ROTATING_WORDS = [
 
 const FIRST_WORD = ROTATING_WORDS[0];
 const WORD_HOLD_SECONDS = 1.35;
+const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
 
 type HeroAmbitionTextProps = {
   className: string;
@@ -30,41 +26,69 @@ type HeroAmbitionTextProps = {
 export function HeroAmbitionText({ className }: HeroAmbitionTextProps) {
   const animatedTextRef = useRef<HTMLSpanElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (
+      !window.matchMedia(FINE_POINTER_QUERY).matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    let timeline: { kill: () => void } | undefined;
+    const start = () => {
       const animatedText = animatedTextRef.current;
-      if (
-        !animatedText ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
+      if (!animatedText) {
         return;
       }
 
-      const timeline = gsap.timeline({
-        delay: WORD_HOLD_SECONDS,
-        repeat: -1,
-        repeatDelay: WORD_HOLD_SECONDS,
-      });
+      void Promise.all([import("gsap"), import("gsap/ScrambleTextPlugin")]).then(
+        ([{ gsap }, { ScrambleTextPlugin }]) => {
+          if (cancelled) {
+            return;
+          }
 
-      [...ROTATING_WORDS.slice(1), FIRST_WORD].forEach((word, index) => {
-        timeline.to(
-          animatedText,
-          {
-            scrambleText: {
-              text: word,
-              chars: "XO!#",
-              revealDelay: 0.08,
-              speed: 0.4,
-            },
-            duration: 1.05,
-            ease: "none",
-          },
-          index === 0 ? 0 : `+=${WORD_HOLD_SECONDS}`,
-        );
-      });
-    },
-    { scope: animatedTextRef },
-  );
+          gsap.registerPlugin(ScrambleTextPlugin);
+          timeline = gsap.timeline({
+            delay: WORD_HOLD_SECONDS,
+            repeat: -1,
+            repeatDelay: WORD_HOLD_SECONDS,
+          });
+
+          [...ROTATING_WORDS.slice(1), FIRST_WORD].forEach((word, index) => {
+            timeline?.to(
+              animatedText,
+              {
+                scrambleText: {
+                  text: word,
+                  chars: "XO!#",
+                  revealDelay: 0.08,
+                  speed: 0.4,
+                },
+                duration: 1.05,
+                ease: "none",
+              },
+              index === 0 ? 0 : `+=${WORD_HOLD_SECONDS}`,
+            );
+          });
+        },
+      );
+    };
+    const idleCallbackId = window.requestIdleCallback?.(start, { timeout: 4_000 });
+    const timeoutId =
+      idleCallbackId === undefined ? window.setTimeout(start, 3_000) : undefined;
+
+    return () => {
+      cancelled = true;
+      if (idleCallbackId !== undefined) {
+        window.cancelIdleCallback?.(idleCallbackId);
+      }
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      timeline?.kill();
+    };
+  }, []);
 
   return (
     <span className={className}>

@@ -1,11 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Jersey_25 } from "next/font/google";
+import { preload } from "react-dom";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { cn } from "@/lib/ui/cn";
 
-import AfterHeroSection from "../../../../public/After-Hero-Section-4K.png";
+import AfterHeroSection from "../../../../public/after-hero-1920.webp";
+import LandingPageHeroMobileAvif from "../../../../public/landing-hero-day-1280.avif";
+import LandingPageHeroMobile from "../../../../public/landing-hero-day-1280.webp";
+import LandingPageHeroAvif from "../../../../public/landing-hero-day-2400.avif";
+import LandingPageHero from "../../../../public/landing-hero-day-2400.webp";
 import {
   SUPPORT_EMAIL,
   audienceCopy,
@@ -22,7 +27,7 @@ import { HeroAudienceRoles } from "./hero-audience-roles";
 import { HeroVoxelRippleImage } from "./hero-voxel-ripple-image";
 import { HeroWorkspaceProof } from "./hero-workspace-proof";
 import { KimiSiteHeader } from "./kimi-site-header";
-import { LandingMotion } from "./landing-motion";
+import { LandingMotionLoader } from "./landing-motion-loader";
 import { ProposalOutputProof } from "./proposal-output-proof";
 import { WorkflowStory } from "./workflow-story";
 import styles from "../kimi-landing.module.css";
@@ -41,6 +46,19 @@ const jersey25 = Jersey_25({
  * narrative remains available without JavaScript, WebGL, or motion.
  */
 export function KimiLandingPage() {
+  preload(LandingPageHeroMobileAvif.src, {
+    as: "image",
+    fetchPriority: "high",
+    media: "(max-width: 640px)",
+    type: "image/avif",
+  });
+  preload(LandingPageHeroAvif.src, {
+    as: "image",
+    fetchPriority: "high",
+    media: "(min-width: 641px)",
+    type: "image/avif",
+  });
+
   return (
     <div className={cn(styles.root, jersey25.variable)} data-kimi-landing>
       <a href="#main" className={styles.skipLink}>
@@ -128,7 +146,7 @@ export function KimiLandingPage() {
             alt=""
             fill
             sizes="100vw"
-            loading="eager"
+            loading="lazy"
           />
           <div
             className={styles.afterHeroTabs}
@@ -273,7 +291,7 @@ export function KimiLandingPage() {
           </div>
         </div>
       </footer>
-      <LandingMotion />
+      <LandingMotionLoader />
     </div>
   );
 }
