@@ -383,6 +383,8 @@ type EstimateSheetContentProps = {
   onboardingSnapshot?: OnboardingEligibilitySnapshot | null;
   initialTabId?: string;
   disableRouteSync?: boolean;
+  /** Render editor-only chrome for an inert product presentation without enabling mutations. */
+  presentationMode?: boolean;
   onActiveTabChange?: (tabId: string) => void;
   onEstimateTabsChange?: (tabs: EstimateTabSummary[]) => void;
   collaborationUserId?: string | null;
@@ -398,6 +400,7 @@ type EstimateSheetContentProps = {
   libraryUseStoredPreferences?: boolean;
   libraryEnableReusableProjectSources?: boolean;
   libraryUsePersistentPanelWidth?: boolean;
+  libraryForceDesktopPanel?: boolean;
 };
 
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
@@ -1126,6 +1129,7 @@ export function EstimateSheetContent({
   onboardingSnapshot = null,
   initialTabId,
   disableRouteSync = false,
+  presentationMode = false,
   onActiveTabChange,
   onEstimateTabsChange,
   collaborationUserId = null,
@@ -1141,6 +1145,7 @@ export function EstimateSheetContent({
   libraryUseStoredPreferences = true,
   libraryEnableReusableProjectSources = true,
   libraryUsePersistentPanelWidth = !disableRouteSync,
+  libraryForceDesktopPanel = false,
 }: EstimateSheetContentProps) {
   reportEstimateSheetContentRender();
   const surfaceVariant = useEstimateSurfaceVariant();
@@ -3510,25 +3515,9 @@ export function EstimateSheetContent({
             </FilterPopover>
           }
           // C3/Req 13+6: New-tab button relocated here from the tab strip.
-          // Hidden entirely when canCreate is false (non-editors see no affordance).
+          // Presentation mode mirrors editor chrome without enabling mutations.
           addActions={[
-            ...(canEditEstimate && selectedNode ? [
-              {
-                label: "Add row",
-                element: (
-                  <ToolbarIconButton
-                    label="Add row"
-                    visibleLabel="Add row"
-                    onClick={() => insertBlankRow(selectedNode.id)}
-                    className={ADD_BUTTON_CLASSNAME}
-                    {...onboardingTarget("estimate.add_row")}
-                  >
-                    <StackPlus size={16} weight="regular" aria-hidden="true" />
-                  </ToolbarIconButton>
-                ),
-              },
-            ] : []),
-            ...(renderSidebar ? [
+            ...(renderSidebar && !libraryForceDesktopPanel ? [
               {
                 label: "Open Sources drawer",
                 element: (
@@ -3550,12 +3539,14 @@ export function EstimateSheetContent({
                 ),
               },
             ] : []),
-            ...(createTabState.canCreate ? [
+            ...(createTabState.canCreate || (presentationMode && canEditEstimate) ? [
               {
                 label: "New tab",
                 icon: <TabsIcon size={16} weight="regular" aria-hidden="true" />,
-                onClick: () => void tabStripRef.current?.createTab(),
-                disabled: createTabState.pending,
+                onClick: () => {
+                  if (!presentationMode) void tabStripRef.current?.createTab();
+                },
+                disabled: !presentationMode && createTabState.pending,
                 className: ADD_BUTTON_CLASSNAME,
               },
             ] : []),
@@ -3831,6 +3822,7 @@ export function EstimateSheetContent({
             useStoredPreferences={libraryUseStoredPreferences}
             enableReusableProjectSources={libraryEnableReusableProjectSources}
             usePersistentPanelWidth={libraryUsePersistentPanelWidth}
+            forceDesktopPanel={libraryForceDesktopPanel}
             mobileDrawerOpen={sourcesDrawerOpen}
             onMobileDrawerOpenChange={setSourcesDrawerOpen}
             mobileDrawerId={ESTIMATE_SOURCES_DRAWER_ID}

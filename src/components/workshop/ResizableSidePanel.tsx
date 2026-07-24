@@ -27,6 +27,7 @@ type ResizableSidePanelProps = {
   persistWidth?: boolean;
   compactDrawer?: boolean;
   compactBreakpoint?: "lg" | "estimate-narrow" | "estimate-wide";
+  forceDesktop?: boolean;
   children?: ReactNode;
 };
 
@@ -134,6 +135,7 @@ export function ResizableSidePanel({
   persistWidth = true,
   compactDrawer = true,
   compactBreakpoint = "lg",
+  forceDesktop = false,
   children,
 }: ResizableSidePanelProps) {
   const glass = useEstimateSurfaceVariant() === "glass";
@@ -145,7 +147,8 @@ export function ResizableSidePanel({
   const [isDragging, setIsDragging] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const compactBreakpointConfig = COMPACT_BREAKPOINTS[compactBreakpoint];
-  const compactViewport = useMediaQuery(compactBreakpointConfig.query);
+  const matchesCompactViewport = useMediaQuery(compactBreakpointConfig.query);
+  const compactViewport = !forceDesktop && matchesCompactViewport;
   const width = dragWidth ?? committedWidth ?? persistedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
@@ -455,7 +458,13 @@ export function ResizableSidePanel({
   }
 
   return (
-    <div className={cn("group h-full shrink-0 overflow-hidden", compactBreakpointConfig.desktopClassName)} style={panelStyle}>
+    <div
+      className={cn(
+        "group h-full shrink-0 overflow-hidden",
+        forceDesktop ? "flex" : compactBreakpointConfig.desktopClassName,
+      )}
+      style={panelStyle}
+    >
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
       <aside id={panelId} className={cn("h-full min-w-0 flex-1 overflow-hidden !text-[10px]", glass ? "bg-transparent" : "bg-white")} aria-label={ariaLabel} aria-hidden={collapsed}>

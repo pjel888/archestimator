@@ -133,4 +133,26 @@ describe("ResizableSidePanel accessibility", () => {
     expect(screen.queryByRole("dialog", { name: "Sources drawer" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sources action" })).not.toBeInTheDocument();
   });
+
+  it("keeps fixed-width embedded panels mounted in compact viewports", () => {
+    installMatchMedia(true);
+    render(
+      <ResizableSidePanel
+        side="right"
+        ariaLabel="Sources"
+        storageKey="estimate_sheet_sources_width"
+        defaultWidth={320}
+        minWidth={240}
+        maxWidth={560}
+        compactDrawer={false}
+        forceDesktop
+      >
+        <button type="button">Sources action</button>
+      </ResizableSidePanel>,
+    );
+
+    expect(screen.getByRole("complementary", { name: "Sources" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sources action" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Sources drawer" })).not.toBeInTheDocument();
+  });
 });

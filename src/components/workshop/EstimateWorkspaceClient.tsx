@@ -106,6 +106,8 @@ type EstimateWorkspaceClientProps = {
   disableRouteSync?: boolean;
   /** Keep an embedded product preview entirely on provided data with no route metadata or capability reads. */
   presentationMode?: boolean;
+  /** Keep both desktop rails mounted inside a fixed-width embedded preview. */
+  forceDesktopRails?: boolean;
 };
 
 export function EstimateWorkspaceClient({
@@ -139,6 +141,7 @@ export function EstimateWorkspaceClient({
   surfaceVariant = "paper",
   disableRouteSync = false,
   presentationMode = false,
+  forceDesktopRails = false,
 }: EstimateWorkspaceClientProps) {
   const queryClient = useQueryClient();
   const dataProjectId = presentationMode ? "" : projectId;
@@ -214,6 +217,7 @@ export function EstimateWorkspaceClient({
         loadLimitState={loadLimitState}
         canEditEstimate={resolvedCanEditEstimate}
         disableRouteSync={disableRouteSync}
+        forceDesktopPanel={forceDesktopRails}
       />
       <EstimateSheetContent
         selectedNodeId={routeSelectedNodeId}
@@ -231,6 +235,7 @@ export function EstimateWorkspaceClient({
         onboardingSnapshot={presentationMode ? null : onboardingSnapshot}
         initialTabId={activeTabId ?? undefined}
         disableRouteSync={disableRouteSync}
+        presentationMode={presentationMode}
         onActiveTabChange={setActiveTabId}
         onEstimateTabsChange={(tabs) => {
           // The tab CRUD actions already return the canonical tab array, so set
@@ -249,6 +254,7 @@ export function EstimateWorkspaceClient({
         libraryFolders={libraryFolders}
         libraryUseStoredPreferences={resolvedLibraryUseStoredPreferences}
         libraryEnableReusableProjectSources={resolvedLibraryEnableReusableProjectSources}
+        libraryForceDesktopPanel={forceDesktopRails}
       />
     </section>
       </EstimateSurfaceVariantProvider>

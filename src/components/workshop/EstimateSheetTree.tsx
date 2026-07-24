@@ -84,6 +84,7 @@ type EstimateSheetTreeProps = {
   loadLimitState?: EstimateTreeLoadLimitState;
   canEditEstimate?: boolean;
   disableRouteSync?: boolean;
+  forceDesktopPanel?: boolean;
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
@@ -377,7 +378,7 @@ function buildEstimateTreeSelectionNodes(nodes: EstimateTreeNode[]): TreeSelecti
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes, loadLimitState, canEditEstimate = true, disableRouteSync = false }: EstimateSheetTreeProps) {
+export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes, loadLimitState, canEditEstimate = true, disableRouteSync = false, forceDesktopPanel = false }: EstimateSheetTreeProps) {
   const surfaceVariant = useEstimateSurfaceVariant();
   const routeParams = useParams<{ nodeId?: string | string[] }>();
   const routeNodeIdParam = Array.isArray(routeParams?.nodeId) ? routeParams.nodeId[0] : routeParams?.nodeId;
@@ -1221,6 +1222,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
         persistWidth={!disableRouteSync}
         compactBreakpoint="estimate-narrow"
+        forceDesktop={forceDesktopPanel}
       >
         {/* group/tree on the panel widens the rail-reveal scope: rows keep
             their drag/select space while the pointer or focus is anywhere in

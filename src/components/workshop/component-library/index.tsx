@@ -677,6 +677,8 @@ type EstimateRightSidebarProps = {
   projectTabUnavailable?: ReactNode;
   /** Reads/writes the user's saved sidebar width. Disable for public/mockup embeds. */
   usePersistentPanelWidth?: boolean;
+  /** Keep the desktop rail mounted for fixed-width embedded product previews. */
+  forceDesktopPanel?: boolean;
   /** Product-specific compact drawer state controlled by EstimateSheetContent. */
   mobileDrawerOpen?: boolean;
   onMobileDrawerOpenChange?: (open: boolean) => void;
@@ -876,6 +878,7 @@ function useEstimateRightSidebarContent({
   initialActiveTab,
   projectTabUnavailable,
   usePersistentPanelWidth = true,
+  forceDesktopPanel = false,
   mobileDrawerOpen = false,
   onMobileDrawerOpenChange,
   mobileDrawerId,
@@ -3645,6 +3648,7 @@ function useEstimateRightSidebarContent({
         persistWidth={usePersistentPanelWidth}
         compactDrawer={false}
         compactBreakpoint="estimate-wide"
+        forceDesktop={forceDesktopPanel}
       >
         {sourceSidebarBody}
       </ResizableSidePanel>
