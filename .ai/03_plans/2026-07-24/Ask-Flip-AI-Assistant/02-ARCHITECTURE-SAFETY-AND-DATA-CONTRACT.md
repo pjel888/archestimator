@@ -1,274 +1,456 @@
-# Ask Flip Architecture, Safety, and Data Contract
+# Ask Flip Architecture, Safety, And Data Contract
 
 ## Architecture Decision
 
-Ask Flip is a capability-separated assistant, not a general autonomous tool
-runner.
+Ask Flip is a capability-separated AEC estimating workflow, not a general
+autonomous agent.
 
 ```text
-Browser UI
+Browser
   -> authenticated Ask Flip route
-  -> server policy and orchestrator
-  -> scoped read broker
-  -> model
-  -> deterministic plan compiler
-  -> immutable full preview
-  -> explicit confirmation
+  -> server identity, workspace, entitlement, release profile
+  -> typed read registry and product knowledge
+  -> hosted foundation model
+  -> answer or strict proposal
+  -> deterministic server compiler
+  -> server-owned immutable plan
+  -> complete safe preview
+  -> explicit approval
   -> server-only execute broker
-  -> canonical D1 domain command
-  -> receipt, history/outbox, readback, invalidation
+  -> canonical package-create domain command
+  -> D1 readback and immutable receipt
 ```
 
-The model never receives an execute capability. The provider-visible mutation
-surface is one schema named `propose_action_plan`. Archestimator validates,
-normalizes, classifies, calculates, stores, previews, approves, and executes the
-proposal.
+The provider never receives an execute capability. The browser never holds the
+only authoritative plan. The execute request never resends or controls the
+canonical plan body.
 
 ## Trust Boundaries
 
-### Untrusted
+### Untrusted Inputs
 
-- browser messages and route context;
-- model output;
-- provider tool calls;
-- prior client-held conversation turns;
-- project, estimate, node, row, component, template, supplier, and activity
-  text;
-- uploaded or external content in future integrations;
+- browser messages;
+- route, current-screen, active-tab, and selected-record hints;
+- provider output and tool arguments;
+- client-held recent conversation turns;
+- user-entered project, estimate, node, row, component, template, supplier,
+  activity, and historical text;
+- stored names, descriptions, notes, source snapshots, and metadata;
+- uploaded or external content in any future release;
 - realtime payloads;
-- client-supplied IDs, revisions, totals, risk classes, policy decisions,
-  permissions, confirmation labels, and execution state.
+- model-calculated quantities, prices, totals, risk, and effects;
+- client/model IDs, revisions, permissions, policy versions, profile values,
+  confirmation state, and execution status.
 
-### Trusted Only After Server Proof
+### Trusted Only After Current Server Proof
 
 - Better Auth session identity;
+- current closed-beta/product access;
 - active workspace;
-- product entitlement;
-- collaboration/domain permission;
-- target membership in workspace -> project -> estimate -> tab/node/row;
-- current resource revision or `updated_at`;
-- current component/template ownership and freshness;
-- canonical D1 readback;
-- canonical money and estimate calculations;
-- signed action-plan token;
-- current D1 plan state; and
-- committed domain and AI execution receipts.
+- effective Ask Flip release profile;
+- current domain permission;
+- target/source membership in workspace, project, estimate, tab, node, row,
+  component, template, or price-option boundaries;
+- current revisions and timestamps;
+- current component and price-option ownership/version;
+- current canonical money calculation;
+- current server-owned plan version and hashes;
+- unconsumed server approval;
+- current execution lease;
+- committed D1 readback;
+- committed domain and Ask Flip receipts.
 
-### Never Sent to the Model
+### Never Sent To The Model
 
-- provider or application secrets;
+- secrets or credentials;
 - raw database access;
 - SQL;
 - service-role or local-admin credentials;
-- execute tokens;
-- confirmation tokens;
-- workspace/user authority;
-- unrestricted app IDs;
-- server function names;
-- mutation receipts;
-- hidden policy implementation; and
-- raw logs or full retrieved records.
+- release-profile controls;
+- product-entitlement objects;
+- permission objects;
+- approval or execute tokens;
+- mutation executors;
+- unrestricted record IDs;
+- raw server function names;
+- canonical receipts;
+- hidden policy implementation;
+- full logs;
+- unrestricted retrieved records;
+- raw D1 rows; or
+- hidden reasoning.
 
-## Control Loop
+## Product-Knowledge Boundary
+
+Ask Flip product knowledge is a versioned, curated application capability, not
+training and not live workspace data.
+
+### Capability
+
+Provider-visible name:
+
+`read_archestimator_product_knowledge`
+
+### Covered Concepts
+
+- Project
+- Estimate
+- Estimate Tab
+- Group Node
+- Area Node
+- estimate rows
+- component-library items
+- price options
+- linked and unlinked source state
+- project-specific source state
+- templates
+- historical/comparable precedents
+- assumptions and allowances
+- revisions
+- receipts
+- publication terminology
+- supported Ask Flip profiles/modes
+- canonical money semantics
+
+### Contract
+
+The reader:
+
+- accepts a bounded topic enum or validated query;
+- retrieves only relevant sections;
+- returns a knowledge version;
+- returns a safe display source;
+- returns no workspace facts;
+- returns no executable action;
+- does not dump the full corpus;
+- stays separate from live D1 retrieval;
+- has no vector, embedding, or broad RAG dependency; and
+- is updated through normal versioned product documentation or static ontology
+  review.
+
+Product knowledge may explain how Archestimator works. It cannot prove a
+workspace record, price, quantity, permission, or completed mutation.
+
+## Release-Profile Boundary
+
+```ts
+type AskFlipReleaseProfile =
+  | "DISABLED"
+  | "ASK_ONLY"
+  | "ASK_AND_DRAFT"
+  | "PACKAGE_CREATE_APPLY"
+  | "EXPANDED_ACTIONS";
+```
+
+### Effective Profile Resolution
+
+The server calculates the effective profile from:
+
+1. master AI kill switch;
+2. one server-only maximum profile setting;
+3. current closed-beta/product entitlement;
+4. a global default-off D1 Ask Flip feature gate read through a strict
+   non-stale authorization path;
+5. active workspace context; and
+6. current configuration availability.
+
+Any missing, invalid, denied, or unavailable input resolves to `DISABLED`.
+
+The current closed-beta eligible-user set is the initial cohort. The global D1
+flag is not described as workspace entitlement. Finer user/workspace rollout
+requires an explicit server-owned entitlement record rather than the shared
+admin flag cache.
+
+The browser and model cannot provide, select, raise, or cache the authoritative
+profile.
+
+### Separation Of Responsibilities
+
+| Layer | Owns |
+|---|---|
+| Master kill switch | Emergency disable of all Ask Flip UI and server behavior |
+| Effective release profile | Maturity stage and eligible cohort exposure |
+| Tool registry | Whether a capability exists in the active release |
+| Domain authorization | Whether this actor may use that capability on this target/source now |
+| Plan policy | Whether the complete normalized plan is eligible, reviewable, current, and confirmable |
+
+No hidden UI, prompt instruction, or environment flag per action replaces
+domain authorization.
+
+`EXPANDED_ACTIONS` is a reserved enum only. It grants no capabilities until a
+separate plan registers them.
+
+## Release A - Ask-Only Flow
 
 ### 1. Receive
 
-The `message` request accepts:
+The server accepts:
 
-- up to 12 bounded recent messages;
-- a trusted enum for current app surface;
-- browser route hints;
-- optional pending plan ID for safe summary/revision; and
-- client request ID.
+- versioned request schema;
+- bounded recent messages;
+- safe current-surface enum;
+- route and selected-record hints;
+- client request ID; and
+- cancellation signal.
 
-It rejects unknown fields, model/tool/identity/permission overrides, unbounded
-arrays, and oversized content.
+It rejects:
 
-### 2. Authenticate and Gate
+- unknown fields;
+- identity, workspace, entitlement, permission, profile, risk, price, total,
+  approval, or execution fields;
+- oversized messages or arrays; and
+- unsupported modes.
+
+### One-Route Operation Contract
+
+All Releases A-C use authenticated `POST /api/ai/ask`. The request is a strict
+discriminated union whose server-recognized operation is one of:
+
+- `TURN` for Ask or Draft conversation and provider streaming;
+- `PLAN_REVISE` for a new immutable plan version;
+- `PLAN_DECISION` for approve, reject, or take over;
+- `PLAN_EXECUTE` for Release C identifier-only execution; or
+- `RECEIPT_GET` for lost-response recovery.
+
+`TURN` returns the versioned event stream. The other operations return bounded
+JSON. Unknown operations or fields reject. The route enforces the repository's
+current authenticated same-origin mutation protections, validates JSON content
+type, and derives actor/workspace/profile on the server. Browser cancellation
+aborts the `TURN` request; disconnect propagates the server abort signal. No
+cancel, status, or decision request carries authority beyond current session
+and plan identifiers.
+
+### 2. Authenticate And Gate
 
 Before provider spend or stream start:
 
-1. authenticate;
-2. derive user and workspace;
-3. verify provider-backed auth mode;
-4. verify server-side AI entitlement;
-5. verify master AI kill switch;
-6. enforce user/workspace/IP quota and workspace concurrency;
-7. verify provider configuration;
-8. reserve bounded estimated cost;
-9. create a started metadata-only run; and
-10. establish request deadline and cancellation signal.
+1. authenticate Better Auth user;
+2. reject local-admin database bypass;
+3. derive current workspace;
+4. verify current closed-beta/product entitlement;
+5. resolve effective release profile;
+6. require at least `ASK_ONLY`;
+7. enforce user/workspace/IP quota and workspace concurrency;
+8. verify provider configuration;
+9. enforce provider payload and cost reservation;
+10. create a started metadata-only run;
+11. establish a total request deadline and abort signal.
 
-Any failure returns the correct HTTP status before streaming.
+Failure returns a non-streaming 4xx/5xx response with safe recovery metadata.
 
-### 3. Understand and Retrieve
+### 3. Retrieve
 
-The model receives:
+The provider receives:
 
-- system/developer rules;
+- versioned system/product rules;
 - a bounded recent message window;
 - safe route labels;
-- available read-tool schemas; and
-- tool results with opaque source handles.
+- currently allowed read-tool schemas; and
+- compact tool results with opaque source handles.
 
-The server executes read tools only after:
+The server executes each read only after:
 
-- permission check;
+- tool-name allowlist check;
+- strict local argument validation;
 - server target resolution;
+- current authorization;
 - selected-column query;
-- DB/result/payload limits;
-- timeout; and
+- database/result/payload limits;
+- deadline;
+- source/freshness construction; and
 - data-access audit.
 
-### 4. Answer, Clarify, or Propose
+### 4. Calculate
 
-The provider can:
+Deterministic product code, not the model, computes:
 
-- answer using source handles;
-- ask one or more material clarification questions;
-- request another read tool; or
-- call `propose_action_plan`.
+- row totals;
+- estimate totals;
+- rankings;
+- deltas;
+- budget headroom;
+- source freshness;
+- record counts; and
+- any value represented as authoritative.
 
-It cannot call an executor.
+### 5. Answer Or Clarify
 
-### 5. Compile
+The model may:
 
-The deterministic compiler:
+- answer from provided evidence;
+- call another approved read tool within limits;
+- ask a material clarification; or
+- refuse an unsupported/prohibited request.
 
-1. parses the strict proposal;
-2. resolves every opaque source and target;
-3. rejects provider-created IDs or unknown handles;
-4. applies the action registry;
-5. authorizes eligibility;
-6. calculates canonical money and record effects;
-7. computes before/after hashes and target revisions;
-8. derives the maximum risk class;
-9. rejects mixed or prohibited operations;
-10. creates the full user preview;
-11. hashes the canonical plan and preview;
-12. persists the plan; and
-13. signs a short-lived plan token.
+`propose_action_plan` is not available in `ASK_ONLY`.
 
-### 6. Review
+### 6. Stream
+
+The application translates provider SSE into the Ask Flip event protocol. It
+does not expose provider event names, IDs, raw error bodies, raw tool
+arguments/results, or hidden reasoning.
+
+### 7. Finish
+
+Exactly one terminal event records:
+
+- completed;
+- refused;
+- cancelled;
+- quota blocked;
+- provider failed;
+- deadline exceeded; or
+- application failed.
+
+Every path is non-mutating.
+
+## Release B - Draft And Review Flow
+
+Release B includes the Release A flow and adds one provider-visible capability:
+
+`propose_action_plan`
+
+### Proposal Boundary
+
+The proposal schema contains only normalized user-intent operations and source
+handles. It contains no:
+
+- authoritative IDs;
+- identity or permission;
+- profile;
+- canonical price or total;
+- risk;
+- approval;
+- execute token;
+- SQL;
+- server function name; or
+- receipt.
+
+### Deterministic Compilation
+
+The server:
+
+1. validates the strict proposal locally;
+2. resolves every source handle;
+3. resolves target hints through current workspace authority;
+4. rejects provider-created IDs or unknown handles;
+5. verifies the action kind exists in the current registry;
+6. rejects prohibited or mixed-scope work;
+7. derives current sources and target/source revisions;
+8. calculates canonical record counts and money;
+9. computes effective risk;
+10. creates stable action IDs;
+11. creates a complete safe preview;
+12. computes canonical plan and preview hashes;
+13. persists the immutable plan version;
+14. streams the safe plan projection.
+
+### Review
 
 The UI shows:
 
-- exact target project/estimate or new record names;
-- every operation, without truncation;
-- records created or changed;
-- before/after values;
-- source and freshness;
-- assumptions and unresolved items;
-- authoritative cost/margin/budget effects;
+- exact new target or current read scope;
+- every proposed operation;
+- exact record counts;
+- source class and freshness;
+- authoritative totals and budget effects;
+- assumptions;
+- missing information;
+- unresolved questions;
 - risk class;
-- whether safe undo exists;
-- expiry; and
-- action-labelled confirmation.
+- expiry;
+- undo or no-undo state;
+- plan version; and
+- action-labelled approval wording.
 
-Editing the plan creates a new version and invalidates the prior token and any
-confirmation.
+No executable action may be hidden behind "and more."
 
-### 7. Confirm
+### Review Controls
 
-The client sends:
+- Approve
+- Reject
+- Edit Plan
+- Take Over
+
+In `ASK_AND_DRAFT`, Approve records approval state only. No business-data
+executor exists in the release.
+
+Edit Plan creates a new immutable version. Prior approval becomes invalid.
+
+## Release C - Apply Flow
+
+Release C exposes no additional provider tool. It adds a server-only execute
+branch for one action kind:
+
+`project.estimate-package.create`
+
+### Execute Request Contract
+
+The browser may send:
 
 - plan ID;
 - plan version;
-- plan hash;
-- preview hash;
-- signed token;
-- literal explicit confirmation;
-- client request ID; and
-- idempotency key.
+- client request ID;
+- literal structured execute intent;
+- idempotency key; and
+- optional client-observed plan/preview hashes as non-authoritative conflict
+  hints.
 
-The client does not resend or modify the plan body.
+The request never sends:
 
-### 8. Execute
+- canonical plan body;
+- action body;
+- source records;
+- target IDs as authority;
+- permission/profile/risk;
+- approval token;
+- authoritative totals; or
+- receipt.
 
-Execute mode:
+### Execute Sequence
 
-1. makes no provider call;
-2. re-authenticates and re-derives workspace;
-3. reloads the plan from D1;
-4. verifies token signature, actor, workspace, plan version/hash, preview hash,
-   policy version, expiry, allowed operation count, and status;
-5. rechecks entitlement and every domain permission;
-6. re-resolves every target/source through workspace ownership;
-7. compares resource revisions and source freshness;
-8. claims an expiring execution lease using compare-and-swap;
-9. invokes the allowlisted domain command;
-10. commits domain writes, canonical history/activity outbox, publication
-    revision, domain receipt, AI tool receipt, plan completion, and terminal AI
-    audit in the same final D1 batch;
-11. reads back authoritative state;
-12. invalidates local queries and emits optional best-effort realtime notice;
-13. returns the committed receipt.
+1. Make no provider call.
+2. Reauthenticate Better Auth user.
+3. Reject local-admin database bypass.
+4. Rederive active workspace.
+5. Recheck current closed-beta/product entitlement.
+6. Resolve current effective profile and require
+   `PACKAGE_CREATE_APPLY`.
+7. Load the canonical plan/version from D1.
+8. Verify schema, plan ID/version, canonical hash, preview hash, policy version,
+   registry version, effective risk, exact action set, status, and expiry.
+9. Load and verify the approving actor and unconsumed approval.
+10. Reauthorize every source and target.
+11. Revalidate every source and target revision/freshness fact.
+12. Recompute authoritative money and compare with the stored preview.
+13. Claim an expiring execution lease with compare-and-swap.
+14. Execute one bounded domain command.
+15. Commit domain writes, history, activity outbox, publication revision
+    behavior, mutation receipt, approval consumption, plan completion, Ask Flip
+    receipt, and terminal audit consistently.
+16. Read back committed IDs and totals.
+17. Return canonical links and receipt.
+18. Return the same receipt on idempotent replay.
 
-### 9. Recover
+### Hard Action Boundary
 
-The same actor/workspace/idempotency key:
+The executable plan must contain exactly one package-create command whose
+normalized children are:
 
-- returns the committed result when completed;
-- returns `in_progress` with retry timing when another valid lease exists;
-- may reclaim an expired lease with the same stable action IDs; and
-- never asks the client to invent a new key after an uncertain partial result.
+- create one project;
+- create one estimate;
+- create one default tab;
+- create new Group/Area nodes;
+- insert verified library-backed rows; and
+- insert explicitly reviewed allowance rows.
 
-## Action Risk Policy
+Any other action kind rejects the entire execute attempt before lease claim.
 
-| Class | Meaning | Examples | Provider role | Confirmation |
-|---|---|---|---|---|
-| `R0_READ` | No domain mutation | read project/estimate/tree/rows/activity/library/templates/history | Select bounded tool | None |
-| `R1_DRAFT` | No domain mutation | compare options, calculate, assemble or revise plan | Propose/clarify | None |
-| `R2_CONFIRMED_WRITE` | Bounded non-destructive write | one row update/replace, node rename, small area/row addition | Propose only | Full diff and explicit confirm |
-| `R3_HIGH_IMPACT_WRITE` | Non-destructive but large or financially material | new project+estimate package, template insert, component creation, >10 operations, or >10% estimate/budget delta | Propose only | Complete operation list and action-labelled confirm |
-| `R4_PROHIBITED` | Destructive, permission/security, client-visible, external, or irreversible | delete/archive, publish/share/send, collaborator role, account/admin/privacy deletion, billing, deploy/config/secret, arbitrary HTTP/SQL | Refuse | Never executable |
+## Provider-Visible Tool Boundary
 
-Effective risk is the highest class among all operations. The server computes
-risk from registry entries and authoritative deltas. Provider/client risk input
-is ignored.
+### Release A Reads
 
-An `R3` plan cannot be mixed with a prohibited operation. A request containing
-`R4` work is denied rather than partially executing the safe subset unless the
-user explicitly revises the request.
-
-## Tool Registry Contract
-
-```ts
-type AskFlipToolDefinition<Input, Output> = {
-  name: string;
-  version: number;
-  phase: "read" | "draft" | "execute";
-  riskClass: "R0_READ" | "R1_DRAFT" | "R2_CONFIRMED_WRITE" | "R3_HIGH_IMPACT_WRITE";
-  inputSchema: StrictJsonSchema;
-  outputSchema: StrictJsonSchema;
-  requiredPermission: DomainPermission;
-  resolveTargets: (context, input) => Promise<ResolvedTargets>;
-  validatePreconditions: (context, targets, input) => Promise<Preconditions>;
-  sourcePolicy: SourcePolicy;
-  calculatePreview: (context, targets, input) => Promise<AuthoritativePreview>;
-  execute?: (context, approvedAction) => Promise<DomainCommandResult>;
-  undoPolicy: "safe-inverse" | "compensating-plan" | "none";
-  summarizeForUser: (result) => SafeSummary;
-  audit: ToolAuditPolicy;
-};
-```
-
-Additional invariants:
-
-- tool names are stable and explicitly registered;
-- unknown names/fields reject;
-- every object schema sets `additionalProperties: false`;
-- all fields are required or explicitly nullable;
-- collections have server-enforced maximums;
-- tools do not accept user/workspace/permission/auth fields;
-- write tools do not accept authoritative totals or risk;
-- execute functions are absent from provider definitions; and
-- registry version is part of the signed plan.
-
-## Provider-Visible Tools
-
-### Read
-
+- `read_archestimator_product_knowledge`
 - `read_workspace_context`
 - `list_projects`
 - `read_project`
@@ -282,111 +464,290 @@ Additional invariants:
 - `search_historical_rows`
 - `search_comparable_estimates`
 
-### Plan
+The final registry should preserve only current useful readers and may rename
+them once through the versioned contract.
+
+### Release B Plan Tool
 
 - `propose_action_plan`
 
-No provider-visible write tool exists.
+### Never Provider-Visible
 
-## Internal Execute Commands
+- approve;
+- reject persistence;
+- execute;
+- lease claim;
+- idempotency/receipt lookup;
+- mutation command;
+- SQL;
+- raw HTTP;
+- server action;
+- filesystem/shell/code execution;
+- remote MCP;
+- publication/sharing/email/invite/admin/external action.
 
-The server-only registry may initially contain:
+Strict schema conformance is not authorization. Every call is validated and
+authorized locally.
 
-- `project.estimate-package.create`
-- `estimate.row.insert`
-- `estimate.row.update`
-- `estimate.row.replace`
-- `estimate.node.rename`
-- `estimate.template.insert`
-- `estimate.template-row.copy`
-- `component-library.component.create`
+## Canonical Server-Owned Plan Persistence
 
-Each maps to a domain command or canonical D1 intent. No command may point to
-arbitrary exported server actions by name.
+### Chosen Design
 
-## Plan Schema
+Use bounded typed canonical JSON plus normalized approval and receipt records.
+
+#### `ai_action_plans`
+
+One immutable content version per `(workspace_id, plan_id, plan_version)`:
+
+- `plan_id`
+- `plan_version`
+- `run_id`
+- `workspace_id`
+- `actor_user_id`
+- `schema_version`
+- `policy_version`
+- `registry_version`
+- `release_profile_at_compile`
+- `intent`
+- `risk_class`
+- `status`
+- `canonical_plan_json`
+- `canonical_plan_sha256`
+- `preview_sha256`
+- `action_set_sha256`
+- `precondition_sha256`
+- `expires_at`
+- `lease_token_hash`
+- `lease_expires_at`
+- `attempt_count`
+- `created_at`
+- `updated_at`
+- `terminal_at`
+
+`canonical_plan_json` contains only:
+
+- normalized business operations;
+- stable action IDs;
+- server-resolved internal target references;
+- safe source references and required revision/freshness facts;
+- authoritative effects;
+- assumptions and unresolved questions;
+- risk;
+- execution limits; and
+- safe confirmation metadata.
+
+It contains no raw prompt, transcript, hidden reasoning, provider payload,
+unrestricted retrieved record, secret, or permission object.
+
+#### `ai_action_plan_approvals`
+
+- plan ID/version/workspace;
+- approving actor;
+- decision: approved or rejected;
+- canonical/preview/action-set hashes;
+- server-generated confirmation-label hash;
+- policy/registry versions;
+- approved/rejected timestamp;
+- consumed timestamp;
+- consuming receipt ID.
+
+One active approval decision exists per immutable version. Approval consumption
+is compare-and-swap and commits with the domain receipt.
+
+#### `ai_action_plan_receipts`
+
+- immutable receipt ID;
+- plan ID/version/workspace/actor;
+- domain command and receipt ID;
+- canonical/action-set hashes;
+- status;
+- bounded safe receipt JSON;
+- idempotency fingerprint;
+- committed timestamp.
+
+Completed receipts cannot be updated or replaced.
+
+### Why This Design
+
+- server can reload the complete executable plan;
+- browser never becomes canonical storage;
+- complete action sets are known;
+- stable action IDs survive transport retries;
+- privacy excludes raw conversation and unrestricted evidence;
+- normalized approval/receipt rows support single-use confirmation and
+  immutable completion;
+- action/source tables are deferred until proven necessary; and
+- it remains specific to Ask Flip rather than a general workflow engine.
+
+### Bounds
+
+Implementation defines and enforces:
+
+- maximum plan JSON bytes;
+- maximum preview bytes;
+- maximum actions;
+- maximum groups, areas, and rows;
+- maximum sources;
+- maximum assumptions/questions;
+- maximum receipt bytes;
+- maximum D1 statements; and
+- expiry.
+
+Over-limit work is rejected and re-planned. It is not truncated.
+
+## Plan And Action Schema
 
 ```ts
 type AskFlipActionPlan = {
-  schemaVersion: 1;
+  schemaVersion: number;
   policyVersion: string;
   registryVersion: string;
   planId: string;
-  version: number;
+  planVersion: number;
   runId: string;
-  actorUserId: string;
-  workspaceId: string;
-  intent: string;
-  title: string;
-  summary: string;
-  riskClass: "R2_CONFIRMED_WRITE" | "R3_HIGH_IMPACT_WRITE";
+  intent: "project.estimate-package.create";
   status:
     | "draft"
     | "review_required"
     | "approved"
     | "executing"
     | "completed"
-    | "failed"
+    | "rejected"
+    | "taken_over"
     | "stale"
-    | "rejected";
+    | "expired"
+    | "superseded";
+  riskClass: "HIGH_PACKAGE_CREATE";
   actions: AskFlipPlannedAction[];
   sources: AskFlipSourceReference[];
   assumptions: AskFlipAssumption[];
   unresolvedQuestions: AskFlipQuestion[];
   authoritativeEffects: AskFlipEffects;
-  preconditionFingerprint: string;
-  planHash: string;
+  actionSetHash: string;
+  preconditionHash: string;
+  canonicalPlanHash: string;
   previewHash: string;
   expiresAt: string;
-  createdAt: string;
-  updatedAt: string;
 };
 ```
 
-The browser receives a safe view without actor/workspace internals or executable
-tokens inside the plan JSON.
+Actor/workspace internals are stored on the server row and omitted from the safe
+browser projection.
 
-## Planned Action Schema
+Each action includes:
 
-Each action contains:
-
-- stable `actionId`;
-- registry tool name/version;
-- ordinal and dependency IDs;
-- risk class;
-- server-resolved target reference;
-- validated normalized arguments;
+- stable action ID;
+- action kind and schema version;
+- ordinal and dependencies;
+- normalized arguments;
+- server-owned target reference;
 - required permission;
-- expected target revision or `updated_at`;
+- expected source/target revision;
 - source handles and freshness;
-- before hash and safe before summary;
-- after hash and safe after summary;
-- authoritative money effect;
-- confirmation label;
-- undo policy; and
+- authoritative record/money effects;
+- safe confirmation label; and
 - execution limits.
 
-Stable action IDs derive from plan ID/version/ordinal/normalized action hash, not
-transport idempotency key.
+Action IDs derive from plan ID/version/ordinal/normalized action hash, not the
+browser idempotency key.
 
-## Source and Citation Contract
+## Plan Versioning And State Machine
 
-Each source reference includes:
+```text
+draft
+  -> review_required
+  -> rejected
+  -> taken_over
+  -> expired
 
-- opaque source handle visible to the model;
-- app resource kind and ID retained server-side;
+review_required
+  -> approved
+  -> rejected
+  -> taken_over
+  -> stale
+  -> expired
+  -> superseded (edit creates new version)
+
+approved
+  -> executing (lease claimed)
+  -> taken_over
+  -> stale
+  -> expired
+  -> superseded
+
+executing
+  -> completed
+  -> approved (lease expired, no receipt, same action set safe to reclaim)
+  -> stale (current authorization/source/precondition invalid)
+
+completed | rejected | taken_over | stale | expired | superseded
+  -> terminal
+```
+
+Rules:
+
+- canonical content never changes within a version;
+- editing always creates a new version;
+- prior approvals never carry forward;
+- taken-over, stale, rejected, expired, superseded, and completed are terminal;
+- completed receipt is immutable;
+- no terminal version returns to an executable state;
+- executing can return to approved only when the lease expired, no domain or
+  Ask Flip receipt exists, and the same plan/action/idempotency facts remain
+  valid;
+- a final batch failure leaves no domain mutation and no completed receipt.
+
+## Approval Contract
+
+Approval is valid only when all match current server state:
+
+- authenticated actor;
+- active workspace;
+- current product entitlement;
+- current `PACKAGE_CREATE_APPLY` profile at execute;
+- plan ID/version;
+- canonical plan hash;
+- preview hash;
+- action-set hash;
+- policy and registry versions;
+- exact complete action set;
+- source/target precondition hash;
+- risk class;
+- expiry;
+- server-generated confirmation-label hash;
+- approved state;
+- unconsumed approval.
+
+Silence, free-form "go ahead," provider output, stale UI state, or a browser
+checkbox is not approval.
+
+Release B approval records review state only.
+
+Release C may consume an existing valid approval only inside the final atomic
+commit. A changed plan, source, target, amount, policy, registry, profile, or
+risk requires a new version and approval.
+
+## Source Contract
+
+Each source contains:
+
+- opaque provider handle;
+- server-only resource reference;
 - safe display label;
-- workspace/project/estimate scope;
-- source revision, version, or `updated_at`;
-- retrieval time;
-- freshness status;
 - data class;
-- whether it is authoritative, user-provided, or precedent;
-- row count/read category for audit; and
-- app link builder.
+- authority class;
+- workspace/project/estimate scope;
+- revision/version/updated time;
+- retrieval time;
+- freshness state and policy;
+- audited row count/category;
+- safe app link;
+- safe provider projection; and
+- whether the source is current, user-provided, or precedent.
 
-Source classes:
+### Source Classes
 
+- `PRODUCT_KNOWLEDGE`
 - `CURRENT_LIBRARY`
 - `CURRENT_PROJECT`
 - `CURRENT_ESTIMATE`
@@ -395,418 +756,488 @@ Source classes:
 - `COMPARABLE_PRECEDENT`
 - `TEMPLATE_PRECEDENT`
 - `ASSUMPTION`
+- `MODEL_SUGGESTION`
 
-Precedents and assumptions are never described as current supplier pricing.
-
-Answers distinguish:
+Answers and previews distinguish:
 
 - retrieved fact;
 - deterministic calculation;
 - user instruction;
+- precedent;
 - assumption;
-- historical precedent; and
 - model suggestion.
 
-## Data Model
+Precedents and assumptions are never displayed as current supplier pricing.
 
-### Reuse
+## Target And Source Freshness
 
-Keep:
+### Compile Time
 
-- `ai_action_runs`
-- `ai_tool_calls`
-- `ai_data_access_events`
-- `security_rate_limit_events`
-- canonical domain history/outbox and mutation receipt tables
+The compiler records:
 
-### Add `ai_action_plans`
+- current workspace/actor;
+- target existence and ownership;
+- source existence and ownership;
+- component version;
+- selected price-option identity/version;
+- target revision/updated time;
+- source revision/updated time;
+- knowledge version;
+- calculation version;
+- retrieval time; and
+- freshness policy result.
 
-Required columns:
+### Execute Time
 
-- `id`
-- `run_id`
-- `workspace_id`
-- `actor_user_id`
-- `schema_version`
-- `policy_version`
-- `registry_version`
-- `plan_version`
-- `intent`
-- `risk_class`
-- `status`
-- `plan_hash`
-- `preview_hash`
-- `precondition_fingerprint`
-- bounded `target_summary_json`
-- bounded `effects_summary_json`
-- `approved_by_user_id`
-- `approved_at`
-- `approved_plan_hash`
-- `confirmation_label_hash`
-- `expires_at`
-- `lease_token`
-- `lease_expires_at`
-- `attempt_count`
-- `completed_at`
-- `failure_class`
-- timestamps
+The server re-resolves and compares all current facts. Missing, changed,
+unauthorized, stale, superseded, or cross-workspace data makes the plan `stale`
+before mutation.
 
-Constraints:
+The model cannot waive freshness.
 
-- actor/workspace nonempty;
-- known enum values;
-- JSON validity and maximum application-side byte limits;
-- unique `(workspace_id, id)`;
-- unique completed `(workspace_id, actor_user_id, plan_hash)` where appropriate;
-- approval hash equals active plan hash before execute; and
-- legal status transitions enforced in application compare-and-swap statements.
+## Risk Policy
 
-Do not persist raw prompt, transcript, provider request, provider response,
-retrieved records, hidden reasoning, or unrestricted action payloads.
+| Class | Meaning | Provider role | Execution |
+|---|---|---|---|
+| `READ_ONLY` | Product/workspace read and deterministic calculation | Select approved read tool | No business mutation |
+| `REVIEW_ONLY` | Proposal, compilation, plan version, approval/rejection | Call `propose_action_plan` only in Draft profiles | No business mutation |
+| `HIGH_PACKAGE_CREATE` | One additive new project/estimate package | Propose only | Server-only after exact approval and revalidation |
+| `PROHIBITED` | Existing-record mutation, destructive, permission, external, admin, raw tool | Refuse or explain manual path | Never represented by executor |
 
-The normalized plan body may be client-held and signed, or stored encrypted only
-if a separate retention decision authorizes it. The required D1 record stores
-enough structured metadata and hashes to prove approval and execution without
-raw conversation content.
+The server computes risk. Client/provider risk fields are rejected.
 
-### Extend `ai_tool_calls`
+A request that mixes allowed and prohibited operations is denied as a whole.
+The server does not silently execute the allowed subset.
 
-Add or encode:
+## Execution Lease
 
-- `plan_id`
-- `action_id`
-- `tool_version`
-- `risk_class`
-- `policy_decision`
-- `permission_checked`
-- `precondition_hash`
-- `domain_receipt_kind`
-- `domain_receipt_id`
-- `attempt_count`
-- `latency_ms`
-- `error_code`
+The lease claim is a compare-and-swap that requires:
 
-Keep arguments/results as hashes plus safe summary, not raw payloads.
+- status `approved`;
+- current hashes/policy/registry/expiry;
+- unconsumed approval;
+- no completed receipt;
+- no live lease; and
+- current actor/workspace/profile.
 
-### Legacy `ai_package_apply_commands`
+Lease data includes:
 
-Migration behavior:
-
-1. create the general plan/receipt state;
-2. copy safe representable legacy metadata;
-3. preserve old rows;
-4. stop new runtime writes;
-5. remove runtime reads after canonical receipt cutover; and
-6. leave later physical deletion to retention, not this feature migration.
-
-## State Machine
-
-```text
-draft
-  -> review_required
-  -> rejected
-
-review_required
-  -> review_required (new version; previous becomes stale)
-  -> approved
-  -> rejected
-  -> stale
-
-approved
-  -> executing (lease claimed)
-  -> stale (precondition failure before claim)
-  -> rejected
-
-executing
-  -> completed
-  -> failed
-  -> approved (expired lease, no receipt, safe reclaim)
-
-completed, rejected, stale
-  -> terminal
-```
-
-No state transition may rewrite a completed receipt. Revisions create a new plan
-version.
-
-## Confirmation Contract
-
-Confirmation is valid only when all match:
-
-- authenticated actor;
-- active workspace;
-- server entitlement;
-- plan ID and version;
-- plan and preview hashes;
-- policy and registry version;
-- effective risk class;
-- complete action ID set;
-- target/source precondition fingerprint;
-- confirmation label hash;
+- random server token hash;
+- acquired time;
 - expiry;
-- unconsumed status; and
-- server-recorded explicit approval.
+- attempt count;
+- plan/action/idempotency fingerprint.
 
-Silence, message text such as "go ahead" outside the active approval control,
-provider output, or a stale UI checkbox is not approval.
+Only the lease holder may enter the final domain command. The lease is not a
+permission token and is never sent to the provider.
 
-`R3` confirmation text is action-labelled, for example:
+## Idempotency And Recovery
 
-> Apply 26 changes and create Rivera 2BR for a current total of PHP 2,000,000
+Idempotency binds:
 
-The UI sends a structured confirmation event; the server generates and verifies
-the label.
+- workspace;
+- actor;
+- command kind;
+- plan ID/version;
+- canonical/action-set hashes;
+- normalized command fingerprint; and
+- client idempotency key.
 
-## Canonical Mutation Contract
+Behavior:
 
-### Aggregate Project/Estimate Package
+- completed receipt found: return the same result with replay status;
+- live lease found: return in-progress and retry timing;
+- expired lease and no receipt: safely reclaim using the same stable action IDs;
+- same key with different fingerprint: reject conflict;
+- response lost after commit: same key returns committed receipt;
+- no completed receipt and final batch failed: retry the whole command with the
+  same key after lease recovery;
+- never instruct the client to invent a new key after an uncertain result.
 
-The domain command must compose:
+## Canonical Package-Create Domain Contract
 
-- strict workspace editor access;
-- maintenance write gate;
-- project ID and activation state;
-- estimate ID and default tab;
-- node and row IDs;
-- Area-only row targets;
-- source ownership and freshness;
-- linked/copy template semantics;
-- component source snapshots;
-- canonical row totals and currency;
-- project/estimate history;
-- activity event outbox;
-- publication revision semantics;
-- statement-count limit;
+`project.estimate-package.create` is provider-free and reusable outside Ask
+Flip.
+
+### Allowed Business Effects
+
+- one project;
+- one estimate;
+- one default tab;
+- new Group and Area nodes;
+- verified library-backed rows;
+- reviewed allowance rows;
+- required history/activity/publication/receipt sidecars.
+
+### Required Invariants
+
+- current Workshop write/maintenance gate;
+- current workspace editor authorization;
+- deterministic server-generated IDs;
+- active two-kind Group/Area hierarchy;
+- Area-only row placement;
+- current source ownership/version/price-option;
+- allowance classification;
+- source snapshot;
+- canonical currency and money calculation;
+- budget ceiling semantics;
 - request fingerprint;
-- committed mutation receipt;
-- AI action/tool terminal receipt; and
+- statement/result-size limit;
+- canonical history;
+- activity outbox;
+- initial/current publication source revision behavior;
+- canonical mutation receipt;
+- Ask Flip approval/plan/action/receipt terminal state;
 - authoritative readback.
 
-The command is reusable outside AI and contains no model or provider logic.
+### Prohibited Business Effects
 
-### Existing-Estimate Changes
+- any mutation to an existing project/estimate/tab/node/row;
+- template insertion/copy;
+- permanent component-library creation;
+- supplier/price-option mutation;
+- bulk/cross-scope work;
+- publication/share/send/invite/permission/client-portal/account/billing/upload/
+  deployment/credential/admin work.
 
-Every mutation uses:
+### Prepare/Commit Interface
 
-- expected revision or compare-and-swap timestamp in the SQL predicate;
-- exactly-one-row affected check;
-- mutation/history/outbox/receipt in one batch;
-- current active tab;
-- strict resource ownership;
-- canonical source transition behavior; and
-- authoritative total/delta calculation.
+The exact domain owner is
+`src/lib/projects/project-estimate-package-command.ts`.
 
-### Atomicity
+`prepareProjectEstimatePackageCreate(context, input)`:
 
-- A single confirmed plan is atomic only when all statements fit one D1 batch
-  and one permission/target boundary.
-- Cross-project, cross-workspace, external, or over-limit plans are not silently
-  chunked.
-- The server returns a revised set of separately reviewable phases and requires
-  new confirmation.
-- Optional realtime invalidation may fail after commit; the domain receipt and
-  readback remain authoritative.
+- performs current project/estimate/source/money validation;
+- generates deterministic IDs;
+- returns the complete ordered business, source-guard, activation/resource/
+  onboarding, history, activity, publication, and mutation-receipt D1
+  statement set;
+- returns an authoritative readback descriptor and predicted statement/receipt
+  sizes;
+- never calls `.run()` or `.batch()`; and
+- contains no Ask Flip, provider, or model logic.
+
+`src/lib/ai/ask-flip/package-create-executor.ts` composes that statement set
+with prepared approval-consumption, plan-completion, Ask Flip receipt, and
+terminal-audit statements. It requires a real D1 `database.batch`; the
+repository's sequential fallback is not an atomic substitute. Exact statement
+count and serialized receipt size are checked before commit.
+
+## Atomicity
+
+A Release C plan is executable only if all required statements and receipt data
+fit one current D1 atomic boundary.
+
+The atomic boundary includes:
+
+- business rows;
+- history event;
+- activity outbox event;
+- required publication source revision;
+- canonical mutation receipt;
+- approval consumption;
+- plan completion;
+- immutable Ask Flip receipt;
+- terminal run/tool audit.
+
+If this cannot fit:
+
+- do not chunk;
+- do not partially commit;
+- do not execute a subset;
+- do not reuse approval for revised scope;
+- return separately reviewable proposed phases;
+- require new confirmation.
+
+Realtime and client query invalidation occur after commit and are best effort.
+They never prove mutation success.
 
 ## Money Contract
 
-- Currency is server-derived from the project/workspace/component context.
-- Money uses canonical integer minor-unit calculation.
-- Quantity, unit cost, misc cost, adjustment, contingency, VAT, markup, and
-  sheet adjustments use existing domain semantics.
-- Preview and persistence call the same calculation function/version.
-- Policy thresholds use authoritative calculated deltas, never model totals.
-- The receipt includes calculation version, currency, before/after totals, and
-  source classifications.
-- Budget is a ceiling/target unless the user explicitly allocates the remainder.
-- Unallocated headroom remains visible and is not silently converted to price.
+- Currency is server-derived.
+- Quantity and cost inputs are normalized and validated.
+- All money uses canonical integer minor-unit calculations.
+- Preview and persistence use the same calculation function/version.
+- Mixed currency rejects.
+- Policy thresholds use canonical deltas.
+- Model/client totals are ignored.
+- Receipt includes calculation version, currency, row totals, package total,
+  budget ceiling, and headroom.
+- Budget is a ceiling, not an instruction to consume all available value.
+- Historical/template values remain reviewed precedents.
+- Allowances are explicitly reviewed and classified.
+- Synthetic supplier prices reject.
 
-## Prompt-Injection Controls
+## Prompt-Injection Defenses
 
-Defense in depth:
+1. Separate instructions from untrusted data.
+2. Label retrieved text as data.
+3. Prefer typed fields over concatenated documents.
+4. Use opaque source handles.
+5. Expose no execute tool.
+6. Validate tool name and arguments locally.
+7. Reject provider-created IDs/handles.
+8. Derive all identity/profile/permission/target facts server-side.
+9. Compare proposal with user intent and current release policy.
+10. Calculate risk and effects deterministically.
+11. Require exact human approval for Release C.
+12. Reauthorize and refresh at execute.
+13. Record blocked attempts as metadata.
 
-1. separate instructions from untrusted data in the provider payload;
-2. label every retrieved field as data;
-3. strip control characters and suspicious markup where content semantics allow;
-4. use compact structured fields rather than concatenated documents;
-5. keep opaque source handles;
-6. expose no execute capability;
-7. validate tool name and parameters locally;
-8. reject provider-created IDs/handles;
-9. compare the proposal with the original user intent and route scope;
-10. apply deterministic permission and risk policy;
-11. require human approval for every write;
-12. log blocked attempts and drift metrics.
+A guardrail model may assist detection but is never an authorization control.
 
-No guardrail model is an authorization control.
-
-## Privacy and Retention
+## Privacy And Retention
 
 ### Application
 
-- Active messages remain in browser memory.
-- The request includes only a bounded recent window.
-- D1 audit stores hashes and safe metadata.
-- D1 plan state stores normalized metadata/hashes, not raw transcripts.
-- Optional memory remains disabled unless the existing explicit opt-in and
-  retention rules are valid.
-- Safe source labels must not include avoidable client/site identity.
-- New AI plan metadata joins existing retention and privacy export/erasure
-  handling before production.
+- conversation remains bounded and in browser memory;
+- requests send only the recent needed window;
+- no raw transcript table is created;
+- audit stores hashes and safe metadata;
+- canonical plans store normalized operations and safe references only;
+- no hidden reasoning is stored;
+- no unrestricted retrieved records are stored;
+- safe source labels minimize client/site identity;
+- a versioned default-deny outbound-provider and metadata-audit field allowlist
+  excludes raw records, secrets, permissions, direct unrestricted IDs, and
+  unnecessary PII;
+- deterministic redaction is verified at the outbound and audit sink boundary;
+- approval and receipt retention is documented;
+- plan/approval/receipt rows join privacy export and erasure handling;
+- the data-class lifecycle matrix names retention configuration, deletion
+  mechanism, content erasure, actor anonymization, export behavior,
+  browser-state clearing, and backup/restore limitations;
+- legal/audit retention exceptions are explicit and narrow;
+- structured workspace preference/decision signals remain later scope.
 
 ### Provider
 
-- use non-persistent request settings such as `store: false`;
-- do not use provider conversation objects as canonical state;
-- do not send secrets, permissions, raw IDs, or unnecessary portfolio labels;
-- document data categories sent per tool;
-- verify training/retention/ZDR/region at implementation and release;
-- verify AI Gateway logging independently from provider ZDR; and
-- do not use live customer content for model evaluation without explicit
-  authorization and an approved data policy.
+- provider credentials and base endpoint are server-only;
+- the endpoint must match the exact configured OpenAI or authorized Gateway
+  host allowlist; client/user endpoints and unknown hosts reject;
+- every Responses request uses `store: false`;
+- provider Conversations/Threads are not canonical state;
+- provider receives minimum necessary messages, product knowledge, read schemas,
+  compact results, opaque handles, and Draft-only proposal schema;
+- provider receives no secrets, permissions, execute/approval tokens, raw SQL,
+  unrestricted IDs, mutation executors, or canonical receipts;
+- training opt-in remains off unless separately authorized;
+- abuse-monitoring retention, ZDR/modified monitoring, region, and account scope
+  require live readback before release.
+
+### AI Gateway
+
+If authorized:
+
+- request/response payload logging is disabled or explicitly metadata-only;
+- personalized live-workspace response caching is disabled;
+- retention/logging/cache settings are read back;
+- provider and Gateway controls are reviewed separately;
+- Gateway does not replace application minimization or policy.
 
 ## Streaming Contract
 
-Typed events:
+Application event types:
 
 - `turn.started`
 - `status.changed`
 - `read.started`
 - `read.completed`
 - `source.available`
-- `message.delta`
+- `answer.delta`
 - `clarification.required`
-- `plan.proposed`
-- `plan.stale`
-- `execution.started`
-- `execution.completed`
+- `proposal.received`
+- `plan.available`
+- `plan.state_changed`
+- `receipt.available`
+- `turn.refused`
+- `turn.cancelled`
+- `turn.failed`
 - `turn.completed`
-- `error`
 
 Rules:
 
-- authentication/quota/entitlement/audit/provider configuration complete before
-  stream construction;
+- every event has protocol version, sequence, run ID, and client request ID;
 - sequence numbers are monotonic;
-- each event has run ID and client request ID;
-- content is bounded;
-- no hidden reasoning is emitted;
-- terminal event occurs exactly once;
-- disconnect aborts provider/read work but never retries execute;
-- execute response may be JSON instead of a stream to keep commit/error semantics
-  simple; and
-- errors after stream start use typed terminal events because HTTP status is
-  already committed.
+- payloads are bounded;
+- no raw provider event is the client contract;
+- no hidden reasoning;
+- no raw tool arguments/results;
+- exactly one terminal event;
+- auth/profile/quota/audit/provider checks complete before stream;
+- disconnect aborts read/provider work;
+- Release C execute does not use the provider stream and should return one
+  atomic JSON result or a status lookup contract;
+- provider completion is never a domain receipt.
 
-## Rate and Cost Controls
+### Browser Wire Format
 
-Apply before provider work:
+The application stream uses provider-independent SSE:
 
-- per-user and per-IP burst limit;
-- per-user/workspace hourly request limit;
-- per-workspace provider concurrency;
-- hourly/daily input/output token limits;
-- hourly/daily estimated spend limit;
-- provider payload byte/token ceiling;
-- maximum model rounds and tool calls;
-- maximum actions and D1 statements per plan; and
-- execute frequency limit.
+- response content type `text/event-stream; charset=utf-8`;
+- each frame uses `event: ask_flip`, `id: <sequence>`, one JSON `data:` payload,
+  and the terminating blank line;
+- the JSON payload is the versioned bounded event envelope, not a provider
+  event;
+- failures before headers return bounded JSON with the appropriate HTTP status;
+- failures after headers emit exactly one typed terminal `turn.failed` event
+  and close;
+- cancellation emits `turn.cancelled` when the server can still write, then
+  closes;
+- the client uses streaming UTF-8 decoding, buffers incomplete frames, rejects
+  malformed/oversized envelopes, and treats EOF without one terminal event as
+  failure; and
+- provider SSE parsing and provider response identifiers remain inside the
+  OpenAI adapter.
 
-Usage ledger records:
+## Rate, Deadline, And Cost Controls
 
-- provider/model;
-- reasoning setting;
-- input, cached, reasoning, and output tokens;
-- request/first-token/total latency;
+Before provider work:
+
+- per-user/IP burst limit;
+- user/workspace rolling request quota;
+- workspace provider concurrency;
+- input/output byte and token ceiling;
+- maximum recent messages;
+- maximum model rounds;
+- maximum read calls;
+- maximum proposal calls;
+- total request deadline;
+- per-read and provider deadlines;
+- bounded provider retry count;
+- estimated spend reservation and ceiling.
+
+Before execute:
+
+- execute frequency limit;
+- plan action/record/source limits;
+- D1 statement limit;
+- receipt-size limit;
+- one live lease per plan.
+
+Usage metadata records:
+
+- provider/model snapshot;
+- adapter version;
+- reasoning configuration;
+- input/cached/output/reasoning token counts where available;
+- first-event/first-content/total latency;
+- tool count;
 - provider retry count;
-- estimated/current cost;
-- quota reservation/release; and
-- success, refusal, timeout, or error class.
+- estimated cost;
+- success/refusal/error class.
 
-Provider retries never retry execution.
+Provider retries never cross into execute.
 
-## Failure and Recovery Matrix
+## Failure And Recovery Matrix
 
 | Failure | Result | Recovery |
 |---|---|---|
-| Session/workspace/entitlement changed | 401/403, no provider/write | Reauthenticate or regain entitlement |
-| Quota or spend limit | 429 with `Retry-After` and reset metadata | Resume after reset |
-| Read timeout | Required source marked unavailable; authoritative plan blocked | Retry one bounded read or clarify |
-| Provider timeout/429/5xx | Run/tool attempt recorded; no mutation | One bounded provider retry within total deadline |
-| Invalid provider schema/handle | Proposal rejected and audited | Deterministic clarification/fallback |
-| Prompt injection attempt | Tool/policy denial | Explain boundary; no authority expansion |
-| Plan/confirmation expired | 409, no mutation | Refresh sources, recompile, reconfirm |
-| Permission revoked | 403, plan stale | Regain access or take over manually |
-| Target/source revision changed | 409 conflict | Full new preview and confirmation |
-| Duplicate execute | One lease/receipt | Return in-progress or same committed receipt |
-| Crash before final batch | No domain mutation; lease expires | Reclaim same plan/action IDs |
-| Final D1 batch failure | Zero domain/terminal writes | Retry whole command with same key after receipt read |
-| Response lost after commit | Client uncertain | Same key returns committed receipt |
-| Realtime notification fails | Domain commit succeeds | Query invalidation/readback; best-effort retry |
-| User rejects/takes over | Plan terminal rejected or remains review-only | Manual UI continues |
-| Provider unavailable | Execute unaffected; new turns fail or use approved adapter only | No silent provider switch |
+| Master kill switch off | 404/default-off UI | Operator re-enables separately |
+| Invalid/missing release profile | `DISABLED`, no provider or mutation | Correct server configuration |
+| Session missing | 401, no provider/mutation | Reauthenticate |
+| Closed-beta/product entitlement denied | 403, no provider/mutation | Regain eligible access |
+| Workspace missing/changed | 403 or stale, no mutation | Resolve valid workspace and retry |
+| Quota/spend limit | 429 with safe reset metadata | Retry after reset |
+| Required read timeout/unavailable | Answer limited or plan blocked | Retry bounded read or clarify |
+| Product knowledge topic unavailable | Explicit unsupported answer | Update curated knowledge later |
+| Provider timeout/429/5xx | Terminal non-mutating error | One bounded same-provider retry within deadline |
+| Provider unavailable during execute | No effect on execute | Continue provider-free execute |
+| Invalid provider schema/handle | Proposal rejected and audited | Clarify or retry provider turn within limits |
+| Prompt injection attempt | Tool/policy denial | Explain boundary, no scope expansion |
+| Plan edited | Prior version superseded and approval invalid | Review new version |
+| Plan rejected | Terminal, no mutation | New request or manual workflow |
+| Plan expired | Terminal, no mutation | Refresh sources and compile new version |
+| Permission revoked after approval | Plan stale, no mutation | Regain access or manual workflow |
+| Price/source changed after approval | Plan stale, no mutation | Refresh, recompile, reapprove |
+| Hash/policy/registry/action set changed | Conflict, no mutation | New plan version |
+| Duplicate execute with live lease | In progress, no duplicate | Poll status/retry same key |
+| Lost response after commit | Client uncertain | Same key returns receipt |
+| Final D1 batch failure | Zero domain/terminal writes | Recover lease and retry same key |
+| Plan exceeds D1 boundary | No mutation | Split into new separately reviewable plans |
+| Prohibited action request | Deterministic refusal, no executable plan | Use manual workflow or future plan |
+| Realtime/query invalidation fails | Commit remains valid | Readback/invalidation retry |
+| Provider/Gateway controls unverified | Release remains disabled | Complete authorized live readback |
 
 ## Threat Model
 
 | Threat | Required control |
 |---|---|
-| Cross-tenant ID substitution | Joined workspace/project/estimate lookup at every read and write |
-| Client privilege selection | Server intent/risk/tool policy; no client route classifier |
-| Malicious/compromised model | Read/propose only, strict schema, local validation, no execute tool |
-| Retrieved-content injection | Untrusted structured data, opaque handles, deterministic policy |
-| Stale preview | Target/source fingerprint and compare-and-swap |
-| Replay/double click | Single-use approval, stable action IDs, lease, idempotent receipt |
-| Partial commit | One final D1 batch or separately reconfirmed phases |
-| Audit omission | AI terminal receipt included in final batch |
-| Hallucinated source/price | Validated source manifest and canonical calculations |
-| Data exfiltration | Minimum projections, payload caps, data-category audit |
-| Cost abuse | User/workspace/IP limits, concurrency, token/spend ceilings |
-| SSRF/arbitrary action | No network, shell, remote MCP, HTTP, or SQL tool |
-| Destructive request | No representable `R4` executor |
-| Realtime spoof/drop | D1 readback authoritative; realtime invalidation only |
-| PII over-retention | No raw transcript persistence; retention/export/erasure integration |
+| Cross-workspace ID substitution | Server-derived joined resolution at every read/compile/execute |
+| Client privilege/profile selection | Strict request schema and server resolver |
+| Compromised or malicious model | Read/propose only, local validation, no execute capability |
+| Retrieved-content injection | Structured untrusted data, opaque handles, deterministic policy |
+| Browser-held plan tampering | Server-owned canonical plan; execute loads from D1 |
+| Stale preview | Source/target precondition hash and execute-time recheck |
+| Approval replay | Immutable versions, single-use approval, action-set hash |
+| Double click or lost response | Lease, idempotency fingerprint, immutable receipt |
+| Partial commit | One atomic command or no execution |
+| Audit omission | Receipt/terminal audit in final atomic boundary |
+| Hallucinated source or price | Handle resolution, current source manifest, canonical money |
+| Data exfiltration | Demand-driven minimum projection, payload limits, data-access audit |
+| Cost abuse | Quota, concurrency, token/spend limits |
+| SSRF/arbitrary action | No HTTP/shell/filesystem/code/remote MCP/SQL tool |
+| Destructive or external action | No representable executor |
+| PII over-retention | No raw transcripts/retrieved records; retention/export/erasure |
 
 ## Monitoring
 
-Metrics:
+Application metrics:
 
-- provider/tool/turn latency;
-- tokens and estimated cost by workspace/model/mode;
+- profile resolution and denial reason;
+- provider/read/turn latency;
+- tokens and estimated cost;
+- read-tool selection and row counts;
 - invalid schema/source-handle rate;
-- authorization, policy, tenant, and prompt-injection denials;
-- draft-to-confirm and confirm-to-commit rate;
-- stale plan conflicts;
+- authorization/cross-workspace denials;
+- prompt-injection/prohibited-action attempts;
+- plan compile/revision/approval/rejection/takeover rate;
+- stale/expired/superseded plan count;
+- lease age/reclaim count;
 - idempotent replay count;
-- lease age and reclaim count;
-- action run/receipt mismatch;
-- blocked destructive attempts;
+- domain/Ask Flip receipt mismatch;
+- preview/committed money mismatch;
 - source coverage and allowance rate;
-- preview vs committed money equality; and
-- user rejection/takeover rate.
+- nonterminal audit age.
 
 Alerts:
 
-- any domain commit without completed plan/tool/domain receipts;
-- valid lease older than its maximum;
-- repeated cross-tenant denials;
-- provider invalid-output/failure rate above the defined sample threshold;
-- preview/receipt total mismatch;
-- workspace spend at 80% warning and 100% fail closed; and
-- persistent nonterminal action runs.
+- any domain commit without domain and Ask Flip receipts;
+- any completed plan without consumed approval;
+- any valid lease older than maximum;
+- repeated cross-workspace denial;
+- preview/receipt money mismatch;
+- persistent nonterminal run/tool/plan state;
+- provider invalid-output or failure-rate drift;
+- spend warning and fail-closed threshold.
 
-Use Worker structured logs for high-volume runtime detail. Keep D1 for
-low-volume durable metadata, plans, decisions, and receipts.
+Use structured Worker logs for high-volume runtime detail. Use D1 only for
+low-volume durable plan, approval, receipt, and audit truth. Never log raw
+conversation or unrestricted retrieved content.
 
 ## Explicit Rejections
 
-- No provider-hosted remote MCP or tool runtime in the first release.
-- No programmatic tool calling or provider multi-agent mode.
-- No generic `call_server_action` tool.
-- No raw D1/SQL tool.
-- No model-generated authorization.
-- No hidden autonomous mode.
-- No destructive tool represented but disabled only by prompt.
-- No approval that omits exact operations and money effects.
-- No persistence of chain-of-thought.
-- No provider response ID as the only conversation or plan state.
-- No blind rollback that overwrites later human edits.
-- No synthetic prices to make a budget appear complete.
+- No custom model training or fine-tuning.
+- No provider-owned canonical conversation or memory.
+- No vector search or broad RAG in Releases A-C.
+- No browser-selected release profile or authorization.
+- No client regex privilege routing.
+- No action-by-action environment flag matrix.
+- No provider-visible execute or approval tool.
+- No programmatic provider tool runtime, remote MCP, shell, filesystem, HTTP,
+  computer use, code execution, or SQL.
+- No raw D1/business-table mutation under `src/lib/ai`.
+- No client-resubmitted authoritative plan body.
+- No canonical plan that exists only in browser memory.
+- No free-form text confirmation.
+- No silent provider fallback or model escalation.
+- No broad Release C action schema with prompt-only prohibitions.
+- No update, replace, delete, rename, template insert, library create, or
+  cross-scope mutation in Release C.
+- No synthetic supplier price.
+- No silent budget allocation.
+- No partial plan execution or silent chunking.
+- No provider completion text treated as a mutation receipt.
+- No completed receipt rewrite.
+- No raw transcript, hidden reasoning, unrestricted retrieved record, or
+  provider payload persistence.
