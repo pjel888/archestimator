@@ -210,7 +210,8 @@ describe("estimate sheet row details and CRUD entry points", () => {
     renderPersistedEstimateSheet([projectSpecificRow]);
 
     const componentCard = screen.getByLabelText("Custom Built-in Cabinet replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Edit component Custom Built-in Cabinet" }));
+    await user.click(within(componentCard).getByRole("button", { name: "Open component actions for Custom Built-in Cabinet" }));
+    await user.click(screen.getByRole("menuitem", { name: "Edit component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
     expect(within(dialog).getByLabelText("Name")).toHaveValue("Custom Built-in Cabinet");
@@ -224,7 +225,8 @@ describe("estimate sheet row details and CRUD entry points", () => {
     renderPersistedEstimateSheet([emptyExpressRow]);
 
     const componentCard = screen.getByLabelText("Project Component replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Edit component Project Component" }));
+    await user.click(within(componentCard).getByRole("button", { name: "Open component actions for Project Component" }));
+    await user.click(screen.getByRole("menuitem", { name: "Edit component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
     expect(within(dialog).getByLabelText("Name")).toHaveValue("");
@@ -232,19 +234,23 @@ describe("estimate sheet row details and CRUD entry points", () => {
     expect(screen.queryByRole("dialog", { name: "Row item details" })).not.toBeInTheDocument();
   });
 
-  it("keeps duplicate and activity actions available for source-less project rows", () => {
+  it("keeps duplicate and activity actions available for source-less project rows", async () => {
+    const user = userEvent.setup();
     renderPersistedEstimateSheet([sourceLessProjectRow]);
 
-    expect(screen.getByRole("button", { name: "Duplicate row item Owner-Supplied Pendant" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open row activity for Owner-Supplied Pendant" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open row actions for Owner-Supplied Pendant" }));
+    expect(screen.getByRole("menuitem", { name: "Duplicate row" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Row activity" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open row details for Owner-Supplied Pendant" })).not.toBeInTheDocument();
   });
 
-  it("keeps duplicate and activity actions available for source-changed library rows", () => {
+  it("keeps duplicate and activity actions available for source-changed library rows", async () => {
+    const user = userEvent.setup();
     renderPersistedEstimateSheet([sourceChangedLibraryRow]);
 
-    expect(screen.getByRole("button", { name: "Duplicate row item Library Faucet" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open row activity for Library Faucet" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open row actions for Library Faucet" }));
+    expect(screen.getByRole("menuitem", { name: "Duplicate row" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Row activity" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open row details for Library Faucet" })).not.toBeInTheDocument();
   });
 
@@ -289,7 +295,8 @@ describe("estimate sheet row details and CRUD entry points", () => {
       expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({ rowId: projectSpecificRowId, miscCost: 375 }));
     });
 
-    await user.click(screen.getByRole("button", { name: "Delete row Custom Built-in Cabinet" }));
+    await user.click(screen.getByRole("button", { name: "Open row actions for Custom Built-in Cabinet" }));
+    await user.click(screen.getByRole("menuitem", { name: "Delete row" }));
 
     await waitFor(() => expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       projectId,

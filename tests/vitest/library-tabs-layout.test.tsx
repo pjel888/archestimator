@@ -172,7 +172,7 @@ describe("LibraryTabsLayoutClient", () => {
     const toggle = screen.getByRole("button", { name: "Show library search" });
     fireEvent.click(toggle);
 
-    const searchInput = screen.getByRole("combobox", { name: "Search components and templates" });
+    const searchInput = await screen.findByRole("combobox", { name: "Search components and templates" });
     await waitFor(() => expect(searchInput).toHaveFocus());
 
     fireEvent.keyDown(searchInput, { key: "Escape" });

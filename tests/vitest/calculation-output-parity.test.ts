@@ -62,7 +62,6 @@ function buildParityPublicationSnapshot() {
           quantityContingencyAmount: row.input.quantity_contingency_amount,
           unit: "ea",
           unitCost: row.input.unit_cost,
-          laborRate: row.input.labor_rate,
           miscCost: row.input.misc_cost,
           contingencyPercentage: row.input.contingency_percentage ?? 0,
           adjustmentPercentage: row.input.adjustment_percentage,
@@ -153,7 +152,6 @@ describe("calculation output parity matrix v1", () => {
         quantityBase: row.input.quantity_base,
         quantityContingencyAmount: row.input.quantity_contingency_amount,
         unitCost: row.input.unit_cost,
-        laborRate: row.input.labor_rate,
         contingencyPercentage: row.input.contingency_percentage,
         adjustmentPercentage: row.input.adjustment_percentage,
         miscCost: row.input.misc_cost,
@@ -179,9 +177,9 @@ describe("calculation output parity matrix v1", () => {
       grandTotalWithTaxes: CALCULATION_PARITY_FIXTURE.expected.finalProposalMinorUnits / 100,
     });
 
-    const bidFormLineTotals = Array.from({ length: bidForm?.rowCount ?? 0 }, (_, index) => cellResult(bidForm?.getCell(`H${index + 1}`).value))
+    const bidFormLineTotals = Array.from({ length: bidForm?.rowCount ?? 0 }, (_, index) => cellResult(bidForm?.getCell(`F${index + 1}`).value))
       .filter((value): value is number => value !== null);
-    expect(bidFormLineTotals).toEqual(expect.arrayContaining([170, 125, 63]));
+    expect(bidFormLineTotals).toEqual(expect.arrayContaining([142.5, 125, 63]));
     expect(bidFormLineTotals).not.toEqual(expect.arrayContaining([60, 30]));
     const grandTotalRow = Array.from({ length: 50 }, (_, index) => index + 1)
       .find((rowNumber) => summary?.getCell(`A${rowNumber}`).value === "Grand Total");

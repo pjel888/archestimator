@@ -163,7 +163,7 @@ async function getEditDialog() {
 
 async function createCatalogueOption(
   dialog: HTMLElement,
-  fieldName: "Category" | "Supplier" | "Brand",
+  fieldName: "Supplier" | "Brand",
   value: string,
 ) {
   const form = within(dialog).getByRole("form", { name: "Quick add component" });
@@ -177,7 +177,7 @@ async function createCatalogueOption(
 
 async function pickCatalogueOption(
   dialog: HTMLElement,
-  fieldName: "Category" | "Supplier" | "Brand",
+  fieldName: "Supplier" | "Brand",
   value: string,
   searchValue = value,
 ) {
@@ -192,7 +192,6 @@ async function pickCatalogueOption(
 function fillValidQuickAdd(dialog: HTMLElement) {
   const form = within(dialog).getByRole("form", { name: "Quick add component" });
   fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Door Stop" } });
-  fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
   fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
   fireEvent.change(within(form).getByLabelText("Unit cost"), { target: { value: "123.456" } });
   return form;
@@ -273,16 +272,17 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
     const name = within(form).getByLabelText("Name");
-    const category = within(form).getByRole("combobox", { name: "Category" });
+    const directCategory = within(form).getByRole("textbox", { name: "Direct category" });
     const unit = within(form).getByRole("combobox", { name: "Unit" });
     const unitCost = within(form).getByLabelText("Unit cost");
 
     expect(name).toHaveAttribute("aria-required", "true");
-    expect(category).toHaveAttribute("aria-required", "true");
+    expect(directCategory).toHaveAttribute("aria-readonly", "true");
+    expect(directCategory).toHaveValue("Uncategorized");
     expect(unit).toHaveAttribute("aria-required", "true");
     expect(unitCost).toHaveAttribute("aria-required", "true");
     expect(name).not.toHaveAttribute("aria-invalid", "true");
-    expect(category).not.toHaveAttribute("aria-invalid", "true");
+    expect(directCategory).not.toHaveAttribute("aria-invalid", "true");
     expect(unitCost).not.toHaveAttribute("aria-invalid", "true");
     expect(within(dialog).queryByText("Enter a component name.")).not.toBeInTheDocument();
     expect(within(form).getByLabelText("Description")).toBeInTheDocument();
@@ -300,7 +300,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
 
     expect(name).toHaveAttribute("aria-invalid", "true");
-    expect(category).toHaveAttribute("aria-invalid", "true");
+    expect(directCategory).not.toHaveAttribute("aria-invalid", "true");
     expect(unitCost).toHaveAttribute("aria-invalid", "true");
     expect(within(dialog).getByText("Enter a component name.")).toBeInTheDocument();
   });
@@ -383,7 +383,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
   it("keeps the draft open after a failed create and preserves OpenDesign fields", async () => {
     actionMocks.createCostLibraryComponent.mockRejectedValueOnce(new Error("Network down"));
-    const props = renderAddModal();
+    const props = renderAddModal({ selectedFolderId: "folder-hardware" });
     const dialog = await getAddDialog();
     const form = fillValidQuickAdd(dialog);
 
@@ -392,36 +392,34 @@ describe("AddComponentModal OpenDesign field contract", () => {
     await screen.findByText("Network down");
     expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
     expect(within(form).getByLabelText("Name")).toHaveValue("Door Stop");
-    expect(within(form).getByRole("combobox", { name: "Category" })).toHaveValue("Hardware");
+    expect(within(form).getByRole("textbox", { name: "Direct category" })).toHaveValue("Hardware");
     expect(within(form).getByRole("combobox", { name: "Supplier" })).toHaveValue("Acme");
     expect(props.onComponentCreated).not.toHaveBeenCalled();
   });
 
-  it("does not show category-tree values as Add Component category options", async () => {
+  it("keeps direct category folder-derived instead of exposing category creation", async () => {
     renderAddModal();
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
-    const category = within(form).getByRole("combobox", { name: "Category" });
 
-    fireEvent.change(category, { target: { value: "Hardware" } });
-
+    expect(within(form).getByRole("textbox", { name: "Direct category" })).toHaveValue("Uncategorized");
+    expect(within(form).queryByRole("combobox", { name: "Category" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Hardware" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("option", { name: 'Add category "Hardware"' })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: 'Add category "Hardware"' })).not.toBeInTheDocument();
   });
 
-  it("does not prefill category from the selected library folder", async () => {
+  it("derives direct category from the selected library folder", async () => {
     renderAddModal({ selectedFolderId: "folder-hardware" });
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    expect(within(form).getByRole("combobox", { name: "Category" })).toHaveValue("");
+    expect(within(form).getByRole("textbox", { name: "Direct category" })).toHaveValue("Hardware");
   });
 
   it("persists added catalogue options after discarding the component draft", async () => {
     renderStatefulAddModal({ catalogueOptionsStorageScope: "catalogue-options-persist-test" });
     let dialog = await getAddDialog();
 
-    await createCatalogueOption(dialog, "Category", "Custom Millwork");
     await createCatalogueOption(dialog, "Supplier", "Saved Supplier Co");
     await createCatalogueOption(dialog, "Brand", "Saved Brand Line");
 
@@ -433,7 +431,6 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open add component" }));
     dialog = await getAddDialog();
 
-    await pickCatalogueOption(dialog, "Category", "Custom Millwork", "Custom");
     await pickCatalogueOption(dialog, "Supplier", "Saved Supplier Co", "Saved Supplier");
     await pickCatalogueOption(dialog, "Brand", "Saved Brand Line", "Saved Brand");
   });
@@ -442,13 +439,11 @@ describe("AddComponentModal OpenDesign field contract", () => {
     renderStatefulAddModal({ catalogueOptionsStorageScope: "catalogue-options-delete-test" });
     const dialog = await getAddDialog();
 
-    await createCatalogueOption(dialog, "Category", "Delete Me Category");
     await createCatalogueOption(dialog, "Supplier", "Delete Me Supplier");
     await createCatalogueOption(dialog, "Brand", "Delete Me Brand");
 
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
     const scenarios = [
-      ["Category", "category", "Delete Me Category"],
       ["Supplier", "supplier", "Delete Me Supplier"],
       ["Brand", "brand", "Delete Me Brand"],
     ] as const;
@@ -491,10 +486,8 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    const category = within(form).getByRole("combobox", { name: "Category" });
-    fireEvent.change(category, { target: { value: "Odd Category" } });
-    expect(await screen.findByRole("option", { name: "Odd Category" })).toBeInTheDocument();
-    expect(screen.getAllByRole("option", { name: "Odd Category" })).toHaveLength(1);
+    expect(within(form).queryByRole("combobox", { name: "Category" })).not.toBeInTheDocument();
+    expect(within(form).getByRole("textbox", { name: "Direct category" })).toHaveValue("Uncategorized");
 
     const supplier = within(form).getByRole("combobox", { name: "Supplier" });
     fireEvent.change(supplier, { target: { value: "not-an-array" } });
@@ -510,40 +503,39 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const scopeA = "catalogue-options-scope-a";
     const scopeB = "catalogue-options-scope-b";
     window.localStorage.setItem(`${catalogueOptionsStoragePrefix}:${scopeB}`, JSON.stringify({
-      category: [
+      supplier: [
         {
-          id: "local-catalogue-option:category:scope-b-category",
-          label: "Scope B Category",
+          id: "local-catalogue-option:supplier:scope-b-supplier",
+          label: "Scope B Supplier",
           createdAt: "2026-07-06T00:00:00.000Z",
         },
       ],
-      supplier: [],
       brand: [],
     }));
 
     const { rerender } = render(<AddComponentModal {...makeAddModalProps({ catalogueOptionsStorageScope: scopeA })} />);
     let dialog = await getAddDialog();
 
-    await createCatalogueOption(dialog, "Category", "Scope A Category");
-    expect(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeA}`)).toContain("Scope A Category");
+    await createCatalogueOption(dialog, "Supplier", "Scope A Supplier");
+    expect(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeA}`)).toContain("Scope A Supplier");
 
     rerender(<AddComponentModal {...makeAddModalProps({ catalogueOptionsStorageScope: scopeB })} />);
     dialog = await getAddDialog();
 
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
-    const category = within(form).getByRole("combobox", { name: "Category" });
-    fireEvent.change(category, { target: { value: "Scope B" } });
-    expect(await screen.findByRole("option", { name: "Scope B Category" })).toBeInTheDocument();
+    const supplier = within(form).getByRole("combobox", { name: "Supplier" });
+    fireEvent.change(supplier, { target: { value: "Scope B" } });
+    expect(await screen.findByRole("option", { name: "Scope B Supplier" })).toBeInTheDocument();
 
     const storedScopeB = JSON.parse(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeB}`) ?? "{}");
-    expect(storedScopeB.category).toEqual([
-      expect.objectContaining({ label: "Scope B Category" }),
+    expect(storedScopeB.supplier).toEqual([
+      expect.objectContaining({ label: "Scope B Supplier" }),
     ]);
-    expect(JSON.stringify(storedScopeB)).not.toContain("Scope A Category");
+    expect(JSON.stringify(storedScopeB)).not.toContain("Scope A Supplier");
   });
 
   it("submits the canonical component graph payload", async () => {
-    const props = renderAddModal();
+    const props = renderAddModal({ selectedFolderId: "folder-hardware" });
     const dialog = await getAddDialog();
     fillValidQuickAdd(dialog);
 
@@ -574,7 +566,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
       ],
     }));
     const payload = actionMocks.createCostLibraryComponent.mock.calls[0][0];
-    expect(payload.libraryFolderId).toBeNull();
+    expect(payload.libraryFolderId).toBe("folder-hardware");
     expect(payload).not.toHaveProperty("metadata");
     expect(payload.priceOptions[0]).not.toHaveProperty("dimensionLength");
     await waitFor(() => expect(props.onComponentCreated).toHaveBeenCalledTimes(1));
@@ -744,11 +736,10 @@ describe("AddComponentModal OpenDesign field contract", () => {
   });
 
   it("shows a non-blocking duplicate warning as identity fields change without requiring name blur", async () => {
-    renderAddModal({ libraryItems: duplicateRows });
+    renderAddModal({ libraryItems: duplicateRows, selectedFolderId: "folder-hardware" });
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     const name = within(form).getByLabelText("Name");
     fireEvent.change(name, { target: { value: "Door Hinge" } });
@@ -766,7 +757,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
       supplier: "Acme",
       brand: null,
     });
-    renderAddModal({ libraryItems: [] });
+    renderAddModal({ libraryItems: [], selectedFolderId: "folder-hardware" });
     const dialog = await getAddDialog();
     fillValidQuickAdd(dialog);
 
@@ -793,11 +784,10 @@ describe("AddComponentModal OpenDesign field contract", () => {
   });
 
   it("keeps a duplicate acknowledgement when a catalogue input reports its current value", async () => {
-    renderAddModal({ libraryItems: duplicateRows });
+    renderAddModal({ libraryItems: duplicateRows, selectedFolderId: "folder-hardware" });
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     const name = within(form).getByLabelText("Name");
     fireEvent.change(name, { target: { value: "Door Hinge" } });
@@ -1308,11 +1298,13 @@ describe("AddComponentModal OpenDesign field contract", () => {
   });
 
   it("normalizes duplicate identity whitespace and supports brand-only matches", async () => {
-    renderAddModal({ libraryItems: [...duplicateRows, ...brandDuplicateRows] });
+    renderAddModal({
+      libraryItems: [...duplicateRows, ...brandDuplicateRows],
+      selectedFolderId: "folder-hardware",
+    });
     const dialog = await getAddDialog();
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
 
-    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     const name = within(form).getByLabelText("Name");
     fireEvent.change(name, { target: { value: "  door    hinge  " } });

@@ -110,6 +110,19 @@ class FakeWorkspaceProjectsD1Database {
   }
 
   first<T>(sql: string): T | null {
+    if (sql.includes("FROM beta_starter_pack_states")) return null;
+    if (
+      sql.includes("(SELECT COUNT(*) FROM projects") &&
+      sql.includes("AS projects_count")
+    ) {
+      return {
+        projects_count: this.payload.ownedProjects.length,
+        components_count: 0,
+        templates_count: 0,
+        groups_count: 0,
+        custom_folders_count: 0,
+      } as T;
+    }
     if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM estimates estimate")) return { allowed: 1 } as T;
     if (sql.includes("FROM workspaces")) return WORKSPACE as T;
     if (sql.includes("FROM workspace_members")) return this.payload.workspaceMembership as T;
@@ -118,6 +131,7 @@ class FakeWorkspaceProjectsD1Database {
   }
 
   all<T>(sql: string, values: D1Value[]): T[] {
+    if (sql.includes("FROM beta_starter_asset_claims")) return [];
     if (sql.includes("FROM collaboration_invitations invitation")) {
       return this.payload.receivedPendingInvites as T[];
     }

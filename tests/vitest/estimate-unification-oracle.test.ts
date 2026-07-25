@@ -24,7 +24,6 @@ import {
   flattenRows,
   stableStringify,
   treeToChartFacts,
-  phaseAtLeast,
   CALCULATION_PARITY_FIXTURE,
   calculationParityTreeFixture,
 } from "./estimate-unification-oracle.fixtures";
@@ -183,7 +182,7 @@ describe("oracle · O3 proposal export model (P2)", () => {
     expect(model.proposalRows.flatMap((row) => row.sourceRowIds).sort()).toEqual(flattenRows(ALL_AREA_FIXTURE).map((row) => row.id).sort());
   });
 
-  it("O3: export adjustment includes labor in the canonical basis", () => {
+  it("O3: export adjustment uses the material-only canonical basis", () => {
     const model = buildProposalExportModel({
       metadata: { projectId: "parity-project", estimateId: "parity-estimate", projectName: "Parity", estimateName: "Parity", estimateSheetCode: "PAR-001", versionLabel: "v1", currency: "PHP" },
       nodes: calculationParityTreeFixture(),
@@ -191,7 +190,7 @@ describe("oracle · O3 proposal export model (P2)", () => {
     });
 
     const row = model.proposalRows.find((candidate) => candidate.sourceRowIds.includes("parity-material-labor"));
-    expect(row?.costAmount).toBe(170);
+    expect(row?.costAmount).toBe(142.5);
   });
 });
 

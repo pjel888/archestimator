@@ -152,7 +152,7 @@ describe("proposal xlsx export route workbook integration", () => {
       "Commercial Terms",
     ]);
     expect(workbook.getWorksheet("Bid Form")?.getCell("A1").value).toBe("BID FORM / BILL OF QUANTITIES");
-    expect(workbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual(expect.objectContaining({ formula: expect.any(String) }));
+    expect(workbook.getWorksheet("Bid Form")?.getCell("F19").value).toEqual(expect.objectContaining({ formula: expect.any(String) }));
     // P1-T6: dynamic Summary totals. makeTree(60) → 2 sections (rows 15-16) → totals start
     // at row 18, Grand Total at row 21.
     expect(workbook.getWorksheet("Summary")?.getCell("B21").value).toEqual(expect.objectContaining({ formula: "B18+B19+B20" }));
@@ -189,8 +189,8 @@ describe("proposal xlsx export route workbook integration", () => {
       "Alt Scope",
       "Commercial Terms",
     ]);
-    expect(workbook.getWorksheet("Summary")?.getCell("C16").value).toEqual(expect.objectContaining({ formula: expect.stringMatching(/^'Main'!H/) }));
-    expect(workbook.getWorksheet("Summary")?.getCell("C19").value).toEqual(expect.objectContaining({ formula: expect.stringMatching(/^'Alt Scope'!H/) }));
+    expect(workbook.getWorksheet("Summary")?.getCell("C16").value).toEqual(expect.objectContaining({ formula: expect.stringMatching(/^'Main'!F/) }));
+    expect(workbook.getWorksheet("Summary")?.getCell("C19").value).toEqual(expect.objectContaining({ formula: expect.stringMatching(/^'Alt Scope'!F/) }));
     expect(workbook.getWorksheet("Source Breakdown")).toBeUndefined();
   });
 });

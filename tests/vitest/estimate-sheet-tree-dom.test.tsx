@@ -242,8 +242,12 @@ describe("estimate sheet tree DOM integration", () => {
     renderTree([], null);
 
     expect(screen.getByText("No areas yet")).toBeInTheDocument();
-    expect(screen.getByText("Add an area to start organizing this estimate.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
+    const emptyStateCopy = screen.getByText("Add an area to start organizing this estimate.");
+    expect(emptyStateCopy).toBeInTheDocument();
+    const emptyState = emptyStateCopy.parentElement?.parentElement;
+    if (!(emptyState instanceof HTMLElement)) throw new Error("Empty tree state was not rendered.");
+    expect(within(screen.getByLabelText("Tree tools")).getByRole("button", { name: "Add Area" })).toBeInTheDocument();
+    expect(within(emptyState).getByRole("button", { name: "Add Area" })).toBeInTheDocument();
   });
 
   it("renders visible nested items as handle-draggable treeitems with the shared tree row styling", () => {
@@ -451,7 +455,6 @@ describe("estimate sheet tree DOM integration", () => {
 
     // phase-two (a top-level node) dragged over the middle of ground-floor (a
     // node with children) → valid nest, "inside" band lights up.
-    const phaseTwo = treeNodeButton("phase-two");
     const groundFloor = treeNodeButton("ground-floor");
     const dataTransfer = mockDataTransfer();
     setMiddleDropRect(groundFloor);
@@ -510,7 +513,7 @@ describe("estimate sheet tree DOM integration", () => {
   it("disables edit-only tree affordances with a view-only reason", () => {
     renderTree(fixtureTree(), "kitchen", { canEditEstimate: false });
 
-    expect(screen.getByRole("button", { name: "Add Branch" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Area" })).toBeDisabled();
     expect(screen.queryByRole("checkbox", { name: "Select Kitchen" })).not.toBeInTheDocument();
 
     const kitchenHandle = treeDragHandle("kitchen");
@@ -523,7 +526,7 @@ describe("estimate sheet tree DOM integration", () => {
     fireEvent.dragStart(kitchenHandle, { dataTransfer });
     expect(dataTransfer.setData).not.toHaveBeenCalledWith("application/x-archestimator-estimate-tree-item", "kitchen");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
     expect(actionMocks.createEstimateNode).not.toHaveBeenCalled();
   });
 
@@ -759,7 +762,6 @@ describe("estimate sheet tree DOM integration", () => {
     });
     renderTree();
 
-    const phaseTwo = treeNodeButton("phase-two");
     const projectScope = treeNodeButton("project-scope");
     const dataTransfer = mockDataTransfer();
 
@@ -832,7 +834,6 @@ describe("estimate sheet tree DOM integration", () => {
     });
     renderTree();
 
-    const alternates = treeNodeButton("alternates");
     const rootBottomDropZone = rootDropZone("bottom");
     const dataTransfer = mockDataTransfer();
 

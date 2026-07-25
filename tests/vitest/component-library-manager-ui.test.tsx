@@ -247,10 +247,8 @@ async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPag
   return Object.assign(result, { queryClient });
 }
 
-function getSheetSummary(sheet: HTMLElement) {
-  const summary = sheet.querySelector('[data-component-sheet-summary="true"]');
-  if (!summary) throw new Error("Component table summary not found");
-  return summary as HTMLElement;
+function getCatalogueGrid(sheet: HTMLElement, label: string) {
+  return within(sheet).getByRole("list", { name: `${label} component catalogue grid` });
 }
 
 function clickDrawerAddVariant(drawer: HTMLElement) {
@@ -403,7 +401,7 @@ describe("component library manager UI", () => {
     expect(within(tools).getByRole("combobox", { name: "View components" })).toBeInTheDocument();
     expect(within(tools).getByRole("combobox", { name: "Sort components by" })).toBeInTheDocument();
     expect(within(tools).getByRole("combobox", { name: "Component sort order" })).toBeInTheDocument();
-    expect(getSheetSummary(sheet)).toHaveTextContent("All Components · 3 components");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
 
     expect(screen.queryByLabelText("Search library")).not.toBeInTheDocument();
@@ -479,7 +477,7 @@ describe("component library manager UI", () => {
     expect(within(folderTree).queryByRole("treeitem", { name: "Legacy Seed Folder" })).not.toBeInTheDocument();
 
     const sheet = screen.getByLabelText("Component table");
-    expect(getSheetSummary(sheet)).toHaveTextContent("All Components · 3 components");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(3);
 
     const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
     expect(within(addDialog).queryByLabelText("Component nesting")).not.toBeInTheDocument();
@@ -615,7 +613,7 @@ describe("component library manager UI", () => {
     expect(getLibraryFolderButton("Details")).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Custom Cabinet Pull" })).toBeInTheDocument();
-    expect(getSheetSummary(sheet)).toHaveTextContent("All Components · 3 components");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(3);
     expect(within(sheet).queryByRole("tablist")).not.toBeInTheDocument();
     expect(within(sheet).queryByLabelText("All Components component rows")).not.toBeInTheDocument();
     const fabricationArrow = getLibraryFolderArrowWithin(tree, "folder-fabrication");
@@ -650,7 +648,7 @@ describe("component library manager UI", () => {
 
     fireEvent.click(getLibraryFolderButton("Details"));
 
-    expect(getSheetSummary(sheet)).toHaveTextContent("Details · 1 component");
+    expect(within(getCatalogueGrid(sheet, "Details")).getAllByRole("listitem")).toHaveLength(1);
     const selectedDetailsGrid = within(sheet).getByLabelText("Details component catalogue grid");
     expect(within(selectedDetailsGrid).getByText("Custom Cabinet Pull")).toBeInTheDocument();
     expect(selectedDetailsGrid.querySelectorAll("[data-component-catalogue-card-id]")).toHaveLength(1);
@@ -703,8 +701,7 @@ describe("component library manager UI", () => {
     });
 
     const sheet = screen.getByLabelText("Component table");
-    const summary = getSheetSummary(sheet);
-    expect(summary).toHaveTextContent("All Components · 3 components");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(3);
     expect(within(sheet).getByText("Source: May quote ledger")).toBeInTheDocument();
     expect(within(sheet).getAllByText("Checked 2026-05-22").length).toBeGreaterThan(0);
 
@@ -724,20 +721,20 @@ describe("component library manager UI", () => {
     const sheetSearch = openComponentSheetSearch();
     fireEvent.change(sheetSearch, { target: { value: "quote ledger" } });
 
-    expect(summary).toHaveTextContent("All Components · 1 loaded match · 3 loaded in scope");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(1);
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
 
     fireEvent.change(sheetSearch, { target: { value: "database brand" } });
 
-    expect(summary).toHaveTextContent("All Components · 1 loaded match · 3 loaded in scope");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(1);
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
 
-    // Facet filters report through the same live summary once search is cleared.
+    // The accessible catalogue list reflects search and facet result counts.
     fireEvent.change(sheetSearch, { target: { value: "" } });
-    expect(summary).toHaveTextContent("All Components · 3 components");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(3);
 
     fireEvent.click(within(sheet).getByRole("button", { name: "Filter components" }));
     const filterDialog = within(sheet).getByRole("region", { name: "Filter components" });
@@ -746,14 +743,14 @@ describe("component library manager UI", () => {
 
     fireEvent.click(within(filterDialog).getByRole("checkbox", { name: "Database Supplier" }));
 
-    expect(summary).toHaveTextContent("All Components · 1 loaded shown · 3 loaded in scope");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(1);
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
     expect(within(sheet).getByRole("button", { name: "Filter components (1 active)" })).toBeInTheDocument();
 
     fireEvent.click(within(filterDialog).getByRole("button", { name: "Reset filters" }));
 
-    expect(summary).toHaveTextContent("All Components · 3 components");
+    expect(within(getCatalogueGrid(sheet, "All Components")).getAllByRole("listitem")).toHaveLength(3);
     expect(within(sheet).getByText("Custom Cabinet Pull")).toBeInTheDocument();
   });
 
@@ -831,7 +828,7 @@ describe("component library manager UI", () => {
 
     fireEvent.click(within(tree).getByRole("treeitem", { name: "Database Supplier" }));
 
-    expect(getSheetSummary(sheet)).toHaveTextContent("Database Supplier · 1 component");
+    expect(within(getCatalogueGrid(sheet, "Database Supplier")).getAllByRole("listitem")).toHaveLength(1);
     const supplierGrid = within(sheet).getByLabelText("Database Supplier component catalogue grid");
     expect(within(supplierGrid).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(supplierGrid).getByText("Database Supplier")).toBeInTheDocument();
@@ -855,7 +852,7 @@ describe("component library manager UI", () => {
 
     fireEvent.click(within(tree).getByRole("treeitem", { name: "Database Brand" }));
 
-    expect(getSheetSummary(sheet)).toHaveTextContent("Database Brand · 1 component");
+    expect(within(getCatalogueGrid(sheet, "Database Brand")).getAllByRole("listitem")).toHaveLength(1);
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();

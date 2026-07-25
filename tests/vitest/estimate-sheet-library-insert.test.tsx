@@ -560,6 +560,20 @@ function toastViewport() {
   return viewport;
 }
 
+function openRowAction(rowLabel: string, actionLabel: string, triggerIndex = 0) {
+  const trigger = screen.getAllByRole("button", { name: `Open row actions for ${rowLabel}` })[triggerIndex];
+  if (!trigger) throw new Error(`Row action trigger ${triggerIndex} was not rendered for ${rowLabel}.`);
+  fireEvent.click(trigger);
+  return screen.getByRole("menuitem", { name: actionLabel });
+}
+
+function openComponentAction(componentLabel: string, actionLabel: string, triggerIndex = 0) {
+  const trigger = screen.getAllByRole("button", { name: `Open component actions for ${componentLabel}` })[triggerIndex];
+  if (!trigger) throw new Error(`Component action trigger ${triggerIndex} was not rendered for ${componentLabel}.`);
+  fireEvent.click(trigger);
+  return screen.getByRole("menuitem", { name: actionLabel });
+}
+
 describe("estimate sheet library insertion persistence", () => {
   afterEach(() => {
     cleanup();
@@ -872,8 +886,7 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.updateEstimateRowItem.mockReturnValueOnce(save.promise);
     renderPersistedEstimateSheet(projectVariantNodes);
 
-    const kitchenSection = screen.getByLabelText("Kitchen");
-    await user.click(within(kitchenSection).getByRole("button", { name: "Edit component Kitchen Cabinet" }));
+    await user.click(openComponentAction("Kitchen Cabinet", "Edit component"));
     const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
     await user.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
     const variantDrawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
@@ -934,7 +947,7 @@ describe("estimate sheet library insertion persistence", () => {
     });
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit Component" })).not.toBeInTheDocument());
-    await user.click(within(kitchenSection).getByRole("button", { name: "Edit component Kitchen Cabinet" }));
+    await user.click(openComponentAction("Kitchen Cabinet", "Edit component"));
     const reopenedDialog = await screen.findByRole("dialog", { name: "Edit Component" });
     await user.click(within(reopenedDialog).getByRole("button", { name: "Open variants panel" }));
     const reopenedDrawer = within(reopenedDialog).getByRole("dialog", { name: "Manage variants" });
@@ -1192,11 +1205,12 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(duplicate.promise);
     renderPersistedEstimateSheet(nodesWithRow);
 
-    const duplicateButton = screen.getByRole("button", { name: "Duplicate row item Kitchen Cabinet" });
-    fireEvent.click(duplicateButton);
-    fireEvent.click(duplicateButton);
+    fireEvent.click(openRowAction("Kitchen Cabinet", "Duplicate row"));
 
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    const pendingDuplicateAction = openRowAction("Kitchen Cabinet", "Duplicate row");
+    fireEvent.click(pendingDuplicateAction);
+    expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1);
     const input = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
     expect(input).toMatchObject({
       projectId,
@@ -1228,11 +1242,11 @@ describe("estimate sheet library insertion persistence", () => {
       .mockResolvedValueOnce(undefined);
     renderPersistedEstimateSheet(nodesWithRow);
 
-    const sourceDuplicateButton = () => screen.getAllByRole("button", { name: "Duplicate row item Kitchen Cabinet" })[0];
-    fireEvent.click(sourceDuplicateButton());
+    const sourceDuplicateAction = () => openRowAction("Kitchen Cabinet", "Duplicate row");
+    fireEvent.click(sourceDuplicateAction());
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
     const ambiguousInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /^Open row actions for /u })).toHaveLength(2));
 
     const sourceQuantity = screen.getByLabelText("Kitchen Cabinet quantity") as HTMLInputElement;
     await user.clear(sourceQuantity);
@@ -1240,7 +1254,7 @@ describe("estimate sheet library insertion persistence", () => {
     fireEvent.blur(sourceQuantity);
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
 
-    fireEvent.click(sourceDuplicateButton());
+    fireEvent.click(sourceDuplicateAction());
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
     const ambiguityRetryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[1][0];
     expect(ambiguityRetryInput.rowId).toBe(ambiguousInput.rowId);
@@ -1255,12 +1269,12 @@ describe("estimate sheet library insertion persistence", () => {
       await Promise.resolve();
     });
 
-    fireEvent.click(sourceDuplicateButton());
+    fireEvent.click(sourceDuplicateAction());
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(3));
     const rejectedInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[2][0];
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /^Open row actions for /u })).toHaveLength(3));
 
-    fireEvent.click(sourceDuplicateButton());
+    fireEvent.click(sourceDuplicateAction());
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(4));
     const deliberateRetryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[3][0];
     expect(deliberateRetryInput.rowId).not.toBe(rejectedInput.rowId);
@@ -1280,9 +1294,9 @@ describe("estimate sheet library insertion persistence", () => {
     });
     renderPersistedEstimateSheet(nodesWithRow);
 
-    fireEvent.click(screen.getByRole("button", { name: "Duplicate row item Kitchen Cabinet" }));
+    fireEvent.click(openRowAction("Kitchen Cabinet", "Duplicate row"));
     await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /^Open row actions for /u })).toHaveLength(3));
 
     const sinkQuantity = screen.getByLabelText("Kitchen Sink quantity") as HTMLInputElement;
     await user.clear(sinkQuantity);
@@ -1296,7 +1310,7 @@ describe("estimate sheet library insertion persistence", () => {
       await duplicate.promise.catch(() => undefined);
     });
 
-    await waitFor(() => expect(screen.getAllByRole("button", { name: /Duplicate row item/u })).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /^Open row actions for /u })).toHaveLength(2));
     expect(screen.getByLabelText("Kitchen Sink quantity")).toHaveValue("4");
   });
 
@@ -1389,7 +1403,7 @@ describe("estimate sheet library insertion persistence", () => {
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     expect(await within(kitchenSection).findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
-    await user.click(within(kitchenSection).getByRole("button", { name: "Edit component Project Component" }));
+    await user.click(openComponentAction("Project Component", "Edit component"));
 
     const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
     expect(within(dialog).getByLabelText("Name")).toHaveValue("");
@@ -1459,6 +1473,21 @@ describe("estimate sheet library insertion persistence", () => {
     const user = userEvent.setup();
     const insert = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateRowItemFromLibrary>>>();
     actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(insert.promise);
+    actionMocks.getEstimateComponentEditImpact.mockResolvedValueOnce({
+      componentKind: "project",
+      fingerprint: "express-image-impact",
+      instanceCount: 1,
+      projectCount: 1,
+      estimateCount: 1,
+      optionUsageCounts: {},
+      affectedEstimates: [{
+        projectId,
+        projectName: "Modern Bungalow",
+        estimateId,
+        estimateName: "Main Estimate",
+        instanceCount: 1,
+      }],
+    });
     renderPersistedEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
@@ -2051,12 +2080,12 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
 
-    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet a Project Component" }));
+    await user.click(openComponentAction("Kitchen Cabinet", "Make project component"));
     const firstDialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(firstDialog).getByRole("button", { name: "Cancel" }));
     expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
 
-    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet a Project Component" }));
+    await user.click(openComponentAction("Kitchen Cabinet", "Make project component"));
     const dialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(dialog).getByRole("button", { name: "Make Project Component" }));
 
@@ -2080,9 +2109,7 @@ describe("estimate sheet library insertion persistence", () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet(nodesWithDetachedProjectSpecificRow);
 
-    const kitchenSection = screen.getByLabelText("Kitchen");
-    const promoteButton = within(kitchenSection).getByRole("button", { name: "Promote Kitchen Cabinet to library" });
-    await user.click(promoteButton);
+    await user.click(openComponentAction("Kitchen Cabinet", "Promote to library"));
 
     await waitFor(() => {
       expect(promotionMocks.promoteEstimateRowToLibraryComponent).toHaveBeenCalledWith({
@@ -2111,9 +2138,9 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithDuplicateLinkedRows);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })).toHaveLength(2);
+    expect(within(kitchenSection).getAllByRole("button", { name: "Open component actions for Kitchen Cabinet" })).toHaveLength(2);
 
-    await user.click(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })[0]);
+    await user.click(openComponentAction("Kitchen Cabinet", "Make project component"));
     const dialog = screen.getByRole("dialog", { name: "Make Project Component" });
     await user.click(within(dialog).getByRole("button", { name: "Make Project Component" }));
 
@@ -2126,7 +2153,15 @@ describe("estimate sheet library insertion persistence", () => {
     }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make Project Component" })).not.toBeInTheDocument());
     expect(within(kitchenSection).getByText("Project Component")).toBeInTheDocument();
-    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })).toHaveLength(1);
+    const componentActionTriggers = within(kitchenSection).getAllByRole("button", {
+      name: "Open component actions for Kitchen Cabinet",
+    });
+    expect(componentActionTriggers).toHaveLength(2);
+    fireEvent.click(componentActionTriggers[0]);
+    expect(screen.queryByRole("menuitem", { name: "Make project component" })).not.toBeInTheDocument();
+    fireEvent.click(componentActionTriggers[0]);
+    fireEvent.click(componentActionTriggers[1]);
+    expect(screen.getByRole("menuitem", { name: "Make project component" })).toBeInTheDocument();
   });
 
   it("shows exact library sync state in row details", async () => {
@@ -2134,7 +2169,8 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithOverriddenLinkedRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    await user.click(within(kitchenSection).getByRole("button", { name: "Open row activity for Kitchen Cabinet" }));
+    await user.click(within(kitchenSection).getByRole("button", { name: "Open row actions for Kitchen Cabinet" }));
+    await user.click(screen.getByRole("menuitem", { name: "Row activity" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
@@ -2274,8 +2310,7 @@ describe("estimate sheet library insertion persistence", () => {
       await save.promise.catch(() => undefined);
     });
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Permission denied"));
-    expect(screen.getByRole("alert").closest("[data-toast-viewport='true']")).not.toBeNull();
+    await waitFor(() => expect(within(toastViewport()).getByRole("alert")).toHaveTextContent("Permission denied"));
   });
 
   it("persists component moves through one atomic row move action", async () => {

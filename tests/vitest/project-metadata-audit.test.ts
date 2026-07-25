@@ -16,6 +16,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth/session", () => ({
   requireAuth,
   requireCurrentUserContext,
+  requireWorkshopWriteContext: requireCurrentUserContext,
 }));
 vi.mock("@/lib/cloudflare/d1", () => ({ getCloudflareD1Database }));
 vi.mock("@/lib/repositories/workspace-repository", () => ({

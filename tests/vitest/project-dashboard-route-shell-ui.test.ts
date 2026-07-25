@@ -6,6 +6,7 @@ import {
   projectEstimatesPage,
   estimateWorkspaceClient,
   projectEstimatesLoading,
+  projectEstimateNodeLoading,
   workshopShell,
   workshopRouteHeader,
   workshopLayout,
@@ -25,16 +26,22 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectEstimateNodePage).toContain("EstimateWorkspaceClient");
     expect(projectEstimateNodePage).not.toContain('import { EstimateSheetContent }');
     expect(projectEstimateNodePage).not.toContain('import { EstimateSheetTree }');
-    expect(estimateWorkspaceClient).toContain("dynamic(() =>");
-    expect(estimateWorkspaceClient).toContain("module.EstimateSheetTree");
-    expect(estimateWorkspaceClient).toContain("module.EstimateSheetContent");
+    expect(estimateWorkspaceClient).toContain(
+      '() => import("./EstimateSheetTree").then((module) => module.EstimateSheetTree)',
+    );
+    expect(estimateWorkspaceClient).toContain(
+      '() => import("./EstimateSheetContent").then((module) => module.EstimateSheetContent)',
+    );
   });
 
-  it("keeps the estimates-list fallback page-local so sheet routes do not inherit it", () => {
-    expect(projectEstimatesLoading).toBe("");
-    // Routing Page Optimization P2-T1: the estimates list still gets a
-    // table-shaped fallback, but not through a segment loading.tsx that wraps
-    // nested estimate-sheet routes and flashes the wrong skeleton.
+  it("keeps list and sheet loading fallbacks specific to their route levels", () => {
+    expect(projectEstimatesLoading).toContain("ProjectEstimatesListRouteFallback");
+    expect(projectEstimatesLoading).toContain("return <ProjectEstimatesListRouteFallback />;");
+    expect(projectEstimateNodeLoading).toContain("EstimateSheetRouteSkeleton");
+    expect(projectEstimateNodeLoading).not.toContain("ProjectEstimatesListRouteFallback");
+    expect(projectEstimateNodePage).toContain("<Suspense fallback={<EstimateSheetRouteSkeleton />}>");
+    // The estimates list also owns a page-level boundary so its async data can
+    // stream without replacing the shared project shell.
     expect(projectEstimatesPage).toContain('import { Suspense } from "react"');
     expect(projectEstimatesPage).toContain("ProjectEstimatesListRouteFallback");
     expect(projectEstimatesPage).toContain("<Suspense fallback={<ProjectEstimatesListRouteFallback />}>");
@@ -52,8 +59,13 @@ describe("project dashboard route shell UI governance", () => {
   it("locks page-level scrolling only while the workshop shell is mounted", () => {
     expect(workshopShell).toContain("data-workshop-page-shell-root");
     expect(workshopShell).toContain("h-[100dvh] overflow-hidden");
-    expect(workshopShell).toContain("const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();");
-    expect(workshopShell).toContain("<AuthenticatedMainSidebar status={sidebarStatus} />");
+    expect(workshopShell).toContain(
+      "const [sidePanelWidthCssVariables, disabledNavIdSet, maintenanceMode, showAskFlip] = await Promise.all([",
+    );
+    expect(workshopShell).toContain("getSidePanelWidthCssVariables(),");
+    expect(workshopShell).toContain(
+      "<AuthenticatedMainSidebar status={sidebarStatus} disabledNavIds={disabledNavIds} />",
+    );
     expect(workshopRouteHeader).toContain("<WorkshopSettingsEntry location={settingsModalLocation} />");
     expect(workshopShell).not.toContain("WorkshopContentSkeleton");
     expect(workshopShell).toContain("{children}");
@@ -72,7 +84,9 @@ describe("project dashboard route shell UI governance", () => {
     expect(shellPreamble).not.toContain("ensureDefaultWorkspace()");
     expect(workshopShell).toContain("async function AuthenticatedMainSidebar");
     expect(workshopRouteHeader).toContain("async function WorkshopSettingsEntry");
-    expect(workshopShell).toContain("<Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} />}>");
+    expect(workshopShell).toContain(
+      "<Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} disabledNavIds={disabledNavIds} />}>",
+    );
     expect(workshopRouteHeader).toContain("<Suspense fallback={<WorkshopSettingsEntryFallback location={settingsModalLocation} />}>");
     // Gate stays synchronous-first in layout before WorkshopShell mounts.
     expect(workshopLayout).toContain("isProtectedRouteGateSatisfied");

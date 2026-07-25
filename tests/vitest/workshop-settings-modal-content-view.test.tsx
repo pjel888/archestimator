@@ -3,15 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 
 import { WorkshopSettingsModalContentView } from "@/components/workshop/WorkshopSettingsModalContentView";
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
-}));
-
 function renderSettings(initialPageId?: string) {
+  const renderGuidanceToursSettings = vi.fn(() => (
+    <section aria-label="Injected guidance settings">Provider-free guidance fixture</section>
+  ));
+
   return render(
     <WorkshopSettingsModalContentView
       initialPageId={initialPageId}
       onboardingSnapshot={null}
+      renderGuidanceToursSettings={renderGuidanceToursSettings}
       renderSignOutControl={() => <button type="button">Real sign out action</button>}
     />,
   );
@@ -27,19 +28,20 @@ describe("WorkshopSettingsModalContentView", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("main", { name: "Profile settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("main")).not.toBeInTheDocument();
+    expect(document.querySelector("#settings-detail-panel")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
   });
 
-  it("opens a valid requested settings page and rejects unknown page ids", () => {
+  it("renders injected guidance content for the guidance page and rejects unknown page ids", () => {
     const guidance = renderSettings("guidance-tours");
 
     expect(
       screen.getByRole("button", { name: "Show Guidance & tours settings" }),
     ).toHaveAttribute("aria-current", "page");
-    expect(
-      screen.getByRole("main", { name: "Guidance & tours settings" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Injected guidance settings" })).toHaveTextContent(
+      "Provider-free guidance fixture",
+    );
     guidance.unmount();
 
     renderSettings("unknown-page");
@@ -64,7 +66,7 @@ describe("WorkshopSettingsModalContentView", () => {
     fireEvent.click(workspaceRow);
 
     expect(workspaceRow).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("main", { name: "Workspace settings" })).toBeInTheDocument();
+    expect(document.querySelector("#settings-detail-panel")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Workspace" })).toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
 import type { SupportConversationRow, SupportMessageRow } from "@/lib/repositories/support-conversations-repository";
@@ -47,6 +47,20 @@ class SupportStatement implements D1PreparedStatementLike {
     if (this.sql.includes("FROM support_conversations c")) {
       return this.database.conversation as R;
     }
+    if (this.sql.includes("FROM support_subject_privacy_fences")) {
+      return {
+        user_id: this.database.conversation.user_id,
+        generation: 0,
+        state: "open",
+        privacy_request_id: null,
+      } as R;
+    }
+    if (
+      this.sql.includes("SELECT id, created_at") &&
+      this.sql.includes("FROM support_messages")
+    ) {
+      return null;
+    }
     if (this.sql.includes("FROM support_messages") && this.sql.includes("WHERE id = ?")) {
       const [messageId] = this.values;
       const row = this.database.messages.find((message) => message.id === messageId);
@@ -63,12 +77,36 @@ class SupportStatement implements D1PreparedStatementLike {
   }
 
   async all<R = Record<string, unknown>>(): Promise<D1Result<R>> {
-    return { results: [] };
+    if (this.sql.includes("FROM support_messages") && this.sql.includes("conversation_id = ?")) {
+      const [conversationId] = this.values;
+      return {
+        results: this.database.messages.filter(
+          (message) => message.conversation_id === conversationId,
+        ) as R[],
+      };
+    }
+    return { results: [] as R[] };
   }
 
   async run(): Promise<D1Result> {
     if (this.sql.includes("INSERT OR IGNORE INTO support_messages")) {
-      const [id, conversationId, senderRole, authorUserId, bodyText, clientMessageId, sendStatus, createdAt] = this.values;
+      const [
+        id,
+        authorUserId,
+        bodyText,
+        bodyHtml,
+        clientMessageId,
+        transport,
+        mailboxAddress,
+        fromAddress,
+        fromName,
+        toJson,
+        ccJson,
+        attachmentCount,
+        providerName,
+        createdAt,
+        conversationId,
+      ] = this.values;
       const exists = this.database.messages.some(
         (message) => message.conversation_id === conversationId && message.client_message_id === clientMessageId,
       );
@@ -76,26 +114,52 @@ class SupportStatement implements D1PreparedStatementLike {
         this.database.messages.push({
           id: String(id),
           conversation_id: String(conversationId),
-          sender_role: senderRole === "admin" ? "admin" : "user",
+          sender_role: "admin",
           author_user_id: typeof authorUserId === "string" ? authorUserId : null,
           body_text: String(bodyText),
-          body_html: null,
+          body_html: typeof bodyHtml === "string" ? bodyHtml : null,
           email_message_id: null,
           client_message_id: String(clientMessageId),
-          send_status: sendStatus === "pending" ? "pending" : "sent",
+          send_status: "pending",
+          direction: "outbound",
+          transport: transport === "email" ? "email" : "in_app",
+          mailbox_address: typeof mailboxAddress === "string" ? mailboxAddress : null,
+          from_address: typeof fromAddress === "string" ? fromAddress : null,
+          from_name: typeof fromName === "string" ? fromName : null,
+          to_json: typeof toJson === "string" ? toJson : null,
+          cc_json: typeof ccJson === "string" ? ccJson : null,
+          internet_message_id: null,
+          in_reply_to: null,
+          references_json: null,
+          ingest_key: null,
+          attachment_count: typeof attachmentCount === "number" ? attachmentCount : 0,
+          provider_name: typeof providerName === "string" ? providerName : null,
+          received_at: null,
+          warning_flags_json: null,
           created_at: String(createdAt),
         });
       }
       return { success: true, meta: { changes: exists ? 0 : 1 } };
     }
     if (this.sql.includes("UPDATE support_messages")) {
-      if (this.values.length === 1) {
+      if (this.sql.includes("SET send_status = 'pending'")) {
         const [messageId] = this.values;
         const row = this.database.messages.find((message) => message.id === messageId && message.send_status === "send_failed");
         if (row) row.send_status = "pending";
         return { success: true, meta: { changes: row ? 1 : 0 } };
       }
-      const [sendStatus, emailMessageId, messageId] = this.values;
+      if (this.sql.includes("warning_flags_json = json_set")) {
+        const [finalizedAt, messageId] = this.values;
+        const row = this.database.messages.find((message) => message.id === messageId);
+        if (row) {
+          row.send_status = "sent";
+          row.warning_flags_json = JSON.stringify({
+            adminLifecycleFinalizedAt: String(finalizedAt),
+          });
+        }
+        return { success: true, meta: { changes: row ? 1 : 0 } };
+      }
+      const [sendStatus, emailMessageId, , messageId] = this.values;
       const row = this.database.messages.find((message) => message.id === messageId);
       if (this.database.failNextStatusWrite) {
         this.database.failNextStatusWrite = false;
@@ -106,6 +170,10 @@ class SupportStatement implements D1PreparedStatementLike {
         row.email_message_id = typeof emailMessageId === "string" ? emailMessageId : null;
       }
       return { success: true, meta: { changes: row ? 1 : 0 } };
+    }
+    if (this.sql.includes("UPDATE support_conversations")) {
+      this.database.conversation.updated_at = new Date().toISOString();
+      return { success: true, meta: { changes: 1 } };
     }
     return { success: true, meta: { changes: 1 } };
   }
@@ -119,7 +187,9 @@ class SupportDatabase implements D1DatabaseLike {
     requester_name: "Requester",
     subject: "Help",
     status: "open",
-    channel: "in_app",
+    channel: "email",
+    mailbox_address: "support@archestimator.com",
+    routing_token: null,
     last_message_at: "2026-07-10T05:00:00.000Z",
     unread_for_admin: 1,
     unread_for_user: 0,
@@ -132,11 +202,17 @@ class SupportDatabase implements D1DatabaseLike {
   prepare(sql: string) {
     return new SupportStatement(this, sql);
   }
+
+  async batch(statements: D1PreparedStatementLike[]) {
+    return Promise.all(statements.map((statement) => statement.run()));
+  }
 }
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  vi.stubEnv("ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED", "true");
+  vi.stubEnv("ARCHESTIMATOR_EMAIL_PROVIDER", "cloudflare");
   authMocks.requireAdminContext.mockResolvedValue({
     userId: "admin-1",
     email: "admin@example.com",
@@ -149,12 +225,27 @@ beforeEach(() => {
   emailMocks.sendEmail.mockResolvedValue({ ok: true, messageId: "email-1" });
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+function replyInput(clientMessageId: string, body: string) {
+  return {
+    conversationId: "conv-1",
+    body,
+    clientMessageId,
+    expectedConversationStatus: "open" as const,
+    expectedConversationUpdatedAt: "2026-07-10T05:00:00.000Z",
+    renderedInboundMessageId: null,
+  };
+}
+
 describe("admin support actions", () => {
   it("denies support replies before touching D1 when admin context fails", async () => {
     authMocks.requireAdminContext.mockRejectedValue(new Error("NEXT_REDIRECT"));
     const { sendSupportReply } = await import("@/lib/admin/support-actions");
 
-    await expect(sendSupportReply({ conversationId: "conv-1", body: "Hello", clientMessageId: "msg-1" })).rejects.toThrow("NEXT_REDIRECT");
+    await expect(sendSupportReply(replyInput("msg-1", "Hello"))).rejects.toThrow("NEXT_REDIRECT");
     expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 
@@ -163,8 +254,8 @@ describe("admin support actions", () => {
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { sendSupportReply } = await import("@/lib/admin/support-actions");
 
-    await expect(sendSupportReply({ conversationId: "conv-1", body: "Hello", clientMessageId: "msg-1" })).resolves.toMatchObject({ ok: true });
-    await expect(sendSupportReply({ conversationId: "conv-1", body: "Hello", clientMessageId: "msg-1" })).resolves.toMatchObject({ ok: true });
+    await expect(sendSupportReply(replyInput("msg-1", "Hello"))).resolves.toMatchObject({ ok: true });
+    await expect(sendSupportReply(replyInput("msg-1", "Hello"))).resolves.toMatchObject({ ok: true });
 
     expect(database.messages).toHaveLength(1);
     expect(emailMocks.sendEmail).toHaveBeenCalledTimes(1);
@@ -177,7 +268,7 @@ describe("admin support actions", () => {
     emailMocks.sendEmail.mockResolvedValue({ ok: false, error: "down", code: "EMAIL_DOWN" });
     const { sendSupportReply } = await import("@/lib/admin/support-actions");
 
-    const result = await sendSupportReply({ conversationId: "conv-1", body: "Hello", clientMessageId: "msg-2" });
+    const result = await sendSupportReply(replyInput("msg-2", "Hello"));
 
     expect(result).toMatchObject({ ok: false, error: "email_send_failed" });
     expect(database.messages).toHaveLength(1);
@@ -199,14 +290,29 @@ describe("admin support actions", () => {
       email_message_id: null,
       client_message_id: "retry-1",
       send_status: "send_failed",
+      direction: "outbound",
+      transport: "email",
+      mailbox_address: "support@archestimator.com",
+      from_address: "support@archestimator.com",
+      from_name: "Archestimator Support",
+      to_json: JSON.stringify([{ email: "requester@example.com", name: null }]),
+      cc_json: null,
+      internet_message_id: null,
+      in_reply_to: null,
+      references_json: null,
+      ingest_key: null,
+      attachment_count: 0,
+      provider_name: "cloudflare-email",
+      received_at: null,
+      warning_flags_json: null,
       created_at: "2026-07-12T00:00:00.000Z",
     });
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { sendSupportReply } = await import("@/lib/admin/support-actions");
 
     const [first, second] = await Promise.all([
-      sendSupportReply({ conversationId: "conv-1", body: "Retry me", clientMessageId: "retry-1" }),
-      sendSupportReply({ conversationId: "conv-1", body: "Retry me", clientMessageId: "retry-1" }),
+      sendSupportReply(replyInput("retry-1", "Retry me")),
+      sendSupportReply(replyInput("retry-1", "Retry me")),
     ]);
 
     expect([first, second].filter((result) => result.ok)).toHaveLength(1);
@@ -220,7 +326,7 @@ describe("admin support actions", () => {
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { sendSupportReply } = await import("@/lib/admin/support-actions");
 
-    await expect(sendSupportReply({ conversationId: "conv-1", body: "Hello", clientMessageId: "uncertain-1" }))
+    await expect(sendSupportReply(replyInput("uncertain-1", "Hello")))
       .resolves.toMatchObject({ ok: false, error: "delivery_uncertain" });
 
     expect(emailMocks.sendEmail).toHaveBeenCalledTimes(1);

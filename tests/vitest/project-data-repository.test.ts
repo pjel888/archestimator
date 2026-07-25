@@ -5,6 +5,7 @@ import type { ProjectChartEstimateSeries } from "@/lib/project-charts/types";
 const repositoryMocks = vi.hoisted(() => ({
   listProjectEstimates: vi.fn(),
   getProjectChartsData: vi.fn(),
+  getProjectEstimateHealthData: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
@@ -15,6 +16,10 @@ vi.mock("@/lib/repositories/project-charts-repository", () => ({
   getProjectChartsData: repositoryMocks.getProjectChartsData,
 }));
 
+vi.mock("@/lib/repositories/estimate-health-repository", () => ({
+  getProjectEstimateHealthData: repositoryMocks.getProjectEstimateHealthData,
+}));
+
 describe("getProjectDataRouteSummary", () => {
   beforeEach(() => {
     repositoryMocks.listProjectEstimates.mockReset();
@@ -23,6 +28,7 @@ describe("getProjectDataRouteSummary", () => {
       didTruncate: false,
       rowLimit: 5000,
     });
+    repositoryMocks.getProjectEstimateHealthData.mockReset().mockResolvedValue(null);
   });
 
   it("returns null when the project is not found", async () => {
@@ -37,6 +43,7 @@ describe("getProjectDataRouteSummary", () => {
 
     await expect(getProjectDataRouteSummary("missing-project")).resolves.toBeNull();
     expect(repositoryMocks.getProjectChartsData).not.toHaveBeenCalled();
+    expect(repositoryMocks.getProjectEstimateHealthData).not.toHaveBeenCalled();
   });
 
   it("falls back from a foreign selected estimate to the first project sheet", async () => {
@@ -51,6 +58,9 @@ describe("getProjectDataRouteSummary", () => {
     expect(summary?.selectedEstimateId).toBe("estimate-a");
     expect(summary?.compareEstimateIds).toEqual(["estimate-b"]);
     expect(repositoryMocks.getProjectChartsData).toHaveBeenCalledWith("project-1", {
+      selectedEstimateIds: ["estimate-a", "estimate-b"],
+    });
+    expect(repositoryMocks.getProjectEstimateHealthData).toHaveBeenCalledWith("project-1", {
       selectedEstimateIds: ["estimate-a", "estimate-b"],
     });
   });

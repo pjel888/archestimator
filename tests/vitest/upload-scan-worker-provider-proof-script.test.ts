@@ -4,46 +4,41 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("upload scan worker provider proof script", () => {
-  it("requires explicit provider mode and refuses unexpected Supabase projects", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-scan-worker-provider-postgres.ts"), "utf8");
+  const script = readFileSync(
+    join(process.cwd(), "scripts/verify-cloudflare-hosted-upload-lifecycle-proof.ts"),
+    "utf8",
+  );
 
+  it("requires a secret-gated HTTPS Cloudflare Worker proof endpoint", () => {
     expect(script).toContain("#!/usr/bin/env bun");
-    expect(script).toContain("ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF");
-    expect(script).toContain("ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF_ENV_FILE");
-    expect(script).toContain('EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr"');
-    expect(script).toContain("provider-proof-skipped");
-    expect(script).toContain("provider-proof-refused");
-    expect(script).toContain("upload-scan-worker-provider-proof.json");
-    expect(script).toContain("cleanupFixture");
-    expect(script).toContain("cleanupErrors.length === 0 && report.rawStoragePathRecorded === false");
+    expect(script).toContain('name: "CRON_SECRET"');
+    expect(script).toContain('readEnv("CLOUDFLARE_HOSTED_UPLOAD_LIFECYCLE_BASE_URL")');
+    expect(script).toContain('ENDPOINT_PATH = "/api/internal/upload-lifecycle-proof"');
+    expect(script).toContain('url.protocol !== "https:"');
+    expect(script).toContain("CRON_SECRET is missing from process.env or configured local env files.");
+    expect(script).toContain("if (!report.readiness.hostedUploadLifecycleReady) process.exitCode = 1");
   });
 
-  it("exercises the scan job reader, provider storage download, scanner, writer, and telemetry", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-scan-worker-provider-postgres.ts"), "utf8");
-
-    expect(script).toContain("listUploadScanJobRecords(serviceClient");
-    expect(script).toContain("runUploadScanJob");
-    expect(script).toContain("createSupabaseUploadScanStorage(serviceClient)");
-    expect(script).toContain("createUploadPolicyScannerProvider()");
-    expect(script).toContain("createUploadScanResultWriter(serviceClient)");
-    expect(script).toContain("setUploadOperationalTelemetrySink");
-    expect(script).toContain("scan-job-reader-listed-provider-asset");
-    expect(script).toContain("scan-job-ran-provider-download");
-    expect(script).toContain("policy-scanner-recorded-clean-outcome");
-    expect(script).toContain("provider-scan-event-recorded");
-    expect(script).toContain("scan-telemetry-emitted");
+  it("requires D1, R2, scanner, persistence, attachment, and cleanup readback", () => {
+    expect(script).toContain("d1BindingPresent");
+    expect(script).toContain("r2BindingPresent");
+    expect(script).toContain("storagePutReady");
+    expect(script).toContain("uploadAssetRecorded");
+    expect(script).toContain("scanQueueListed");
+    expect(script).toContain("scanJobRan");
+    expect(script).toContain("scanResultPersisted");
+    expect(script).toContain("attachmentDownloadEligible");
+    expect(script).toContain("cleanupCountsAreZero(body.cleanupAfter)");
+    expect(script).toContain("body.passed === true");
+    expect(script).toContain("endpointReadiness.hostedUploadLifecycleReady === true");
   });
 
-  it("keeps durable evidence path-safe and avoids raw provider identifiers", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-scan-worker-provider-postgres.ts"), "utf8");
-
-    expect(script).toContain("sanitizeJobResult");
-    expect(script).toContain('runIdShape: "scan-worker-provider-proof-{proofId}"');
-    expect(script).toContain("uploadAssetIdPresent: Boolean(recorded.assetId)");
-    expect(script).toContain("uploadSessionIdPresent: Boolean(recorded.uploadSessionId)");
-    expect(script).toContain('objectPathShape: "{workspaceId}/{userId}/scan-worker-provider-proof-{proofId}.pdf"');
-    expect(script).toContain("JSON.stringify(report).includes(storagePath)");
-    expect(script).not.toContain("uploadAssetId: recorded.assetId");
-    expect(script).not.toContain("uploadSessionId: recorded.uploadSessionId");
+  it("keeps durable output sanitized and does not claim production cutover", () => {
+    expect(script).toContain("2026-07-02-cloudflare-hosted-upload-lifecycle-proof.json");
+    expect(script).toContain("does not print secret values, raw R2 keys, uploaded bytes, session cookies, customer data, or provider credentials");
+    expect(script).toContain("productionCutoverReady: false");
+    expect(script).not.toContain("NEXT_PUBLIC_SUPABASE_URL");
+    expect(script).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(script).not.toContain('projectRef: "ebxxqidacheyapmmzavr"');
   });
 });

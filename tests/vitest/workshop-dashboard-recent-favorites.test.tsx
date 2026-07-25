@@ -96,22 +96,19 @@ beforeEach(() => {
 });
 
 describe("workshop dashboard recent favorite controls", () => {
-  it("renders project row icon above an outline star and favorites from the right-side control", async () => {
+  it("renders the folder, outline star, and project name in that order", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<RecentProjectsList projects={[project()]} favoritesScope={scope} />);
 
     const favoriteButton = screen.getByRole("button", { name: "Add Lewis Residence to favorites" });
-    const actionStack = favoriteButton.parentElement;
     const projectLink = screen.getByRole("link", { name: /Lewis Residence/i });
+    const row = projectLink.parentElement;
 
     expect(favoriteButton).toHaveAttribute("aria-pressed", "false");
     expect(projectLink.contains(favoriteButton)).toBe(false);
-    const row = actionStack?.parentElement;
-
-    expect(actionStack?.children[0]?.tagName.toLowerCase()).toBe("svg");
-    expect(actionStack?.children[1]).toBe(favoriteButton);
-    expect(row?.children[0]).toBe(actionStack);
-    expect(row?.children[1]?.tagName.toLowerCase()).toBe("a");
+    expect(row?.children[0]?.tagName.toLowerCase()).toBe("svg");
+    expect(row?.children[1]).toBe(favoriteButton);
+    expect(row?.children[2]).toBe(projectLink);
 
     await user.click(favoriteButton);
 
@@ -142,24 +139,21 @@ describe("workshop dashboard recent favorite controls", () => {
     );
   });
 
-  it("renders sheet row icon above an outline star and favorites from the right-side control", async () => {
+  it("renders the sheet icon, outline star, and sheet name in that order", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(
       <RecentSheetsList estimates={[estimate()]} favoriteProjects={[favoriteProject()]} favoritesScope={scope} />,
     );
 
     const favoriteButton = screen.getByRole("button", { name: "Add Concept Budget to favorite estimate sheets" });
-    const actionStack = favoriteButton.parentElement;
     const sheetLink = screen.getByRole("link", { name: /Concept Budget/i });
+    const row = sheetLink.parentElement;
 
     expect(favoriteButton).toHaveAttribute("aria-pressed", "false");
     expect(sheetLink.contains(favoriteButton)).toBe(false);
-    const row = actionStack?.parentElement;
-
-    expect(actionStack?.children[0]?.tagName.toLowerCase()).toBe("svg");
-    expect(actionStack?.children[1]).toBe(favoriteButton);
-    expect(row?.children[0]).toBe(actionStack);
-    expect(row?.children[1]?.tagName.toLowerCase()).toBe("a");
+    expect(row?.children[0]?.tagName.toLowerCase()).toBe("svg");
+    expect(row?.children[1]).toBe(favoriteButton);
+    expect(row?.children[2]).toBe(sheetLink);
 
     await user.click(favoriteButton);
 

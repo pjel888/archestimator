@@ -17,6 +17,20 @@ function renderRuler(widths = { material: 240 }) {
 }
 
 describe("EstimateColumnRuler", () => {
+  it("exposes one accessible label while retaining both responsive column labels", () => {
+    renderRuler();
+
+    const fullLabel = screen.getByText("Contingency", {
+      selector: '[data-estimate-column-label="full"]',
+    });
+    const responsiveLabel = fullLabel.parentElement;
+
+    expect(responsiveLabel).toHaveAccessibleName("Contingency");
+    expect(fullLabel).toHaveAttribute("aria-hidden", "true");
+    expect(responsiveLabel?.querySelector('[data-estimate-column-label="compact"]')).toHaveTextContent("Cont.");
+    expect(responsiveLabel?.querySelector('[data-estimate-column-label="compact"]')).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("renders one accessible resize separator for each resizable data column", () => {
     renderRuler();
 

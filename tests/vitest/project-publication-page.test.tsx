@@ -167,20 +167,20 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   });
 
   it("renders the published snapshot outside the Workshop shell", async () => {
+    const user = userEvent.setup();
     renderWithQueryClient(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
     expect(mocks.resolveProjectPublicationAccessByToken).toHaveBeenCalledWith("client-token");
     expect(mocks.resolveProjectPublicationSnapshotByToken).toHaveBeenCalledWith("client-token");
     expect(screen.getByRole("main", { name: "Proposal review" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Valencia Residence" })).toBeInTheDocument();
-    expect(screen.getByText("Prepared for your review")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Pending review");
     expect(screen.queryByText("View-only project page")).not.toBeInTheDocument();
     expect(screen.queryByText(/Visits are logged for project security and activity history/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Project VR-001/)).toBeInTheDocument();
-    expect(screen.getByText(/Prepared for Client Family/)).toBeInTheDocument();
+    expect(within(screen.getByRole("tabpanel", { name: "Project overview" })).getByText("Client Family")).toBeInTheDocument();
 
-    // P2: estimate content now lives inside SharePageTabs tabpanel (no more role=region wrapper)
-    // The h2 + table cells remain for content verification (backwards visual parity)
+    await user.click(within(screen.getByRole("tablist", { name: "Shared estimate views" })).getByRole("tab", { name: "Estimate" }));
     expect(screen.getByRole("heading", { name: "Main Estimate", level: 2 })).toBeInTheDocument();
     expect(screen.getAllByText("Concrete works").length).toBeGreaterThan(0);
     expect(screen.getAllByText("PHP 2,300.00").length).toBeGreaterThan(0);
@@ -325,11 +325,13 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(shareSessionRouteSource).toContain("_ok");
   });
 
-  it("keeps receiver session-banner actions touch-sized with readable contrast", () => {
-    expect(shareSessionBannerSource).toContain("min-h-11");
-    expect(shareSessionBannerSource).toContain("min-w-11");
-    expect(shareSessionBannerSource).toContain("text-secondary");
-    expect(shareSessionBannerSource).not.toContain("text-tertiary");
+  it("keeps the receiver session-banner action touch-sized with readable contrast", async () => {
+    const { SharePageSessionBanner } = await import("@/components/share/SharePageSessionBanner");
+    render(<SharePageSessionBanner recipientEmail="recipient@example.com" token="client-token" />);
+
+    const action = screen.getByRole("button", { name: "Not you?" });
+    expect(action).toHaveClass("min-h-11", "px-2.5", "text-secondary");
+    expect(action).not.toHaveClass("text-tertiary");
   });
 
   it("creates recipient session cookies through the route handler without rendering raw tokens", async () => {
@@ -753,6 +755,22 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     };
 
     const multiEstimates: PublicationSnapshotEstimate[] = [baseEstimate, secondEstimate];
+    const workspaceSnapshot: ProjectPublicationSnapshot = {
+      schemaVersion: 1,
+      generatedAt: "2026-05-27T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "Quezon City",
+        currencyCode: "PHP",
+      },
+      estimateCount: 1,
+      rowCount: 1,
+      totalCost: 2300,
+      estimates: [baseEstimate],
+    };
 
     function createMockSessionStorage() {
       const store = new Map<string, string>();
@@ -789,10 +807,9 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(tabs[0]).toHaveAttribute("aria-selected", "true");
       expect(tabs[0]).toHaveAttribute("aria-controls");
       expect(tabs[1]).toHaveAttribute("aria-selected", "false");
-      // The public /share client-portal scale allows 13px estimate-tab labels; keep the exemption
-      // path-scoped in design-enforcer-share-allowlist.test.ts.
+      // Receiver estimate tabs use the compact 10px publication scale.
       expect(tabs[0].className).toMatch(/rounded-xs/);
-      expect(tabs[0].className).toContain("text-[13px]");
+      expect(tabs[0].className).toContain("text-[10px]");
     });
 
     it("switches active tab on click and renders only the active estimate's table content in the tabpanel (encapsulates card + table)", async () => {
@@ -822,7 +839,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     });
 
     it("uses a mobile-safe cost breakdown list instead of donut callout labels on the receiver page", async () => {
-      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const ShareFinancialOverview = (await import("@/components/share/ShareFinancialOverview")).default;
       const estimateWithDisciplines: PublicationSnapshotEstimate = {
         ...baseEstimate,
         totalCost: 3500,
@@ -832,7 +849,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         ],
       };
 
-      const { container } = render(<SharePageTabs estimates={[estimateWithDisciplines]} currencyCode="PHP" token="client-token-breakdown" />);
+      const { container } = render(<ShareFinancialOverview estimates={[estimateWithDisciplines]} currencyCode="PHP" />);
 
       expect(container.querySelector("[data-share-cost-breakdown]")).toBeInTheDocument();
       expect(container.querySelectorAll("[data-testid='donut-callout']")).toHaveLength(0);
@@ -1005,15 +1022,18 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         <ShareReviewWorkspace
           estimates={[baseEstimate]}
           currencyCode="PHP"
+          snapshot={workspaceSnapshot}
           token="clientworkspace"
           viewToken="view-token"
         />,
       );
 
+      await user.click(within(screen.getByRole("tablist", { name: "Shared estimate views" })).getByRole("tab", { name: "Estimate" }));
       await user.click(screen.getByRole("tab", { name: "Details" }));
       await user.click(screen.getByRole("row", { name: /concrete works/i }));
       expect(screen.getAllByText("Applies to Concrete works").length).toBeGreaterThan(0);
 
+      await user.click(within(screen.getByRole("tablist", { name: "Shared estimate views" })).getByRole("tab", { name: "Discussion" }));
       await user.type(screen.getByPlaceholderText(/add a comment/i), "Please revise this item.");
       await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
 
@@ -1064,13 +1084,16 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         <ShareReviewWorkspace
           estimates={[baseEstimate]}
           currencyCode="PHP"
+          snapshot={workspaceSnapshot}
           token="clientworkspace-decision"
           viewToken="view-token"
         />,
       );
 
+      await user.click(within(screen.getByRole("tablist", { name: "Shared estimate views" })).getByRole("tab", { name: "Estimate" }));
       await user.click(screen.getByRole("tab", { name: "Details" }));
       await user.click(screen.getByRole("row", { name: /concrete works/i }));
+      await user.click(within(screen.getByRole("tablist", { name: "Shared estimate views" })).getByRole("tab", { name: "Decision" }));
       await user.click(screen.getByRole("button", { name: /request changes/i }));
       expect(await screen.findByRole("dialog", { name: /request changes/i })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /^Confirm$/i }));

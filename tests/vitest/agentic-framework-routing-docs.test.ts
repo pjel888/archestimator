@@ -13,7 +13,7 @@ const routingBug = readFileSync(".ai/15_Bugs/2026-06-04-agentic-framework-active
 const completionReport = readFileSync(`${archivePath}/IMPLEMENTATION_COMPLETION_REPORT.md`, "utf8");
 const phase1Report = readFileSync(`${archivePath}/44_PHASE_1A_IMPLEMENTATION_REPORT.md`, "utf8");
 const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
-const autopilotBoard = readFileSync(".ai/04_tasks/current-autopilot-board.md", "utf8");
+const autopilotBoard = readFileSync(".ai/09_archive/current-autopilot-board.md", "utf8");
 const activeWorkstreams = readFileSync(".ai/01_roadmap/25-active-workstreams.md", "utf8");
 
 describe("agentic framework routing docs", () => {

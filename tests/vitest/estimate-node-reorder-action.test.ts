@@ -205,13 +205,13 @@ describe("reorderEstimateTreeNodes server action", () => {
     ]);
   });
 
-  it("wraps typed-owner topology and persistence errors without refreshing", async () => {
+  it("sanitizes typed-owner topology and persistence errors without refreshing", async () => {
     nodeIntentMocks.reorderEstimateNodesWithHistory.mockRejectedValueOnce(new Error("cycle detected"));
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await expect(reorderEstimateTreeNodes("project-1", "estimate-1", {
       updates: [{ id: "node-1", parentId: null, sortOrder: 10 }],
-    })).rejects.toThrow("Could not reorder estimate tree: cycle detected");
+    })).rejects.toHaveProperty("message", "Could not reorder estimate tree.");
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 });
@@ -252,7 +252,7 @@ describe("estimate node create, rename, delete, and restore adapters", () => {
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("passes an explicit root tab and surfaces a create failure without rollback writes", async () => {
+  it("passes an explicit root tab and sanitizes a create failure without rollback writes", async () => {
     const formData = new FormData();
     formData.set("name", "Site Works");
     formData.set("kind", "group");
@@ -267,7 +267,7 @@ describe("estimate node create, rename, delete, and restore adapters", () => {
 
     nodeIntentMocks.createEstimateNodeWithHistory.mockRejectedValueOnce(new Error("node insert failed"));
     await expect(createEstimateNode("project-1", "estimate-1", formData))
-      .rejects.toThrow("Could not create estimate tree node: node insert failed");
+      .rejects.toHaveProperty("message", "Could not create estimate tree node.");
     expect(nodeIntentMocks.deleteEstimateNodesWithHistory).not.toHaveBeenCalled();
   });
 
@@ -397,14 +397,20 @@ describe("estimate template insertion adapters", () => {
       targetParentNodeId: "parent-group",
       templateId: "template-1",
       unavailableSourcePolicy: "cancel",
+      mode: "linked",
       correlationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     });
     expect(templateIntentMocks.insertEstimateTemplateIntoEstimateWithHistory.mock.calls[0]?.[2])
       .not.toHaveProperty("template");
-    expect(result).toEqual({ status: "inserted", tree: DEFAULT_TREE, insertedRootNodeIds: ["new-root-node"] });
+    expect(result).toEqual({
+      status: "inserted",
+      mode: "linked",
+      tree: DEFAULT_TREE,
+      insertedRootNodeIds: ["new-root-node"],
+    });
   });
 
-  it("surfaces typed template failures without best-effort cleanup or refresh", async () => {
+  it("sanitizes typed template failures without best-effort cleanup or refresh", async () => {
     templateIntentMocks.insertEstimateTemplateIntoEstimateWithHistory
       .mockRejectedValueOnce(new Error("Template row items must belong to area nodes."));
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
@@ -415,12 +421,12 @@ describe("estimate template insertion adapters", () => {
       targetParentNodeId: "parent-group",
       templateId: "template-1",
       intentId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-    })).rejects.toThrow("Could not insert estimate template: Template row items must belong to area nodes.");
+    })).rejects.toHaveProperty("message", "Could not insert estimate template.");
     expect(nodeIntentMocks.deleteEstimateNodesWithHistory).not.toHaveBeenCalled();
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 
-  it("propagates edit denial from the typed template owner before any refresh", async () => {
+  it("sanitizes edit denial from the typed template owner before any refresh", async () => {
     templateIntentMocks.insertEstimateTemplateIntoEstimateWithHistory
       .mockRejectedValueOnce(new Error("Estimate edit access denied."));
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
@@ -431,7 +437,7 @@ describe("estimate template insertion adapters", () => {
       targetParentNodeId: "parent-group",
       templateId: "template-1",
       intentId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-    })).rejects.toThrow("Estimate edit access denied.");
+    })).rejects.toHaveProperty("message", "Could not insert estimate template.");
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 

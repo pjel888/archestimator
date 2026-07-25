@@ -1,137 +1,75 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
-import { BetaFeedbackForm } from "@/components/workshop/BetaFeedbackForm";
+import { SupportMessageComposer } from "@/components/support/SupportMessageComposer";
+import type { SupportDraft } from "@/components/support/support-center-types";
 
-const { submitBetaFeedbackMock, submitBetaFeedbackInlineMock } = vi.hoisted(() => ({
-  submitBetaFeedbackMock: vi.fn<(formData: FormData) => Promise<void>>(),
-  submitBetaFeedbackInlineMock:
-    vi.fn<(previousState: unknown, formData: FormData) => Promise<{ status: "saved"; message: string }>>(),
-}));
+const idleDraft: SupportDraft = {
+  clientMessageId: "11111111-1111-4111-8111-111111111111",
+  diagnosticsShared: false,
+  error: null,
+  fileError: null,
+  message: "The export omitted every section subtotal.",
+  phase: "idle",
+  retryAfterSeconds: null,
+  screenshot: null,
+  screenshotReplacementPending: false,
+};
 
-vi.mock("next/navigation", () => ({
-  usePathname: () => "/workshop/projects/project-1",
-}));
-
-vi.mock("@/lib/workshop/beta-feedback-actions", () => ({
-  submitBetaFeedback: submitBetaFeedbackMock,
-  submitBetaFeedbackInline: submitBetaFeedbackInlineMock,
-}));
-
-function capturedEntries(formData: FormData) {
-  return Object.fromEntries(formData.entries());
+function renderComposer({
+  draft = idleDraft,
+  isOnline = true,
+}: {
+  draft?: SupportDraft;
+  isOnline?: boolean;
+} = {}) {
+  let changedDraft: SupportDraft | null = null;
+  const onChange = vi.fn((update: (current: SupportDraft) => SupportDraft) => {
+    changedDraft = update(draft);
+  });
+  const onSend = vi.fn();
+  render(
+    <SupportMessageComposer
+      draft={draft}
+      isOnline={isOnline}
+      kind="new"
+      onChange={onChange}
+      onRemoveScreenshot={vi.fn()}
+      onRetry={vi.fn()}
+      onScreenshot={vi.fn(async () => undefined)}
+      onSend={onSend}
+      onSendWithoutScreenshot={vi.fn()}
+      onStartNewAttempt={vi.fn()}
+    />,
+  );
+  return { getChangedDraft: () => changedDraft, onChange, onSend };
 }
 
-function getForm() {
-  return screen.getByRole("button", { name: /Send feedback|Sending/ }).closest("form") as HTMLFormElement;
-}
+describe("support message composer", () => {
+  it("submits a valid support message through the current support action boundary", () => {
+    const { onSend } = renderComposer();
 
-beforeEach(() => {
-  submitBetaFeedbackMock.mockClear();
-  submitBetaFeedbackInlineMock.mockClear();
-});
+    fireEvent.click(screen.getByRole("button", { name: "Send to support" }));
 
-describe("BetaFeedbackForm", () => {
-  it("posts the picked feedbackType and severity through the server action FormData", async () => {
-    const posted: Record<string, FormDataEntryValue>[] = [];
-    submitBetaFeedbackMock.mockImplementation(async (formData: FormData) => {
-      posted.push(capturedEntries(formData));
-    });
-
-    render(<BetaFeedbackForm />);
-
-    expect(screen.getByLabelText("Type")).toHaveTextContent("Bug");
-    expect(screen.getByLabelText("Severity")).toHaveTextContent("Medium");
-
-    fireEvent.click(screen.getByLabelText("Type"));
-    fireEvent.click(screen.getByRole("option", { name: "Export issue" }));
-    expect(screen.getByLabelText("Type")).toHaveTextContent("Export issue");
-
-    fireEvent.click(screen.getByLabelText("Severity"));
-    fireEvent.click(screen.getByRole("option", { name: "Blocker" }));
-    expect(screen.getByLabelText("Severity")).toHaveTextContent("Blocker");
-
-    fireEvent.change(screen.getByLabelText("Message"), {
-      target: { value: "The export omitted every section subtotal." },
-    });
-
-    fireEvent.submit(getForm());
-
-    await waitFor(() => expect(submitBetaFeedbackMock).toHaveBeenCalledTimes(1));
-    expect(posted[0]).toMatchObject({
-      feedbackType: "export_issue",
-      severity: "blocker",
-      message: "The export omitted every section subtotal.",
-      pagePath: "/workshop/projects/project-1",
-    });
+    expect(onSend).toHaveBeenCalledTimes(1);
   });
 
-  it("resyncs the triggers after the post-action reset so an untouched resubmit posts defaults", async () => {
-    const posted: Record<string, FormDataEntryValue>[] = [];
-    submitBetaFeedbackMock.mockImplementation(async (formData: FormData) => {
-      posted.push(capturedEntries(formData));
-    });
+  it("keeps support submission disabled while the user is offline", () => {
+    renderComposer({ isOnline: false });
 
-    render(<BetaFeedbackForm />);
-
-    fireEvent.click(screen.getByLabelText("Type"));
-    fireEvent.click(screen.getByRole("option", { name: "Estimate accuracy" }));
-    fireEvent.click(screen.getByLabelText("Severity"));
-    fireEvent.click(screen.getByRole("option", { name: "High" }));
-    fireEvent.change(screen.getByLabelText("Message"), {
-      target: { value: "Concrete works subtotal drifts on rounding." },
-    });
-
-    fireEvent.submit(getForm());
-    await waitFor(() => expect(submitBetaFeedbackMock).toHaveBeenCalledTimes(1));
-    expect(posted[0]).toMatchObject({ feedbackType: "estimate_accuracy", severity: "high" });
-
-    // React 19 resets the form after the action; the visible triggers must
-    // resync to the defaults or the next submit posts values nobody sees.
-    await waitFor(() => expect(screen.getByLabelText("Type")).toHaveTextContent("Bug"));
-    expect(screen.getByLabelText("Severity")).toHaveTextContent("Medium");
-
-    fireEvent.submit(getForm());
-    await waitFor(() => expect(submitBetaFeedbackMock).toHaveBeenCalledTimes(2));
-    expect(posted[1]).toMatchObject({
-      feedbackType: "bug",
-      severity: "medium",
-      message: "",
-    });
+    expect(screen.getByRole("button", { name: "Send to support" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("You are offline. Send when your connection returns.");
   });
 
-  it("routes inline mode through the useActionState action and reports the saved status", async () => {
-    const posted: Record<string, FormDataEntryValue>[] = [];
-    submitBetaFeedbackInlineMock.mockImplementation(async (_previousState: unknown, formData: FormData) => {
-      posted.push(capturedEntries(formData));
-      return {
-        status: "saved" as const,
-        message: "Feedback saved. Philip will review beta issues during the monitoring window.",
-      };
-    });
+  it("reports the per-message diagnostics choice through the draft updater", () => {
+    const { getChangedDraft, onChange } = renderComposer();
 
-    render(<BetaFeedbackForm mode="inline" />);
+    fireEvent.click(screen.getByText("Included details"));
+    fireEvent.click(screen.getByRole("checkbox", {
+      name: "Include current workspace and device details for this message",
+    }));
 
-    fireEvent.click(screen.getByLabelText("Type"));
-    fireEvent.click(screen.getByRole("option", { name: "Confusing UX" }));
-    fireEvent.change(screen.getByLabelText("Message"), {
-      target: { value: "The teamspace header buttons read ambiguously." },
-    });
-
-    fireEvent.submit(getForm());
-
-    await waitFor(() => expect(submitBetaFeedbackInlineMock).toHaveBeenCalledTimes(1));
-    expect(posted[0]).toMatchObject({
-      feedbackType: "confusing_ux",
-      severity: "medium",
-      pagePath: "/workshop/projects/project-1",
-    });
-
-    await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Feedback saved. Philip will review beta issues during the monitoring window.",
-      ),
-    );
-    expect(screen.getByLabelText("Type")).toHaveTextContent("Bug");
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(getChangedDraft()).toMatchObject({ diagnosticsShared: true, error: null });
   });
 });

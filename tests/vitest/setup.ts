@@ -2,6 +2,14 @@ import "@testing-library/jest-dom/vitest";
 
 import { vi } from "vitest";
 
+vi.mock("next/font/google", () => ({
+  Jersey_25: () => ({
+    className: "mock-jersey-25",
+    style: { fontFamily: "mock-jersey-25" },
+    variable: "--font-jersey-25",
+  }),
+}));
+
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {

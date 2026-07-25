@@ -1,142 +1,54 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
-import type { ReactElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import LandingPage from "@/app/page";
-import { ArchestimatorLandingPage } from "@/components/landing-v3/ArchestimatorLandingPage";
+const pageSource = readFileSync("src/app/page.tsx", "utf8");
+const landingSource = readFileSync("src/app/kimi3d/_components/kimi-landing-page.tsx", "utf8");
+const contentSource = readFileSync("src/app/kimi3d/_content.ts", "utf8");
+const ctaSource = readFileSync("src/app/kimi3d/_components/cta-link.tsx", "utf8");
+const landingCss = readFileSync("src/app/kimi3d/kimi-landing.module.css", "utf8");
 
-vi.mock("next/headers", () => ({
-  cookies: vi.fn(async () => ({
-    get: vi.fn(() => undefined),
-    getAll: vi.fn(() => []),
-  })),
-  headers: vi.fn(async () => ({
-    get: vi.fn(() => "vitest"),
-  })),
-}));
-
-const readProjectFile = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
-const deletedGeneratedComponent = "AecCost" + "IntelligenceLandingPage";
-const deletedResetComponent = "Redesigned" + "LandingPage";
-const deletedNamespace = "gpt" + "-taste";
-
-const readActiveHomepageSource = () =>
-  [
-    readProjectFile("src/app/page.tsx"),
-    readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx"),
-    readProjectFile("src/components/landing-v3/ProductStage.tsx"),
-    readProjectFile("src/components/landing-v3/landing-content.ts"),
-  ].join("\n");
-
-function makeQueryClient() {
-  return new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });
-}
-
-function renderWithQueryClient(ui: ReactElement) {
-  return render(<QueryClientProvider client={makeQueryClient()}>{ui}</QueryClientProvider>);
-}
-
-describe("landing-v3 homepage contract", () => {
-  it("renders the living-estimate homepage with connected workflow content", async () => {
-    const { container } = renderWithQueryClient(await LandingPage());
-
-    const main = screen.getByRole("main");
-    expect(main).toHaveAttribute("data-landing-page-root", "true");
-    expect(main).not.toHaveAttribute("data-frontdoor-root");
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: /Where estimates become client‑approved proposals\./i,
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/AEC construction cost estimating & proposal platform/i)).toBeInTheDocument();
-    expect(screen.getByLabelText("Archestimator walkthrough video preview")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /Book a walkthrough/i })[0]).toHaveAttribute("href", "/contact?intent=walkthrough");
-    expect(screen.getByRole("link", { name: "Explore the workflow" })).toHaveAttribute("href", "#workflow");
-    expect(screen.getByRole("heading", { name: /From first cost to final decision/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Every completed estimate makes the next one stronger/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Flexible enough for the way your team scopes work/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Questions teams ask/i })).toBeInTheDocument();
-    expect(screen.getByText(/Build estimates around real scope/i)).toBeInTheDocument();
-    expect(screen.getByText("Structure that fits the job")).toBeInTheDocument();
-    expect(screen.getByText("Components with memory")).toBeInTheDocument();
-    expect(screen.getByText("Drag, drop, done")).toBeInTheDocument();
-    expect(screen.getByText(/Turn the estimate into a client decision/i)).toBeInTheDocument();
-    expect(screen.getByText("Branded client links")).toBeInTheDocument();
-    expect(screen.getByText("Numbers that speak clearly")).toBeInTheDocument();
-    expect(screen.getByText("Exports your trades already use")).toBeInTheDocument();
-    expect(screen.getByText(/Record the decision and every change after/i)).toBeInTheDocument();
-    expect(screen.getByText("Comment, accept, decline in one place")).toBeInTheDocument();
-    expect(screen.getByText("Change orders without the paper trail")).toBeInTheDocument();
-    expect(screen.getByText("Sign-off that holds up")).toBeInTheDocument();
-
-    container.querySelectorAll<HTMLElement>("section[aria-labelledby]").forEach((section) => {
-      const id = section.getAttribute("aria-labelledby");
-      expect(id).toBeTruthy();
-      expect(container.querySelector(`#${id}`)).not.toBeNull();
-    });
+describe("public Kimi landing contract", () => {
+  it("keeps the public root routed directly to the current Kimi composition", () => {
+    expect(pageSource).toContain('import { KimiLandingPage } from "./kimi3d/_components/kimi-landing-page"');
+    expect(pageSource).toContain("return <KimiLandingPage />");
+    expect(pageSource).toContain('export const dynamic = "force-static"');
+    expect(pageSource).not.toContain("@/components/landing-v3");
   });
 
-  it("renders workspace CTAs without sign-in links for authenticated visitors", () => {
-    renderWithQueryClient(<ArchestimatorLandingPage isLoggedIn={true} />);
-
-    expect(screen.getAllByRole("link", { name: /Open workspace|Workspace/i }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("link", { name: /^Sign in$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Book a walkthrough/i })).not.toBeInTheDocument();
+  it("keeps the primary claim tied to estimate, proposal, and client review workflow", () => {
+    expect(contentSource).toContain('title: "BUILD WITH AMBITION"');
+    expect(contentSource).toContain('leadTitleStart: "From cost estimate to client approval."');
+    expect(contentSource).toContain('leadTitleHighlight: "All in one workflow."');
+    expect(contentSource).toContain("Build detailed estimates, issue professional proposals, collect client feedback");
   });
 
-  it("keeps the active homepage routed to the landing-v3 namespace", () => {
-    const page = readProjectFile("src/app/page.tsx");
-
-    expect(page).toContain("@/components/landing-v3/ArchestimatorLandingPage");
-    expect(page).toContain("@/components/landing");
-    expect(page).not.toContain("@/components/frontdoor");
-    expect(page).not.toContain("@/components/home");
-    expect(page).not.toContain(deletedGeneratedComponent);
-    expect(page).not.toContain(deletedResetComponent);
-    expect(page).not.toContain(deletedNamespace);
+  it("keeps public access claims honest for the current private alpha", () => {
+    expect(contentSource).toContain('status: "Private alpha"');
+    expect(contentSource).toContain('PRIMARY_CTA_LABEL = "Request early access"');
+    expect(contentSource).toContain("Archestimator is currently in private alpha.");
+    expect(contentSource).not.toMatch(/Trusted by|Used by|Customers include|10x|AI-powered/iu);
   });
 
-  it("keeps navigation and hero CTAs on one typography scale", () => {
-    const css = readProjectFile("src/components/landing-v3/landing-v3.module.css");
-    const source = readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx");
-
-    expect(css).toMatch(/--landing-cta-font-family: var\(--font-geist\)/);
-    expect(css).toMatch(/--landing-cta-font-size: 0\.8125rem/);
-    expect(css).toMatch(/--landing-cta-min-height: 2\.625rem/);
-    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*font-family: var\(--landing-cta-font-family\)/);
-    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*font-size: var\(--landing-cta-font-size\)/);
-    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*font-weight: var\(--landing-cta-font-weight\)/);
-    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*min-height: var\(--landing-cta-min-height\)/);
-    expect(source).toContain("className={cn(styles.secondaryCta, styles.navSecondaryCta)}");
+  it("keeps the hero usable without motion or WebGL", () => {
+    expect(landingSource).toContain('id="main"');
+    expect(landingSource).toContain("HeroWorkspaceProof");
+    expect(landingSource).toContain("LandingMotionLoader");
+    expect(landingSource).toContain("narrative remains available without JavaScript, WebGL, or motion");
   });
 
-  it("keeps the active public copy on winning bids workflow positioning", () => {
-    const activeCopy = readActiveHomepageSource();
-
-    expect(activeCopy).not.toMatch(/early access/i);
-    expect(activeCopy).not.toMatch(/Pre-launch MVP preview/i);
-    expect(activeCopy).not.toMatch(new RegExp("for " + "contractors", "i"));
-    expect(activeCopy).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
-    expect(activeCopy).toMatch(/Where estimates become client‑approved proposals\./);
-    expect(activeCopy).toMatch(/Stop losing time to spreadsheets and revisions\./);
-    expect(activeCopy).toMatch(/archestimator turns estimating and proposals into one workflow so you spend less time working and more time winning\./);
-    expect(activeCopy).toMatch(/Cost Estimators &middot; Architects &middot; Engineers &middot; Project Managers &middot; Construction Managers &middot; Construction Professionals/);
-    expect(activeCopy).toMatch(/Reusable cost intelligence/);
-    expect(activeCopy).toMatch(/Recorded decisions/);
+  it("keeps one shared primary CTA implementation across the page", () => {
+    expect(landingSource).toContain("PrimaryCtaLink");
+    expect(ctaSource).toContain("export function PrimaryCtaLink");
+    expect(ctaSource).toContain("className={cn(styles.ctaButton, className)}");
+    expect(landingCss).toMatch(/\.root a\.ctaButton\s*\{[^}]*inline-size: 12rem;/su);
+    expect(landingCss).toMatch(/\.root a\.ctaButton\s*\{[^}]*block-size: 3rem;/su);
+    expect(landingCss).toMatch(/\.ctaArrow\s*\{[^}]*inline-size: 2rem;[^}]*block-size: 2rem;/su);
   });
 
-  it("does not ship old placeholders, fake proof, or unsupported claims", () => {
-    const activeCopy = readActiveHomepageSource();
-
-    expect(activeCopy).not.toMatch(/Product walkthrough placeholder/i);
-    expect(activeCopy).not.toMatch(/data-launch-feature-video-placeholder/);
-    expect(activeCopy).not.toMatch(/data-youtube-video-placeholder/);
-    expect(activeCopy).not.toMatch(/Trusted by|Used by|Customers include/i);
-    expect(activeCopy).not.toMatch(/10x|AI-powered|all-in-one platform/i);
+  it("keeps the current variable display font scoped to the public composition", () => {
+    expect(landingSource).toContain('import { Jersey_25 } from "next/font/google"');
+    expect(landingSource).toContain('variable: "--font-jersey-25"');
+    expect(landingSource).toContain("jersey25.variable");
   });
 });

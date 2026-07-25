@@ -46,19 +46,17 @@ describe("workshop dashboard baseline", () => {
     expect(homebase).not.toContain("onExpandAll");
     expect(homebase).not.toContain("onCollapseAll");
 
-    // The bento lays the editorial square material field (destination tiles +
-    // Library hub) + a working desk led by Favorites with compact Library action
-    // access and the two recent ledgers beneath.
+    // The bento lays out project and estimate-sheet destination ledgers, the
+    // Library hub, and a working desk led by Favorites plus recent components.
     // (LibrarySpotlight + DashboardStatStrip were removed by owner directive
     // 2026-06-18 — the dashboard no longer surfaces those panels.)
     for (const moduleName of [
       "ImageDestinationCard",
       "LibraryHubCard",
       "LibraryCardLink",
-      "PublishedProjectQuickActions",
-      "RecentlyAddedComponents",
       "RecentProjectsList",
       "RecentSheetsList",
+      "RecentComponentsList",
       "FavoritesTree",
     ]) {
       expect(dashboard).toContain(moduleName);
@@ -67,8 +65,10 @@ describe("workshop dashboard baseline", () => {
     expect(dashboard).toContain("dashboard-desk");
     expect(dashboard).toContain("dashboard-published-panel");
     expect(dashboard).toContain("dashboard-project-card-panel");
-    expect(dashboard).toContain("dashboard-component-card-panel");
+    expect(dashboard).toContain("dashboard-estimate-card-panel");
     expect(dashboard).toContain("dashboard-bignum-value");
+    expect(dashboard).not.toContain("PublishedProjectQuickActions");
+    expect(dashboard).not.toContain("RecentlyAddedComponents");
     expect(dashboard).not.toContain("DashboardEmptyState");
     expect(dashboard).not.toContain("isFirstRun");
   });

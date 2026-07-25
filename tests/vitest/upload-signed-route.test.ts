@@ -365,6 +365,30 @@ describe("component attachment signed direct-upload route", () => {
     expect(JSON.stringify(database.insertedSessions)).not.toContain("uploadUrl");
   });
 
+  it("rejects unsupported create-time MIME types before provider or metadata access", async () => {
+    const database = mockUploadMetadataD1();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "create",
+      fileName: "Unsafe Image.png",
+      contentType: "image/png",
+      sizeBytes: 24 * 1024 * 1024,
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Use a PDF, XLS, or XLSX attachment.",
+    });
+    expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
+    expect(cloudflareMocks.getCloudflareContext).not.toHaveBeenCalled();
+    expect(database.insertedSessions).toEqual([]);
+    expect(database.insertedAssets).toEqual([]);
+    expect(database.insertedEvents).toEqual([]);
+    expect(database.runStatements).toEqual([]);
+    expect(database.batchCalls).toEqual([]);
+  });
+
   it("keeps library direct-upload creation restricted to workspace editors", async () => {
     const database = mockUploadMetadataD1();
     authzMocks.isWorkspaceEditorInD1.mockResolvedValue(false);
@@ -465,7 +489,7 @@ describe("component attachment signed direct-upload route", () => {
 
     expect(response.status).toBe(501);
     await expect(response.json()).resolves.toEqual({
-      error: "Resumable attachment uploads need Cloudflare R2 multipart support before they can be enabled.",
+      error: "Something went wrong. Try again in a moment.",
     });
     expect(database.insertedSessions).toEqual([]);
   });
@@ -508,7 +532,7 @@ describe("component attachment signed direct-upload route", () => {
 
     expect(response.status).toBe(501);
     await expect(response.json()).resolves.toEqual({
-      error: "Direct attachment uploads require Cloudflare R2 storage.",
+      error: "Something went wrong. Try again in a moment.",
     });
     expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
     expect(database.insertedSessions).toEqual([]);
@@ -805,7 +829,7 @@ describe("component attachment signed direct-upload route", () => {
 
     expect(response.status).toBe(501);
     await expect(response.json()).resolves.toEqual({
-      error: "Direct attachment uploads require Cloudflare R2 storage.",
+      error: "Something went wrong. Try again in a moment.",
     });
     expect(database.insertedAssets).toEqual([]);
   });

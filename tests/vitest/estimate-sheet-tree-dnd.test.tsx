@@ -685,7 +685,7 @@ describe("estimate sheet tree drag/drop", () => {
 
     // Single "Add Area"; ground-floor (a group) is selected → an area child.
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
     });
     expect(document.querySelector('[data-tree-row^="optimistic-area-"]')).not.toBeNull();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
@@ -706,7 +706,7 @@ describe("estimate sheet tree drag/drop", () => {
     renderTree(fixtureTree(), "ground-floor");
 
     // ground-floor (a group) is selected → Add Area creates an `area` child.
-    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
 
     // Position is the contract: the new node appends after its siblings
     // (kitchen/living) and keeps that slot on settle — no kind re-sorting.
@@ -731,7 +731,7 @@ describe("estimate sheet tree drag/drop", () => {
     renderTree(fixtureTree(), "ground-floor");
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
     });
     const optimisticRow = document.querySelector<HTMLElement>('[data-tree-row^="optimistic-area-"]');
     if (!optimisticRow) throw new Error("Missing optimistic area row.");
@@ -758,7 +758,7 @@ describe("estimate sheet tree drag/drop", () => {
     actionMocks.createEstimateNode.mockReturnValue(pending.promise);
     renderTree(fixtureTree(), "ground-floor");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
     const optimisticRow = document.querySelector<HTMLElement>('[data-tree-row^="optimistic-area-"]');
     if (!optimisticRow) throw new Error("Missing optimistic area row.");
 

@@ -110,7 +110,7 @@ describe("project creation UI governance", () => {
     );
     expect(projectsPageClient).toContain("PROJECT_VIEW_MODE_OPTIONS.map");
     expect(projectsPageClient).toContain(
-      'icon: <Icon size={12} weight="regular" aria-hidden="true" />',
+      'icon: <Icon size={16} weight="regular" aria-hidden="true" />',
     );
     expect(projectsPageClient).toContain('triggerDisplay="icon"');
     expect(projectsPageClient).toContain('aria-label="View"');
@@ -219,7 +219,7 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).toContain('toolbarPrefix="projects"');
     expect(projectsPageClient).toContain('label: "Add projects"');
     expect(projectsPageClient).toContain(
-      'icon: <Cards size={12} weight="regular" aria-hidden="true" />',
+      'icon: <Cards size={16} weight="regular" aria-hidden="true" />',
     );
     expect(projectsPageClient).toContain(
       'onClick: () => dispatchPageState({ type: "setIsModalOpen", value: true })',
@@ -457,9 +457,14 @@ describe("project creation UI governance", () => {
       "metadata.projectImageThumbnailPath = image.thumbnailPath",
     );
     expect(projectActions).toContain("getProjectImageStoragePaths(metadata)");
-    expect(projectActions).toContain("createRuntimeUploadStorageProvider()");
     expect(projectActions).toContain("await removeStoredProjectImagePaths(");
-    expect(projectActions).toContain("storageProvider,");
+    expect(projectActions).toContain(
+      "await claimUploadAssetsForRemoval(database, {",
+    );
+    expect(projectActions).toContain("workspaceId: project.workspace_id,");
+    expect(projectActions).toContain('surface: "project-image",');
+    expect(projectActions).toContain("paths: safePaths,");
+    expect(projectActions).not.toContain("createRuntimeUploadStorageProvider");
     expect(projectActions).toContain("getProjectImageStoragePaths(metadata)");
     expect(projectImageRoute).toContain(
       'const PROJECT_IMAGE_BUCKET = "project-images"',

@@ -137,9 +137,9 @@ describe("estimate tree node occupancy cue (orange dot, Req 4)", () => {
     expect(rowDotIsOrange("child-node")).toBe(true);
   });
 
-  it("renders an orange 'Add Branch' toolbar button (icon swap to Log keeps the orange styling)", () => {
+  it("renders an orange 'Add Area' toolbar button (icon swap to Log keeps the orange styling)", () => {
     renderTree(iconTestTree());
-    const addAreaBtn = screen.getByRole("button", { name: "Add Branch" });
+    const addAreaBtn = screen.getByRole("button", { name: "Add Area" });
     expect(addAreaBtn).toBeInTheDocument();
     expect(addAreaBtn.className).toMatch(/orange/);
   });

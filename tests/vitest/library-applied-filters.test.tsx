@@ -113,12 +113,6 @@ async function waitForLibraryWorkspace() {
   await screen.findByRole("button", { name: /Organize by:/ }, { timeout: 10_000 });
 }
 
-function componentSheetSummary() {
-  const summary = document.querySelector('[data-component-sheet-summary="true"]');
-  if (!(summary instanceof HTMLElement)) throw new Error("Component sheet summary not found");
-  return summary;
-}
-
 function queryComponentInspectButton(componentId: string) {
   return document.querySelector(`[data-component-card-inspect="${componentId}"]`);
 }
@@ -131,7 +125,7 @@ beforeEach(() => {
 });
 
 describe("Library applied filters", () => {
-  it("renders removable applied-filter chips, clear-all, toolbar summary, and the glass shell", async () => {
+  it("renders removable applied-filter chips, clear-all, catalogue results, and the glass shell", async () => {
     renderLibrary(
       <LibraryPageClient
         categoryTree={categoryTree}
@@ -161,7 +155,8 @@ describe("Library applied filters", () => {
 
     const appliedFilters = screen.getByLabelText("Applied component filters");
     expect(within(appliedFilters).getByText("Supplier: Tile Supplier")).toBeInTheDocument();
-    expect(componentSheetSummary()).toHaveTextContent("All Components · 1 loaded shown · 3 loaded in scope");
+    const filteredCatalogueGrid = screen.getByRole("list", { name: "All Components component catalogue grid" });
+    expect(within(filteredCatalogueGrid).getAllByRole("listitem")).toHaveLength(1);
     expect(queryComponentInspectButton("component-alpha")).toBeInTheDocument();
     expect(queryComponentInspectButton("component-beta")).not.toBeInTheDocument();
 
@@ -169,7 +164,8 @@ describe("Library applied filters", () => {
 
     await waitFor(() => expect(screen.queryByLabelText("Applied component filters")).not.toBeInTheDocument());
     expect(queryComponentInspectButton("component-beta")).toBeInTheDocument();
-    expect(componentSheetSummary()).toHaveTextContent("All Components · 3 components");
+    const restoredCatalogueGrid = screen.getByRole("list", { name: "All Components component catalogue grid" });
+    expect(within(restoredCatalogueGrid).getAllByRole("listitem")).toHaveLength(3);
   });
 
   it("hydrates overview deep-link filters and clears all active facets", async () => {

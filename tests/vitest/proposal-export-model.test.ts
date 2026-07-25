@@ -56,7 +56,6 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     pricingDate: overrides.pricingDate ?? "2026-05-23",
     notes: overrides.notes,
     metadata: overrides.metadata,
-    laborUnitCost: overrides.laborUnitCost,
     scopeStatus: overrides.scopeStatus,
   };
 }
@@ -124,9 +123,7 @@ describe("proposal export model", () => {
       quantity: 22,
       unit: "sqm",
       materialUnitCost: 950,
-      laborUnitCost: 0,
       materialSubtotal: 20_900,
-      laborSubtotal: 0,
       contingencySubtotal: 0,
       miscSubtotal: 0,
       costAmount: 20_900,
@@ -158,7 +155,7 @@ describe("proposal export model", () => {
     expect(consolidateProposalRows(flattenEstimateTree(particularsMismatchNodes))).toHaveLength(2);
   });
 
-  it("builds summary rows, source breakdown rows, totals, and compatibility validation issues", () => {
+  it("builds summary rows, source breakdown rows, and material-only totals", () => {
     const nodes = treeWithBedrooms(
       [row({ id: "bed-a-tile", quantity: 12, miscCost: 500 })],
       [row({ id: "bed-b-tile", quantity: 10, miscCost: 300 })],
@@ -188,7 +185,6 @@ describe("proposal export model", () => {
         rowCount: 1,
         totalQuantity: 22,
         materialSubtotal: 20_900,
-        laborSubtotal: 0,
         contingencySubtotal: 0,
         miscSubtotal: 800,
         costAmount: 21_700,
@@ -199,12 +195,7 @@ describe("proposal export model", () => {
       "Main House / Second Floor / Bedroom A",
       "Main House / Second Floor / Bedroom B",
     ]);
-    expect(model.validationIssues).toContainEqual(
-      expect.objectContaining({
-        severity: "info",
-        code: "cost_split_compatibility_mode",
-      }),
-    );
+    expect(model.validationIssues).toEqual([]);
   });
 
   it("omits source breakdown DTO rows for client-audience exports", () => {
@@ -273,7 +264,6 @@ describe("proposal export model", () => {
 
     expect(model.proposalRows[0]).toMatchObject({
       materialSubtotal: 2_000,
-      laborSubtotal: 0,
       contingencySubtotal: 250,
       miscSubtotal: 75,
       costAmount: 2_325,
@@ -488,24 +478,23 @@ describe("proposal export model", () => {
     ]);
   });
 
-  it("reads interim labor + scope and excludes non-included scope from totals (P3-T1/T2, F-01/F-08)", () => {
+  it("reads scope and excludes non-included scope from material-only totals (P3-T2, F-08)", () => {
     const nodes = treeWithBedrooms(
-      [row({ id: "incl", quantity: 1, itemCost: 1_000, laborUnitCost: 200 })],
+      [row({ id: "incl", quantity: 1, itemCost: 1_000 })],
       [row({ id: "excl", material: "Owner Fixtures", quantity: 1, itemCost: 500, scopeStatus: "by_others" })],
     );
     const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const included = model.proposalRows.find((proposalRow) => proposalRow.includedInTotal);
-    expect(included?.laborUnitCost).toBe(200);
-    expect(included?.laborSubtotal).toBe(200);
+    expect(included?.materialUnitCost).toBe(1_000);
+    expect(included?.materialSubtotal).toBe(1_000);
 
     const excluded = model.proposalRows.find((proposalRow) => !proposalRow.includedInTotal);
     expect(excluded?.scopeStatus).toBe("by_others");
 
-    // Only the included row (1,000 material + 200 labor) counts toward the Grand Total.
-    expect(model.totals.grandTotal).toBe(1_200);
-    // Labor is present → the material-only disclaimer is suppressed.
-    expect(model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode")).toBe(false);
+    // Only the included material row counts toward the Grand Total.
+    expect(model.totals.grandTotal).toBe(1_000);
+    expect(model.validationIssues).toEqual([]);
   });
 
   it("unification (P2): rows on a non-area (group) node are exported, not skipped", () => {

@@ -248,25 +248,12 @@ describe("ProposalExportPreviewDialog", () => {
   });
 
   it("surfaces export validation notes in the contents summary (P1-T2, F-20)", () => {
-    const issueNodes: EstimateTreeNode[] = [
-      {
-        id: "group-with-rows",
-        name: "Group With Rows",
-        kind: "group",
-        total: "₱0.00",
-        estimateRowItems: [row({ id: "skipped-on-group" })],
-        children: [
-          { id: "area", name: "Area", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "kept", quantity: 5 })] },
-        ],
-      },
-    ];
-    const model = buildProposalExportModel({ metadata, nodes: issueNodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const model = buildProposalExportModel({ metadata, nodes: [], generatedAt: "2026-05-23T00:00:00.000Z" });
 
     render(<ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={vi.fn()} />);
 
     const issues = screen.getByTestId("proposal-validation-issues");
-    expect(within(issues).getByText(/do not yet separate material and labor/i)).toBeInTheDocument();
-    expect(within(issues).queryByText(/Rows on group node/i)).not.toBeInTheDocument();
+    expect(within(issues).getByText(/No area row items are available for proposal export/i)).toBeInTheDocument();
   });
 
   it("is keyboard accessible: initial focus, Esc-to-close, and overlay-click-to-close (P1-T3, F-06)", async () => {
@@ -389,7 +376,7 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByText("Preview current")).toBeInTheDocument();
   });
 
-  it("re-enables download when a materialized row returns to its saved value", async () => {
+  it("keeps download disabled until a materialized row edit is successfully saved", async () => {
     const user = userEvent.setup();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
@@ -424,7 +411,8 @@ describe("ProposalExportPreviewDialog", () => {
     await user.type(quantityInput, "12");
 
     await waitFor(() => expect(screen.getByText("Preview current")).toBeInTheDocument());
-    expect(downloadButton).toBeEnabled();
+    expect(screen.getByTestId("proposal-unsaved-edits-warning")).toHaveTextContent("Save the sheet, then refresh the preview");
+    expect(downloadButton).toBeDisabled();
   });
 
   it("defaults multi-tab preview downloads to all-tabs export and lets users switch to the active-tab route", async () => {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const sql = readFileSync("scripts/sql/linked-supabase-launch-readiness.sql", "utf8");
+const sql = readFileSync("supabase/migration-evidence/sql/linked-supabase-launch-readiness.sql", "utf8");
 
 describe("linked Supabase launch readiness SQL", () => {
   it("stays read-only", () => {

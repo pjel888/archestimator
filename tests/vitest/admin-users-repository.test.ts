@@ -81,20 +81,30 @@ describe("admin users repository", () => {
       email: "admin@example.com",
       last_session_at: "2026-07-10T05:10:00.000Z",
     });
-    const usersSql = database.prepared.find((sql) => sql.includes("LEFT JOIN"));
+    const usersSql = database.prepared.find((sql) => sql.includes('FROM "session"'));
     expect(usersSql).toContain('FROM "session"');
     expect(usersSql).toContain('"userId" AS user_id');
     expect(usersSql).toContain('"expiresAt" > ?');
-    expect(usersSql).toContain('MAX("updatedAt") AS last_session_at');
-    expect(database.bound.at(-1)?.values.slice(1)).toEqual(["%admin%", "%admin%", 20, 20]);
+    expect(usersSql).toContain('MAX("updatedAt") AS last_session_refreshed_at');
+    expect(database.bound.at(-1)?.values.slice(0, 4)).toEqual([
+      "%admin%",
+      "%admin%",
+      20,
+      20,
+    ]);
+    expect(database.bound.at(-1)?.values[4]).toEqual(
+      expect.stringContaining("T"),
+    );
   });
 
-  it("counts signups from profiles within the requested window", async () => {
+  it("counts created profiles within the requested window", async () => {
     const database = new UsersDatabase();
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    const { countSignups } = await import("@/lib/admin/users-repository");
-    const result = await countSignups(7);
+    const { countProfilesCreated } = await import(
+      "@/lib/admin/users-repository"
+    );
+    const result = await countProfilesCreated(7);
 
     expect(result).toEqual({ data: 2, error: null });
     expect(database.bound[0]?.sql).toContain("FROM profiles");
@@ -110,7 +120,7 @@ describe("admin users repository", () => {
 
     expect(result).toEqual({
       data: [],
-      error: "Cloudflare D1 is not available.",
+      error: "Something went wrong. Try again in a moment.",
       count: 0,
     });
   });

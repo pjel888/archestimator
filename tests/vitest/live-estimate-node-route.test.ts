@@ -103,7 +103,7 @@ describe("live estimate node route", () => {
     expect(renameBlock).toContain("const serverNodeId = await resolveServerNodeId(node.id);");
     expect(renameBlock).toContain("renameEstimateNode(projectId, estimateId, serverNodeId, nextName)");
     expect(renameBlock).not.toContain("confirmed.tree");
-    expect(renameActionBlock).toContain("return { nodeId: node.id, name }");
+    expect(renameActionBlock).toContain("return { nodeId, name }");
     expect(renameActionBlock).not.toContain("revalidatePath(");
     expect(renameActionBlock).not.toContain("getProjectEstimateTreeByEstimate(");
   });
@@ -184,11 +184,15 @@ describe("live estimate node route", () => {
     expect(estimateContent).not.toContain('targetNode?.kind !== "area"');
     expect(estimateContent).not.toContain('targetParentNode?.kind !== "group"');
     const templateNodeInsertStart = estimateActions.indexOf("export async function insertEstimateTemplateNodeIntoEstimate");
-    const templateNodeInsertEnd = estimateActions.indexOf("const { data: template", templateNodeInsertStart);
+    const templateNodeInsertEnd = estimateActions.indexOf("export async function insertEstimateRowItemFromLibrary", templateNodeInsertStart);
+    expect(templateNodeInsertStart).toBeGreaterThanOrEqual(0);
+    expect(templateNodeInsertEnd).toBeGreaterThan(templateNodeInsertStart);
     const templateNodeInsertBlock = estimateActions.slice(templateNodeInsertStart, templateNodeInsertEnd);
     expect(templateNodeInsertBlock).not.toContain('.eq("kind", "group")');
-    expect(templateNodeInsertBlock).toContain('.eq("estimates.project_id", project.id)');
-    expect(estimateActions).toContain('.eq("estimates.project_id", project.id)');
+    expect(templateNodeInsertBlock).toContain("getCurrentWorkspaceProjectForEstimate(projectId, estimateId)");
+    expect(templateNodeInsertBlock).toContain("requireCurrentUserContext()");
+    expect(templateNodeInsertBlock).toContain("insertEstimateTemplateNodeIntoEstimateWithHistory(database, currentUser, {");
+    expect(templateNodeInsertBlock).toContain("projectId: project.id");
     expect(estimateActions).toContain("getSourceLibraryItemId");
     expect(estimateActions).toContain("isUuid(libraryItem.id)");
     expect(estimateActions).toContain("const persistedRowId = isUuid(rowId) ? rowId : randomUUID();");
@@ -203,13 +207,14 @@ describe("live estimate node route", () => {
     // the create + reorder server actions — any node may parent any node.
     expect(estimateActions).not.toContain("canNestEstimateNodeKind");
     expect(estimateActions).toContain('return "group"');
-    expect(estimateActions).toContain("node_kind: kind");
-    expect(estimateActions).toContain("create_estimate_node_with_history");
-    expect(estimateActions).toContain('.from("estimate_nodes").insert');
+    expect(estimateActions).toContain("createEstimateNodeWithHistory(database, currentUser, {");
+    expect(estimateActions).toContain("estimateTabId,\n      kind,\n      name,");
+    expect(estimateActions).not.toContain('.from("estimate_nodes").insert');
     expect(estimateActions).not.toContain("moveEstimateNode");
     expect(estimateActions).not.toContain("buildEstimateNodeMovePlan");
     expect(estimateActions).not.toContain('.rpc("move_estimate_nodes"');
-    expect(estimateContent).toContain("onUpdateRowItem");
+    expect(estimateContent).toContain("updateRow,");
+    expect(estimateRowHandlers).toContain("updateRow({");
     expect(estimateRowHandlers).toContain("replaceRow({");
     expect(estimateRowHandlers).toContain("libraryItem: replacementLibraryItem");
     expect(estimateRowHandlers).toContain("deleteRow({");
@@ -219,8 +224,11 @@ describe("live estimate node route", () => {
     expect(estimateRowHandlers).toContain("rollback: () => restoreEstimateState");
   });
 
-  it("keeps row save state out of the visible sheet while preserving passive mutation invalidation and focus reconciliation", () => {
-    expect(estimateContent).toContain("onMarkRowDirty");
+  it("surfaces row save state while preserving passive mutation invalidation and focus reconciliation", () => {
+    expect(estimateContent).toContain("markRowDirty: markRowDirtyNow");
+    expect(estimateContent).toContain("markDirty: markRowDirtyNow");
+    expect(estimateContent).toContain('data-estimate-save-state={saveState}');
+    expect(estimateContent).toContain('role={saveState === "failed" ? "alert" : "status"}');
     expect(estimateContent).not.toContain("RowSaveStatus");
     expect(estimateContent).not.toContain("EstimateSaveStatus");
     expect(estimateContent).not.toContain("refetchOnWindowFocus: true");

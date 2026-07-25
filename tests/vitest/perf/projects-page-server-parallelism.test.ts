@@ -97,6 +97,15 @@ const tableData: Record<string, unknown> = {
     },
   ],
   collaboration_invitations: [{ id: "inv-1", project_id: "project-owned" }],
+  beta_starter_pack_states: [],
+  beta_starter_asset_claims: [],
+  starter_workspace_counts: {
+    projects_count: 1,
+    components_count: 0,
+    templates_count: 0,
+    groups_count: 0,
+    custom_folders_count: 0,
+  },
   workspaces: {
     id: "workspace-1",
     name: "Workspace One",
@@ -118,6 +127,14 @@ const d1Mocks = vi.hoisted(() => ({
 const d1QueryCallCounts: Record<string, number> = {};
 
 function tableForSql(sql: string) {
+  if (sql.includes("FROM beta_starter_pack_states")) return "beta_starter_pack_states";
+  if (sql.includes("FROM beta_starter_asset_claims")) return "beta_starter_asset_claims";
+  if (
+    sql.includes("(SELECT COUNT(*) FROM projects") &&
+    sql.includes("AS projects_count")
+  ) {
+    return "starter_workspace_counts";
+  }
   if (sql.includes("FROM collaboration_invitations")) return "collaboration_invitations";
   if (sql.includes("FROM project_publications")) return "project_publications";
   if (sql.includes("FROM project_group_memberships")) return "project_group_memberships";
@@ -255,12 +272,13 @@ describe("listCurrentWorkspaceProjects server query parallelism (Phase 1)", () =
 
     // --- Total wall-clock: parallel waves cost ~2 sequential round-trips, not ~4. ---
     // Sequential cost of just the two optimized waves alone would be ~4 * QUERY_DELAY_MS.
-    // Parallel cost is ~2 * QUERY_DELAY_MS. (Wave 1 + the ensureDefaultWorkspace
-    // workspaces lookup add a couple more serial round-trips, so we bound generously.)
+    // Parallel cost is ~2 * QUERY_DELAY_MS. The route now also performs starter-pack
+    // state, claim, membership, and empty-workspace reads before listing projects.
     const serialEquivalentMs = 4 * QUERY_DELAY_MS;
     // The two optimized waves, run in parallel, must save at least ~one round-trip vs serial.
-    // Use a generous ceiling well under the all-serial cost of every query in the path.
-    const allSerialFloorMs = 6 * QUERY_DELAY_MS; // wave1-ish + wave2(2) + wave3(2) if fully serial
+    // Ten round-trips is the all-serial floor for the current fake-backed app path,
+    // so this ceiling still requires the optimized waves to save at least one trip.
+    const allSerialFloorMs = 10 * QUERY_DELAY_MS;
     expect(overallTotalMs).toBeLessThan(allSerialFloorMs);
 
     // Emit the measured numbers for the report (visible with --reporter=verbose / on failure).

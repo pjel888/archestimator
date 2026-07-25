@@ -11,16 +11,23 @@ import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/component
 // alongside the sheet so the relocated buttons are reachable here.
 import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
-import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
-import { WorkshopShell } from "@/components/workshop/WorkshopShell";
 import { WorkshopTitleHeader } from "@/components/workshop/WorkshopTitleHeader";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
+const estimateActionMocks = vi.hoisted(() => ({
+  getEstimateComponentEditImpact: vi.fn(),
+}));
+
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: vi.fn(async () => null),
+}));
+
+vi.mock("@/lib/estimates/actions", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/estimates/actions")>(),
+  getEstimateComponentEditImpact: estimateActionMocks.getEstimateComponentEditImpact,
 }));
 
 vi.mock("next/headers", () => ({
@@ -118,30 +125,24 @@ afterEach(() => {
 });
 
 describe("estimate shell chrome", () => {
-  it("renders breadcrumbs in the upper-left project header", async () => {
+  it("renders breadcrumbs in the upper-left project header", () => {
     renderWithQueryClient(
-    await WorkshopShell({
-      children: await WorkshopRouteHeader({
-        title: "Modern Bungalow",
-        eyebrow: "Project",
-        breadcrumbs: ["Workshop", "Projects", "Modern Bungalow"],
-        projectId: "project-1",
-        children: (
-        <div>Estimate workspace</div>
-        ),
-      }),
-    }),
-  );
+      <WorkshopTitleHeader
+        title="Modern Bungalow"
+        eyebrow="Project"
+        breadcrumbs={["Workshop", "Projects", "Modern Bungalow"]}
+        projectId="project-1"
+      />,
+    );
 
     const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
-    expect(within(breadcrumbs).getByText("Workshop")).toBeInTheDocument();
+    expect(within(breadcrumbs).queryByText("Workshop")).not.toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Projects")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Estimates")).toBeInTheDocument();
     expect(within(breadcrumbs).queryByText("Modern Bungalow - 001")).not.toBeInTheDocument();
     expect(within(breadcrumbs).getAllByText("/").every((separator) => separator.className.includes("text-current"))).toBe(true);
     expect(screen.getByRole("banner")).toContainElement(breadcrumbs);
-    expect(screen.getByRole("contentinfo")).not.toContainElement(breadcrumbs);
   });
 
   it("keeps the project title and breadcrumbs visible when an estimate sheet publishes metadata", async () => {
@@ -351,17 +352,18 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).getByRole("button", { name: "Add blank estimate row to Living Area" })).toBeInTheDocument();
   });
 
-  it("opens row details from the row action menu", async () => {
+  it("opens row activity from the row action menu", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area", { canEditEstimate: true });
 
-    await user.click(screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("button", { name: "Open row actions for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("menuitem", { name: "Row activity" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getAllByText("Hardwood Oak Flooring").length).toBeGreaterThan(0);
-    expect(within(dialog).queryByRole("tree", { name: "Activity scope tree" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("tabpanel", { name: "Activity" })).toBeInTheDocument();
   });
 
   it("opens sheet activity from the local sheet header", async () => {
@@ -401,7 +403,7 @@ describe("estimate sheet cost inputs", () => {
       within(livingAreaSection)
         .getByRole("row", { name: /Materials Qty Contingency Subtotal Adjustment Misc Cost Total Item Cost/ })
         .querySelector("svg"),
-    ).toBeNull();
+    ).toHaveAttribute("aria-hidden", "true");
   });
 
   it("centers subtotal, contingency, adjustment, and misc cost row values", () => {
@@ -617,15 +619,17 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("opens command palette and inserts into the selected area from the keyboard", async () => {
-    renderEstimateSheet("kitchen", { canEditEstimate: true });
+    const user = userEvent.setup();
+    renderEstimateSheet("kitchen", { canEditEstimate: true, libraryItems: estimateLibraryItems });
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const palette = await screen.findByRole("dialog", { name: "Command palette" });
-    fireEvent.change(screen.getByLabelText("Command palette search"), { target: { value: "LED Downlight" } });
-    fireEvent.keyDown(palette, { key: "Enter" });
+    await user.type(screen.getByLabelText("Command palette search"), "HEMLINGBY");
+    await within(palette).findByRole("button", { name: /HEMLINGBY Loveseat/ });
+    await user.keyboard("{Enter}");
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    const insertedQuantity = await within(kitchenSection).findByLabelText("LED Downlight, Recessed, 18W Daylight quantity");
+    const insertedQuantity = await within(kitchenSection).findByLabelText("HEMLINGBY Loveseat quantity");
     await waitFor(() => expect(insertedQuantity).toHaveFocus());
     expect(screen.queryByRole("dialog", { name: "Command palette" })).not.toBeInTheDocument();
   });
@@ -711,9 +715,13 @@ describe("estimate sheet cost inputs", () => {
     expect(within(materialCell).getByText("₱ 1,200.00")).toBeInTheDocument();
     expect(rowDragIcon).toHaveClass("cursor-grab", "active:cursor-grabbing");
     expect(within(materialCell).getByLabelText("Component actions for Hardwood Oak Flooring")).toBeInTheDocument();
-    expect(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" })).toBeInTheDocument();
-    expect(within(materialCell).getByRole("button", { name: "Edit component Hardwood Oak Flooring" })).toBeInTheDocument();
+    const componentActions = within(materialCell).getByRole("button", { name: "Open component actions for Hardwood Oak Flooring" });
+    expect(componentActions).toHaveAttribute("aria-haspopup", "menu");
     expect(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" })).toHaveAttribute("draggable", "true");
+    await user.click(componentActions);
+    expect(screen.getByRole("menuitem", { name: "Delete component" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Edit component" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(quantityInput);
@@ -745,30 +753,39 @@ describe("estimate sheet cost inputs", () => {
     expect(row.querySelector("[data-estimate-row-move-action]")).toBeNull();
   });
 
-  it("shows real tooltips for icon-only row actions on keyboard focus", async () => {
+  it("exposes icon-only row actions through the labeled row action menu", async () => {
+    const user = userEvent.setup();
     renderEstimateSheet("living-area", { canEditEstimate: true });
 
-    const rowDetailsAction = screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" });
-    fireEvent.focus(rowDetailsAction);
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Row details");
-    fireEvent.blur(rowDetailsAction);
+    const rowActions = screen.getByRole("button", { name: "Open row actions for Hardwood Oak Flooring" });
+    expect(rowActions).toHaveAttribute("aria-haspopup", "menu");
+    await user.click(rowActions);
 
-    const rowActivityAction = screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" });
-    fireEvent.focus(rowActivityAction);
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Row activity");
-    fireEvent.blur(rowActivityAction);
-
-    const rowDeleteAction = screen.getByRole("button", { name: "Delete row Hardwood Oak Flooring" });
-    fireEvent.focus(rowDeleteAction);
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Delete row. Undo after saving can restore it.");
+    expect(screen.getByRole("menuitem", { name: "Row activity" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Duplicate row" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Delete row" })).toBeInTheDocument();
   });
 
   it("opens the edit component modal from the in-card component action", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area", { canEditEstimate: true });
+    estimateActionMocks.getEstimateComponentEditImpact.mockResolvedValueOnce({
+      projectId: "project-1",
+      componentId: "hardwood-oak-flooring",
+      instanceCount: 1,
+      estimateCount: 1,
+      affectedEstimates: [],
+      optionUsageCounts: {},
+      fingerprint: "hardwood-oak-flooring-impact",
+    });
+    renderEstimateSheet("living-area", {
+      canEditEstimate: true,
+      projectId: "project-1",
+      estimateId: "estimate-1",
+    });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
-    await user.click(within(materialCell).getByRole("button", { name: "Edit component Hardwood Oak Flooring" }));
+    await user.click(within(materialCell).getByRole("button", { name: "Open component actions for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("menuitem", { name: "Edit component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
     expect(within(dialog).getByLabelText("Name")).toHaveValue("Hardwood Oak Flooring");
@@ -783,7 +800,8 @@ describe("estimate sheet cost inputs", () => {
     const row = materialCell.closest("tr");
     expect(row).not.toBeNull();
 
-    await user.click(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" }));
+    await user.click(within(materialCell).getByRole("button", { name: "Open component actions for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("menuitem", { name: "Delete component" }));
 
     expect(within(row as HTMLElement).getByLabelText("Component name")).toHaveValue("");
     expect(within(row as HTMLElement).getByLabelText("Project Component quantity")).toBeInTheDocument();
@@ -816,13 +834,12 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("living-area", { canEditEstimate: true, libraryItems: estimateLibraryItems });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
-    await user.click(within(materialCell).getByRole("button", { name: "Replace component Hardwood Oak Flooring" }));
+    await user.click(within(materialCell).getByRole("button", { name: "Open component actions for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("menuitem", { name: "Replace component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Replace component" });
     await user.type(within(dialog).getByLabelText("Component search"), "HEMLINGBY");
     await user.click(within(dialog).getByRole("button", { name: "Replace with HEMLINGBY Loveseat" }));
-    const reviewDialog = await screen.findByRole("dialog", { name: "Review source before replacing row" });
-    await user.click(within(reviewDialog).getByRole("button", { name: "Continue with replace" }));
 
     await waitFor(() => {
       expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();
@@ -842,7 +859,8 @@ describe("estimate sheet cost inputs", () => {
     expect(sourceRow).not.toBeNull();
     expect(targetRow).not.toBeNull();
 
-    await user.click(within(sourceComponent).getByRole("button", { name: "Move component Hardwood Oak Flooring" }));
+    await user.click(within(sourceComponent).getByRole("button", { name: "Open component actions for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("menuitem", { name: "Move component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Move component" });
     expect(within(dialog).getByRole("button", { name: "Move to Hardwood Oak Flooring" })).toBeDisabled();
@@ -861,8 +879,6 @@ describe("estimate sheet cost inputs", () => {
     libraryDrop.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(estimateLibraryItems[2]));
     fireEvent.dragOver(expressCell, { dataTransfer: libraryDrop });
     fireEvent.drop(expressCell, { dataTransfer: libraryDrop });
-    const reviewDialog = await screen.findByRole("dialog", { name: "Review source before replacing row" });
-    fireEvent.click(within(reviewDialog).getByRole("button", { name: "Continue with replace" }));
 
     await waitFor(() => {
       expect(screen.queryByLabelText("Express Sink replaceable estimate component")).not.toBeInTheDocument();
@@ -997,8 +1013,6 @@ describe("estimate sheet cost inputs", () => {
     fireEvent.dragOver(targetComponent, { dataTransfer });
     expect(targetComponent).toHaveAttribute("data-replace-target-active", "true");
     fireEvent.drop(targetComponent, { dataTransfer });
-    const reviewDialog = await screen.findByRole("dialog", { name: "Review source before replacing row" });
-    await user.click(within(reviewDialog).getByRole("button", { name: "Continue with replace" }));
 
     await waitFor(() => {
       expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();

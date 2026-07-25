@@ -6,6 +6,8 @@ import {
   type CloudflareR2UploadBucket,
 } from "@/lib/uploads/r2-storage-provider";
 
+const SAFE_ERROR_MESSAGE = "Something went wrong. Try again in a moment.";
+
 class FakeR2Bucket implements CloudflareR2UploadBucket {
   readonly objects = new Map<string, {
     body: Uint8Array;
@@ -116,7 +118,7 @@ describe("Cloudflare R2 upload storage provider", () => {
       "component-attachments/workspace-1/user-1/spec-thumb.webp",
     ]);
     await expect(provider.downloadObject("component-attachments", "workspace-1/user-1/spec.pdf"))
-      .rejects.toThrow("R2 storage object was not found.");
+      .rejects.toThrow(SAFE_ERROR_MESSAGE);
   });
 
   it("fails closed for unsafe object identifiers before calling R2", async () => {
@@ -128,13 +130,13 @@ describe("Cloudflare R2 upload storage provider", () => {
       path: "workspace-1/user-1/component.webp",
       body: new Uint8Array([1]),
       contentType: "image/webp",
-    })).rejects.toThrow("R2 logical bucket name is unsafe.");
+    })).rejects.toThrow(SAFE_ERROR_MESSAGE);
     await expect(provider.uploadObject({
       bucket: "component-images",
       path: "workspace-1/../component.webp",
       body: new Uint8Array([1]),
       contentType: "image/webp",
-    })).rejects.toThrow("R2 storage path is unsafe.");
+    })).rejects.toThrow(SAFE_ERROR_MESSAGE);
 
     expect(r2.putCalls).toEqual([]);
   });
@@ -144,9 +146,9 @@ describe("Cloudflare R2 upload storage provider", () => {
     const provider = createCloudflareR2UploadStorageProvider(r2);
 
     await expect(provider.createSignedReadUrl("component-images", "workspace-1/user-1/component.webp", 300))
-      .rejects.toThrow("R2 signed read URLs require an app-owned signer or read route.");
+      .rejects.toThrow(SAFE_ERROR_MESSAGE);
     expect(() => provider.getPublicUrl("component-images", "workspace-1/user-1/component.webp"))
-      .toThrow("R2 public URLs require an explicit public base URL.");
+      .toThrow(SAFE_ERROR_MESSAGE);
   });
 
   it("uses injected signed-read and public URL strategies when a later route supplies them", async () => {
@@ -159,7 +161,7 @@ describe("Cloudflare R2 upload storage provider", () => {
     await expect(provider.createSignedReadUrl("component-images", "workspace-1/user-1/component.webp", 120))
       .resolves.toBe("https://archestimator.com/api/uploads/signed/component.webp?sig=proof");
     expect(() => provider.getPublicUrl("component-images", "workspace-1/user-1/component with space.webp"))
-      .toThrow("R2 storage path is unsafe.");
+      .toThrow(SAFE_ERROR_MESSAGE);
     expect(provider.getPublicUrl("component-images", "workspace-1/user-1/component.webp"))
       .toBe("https://assets.archestimator.com/component-images/workspace-1/user-1/component.webp");
     expect(signer).toHaveBeenCalledWith({

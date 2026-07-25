@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -13,11 +13,6 @@ const mocks = vi.hoisted(() => ({
   routerReplace: vi.fn(),
   routerRefresh: vi.fn(),
   setProjectFavorite: vi.fn(async () => {}),
-}));
-
-const publicationActions = vi.hoisted(() => ({
-  revokeProjectPublication: vi.fn(),
-  rotateProjectPublicationLink: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -39,8 +34,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: mocks.setProjectFavorite,
 }));
-
-vi.mock("@/lib/publication/actions", () => publicationActions);
 
 // The create-project modal pulls in server actions + the full form graph. The
 // dashboard tests only care that the trigger renders, so stub the modal.
@@ -172,11 +165,10 @@ const emptyWorkshopHomebase = {
 };
 
 afterEach(() => {
+  cleanup();
   mocks.routerReplace.mockClear();
   mocks.routerRefresh.mockClear();
   mocks.setProjectFavorite.mockClear();
-  publicationActions.revokeProjectPublication.mockReset();
-  publicationActions.rotateProjectPublicationLink.mockReset();
 });
 
 function renderWithQueryClient(ui: ReactNode) {
@@ -291,9 +283,8 @@ describe("workshop dashboard homebase", () => {
 
     // Command-center destination field — the populated dashboard starts with
     // the actual surfaces, not an empty greeting shell.
-    expect(screen.getByText("Project Count")).toBeInTheDocument();
-    expect(screen.getByText("Published Projects")).toBeInTheDocument();
-    expect(screen.getByText("Component Count")).toBeInTheDocument();
+    expect(screen.getByText("Projects Shown")).toBeInTheDocument();
+    expect(screen.getByText("Sheets Shown")).toBeInTheDocument();
 
     // Quick links into the primary surfaces.
     expect(
@@ -309,8 +300,13 @@ describe("workshop dashboard homebase", () => {
       screen.getByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Makati Office").length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "Sheets" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Estimate Sheets" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Makati Office - Tender")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Components" }),
+    ).toBeInTheDocument();
 
     // Favorites tree (per-sheet favoriting → real nested tree).
     const favoritesTree = screen.getByRole("tree", {
@@ -335,172 +331,21 @@ describe("workshop dashboard homebase", () => {
     ).toBeInTheDocument();
   });
 
-  test("exposes keyboard-reachable shared-link quick actions in the dashboard published list", async () => {
-    const user = userEvent.setup();
-    const clipboardWrite = vi.fn(async () => {});
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: clipboardWrite },
-    });
-    publicationActions.rotateProjectPublicationLink.mockResolvedValueOnce({
-      ok: true,
-      message: "Shared link rotated.",
-      clientLinkPath: "/share/rotated-token",
-    });
-    publicationActions.revokeProjectPublication.mockResolvedValueOnce({
-      ok: true,
-      message: "Shared link turned off.",
-      clientLinkPath: null,
-    });
-
+  test("uses the dashboard cards for projects, estimate sheets, and components", () => {
     renderWorkshopDashboard();
 
-    const publishedList = screen.getByRole("list", {
-      name: "Recent published project shared links",
-    });
-    const actionGroup = within(publishedList).getByLabelText(
-      "Shared link quick actions for Lewis Residence",
-    );
-    const copyButton = within(actionGroup).getByRole("button", {
-      name: "Copy Lewis Residence shared link",
-    });
-    const previewLink = within(actionGroup).getByRole("link", {
-      name: "Preview Lewis Residence shared link",
-    });
-    const rotateButton = within(actionGroup).getByRole("button", {
-      name: "Create new shared link for Lewis Residence",
-    });
-    const revokeButton = within(actionGroup).getByRole("button", {
-      name: "Turn off Lewis Residence shared link",
-    });
-
-    copyButton.focus();
+    expect(screen.getByRole("list", { name: "Projects" })).toBeInTheDocument();
     expect(
-      await screen.findByRole("tooltip", { name: "Copy link" }),
-    ).toBeInTheDocument();
-
-    await user.click(copyButton);
-    expect(clipboardWrite).toHaveBeenCalledWith(
-      "http://localhost:3000/share/client-token",
-    );
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Copied shared link for Lewis Residence.",
-    );
-
-    expect(previewLink).toHaveAttribute("href", "/share/client-token");
-    expect(previewLink).toHaveAttribute("target", "_blank");
-
-    await user.click(rotateButton);
-    expect(
-      publicationActions.rotateProjectPublicationLink,
-    ).not.toHaveBeenCalled();
-    const rotateDialog = await screen.findByRole("dialog", {
-      name: "Create a new shared link?",
-    });
-    await user.click(
-      within(rotateDialog).getByRole("button", { name: "Create new link" }),
-    );
-    await waitFor(() =>
-      expect(
-        publicationActions.rotateProjectPublicationLink,
-      ).toHaveBeenCalledWith({
-        projectId: "22222222-2222-4222-8222-222222222222",
-      }),
-    );
-
-    await user.click(revokeButton);
-    expect(publicationActions.revokeProjectPublication).not.toHaveBeenCalled();
-    const revokeDialog = await screen.findByRole("dialog", {
-      name: "Turn off this shared link?",
-    });
-    await user.click(
-      within(revokeDialog).getByRole("button", { name: "Turn off link" }),
-    );
-    await waitFor(() =>
-      expect(publicationActions.revokeProjectPublication).toHaveBeenCalledWith({
-        projectId: "22222222-2222-4222-8222-222222222222",
-      }),
-    );
-    await waitFor(() => expect(mocks.routerRefresh).toHaveBeenCalledTimes(2));
-  });
-
-  test("keeps destructive shared-link quick actions hidden for viewer-level published rows", () => {
-    renderWorkshopDashboard({
-      homebase: {
-        ...workshopHomebase,
-        projects: [
-          {
-            ...workshopHomebase.projects[0],
-            accessKind: "project-member",
-            currentUserRole: "viewer",
-            canManagePublication: false,
-          },
-        ],
-      },
-    });
-
-    const publishedList = screen.getByRole("list", {
-      name: "Recent published project shared links",
-    });
-    const actionGroup = within(publishedList).getByLabelText(
-      "Shared link quick actions for Lewis Residence",
-    );
-
-    expect(
-      within(actionGroup).getByRole("button", {
-        name: "Copy Lewis Residence shared link",
-      }),
+      screen.getByRole("list", { name: "Estimate sheets" }),
     ).toBeInTheDocument();
     expect(
-      within(actionGroup).getByRole("link", {
-        name: "Preview Lewis Residence shared link",
-      }),
+      screen.getByRole("list", { name: "Recent components" }),
     ).toBeInTheDocument();
     expect(
-      within(actionGroup).queryByRole("button", {
-        name: "Create new shared link for Lewis Residence",
+      screen.queryByRole("list", {
+        name: "Recent published project shared links",
       }),
     ).toBeNull();
-    expect(
-      within(actionGroup).queryByRole("button", {
-        name: "Turn off Lewis Residence shared link",
-      }),
-    ).toBeNull();
-  });
-
-  test("renders failed shared-link quick-action results as errors without refreshing", async () => {
-    const user = userEvent.setup();
-    publicationActions.rotateProjectPublicationLink.mockResolvedValueOnce({
-      ok: false,
-      message: "Shared link changed while rotating. Refresh and try again.",
-      clientLinkPath: null,
-    });
-
-    renderWorkshopDashboard();
-
-    const publishedList = screen.getByRole("list", {
-      name: "Recent published project shared links",
-    });
-    const actionGroup = within(publishedList).getByLabelText(
-      "Shared link quick actions for Lewis Residence",
-    );
-
-    await user.click(
-      within(actionGroup).getByRole("button", {
-        name: "Create new shared link for Lewis Residence",
-      }),
-    );
-    const rotateDialog = await screen.findByRole("dialog", {
-      name: "Create a new shared link?",
-    });
-    await user.click(
-      within(rotateDialog).getByRole("button", { name: "Create new link" }),
-    );
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Shared link changed while rotating. Refresh and try again.",
-    );
-    expect(mocks.routerRefresh).not.toHaveBeenCalled();
   });
 
   test("zero-data homebase keeps the normal bento dashboard with empty ledgers", () => {
@@ -511,12 +356,11 @@ describe("workshop dashboard homebase", () => {
     });
 
     // The full bento stays visible even when project/sheet lists are empty.
-    expect(screen.getByText("Project Count")).toBeInTheDocument();
-    expect(screen.getByText("Published Projects")).toBeInTheDocument();
-    expect(screen.getByText("Component Count")).toBeInTheDocument();
+    expect(screen.getByText("Projects Shown")).toBeInTheDocument();
+    expect(screen.getByText("Sheets Shown")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Open Projects" }),
-    ).toBeInTheDocument();
+      screen.getAllByRole("link", { name: "Open Projects" }).length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole("link", { name: "Open Templates" }),
     ).toBeInTheDocument();
@@ -529,27 +373,22 @@ describe("workshop dashboard homebase", () => {
 
     // Lists remain in place as blank ledgers with zero rows.
     expect(
-      screen.getByRole("list", {
-        name: "Recent published project shared links",
-      }).childElementCount,
+      screen.getByRole("list", { name: "Projects" }).childElementCount,
     ).toBe(0);
     expect(
-      screen.getByRole("list", { name: "Recently added components" })
+      screen.getByRole("list", { name: "Estimate sheets" })
         .childElementCount,
     ).toBe(0);
     expect(
       screen.getByRole("tree", { name: "Favorite projects and estimate sheets" }).childElementCount,
     ).toBe(0);
+    expect(screen.getByRole("heading", { name: "Projects" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Projects" }),
+      screen.getByRole("heading", { name: "Estimate Sheets" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Components" })).toBeInTheDocument();
     expect(
-      screen.getByRole("list", { name: "Recent projects" }).childElementCount,
-    ).toBe(0);
-    expect(screen.getByRole("heading", { name: "Sheets" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("list", { name: "Recent estimate sheets" })
-        .childElementCount,
+      screen.getByRole("list", { name: "Recent components" }).childElementCount,
     ).toBe(0);
     expect(screen.queryByText("No shared links yet")).toBeNull();
     expect(screen.queryByText("No recent components yet")).toBeNull();

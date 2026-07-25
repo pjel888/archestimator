@@ -54,7 +54,11 @@ describe("auth onboarding and settings route contracts", () => {
     expect(adminNavSource).toContain('href: "/admin/upload-operations"');
     expect(adminNavSource).toContain('href: "/admin/scan-overrides"');
     expect(wrapperSource).toContain('import { signOut } from "@/lib/auth/actions"');
+    expect(wrapperSource).toContain('import { GuidanceToursSettings } from "@/components/workshop/settings/GuidanceToursSettings"');
     expect(wrapperSource).toContain("action={signOut}");
+    expect(wrapperSource).toContain("renderGuidanceToursSettings={renderGuidanceToursSettings}");
+    expect(source).not.toContain('from "@/components/workshop/settings/GuidanceToursSettings"');
+    expect(source).not.toMatch(/<main\b/);
     expect(source).toContain("Sign out");
     expect(modalSource).toContain('className="max-w-[920px]"');
     expect(modalSource).toContain('bodyClassName="bg-white p-0"');

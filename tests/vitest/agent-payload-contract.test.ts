@@ -1,5 +1,14 @@
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { execFileSync, execSync } from "node:child_process";
+import {
+  appendFileSync,
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -54,7 +63,7 @@ describe("agent workflow contracts", () => {
     expect(contracts).toContain("Direct");
     expect(contracts).toContain("Brief");
     expect(contracts).toContain("Plan Pack");
-    expect(contracts).toContain("Do not create a separate contention ledger unless");
+    expect(contracts).toContain("Formal leases/heartbeats are plan-pack-only");
     expect(contracts).not.toContain("LOOP_LEDGER.md");
     expect(contracts).not.toMatch(/DISCOVER\s*(?:→|->)\s*PLAN\s*(?:→|->)\s*EXECUTE/);
   });
@@ -70,13 +79,17 @@ describe("agent workflow contracts", () => {
         "AGENTS.md",
         ".ai/00_system",
         ".ai/10_state/current-state.md",
-        "Direct",
-        "Brief",
-        "Plan Pack",
-        "NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK",
+        "Q0_CONTRACT_ONLY",
+        "Q3_RELEASE_GATE",
       ]) {
         expect(content, filePath + " missing " + reference).toContain(reference);
       }
+      if (content.includes("Status: approved")) {
+        expect(content, filePath + " missing Direct").toContain("Direct");
+        expect(content, filePath + " missing Brief").toContain("Brief");
+        expect(content, filePath + " missing Plan Pack").toMatch(/Plan\s+Pack/);
+      }
+      expect(content, filePath).not.toMatch(/\b(?:NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK)\b/);
       expect(content, filePath).not.toContain("Required shared files");
     }
   });
@@ -141,18 +154,68 @@ describe("agent workflow contracts", () => {
     expect(explore).toContain('model = "gpt-5.6-luna"');
   });
 
-  it("rejects non-current hardcoded GPT-5 model generations", () => {
+  it("keeps adapter validation fail-closed on active legacy policy", () => {
     const validator = read("scripts/validate-ai-workflow-adapters.mjs");
-    const modelPattern = /\bgpt-5\.\d+(?:-[a-z0-9][a-z0-9.-]*)?\b/giu;
+    expect(validator).toContain('".agents"');
+    expect(validator).toContain('"Q0_CONTRACT_ONLY"');
+    expect(validator).toContain('"Q3_RELEASE_GATE"');
+    expect(validator).toContain("legacy NOT_REQUIRED taxonomy");
 
-    expect("gpt-5.5 gpt-5.4-mini gpt-5.3-codex-spark".match(modelPattern)).toEqual([
-      "gpt-5.5",
-      "gpt-5.4-mini",
-      "gpt-5.3-codex-spark",
-    ]);
-    expect(validator).toContain("supportedCodexAgentModels.has(model)");
-    expect(validator).toContain("matchAll(/\\bgpt-5\\.\\d+");
-    expect(validator).not.toContain("(?:3|4)");
+    const fixtureRoot = mkdtempSync(path.join(tmpdir(), "archestimator-adapter-validator-"));
+    const fixturePaths = [
+      ".agents",
+      ".ai/00_system",
+      ".ai/08_prompts/000_Planning Prompts",
+      ".ai/08_prompts/templates",
+      ".ai/10_state/current-state.md",
+      ".ai/11_skills",
+      ".ai/12_agents",
+      ".codex",
+      ".commandcode",
+      ".cursor",
+      ".gemini",
+      ".cursorrules",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "CODEX.md",
+      "GEMINI.md",
+    ];
+
+    try {
+      for (const fixturePath of fixturePaths) {
+        cpSync(fixturePath, path.join(fixtureRoot, fixturePath), { recursive: true });
+      }
+      appendFileSync(
+        path.join(fixtureRoot, ".agents/README.md"),
+        "\nDefault to NOT_REQUIRED and require an explicit TEST_TASK.\n",
+      );
+
+      expect(() =>
+        execFileSync(
+          "node",
+          [
+            path.resolve("scripts/validate-ai-workflow-adapters.mjs"),
+            "--root",
+            fixtureRoot,
+            "--output",
+            path.join(fixtureRoot, "adapter-validation.json"),
+          ],
+          { encoding: "utf8", stdio: "pipe" },
+        ),
+      ).toThrow();
+
+      const report = JSON.parse(readFileSync(path.join(fixtureRoot, "adapter-validation.json"), "utf8"));
+      expect(report.status).toBe("FAIL");
+      expect(report.findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.stringContaining(".agents/README.md: contains legacy NOT_REQUIRED taxonomy"),
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    }
   });
 
   it("keeps deprecated and fallback adapters fail-closed", () => {

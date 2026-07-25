@@ -123,7 +123,8 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
 
   it("still clears the component via the explicit Delete action", () => {
     const { item, onClearComponent } = renderCell();
-    fireEvent.click(screen.getByRole("button", { name: `Delete component ${item.material}` }));
+    fireEvent.click(screen.getByRole("button", { name: `Open component actions for ${item.material}` }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete component" }));
     expect(onClearComponent).toHaveBeenCalledTimes(1);
   });
 
@@ -172,15 +173,17 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
 
     expect(name.compareDocumentPosition(brand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(brand.compareDocumentPosition(supplier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(brand.parentElement).toHaveClass("bg-surfaceMuted", "!text-[9px]", "font-medium");
+    expect(brand).toHaveClass("text-[10px]", "font-medium", "text-secondary");
+    expect(brand).toHaveAttribute("title", "Oakline Studio");
     expect(supplier).toHaveClass("text-[10px]", "font-normal", "text-tertiary");
   });
 
-  it("renders read-only component units in a fixed right-aligned slot", () => {
+  it("renders read-only component units inline beside cost in a compact right-aligned slot", () => {
     const { container, item } = renderCell();
 
     const slot = getMaterialUnitSlot(container);
-    expect(slot).toHaveClass("pointer-events-none", "absolute", "right-0", "top-[calc(50%+22px)]", "w-[112px]", "justify-end", "text-right", "!text-[10px]");
+    expect(slot).toHaveClass("min-w-0", "max-w-10");
+    expect(slot.parentElement).toHaveClass("flex", "shrink-0", "items-center", "justify-end", "gap-1");
     expect(slot).toHaveTextContent(`/${item.unit}`);
 
     const label = slot.querySelector("[data-estimate-material-unit-label='true']");
@@ -251,7 +254,8 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
     expect(componentShell).toHaveAttribute("data-component-source", "express");
     expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project Component"));
-    fireEvent.click(screen.getByRole("button", { name: `Promote ${item.material} to library` }));
+    fireEvent.click(screen.getByRole("button", { name: `Open component actions for ${item.material}` }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Promote to library" }));
     expect(onPromoteToLibrary).toHaveBeenCalledTimes(1);
   });
 
@@ -867,27 +871,24 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows real tooltips for icon-only component actions on keyboard focus", () => {
+  it("keeps overflow component actions keyboard-accessible and shows a tooltip for the icon-only drag action", () => {
     const { item } = renderCell({
       onOpenReplacePicker: vi.fn(),
       onOpenMovePicker: vi.fn(),
     });
 
-    const actionExpectations = [
-      { name: `Make ${item.material} a Project Component`, tooltip: "Make project component" },
-      { name: `Replace component ${item.material}`, tooltip: "Replace component" },
-      { name: `Move component ${item.material}`, tooltip: "Move component" },
-      { name: `Delete component ${item.material}`, tooltip: "Delete component" },
-      { name: `Edit component ${item.material}`, tooltip: "Edit component" },
-      { name: `Drag component ${item.material}`, tooltip: "Drag component" },
-    ];
+    const actionsTrigger = screen.getByRole("button", { name: `Open component actions for ${item.material}` });
+    expect(actionsTrigger).toHaveAttribute("aria-haspopup", "menu");
+    fireEvent.keyDown(actionsTrigger, { key: "Enter" });
+    expect(screen.queryByRole("menuitem", { name: "Edit component" })).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Replace component" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Move component" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Make project component" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Delete component" })).toBeInTheDocument();
 
-    for (const expectation of actionExpectations) {
-      const action = screen.getByRole("button", { name: expectation.name });
-      fireEvent.focus(action);
-      expect(screen.getByRole("tooltip")).toHaveTextContent(expectation.tooltip);
-      fireEvent.blur(action);
-    }
+    const dragAction = screen.getByRole("button", { name: `Drag component ${item.material}` });
+    fireEvent.focus(dragAction);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Drag component");
   });
 
   it("renders express components with the same shell chrome as library components", () => {
@@ -925,7 +926,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     expect(expressShell.className).toBe(libraryShellClassName);
   });
 
-  it("renders express component units in the same fixed right-aligned slot", () => {
+  it("renders express component units in the same compact right-aligned slot", () => {
     const item = {
       ...estimateLibraryItems[0],
       id: "express-row-1",
@@ -951,7 +952,8 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     });
 
     const slot = getMaterialUnitSlot(container);
-    expect(slot).toHaveClass("absolute", "right-0", "top-[calc(50%+22px)]", "w-[112px]", "justify-end", "text-right");
+    expect(slot).toHaveClass("min-w-0", "max-w-10");
+    expect(slot.parentElement).toHaveClass("flex", "shrink-0", "items-center", "justify-end", "gap-1");
 
     const unitInput = screen.getByLabelText("Unit");
     expect(slot).toContainElement(unitInput);
@@ -1111,7 +1113,8 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
     expect(componentShell).toHaveAttribute("data-component-source", "project");
     expect(componentShell).toHaveAttribute("title", expect.stringContaining("Project Component"));
-    fireEvent.click(screen.getByRole("button", { name: `Promote ${item.material} to library` }));
+    fireEvent.click(screen.getByRole("button", { name: `Open component actions for ${item.material}` }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Promote to library" }));
     expect(onPromoteToLibrary).toHaveBeenCalledTimes(1);
   });
 

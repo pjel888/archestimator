@@ -311,21 +311,46 @@ class FakeD1Database {
       const requestedPaths = typeof _values[0] === "string"
         ? JSON.parse(_values[0]) as string[]
         : [];
+      const referencedPaths = new Set(
+        this.attachmentRows
+          .map((row) => row.storage_path)
+          .filter((path): path is string => typeof path === "string"),
+      );
       return {
-        results: requestedPaths.map((storagePath, index) => ({
-          id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
-          storage_path: storagePath,
-          thumbnail_path: null,
-        })),
+        results: requestedPaths
+          .filter((storagePath) => !referencedPaths.has(storagePath))
+          .map((storagePath, index) => ({
+            id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+            storage_path: storagePath,
+            thumbnail_path: null,
+          })),
         success: true,
       };
     }
 
-    if (sql.includes("FROM component_variant_attachments")) {
-      return { results: this.attachmentRows, success: true };
-    }
-
     if (sql.includes("FROM upload_assets")) {
+      if (sql.includes("AS is_referenced")) {
+        const requestedPaths = typeof _values[0] === "string"
+          ? JSON.parse(_values[0]) as string[]
+          : [];
+        const referencedPaths = new Set(
+          this.attachmentRows
+            .map((row) => row.storage_path)
+            .filter((path): path is string => typeof path === "string"),
+        );
+        return {
+          results: requestedPaths
+            .filter((storagePath) => referencedPaths.has(storagePath))
+            .map((storagePath, index) => ({
+              id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+              storage_path: storagePath,
+              thumbnail_path: null,
+              is_referenced: 1,
+              is_already_removed: 0,
+            })),
+          success: true,
+        };
+      }
       const storagePaths = _values.slice(3).filter((value): value is string => (
         typeof value === "string" && value.startsWith(`${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/`)
       ));
@@ -336,6 +361,10 @@ class FakeD1Database {
         })),
         success: true,
       };
+    }
+
+    if (sql.includes("FROM component_variant_attachments")) {
+      return { results: this.attachmentRows, success: true };
     }
 
     return { results: [], success: true };
@@ -1404,7 +1433,7 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(501);
     await expect(response.json()).resolves.toEqual({
-      error: expect.stringContaining("Cloudflare Workers proof build"),
+      error: "Image processing is temporarily unavailable. Try again in a moment.",
     });
     expect(storage.upload).not.toHaveBeenCalled();
     expect(
@@ -1517,6 +1546,8 @@ describe("sensitive API auth boundaries", () => {
         "workspace-1/user-1/component.webp",
         "workspace-1/user-1/component-thumb.webp",
       ],
+      blockedPaths: [],
+      alreadyRemovedPaths: [],
     });
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.remove).not.toHaveBeenCalled();
@@ -1733,6 +1764,8 @@ describe("sensitive API auth boundaries", () => {
         "workspace-1/user-1/spec.pdf",
         "workspace-1/user-1/schedule.xlsx",
       ],
+      blockedPaths: [],
+      alreadyRemovedPaths: [],
     });
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.remove).not.toHaveBeenCalled();
@@ -1771,6 +1804,8 @@ describe("sensitive API auth boundaries", () => {
         "workspace-1/user-1/spec.pdf",
         "workspace-1/user-1/schedule.xlsx",
       ],
+      blockedPaths: [],
+      alreadyRemovedPaths: [],
     });
     expect(storage.remove).not.toHaveBeenCalled();
     expect(r2.delete).not.toHaveBeenCalled();
@@ -1833,12 +1868,16 @@ describe("sensitive API auth boundaries", () => {
       error:
         "Persisted component attachments cannot be removed from draft cleanup.",
     });
+    const referenceChecks = d1PreparedStatements(
+      storage.d1,
+      /FROM component_variant_attachments/,
+    );
+    expect(referenceChecks).toHaveLength(2);
     expect(
-      d1PreparedStatements(
-        storage.d1,
-        /FROM component_variant_attachments/,
+      referenceChecks.every((statement) =>
+        statement.sql.includes("FROM upload_assets")
       ),
-    ).toHaveLength(1);
+    ).toBe(true);
     expect(storage.remove).not.toHaveBeenCalled();
   });
 
@@ -2398,6 +2437,8 @@ describe("sensitive API auth boundaries", () => {
         `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
         `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
       ],
+      blockedPaths: [],
+      alreadyRemovedPaths: [],
     });
     expect(
       d1PreparedStatements(
@@ -2434,6 +2475,8 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       removedPaths: [imagePath],
+      blockedPaths: [],
+      alreadyRemovedPaths: [],
     });
     expect(workspaceMocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
     expect(
@@ -2473,6 +2516,8 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       removedPaths: [imagePath],
+      blockedPaths: [],
+      alreadyRemovedPaths: [],
     });
     expect(workspaceMocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
     expect(

@@ -51,7 +51,6 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     tags: overrides.tags ?? ["flooring", "tile"],
     pricingSource: overrides.pricingSource ?? "Supplier allowance — verify quote",
     pricingDate: overrides.pricingDate ?? "2026-05-23",
-    laborUnitCost: overrides.laborUnitCost,
     scopeStatus: overrides.scopeStatus,
   };
 }
@@ -170,14 +169,12 @@ describe("proposal workbook generation", () => {
       "sqm",
       22,
       950,
-      0,
-      { formula: "E19+F19", result: 950 },
-      { formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+800)', result: 21_700 },
+      { formula: 'IF(OR(G19="EXCLUDED",G19="BY OTHERS",G19="OWNER SUPPLIED",G19="OSM",G19="OFCI",G19="OSCI",G19="OMITTED",G19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+800)', result: 21_700 },
       "INCLUDED",
-      expect.stringContaining("Misc / other: ₱800.00"),
+      "Misc / other: ₱800.00",
     ]);
-    expect(bidForm?.getCell("H19").value).not.toBeNull();
-    expect(bidForm?.getCell("H20").value).toEqual({ formula: "SUM(H19:H19)", result: 21_700 });
+    expect(bidForm?.getCell("F19").value).not.toBeNull();
+    expect(bidForm?.getCell("F20").value).toEqual({ formula: "SUM(F19:F19)", result: 21_700 });
   });
 
   it("includes row contingency in bid-form recalculation formulas", () => {
@@ -212,13 +209,13 @@ describe("proposal workbook generation", () => {
     const bidForm = workbook.getWorksheet("Bid Form");
 
     expect(model.proposalRows[0].contingencySubtotal).toBe(200);
-    expect(bidForm?.getCell("H19").value).toEqual({
+    expect(bidForm?.getCell("F19").value).toEqual({
       formula:
-        'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+200+100)',
+        'IF(OR(G19="EXCLUDED",G19="BY OTHERS",G19="OWNER SUPPLIED",G19="OSM",G19="OFCI",G19="OSCI",G19="OMITTED",G19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+200+100)',
       result: 2_300,
     });
-    expect(bidForm?.getCell("J19").value).toContain("Contingency: ₱200.00");
-    expect(bidForm?.getCell("J19").value).toContain("Misc / other: ₱100.00");
+    expect(bidForm?.getCell("H19").value).toContain("Contingency: ₱200.00");
+    expect(bidForm?.getCell("H19").value).toContain("Misc / other: ₱100.00");
   });
 
   it("LINE TOTAL recalculates to the pinned costAmount for fractional quantities (recalc parity)", () => {
@@ -248,17 +245,17 @@ describe("proposal workbook generation", () => {
 
     // What the live ROUND-then-sum formula evaluates to, recomputed on the same float inputs.
     const formulaValue =
-      roundMoney(pr.quantity * pr.materialUnitCost) + roundMoney(pr.quantity * pr.laborUnitCost) + pr.contingencySubtotal + pr.miscSubtotal;
-    // What the old single-multiplication formula (qty * COST TOTAL) would have evaluated to.
-    const naiveValue = pr.quantity * (pr.materialUnitCost + pr.laborUnitCost) + pr.contingencySubtotal + pr.miscSubtotal;
+      roundMoney(pr.quantity * pr.materialUnitCost) + pr.contingencySubtotal + pr.miscSubtotal;
+    // What an unrounded material multiplication would have evaluated to.
+    const naiveValue = pr.quantity * pr.materialUnitCost + pr.contingencySubtotal + pr.miscSubtotal;
 
     expect(formulaValue).toBe(pr.costAmount); // recalc matches the pinned result
     expect(naiveValue).not.toBe(pr.costAmount); // the fixture genuinely exercises the divergence
 
     const bidForm = createProposalWorkbook(model).getWorksheet("Bid Form");
-    const lineTotal = bidForm?.getCell("H19").value as { formula: string; result: number };
+    const lineTotal = bidForm?.getCell("F19").value as { formula: string; result: number };
     expect(lineTotal.result).toBe(pr.costAmount);
-    expect(lineTotal.formula).toContain("ROUND(D19*E19,2)+ROUND(D19*F19,2)");
+    expect(lineTotal.formula).toContain("ROUND(D19*E19,2)");
   });
 
   it("writes formula-backed summary, commercial terms, and source breakdown traceability sheets", () => {
@@ -271,7 +268,7 @@ describe("proposal workbook generation", () => {
 
     expect(summary?.getCell("A1").value).toBe("SUMMARY OF BID");
     expect(summary?.getRow(14).values).toEqual([undefined, "SECTION", "ROWS", "AMOUNT"]);
-    expect(summary?.getRow(15).values).toEqual([undefined, "Finishes", 1, { formula: "'Bid Form'!H20", result: 21_700 }]);
+    expect(summary?.getRow(15).values).toEqual([undefined, "Finishes", 1, { formula: "'Bid Form'!F20", result: 21_700 }]);
     // P1-T6: single-tab Summary uses the dynamic totals start (one spacer past the last
     // section row). One section at row 15 → totals start at row 17, Grand Total at row 20.
     // P2-T1: Contingency (10%) and VAT (12% of Direct+Contingency) are now real formulas.
@@ -292,9 +289,7 @@ describe("proposal workbook generation", () => {
       12,
       "sqm",
       950,
-      0,
       11_400,
-      0,
       0,
       500,
       11_900,
@@ -309,8 +304,8 @@ describe("proposal workbook generation", () => {
     await loadedWorkbook.xlsx.load(buffer);
 
     expect(buffer.byteLength).toBeGreaterThan(4_000);
-    expect(loadedWorkbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual({
-      formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+800)',
+    expect(loadedWorkbook.getWorksheet("Bid Form")?.getCell("F19").value).toEqual({
+      formula: 'IF(OR(G19="EXCLUDED",G19="BY OTHERS",G19="OWNER SUPPLIED",G19="OSM",G19="OFCI",G19="OSCI",G19="OMITTED",G19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+800)',
       result: 21_700,
     });
   });
@@ -342,14 +337,14 @@ describe("proposal workbook generation", () => {
     expect(workbookXml).toContain('<sheet name="Bid Form" sheetId="1" state="visible" r:id="rId1"/>');
     expect(workbookXml).toContain('<calcPr calcId="191029" fullCalcOnLoad="1"/>');
     expect(stylesXml).toContain('formatCode="_- &quot;USD&quot;* #,##0.00_-;-&quot;USD&quot;* #,##0.00_-;_- &quot;USD&quot;* &quot;-&quot;??_-;_-@_-"');
-    expect(bidFormXml).toMatch(/<c r="H19" s="\d+"><f>IF\(OR\(I19="EXCLUDED".*\+10\+5\)<\/f><v>115<\/v><\/c>/);
+    expect(bidFormXml).toMatch(/<c r="F19" s="\d+"><f>IF\(OR\(G19="EXCLUDED".*\+10\+5\)<\/f><v>115<\/v><\/c>/);
 
     const loadedWorkbook = new ExcelJS.Workbook();
     await loadedWorkbook.xlsx.load(firstBuffer);
     const bidForm = loadedWorkbook.getWorksheet("Bid Form");
     expect(bidForm?.getCell("E19").value).toBe(100);
-    expect(bidForm?.getCell("H19").value).toEqual({
-      formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+10+5)',
+    expect(bidForm?.getCell("F19").value).toEqual({
+      formula: 'IF(OR(G19="EXCLUDED",G19="BY OTHERS",G19="OWNER SUPPLIED",G19="OSM",G19="OFCI",G19="OSCI",G19="OMITTED",G19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+10+5)',
       result: 115,
     });
   });
@@ -395,9 +390,9 @@ describe("proposal workbook generation", () => {
 
     const summary = workbook.getWorksheet("Summary");
     expect(summary?.getCell("A15").value).toBe("Main");
-    expect(summary?.getRow(16).values).toEqual([undefined, "Finishes", 1, { formula: "'Main'!H20", result: 21_700 }]);
+    expect(summary?.getRow(16).values).toEqual([undefined, "Finishes", 1, { formula: "'Main'!F20", result: 21_700 }]);
     expect(summary?.getCell("A17").value).toBe("Owner's / Scope");
-    expect(summary?.getRow(18).values).toEqual([undefined, "Finishes", 1, { formula: "'Owner''s Scope'!H20", result: 1_500 }]);
+    expect(summary?.getRow(18).values).toEqual([undefined, "Finishes", 1, { formula: "'Owner''s Scope'!F20", result: 1_500 }]);
     expect(summary?.getCell("B20").value).toEqual({ formula: "SUM(C16,C18)", result: 23_200 });
     // P2-T1: Grand Total = Direct (23,200) + 10% contingency (2,320) + 12% VAT (3,062.4).
     expect(summary?.getCell("B23").value).toEqual({ formula: "B20+B21+B22", result: 28_582.4 });
@@ -414,9 +409,7 @@ describe("proposal workbook generation", () => {
       "QTY",
       "UNIT",
       "MATERIAL UNIT COST",
-      "LABOR UNIT COST",
       "MATERIAL SUBTOTAL",
-      "LABOR SUBTOTAL",
       "CONTINGENCY / DISCOUNT",
       "MISC / OTHER",
       "COST AMOUNT",
@@ -425,7 +418,7 @@ describe("proposal workbook generation", () => {
     expect(breakdown?.getCell("A9").value).toBe("Owner's / Scope");
   });
 
-  it("omits the beta placeholder bidder and carries a visible LABOR material-only disclaimer (P1-T9)", () => {
+  it("omits the beta placeholder bidder and removed labor placeholders (P1-T9)", () => {
     const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
     const workbook = createProposalWorkbook(model);
     const bidForm = workbook.getWorksheet("Bid Form");
@@ -442,7 +435,8 @@ describe("proposal workbook generation", () => {
       ),
     );
     expect(allCellText.join("\n")).not.toContain("Archestimator beta workbook");
-    expect(allCellText.some((text) => text.includes("MATERIAL-ONLY pricing"))).toBe(true);
+    expect(BID_FORM_COLUMNS.map((column) => column.header)).not.toContain("LABOR");
+    expect(allCellText.some((text) => text.includes("MATERIAL-ONLY pricing"))).toBe(false);
   });
 
   it("redacts the Source Breakdown sheet and supplier remarks for the default client audience (P1-T9)", () => {
@@ -455,7 +449,7 @@ describe("proposal workbook generation", () => {
     const bidForm = workbook.getWorksheet("Bid Form");
     const remarkCells: string[] = [];
     bidForm?.eachRow((row) => {
-      const value = row.getCell(10).value;
+      const value = row.getCell(8).value;
       if (typeof value === "string") remarkCells.push(value);
     });
     const joinedRemarks = remarkCells.join("\n");
@@ -622,9 +616,9 @@ describe("proposal workbook generation", () => {
     const bidForm = workbook.getWorksheet("Bid Form");
     const summary = workbook.getWorksheet("Summary");
 
-    // COST TOTAL (G19) and LINE TOTAL (H19) are plain numbers, not formula objects.
-    expect(bidForm?.getCell("G19").value).toBe(950);
-    expect(bidForm?.getCell("H19").value).toBe(21_700);
+    // Material (E19) and LINE TOTAL (F19) are plain numbers, not formula objects.
+    expect(bidForm?.getCell("E19").value).toBe(950);
+    expect(bidForm?.getCell("F19").value).toBe(21_700);
     // The Summary Grand Total is a static value too.
     expect(summary?.getCell("B20").value).toBe(26_734.4);
   });
@@ -634,14 +628,11 @@ describe("proposal workbook generation", () => {
     const bidForm = createProposalWorkbook(model).getWorksheet("Bid Form");
     const col = BID_FORM_COLUMN_LETTERS;
 
-    const lineTotal = bidForm?.getCell("H19").value as { formula: string };
-    // Recalc-parity (round-then-sum): each product rounded to 2dp separately, mirroring the
+    const lineTotal = bidForm?.getCell("F19").value as { formula: string };
+    // Recalc parity: the material product is rounded to 2dp before adjustments, mirroring the
     // model's costAmount; columns derived from BID_FORM_COLUMNS so a reorder can't misalign.
-    expect(lineTotal.formula).toContain(`ROUND(${col.quantity}19*${col.material}19,2)+ROUND(${col.quantity}19*${col.labor}19,2)`);
+    expect(lineTotal.formula).toContain(`ROUND(${col.quantity}19*${col.material}19,2)`);
     expect(lineTotal.formula).toContain(`${col.scope}19="EXCLUDED"`);
-
-    const costTotal = bidForm?.getCell("G19").value as { formula: string };
-    expect(costTotal.formula).toBe(`${col.material}19+${col.labor}19`);
   });
 
   it("writes the Grand Total amount in words and an accounting peso format (P3-T4, F-28/F-34)", () => {
@@ -679,7 +670,7 @@ describe("proposal workbook generation", () => {
     const breakdown = workbook.getWorksheet("Source Breakdown");
 
     expect(bidForm?.getCell("E19").numFmt).toContain('"USD"');
-    expect(bidForm?.getCell("J19").value).toContain("USD 10.00");
+    expect(bidForm?.getCell("H19").value).toContain("USD 10.00");
     expect(summary?.getCell("C15").numFmt).toContain('"USD"');
     expect(summary?.getCell("B23").value).toContain("USD");
     expect(breakdown?.getCell("H7").numFmt).toContain('"USD"');
@@ -719,7 +710,7 @@ describe("proposal workbook generation", () => {
 
     const excludedItem = bidForm?.getRow(exclusionsHeaderRow + 1);
     expect(String(excludedItem?.getCell(2).value)).toContain("Owner Fixtures");
-    expect(excludedItem?.getCell(8).value).toBe(0); // line total zeroed
-    expect(excludedItem?.getCell(9).value).toBe("BY OTHERS"); // scope label
+    expect(excludedItem?.getCell(6).value).toBe(0); // line total zeroed
+    expect(excludedItem?.getCell(7).value).toBe("BY OTHERS"); // scope label
   });
 });

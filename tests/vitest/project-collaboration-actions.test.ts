@@ -77,9 +77,11 @@ describe("project collaboration management actions", () => {
   });
 
   it("batches active-token replacement with the durable delivery intent", () => {
-    expect(actions).toContain('throw new Error("Invitation delivery intent requires transactional D1 support.")');
-    expect(actions).toContain("await context.db.batch(statements)");
-    expect(actions).toContain("'collaboration_invite_token_issued'");
+    const inviteLinkIssuance = actions.match(/async function issueInviteEntryLink[\s\S]*?\n}\n\nasync function sendCloudflareInviteEmail/)?.[0];
+
+    expect(inviteLinkIssuance).toContain('if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.")');
+    expect(inviteLinkIssuance).toContain("await context.db.batch(statements)");
+    expect(inviteLinkIssuance).toContain("'collaboration_invite_token_issued'");
   });
 
   it("returns honest invite messages when app-owned invite links are disabled", () => {
@@ -97,9 +99,12 @@ describe("project collaboration management actions", () => {
   });
 
   it("batches collaboration access mutations with their durable audit event", () => {
+    const accessMutation = actions.match(/async function persistAccessMutationWithAudit[\s\S]*?\n}\n\nfunction revalidateCollaborationRoutes/)?.[0];
+
     expect(actions).toContain("prepareCollaborationAuditEvent");
     expect(actions).toContain("persistAccessMutationWithAudit");
-    expect(actions).toContain("Collaboration access changes require transactional D1 support.");
+    expect(accessMutation).toContain('if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.")');
+    expect(accessMutation).toContain("await context.db.batch([mutation, audit])");
     expect(actions).toContain("collaboration_audit_events");
     expect(actions).toContain("invite_email_attempted");
     expect(actions).toContain("role_changed");
@@ -156,7 +161,8 @@ describe("project collaboration management actions", () => {
     expect(projectRoleChange).toContain("assertTargetRoleCanBeMutated(context.actorRank");
     expect(projectRemoval).toContain("assertTargetRoleCanBeMutated(context.actorRank");
     expect(projectRemoval).toContain("removalMode: ProjectCollaboratorRemovalMode");
-    expect(projectRemoval).toContain("Project removal requires transactional D1 support.");
+    expect(projectRemoval).toContain('if (!context.db.batch) throw new Error("Something went wrong. Try again in a moment.")');
+    expect(projectRemoval).toContain("await context.db.batch(removalStatements)");
     expect(projectRemoval).toContain("prepareCollaborationAuditEvent");
     expect(projectRemoval).toContain("remove_all_direct_grants");
     expect(actions).toContain("retain_sheet_grants");

@@ -5,7 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import { createEditableRowStore, EditableRowStoreContext } from "@/components/workshop/estimate-sheet/rows/editable-row-store";
 import { EstimateRowItemsTable } from "@/components/workshop/estimate-sheet/rows/row-table";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { ESTIMATE_COLUMN_TEMPLATE, RESIZABLE_ESTIMATE_COLUMN_IDS } from "@/lib/estimate-sheet/column-model";
+import {
+  DEFAULT_ESTIMATE_COLUMN_WIDTHS,
+  ESTIMATE_COLUMN_TEMPLATE,
+  RESIZABLE_ESTIMATE_COLUMN_IDS,
+} from "@/lib/estimate-sheet/column-model";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
@@ -117,7 +121,8 @@ describe("estimate row table virtualization", () => {
     expect(screen.queryByRole("button", { name: `Drag component ${rowLabel}` })).not.toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: `Open row details for ${rowLabel}` })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: `Open row activity for ${rowLabel}` })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: `Open row actions for ${rowLabel}` }));
+    expect(screen.getByRole("menuitem", { name: "Row activity" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Edit component ${rowLabel}` })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: `${rowLabel} quantity` })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: `${rowLabel} contingency percentage` })).toBeDisabled();
@@ -201,13 +206,17 @@ describe("estimate row table virtualization", () => {
     const handles = screen.getAllByRole("separator", { name: /Resize .* column/ });
     expect(handles).toHaveLength(RESIZABLE_ESTIMATE_COLUMN_IDS.length);
     fireEvent.keyDown(handles[0], { key: "ArrowRight" });
-    expect(onCommitWidths).toHaveBeenCalledWith({ material: 164 });
+    const resizedMaterialWidth = DEFAULT_ESTIMATE_COLUMN_WIDTHS.material + 16;
+    expect(onCommitWidths).toHaveBeenCalledWith({ material: resizedMaterialWidth });
 
     const quantityHandle = screen.getByRole("separator", { name: "Resize Qty column" });
     fireEvent.pointerDown(quantityHandle, { button: 0, clientX: 100 });
     fireEvent.pointerMove(window, { clientX: 84 });
     fireEvent.pointerUp(window);
-    expect(onCommitWidths).toHaveBeenLastCalledWith({ material: 164, quantity: 86 });
+    expect(onCommitWidths).toHaveBeenLastCalledWith({
+      material: resizedMaterialWidth,
+      quantity: DEFAULT_ESTIMATE_COLUMN_WIDTHS.quantity + 16,
+    });
     expect(screen.queryByRole("button", { name: "Reset column widths" })).not.toBeInTheDocument();
     expect(onResetWidths).not.toHaveBeenCalled();
   });

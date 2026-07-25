@@ -80,6 +80,10 @@ vi.mock("next/server", () => ({
   after: (callback: () => unknown) => callback(),
 }));
 
+vi.mock("@/lib/auth/session", () => ({
+  getCurrentUserContext: vi.fn(async () => null),
+}));
+
 vi.mock("@/lib/cloudflare/d1", () => ({
   getCloudflareD1Database: async () => new FakeD1(),
 }));

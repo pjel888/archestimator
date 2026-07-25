@@ -30,6 +30,9 @@ describe("toast accessibility", () => {
 
     await user.click(screen.getByRole("button", { name: "Show info" }));
 
+    expect(document.querySelector("[data-toast-viewport='true']")).not.toHaveAttribute(
+      "aria-label",
+    );
     expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
     expect(screen.getByRole("status")).toHaveAttribute("data-toast-tone", "info");
   });

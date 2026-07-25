@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCloudflareD1Database = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
+const requireWorkshopWriteContext = vi.hoisted(() => vi.fn());
 const requireAuth = vi.hoisted(() => vi.fn());
 const createRuntimeUploadStorageProvider = vi.hoisted(() => vi.fn());
 const revalidatePath = vi.hoisted(() => vi.fn());
@@ -11,6 +12,7 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/auth/session", () => ({
   requireAuth,
   requireCurrentUserContext,
+  requireWorkshopWriteContext,
 }));
 vi.mock("@/lib/cloudflare/d1", () => ({ getCloudflareD1Database }));
 vi.mock("@/lib/uploads/runtime-storage-provider", () => ({
@@ -182,10 +184,16 @@ describe("project bulk deletion D1 actions", () => {
   beforeEach(() => {
     getCloudflareD1Database.mockReset();
     requireCurrentUserContext.mockReset();
+    requireWorkshopWriteContext.mockReset();
     requireAuth.mockReset();
     createRuntimeUploadStorageProvider.mockReset();
     revalidatePath.mockReset();
     requireCurrentUserContext.mockResolvedValue({
+      userId: USER_ID,
+      email: "owner@example.test",
+      role: "user",
+    });
+    requireWorkshopWriteContext.mockResolvedValue({
       userId: USER_ID,
       email: "owner@example.test",
       role: "user",

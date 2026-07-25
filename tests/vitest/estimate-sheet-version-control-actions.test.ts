@@ -50,10 +50,14 @@ const accessIntentMocks = vi.hoisted(() => ({
   getEstimateActivityRetentionMetrics: vi.fn(),
 }));
 
-const authMocks = vi.hoisted(() => ({
-  requireAuth: vi.fn(),
-  requireCurrentUserContext: vi.fn(),
-}));
+const authMocks = vi.hoisted(() => {
+  const requireCurrentUserContext = vi.fn();
+  return {
+    requireAuth: vi.fn(),
+    requireCurrentUserContext,
+    requireWorkshopWriteContext: requireCurrentUserContext,
+  };
+});
 
 const nextCacheMocks = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 const nextNavigationMocks = vi.hoisted(() => ({ redirect: vi.fn() }));

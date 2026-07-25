@@ -2,50 +2,44 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
-const releaseWorkflow = readFileSync(".github/workflows/release.yml", "utf8");
+const qualityWorkflow = readFileSync(".github/workflows/quality.yml", "utf8");
+const releaseEvidenceWorkflow = readFileSync(".github/workflows/release-evidence.yml", "utf8");
 const dependencyReviewWorkflow = readFileSync(".github/workflows/dependency-review.yml", "utf8");
-const actionReference = /uses:\s+[^\s@]+@([0-9a-f]{40})/g;
-const usesReference = /uses:\s+([^\s]+)/g;
+const thirdPartyActionReference = /uses:\s+(?!\.\/)([^\s@]+)@([^\s#]+)/g;
 
 describe("CI workflow source", () => {
-  it("uses only pinned third-party actions and frozen Bun installs", () => {
-    const pins = [...ciWorkflow.matchAll(actionReference), ...dependencyReviewWorkflow.matchAll(actionReference)];
-    const uses = [...ciWorkflow.matchAll(usesReference), ...dependencyReviewWorkflow.matchAll(usesReference)];
+  it("pins every third-party action to an immutable commit", () => {
+    const references = [qualityWorkflow, releaseEvidenceWorkflow, dependencyReviewWorkflow]
+      .flatMap((workflow) => [...workflow.matchAll(thirdPartyActionReference)]);
 
-    expect(pins.length).toBeGreaterThanOrEqual(9);
-    expect(uses.every((match) => /@[0-9a-f]{40}$/.test(match[1]))).toBe(true);
-    expect(ciWorkflow).toContain("bun install --frozen-lockfile");
-    expect(ciWorkflow).not.toContain("continue-on-error");
+    expect(references.length).toBeGreaterThanOrEqual(20);
+    expect(references.every((match) => /^[0-9a-f]{40}$/u.test(match[2] ?? ""))).toBe(true);
   });
 
-  it("uses fork-safe pull request and push triggers with a strict aggregate check", () => {
-    expect(ciWorkflow).toContain("  pull_request:");
-    expect(ciWorkflow).toContain("  push:");
-    expect(ciWorkflow).not.toContain("pull_request_target");
-    expect(ciWorkflow).not.toContain("merge_group");
-    expect(ciWorkflow).toContain("bun run type-check");
-    expect(ciWorkflow).toContain("TYPECHECK_RESULT");
-    expect(ciWorkflow).toContain('test "$BUILD_RESULT" = success');
+  it("classifies pull-request and main changes before running the quality matrix", () => {
+    expect(qualityWorkflow).toContain("  pull_request:");
+    expect(qualityWorkflow).toContain("  push:");
+    expect(qualityWorkflow).not.toContain("pull_request_target");
+    expect(qualityWorkflow).toContain("bun scripts/quality/classify.ts");
+    expect(qualityWorkflow).toContain("Q2_CRITICAL_CHANGE_GATE");
+    expect(qualityWorkflow).toContain("Q3_RELEASE_GATE");
   });
 
-  it("generates and uploads the immutable release artifacts after required checks", () => {
-    expect(ciWorkflow).toContain("release-candidate:");
-    expect(ciWorkflow).toContain("needs: [required]");
-    expect(ciWorkflow).toContain("bun run cf:build");
-    expect(ciWorkflow).toContain("scripts/generate-release-candidate-artifact.ts");
-    expect(ciWorkflow).toContain("release-candidate-metadata.json");
-    expect(ciWorkflow).toContain("worker-input-paths.json");
-    expect(ciWorkflow).toContain("release-candidate-payload-digest.json");
-    expect(ciWorkflow).toContain("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
-    expect(ciWorkflow).toContain("name: release-candidate-${{ github.run_id }}");
+  it("fails closed through one aggregate quality gate", () => {
+    expect(qualityWorkflow).toContain("name: quality / gate");
+    expect(qualityWorkflow).toContain("if: ${{ always() }}");
+    expect(qualityWorkflow).toContain("Build immutable job-result input");
+    expect(qualityWorkflow).toContain("bun scripts/quality/aggregate.ts");
+    expect(qualityWorkflow).toContain("--output artifacts/quality/aggregate.json");
   });
 
-  it("recomputes the downloaded candidate payload before metadata admission", () => {
-    expect(releaseWorkflow).toContain("release-candidate-payload-digest.json");
-    expect(releaseWorkflow).toContain("--verify-upload-payload true");
-    expect(releaseWorkflow.indexOf("--verify-upload-payload true")).toBeLessThan(
-      releaseWorkflow.indexOf("scripts/lib/release-candidate-metadata.ts"),
-    );
+  it("packages release evidence only for an explicit immutable candidate SHA", () => {
+    expect(releaseEvidenceWorkflow).toContain("workflow_dispatch:");
+    expect(releaseEvidenceWorkflow).toContain("commit_sha:");
+    expect(releaseEvidenceWorkflow).toContain("Verify checkout identity");
+    expect(releaseEvidenceWorkflow).toContain("bun run quality:release");
+    expect(releaseEvidenceWorkflow).toContain("bun run cf:build");
+    expect(releaseEvidenceWorkflow).toContain("release-candidate.tgz.sha256");
+    expect(releaseEvidenceWorkflow).toContain("actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661");
   });
 });

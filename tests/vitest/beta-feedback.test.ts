@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,18 +8,13 @@ import {
   parseBetaFeedbackSubmission,
 } from "@/lib/workshop/beta-feedback";
 
-const migration = readFileSync("supabase/migrations/20260602083000_beta_feedback_submissions.sql", "utf8");
-const reviewMigration = readFileSync("supabase/migrations/20260602084500_beta_feedback_review_queue.sql", "utf8");
-const allMigrations = readdirSync("supabase/migrations")
-  .filter((file) => file.endsWith(".sql"))
-  .sort()
-  .map((file) => readFileSync(`supabase/migrations/${file}`, "utf8"))
-  .join("\n");
-const actionSource = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");
+const migration = readFileSync("migrations/0001_closed_beta_feedback.sql", "utf8");
+const supportMigration = readFileSync("migrations/0100_user_support_system.sql", "utf8");
 const pageSource = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
 const reviewPageSource = readFileSync("src/app/admin/feedback/page.tsx", "utf8");
 const reviewSource = readFileSync("src/lib/workshop/beta-feedback-review.ts", "utf8");
 const reviewActionSource = readFileSync("src/lib/workshop/beta-feedback-review-actions.ts", "utf8");
+const legacyImportSource = readFileSync("src/lib/support/legacy-import-service.ts", "utf8");
 
 function feedbackFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -77,36 +72,27 @@ describe("closed beta feedback", () => {
     expect(decodeURIComponent(mailto)).toContain("Page: /workshop/projects/project-1");
   });
 
-  it("adds an authenticated insert-only beta feedback table", () => {
-    expect(migration).toContain("create table if not exists public.beta_feedback_submissions");
-    expect(migration).toContain("feedback_type text not null check");
-    expect(migration).toContain("severity text not null check");
-    expect(migration).toContain("alter table public.beta_feedback_submissions enable row level security");
-    expect(migration).toContain("grant insert on public.beta_feedback_submissions to authenticated");
-    expect(migration).toContain("with check (auth.uid() = user_id)");
-    expect(migration).not.toContain("grant select on public.beta_feedback_submissions to authenticated");
+  it("keeps legacy beta feedback durable in the active D1 migration chain", () => {
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS beta_feedback_submissions");
+    expect(migration).toContain("feedback_type TEXT NOT NULL CHECK");
+    expect(migration).toContain("severity TEXT NOT NULL CHECK");
+    expect(migration).toContain("message TEXT NOT NULL CHECK (length(trim(message)) BETWEEN 10 AND 4000)");
+    expect(migration).toContain("status TEXT NOT NULL DEFAULT 'new'");
+    expect(migration).toContain("CREATE INDEX IF NOT EXISTS idx_beta_feedback_user_created_at");
   });
 
-  it("prevents forged workspace or project context in beta feedback RLS", () => {
-    expect(allMigrations).toContain("beta feedback inserts must match actor context");
-    expect(allMigrations).toContain("(workspace_id is null or public.is_workspace_member(workspace_id))");
-    expect(allMigrations).toContain("(project_id is null or public.can_access_project(project_id))");
-    expect(allMigrations).toContain("workspace_id is null");
-    expect(allMigrations).toContain("project_id is null");
-    expect(allMigrations).toContain("or exists (");
-    expect(allMigrations).toContain("projects.id = beta_feedback_submissions.project_id");
-    expect(allMigrations).toContain("projects.workspace_id = beta_feedback_submissions.workspace_id");
+  it("maps legacy feedback into the current private support system without deleting source records", () => {
+    expect(supportMigration).toContain("Legacy beta feedback remains read-only source data.");
+    expect(supportMigration).toContain("CREATE TABLE IF NOT EXISTS support_legacy_feedback_imports");
+    expect(supportMigration).toContain("feedback_id TEXT PRIMARY KEY REFERENCES beta_feedback_submissions(id) ON DELETE RESTRICT");
+    expect(legacyImportSource).toContain("support_legacy_feedback_imports");
+    expect(legacyImportSource).toContain("FROM beta_feedback_submissions feedback");
+    expect(legacyImportSource).toContain('source: "beta_feedback_submission"');
   });
 
   it("opens feedback review only to platform admins", () => {
-    expect(reviewMigration).toContain("grant select on table public.beta_feedback_submissions to authenticated");
-    expect(reviewMigration).toContain("grant update (status) on table public.beta_feedback_submissions to authenticated");
-    expect(reviewMigration).toContain('create policy "platform admins can review beta feedback"');
-    expect(reviewMigration).toContain("for select");
-    expect(reviewMigration).toContain("using (public.is_platform_admin())");
-    expect(reviewMigration).toContain('create policy "platform admins can update beta feedback status"');
-    expect(reviewMigration).toContain("for update");
-    expect(reviewSource).toContain("isPlatformAdminRole(role)");
+    expect(reviewSource).toContain("isPlatformAdmin({ role: context.role");
+    expect(reviewSource).toContain("isPlatformAdminRole(context)");
     expect(reviewSource).toContain("readBetaFeedbackReviewQueueFromD1");
     expect(reviewActionSource).toContain("parseBetaFeedbackStatusUpdate");
     expect(reviewActionSource).toContain("updateBetaFeedbackReviewStatusInD1");
@@ -114,12 +100,10 @@ describe("closed beta feedback", () => {
     expect(reviewPageSource).toContain("Showing {submissions.length} latest feedback submissions.");
   });
 
-  it("keeps the protected feedback page tied to persistence and fallback", () => {
-    expect(actionSource).toContain("requireCurrentUserContext");
-    expect(actionSource).toContain("saveBetaFeedbackToD1");
-    expect(actionSource).toContain('feedbackRedirect({ fallback: "1" })');
-    expect(pageSource).toContain("BetaFeedbackForm");
-    expect(pageSource).toContain("Feedback could not be saved in the app.");
-    expect(pageSource).toContain("Open an email draft instead");
+  it("routes the protected feedback page through the current Support Center", () => {
+    expect(pageSource).toContain("SupportChatWidget");
+    expect(pageSource).toContain('title="Support Center"');
+    expect(pageSource).toContain("onboardingSupportContextFromSearchParams");
+    expect(pageSource).not.toContain("BetaFeedbackForm");
   });
 });

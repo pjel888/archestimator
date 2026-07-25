@@ -397,10 +397,8 @@ describe("workshop library consolidation UI", () => {
     expect(within(tools).getByRole("combobox", { name: "View components" })).toBeInTheDocument();
     expect(within(tools).getByRole("combobox", { name: "Sort components by" })).toBeInTheDocument();
     expect(within(tools).getByRole("combobox", { name: "Component sort order" })).toBeInTheDocument();
-    expect(within(tools).getByText("All Components · 3 components · 3 loaded")).toHaveAttribute(
-      "data-component-sheet-summary",
-      "true",
-    );
+    const catalogueGrid = screen.getByRole("list", { name: "All Components component catalogue grid" });
+    expect(within(catalogueGrid).getAllByRole("listitem")).toHaveLength(3);
 
     const viewMode = openComponentOrganizationMenu();
     expect(screen.getByText("Organize by")).toBeInTheDocument();
@@ -577,6 +575,9 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
+    fireEvent.click(screen.getByRole("treeitem", { name: "Fabrication" }));
+    expect(screen.getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-current", "page");
+
     // The canonical create action stays the same compact orange icon button.
     const addComponentButton = screen.getByRole("button", { name: "Add component" });
     expect(addComponentButton).not.toHaveTextContent("Add component");
@@ -631,7 +632,9 @@ describe("workshop library consolidation UI", () => {
     expect(nameInput).not.toHaveAttribute("aria-invalid");
     fireEvent.change(nameInput, { target: { value: "Acoustic Wall Panel" } });
     expect(nameInput).not.toHaveAttribute("aria-invalid");
-    fireEvent.change(within(dialog).getByLabelText("Category"), { target: { value: "Fabrication" } });
+    const directCategory = within(dialog).getByRole("textbox", { name: "Direct category" });
+    expect(directCategory).toHaveValue("Fabrication");
+    expect(directCategory).toHaveAttribute("aria-readonly", "true");
     expect(within(dialog).queryByLabelText("Price")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Pricing")).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Add price option" })).not.toBeInTheDocument();

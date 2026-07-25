@@ -1,4 +1,15 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -68,5 +79,64 @@ describe("Storybook provider boundary", () => {
     });
 
     expect(violations).toEqual([]);
+  });
+
+  it("runs without archived plan matrices and still rejects live boundary violations", () => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), "archestimator-storybook-boundary-"));
+    const storybookRoot = join(fixtureRoot, ".storybook");
+    const previewPath = join(storybookRoot, "preview.ts");
+
+    try {
+      mkdirSync(storybookRoot, { recursive: true });
+      writeFileSync(previewPath, "export const parameters = {};\n");
+
+      const validResult = spawnSync(
+        process.execPath,
+        [join(root, "scripts/check-storybook-boundary.mjs")],
+        { cwd: fixtureRoot, encoding: "utf8" },
+      );
+      expect(validResult.status).toBe(0);
+      expect(validResult.stdout).toContain(
+        "Storybook provider boundary OK: 1 current files scanned.",
+      );
+
+      writeFileSync(previewPath, 'export const loadData = () => fetch("/api/live");\n');
+
+      const invalidResult = spawnSync(
+        process.execPath,
+        [join(root, "scripts/check-storybook-boundary.mjs")],
+        { cwd: fixtureRoot, encoding: "utf8" },
+      );
+      expect(invalidResult.status).toBe(1);
+      expect(invalidResult.stderr).toContain("Storybook provider boundary violations:");
+      expect(invalidResult.stderr).toContain(".storybook/preview.ts matches");
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("uses deterministic query state and an action-free settings guidance fixture", () => {
+    const queryDecorator = readFileSync(
+      join(root, "src/stories/decorators/withStaticQueryClient.tsx"),
+      "utf8",
+    );
+    const modalPatterns = readFileSync(
+      join(root, "src/stories/domain/workshop/modal-patterns.stories.tsx"),
+      "utf8",
+    );
+
+    expect(queryDecorator).toContain("QueryClientProvider");
+    expect(queryDecorator).toContain("useState(createStaticQueryClient)");
+    expect(queryDecorator).toContain("gcTime: Infinity");
+    expect(queryDecorator).toContain("staleTime: Infinity");
+    expect(queryDecorator).toContain("refetchOnMount: false");
+    expect(queryDecorator).toContain("refetchOnReconnect: false");
+    expect(queryDecorator).toContain("refetchOnWindowFocus: false");
+    expect(queryDecorator).toMatch(/retry:\s*false/g);
+    expect(modalPatterns).toContain("StaticGuidanceToursSettings");
+    expect(modalPatterns).toContain("renderGuidanceToursSettings");
+    expect(modalPatterns).not.toContain(
+      '@/components/workshop/settings/GuidanceToursSettings',
+    );
   });
 });

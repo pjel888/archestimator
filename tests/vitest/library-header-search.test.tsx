@@ -57,13 +57,23 @@ describe("Library header search", () => {
     await user.click(screen.getByRole("button", { name: "Show library search" }));
 
     const toggle = screen.getByRole("button", { name: "Hide library search" });
-    const input = screen.getByRole("combobox", { name: "Search components and templates" });
+    const input = await screen.findByRole("combobox", { name: "Search components and templates" });
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(toggle).toHaveAttribute("aria-pressed", "true");
     expect(getHeaderSearchPanel()).toContainElement(input);
-    expect(input).toHaveAttribute("type", "search");
+    expect(input).toHaveAttribute("type", "text");
     await waitFor(() => expect(input).toHaveFocus());
+  });
+
+  it("opens component creation from the header action", async () => {
+    const user = userEvent.setup();
+    renderLibraryHeader();
+
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+
+    expect(navigationMock.navigationPush).toHaveBeenCalledOnce();
+    expect(navigationMock.navigationPush).toHaveBeenCalledWith("/workshop/library/components?add=component");
   });
 
   it("opens the real search input from the page-level keyboard shortcut", async () => {
@@ -71,7 +81,7 @@ describe("Library header search", () => {
 
     fireEvent.keyDown(window, { key: "k", metaKey: true });
 
-    const input = screen.getByRole("combobox", { name: "Search components and templates" });
+    const input = await screen.findByRole("combobox", { name: "Search components and templates" });
     expect(screen.getByRole("button", { name: "Hide library search" })).toHaveAttribute("aria-expanded", "true");
     expect(getHeaderSearchPanel()).toContainElement(input);
     await waitFor(() => expect(input).toHaveFocus());

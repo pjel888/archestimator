@@ -34,6 +34,7 @@ function deferred<T>() {
     resolve = promiseResolve;
     reject = promiseReject;
   });
+  void promise.catch(() => undefined);
   return { promise, resolve, reject };
 }
 
@@ -60,6 +61,12 @@ function renderEstimateSheet({ canEditEstimate = false }: { canEditEstimate?: bo
       <EstimateHeaderActions />
     </QueryClientProvider>,
   );
+}
+
+async function openRowActivity(user: ReturnType<typeof userEvent.setup>, rowLabel: string) {
+  await user.click(screen.getByRole("button", { name: `Open row actions for ${rowLabel}` }));
+  await user.click(screen.getByRole("menuitem", { name: "Row activity" }));
+  return screen.findByRole("dialog", { name: "Row item details" });
 }
 
 describe("estimate sheet version control UI", () => {
@@ -218,8 +225,7 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+    const rowDialog = await openRowActivity(user, "Hardwood Oak Flooring");
 
     await waitFor(() => {
       expect(within(rowDialog).getByLabelText("After component snapshot for HEMLINGBY Loveseat")).toBeInTheDocument();
@@ -306,8 +312,7 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+    const rowDialog = await openRowActivity(user, "Hardwood Oak Flooring");
 
     const snapshot = await within(rowDialog).findByLabelText("Component added snapshot for Manual Stone Countertop");
     expect(within(snapshot).getByText("No image in snapshot")).toBeInTheDocument();
@@ -384,8 +389,7 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+    const rowDialog = await openRowActivity(user, "Hardwood Oak Flooring");
 
     const trackerSnapshot = await within(rowDialog).findByLabelText("Component added snapshot for Tracked Component");
     const dataSnapshot = await within(rowDialog).findByLabelText("Component added snapshot for Data URL Component");
@@ -787,8 +791,7 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+    const rowDialog = await openRowActivity(user, "Hardwood Oak Flooring");
     expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
 
     await user.click(within(rowDialog).getByRole("button", { name: "Load more row activity" }));
