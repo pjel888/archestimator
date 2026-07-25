@@ -13,8 +13,8 @@ export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "
 
 const toneClasses = {
   info: "bg-surfaceMuted text-ink border-hairline",
-  success: "bg-successSoft text-success border-success/20",
-  warning: "bg-warningSoft text-warning border-warning/20",
+  success: "bg-successSoft text-ink border-success/20",
+  warning: "bg-warningSoft text-ink border-warning/20",
   danger: "bg-dangerSoft text-danger border-danger/20",
 };
 

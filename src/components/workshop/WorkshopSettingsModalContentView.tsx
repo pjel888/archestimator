@@ -13,7 +13,6 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { useState, type ReactNode } from "react";
 
-import { GuidanceToursSettings } from "@/components/workshop/settings/GuidanceToursSettings";
 import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import { cn } from "@/lib/ui/cn";
 
@@ -211,14 +210,16 @@ function SettingsRail({
 function SettingsDetailPanel({
   onboardingSnapshot,
   page,
+  renderGuidanceToursSettings,
   renderSignOutControl,
 }: {
   onboardingSnapshot: OnboardingEligibilitySnapshot | null;
   page: SettingsPage;
+  renderGuidanceToursSettings: (snapshot: OnboardingEligibilitySnapshot | null) => ReactNode;
   renderSignOutControl: () => ReactNode;
 }) {
   if (page.id === "guidance-tours") {
-    return <GuidanceToursSettings snapshot={onboardingSnapshot} />;
+    return renderGuidanceToursSettings(onboardingSnapshot);
   }
   const isSignOut = page.id === "sign-out";
   const isEmailAction = page.href?.startsWith("mailto:");
@@ -277,10 +278,12 @@ function SettingsDetailPanel({
 export function WorkshopSettingsModalContentView({
   initialPageId = "profile",
   onboardingSnapshot,
+  renderGuidanceToursSettings,
   renderSignOutControl,
 }: {
   initialPageId?: string;
   onboardingSnapshot: OnboardingEligibilitySnapshot | null;
+  renderGuidanceToursSettings: (snapshot: OnboardingEligibilitySnapshot | null) => ReactNode;
   renderSignOutControl: () => ReactNode;
 }) {
   const settingsGroups = baseSettingsGroups;
@@ -293,17 +296,17 @@ export function WorkshopSettingsModalContentView({
   return (
     <div className="grid h-[min(640px,calc(100dvh-48px))] min-h-0 grid-cols-[112px_minmax(0,1fr)] overflow-hidden bg-white sm:h-[min(640px,calc(100dvh-96px))] sm:min-h-[460px] sm:grid-cols-[260px_minmax(0,1fr)]">
       <SettingsRail activePageId={activePage.id} groups={settingsGroups} onSelect={setActivePageId} />
-      <main
+      <div
         id="settings-detail-panel"
         className="min-h-0 overflow-y-auto bg-white"
-        aria-label={activePage ? `${activePage.title} settings` : "Settings detail panel"}
       >
         <SettingsDetailPanel
           onboardingSnapshot={onboardingSnapshot}
           page={activePage}
+          renderGuidanceToursSettings={renderGuidanceToursSettings}
           renderSignOutControl={renderSignOutControl}
         />
-      </main>
+      </div>
     </div>
   );
 }

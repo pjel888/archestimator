@@ -270,10 +270,10 @@ function scrollMarginReducer(current: number, action: ScrollMarginAction) {
 function EstimateColumnHeader({ columnId, label, compactLabel = label }: { columnId: EstimateColumnId; label: string; compactLabel?: string }) {
   const helpText = ESTIMATE_COLUMN_HELP[columnId];
   const responsiveLabel = (
-    <>
-      <span data-estimate-column-label="full">{label}</span>
-      <span data-estimate-column-label="compact">{compactLabel}</span>
-    </>
+    <span aria-label={label}>
+      <span aria-hidden="true" data-estimate-column-label="full">{label}</span>
+      <span aria-hidden="true" data-estimate-column-label="compact">{compactLabel}</span>
+    </span>
   );
   if (!helpText) return responsiveLabel;
 
@@ -1094,6 +1094,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   columnResize,
   virtualization = WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION,
 }: EstimateRowItemsTableProps) {
+  "use no memo";
+
   reportEstimateRowItemsTableRender(targetNodeId);
   const surfaceVariant = useEstimateSurfaceVariant();
   const scrollRootRef = useRef<HTMLDivElement | null>(null);

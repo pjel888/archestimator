@@ -236,7 +236,6 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
     <ToastContext.Provider value={value}>
       {children}
       <div
-        aria-label="Notifications"
         data-toast-viewport="true"
         className={cn(
           "pointer-events-none fixed bottom-[calc(9rem+env(safe-area-inset-bottom))] left-1/2 z-[100] flex w-[min(320px,calc(100vw-24px))] -translate-x-1/2 flex-col gap-1",

@@ -108,7 +108,7 @@ function StaticMenu() {
           key={label}
           className={[
             "flex min-h-7 items-center gap-2 px-2 py-1 text-[10px] font-medium leading-3",
-            state === "danger" ? "text-danger" : state === "disabled" ? "text-tertiary opacity-50" : "text-ink",
+            state === "danger" ? "text-danger" : state === "disabled" ? "text-tertiary" : "text-ink",
           ].join(" ")}
         >
           <span className="min-w-0 flex-1 truncate">{label}</span>

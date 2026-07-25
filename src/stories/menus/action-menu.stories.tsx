@@ -43,7 +43,7 @@ function StaticActionMenu() {
         Duplicate
         <span className="ml-auto text-[9px] text-tertiary">D</span>
       </div>
-      <div className="flex min-h-7 items-center gap-2 rounded-xs px-2 py-1 text-[10px] font-medium leading-3 text-tertiary opacity-50">
+      <div className="flex min-h-7 items-center gap-2 rounded-xs px-2 py-1 text-[10px] font-medium leading-3 text-tertiary">
         <Archive size={12} weight="regular" aria-hidden="true" />
         Archive
       </div>

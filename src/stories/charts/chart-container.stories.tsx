@@ -10,7 +10,7 @@ function ChartContainerPreview() {
       <div className="flex h-32 items-end gap-2 border-b border-hairline px-2">
         {bars.map((value, index) => (
           <div key={value} className="flex flex-1 flex-col items-center gap-1">
-            <div className="w-full rounded-xs bg-ink" style={{ height: `${value}%` }} aria-label={`Static bar ${index + 1}: ${value}`} />
+            <div className="w-full rounded-xs bg-ink" style={{ height: `${value}%` }} role="img" aria-label={`Static bar ${index + 1}: ${value}`} />
             <span className="text-[8px] leading-3 text-tertiary">Q{index + 1}</span>
           </div>
         ))}

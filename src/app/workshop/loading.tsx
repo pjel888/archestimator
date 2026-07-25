@@ -37,10 +37,10 @@ function LedgerRows({ count }: { count: number }) {
   );
 }
 
-function ContentTileSkeleton({ kind }: { kind: "projects" | "components" }) {
-  const ibandClass = kind === "projects" ? "iband-projects" : "iband-components";
+function ContentTileSkeleton({ kind }: { kind: "projects" | "estimates" }) {
+  const ibandClass = kind === "projects" ? "iband-projects" : "iband-estimates";
   const toneClass =
-    kind === "projects" ? "dashboard-destination-card--projects" : "dashboard-destination-card--components";
+    kind === "projects" ? "dashboard-destination-card--projects" : "dashboard-destination-card--estimates";
 
   return (
     <div
@@ -137,7 +137,7 @@ export default function Loading() {
           {/* Destination field — reuses imageband + iband-* placement classes */}
           <div className="dashboard-imageband">
             <ContentTileSkeleton kind="projects" />
-            <ContentTileSkeleton kind="components" />
+            <ContentTileSkeleton kind="estimates" />
             <SimpleTileSkeleton iband="iband-templates" />
 
             {/* Library hub — same internal grid scaffold as LibraryHubCard. The
@@ -180,11 +180,8 @@ export default function Loading() {
                 <LedgerColumnSkeleton rows={4} />
               </div>
               <div className="desk-board-recents">
-                <div className="desk-recproj">
-                  <LedgerColumnSkeleton rows={3} />
-                </div>
-                <div className="desk-recsheet">
-                  <LedgerColumnSkeleton rows={3} />
+                <div className="desk-reccomponents">
+                  <LedgerColumnSkeleton rows={5} />
                 </div>
               </div>
             </div>

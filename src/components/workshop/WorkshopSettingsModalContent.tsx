@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { SignOut } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { GuidanceToursSettings } from "@/components/workshop/settings/GuidanceToursSettings";
 import { signOut } from "@/lib/auth/actions";
 import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 
@@ -28,6 +29,10 @@ function renderSignOutControl() {
   );
 }
 
+function renderGuidanceToursSettings(snapshot: OnboardingEligibilitySnapshot | null) {
+  return <GuidanceToursSettings snapshot={snapshot} />;
+}
+
 export function WorkshopSettingsModalContent({
   initialPageId,
   onboardingSnapshot,
@@ -39,6 +44,7 @@ export function WorkshopSettingsModalContent({
     <WorkshopSettingsModalContentView
       initialPageId={initialPageId}
       onboardingSnapshot={onboardingSnapshot}
+      renderGuidanceToursSettings={renderGuidanceToursSettings}
       renderSignOutControl={renderSignOutControl}
     />
   );

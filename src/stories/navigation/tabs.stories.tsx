@@ -33,8 +33,8 @@ const defaultTabs = [
   { id: "activity", label: "Activity" },
 ];
 
-function TabsWithState(props: Omit<TabsProps, "activeId" | "onChange"> & { defaultActiveId?: string }) {
-  const [activeId, setActiveId] = useState(props.defaultActiveId || props.tabs[0]?.id || "");
+function TabsWithState({ defaultActiveId, ...props }: Omit<TabsProps, "activeId" | "onChange"> & { defaultActiveId?: string }) {
+  const [activeId, setActiveId] = useState(defaultActiveId || props.tabs[0]?.id || "");
   return <Tabs {...props} activeId={activeId} onChange={setActiveId} />;
 }
 
@@ -45,6 +45,8 @@ export const Underline: Story = {
     activeId: "scope",
     onChange: () => {},
     variant: "underline",
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -55,6 +57,8 @@ export const Pills: Story = {
     activeId: "scope",
     onChange: () => {},
     variant: "pills",
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -68,6 +72,8 @@ export const WithIcons: Story = {
     ],
     activeId: "scope",
     onChange: () => {},
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -81,6 +87,8 @@ export const WithBadges: Story = {
     ],
     activeId: "scope",
     onChange: () => {},
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -94,6 +102,8 @@ export const WithDisabled: Story = {
     ],
     activeId: "scope",
     onChange: () => {},
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -106,6 +116,8 @@ export const Scrollable: Story = {
     })),
     activeId: "tab1",
     onChange: () => {},
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -114,6 +126,8 @@ export const Default: Story = {
     tabs: [{ id: "1", label: "Tab One" }, { id: "2", label: "Tab Two" }],
     activeId: "1",
     onChange: () => {},
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };
 
@@ -122,5 +136,7 @@ export const KeyboardFocus: Story = {
     tabs: [{ id: "a", label: "First Tab" }, { id: "b", label: "Second Tab" }, { id: "c", label: "Third Tab" }],
     activeId: "a",
     onChange: () => {},
+    ariaLabel: "Estimate sections",
+    controlsPanels: false,
   },
 };

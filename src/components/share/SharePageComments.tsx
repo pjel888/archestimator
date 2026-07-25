@@ -631,7 +631,7 @@ function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCom
         style={{ scrollbarWidth: "thin" }}
       >
         {isLoadingComments ? (
-          <div className="space-y-2" aria-label="Loading discussion">
+          <div className="space-y-2" role="status" aria-label="Loading discussion">
             <div className="h-3 w-3/4 rounded-xs bg-surfaceMuted" />
             <div className="h-3 w-1/2 rounded-xs bg-surfaceMuted" />
           </div>

@@ -161,7 +161,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 function StoryRowTable({ rows }: { rows: StoryCoverageRow[] }) {
   return (
     <StoryPanel className="overflow-hidden">
-      <div className="max-h-[560px] overflow-auto">
+      <div
+        className="max-h-[560px] overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        role="region"
+        aria-label="Story coverage rows"
+        tabIndex={0}
+      >
         <table className="w-full min-w-[760px] border-collapse text-left text-[10px] leading-4">
           <thead className="sticky top-0 bg-white text-[9px] text-tertiary">
             <tr className="border-b border-hairline">

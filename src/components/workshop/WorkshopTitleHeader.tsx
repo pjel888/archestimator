@@ -14,6 +14,7 @@ type WorkshopTitleHeaderProps = {
   centerHeader?: ReactNode;
   /** Replaces the default title/breadcrumb block (e.g. route-aware swaps). */
   titleSlot?: ReactNode;
+  showBackButton?: boolean;
   breadcrumbs?: WorkshopBreadcrumb[];
   projectId?: string;
   className?: string;
@@ -27,6 +28,7 @@ export function WorkshopTitleHeader({
   actions,
   centerHeader,
   titleSlot,
+  showBackButton = true,
   breadcrumbs,
   projectId,
   className,
@@ -56,7 +58,7 @@ export function WorkshopTitleHeader({
   return (
     <header className={cn("workshop-shell-glass-chrome workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between", className)}>
       <div className="flex min-w-0 shrink-0 items-center gap-1">
-        <WorkshopHeaderBackButton />
+        {showBackButton ? <WorkshopHeaderBackButton /> : null}
         {titleContent}
       </div>
       {centerHeader ? (

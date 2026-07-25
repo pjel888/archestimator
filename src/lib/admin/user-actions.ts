@@ -5,7 +5,12 @@ import { headers } from "next/headers";
 
 import { writeAdminAuditEvent } from "@/lib/admin/audit";
 import { requireAdminContext } from "@/lib/admin/require-admin";
-import { getAdminUser, setUserAccountStatus, type AccountStatus } from "@/lib/admin/users-repository";
+import {
+  getAdminUser,
+  setUserAccountStatus,
+  type AccountStatus,
+  type AdminUserRow,
+} from "@/lib/admin/users-repository";
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import { executeDeleteAccount, previewDeleteAccount } from "@/lib/auth/delete-account-repository";
 import {
@@ -34,6 +39,20 @@ export type DeleteUserActionState = {
   error?: string;
   blockers?: DeleteAccountPreview["blockers"];
 };
+
+type AdminDeleteTargetResult =
+  | {
+      ok: false;
+      admin: Awaited<ReturnType<typeof requireAdminContext>>;
+      target: null;
+      error: string;
+    }
+  | {
+      ok: true;
+      admin: Awaited<ReturnType<typeof requireAdminContext>>;
+      target: AdminUserRow;
+      error: null;
+    };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -101,31 +120,39 @@ export async function reactivateUser(userId: string): Promise<UserActionResult> 
   return performUserStatusAction(userId, "active", "user.reactivated");
 }
 
-async function getAdminDeleteTarget(userId: string) {
+async function getAdminDeleteTarget(userId: string): Promise<AdminDeleteTargetResult> {
   const admin = await requireAdminContext();
 
-  if (!UUID_PATTERN.test(userId)) return { admin, target: null, error: "Invalid user ID." };
-  if (userId === admin.userId) return { admin, target: null, error: "You cannot delete your own account from Admin." };
+  if (!UUID_PATTERN.test(userId)) return { ok: false, admin, target: null, error: "Invalid user ID." };
+  if (userId === admin.userId) {
+    return { ok: false, admin, target: null, error: "You cannot delete your own account from Admin." };
+  }
 
   const target = await getAdminUser(userId);
   if (target.error) {
     return {
+      ok: false,
       admin,
       target: null,
       error: target.error.includes("not available") ? "Database is unavailable." : "User not found.",
     };
   }
-  if (!target.data) return { admin, target: null, error: "User not found." };
+  if (!target.data) return { ok: false, admin, target: null, error: "User not found." };
   if (isPlatformAdmin({ role: target.data.role, email: target.data.email })) {
-    return { admin, target: null, error: "Platform administrator accounts cannot be deleted from Admin." };
+    return {
+      ok: false,
+      admin,
+      target: null,
+      error: "Platform administrator accounts cannot be deleted from Admin.",
+    };
   }
 
-  return { admin, target: target.data, error: null };
+  return { ok: true, admin, target: target.data, error: null };
 }
 
 export async function getDeleteUserPreviewAction(userId: string): Promise<DeleteAccountPreview> {
   const targetResult = await getAdminDeleteTarget(userId);
-  if (targetResult.error) {
+  if (!targetResult.ok) {
     return {
       ok: false,
       blockers: [{ code: "unavailable", message: targetResult.error, otherMemberCount: 0 }],
@@ -168,7 +195,7 @@ export async function deleteUserAction(
   }
 
   const targetResult = await getAdminDeleteTarget(userId);
-  if (targetResult.error) return { ok: false, error: targetResult.error };
+  if (!targetResult.ok) return { ok: false, error: targetResult.error };
 
   const database = await getCloudflareD1Database();
   if (!database) return { ok: false, error: "Account deletion is temporarily unavailable. Try again in a moment." };

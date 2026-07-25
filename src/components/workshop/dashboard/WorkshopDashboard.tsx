@@ -1,22 +1,23 @@
-import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight, Package } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import { FirstEstimateChecklist } from "@/components/workshop/FirstEstimateChecklist";
+import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
 import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
 import { LibraryCardLink, LibraryHubCard } from "./LibraryHubCard";
-import { PublishedProjectQuickActions } from "./PublishedProjectQuickActions";
 import { RecentProjectsList } from "./RecentProjectsList";
 import { RecentSheetsList } from "./RecentSheetsList";
 import {
+  estimateHref,
   formatShortDate,
   pickContinueEstimate,
+  projectEstimatesHref,
   WORKSHOP_ROUTES,
   type DashboardLibrarySpotlight,
   type WorkshopDashboardData,
-  type WorkshopProjectSummary,
 } from "./lib";
 
 type WorkshopDashboardProps = WorkshopDashboardData & {
@@ -36,109 +37,50 @@ const DASHBOARD_CARD_PANEL_STYLE: CSSProperties = {
   borderBottom: "1px solid var(--destination-inner-border, var(--glass-border))",
 };
 
-function PublishedProjectLinks({
-  projects,
-}: {
-  projects: WorkshopProjectSummary[];
-}) {
-  const publishedProjects = projects
-    .filter(
-      (project) =>
-        project.publicationSummary?.status === "published" &&
-        project.publicationSummary.clientLinkPath,
-    )
-    .slice(0, 8);
-
-  return (
-    <ul
-      className="dashboard-published-list"
-      aria-label="Recent published project shared links"
-    >
-      {publishedProjects.map((project) => {
-        const publication = project.publicationSummary;
-        const href = publication?.clientLinkPath ?? "#";
-        const meta = publication?.latestOpenedAt
-          ? `Opened ${formatShortDate(publication.latestOpenedAt)}`
-          : publication?.openCount
-            ? `${publication.openCount} opens`
-            : "Shared link";
-
-        return (
-          <li key={project.id} className="dashboard-published-list-item">
-            <div className="dashboard-published-row">
-              <Link href={href} className="dashboard-published-link">
-                <span className="min-w-0 flex-1 truncate" title={project.name}>
-                  {project.name}
-                </span>
-                <span className="shrink-0 font-numeric text-[9px] text-secondary">
-                  {meta}
-                </span>
-              </Link>
-              <PublishedProjectQuickActions
-                projectId={project.id}
-                projectName={project.name}
-                clientLinkPath={href}
-                canManagePublication={project.canManagePublication}
-              />
-            </div>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function UnpublishedProjectLinks({ projects }: { projects: WorkshopProjectSummary[] }) {
-  const unpublishedProjects = projects
-    .filter((project) => project.canManagePublication && project.publicationSummary?.status !== "published")
-    .slice(0, 4);
-
-  if (unpublishedProjects.length === 0) return null;
-
-  return (
-    <ul className="dashboard-published-list" aria-label="Projects ready to share">
-      {unpublishedProjects.map((project) => (
-        <li key={project.id} className="dashboard-published-list-item">
-          <div className="dashboard-published-row">
-            <span className="min-w-0 flex-1 truncate text-[10px] text-ink" title={project.name}>{project.name}</span>
-            <Link href={`/workshop/publisher?wizard=${encodeURIComponent(project.id)}`} className="text-[10px] font-medium text-ink underline underline-offset-2">
-              Share
-            </Link>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function RecentlyAddedComponents({
+function RecentComponentsList({
   components,
 }: {
   components: DashboardLibrarySpotlight["recentComponents"];
 }) {
-  const recentComponents = components.slice(0, 5);
-
   return (
-    <ul
-      className="dashboard-published-list"
-      aria-label="Recently added components"
-    >
-      {recentComponents.map((component) => (
-        <li key={component.id} className="dashboard-published-list-item">
-          <Link
-            href={WORKSHOP_ROUTES.libraryComponents}
-            className="dashboard-published-link"
-          >
-            <span className="min-w-0 flex-1 truncate" title={component.name}>
-              {component.name}
-            </span>
-            <span className="shrink-0 font-numeric text-[9px] text-secondary">
-              {formatShortDate(component.updatedAt) || component.category}
-            </span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <section className="flex h-full min-h-0 flex-col bg-transparent">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-hairline px-2">
+        <Package size={14} weight="fill" className="shrink-0 text-tertiary" />
+        <h2 className="text-[12px] font-medium text-ink">Components</h2>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ul aria-label="Recent components">
+          {components.map((component) => (
+            <li
+              key={component.id}
+              className="flex min-h-8 items-center gap-1.5 px-2 hover:bg-surface-muted"
+            >
+              <Package
+                size={16}
+                weight="regular"
+                className="shrink-0 text-secondary"
+                aria-hidden="true"
+              />
+              <Link
+                href={getComponentDetailsHref(component.id)}
+                className="flex min-w-0 flex-1 items-center gap-2 self-stretch focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0"
+                title={`${component.name} · ${component.category}`}
+              >
+                <span className="min-w-0 flex-1 truncate text-[11px] leading-4 text-ink">
+                  {component.name}
+                </span>
+                <span className="max-w-[38%] shrink truncate text-[10px] leading-4 text-secondary">
+                  {component.category}
+                </span>
+                <span className="shrink-0 font-numeric text-[9px] leading-4 text-tertiary">
+                  {formatShortDate(component.updatedAt)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -147,7 +89,7 @@ function RecentlyAddedComponents({
  * column): an editorial masthead headline, a square destination field (Projects
  * mountain image + supporting color blocks + Library hub + a big catalogue
  * numeral), and a working desk led by Favorites with compact Continue/Create
- * actions and the two recent ledgers ranked beneath it.
+ * actions and a recent component ledger ranked beneath it.
  */
 export function WorkshopDashboard({
   homebase,
@@ -164,6 +106,17 @@ export function WorkshopDashboard({
       ? componentCount + templateCount
       : undefined;
   const projectCount = homebase.projects.length;
+  const estimateSheetCount = homebase.estimates.length;
+  const estimateSheetsHref = continueEstimate
+    ? estimateHref(continueEstimate)
+    : homebase.projects[0]
+      ? projectEstimatesHref(homebase.projects[0].id)
+      : WORKSHOP_ROUTES.projects;
+  const estimateSheetsLinkLabel = continueEstimate
+    ? `Open ${continueEstimate.name}`
+    : homebase.projects[0]
+      ? `Open estimate sheets for ${homebase.projects[0].name}`
+      : "Open Projects";
 
   return (
     <div className="h-full min-h-0 overflow-y-auto">
@@ -215,28 +168,17 @@ export function WorkshopDashboard({
                 }}
               >
                 <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
-                  Project Count
+                  Projects Shown
                 </span>
                 <span className="dashboard-bignum-value">{projectCount}</span>
               </div>
 
-              <div
-                className="dashboard-published-panel"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                }}
-              >
-                <div className="dashboard-published-header">
-                  <span className="text-[12px] font-medium text-ink">
-                    Published Projects
-                  </span>
-                </div>
-                <PublishedProjectLinks projects={homebase.projects} />
-                <UnpublishedProjectLinks projects={homebase.projects} />
+              <div className="dashboard-published-panel">
+                <RecentProjectsList
+                  projects={homebase.projects}
+                  favoritesScope={favoritesScope}
+                  embedded
+                />
               </div>
             </div>
 
@@ -247,16 +189,16 @@ export function WorkshopDashboard({
             </div>
           </div>
           <div
-            aria-label="Components"
-            className="dashboard-destination-card dashboard-destination-grid dashboard-card-hover dashboard-destination-card--components group iband-components relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+            aria-label="Estimate Sheets"
+            className="dashboard-destination-card dashboard-destination-grid dashboard-card-hover dashboard-destination-card--estimates group iband-estimates relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
           >
             <div className="flex min-h-0 items-start justify-between gap-2">
               <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
                 02
               </span>
               <Link
-                href={WORKSHOP_ROUTES.libraryComponents}
-                aria-label="Open Components"
+                href={estimateSheetsHref}
+                aria-label={estimateSheetsLinkLabel}
                 className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
                 <ArrowUpRight
@@ -269,7 +211,7 @@ export function WorkshopDashboard({
             </div>
 
             <div
-              className="dashboard-component-card-panel"
+              className="dashboard-estimate-card-panel"
               style={DASHBOARD_CARD_PANEL_STYLE}
             >
               <div
@@ -286,37 +228,24 @@ export function WorkshopDashboard({
                 }}
               >
                 <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
-                  Component Count
+                  Sheets Shown
                 </span>
-                <span className="dashboard-bignum-value">
-                  {componentCount ?? "—"}
-                </span>
+                <span className="dashboard-bignum-value">{estimateSheetCount}</span>
               </div>
 
-              <div
-                className="dashboard-published-panel"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                }}
-              >
-                <div className="dashboard-published-header">
-                  <span className="text-[12px] font-medium text-ink">
-                    Recently Added Components
-                  </span>
-                </div>
-                <RecentlyAddedComponents
-                  components={librarySpotlight?.recentComponents ?? []}
+              <div className="dashboard-published-panel">
+                <RecentSheetsList
+                  estimates={homebase.estimates}
+                  favoriteProjects={favoriteProjects}
+                  favoritesScope={favoritesScope}
+                  embedded
                 />
               </div>
             </div>
 
             <div className="flex min-h-0 items-end justify-end">
               <span className="dashboard-destination-card-title font-display text-[32px] font-normal leading-none tracking-[0.04em] uppercase">
-                Components
+                Estimate Sheets
               </span>
             </div>
           </div>
@@ -338,7 +267,7 @@ export function WorkshopDashboard({
           />
         </div>
 
-        {/* Working desk — Favorites and recent work are one divided ledger;
+        {/* Working desk — Favorites and recent components are one divided ledger;
                 Continue stays as the compact action rail. */}
         <div className="dashboard-desk">
           <div className="desk-board">
@@ -351,19 +280,9 @@ export function WorkshopDashboard({
               />
             </div>
             <div className="desk-board-recents">
-              <div className="desk-recproj">
-                <RecentProjectsList
-                  projects={homebase.projects}
-                  favoritesScope={favoritesScope}
-                  embedded
-                />
-              </div>
-              <div className="desk-recsheet">
-                <RecentSheetsList
-                  estimates={homebase.estimates}
-                  favoriteProjects={favoriteProjects}
-                  favoritesScope={favoritesScope}
-                  embedded
+              <div className="desk-reccomponents">
+                <RecentComponentsList
+                  components={librarySpotlight?.recentComponents ?? []}
                 />
               </div>
             </div>

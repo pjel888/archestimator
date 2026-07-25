@@ -243,7 +243,9 @@ export function hydrateSidebarLibraryItems(items: EstimateRowItem[]): EstimateRo
     createdAt: item.createdAt ?? new Date(Date.now() - (index % 18) * 86400000).toISOString(),
     discipline: getComponentDiscipline(item),
     designation: getComponentDesignation(item),
-    tags: item.tags ?? [item.category, item.supplier, getComponentDiscipline(item)].filter(Boolean),
+    tags: item.tags ?? Array.from(new Set(
+      [item.category, item.supplier, getComponentDiscipline(item)].filter(Boolean),
+    )),
   }));
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { gsap } from "gsap";
 import { useEffect, useRef } from "react";
 
 import styles from "../kimi-landing.module.css";
@@ -23,7 +24,7 @@ export function HeroAudienceRoles({ roles }: HeroAudienceRolesProps) {
     }
 
     let cancelled = false;
-    let timeline: { kill: () => void } | undefined;
+    let timeline: gsap.core.Timeline | undefined;
     const start = () => {
       const list = listRef.current;
       if (!list || roles.length < 2) {

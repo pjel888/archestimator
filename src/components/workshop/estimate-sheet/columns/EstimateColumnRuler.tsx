@@ -95,9 +95,9 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
               <ArrowCounterClockwise size={16} weight="regular" aria-hidden="true" />
             </button>
           ) : (
-            <span className="truncate">
-              <span data-estimate-column-label="full">{column.label}</span>
-              <span data-estimate-column-label="compact">{"compactLabel" in column ? column.compactLabel : column.label}</span>
+            <span aria-label={column.label} className="truncate">
+              <span aria-hidden="true" data-estimate-column-label="full">{column.label}</span>
+              <span aria-hidden="true" data-estimate-column-label="compact">{"compactLabel" in column ? column.compactLabel : column.label}</span>
             </span>
           )}
           {isResizableEstimateColumnId(column.id) ? renderHandle(column.id) : null}

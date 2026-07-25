@@ -11,11 +11,10 @@ function normalCDF(z: number): number {
   const a4 = -1.453152027;
   const a5 = 1.061405429;
 
-  const sign = z < 0 ? -1 : 1;
-  const x = Math.abs(z) / Math.sqrt(2.0);
+  const x = z / Math.sqrt(2.0);
   const t = 1.0 / (1.0 + p * x);
   const erf = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-  return 0.5 * (1.0 + sign * erf);
+  return 0.5 * (1.0 + erf);
 }
 
 /**
@@ -40,7 +39,7 @@ export function calculateResults(
   let pValue = 1.0;
   let significant = false;
 
-  if (totalViews > 0 && totalConversions > 0 && totalNonConversions > 0) {
+  if (totalConversions > 0 && totalNonConversions > 0) {
     const expectedAConv = (variantA.views * totalConversions) / totalViews;
     const expectedANonConv = (variantA.views * totalNonConversions) / totalViews;
     const expectedBConv = (variantB.views * totalConversions) / totalViews;
@@ -54,11 +53,13 @@ export function calculateResults(
 
     const z = Math.sqrt(chiSquare);
     pValue = 2 * (1 - normalCDF(z));
+    // Stryker disable next-line EqualityOperator: integer view/conversion counts cannot produce an exact p-value of 0.05.
     significant = pValue < 0.05;
   }
 
   let recommendation: "A" | "B" | "inconclusive" = "inconclusive";
   if (significant) {
+    // Stryker disable next-line EqualityOperator: significance implies unequal rates, so > and >= are equivalent here.
     recommendation = rateB > rateA ? "B" : "A";
   }
 

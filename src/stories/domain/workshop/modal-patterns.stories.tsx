@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { CheckCircle, ImageSquare, Plus, SignOut, UploadSimple, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import Image from "next/image";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,17 +20,21 @@ const treeItems = ["All components", "Millwork", "Finishes", "Furniture", "Light
 const settingsAuditSteps = [
   {
     health: "Improved: persistent rail plus default Profile page",
+    height: 982,
     image: "/storybook-audits/settings-modal-audit-desktop.png",
     name: "Desktop Settings rail",
     notes:
       "The modal now opens with Profile selected by default. The side rail stays visible and uses compact single-line labels.",
+    width: 1280,
   },
   {
     health: "Improved: selected detail without losing navigation",
+    height: 926,
     image: "/storybook-audits/settings-modal-audit-mobile.png",
     name: "Narrow selected setting",
     notes:
       "The selected Workspace setting updates the right panel while the rail stays in place, so users can switch pages without backing out.",
+    width: 390,
   },
 ] as const;
 
@@ -75,6 +80,28 @@ function StaticSignOutControl() {
   );
 }
 
+function StaticGuidanceToursSettings() {
+  return (
+    <section className="mx-auto max-w-[720px] space-y-3 px-3 py-4 sm:px-5 sm:py-5" aria-labelledby="storybook-guidance-tours-title">
+      <div>
+        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Guidance</p>
+        <h3 id="storybook-guidance-tours-title" className="mt-1 text-[12px] font-medium leading-4 text-ink">
+          Guidance & tours
+        </h3>
+        <p className="mt-1 max-w-[68ch] text-[10px] leading-4 text-tertiary">
+          Static fixture for reviewing the modal layout without onboarding actions or provider state.
+        </p>
+      </div>
+      <div className="rounded-xs border border-hairline bg-white p-3">
+        <p className="text-[10px] font-medium leading-4 text-ink">Show automatic guidance</p>
+        <p className="mt-1 text-[9px] leading-4 text-tertiary">
+          Storybook keeps this control read-only and does not change guidance progress.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function SettingsPatternModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
     <AppModal
@@ -90,6 +117,7 @@ function SettingsPatternModal({ open, onOpenChange }: { open: boolean; onOpenCha
     >
       <WorkshopSettingsModalContentView
         onboardingSnapshot={null}
+        renderGuidanceToursSettings={() => <StaticGuidanceToursSettings />}
         renderSignOutControl={() => <StaticSignOutControl />}
       />
     </AppModal>
@@ -377,9 +405,12 @@ function SettingsModalAuditReview() {
               <h3 className="mt-1 text-[12px] font-medium leading-4 text-ink">{step.name}</h3>
               <p className="mt-1 text-[10px] font-medium leading-4 text-secondary">{step.health}</p>
             </div>
-            <img
+            <Image
               src={step.image}
               alt={`${step.name} audit capture`}
+              width={step.width}
+              height={step.height}
+              unoptimized
               className="w-full rounded-xs border border-hairline bg-white"
             />
             <p className="text-[10px] leading-4 text-tertiary">{step.notes}</p>

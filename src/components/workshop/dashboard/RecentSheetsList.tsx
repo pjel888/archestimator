@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Sheets — tall, dense white-paper ledger for the bento working desk.
+ * Estimate sheets — tall, dense white-paper list for the Workshop dashboard.
  * Legibility first: plain white surface, hairline dividers, no frost/blur.
  * Rows deep-link straight into the sheet editor.
  */
@@ -14,7 +14,6 @@ import { cn } from "@/lib/ui/cn";
 
 import {
   estimateHref,
-  formatShortDate,
   projectHref,
   type MainSidebarFavoriteProject,
   type WorkshopEstimateSummary,
@@ -42,7 +41,6 @@ export function RecentSheetsList({
   favoritesScope,
   embedded = false,
 }: RecentSheetsListProps) {
-  const rows = estimates.slice(0, 6);
   const projectFavoriteCreatedAtById = useMemo(
     () =>
       new Map(
@@ -67,53 +65,42 @@ export function RecentSheetsList({
     >
       <div className="flex h-12 shrink-0 items-center gap-2 border-b border-hairline px-2">
         <FileText size={14} weight="fill" className="shrink-0 text-tertiary" />
-        <h2 className="text-[12px] font-medium text-ink">Sheets</h2>
+        <h2 className="text-[12px] font-medium text-ink">Estimate Sheets</h2>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <ul aria-label="Recent estimate sheets">
-          {rows.map((estimate) => (
+        <ul aria-label="Estimate sheets">
+          {estimates.map((estimate) => (
             <li
               key={estimate.id}
-              className="flex items-stretch gap-2 px-2 py-2 hover:bg-surface-muted"
+              className="flex min-h-8 items-center gap-1.5 px-2 hover:bg-surface-muted"
             >
-              <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center justify-items-center">
-                <FileText
-                  size={16}
-                  weight="regular"
-                  className="text-secondary"
-                  aria-hidden="true"
-                />
-                <FavoriteSheetButton
-                  estimate={estimate}
-                  favoritesScope={favoritesScope}
-                  projectFavoriteCreatedAt={projectFavoriteCreatedAtById.get(estimate.project_id) ?? null}
-                />
-              </span>
+              <FileText
+                size={16}
+                weight="regular"
+                className="shrink-0 text-secondary"
+                aria-hidden="true"
+              />
+              <FavoriteSheetButton
+                estimate={estimate}
+                favoritesScope={favoritesScope}
+                projectFavoriteCreatedAt={projectFavoriteCreatedAtById.get(estimate.project_id) ?? null}
+              />
               <Link
                 href={estimateHref(estimate)}
                 className={cn(
-                  "grid min-w-0 flex-1 grid-rows-[12px_14px]",
+                  "flex min-w-0 flex-1 items-center gap-2 self-stretch",
                   ROW_FOCUS,
                 )}
+                title={`${estimate.name} · ${estimate.projectName}`}
               >
-                <span className="flex min-w-0 items-start gap-1.5">
-                  <span
-                    className="truncate text-[11px] leading-3 text-ink"
-                    title={estimate.name}
-                  >
-                    {estimate.name}
-                  </span>
+                <span className="min-w-0 flex-1 truncate text-[11px] leading-4 text-ink">
+                  {estimate.name}
                 </span>
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate text-[10px] leading-[14px] text-secondary">
-                    {estimate.projectName}
-                  </span>
+                <span className="max-w-[42%] shrink truncate text-[10px] leading-4 text-secondary">
+                  {estimate.projectName}
                 </span>
               </Link>
-              <time className="self-center shrink-0 font-numeric text-[9px] text-secondary">
-                {formatShortDate(estimate.updated_at)}
-              </time>
             </li>
           ))}
         </ul>
@@ -178,8 +165,10 @@ function FavoriteSheetButton({
       <button
         type="button"
         className={cn(
-          "grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
-          isFavorite ? "text-secondary" : null,
+          "grid size-6 cursor-pointer place-items-center rounded-xs transition hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
+          isFavorite
+            ? "text-brand-orange hover:text-brand-orange-dark"
+            : "text-tertiary hover:text-ink",
         )}
         aria-label={
           isFavorite

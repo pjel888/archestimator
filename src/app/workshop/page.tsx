@@ -131,6 +131,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
       title="Workshop"
       showEyebrow={false}
       hideTitle
+      showBackButton={false}
       titleSlot={<WorkshopHeaderGreeting displayName={currentUser.displayName} />}
       breadcrumbs={[]}
       contentClassName="overflow-hidden"

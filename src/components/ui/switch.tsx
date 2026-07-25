@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type ReactNode, type Ref } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, type Ref, useId } from "react";
 import { cn } from "@/lib/ui/cn";
 
 export type SwitchProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "value" | "onChange"> & {
@@ -10,11 +10,13 @@ export type SwitchProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "value" 
 };
 
 export function Switch({ className, checked = false, onChange, label, invalid, disabled, ref, ...props }: SwitchProps) {
+  const labelId = useId();
+
   return (
     <label
       className={cn(
         "group flex items-center gap-2",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+        disabled ? "cursor-not-allowed" : "cursor-pointer",
         className
       )}
     >
@@ -23,6 +25,7 @@ export function Switch({ className, checked = false, onChange, label, invalid, d
         role="switch"
         aria-checked={checked}
         aria-invalid={invalid ? true : props["aria-invalid"]}
+        aria-labelledby={props["aria-label"] || props["aria-labelledby"] ? props["aria-labelledby"] : label ? labelId : undefined}
         disabled={disabled}
         onClick={() => onChange?.(!checked)}
         ref={ref}
@@ -43,7 +46,7 @@ export function Switch({ className, checked = false, onChange, label, invalid, d
         />
       </button>
       {label && (
-        <span className={cn(
+        <span id={labelId} className={cn(
           "text-[10px] font-medium leading-none tracking-normal text-ink",
           invalid && "text-danger"
         )}>

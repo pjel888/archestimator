@@ -199,7 +199,7 @@ export function Tabs({
                       "border-b-2",
                       isActive
                         ? "border-brand-orange text-ink"
-                        : "border-transparent text-tertiary/60 hover:border-divider hover:text-ink",
+                        : "border-transparent text-secondary hover:border-divider hover:text-ink",
                     ],
                     variant === "pills" && [
                       "rounded-xs py-1.5",

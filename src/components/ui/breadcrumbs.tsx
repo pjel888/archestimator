@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, Fragment, type Ref } from "react";
+import { Fragment, type Ref } from "react";
 import Link from "next/link";
 import { CaretRight, House } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
@@ -31,9 +31,10 @@ export function Breadcrumbs({ items, showHome = false, homeHref = "/workshop", m
         <>
           <Link
             href={homeHref}
+            aria-label="Home"
             className="flex items-center justify-center rounded-xs p-0.5 text-muted hover:text-ink transition-colors"
           >
-            <House weight="regular" className="h-3.5 w-3.5" />
+            <House weight="regular" className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
           <Separator />
         </>

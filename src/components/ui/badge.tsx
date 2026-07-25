@@ -13,8 +13,8 @@ type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 const toneClasses: Record<BadgeTone, string> = {
   neutral: "border-hairline bg-surfaceMuted text-tertiary",
   accent: "border-accent/20 bg-accent-soft text-accent-dark",
-  success: "border-success/20 bg-success/10 text-success",
-  warning: "border-warning/25 bg-warning/10 text-warning",
+  success: "border-success/20 bg-success/10 text-ink",
+  warning: "border-warning/25 bg-warning/10 text-ink",
   danger: "border-dangerSoft bg-dangerSoft text-danger",
 };
 

@@ -25,6 +25,7 @@ export function ScrollArea({
   scrollShadows = false,
   onScroll,
   style,
+  tabIndex,
   ref,
   ...props
 }: ScrollAreaProps) {
@@ -97,6 +98,7 @@ export function ScrollArea({
           )}
           data-slot="scroll-area-viewport"
           onScroll={handleScroll}
+          tabIndex={tabIndex ?? 0}
           style={{ maxHeight, scrollbarColor: "var(--divider) transparent", scrollbarWidth: "thin", ...style }}
           {...props}
         >

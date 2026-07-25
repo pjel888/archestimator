@@ -1,5 +1,6 @@
 "use client";
 
+import type { gsap } from "gsap";
 import { useEffect, useRef } from "react";
 
 import styles from "../kimi-landing.module.css";
@@ -35,7 +36,7 @@ export function HeroAmbitionText({ className }: HeroAmbitionTextProps) {
     }
 
     let cancelled = false;
-    let timeline: { kill: () => void } | undefined;
+    let timeline: gsap.core.Timeline | undefined;
     const start = () => {
       const animatedText = animatedTextRef.current;
       if (!animatedText) {

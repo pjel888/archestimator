@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSelectedLayoutSegments } from "next/navigation";
-import { Blueprint, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
-import { useCallback, useRef, type KeyboardEvent } from "react";
+import { Blueprint, MagnifyingGlass, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { cn } from "@/lib/ui/cn";
 import { getLibraryActiveTab, LIBRARY_TABS_ID_BASE, type LibraryTabId } from "./library-tabs-model";
+import { LibraryOverviewSearch } from "./overview/LibraryOverviewSearch";
 
 const LIBRARY_TABS = [
   {
@@ -32,6 +34,7 @@ const LIBRARY_TABS = [
 type RouterPrefetchOptions = NonNullable<Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]>;
 const ROUTER_PREFETCH_KIND_AUTO = "auto" as RouterPrefetchOptions["kind"];
 type LibraryRouteRouter = ReturnType<typeof useRouter>;
+type LibraryNavigationRouter = ReturnType<typeof useNavigationRouter>;
 
 /**
  * Page-level tab strip for the unified Library surface. Lives in the
@@ -40,6 +43,7 @@ type LibraryRouteRouter = ReturnType<typeof useRouter>;
  */
 export function LibraryTabsLayoutClient() {
   const routeRouter = useRouter();
+  const navigationRouter = useNavigationRouter();
   const pathname = usePathname();
   const segments = useSelectedLayoutSegments();
   const isTemplateEditorRoute = segments[0] === "templates" && segments.length > 1;
@@ -49,6 +53,7 @@ export function LibraryTabsLayoutClient() {
   return (
     <LibraryTabsLayoutContent
       routeRouter={routeRouter}
+      navigationRouter={navigationRouter}
       pathname={pathname}
     />
   );
@@ -56,13 +61,19 @@ export function LibraryTabsLayoutClient() {
 
 function LibraryTabsLayoutContent({
   routeRouter,
+  navigationRouter,
   pathname,
 }: {
   routeRouter: LibraryRouteRouter;
+  navigationRouter: LibraryNavigationRouter;
   pathname: string;
 }) {
+  const searchPanelId = useId();
+  const searchRootRef = useRef<HTMLDivElement | null>(null);
   const prefetchedHrefsRef = useRef<Set<string> | null>(null);
   const tabRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchHasQueryRef = useRef(false);
   if (prefetchedHrefsRef.current === null) prefetchedHrefsRef.current = new Set();
 
   const activeTab = getLibraryActiveTab(pathname);
@@ -93,8 +104,115 @@ function LibraryTabsLayoutContent({
     tabRefs.current[nextIndex]?.focus();
   }, []);
 
+  const focusSearchToggle = useCallback(() => {
+    requestAnimationFrame(() => {
+      for (const button of document.querySelectorAll<HTMLButtonElement>("button[aria-controls]")) {
+        if (button.getAttribute("aria-controls") === searchPanelId) {
+          button.focus();
+          return;
+        }
+      }
+    });
+  }, [searchPanelId]);
+
+  const closeSearchPanel = useCallback(() => {
+    searchHasQueryRef.current = false;
+    setSearchOpen(false);
+    focusSearchToggle();
+  }, [focusSearchToggle]);
+
+  const handleSearchQueryPresenceChange = useCallback((hasQuery: boolean) => {
+    searchHasQueryRef.current = hasQuery;
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "components") return;
+
+    function handleSearchShortcut(event: globalThis.KeyboardEvent) {
+      if (event.defaultPrevented) return;
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+      if (document.querySelector("[role='dialog'], [role='alertdialog']")) return;
+      event.preventDefault();
+      setSearchOpen(true);
+    }
+
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "components" || !searchOpen) return;
+
+    function handleDocumentPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && searchRootRef.current?.contains(target)) return;
+      if (searchHasQueryRef.current) return;
+      setSearchOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown, true);
+    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown, true);
+  }, [activeTab, searchOpen]);
+
   return (
     <div className="shrink-0 bg-transparent">
+      {activeTab !== "components" ? (
+        <div ref={searchRootRef} className="relative">
+          <div
+            aria-label="Library tools"
+            className="flex h-[38px] min-h-[38px] items-center gap-1 bg-transparent px-2 py-0"
+          >
+            <div className="flex items-center gap-1" role="group" aria-label="Library search">
+              <button
+                type="button"
+                aria-label={searchOpen ? "Hide library search" : "Show library search"}
+                aria-controls={searchPanelId}
+                aria-expanded={searchOpen}
+                aria-pressed={searchOpen}
+                title={searchOpen ? "Hide library search" : "Show library search"}
+                className={cn(
+                  "grid size-6 cursor-pointer place-items-center rounded-xs p-0 text-tertiary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
+                  searchOpen
+                    ? "bg-surfaceMuted text-ink hover:bg-surfaceMuted focus-visible:bg-surfaceMuted"
+                    : "bg-transparent hover:text-ink",
+                )}
+                onClick={() => {
+                  if (searchOpen) closeSearchPanel();
+                  else setSearchOpen(true);
+                }}
+              >
+                <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Add component"
+                title="Add component"
+                className="grid size-6 cursor-pointer place-items-center rounded-xs bg-orange-100 p-0 text-orange-700 transition hover:bg-orange-200 hover:text-orange-800 focus-visible:bg-orange-200 focus-visible:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                onClick={() => navigationRouter.push("/workshop/library/components?add=component")}
+              >
+                <Package size={13} weight="regular" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          {searchOpen ? (
+            <search
+              id={searchPanelId}
+              aria-label="Library search"
+              className="absolute left-2 right-2 top-[38px] z-30 w-auto sm:right-auto sm:w-[420px]"
+              data-library-header-search-panel="true"
+            >
+              <LibraryOverviewSearch
+                className="w-full"
+                autoFocus
+                onDismiss={closeSearchPanel}
+                onQueryPresenceChange={handleSearchQueryPresenceChange}
+              />
+            </search>
+          ) : null}
+        </div>
+      ) : null}
       <div className="bg-transparent px-2">
         <div
           role="tablist"

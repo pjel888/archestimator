@@ -36,7 +36,7 @@ export function ProjectComparisonTable({
   return (
     <div className="overflow-x-auto rounded-xs border border-hairline bg-white">
       <table id={id} aria-label="Cost comparison detail" className="w-full border-collapse text-[10px]">
-        <thead className="bg-muted/30 text-[9px] uppercase tracking-normal text-muted-foreground">
+        <thead className="bg-surfaceMuted text-[9px] uppercase tracking-normal text-secondary">
           <tr>
             <th scope="col" className="px-2 py-2 text-left font-medium">Bucket</th>
             {view.estimates.map((estimate) => (

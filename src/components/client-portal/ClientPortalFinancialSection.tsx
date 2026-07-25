@@ -53,7 +53,7 @@ export function ClientPortalFinancialSection({ kind, payload }: { kind: Financia
           })}
         </ol>
       </div>
-      <aside className="border border-hairline bg-surfaceMuted/40 p-4 sm:p-5"><p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Reconciled total</p><p className="mt-2 text-[22px] font-medium tracking-tight text-ink">{money(totalCost, value.currencyCode)}</p><p className="mt-3 text-[12px] leading-5 text-secondary">The bars are ranked relative to the largest item. Percentages use the full issued total.</p></aside>
+      <aside className="border border-hairline bg-surfaceMuted/40 p-4 sm:p-5"><p className="text-[10px] font-medium uppercase tracking-wide text-secondary">Reconciled total</p><p className="mt-2 text-[22px] font-medium tracking-tight text-ink">{money(totalCost, value.currencyCode)}</p><p className="mt-3 text-[12px] leading-5 text-secondary">The bars are ranked relative to the largest item. Percentages use the full issued total.</p></aside>
     </div>
   );
 }

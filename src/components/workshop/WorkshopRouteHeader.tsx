@@ -23,6 +23,7 @@ type WorkshopRouteHeaderProps = {
   subHeader?: ReactNode;
   /** Replaces the title bar's default title/breadcrumb block. */
   titleSlot?: ReactNode;
+  showBackButton?: boolean;
   /** Hides the default route title block while preserving header actions. */
   hideTitle?: boolean;
   breadcrumbs?: WorkshopBreadcrumb[];
@@ -67,6 +68,7 @@ export async function WorkshopRouteHeader({
   centerHeader,
   subHeader,
   titleSlot,
+  showBackButton = true,
   hideTitle = false,
   breadcrumbs,
   alignChromeToProjectSidebar = false,
@@ -110,6 +112,7 @@ export async function WorkshopRouteHeader({
         actions={headerActions}
         centerHeader={centerHeader}
         titleSlot={titleSlot}
+        showBackButton={showBackButton}
         hideTitle={hideTitle}
         breadcrumbs={resolvedBreadcrumbs}
         projectId={projectId}

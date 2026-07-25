@@ -50,8 +50,8 @@ type Tone = "neutral" | "success" | "warning" | "danger";
 
 const toneClassName: Record<Tone, string> = {
   neutral: "border-hairline bg-surfaceMuted text-ink",
-  success: "border-successSoft bg-successSoft text-success",
-  warning: "border-warningSoft bg-warningSoft text-warning",
+  success: "border-successSoft bg-successSoft text-ink",
+  warning: "border-warningSoft bg-warningSoft text-ink",
   danger: "border-dangerSoft bg-dangerSoft text-danger",
 };
 
@@ -363,7 +363,7 @@ export function DomainCardsPreview() {
     <StoryGrid columns="md:grid-cols-3">
       <StoryPanel>
         <Badge tone="success">{project.status}</Badge>
-        <h3 className="mt-2 truncate text-[11px] font-medium leading-4 text-ink">{project.name}</h3>
+        <h2 className="mt-2 truncate text-[11px] font-medium leading-4 text-ink">{project.name}</h2>
         <p className="text-[9px] leading-3 text-tertiary">{project.code} / {project.estimateCount} estimates</p>
         <p className="mt-2 text-[10px] font-medium leading-4 text-ink">{formatPeso(project.totalCost)}</p>
       </StoryPanel>
@@ -379,7 +379,7 @@ export function DomainCardsPreview() {
       </StoryPanel>
       <StoryPanel>
         <Badge tone={share.decision === "approved" ? "success" : share.decision === "changes-requested" ? "warning" : "neutral"}>{share.decision}</Badge>
-        <h3 className="mt-2 text-[11px] font-medium leading-4 text-ink">Share review panel</h3>
+        <h2 className="mt-2 text-[11px] font-medium leading-4 text-ink">Share review panel</h2>
         <p className="mt-1 text-[9px] leading-3 text-tertiary">{share.reviewerName} / {share.commentCount} comments</p>
         <p className="mt-2 truncate text-[9px] leading-3 text-secondary">{share.tokenLabel}</p>
       </StoryPanel>

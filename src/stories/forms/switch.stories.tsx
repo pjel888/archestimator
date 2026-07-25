@@ -16,12 +16,14 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     checked: false,
+    "aria-label": "Enable notifications",
   },
 };
 
 export const Checked: Story = {
   args: {
     checked: true,
+    "aria-label": "Enable notifications",
   },
 };
 

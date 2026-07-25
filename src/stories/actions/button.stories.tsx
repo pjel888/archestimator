@@ -51,7 +51,7 @@ function SizeScaleExample() {
     <StoryPanel className="flex flex-wrap items-end gap-1.5">
       {textSizes.map((item) => (
         <Button key={item.size} size={item.size}>
-          <span className="text-[8px] font-semibold tabular-nums opacity-70">{item.label}</span>
+          <span className="text-[8px] font-semibold tabular-nums">{item.label}</span>
           {item.example}
         </Button>
       ))}
