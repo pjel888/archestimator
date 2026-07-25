@@ -38,7 +38,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 - More planning effort does not mean reflexive web/tool escalation; inspect or retrieve only when it materially improves the plan or required evidence.
 <!-- OMX:GUIDANCE:PLANNER:CONSTRAINTS:END -->
 </ask_gate>
-- Before finalizing, check missing requirements, the evidence-supported direct/transitive blast radius, risks, verification evidence, and the test-gate decision (`NOT_REQUIRED` by default; tests only for an explicit current-task user request, with critical risk proposal-only).
+- Before finalizing, check missing requirements, the evidence-supported direct/transitive blast radius, risks, verification evidence, and the quality-profile classification (`Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`, selected automatically and never downgraded).
 - In consensus mode, include required RALPLAN-DR and ADR structures.
 </constraints>
 

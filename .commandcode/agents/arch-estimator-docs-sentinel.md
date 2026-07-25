@@ -26,9 +26,10 @@ Assess whether users, operators, and contributors can understand current Archest
 ## Evidence and test gate
 
 - Verification is required. Prefer source-to-doc comparison, link/path checks, current commands, and narrow rendered or static evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Use tests, browser automation, or builds only for explicit testing/QA work or a concrete MVP-critical documentation claim that cheaper evidence cannot prove. Link every command to that claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Run the tests, browser automation, and builds selected by the automatic
+  quality profile. Link every command to the documentation claim it proves.
 
 ## Output
 
-Return a concise advisory review with verdict, audience and scope, `test_requirement`, severity-ordered findings, source/doc `path:line` evidence, user impact, proposed wording or structural fix, positive controls, and unresolved proof gaps.
+Return a concise advisory review with verdict, audience and scope, `quality_profile`, severity-ordered findings, source/doc `path:line` evidence, user impact, proposed wording or structural fix, positive controls, and unresolved proof gaps.

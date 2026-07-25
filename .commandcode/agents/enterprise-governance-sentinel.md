@@ -26,9 +26,9 @@ Assess whether organizational administration and delegated access are explicit, 
 ## Evidence and test gate
 
 - Verification is required. Prefer current authorization paths, schema/config, audit records, token lifecycle tracing, and narrow static evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Access-control or lifecycle-critical claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request blanket suites, builds, or browser runs without naming the governance invariant.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Access-control or lifecycle-critical claims require profile-selected evidence. Run the narrowest sufficient blanket suites, builds, or browser runs without naming the governance invariant.
 
 ## Output
 
-Return a concise advisory review with verdict, roles and lifecycle scope, `test_requirement`, severity-ordered findings, actor/action/resource evidence, `path:line` references, business/security impact, remediation, positive controls, and unproven hosted or enterprise-provider boundaries.
+Return a concise advisory review with verdict, roles and lifecycle scope, `quality_profile`, severity-ordered findings, actor/action/resource evidence, `path:line` references, business/security impact, remediation, positive controls, and unproven hosted or enterprise-provider boundaries.

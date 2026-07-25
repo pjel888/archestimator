@@ -26,9 +26,9 @@ Identify exploitable weaknesses and missing defensive controls across applicatio
 ## Evidence and test gate
 
 - Verification is required. Prefer trust-boundary tracing, current source/config, narrow static checks, sanitized logs, and provider evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Auth, token, tenant-isolation, upload, or release-critical claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the threat claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Auth, token, tenant-isolation, upload, or release-critical claims require profile-selected evidence. Run the narrowest sufficient a blanket suite, build, or browser run without naming the threat claim.
 
 ## Output
 
-Return a concise advisory review with verdict, threat scope, `test_requirement`, severity-ordered findings with stable IDs, exploit path, `path:line` evidence, impact, remediation and denial-proof guidance, positive controls, and unverified hosted boundaries. Redact all sensitive material.
+Return a concise advisory review with verdict, threat scope, `quality_profile`, severity-ordered findings with stable IDs, exploit path, `path:line` evidence, impact, remediation and denial-proof guidance, positive controls, and unverified hosted boundaries. Redact all sensitive material.

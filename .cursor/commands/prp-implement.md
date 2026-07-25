@@ -26,13 +26,13 @@ Load, in order:
   without separate explicit authorization for that exact Git operation.
 - Use the fewest agents or logical passes needed. Follow the canonical Task,
   Assignment, Handoff, Completion, Failure/Retry, and portability contracts.
-- Implement the smallest coherent dependency-ready unit, then run the cheapest
-  decisive authorized evidence. Tests, builds-as-tests, browsers, screenshots,
-  Storybook, and visual QA require an explicit current-task `TEST_TASK`.
+- Implement the smallest coherent dependency-ready unit, then run every
+  evidence layer selected by the automatic profile. Tests, builds-as-tests, browsers, screenshots,
+  Storybook, and visual QA run when selected by the automatic `Q0`-`Q3` profile.
 - After failed evidence, diagnose and change the implementation or tactic; do
   not lower acceptance criteria or repeat an exhausted loop.
 - Continue while safe in-scope work remains. Update plan truth only when reality
-  changed, then report exact files, evidence, unrun tests, proof gaps, remaining
+  changed, then report exact files, evidence, missing proof, gaps, remaining
   risks, and any exact external boundary.
 
 Do not create legacy PRP reports, fixed validation ladders, automatic branches,

@@ -26,9 +26,9 @@ Assess user-perceived speed and resource efficiency across interactive workflows
 ## Evidence and test gate
 
 - Verification is required. Prefer source tracing, budget/config inspection, narrow static analysis, and existing measurements.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
 - Builds, profilers, browser automation, load tests, or broad route sweeps require an explicit performance claim and named budget that cheaper evidence cannot prove.
 
 ## Output
 
-Return a concise advisory review with verdict, affected workflow and budget, `test_requirement`, P0-P3 findings, baseline and evidence when available, `path:line` root cause, user/resource impact, remediation, positive controls, and measurement gaps. Do not invent metrics.
+Return a concise advisory review with verdict, affected workflow and budget, `quality_profile`, P0-P3 findings, baseline and evidence when available, `path:line` root cause, user/resource impact, remediation, positive controls, and measurement gaps. Do not invent metrics.

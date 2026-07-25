@@ -141,7 +141,7 @@ existing proposal activity surface.
    UI model without introducing a second source of truth.
 
 ### Phase 3: Evidence
-6. Classify `test_requirement` under the repo test gate.
+6. Classify `quality_profile` under the canonical beta quality gate.
 7. Use migration/source inspection and the narrowest local D1 proof by default;
    select a focused existing test only when it is the cheapest decisive proof
    of uniqueness or authorization.

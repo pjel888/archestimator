@@ -23,7 +23,10 @@ description: "Check Archestimator Next.js 16 and React 19 changes against OpenNe
 
 - Stay on the current branch and shared worktree. Do not reset, clean, stash, revert, commit, push, or overwrite unfamiliar config changes.
 - Keep provider changes within resources bound by current `wrangler.jsonc`. Do not deploy, purchase services, mutate unrelated Cloudflare projects, touch legacy `supabase/migrations/`, or make irreversible external changes without explicit authority.
-- Default to `NOT_REQUIRED`. Do not run `build`, `cf:build`, preview, deploy, browser automation, screenshots, Storybook, or automated tests unless the user explicitly requests that evidence. Use `TEST_PROPOSAL` when a build or runtime proof materially reduces risk.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and run every selected local build, `cf:build`, preview,
+  browser, and automated-test layer under standing authorization. Deployment
+  remains a separate external-production boundary.
 
 ## Evidence And Stop
 

@@ -8,9 +8,12 @@ When concurrent sentinels or threads are used, follow
 `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`;
 otherwise use sequential emulated passes without claiming independent review.
 
-Use Direct, Brief, or Plan Pack routing. Test decisions are
-`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`; only `TEST_TASK` permits test execution
-or edits. Taste files are advisory and cannot override project authority.
+Use Direct, Brief, or Plan Pack routing. Inherit automatic
+`Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, and
+`Q3_RELEASE_GATE` classification, standing local quality authorization, and
+fail-closed completion from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`. Taste files are advisory
+and cannot override project authority.
 
 <!-- supermemory-bootstrap: required -->
 Run `bun run supermemory:ensure` before meaningful work.

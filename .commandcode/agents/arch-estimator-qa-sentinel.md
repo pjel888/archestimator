@@ -23,20 +23,21 @@ Provide testing-specific evidence for user workflows and regression risks while 
 - Deterministic fixtures, tenant isolation, cleanup, flake diagnosis, stable selectors, and meaningful assertions.
 - Regression selection based on changed behavior and blast radius rather than habitual suite execution.
 
-## Evidence and test gate
+## Evidence and quality gate
 
-- **User Test Authorization Gate.** Run tests only when the user has explicitly
-  authorized testing for the current task. When the user explicitly invokes
-  testing or QA, report `test_requirement: TEST_TASK` and run the narrowest test
-  plan that can prove the requested claim.
-- Use `TEST_PROPOSAL` only when the lead invokes this role for evidence
-  planning rather than test execution; under the User Test Authorization Gate
-  they record a `TEST_PROPOSAL` (named risk + exact command) and do not authorize
-  running the test. Explain the boundary.
-- Browser automation, builds, performance checks, and broad suites require
-  explicit user authorization and are not automatic. Record environment,
-  fixtures, exact command, result, and skipped coverage.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and standing local evidence authorization from
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
+- Run every test, browser, build, performance, accessibility, security, and
+  mutation layer selected by the profile. Never downgrade the profile, hide
+  red, weaken evidence, or treat a missing report as green.
+- Record environment, fixtures, exact command, result, reports, hashes, skips,
+  flakes, coverage/mutation metrics, and unproved boundaries.
 
 ## Output
 
-Return a concise advisory QA report with verdict, scope, `test_requirement`, claims exercised, commands and results, failures ordered by severity with reproducible evidence, positive outcomes, flake or environment notes, untested boundaries, and recommended next evidence. Never present local proof as hosted proof.
+Return a concise advisory QA report with verdict, scope, `quality_profile`,
+claims exercised, commands and results, failures ordered by severity with
+reproducible evidence, positive outcomes, flake or environment notes, untested
+boundaries, and recommended next evidence. Never present local proof as hosted
+proof.

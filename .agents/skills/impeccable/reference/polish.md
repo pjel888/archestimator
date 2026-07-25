@@ -59,9 +59,10 @@ Work through these dimensions methodically:
 - **Grid adherence**: Elements snap to baseline grid
 
 **Check**:
-- Under `NOT_REQUIRED`, compare layout rules, tokens, container constraints, and breakpoint declarations in source
-- Under `TEST_TASK`, use only the requested grid overlay, browser inspector, and viewport sizes
-- Otherwise propose the exact mobile, tablet, and desktop viewport checks as a `TEST_PROPOSAL`
+- Compare layout rules, tokens, container constraints, and breakpoint
+  declarations in source
+- Use the profile-selected grid overlay, browser inspector, and viewport sizes
+- Cover the applicable mobile, tablet, and desktop viewport checks
 - Look for elements that "feel" off
 
 ### Information Architecture & Flow
@@ -154,7 +155,8 @@ Every interactive element needs all states:
 
 ### Responsiveness
 
-- **All breakpoints**: Inspect responsive source rules by default; test mobile, tablet, and desktop only under `TEST_TASK`
+- **All breakpoints**: Inspect responsive source rules and run selected mobile,
+  tablet, and desktop evidence
 - **Touch targets**: 44x44px minimum on touch devices
 - **Readable text**: No text smaller than 14px on mobile
 - **No horizontal scroll**: Content fits viewport
@@ -225,11 +227,15 @@ Sweat the details. Zoom in until the alignment is right and the spacing reads as
 Before marking as done:
 
 - **Default evidence**: Inspect source, tokens, state coverage, responsive rules, semantics, and detector/static findings.
-- **Authorized interaction**: Under `TEST_TASK`, interact with the feature only in the user-requested browser/device scope.
-- **Remaining confidence**: If real-device or second-review evidence would help, state it as a concrete `TEST_PROPOSAL` rather than running or requesting it implicitly.
+- **Profile-selected interaction**: Interact with the feature in the
+  browser/device scope selected by the active quality profile.
+- **Remaining confidence**: Report any real-device or second-review evidence
+  that remains unavailable.
 - **Compare to design**: Match intended design.
 - **Check all states**: Inspect all implemented states; exercise them only when authorized.
-- **Treat automation carefully**: The bundled static detector may run under `NOT_REQUIRED`; QA, product tests, builds, and browser automation require `TEST_TASK`. Never cite a clean result as proof that the work is polished.
+- **Treat automation carefully**: Run the bundled static detector and every
+  profile-selected QA, product-test, build, and browser layer. Never cite a
+  clean result as proof that the work is polished.
 
 ## Clean Up
 

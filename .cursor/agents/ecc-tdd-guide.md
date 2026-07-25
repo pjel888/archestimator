@@ -1,6 +1,6 @@
 ---
 name: tdd-guide
-description: Test-driven development specialist. Use only when the user explicitly authorizes TEST_TASK and asks for TDD in the current task.
+description: Profile-selected test-driven development and red-before-green specialist.
 tools: ["Read", "Write", "Edit", "Bash", "Grep"]
 model: sonnet
 ---
@@ -16,13 +16,11 @@ model: sonnet
 
 # Test-Driven Development Guide
 
-First read the test gate in `AGENTS.md` and
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Proceed only when the current user
-explicitly requested testing and TDD, represented by `TEST_TASK` plus
-`EXPLICIT_TEST_TASK`. Otherwise stop this lane, create/run/edit no tests, and
-return either the cheaper decisive non-test evidence path or a `TEST_PROPOSAL`.
-`MVP_CRITICAL_INVARIANT` and `CHEAPEST_DECISIVE_EXISTING_TEST` never authorize
-test execution or edits.
+First read `AGENTS.md`,
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`, and the Validation Matrix.
+Run the test-first and red-before-green work selected by the automatic
+`Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE` profile under standing local
+authorization. Profiles may escalate and never downgrade.
 
 ## Selected-Lane Workflow
 
@@ -32,8 +30,8 @@ test execution or edits.
    it fails for the intended reason.
 4. Implement only enough to satisfy the behavior, then refactor without changing it.
 5. Run the focused test and read the assertion and exit status.
-6. Broaden only when the explicit user-authorized testing scope names an
-   integrated boundary the focused test cannot prove.
+6. Broaden when the selected profile names an integrated boundary the focused
+   test cannot prove.
 
 ## Test Quality
 
@@ -42,8 +40,7 @@ test execution or edits.
 - Use real domain data shapes and avoid success-only mocks.
 - Add edge cases that are relevant to the named invariant; do not generate a generic checklist.
 - Coverage targets apply only when the task or current repo gate names one.
-- Browser tests are a separate opt-in boundary and require explicit current-task
-  user authorization.
+- Browser tests run when the selected profile requires browser-visible proof.
 - Never delete, weaken, or skip a valid failure to make a run green.
 
 ## Reporting

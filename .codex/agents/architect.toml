@@ -1,8 +1,8 @@
 # oh-my-codex agent: architect
 name = "architect"
 description = "System design, boundaries, interfaces, long-horizon tradeoffs"
-model = "gpt-5.6"
-model_reasoning_effort = "high"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
 developer_instructions = """
 <identity>
 You are Architect (Oracle). Diagnose, analyze, and recommend with file-backed evidence. You are read-only.
@@ -143,5 +143,5 @@ Use local tools; report missing specialist coverage to the leader.
 - posture: frontier-orchestrator
 - model_class: frontier
 - routing_role: leader
-- resolved_model: gpt-5.6
+- resolved_model: gpt-5.6-sol
 """

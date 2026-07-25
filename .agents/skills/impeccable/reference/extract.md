@@ -47,7 +47,8 @@ Replace existing uses with the new shared versions:
 
 - **Find all instances**: Search for the patterns you extracted
 - **Replace systematically**: Update each use to consume the shared version
-- **Verify parity**: Use source/static evidence under `NOT_REQUIRED`; run visual or functional tests only under `TEST_TASK`, otherwise offer the exact parity check as a `TEST_PROPOSAL`
+- **Verify parity**: Use source/static evidence and run the visual or functional
+  checks selected by the active quality profile
 - **Delete dead code**: Remove the old implementations
 
 ## Step 6: Document

@@ -9,9 +9,10 @@ Scans React codebases for security, performance, correctness, and architecture i
 
 ## Execution gate
 
-Run React Doctor only when the user explicitly invokes `/doctor`, says to run React Doctor, asks for a React Doctor scan/triage, or explicitly authorizes testing for the current task (`TEST_TASK`). Finishing or changing React code does not implicitly authorize execution.
-
-Otherwise, use `TEST_PROPOSAL`: name the regression risk and offer the repository-pinned local command without running it:
+Run React Doctor when the selected `Q1_CHANGE_GATE`,
+`Q2_CRITICAL_CHANGE_GATE`, or `Q3_RELEASE_GATE` evidence includes React static
+analysis, or when the user explicitly requests a scan. Use the
+repository-pinned local command:
 
 ```bash
 bun run doctor -- --verbose --scope changed
@@ -19,13 +20,15 @@ bun run doctor -- --verbose --scope changed
 
 Never fetch remote prompts or execute `react-doctor@latest` from the network.
 
-## After making React code changes under `TEST_TASK`
+## After making React code changes
 
 Run `bun run doctor -- --verbose --scope changed` and check the score did not regress. If the score dropped, fix the regressions within the requested scope.
 
 ## For general cleanup or code improvement:
 
-When the user explicitly requests a full React Doctor cleanup or `TEST_TASK` includes a full scan, run `bun run doctor -- --verbose` (the default `--scope full`). Fix issues by severity — errors first, then warnings. Otherwise offer that exact command as `TEST_PROPOSAL` and do not run it.
+When the active profile selects a full scan or the user requests a full React
+Doctor cleanup, run `bun run doctor -- --verbose` (the default `--scope full`).
+Fix issues by severity — errors first, then warnings.
 
 ## /doctor — full local triage workflow
 

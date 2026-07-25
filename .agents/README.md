@@ -18,8 +18,10 @@ Every local or installed skill/plugin, including Ultragoal, UltraQA, Ultrawork,
 Autopilot, Autoresearch, Autoresearch Goal, and Compound Engineering, is
 subordinate to the Lean Engineering Ethos. Map the evidence-supported blast
 radius, prefer the smallest coherent change and fewest useful lanes/artifacts,
-minimize token/time/tool cost, and never auto-run tests/builds/browser QA without
-an explicit user-authorized `TEST_TASK`.
+and minimize token/time/tool cost. All skills inherit automatic
+`Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, and
+`Q3_RELEASE_GATE` classification plus standing authorization for selected local
+evidence from `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 <!-- supermemory-bootstrap: required -->
 Skills and compatibility adapters inherit the shared Supermemory workflow from

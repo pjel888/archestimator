@@ -164,7 +164,9 @@ Choose appropriate breakpoints:
 - Persistent side navigation on desktop
 - Breadcrumbs on smaller screens for context
 
-**IMPORTANT**: Follow the parent skill's Archestimator verification gate. Inspect responsive source rules and fallbacks under `NOT_REQUIRED`. Real-device or DevTools checks run only under `TEST_TASK`; otherwise propose the exact device/browser matrix needed.
+**IMPORTANT**: Follow the parent skill's automatic quality profile. Inspect
+responsive source rules and fallbacks, then run selected real-device or
+DevTools checks against the applicable device/browser matrix.
 
 **NEVER**:
 - Hide core functionality on mobile (if it matters, make it work)
@@ -177,7 +179,9 @@ Choose appropriate breakpoints:
 
 ## Verify Adaptations
 
-Under `NOT_REQUIRED`, verify the implementation supports these contexts through source, CSS/media/container-query analysis, semantic markup, and fallback inspection. Under `TEST_TASK`, exercise only the contexts the user requested. Otherwise preserve unchecked contexts as a concrete `TEST_PROPOSAL`:
+Verify the implementation supports these contexts through source,
+CSS/media/container-query analysis, semantic markup, and fallback inspection.
+Exercise the contexts selected by the active quality profile:
 
 - **Real devices**: Test on actual phones, tablets, desktops
 - **Different orientations**: Portrait and landscape
@@ -304,7 +308,9 @@ DevTools device emulation is useful for layout but misses:
 - Font rendering differences
 - Browser chrome/keyboard appearances
 
-**Recommended `TEST_PROPOSAL` when device evidence matters**: one real iPhone, one real Android, and a tablet if relevant. Cheap Android phones reveal performance issues simulators miss. Run this matrix only under `TEST_TASK`.
+**Recommended device evidence when applicable**: one real iPhone, one real
+Android, and a tablet if relevant. Cheap Android phones reveal performance
+issues simulators miss.
 
 ---
 

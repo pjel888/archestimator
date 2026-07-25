@@ -26,9 +26,9 @@ Assess whether Archestimator handles personal and sensitive data lawfully, minim
 ## Evidence and test gate
 
 - Verification is required. Prefer current data-flow/source references, policy text, sanitized logs, configuration, and narrow static or provider evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Privacy-critical access or deletion claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the critical claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Privacy-critical access or deletion claims require profile-selected evidence. Run the narrowest sufficient a blanket suite, build, or browser run without naming the critical claim.
 
 ## Output
 
-Return a concise advisory review with verdict, scope and data classes, `test_requirement`, severity-ordered findings, legal or trust impact, `path:line` or provider evidence, remediation, positive controls, and explicit policy, hosted, or counsel proof gaps.
+Return a concise advisory review with verdict, scope and data classes, `quality_profile`, severity-ordered findings, legal or trust impact, `path:line` or provider evidence, remediation, positive controls, and explicit policy, hosted, or counsel proof gaps.

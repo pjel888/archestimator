@@ -78,11 +78,12 @@ not copy its contents or line count into Cursor rules.
 
 - Prefer a targeted glob rule over more always-loaded text.
 - Point to source-owned facts; do not copy migration, binding, schedule, test, or component counts.
-- Keep agent descriptions capability-based and opt-in. Avoid forced, proactive, or automatic activation language.
+- Keep agent descriptions capability-based. Quality roles activate when selected
+  by the automatic profile; other optional roles activate only when useful.
 - Preserve shared-worktree changes and stay on the current checkout.
 - After changes, use `git diff --check`, `bun run validate:agents`, and the
   narrowest relevant Cursor resolver/static check. Run a hook contract test only
-  when the user explicitly authorizes testing for the current task.
+  under standing local authorization when the automatic profile selects them.
 
 Shared-worktree, evidence, and orchestration guidance is consolidated in the
 compact `00` rule to reduce per-turn context without removing those contracts.

@@ -26,9 +26,11 @@ Assess whether contractors, estimators, collaborators, recipients, and administr
 ## Evidence and test gate
 
 - Verification is required. Prefer component/route inspection, existing design tokens, semantic markup, and narrow static evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Browser automation, screenshots, visual diffs, or responsive sweeps are opt-in evidence for an explicit visual, interaction, accessibility, or breakpoint claim. Do not run them by habit.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Run browser automation, screenshots, visual diffs, and responsive sweeps when
+  selected by the automatic quality profile for a visual, interaction,
+  accessibility, or breakpoint claim.
 
 ## Output
 
-Return a concise advisory review with verdict, personas and workflows, `test_requirement`, UX0-UX3 findings, `path:line` evidence, user impact, actionable recommendation, positive patterns, and unverified visual/manual boundaries. Separate design preference from usability or accessibility defects.
+Return a concise advisory review with verdict, personas and workflows, `quality_profile`, UX0-UX3 findings, `path:line` evidence, user impact, actionable recommendation, positive patterns, and unverified visual/manual boundaries. Separate design preference from usability or accessibility defects.

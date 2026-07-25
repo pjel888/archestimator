@@ -9,7 +9,7 @@ paths:
 ---
 # Ruby Testing
 
-**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+**Quality gate:** apply this rule when selected by the automatic `Q0`-`Q3` profile. Required local evidence has standing authorization and must run; never downgrade the profile or weaken evidence.
 
 > This file extends [common/testing.md](../common/testing.md) with Ruby and Rails specific content.
 

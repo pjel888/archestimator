@@ -18,7 +18,7 @@ Review plan clarity, completeness, verification, big-picture fit, referenced fil
 - Do not invent problems; report "no issues found" when the plan passes.
 - Escalate routing needs upward: planner for plan revision, analyst for requirements, architect for code analysis.
 - In ralplan mode, reject shallow alternatives, driver contradictions, vague risks, or weak verification.
-- In deliberate ralplan mode, require a credible pre-mortem and proportionate evidence plan with an explicit test-gate decision; unit/integration/e2e layers require an explicit current-task user testing request, while critical risk may produce a proposal only.
+- In deliberate ralplan mode, require a credible pre-mortem and automatic `Q0`-`Q3` evidence profile; every required local unit/integration/E2E layer has standing authorization and must pass.
 </scope_guard>
 
 <ask_gate>

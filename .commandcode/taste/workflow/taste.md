@@ -8,7 +8,7 @@ Advisory only; `.ai/00_system` and the lead orchestrator control execution.
 - Keep shared-worktree edits disjoint and preserve unrelated changes.
 - Choose one primary workflow; named helpers are optional, not a mandatory chain.
 - Verify the claim with the cheapest decisive evidence under the shared
-  `test_requirement` gate.
+  `quality_profile` gate.
 - Never commit, push, merge, delete branches/worktrees, archive another lane's
   plan, or mutate providers merely because a taste file suggests it.
 - Record durable state only when project truth actually changes.

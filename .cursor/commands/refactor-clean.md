@@ -40,9 +40,9 @@ Sort findings into safety tiers:
 For each SAFE item:
 
 1. **Establish a baseline** — Use source, graph, type/LSP, lint, or static
-   evidence; run tests only for an explicit current-task `TEST_TASK`
+   evidence; run the tests selected by the automatic `Q0`-`Q3` profile
 2. **Delete the dead code** — Use Edit tool for surgical removal
-3. **Rerun invalidated authorized evidence** — Verify the named behavior
+3. **Rerun invalidated profile evidence** — Verify the named behavior
 4. **If evidence fails** — Diagnose and repair only owned changes; never use Git
    checkout/reset/stash to overwrite shared-worktree state
 5. **If evidence passes** — Move to the next coherent item

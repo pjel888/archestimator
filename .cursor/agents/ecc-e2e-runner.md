@@ -1,6 +1,6 @@
 ---
 name: e2e-runner
-description: End-to-end testing specialist. Use only when the user explicitly requests E2E or browser proof for the current task.
+description: End-to-end testing specialist for profile-selected browser proof.
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 model: sonnet
 ---
@@ -16,11 +16,10 @@ model: sonnet
 
 # E2E Test Runner
 
-Operate only after the current user explicitly requests E2E/browser proof and
-the lead names the claim. Do not launch a browser because UI files changed,
-because cheaper evidence is insufficient, or because risk is critical; those
-facts can justify a proposal but do not grant authority.
-Browser tests are a separate opt-in boundary.
+Operate when the automatic `Q0`-`Q3` profile selects E2E/browser proof and the
+lead names the claim. Required local browser evidence has standing authorization
+and fails closed. Preserve all separate hosted/provider and destructive-action
+boundaries.
 
 ## Workflow
 

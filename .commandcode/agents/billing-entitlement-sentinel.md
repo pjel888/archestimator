@@ -26,9 +26,14 @@ Assess whether implemented monetization and entitlement behavior is accurate, se
 ## Evidence and test gate
 
 - Verification is required. Prefer current source/schema/config, representative calculations, sanitized event evidence, and narrow static checks.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Money or entitlement-critical claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never call payment APIs or request blanket suites, builds, or browser runs without an explicit claim and authority.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Money or entitlement-critical claims require profile-selected evidence. Run
+  the narrowest sufficient local layers; never call payment APIs without exact
+  authority.
 
 ## Output
 
-Return a concise advisory review with verdict, implemented scope, `test_requirement`, severity-ordered findings, affected plan/state, `path:line` or sanitized evidence, revenue/customer impact, remediation, positive controls, and unproven provider or lifecycle boundaries.
+Return a concise advisory review with verdict, implemented scope,
+`quality_profile`, severity-ordered findings, affected plan/state, `path:line`
+or sanitized evidence, revenue/customer impact, remediation, positive controls,
+and unproven provider or lifecycle boundaries.

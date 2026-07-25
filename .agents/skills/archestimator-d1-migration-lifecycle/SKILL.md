@@ -23,7 +23,10 @@ description: "Manage the active Archestimator Cloudflare D1 migration lifecycle 
 
 - Stay on the current branch and shared worktree. Do not reset, clean, stash, revert, commit, push, or overwrite unfamiliar migration work.
 - Never mutate `supabase/migrations/`, the retired Supabase project, unrelated Cloudflare projects, unbound resources, paid add-ons, or destructive data without explicit authority. Do not deploy by default.
-- Default to `NOT_REQUIRED`. Do not create or run tests, builds, browser automation, screenshots, Storybook, or visual QA unless explicitly requested. Use static SQL review, source/readback evidence allowed by the task, or a `TEST_PROPOSAL` instead.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and run every selected local migration, test, build, and
+  readback layer under the standing authorization in
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 ## Evidence And Stop
 

@@ -20,12 +20,12 @@ authoritative.
    names or fabricate cross-model independence.
 4. Require `PASS|FAIL`, severity, exact evidence, and the smallest repair. The
    reviewer remains read-only and must inspect actual artifacts.
-5. On failure, repair only grounded findings and rerun invalidated authorized
+5. On failure, repair only grounded findings and rerun invalidated profile
    evidence. A second review pass is optional unless the Task Contract requires
    it for the named risk.
-6. Do not commit, push, mutate branches/remotes, run tests, launch browsers, or
-   create screenshots unless the current user separately authorizes that exact
-   operation.
+6. Do not commit, push, or mutate branches/remotes. Run local tests, browsers,
+   and screenshots selected by the automatic quality profile under standing
+   authorization.
 7. Stop when the named review risk is resolved or an exact external authority
    boundary remains. Do not impose dual approval, fixed rounds, or automatic Git
    mutation.

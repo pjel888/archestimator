@@ -42,7 +42,7 @@ CHECKPOINT COMPARISON: $NAME
 ============================
 Files changed: X
 Evidence: [current result versus recorded result]
-Tests: [only if the current task explicitly authorized them]
+Quality profile: [selected Q0-Q3 profile and current evidence]
 ```
 
 ## List Checkpoints

@@ -11,7 +11,13 @@ in `.ai`.
 Codex roles, prompts, skills, and OMX/plugin surfaces inherit the Lean
 Engineering Ethos: bounded evidence-supported blast radius, smallest coherent
 change, just-in-time context, fewest useful lanes/artifacts/checks, and explicit-
-user-only tests/builds/browser QA. Availability never creates a workflow quota.
+profile-selected tests/builds/browser QA. Availability never creates a workflow
+quota.
+
+They inherit automatic `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`,
+`Q2_CRITICAL_CHANGE_GATE`, and `Q3_RELEASE_GATE` classification plus standing
+local evidence authorization from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 <!-- supermemory-bootstrap: required -->
 Codex inherits the shared Supermemory workflow from

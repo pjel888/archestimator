@@ -23,7 +23,10 @@ description: "Detect and reconcile Archestimator Cloudflare configuration drift 
 
 - Stay on the current branch and shared worktree. Do not reset, clean, stash, revert, commit, push, or overwrite unfamiliar config work.
 - Change only resources bound by current `wrangler.jsonc` and authorized by `AGENTS.md`. Never touch legacy `supabase/migrations/`, unrelated Cloudflare projects, paid add-ons, DNS, secrets, production traffic, destructive provider state, or deployment without explicit authority.
-- Default to `NOT_REQUIRED`. Do not run tests, builds, preview, deploy, browser automation, screenshots, Storybook, or visual QA unless explicitly requested. Prefer static parsing and focused diffs; use `TEST_PROPOSAL` for stronger gated proof.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and run every selected local test, build, preview, parser, and
+  config-drift layer under standing authorization. Deployment remains a
+  separate external-production boundary.
 
 ## Evidence And Stop
 

@@ -8,7 +8,8 @@ Resolve one stable target, run two independent assessments, synthesize a design 
 - Assessment A must finish before detector findings enter the parent synthesis context. Detector output is deterministic, but it still anchors judgment.
 - If sub-agents are unavailable, fall back sequentially: finish and record Assessment A first, then run Assessment B, then synthesize.
 - A skipped detector is a failed critique run unless `detect.mjs` is missing or crashes after a real attempt.
-- Browser inspection is permitted only under the parent skill's `TEST_TASK` gate; tool availability alone never requires it.
+- Browser inspection runs when selected by the parent skill's automatic quality
+  profile; tool availability alone never determines the profile.
 - Any local server started only for critique visualization must run in the background, have a recorded stop method, and be stopped before final reporting unless the user asks to keep it.
 - Do not claim a user-visible overlay exists unless script injection succeeded and the detector ran in the page.
 
@@ -37,11 +38,14 @@ Codex sub-agent gate:
 - If spawning fails after permission, run sequentially and report `Assessment independence: degraded (sub-agent spawn failed: <exact error>)`.
 Prefer `fork_context: false` with self-contained prompts containing cwd, target, live URL, references, product context, and output contract. If using `fork_context: true`, omit `agent_type`, `model`, and `reasoning_effort`.
 
-When browser automation is authorized under `TEST_TASK`, each assessment creates its own new tab. Never reuse an existing tab, even if it is already at the right URL.
+When browser automation is selected, each assessment creates its own new tab.
+Never reuse an existing tab, even if it is already at the right URL.
 
 ### Assessment A: Design Review
 
-Read relevant source files and assess the rendered intent from structure, styles, tokens, assets, copy, and states. When browser automation is authorized under `TEST_TASK`, also visually inspect the live page. Think like a design director.
+Read relevant source files and assess the rendered intent from structure,
+styles, tokens, assets, copy, and states. When browser automation is selected,
+also visually inspect the live page. Think like a design director.
 
 Evaluate:
 - **AI slop**: Would someone believe "AI made this" immediately? Check all DON'T guidance from the parent Impeccable skill.
@@ -54,7 +58,9 @@ Return: AI slop verdict, heuristic scores, cognitive load, emotional journey, 2-
 
 ### Assessment B: Detector + Authorized Browser Evidence
 
-Run the bundled detector. Browser visualization is supplemental only when authorized under `TEST_TASK`. Assessment B is mandatory and must remain isolated from Assessment A until both are complete.
+Run the bundled detector. Browser visualization is supplemental when selected.
+Assessment B is mandatory and must remain isolated from Assessment A until both
+are complete.
 
 CLI scan:
 ```bash
@@ -62,10 +68,14 @@ node .agents/skills/impeccable/scripts/detect.mjs --json [target]
 ```
 
 - Pass markup files/directories as `[target]`; do not pass CSS-only files.
-- For URL-only targets under `TEST_TASK`, skip CLI scan and use the authorized browser visualization. Without browser authorization, resolve the URL to repository source or report that URL-only visual claims are outside the available evidence.
+- For URL-only targets with selected browser evidence, skip CLI scan and use
+  browser visualization. Otherwise resolve the URL to repository source or
+  report that URL-only visual claims are outside the available evidence.
 - For very large trees (500+ scannable files), narrow scope or ask.
 - Exit code 0 = clean; 2 = findings.
-- If the detector entrypoint is missing or fails to load, report deterministic scan unavailable and continue with source/manual review; add browser review only under `TEST_TASK`.
+- If the detector entrypoint is missing or fails to load, report deterministic
+  scan unavailable and continue with source/manual review; add browser review
+  when selected.
 
 Browser visualization is available only when the current user explicitly requested browser/visual proof for this task. Tool availability never grants authority. When authorized, use a localhost dev/static URL for local files; avoid `file://` unless the available browser explicitly supports this workflow. Overlay flow:
 

@@ -38,7 +38,7 @@ Fixing symptoms instead of root causes creates whack-a-mole debugging cycles. Th
 1) REPRODUCE: Can you trigger it reliably? What is the minimal reproduction? Consistent or intermittent?
 2) GATHER EVIDENCE (parallel): Read full error messages and stack traces. Check recent changes with git log/blame. Find working examples of similar code. Read the actual code at error locations.
 3) HYPOTHESIZE: Compare broken vs working code. Trace data flow from input to error. Document the hypothesis BEFORE investigating further. Identify the cheapest evidence that would prove or disprove it.
-4) FIX: Recommend ONE change. Predict the decisive evidence for the fix. Use an automated test only when the user explicitly authorizes testing for the current task; otherwise use non-test evidence and optionally record a `TEST_PROPOSAL`. Check for the same evidence-supported pattern elsewhere in the codebase.
+4) FIX: Recommend ONE change. Predict the decisive evidence for the fix. Use the automatic `Q0`-`Q3` profile and run its required local reproduction and regression evidence. Check for the same evidence-supported pattern elsewhere in the codebase.
 5) CIRCUIT BREAKER: After 3 failed hypotheses, stop. Question whether the bug is actually elsewhere. Escalate upward to the leader with the architectural-analysis need.
 </explore>
 

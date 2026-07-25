@@ -9,12 +9,12 @@ Auth. Historical provider examples are not implementation guidance.
 
 - Use parallel agents only for bounded independent work; the lead owns scope,
   integration, verification, and the final claim.
-- Verification is always required. Classify `test_requirement` as
-  `NOT_REQUIRED`, `TEST_PROPOSAL`, or `TEST_TASK`; default to `NOT_REQUIRED`
-  and use the cheapest decisive evidence. A proposal names the risk and exact
-  command but does not authorize execution.
-- Broad tests, builds, browser proof, or repeated review passes need an explicit
-  task or a concrete MVP-critical claim that cheaper evidence cannot prove.
+- Verification is always required. Classify `quality_profile` automatically as
+  `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, or
+  `Q3_RELEASE_GATE` and run every selected local evidence layer under standing
+  authorization.
+- Profiles may escalate and never downgrade. Missing, red, skipped, flaky,
+  weakened, or malformed required evidence fails closed.
 - Plans use adaptive document depth and one canonical execution artifact. Do
   not require fixed document counts, perfect scores, or ceremonial passes.
 
@@ -37,5 +37,5 @@ defer final design judgment to the owner. Reuse Storybook components when they
 are current and actually fit the task; do not imitate them with duplicate code.
 
 For external research, prefer primary sources. For UI work, browser or visual
-proof is opt-in unless interaction, responsive behavior, or accessibility is
+proof runs when interaction, responsive behavior, or accessibility is
 the claim being verified.

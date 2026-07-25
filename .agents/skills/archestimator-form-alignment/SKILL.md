@@ -1,6 +1,6 @@
 ---
 name: archestimator-form-alignment
-description: "Align form labels, controls, helper or error rows, dropdown affordances, and paired fields on authenticated Archestimator product routes, especially /workshop/library. Do not use this skill to constrain public or otherwise unauthenticated routes, including / and /new, and do not run browser, Storybook, build, or automated test evidence unless the user explicitly requests it."
+description: "Align form labels, controls, helper or error rows, dropdown affordances, and paired fields on authenticated Archestimator product routes, especially /workshop/library. Do not use this skill to constrain public or otherwise unauthenticated routes, including / and /new."
 ---
 
 # Archestimator Form Alignment
@@ -31,7 +31,10 @@ skill's alignment contract to them unless the user explicitly asks for it.
 
 - Stay on the current branch and worktree. Do not reset, clean, stash, revert, commit, push, or overwrite unrelated changes.
 - Keep any provider-adjacent work inside resources bound by current `wrangler.jsonc`; never change legacy `supabase/migrations/`, unrelated Cloudflare projects, paid services, or external deployments without explicit authority.
-- Default to `NOT_REQUIRED`. Do not create or run tests, builds, browser automation, screenshots, Storybook, or visual QA unless explicitly requested for the current task. Use `TEST_PROPOSAL` with the exact command when additional testing would materially reduce risk.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and run every profile-selected local test, build, browser,
+  screenshot, Storybook, accessibility, and visual-QA layer under standing
+  authorization.
 
 ## Evidence And Stop
 

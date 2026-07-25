@@ -15,7 +15,7 @@ Declare one class before reviewing:
 
 `$product-design:audit` requires the visual-audit class. `$product-design:design-qa`
 requires the design-QA class. Browser capture, screenshots, Storybook, and visual
-QA also require an explicit current `TEST_TASK` under repository policy. If the
+QA are profile-selected local evidence under repository policy. If the
 required evidence is absent, downgrade the claim rather than inventing proof.
 
 ## Severity
@@ -145,8 +145,8 @@ fix. Separate verified facts from inference.
   register and restrained type ceiling.
 - External evidence: `$product-design:research` or `$research`, with primary
   sources and requirements separated from conventions.
-- Current screenshot flow audit: `$product-design:audit` under `TEST_TASK`.
-- Source-to-rendered parity: `$product-design:design-qa` under `TEST_TASK`.
+- Current screenshot flow audit: `$product-design:audit` when selected.
+- Source-to-rendered parity: `$product-design:design-qa` when selected.
 - Any field-row or field-chrome work: `$archestimator-form-alignment`.
 
 ## Forward Tests

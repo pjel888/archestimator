@@ -1,6 +1,8 @@
 Designs that only work with perfect data aren't production-ready. Harden the interface against the inputs, errors, languages, and network conditions that real users will throw at it.
 
-Follow the parent skill's Archestimator verification gate. In this reference, "test" means design and implement support for the named condition unless `TEST_TASK` authorizes executing it. Under `NOT_REQUIRED`, use source inspection, types, schemas, fixtures already present, static analysis, and control-flow review; propose exact manual or automated checks for any behavior that remains unproved.
+Follow the parent skill's automatic Archestimator quality profile. Use source
+inspection, types, schemas, fixtures, static analysis, and control-flow review,
+then execute every selected manual or automated check.
 
 ## Assess Hardening Needs
 
@@ -304,7 +306,7 @@ const throttledScroll = throttle(handleScroll, 100);
 
 ## Testing Strategies
 
-**Manual testing (`TEST_TASK` only; otherwise offer as `TEST_PROPOSAL`)**:
+**Manual testing when selected**:
 - Test with extreme data (very long, very short, empty)
 - Test in different languages
 - Test offline
@@ -313,7 +315,7 @@ const throttledScroll = throttle(handleScroll, 100);
 - Test keyboard-only navigation
 - Test on old browsers
 
-**Automated testing (`TEST_TASK` only; otherwise offer the repository's exact command as `TEST_PROPOSAL`)**:
+**Automated testing when selected**:
 - Unit tests for edge cases
 - Integration tests for error scenarios
 - E2E tests for critical paths
@@ -334,7 +336,8 @@ const throttledScroll = throttle(handleScroll, 100);
 
 ## Verify Hardening
 
-Inspect support for these edge cases in source by default. Execute them only under `TEST_TASK`; otherwise report the exact remaining checks as a `TEST_PROPOSAL`:
+Inspect support for these edge cases in source and execute the cases selected by
+the active quality profile:
 
 - **Long text**: Try names with 100+ characters
 - **Emoji**: Use emoji in all text fields

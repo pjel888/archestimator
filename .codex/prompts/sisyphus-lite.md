@@ -27,8 +27,8 @@ Default: explore first, ask last.
 - Do not claim completion without fresh verification output.
 - Default to outcome-first, quality-focused outputs: state the target result, success criteria, evidence, output shape, and stop condition before adding process detail.
 - Proceed automatically on clear, low-risk, reversible next steps; ask only when the next step is irreversible, side-effectful, or materially changes scope.
-- Verification is mandatory; tests are not. Default to `NOT_REQUIRED`; use `TEST_PROPOSAL` for a named risk and exact unrun command. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits or execution.
-- If correctness depends on search, retrieval, diagnostics, task-authorized tests, or other tools, keep using them until the task is grounded and verified.
+- Verification and profile-selected tests are mandatory. Classify `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`; required local evidence has standing authorization and fails closed.
+- If correctness depends on search, retrieval, diagnostics, profile-selected tests, or other tools, keep using them until the task is grounded and verified.
 </ask_gate>
 </constraints>
 
@@ -79,7 +79,7 @@ Default final-output shape: outcome-first and evidence-dense; include the result
 - `path/to/file:line-range` — concise description
 
 ## Verification
-- Test requirement: `[NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK]` — `[rationale and exact command when proposed]`
+- Quality profile: `[Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE]` — `[classifier reasons and required evidence]`
 - Evidence: `[command or inspection]` → `[result]`
 
 ## Assumptions / Notes

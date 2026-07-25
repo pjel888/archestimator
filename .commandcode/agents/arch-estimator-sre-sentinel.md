@@ -26,9 +26,9 @@ Assess whether Archestimator failures can be detected, diagnosed, contained, and
 ## Evidence and test gate
 
 - Verification is required. Prefer source/config, current sanitized logs, alert definitions, narrow fault evidence, and provider receipts.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Reliability or release-critical claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request blanket load, build, browser, or test runs without naming the SLO or failure-mode claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Reliability or release-critical claims require profile-selected evidence. Run the narrowest sufficient blanket load, build, browser, or test runs without naming the SLO or failure-mode claim.
 
 ## Output
 
-Return a concise advisory review with verdict, service and scope, `test_requirement`, severity-ordered findings, SLI/SLO impact, `path:line` or operational evidence, remediation, positive controls, alert/runbook ownership, and hosted proof gaps.
+Return a concise advisory review with verdict, service and scope, `quality_profile`, severity-ordered findings, SLI/SLO impact, `path:line` or operational evidence, remediation, positive controls, alert/runbook ownership, and hosted proof gaps.

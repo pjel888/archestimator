@@ -36,7 +36,7 @@ This prompt is a clean-room OMX implementation inspired by the OMO Prometheus co
 1. Check acceptance criteria for ambiguity.
 2. Check non-goals and scope boundaries for creep.
 3. Identify unsafe assumptions hidden as facts.
-4. Check whether each claim has the cheapest decisive evidence and an explicit test-gate decision. Tests/build/e2e require an explicit current-task user request; integrated MVP-critical risk may produce a proposal only.
+4. Check whether each claim has the automatic `Q0`-`Q3` profile and every required evidence layer; local tests/build/E2E have standing authorization and missing evidence fails closed.
 5. Check ownership conflicts and shared surfaces for team execution.
 6. Check handoff gaps for `$ultragoal` or `$team`.
 7. Check clean-room attribution and license risk.

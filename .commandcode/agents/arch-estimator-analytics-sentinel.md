@@ -26,9 +26,10 @@ Assess whether Archestimator analytics are accurate, privacy-aware, operationall
 ## Evidence and test gate
 
 - Verification is required. Prefer instrumentation call sites, schema/config references, sanitized event samples, and narrow query or static checks.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Use tests, browser automation, or builds only for explicit testing/QA work or a concrete MVP-critical analytics claim that cheaper evidence cannot prove. Link every command to that claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Run the tests, browser automation, and builds selected by the automatic
+  quality profile. Link every command to the analytics claim it proves.
 
 ## Output
 
-Return a concise advisory review with verdict, scope, `test_requirement`, metric or event affected, severity-ordered findings, `path:line` evidence, user/business impact, remediation, positive controls, and proof gaps. State when hosted dashboard or provider evidence is unavailable.
+Return a concise advisory review with verdict, scope, `quality_profile`, metric or event affected, severity-ordered findings, `path:line` evidence, user/business impact, remediation, positive controls, and proof gaps. State when hosted dashboard or provider evidence is unavailable.

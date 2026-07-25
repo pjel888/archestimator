@@ -23,7 +23,9 @@ description: "Preserve Archestimator estimate mutation integrity across client h
 
 - Stay on the current branch and shared worktree. Do not reset, clean, stash, revert, commit, push, or overwrite unfamiliar estimate changes.
 - Keep provider work inside current `wrangler.jsonc` bindings. Never touch legacy `supabase/migrations/`, unrelated Cloudflare projects, paid services, destructive external data, or deployment without explicit authority.
-- Default to `NOT_REQUIRED`. Do not create or run tests, builds, browser automation, screenshots, Storybook, or visual QA unless explicitly requested. Record a precise `TEST_PROPOSAL` when concurrency, idempotency, or atomicity risk warrants testing.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and run every selected local mutation, property, concurrency,
+  idempotency, atomicity, test, and build layer under standing authorization.
 
 ## Evidence And Stop
 

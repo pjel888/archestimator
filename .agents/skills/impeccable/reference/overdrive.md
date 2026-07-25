@@ -21,7 +21,12 @@ Skipping this step risks building something embarrassing that needs to be thrown
 
 ### Verify the Ambitious Effect
 
-Technically ambitious effects almost never work on the first try. Follow the parent skill's Archestimator verification gate. Under `TEST_TASK`, actively use only the browser automation, visual proof, viewports, or devices the user requested and iterate from the observed result. Under `NOT_REQUIRED`, inspect the implementation, fallbacks, performance-sensitive properties, responsive constraints, and reduced-motion path; then provide a `TEST_PROPOSAL` with the exact browser flow and target viewports/devices needed to close the remaining visual-confidence gap. Never claim an unobserved effect looks right.
+Technically ambitious effects almost never work on the first try. Follow the
+parent skill's automatic quality profile. Inspect the implementation, fallbacks,
+performance-sensitive properties, responsive constraints, and reduced-motion
+path, then run the selected browser automation, visual proof, viewports, and
+devices and iterate from the observed result. Never claim an unobserved effect
+looks right.
 
 ---
 
@@ -105,7 +110,8 @@ else if (canvas.getContext('webgl2')) { /* WebGL2 fallback */ }
 - Respect `prefers-reduced-motion`, always. Provide a beautiful static alternative.
 - Lazy-initialize heavy resources (WebGL contexts, WASM modules) only when near viewport.
 - Pause off-screen rendering. Kill what you can't see.
-- Under `TEST_TASK`, include a real mid-range device when the user requested device testing; otherwise propose that exact check as remaining evidence.
+- Include a real mid-range device when selected by the active profile; otherwise
+  report that device evidence as unavailable.
 
 ### Polish is the difference
 

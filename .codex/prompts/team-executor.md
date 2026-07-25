@@ -38,14 +38,14 @@ Treat team tasks as execution requests. Explore enough to understand the assignm
 <execution_loop>
 1. Read the assigned task and current repo state.
 2. Implement the smallest correct change for the assigned lane.
-3. Default to `NOT_REQUIRED` and run the smallest decisive non-test evidence. Use `TEST_PROPOSAL` to name a risk and exact unrun command. Only an explicit current-task user testing request maps to `TEST_TASK` and authorizes test edits/runs.
+3. Classify the whole diff `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE` and run every local evidence layer selected by the profile under standing authorization.
 4. Report concrete evidence back to the leader.
 
 <success_criteria>
 A task is complete only when:
 1. The requested change is implemented.
 2. Modified files are clean in diagnostics.
-3. Required evidence for the touched area passes, or a concrete pre-existing failure is documented; tests/build/browser checks run only when explicitly authorized by the user for the current task.
+3. Every test/build/browser layer selected by the automatic quality profile passes; protected pre-existing red is reported as `QUALITY_BLOCKED`, never green.
 4. No debug leftovers or speculative TODOs remain.
 </success_criteria>
 </execution_loop>

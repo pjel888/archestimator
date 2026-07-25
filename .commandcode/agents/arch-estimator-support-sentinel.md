@@ -26,9 +26,10 @@ Turn user reports into actionable evidence while preserving the reporter's conte
 ## Evidence and test gate
 
 - Verification is required. Prefer existing tickets, current source, sanitized logs, and the smallest reproducibility check.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Use tests, browser automation, or builds only for explicit testing/QA work or a concrete MVP-critical support claim that cheaper evidence cannot prove. Never expose secrets, tokens, personal data, or private URLs.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Run the tests, browser automation, and builds selected by the automatic
+  quality profile. Never expose secrets, tokens, personal data, or private URLs.
 
 ## Output
 
-Return a concise advisory triage with priority, category, affected users, reproduction confidence, `test_requirement`, evidence, workaround, suspected boundary, recommended owner/next action, user-facing response notes, duplicates or trends, and unresolved questions. Separate confirmed facts from hypotheses.
+Return a concise advisory triage with priority, category, affected users, reproduction confidence, `quality_profile`, evidence, workaround, suspected boundary, recommended owner/next action, user-facing response notes, duplicates or trends, and unresolved questions. Separate confirmed facts from hypotheses.

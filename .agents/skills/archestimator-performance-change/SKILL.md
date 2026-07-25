@@ -1,6 +1,6 @@
 ---
 name: archestimator-performance-change
-description: "Guide performance-sensitive Archestimator changes involving loading, mounting, streaming, Suspense, prefetch, caching, server and client boundaries, bundles, or route transitions. Do not use for ordinary changes without a performance claim, and do not run benchmarks, builds, browser automation, or automated tests unless the user explicitly requests them."
+description: "Guide performance-sensitive Archestimator changes involving loading, mounting, streaming, Suspense, prefetch, caching, server and client boundaries, bundles, or route transitions. Do not use for ordinary changes without a performance claim."
 ---
 
 # Archestimator Performance Change
@@ -23,7 +23,10 @@ description: "Guide performance-sensitive Archestimator changes involving loadin
 
 - Stay on the current branch and worktree. Do not reset, clean, stash, revert, commit, push, or overwrite unfamiliar changes.
 - Keep provider changes within resources bound by current `wrangler.jsonc`; do not deploy, purchase services, mutate unrelated Cloudflare projects, or touch legacy `supabase/migrations/` without explicit authority.
-- Default to `NOT_REQUIRED`. Do not run `perf:*`, tests, builds, browser automation, screenshots, Storybook, or visual QA unless explicitly requested for this task. If measurement is material but unauthorized, record `TEST_PROPOSAL` with the exact command and risk.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and run every selected local performance, test, build,
+  browser, screenshot, Storybook, and visual-QA layer under standing
+  authorization.
 
 ## Evidence And Stop
 

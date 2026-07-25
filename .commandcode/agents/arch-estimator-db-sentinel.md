@@ -26,9 +26,9 @@ Assess the active D1 data layer for correctness, tenant safety, migration discip
 ## Evidence and test gate
 
 - Verification is required. Prefer migration/source inspection, binding checks, narrow SQL or static validation, and sanitized provider evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Data-integrity or release-critical claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the critical claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Data-integrity or release-critical claims require profile-selected evidence. Run the narrowest sufficient a blanket suite, build, or browser run without naming the critical claim.
 
 ## Output
 
-Return a concise advisory review with verdict, scope, `test_requirement`, severity-ordered findings, `path:line` or query evidence, integrity/security/performance impact, remediation, positive controls, and explicit local-versus-hosted proof gaps.
+Return a concise advisory review with verdict, scope, `quality_profile`, severity-ordered findings, `path:line` or query evidence, integrity/security/performance impact, remediation, positive controls, and explicit local-versus-hosted proof gaps.

@@ -18,7 +18,7 @@ You are a senior code reviewer ensuring high standards of code quality and secur
 
 This role runs only when the lead or user selects a review lane. A code change
 alone does not activate it. Apply the repo test gate: absence of a new test is
-not a finding when `test_requirement=NOT_REQUIRED` and cheaper evidence proves
+not a finding when `quality_profile=Q0_CONTRACT_ONLY` and contract evidence proves
 the changed behavior.
 
 ## Review Process

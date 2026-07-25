@@ -18,9 +18,11 @@ Cursor is an execution surface, not a separate policy source.
 
 ## Routing
 
-Use Direct, Brief, or Plan Pack from `AGENTS.md`. Test decisions are
-`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`; only `TEST_TASK` permits product-test,
-build-as-test, browser, screenshot, Storybook, or visual-QA work.
+Use Direct, Brief, or Plan Pack from `AGENTS.md`. Inherit automatic
+`Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, and
+`Q3_RELEASE_GATE` classification, standing local quality authorization, and
+fail-closed completion from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 When orchestration is selected, use
 `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.

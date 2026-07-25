@@ -34,9 +34,13 @@ Produce ready-to-ship, production-grade code, not prototypes or starting points.
 
 This gate overrides any browser, screenshot, visual-QA, device-testing, automated-testing, or build instruction in a command reference:
 
-- **NOT_REQUIRED (default):** Do not run browser tools, Playwright, screenshots, visual QA, product tests, test suites, or builds. Verify through source inspection, design-system comparison, static analysis, local detector output, type/LSP evidence, lint, or a narrow non-test runtime/dry-run check.
-- **TEST_PROPOSAL:** When browser or test evidence would materially improve confidence, name the risk and offer the exact command, browser flow, viewports, or devices to check. Do not run it.
-- **TEST_TASK:** Run only the browser, screenshot, visual-QA, test, or build scope the user explicitly requested for the current task. Read returned screenshots before using them as evidence, record the checked states/viewports, and report failures honestly.
+- **Automatic quality profile:** Inherit `Q0_CONTRACT_ONLY` through
+  `Q3_RELEASE_GATE` from
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`. Run every selected local
+  source, detector, type/LSP, lint, test, build, browser, screenshot,
+  accessibility, and visual-QA layer under standing authorization. Read
+  returned screenshots before using them as evidence, record checked
+  states/viewports, and report failures honestly.
 
 Tool availability is never authorization. An explicit `$impeccable live` invocation counts as a browser request for that live session; a general design, critique, audit, craft, polish, harden, adapt, optimize, or overdrive request does not.
 

@@ -33,8 +33,10 @@ tests, reviewers, rollout, or approval.
 3. Reconcile the current user request, Git state, active diff, source,
    configuration, and manifest before authoring and before each execution unit.
    Repair stale paths, assumptions, dependencies, status, and hashes locally.
-4. Create `plan-pack.json` plus only the artifacts a fresh executor needs. Use
-   `NOT_REQUIRED`, `TEST_PROPOSAL`, or `TEST_TASK` from the Validation Matrix.
+4. Create `plan-pack.json` plus only the artifacts a fresh executor needs.
+   Classify the work as `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`,
+   `Q2_CRITICAL_CHANGE_GATE`, or `Q3_RELEASE_GATE` and map the selected local
+   evidence from the Validation Matrix.
 5. Validate with the executable contract:
 
    ```bash

@@ -6,7 +6,7 @@ paths:
 ---
 # HarmonyOS / ArkTS Testing
 
-**Activation gate:** apply this rule only for an explicit current-task user-authorized `TEST_TASK`; otherwise do not create, edit, or run tests.
+**Quality gate:** apply this rule when selected by the automatic `Q0`-`Q3` profile. Required local evidence has standing authorization and must run; never downgrade the profile or weaken evidence.
 
 > This file extends [common/testing.md](../common/testing.md) with HarmonyOS-specific testing practices.
 
@@ -110,9 +110,10 @@ Follow the standard TDD cycle adapted for HarmonyOS:
 4. **BUILD**: Run `hvigorw assembleHap` to verify compilation
 5. **VERIFY**: Run tests on device/emulator
 
-## Test Coverage Guidance for an Authorized Testing Task
+## Test Coverage Guidance
 
-- Do not chase a fixed coverage percentage; cover only the behavior named by the authorized testing task
+- Follow the selected profile threshold and cover the named behavior and
+  affected critical capabilities
 - **Unit tests**: All utility functions, ViewModel logic, data models
 - **Integration tests**: API calls, database operations, cross-module interactions
 - **E2E / UI tests**: Critical user flows (login, navigation, data submission)

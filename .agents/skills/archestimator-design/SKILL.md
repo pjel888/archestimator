@@ -1,6 +1,6 @@
 ---
 name: archestimator-design
-description: "Design or review authenticated Archestimator workshop, admin, proposal-editor, and product interfaces using current source, shared primitives, compact typography, precise spacing, and restrained Apple-informed product sensibilities. Do not use this skill to constrain public or otherwise unauthenticated routes, including / and /new, and do not run browser or visual evidence without an explicit TEST_TASK."
+description: "Design or review authenticated Archestimator workshop, admin, proposal-editor, and product interfaces using current source, shared primitives, compact typography, precise spacing, and restrained Apple-informed product sensibilities. Do not use this skill to constrain public or otherwise unauthenticated routes, including / and /new."
 ---
 
 # Archestimator Design
@@ -95,11 +95,11 @@ another without an explicit reason.
 - Use `$product-design:research` or `$research` for external evidence. Prefer
   primary sources and separate normative requirements from conventions.
 - Use `$product-design:audit` only for a specified current flow with current
-  screenshots captured under an authorized `TEST_TASK`. Otherwise describe the
+  screenshots captured as profile-selected evidence. Otherwise describe the
   work accurately as a source or artifact audit.
 - Use `$product-design:design-qa` only when both a source visual and a rendered
-  implementation of the same state and viewport exist under an authorized
-  `TEST_TASK`. Do not manufacture visual parity evidence.
+  implementation of the same state and viewport exist. Do not manufacture
+  visual parity evidence.
 - Use `$product-design` when the user wants the broader Product Design workflow;
   keep this skill as the project-specific authority inside that workflow.
 
@@ -112,10 +112,11 @@ another without an explicit reason.
   that preference into public design work.
 - Compact visuals do not excuse tiny hit targets, hidden focus, clipped text,
   color-only state, or failure at browser zoom and responsive reflow.
-- Default to `NOT_REQUIRED`. Do not create or run product tests, builds, browser
-  automation, screenshots, Storybook, or visual QA without an explicit current
-  `TEST_TASK`. When testing would materially reduce risk, provide a precise
-  `TEST_PROPOSAL` instead.
+- Inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+  classification and standing local evidence authorization from
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`. Run the selected product
+  tests, build, browser, screenshot, Storybook, accessibility, and visual-QA
+  layers when the active profile requires them.
 - Stay on the current branch and worktree. Do not reset, clean, stash, revert,
   commit, push, or overwrite unrelated changes.
 

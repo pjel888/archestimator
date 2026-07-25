@@ -26,9 +26,9 @@ Assess whether Archestimator preserves construction-estimating meaning and monet
 ## Evidence and test gate
 
 - Verification is required. Prefer formula and data-flow tracing, representative calculations, schema/source references, and narrow static evidence.
-- Report `test_requirement: NOT_REQUIRED | TEST_PROPOSAL | TEST_TASK`; default to `NOT_REQUIRED`. `TEST_PROPOSAL` names the risk and exact unrun command; test execution requires explicit user authorization (`TEST_TASK`).
-- Money, estimate-integrity, proposal, or export claims may justify `TEST_PROPOSAL` when cheaper checks cannot prove them. Never request a blanket suite, build, or browser run without naming the critical claim.
+- Report `quality_profile: Q0_CONTRACT_ONLY | Q1_CHANGE_GATE | Q2_CRITICAL_CHANGE_GATE | Q3_RELEASE_GATE`; use the automatically selected profile and run every required local evidence layer under standing authorization.
+- Money, estimate-integrity, proposal, or export claims require profile-selected evidence. Run the narrowest sufficient a blanket suite, build, or browser run without naming the critical claim.
 
 ## Output
 
-Return a concise advisory review with verdict, scope, `test_requirement`, severity-ordered findings, invariant and `path:line` evidence, numerical example where useful, user/business impact, remediation, positive controls, and remaining proof gaps.
+Return a concise advisory review with verdict, scope, `quality_profile`, severity-ordered findings, invariant and `path:line` evidence, numerical example where useful, user/business impact, remediation, positive controls, and remaining proof gaps.

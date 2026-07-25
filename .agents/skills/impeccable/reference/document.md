@@ -87,7 +87,10 @@ Search the codebase in priority order:
 4. **Design token files**: `tokens.json`, `design-tokens.json`, Style Dictionary output, W3C token community group format.
 5. **Component library**: scan the main button, card, input, navigation, dialog components. Note their variant APIs and default styles.
 6. **Global stylesheet**: the root CSS file usually has the base typography and color assignments.
-7. **Visible rendered output**: only under the parent skill's `TEST_TASK` gate, load the live site and sample computed styles from key elements (body, h1, a, button, .card). Under `NOT_REQUIRED`, derive values from source and note any rendered-only uncertainty as a `TEST_PROPOSAL`. Tool availability alone is not authorization.
+7. **Visible rendered output**: when selected by the active quality profile,
+   load the live site and sample computed styles from key elements (body, h1,
+   a, button, .card). Otherwise derive values from source and report
+   rendered-only uncertainty honestly.
 
 ### Step 2: Auto-extract what can be auto-extracted
 

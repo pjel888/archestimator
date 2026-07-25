@@ -17,8 +17,8 @@ the Validation Matrix, and
   code, migrations, D1/R2/DO/queue state, Git state, or external resources.
 - Use native, thread, emulated, or single-agent mode with the same contracts and
   capability fallback chain.
-- Run the cheapest decisive authorized evidence. Product tests/builds require
-  `TEST_TASK`; external writes and destructive actions require their exact
-  authority boundary.
+- Run every local evidence layer selected by the automatic `Q0`-`Q3` profile.
+  External writes and destructive actions still require their exact authority
+  boundary.
 - Preserve partial evidence and shared-worktree changes; report exact files,
   commands/results, proof limits, recovery, and remaining risk.

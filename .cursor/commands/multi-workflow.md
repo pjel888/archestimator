@@ -16,7 +16,7 @@ complete semantic workflow.
    fallback without changing contracts or fabricating independence.
 4. Apply explicit ownership, barriers, structured handoffs, bounded retry,
    conflict resolution, and one lead integration path.
-5. Verify the actual final artifacts with authorized evidence, review named
+5. Verify the actual final artifacts with profile evidence, review named
    risks only, reconcile every requirement, clean owned temporary state, and
    stop under the Completion Contract.
 

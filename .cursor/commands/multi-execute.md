@@ -18,12 +18,13 @@ Matrix, the accepted plan,
 - Assign one writer/integrator per file or mutable resource. Use isolated
   worktrees only when explicitly authorized; otherwise serialize conflicts.
 - Continue through safe dependency work, verify actual artifacts, and rerun only
-  invalidated authorized evidence. Product tests, builds-as-tests, browsers, and
-  screenshots require an explicit current-task `TEST_TASK`.
-- Use independent review only for a named material risk. The lead owns conflict
-  resolution, final diff review, requirement reconciliation, and completion.
+  invalidated profile evidence. Product tests, builds-as-tests, browsers, and
+  screenshots run when selected by the automatic `Q0`-`Q3` profile.
+- Use every independent review required by the selected profile. The lead owns
+  conflict resolution, final diff review, requirement reconciliation, and
+  completion.
 - Preserve mixed-worktree changes. Do not commit, push, branch, rebase, merge,
   stash, reset, clean, or mutate external state without separate authority.
 
-Return exact files, decisions, handoffs, commands/results, unrun tests, proof
+Return exact files, decisions, handoffs, commands/results, missing evidence, proof
 gaps, remaining risks, and any exact external boundary.

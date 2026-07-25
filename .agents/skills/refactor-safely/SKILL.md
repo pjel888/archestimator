@@ -1,6 +1,6 @@
 ---
 name: refactor-safely
-description: Reshape existing Archestimator code while preserving behavior and shared-worktree safety. Use for renames, extraction, deletion, consolidation, or structural cleanup; do not use for feature changes, speculative rewrites, new dependencies, blind find-and-replace, or unauthorized automated tests.
+description: Reshape existing Archestimator code while preserving behavior and shared-worktree safety. Use for renames, extraction, deletion, consolidation, or structural cleanup; do not use for feature changes, speculative rewrites, new dependencies, or blind find-and-replace.
 ---
 
 <!-- ARCHESTIMATOR REPO-LOCAL OVERRIDE — additive; preserve through fleet 3-way merge. Do not delete. -->
@@ -29,13 +29,13 @@ diff small enough to review and reverse.
 6. Inspect the final diff and affected callers. Use change detection for broad
    or transitive refactors, but treat current source and diff as primary proof.
 
-## User Test Gate
+## Quality Gate
 
-- `NOT_REQUIRED` is the default: use source, diff, type/LSP, lint, static,
-  dry-run, or narrow runtime evidence.
-- `TEST_PROPOSAL` names the risk and exact command but does not run it.
-- `TEST_TASK` exists only when the user explicitly requested testing for the
-  current task; only then may tests be created or run.
+Classify the refactor as `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`,
+`Q2_CRITICAL_CHANGE_GATE`, or `Q3_RELEASE_GATE`, then run every selected local
+source, type/LSP, lint, test, build, mutation, and runtime layer under the
+standing authorization in
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 Stop when behavior is preserved by the authorized evidence, expected files are
 the only files changed, and remaining risk is explicit.
