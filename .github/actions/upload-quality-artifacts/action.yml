@@ -1,0 +1,20 @@
+name: Upload quality artifacts
+description: Upload required quality evidence and fail when no report was produced.
+inputs:
+  name:
+    description: Artifact name
+    required: true
+  path:
+    description: Newline-delimited safe report paths
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Upload reports
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: error
+        retention-days: 14
+        include-hidden-files: false

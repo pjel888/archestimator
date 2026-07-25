@@ -1,0 +1,91 @@
+name: Release evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Full immutable commit SHA to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-evidence-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  evidence:
+    name: release / evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Validate immutable SHA input
+        env:
+          CANDIDATE_SHA: ${{ inputs.commit_sha }}
+        run: |
+          test "${#CANDIDATE_SHA}" = 40
+          case "$CANDIDATE_SHA" in
+            *[!0-9a-fA-F]*) exit 1 ;;
+          esac
+      - name: Checkout candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+      - name: Verify checkout identity
+        env:
+          CANDIDATE_SHA: ${{ inputs.commit_sha }}
+        run: test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA,,}"
+      - uses: ./.github/actions/setup-quality
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium firefox webkit --with-deps
+      - name: Run Q3 release profile
+        run: bun run quality:release
+      - name: Build Cloudflare candidate without deployment
+        run: bun run cf:build
+      - name: Package immutable candidate
+        run: |
+          tar \
+            --exclude='*.map' \
+            --exclude='*.log' \
+            -czf release-candidate.tgz \
+            .open-next \
+            migrations \
+            package.json \
+            bun.lock \
+            wrangler.jsonc
+          sha256sum release-candidate.tgz > release-candidate.tgz.sha256
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: release.sbom.cdx.json
+          upload-artifact: false
+      - name: Attest release provenance
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: release-candidate.tgz
+      - name: Attest release SBOM
+        uses: actions/attest-sbom@51e74621a501c89df81fc1391c5a8f4cfc9fab2f # v3
+        with:
+          subject-path: release-candidate.tgz
+          sbom-path: release.sbom.cdx.json
+      - name: Upload candidate evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-evidence-${{ inputs.commit_sha }}
+          path: |
+            release-candidate.tgz
+            release-candidate.tgz.sha256
+            release.sbom.cdx.json
+            artifacts/quality/
+          if-no-files-found: error
+          retention-days: 14
+          include-hidden-files: false

@@ -1,14 +1,28 @@
-# Archestimator ownership gate.
-# Platform enforcement is pending GitHub branch-protection capability; keep this
-# file advisory until required CODEOWNERS review can be enabled.
-
+# Actual repository owner. GitHub enforcement remains pending until the ruleset
+# described in docs/quality/GITHUB_ENFORCEMENT.md is applied and read back.
 * @pjel888
 
-.github/ @pjel888
-.ai/ @pjel888
-.codex/ @pjel888
-src/ @pjel888
-supabase/ @pjel888
-vercel.json @pjel888
-package.json @pjel888
-bun.lock @pjel888
+# Quality policy and executable gates
+/.github/ @pjel888
+/quality/ @pjel888
+/scripts/quality/ @pjel888
+/.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md @pjel888
+/.ai/00_system/VALIDATION_MATRIX.md @pjel888
+
+# Data integrity and provider configuration
+/migrations/ @pjel888
+/wrangler.jsonc @pjel888
+/worker.ts @pjel888
+/open-next.config.ts @pjel888
+
+# Authentication, authorization, security, privacy, and public sharing
+/src/lib/auth/ @pjel888
+/src/lib/security/ @pjel888
+/src/lib/compliance/ @pjel888
+/src/app/api/auth/ @pjel888
+/src/app/share/ @pjel888
+/src/app/api/share/ @pjel888
+
+# Dependency and release integrity
+/package.json @pjel888
+/bun.lock @pjel888

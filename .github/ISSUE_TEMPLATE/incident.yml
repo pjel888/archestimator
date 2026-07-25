@@ -1,0 +1,59 @@
+name: Incident record
+description: Record and follow up on a security, availability, privacy, or data-integrity incident.
+title: "[Incident]: "
+labels:
+  - incident
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - S0
+        - S1
+        - S2
+        - S3
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Sanitized summary and impact
+      description: State affected capabilities, actors, tenants, data, time window, and current status without disclosing private data.
+    validations:
+      required: true
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+      description: Include detection, containment, recovery, and verification timestamps with timezone.
+    validations:
+      required: true
+  - type: textarea
+    id: containment
+    attributes:
+      label: Containment and recovery
+      description: List actions, owners, rollback/fix-forward state, and evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Root cause and control gaps
+      description: Identify technical and process causes, including any bypassed quality or security gate.
+    validations:
+      required: true
+  - type: textarea
+    id: follow_up
+    attributes:
+      label: Follow-up
+      description: List regression tests, monitoring, documentation, and prevention work with owners and dates.
+    validations:
+      required: true
+  - type: checkboxes
+    id: disclosure
+    attributes:
+      label: Disclosure safety
+      options:
+        - label: This public record contains no secret, credential, exploitable detail, or private user data.
+          required: true

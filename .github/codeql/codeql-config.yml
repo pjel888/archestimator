@@ -8,10 +8,16 @@ paths:
   - src
   - scripts
   - tests
-  - supabase
+  - quality
+  - worker.ts
+  - open-next.config.ts
 
 paths-ignore:
   - node_modules
   - .next
+  - .open-next
   - coverage
+  - artifacts
   - storybook-static
+  - .ai/09_archive
+  - supabase

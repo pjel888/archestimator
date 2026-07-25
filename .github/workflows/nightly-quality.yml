@@ -1,0 +1,74 @@
+name: Nightly quality
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-quality
+  cancel-in-progress: false
+
+jobs:
+  release-profile:
+    name: quality / nightly release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-quality
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium firefox webkit --with-deps
+      - name: Run Q3 release profile
+        run: bun run quality:release
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: nightly-quality-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/
+            artifacts/junit/
+            artifacts/coverage/
+            artifacts/cucumber/
+            artifacts/stryker/
+            artifacts/playwright/
+            artifacts/a11y/
+            artifacts/security/
+
+  operations:
+    name: quality / nightly operations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:operations
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: nightly-operations-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/operations.json
+            artifacts/performance/
+            artifacts/observability/
+            artifacts/migrations/
+
+  gate:
+    name: quality / nightly gate
+    if: ${{ always() }}
+    needs: [release-profile, operations]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every nightly dependency
+        env:
+          RELEASE_RESULT: ${{ needs.release-profile.result }}
+          OPERATIONS_RESULT: ${{ needs.operations.result }}
+        run: |
+          test "$RELEASE_RESULT" = success
+          test "$OPERATIONS_RESULT" = success

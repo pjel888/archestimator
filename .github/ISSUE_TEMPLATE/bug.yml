@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a reproducible product or operational defect.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - S0 - active security incident, irreversible data loss, or total outage
+        - S1 - critical workflow unavailable or serious security/data risk
+        - S2 - major degraded behavior with a workaround
+        - S3 - localized defect
+        - S4 - cosmetic or low-impact defect
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected and actual outcome
+      description: Describe what should happen and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include actors, role, tenant boundary, inputs, and deterministic steps. Remove secrets and private data.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include sanitized error text, request/correlation IDs, screenshots, or artifact links. State whether the evidence is local, CI, hosted, or production.
+    validations:
+      required: true
+  - type: textarea
+    id: regression
+    attributes:
+      label: Regression coverage
+      description: Name the test or acceptance scenario that should fail before the fix and pass after it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: I removed secrets, tokens, private URLs, cookies, and private user data.
+          required: true

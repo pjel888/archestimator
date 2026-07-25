@@ -1,0 +1,599 @@
+name: Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: quality / classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      profile: ${{ steps.profile.outputs.profile }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - name: Setup quality runtime
+        uses: ./.github/actions/setup-quality
+      - name: Classify the complete change
+        env:
+          QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          test -n "$QUALITY_BASE"
+          bun scripts/quality/classify.ts \
+            --base "$QUALITY_BASE" \
+            --output artifacts/quality/classification.json
+      - name: Export validated profile
+        id: profile
+        run: |
+          PROFILE="$(node -e 'const r=require("./artifacts/quality/classification.json"); const p=r.data?.profile ?? r.profile; if(!/^Q[0-3]_(CONTRACT_ONLY|CHANGE_GATE|CRITICAL_CHANGE_GATE|RELEASE_GATE)$/.test(p)) process.exit(1); process.stdout.write(p)')"
+          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+          echo "Selected profile: $PROFILE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload classification
+        if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/classification.json
+
+  contracts:
+    name: quality / contracts
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:contracts
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/contracts.json
+            artifacts/quality/legacy-scan.json
+
+  adapters:
+    name: quality / adapters
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:adapters
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-adapters-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/adapter-validation.json
+
+  anti-bypass:
+    name: quality / anti-bypass
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:anti-bypass
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-anti-bypass-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/anti-bypass.json
+
+  workflows:
+    name: quality / workflows
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:workflows
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-workflows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/workflows.json
+
+  review:
+    name: quality / review
+    if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ./.github/actions/setup-quality
+      - name: Download classification
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality
+      - name: Validate exact-candidate independent reviews
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QUALITY_AUTHOR_IDS: ${{ github.event.pull_request.user.id }}
+          QUALITY_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          QUALITY_PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: bun run quality:reviews
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/reviews.json
+
+  enforcement:
+    name: quality / enforcement
+    if: ${{ needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:enforcement-contract
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-enforcement-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/enforcement.json
+
+  static:
+    name: quality / static
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run quality:static
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-static-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/static.json
+
+  unit:
+    name: quality / unit
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run test:unit:coverage
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-unit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/unit.json
+            artifacts/junit/unit.xml
+            artifacts/coverage/unit/
+
+  component:
+    name: quality / component
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - name: Download classification
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality
+      - name: Run selected component tier
+        env:
+          QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
+        run: |
+          case "$QUALITY_PROFILE" in
+            Q1_CHANGE_GATE) bun run test:component:change ;;
+            Q2_CRITICAL_CHANGE_GATE) bun run test:component:critical ;;
+            Q3_RELEASE_GATE) bun run test:component:release ;;
+            *)
+              echo "Unsupported component profile: $QUALITY_PROFILE" >&2
+              exit 1
+              ;;
+          esac
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-component-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/component.json
+            artifacts/quality/component-strict.vitest.json
+            artifacts/quality/component-full.vitest.json
+            artifacts/coverage/component-strict/**
+            artifacts/coverage/component/**
+
+  property:
+    name: quality / property
+    if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run test:property
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-property-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/property.json
+
+  workers:
+    name: quality / workers
+    if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run test:workers:coverage
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-workers-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/workers.json
+            artifacts/junit/workers.xml
+            artifacts/coverage/workers/
+
+  bdd-smoke:
+    name: quality / bdd-smoke
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - name: Run selected BDD tier
+        env:
+          QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
+        run: |
+          if test "$QUALITY_PROFILE" = Q3_RELEASE_GATE; then
+            bun run test:bdd
+          else
+            bun run test:bdd:smoke
+          fi
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-bdd-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/bdd*.json
+            artifacts/cucumber/
+            artifacts/junit/bdd.xml
+
+  a11y:
+    name: quality / a11y
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run test:a11y
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-a11y-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/a11y.json
+            artifacts/a11y/
+
+  build:
+    name: quality / build
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run build
+      - name: Produce compact strict bundle-budget evidence
+        run: |
+          bun scripts/quality/run-evidence-command.ts \
+            --artifact artifacts/quality/bundle-budget.json \
+            --evidence-id bundle-budget \
+            -- bun scripts/check-performance-budgets.mjs --strict
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/build.json
+            artifacts/quality/bundle-budget.json
+
+  e2e-smoke:
+    name: quality / e2e-smoke
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - name: Install Chromium
+        run: bunx playwright install chromium --with-deps
+      - name: Run selected browser tier
+        env:
+          QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
+        run: |
+          if test "$QUALITY_PROFILE" = Q3_RELEASE_GATE; then
+            bun run test:e2e:matrix
+          else
+            bun run test:e2e:smoke
+          fi
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-e2e-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/e2e-*.json
+            artifacts/playwright/
+            test-results/
+
+  mutation-changed:
+    name: quality / mutation
+    if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-quality
+      - name: Run selected mutation tier
+        env:
+          QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
+        run: |
+          if test "$QUALITY_PROFILE" = Q3_RELEASE_GATE; then
+            bun run test:mutation:full
+          else
+            bun run test:mutation:critical
+          fi
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-mutation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/mutation.json
+            artifacts/stryker/
+
+  security:
+    name: quality / security
+    if: ${{ needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-quality
+      - name: Run security checks
+        run: bun run quality:security
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-security-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/security.json
+            artifacts/security/
+
+  ai-eval:
+    name: quality / ai-eval
+    if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - run: bun run test:ai-evals
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-ai-eval-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/ai-eval.json
+
+  operations:
+    name: quality / operations
+    if: ${{ always() && needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: [classify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/setup-quality
+      - name: Download classification
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality
+      - name: Download compact build evidence
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality
+      - run: bun run quality:operations
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-operations-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality/operations.json
+            artifacts/performance/
+            artifacts/observability/
+            artifacts/migrations/
+
+  coverage:
+    name: quality / coverage
+    if: ${{ always() && needs.classify.outputs.profile != 'Q0_CONTRACT_ONLY' }}
+    needs: [classify, unit, component, workers]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-quality
+      - name: Download unit coverage
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-unit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts
+      - name: Download component coverage
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-component-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts
+      - name: Download Workers coverage
+        if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: quality-workers-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts
+      - run: bun run quality:diff-coverage
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-coverage-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality/diff-coverage.json
+
+  gate:
+    name: quality / gate
+    if: ${{ always() }}
+    needs:
+      - classify
+      - contracts
+      - adapters
+      - anti-bypass
+      - workflows
+      - review
+      - enforcement
+      - static
+      - unit
+      - component
+      - property
+      - workers
+      - bdd-smoke
+      - a11y
+      - build
+      - e2e-smoke
+      - mutation-changed
+      - security
+      - ai-eval
+      - operations
+      - coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ./.github/actions/setup-quality
+      - name: Download all available quality reports
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          pattern: quality-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/quality-downloads
+          merge-multiple: false
+      - name: Build immutable job-result input
+        env:
+          QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
+          QUALITY_RUN_ID: ${{ github.run_id }}
+          QUALITY_RUN_ATTEMPT: ${{ github.run_attempt }}
+          CLASSIFY: ${{ needs.classify.result }}
+          CONTRACTS: ${{ needs.contracts.result }}
+          ADAPTERS: ${{ needs.adapters.result }}
+          ANTI_BYPASS: ${{ needs.anti-bypass.result }}
+          WORKFLOWS: ${{ needs.workflows.result }}
+          REVIEW: ${{ needs.review.result }}
+          ENFORCEMENT: ${{ needs.enforcement.result }}
+          STATIC: ${{ needs.static.result }}
+          UNIT: ${{ needs.unit.result }}
+          COMPONENT: ${{ needs.component.result }}
+          PROPERTY: ${{ needs.property.result }}
+          WORKERS: ${{ needs.workers.result }}
+          BDD_SMOKE: ${{ needs.bdd-smoke.result }}
+          A11Y: ${{ needs.a11y.result }}
+          BUILD: ${{ needs.build.result }}
+          E2E_SMOKE: ${{ needs.e2e-smoke.result }}
+          MUTATION: ${{ needs.mutation-changed.result }}
+          SECURITY: ${{ needs.security.result }}
+          AI_EVAL: ${{ needs.ai-eval.result }}
+          OPERATIONS: ${{ needs.operations.result }}
+          COVERAGE: ${{ needs.coverage.result }}
+        run: node scripts/quality/ci/build-job-results.mjs
+      - name: Validate aggregate
+        run: |
+          bun scripts/quality/aggregate.ts \
+            --classification artifacts/quality-downloads/quality-classification-${{ github.run_id }}-${{ github.run_attempt }}/classification.json \
+            --jobs artifacts/quality/jobs.json \
+            --profiles quality/profiles.json \
+            --output artifacts/quality/aggregate.json
+      - name: Build final exact-candidate manifest
+        if: ${{ always() }}
+        env:
+          QUALITY_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bun run quality:manifest -- \
+            --classification artifacts/quality-downloads/quality-classification-${{ github.run_id }}-${{ github.run_attempt }}/classification.json \
+            --jobs artifacts/quality/jobs.json \
+            --aggregate artifacts/quality/aggregate.json \
+            --output artifacts/quality/manifest.json
+      - name: Validate final report contract
+        if: ${{ always() }}
+        run: |
+          bun run quality:report -- \
+            --manifest artifacts/quality/manifest.json \
+            --require-command-log \
+            --output artifacts/quality/report.json
+      - if: ${{ always() }}
+        uses: ./.github/actions/upload-quality-artifacts
+        with:
+          name: quality-gate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/quality-downloads/quality-classification-${{ github.run_id }}-${{ github.run_attempt }}/classification.json
+            artifacts/quality/jobs.json
+            artifacts/quality/aggregate.json
+            artifacts/quality/manifest.json
+            artifacts/quality/report.json
