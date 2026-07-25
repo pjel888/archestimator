@@ -31,8 +31,10 @@ degraded tooling, not a blocker for unrelated implementation.
 - Architect: high-risk boundaries and tradeoffs.
 - Executor: implementation and refactoring.
 - Debugger: reproduction and root cause.
-- Test engineer: test proposals or explicitly authorized test work.
-- Verifier/reviewer: independent evidence when it materially reduces risk.
+- Test/quality engineer: profile-selected test strategy, coverage, mutation,
+  fixtures, and test-strength review.
+- Verifier/reviewer: independent evidence and gate verdict required by the
+  selected profile.
 
 Use the fewest roles needed. Direct lead execution is the default for narrow or
 tightly coupled work. Missing lanes or tools are degraded capabilities; fall
@@ -65,9 +67,9 @@ Payloads under `.ai/12_agents/payloads/` contain only:
 - tool-specific notes;
 - references to `AGENTS.md`, `.ai/00_system`, and FAST PATH.
 
-They inherit pre-beta fix-forward, repository safety, provider authority,
-Supermemory, and the User Test Authorization Gate. Do not restate those policies
-unless a tool requires a short compatibility reminder.
+They inherit beta fix-forward, repository safety, provider authority,
+Supermemory, and the canonical beta quality protocol. Do not restate those
+policies unless a tool requires a short compatibility reminder.
 
 Approved agents may work in their lanes. Deprecated/unapproved agents receive no
 work unless Philip explicitly reapproves them. Use the lead or nearest approved
@@ -103,9 +105,13 @@ After payload or adapter changes run:
 - `codex debug prompt-input` for Codex-facing changes
 - `opencode debug config` for OpenCode-facing changes
 
-The validator should enforce only authority references, required role fields,
-current provider facts, Supermemory bootstrap, test authorization, and known
-adapter resolution. It must not freeze prose or duplicate project policy.
+The validator should enforce authority references, required role fields,
+current provider facts, Supermemory bootstrap, `Q0`-`Q3` profile inheritance,
+legacy-policy absence, and known adapter resolution. It must not freeze prose or
+duplicate project policy. Quality-system and adapter changes select at least
+`Q2_CRITICAL_CHANGE_GATE` under
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`, and completion requires
+fresh machine-readable evidence.
 
 ## Durable Findings
 

@@ -33,8 +33,9 @@ archived DnD plan used it.
 3. Preserve the current domain hierarchy, cycle/no-op validation, optimistic
    reconciliation, accessibility, and atomic D1 mutation boundaries.
 4. Prefer the existing project tree abstraction for estimate/workshop features.
-5. Use source/diff/static evidence by default. Unit/component/Playwright/browser
-   validation runs only for an explicit current-task `TEST_TASK`.
+5. Use source/diff/static evidence and run the unit, component, Playwright, and
+   browser layers selected by the automatic `Q0_CONTRACT_ONLY` through
+   `Q3_RELEASE_GATE` profile.
 
 ## Historical Reference
 

@@ -8,7 +8,7 @@ execution mechanics.
 
 ## Lean Engineering
 
-Archestimator is alpha/pre-beta. Ordinary local edits are not production change
+Archestimator is beta software. Ordinary local edits are not production change
 events. Analyze the real blast radius, then prefer direct replacement, deletion,
 current utilities, and fix-forward repair. Do not add compatibility, flags,
 rollout, rollback, hosted proof, or approvals without a proven current user,
@@ -41,8 +41,8 @@ Follow `.ai/00_system/PLAN_PACK_EXECUTION_POLICY.md`.
 For non-trivial work establish: objective and intent; scope and exclusions;
 inputs and authoritative paths; constraints, dependencies, assumptions, and
 authorization boundaries; owner and capability class; tool and write
-permissions; required outputs; acceptance criteria; validation commands and
-evidence/test decision; stop condition; and escalation condition.
+permissions; required outputs; acceptance criteria; selected `Q0`-`Q3` quality
+profile and evidence; stop condition; and escalation condition.
 
 Direct work may keep this contract mental. Brief work records it in-session.
 Plan Pack work persists it. Do not create an artifact merely to restate a clear
@@ -50,7 +50,10 @@ request.
 
 ## Execution
 
-Use `DISCOVER -> DECIDE -> EDIT -> VERIFY -> FINISH`.
+Executable work uses
+`DISCOVER -> SPECIFY -> RED -> IMPLEMENT -> VERIFY -> MUTATE/ADVERSARIAL -> REVIEW -> FINISH`.
+True contract-only work may collapse non-applicable stages while retaining its
+classified evidence.
 
 ### Discover
 
@@ -61,16 +64,24 @@ Use `DISCOVER -> DECIDE -> EDIT -> VERIFY -> FINISH`.
 - Treat plans, memory, logs, and worker reports as leads until checked against
   current source or authoritative external state.
 
-### Decide
+### Specify
 
-- Resolve ordinary reversible choices autonomously.
+- Resolve ordinary reversible choices autonomously and record acceptance
+  criteria, invariants, and applicable happy, denial, boundary, failure, and
+  recovery examples.
 - On equal evidence, choose the simpler, faster fix-forward path.
 - Ask only when an irreversible, destructive, paid, credential-gated, external-
   production, or materially scope-changing choice cannot be derived safely.
 - Record durable decisions only when future work would otherwise repeat or
   contradict them.
 
-### Edit
+### Red
+
+- For defects, capture a failing reproduction before repair when feasible.
+- For new behavior, prove the evidence can fail with pre-implementation red, a
+  negative fixture, or equivalent mutation evidence.
+
+### Implement
 
 - Make the smallest coherent change that completes the requested behavior.
 - Prefer deletion and reuse over new abstractions.
@@ -79,20 +90,37 @@ Use `DISCOVER -> DECIDE -> EDIT -> VERIFY -> FINISH`.
 
 ### Verify
 
-Use the cheapest decisive authorized evidence. Start with source/diff/reference
-checks, then type/LSP/lint/static/dry-run/narrow runtime evidence when relevant.
-Automated product tests, builds-as-tests, browser automation, screenshots,
-Storybook, and visual QA require explicit current-task user authorization under
-`.ai/00_system/VALIDATION_MATRIX.md`.
+Classify the whole diff and run the selected profile under
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` and
+`.ai/00_system/VALIDATION_MATRIX.md`. Standing authorization covers the
+required local tests, builds, browser checks, and other automated evidence.
+Missing, skipped, flaky, weakened, malformed, stale, or failed evidence is not
+green. Quality-system changes and classification uncertainty select at least
+`Q2_CRITICAL_CHANGE_GATE`.
 
 If evidence fails, diagnose, change the hypothesis or implementation, and retry.
 Do not repeat an exhausted tactic or lower the objective.
+
+### Mutate/Adversarial
+
+- Run the profile-required mutation, negative, abuse, fault, concurrency,
+  property, accessibility, security, and recovery evidence.
+- Never lower thresholds, narrow scope, weaken assertions, add retries/timeouts,
+  or skip evidence to obtain green.
+
+### Review
+
+- Use an independent read-only quality review for `Q2`; add a distinct security
+  review for security/auth/data-boundary work and release review for `Q3`.
+- A writer cannot independently approve the surface they changed.
 
 ### Finish
 
 - Reconcile every requested requirement to evidence.
 - Update canonical `.ai` truth only when project reality changed.
 - Leave auxiliary gaps visible without downgrading completed implementation.
+- Require an aggregate evidence manifest of `PASS`; otherwise report `FAIL` or
+  an exact `QUALITY_BLOCKED` boundary.
 - Report result, changed files, evidence, and real remaining risk.
 
 ## Collaboration
@@ -108,15 +136,15 @@ Use one writer per shared file or contract. A lightweight ownership note is
 enough for ordinary work. Formal leases/heartbeats are plan-pack-only and only
 for actual concurrent contention.
 
-Maker/checker separation is optional. Use it only when independent judgment
-materially reduces a named risk; deterministic self-checks are sufficient for
-routine work.
+Use the fewest roles needed while preserving the review separation required by
+the selected profile.
 
 ## Blockers
 
 Internally resolvable dependencies are continuation work. Reorder, repair,
-substitute, or implement them. Optional tools, agents, reviewers, memory,
-unapproved tests, hosted proof, and release evidence cannot block safe local work.
+substitute, or implement them. Optional tools, agents, and memory cannot block
+safe local work. Required profile evidence or review that cannot be produced
+remains `FAIL` or `QUALITY_BLOCKED`, never `PASS`.
 
 `AUTH_BLOCKED` applies only to the exact prohibited external action after every
 safe local prerequisite is complete. `TECH_BLOCKED` applies only when a core
@@ -131,10 +159,10 @@ capability, lane, or serialization strategy. Then take over locally or isolate
 the exact external boundary. Never repeat an exhausted tactic, lower the
 objective, or turn an optional-lane failure into a blocker.
 
-Completion requires every core criterion reconciled to a current artifact and
-fresh evidence, the final source/diff reviewed, authorized validation completed
-or an honest test decision recorded, failures and proof gaps disclosed, and no
-safe in-scope work, ownership, handoff, or cleanup left.
+Completion requires every core criterion reconciled to a current artifact,
+fresh machine-readable profile evidence, required independent reviews, final
+source/diff review, disclosed failures/proof gaps, and no safe in-scope work,
+ownership, handoff, or cleanup left.
 
 ## Supermemory
 

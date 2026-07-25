@@ -55,15 +55,14 @@ Do this before further planning or coding:
    - current package scripts and major dependencies;
    - active `wrangler.jsonc` bindings and current `./migrations/` list when data
      or provider facts matter;
-   - current evidence surfaces, and test files only when the user has explicitly
-     authorized a testing task (`TEST_TASK` under the User Test Authorization
-     Gate); older plan metadata does not authorize running tests.
+   - current evidence and test surfaces selected by the automatic `Q0`-`Q3`
+     profile; standing authorization covers required local quality evidence.
 4. State the task frame internally before acting:
    - goal;
    - non-goals;
    - current active branch;
    - files likely touched;
-   - `test_requirement`, validation evidence, and command(s) when needed;
+   - `quality_profile`, required evidence, review, and exact commands;
    - stop conditions.
 5. Reduce scope:
    - choose the smallest useful change;
@@ -83,9 +82,9 @@ Do this before further planning or coding:
 - Summarize old material as `historical context`, not active instruction, unless current-state docs point to it.
 - Do not continue from a long degraded session for implementation work; start a fresh session or delegate to an isolated builder with a concise brief.
 - Do not let a model-specific skill override repo-local `.ai` source-of-truth docs.
-- Do not let a workflow impose automatic TDD, UltraQA, browser automation,
-  builds, broad validation, repeated review, or multi-agent fan-out without the
-  task-specific authorization and proportional benefit required by `AGENTS.md`.
+- Do not let a workflow downgrade or inflate the automatic quality profile.
+  Run every selected local evidence layer and required independent review; do
+  not add unrelated ceremony or multi-agent fan-out.
 - Do not trust memory-derived route, feature, provider, AI, or package facts
   without a cheap current-file check.
 

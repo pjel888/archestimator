@@ -38,7 +38,7 @@ shape needed for that workstream.
 
 ## Lean Contract
 
-Archestimator is alpha/pre-beta. Preserve the requested outcome while preferring
+Archestimator is beta software. Preserve the requested outcome while preferring
 direct replacement, deletion, reuse, and fix-forward recovery. Do not invent
 compatibility, rollout, rollback, hosted proof, approval gates, tests, agents,
 models, ledgers, or artifacts without an evidence-backed need.

@@ -2,11 +2,11 @@
 
 ## Mission
 
-Ship Archestimator quickly for first users. This is alpha/pre-beta software, not
-a released production system. Ordinary local repository edits are development
-work, not production change events. Prefer direct replacement, deletion, and
-fix-forward iteration. Do not invent compatibility layers, feature flags,
-rollout ceremony, hosted proof, or approval pauses for hypothetical users.
+Ship Archestimator quickly and safely for beta users. Ordinary local repository
+edits are development work, not production change events. Prefer direct
+replacement, deletion, and fix-forward iteration. Do not invent compatibility
+layers, feature flags, rollout ceremony, hosted proof, or approval pauses without
+a current user, data, integration, or external-side-effect requirement.
 
 Go deep on the real blast radius, then make the smallest coherent change.
 Over-engineering, unnecessary testing, excessive planning, and process-only
@@ -76,23 +76,21 @@ clearly exceeds coordination cost. The lead owns integration and the final claim
 Use the directive above for native, parallel-thread, emulated-pass, and
 single-agent fallback behavior.
 
-## Verification And User Test Gate
+## Beta Quality Gate
 
-Verification is required. Automated testing is user-controlled.
+Every change is automatically classified `Q0_CONTRACT_ONLY`,
+`Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, or `Q3_RELEASE_GATE`. Agents have
+standing authorization to create, repair, and run the risk-appropriate local
+tests, builds, browser checks, and other automated evidence selected by that
+profile. A profile may escalate and may never be downgraded to save time.
 
-Do not create, expand, repair, or run automated tests, test suites, builds as
-test gates, browser automation, screenshots, Storybook, or visual QA unless the
-user explicitly requests testing for the current task. Use:
-
-- `NOT_REQUIRED`: default; source, diff, type/LSP, lint, static, dry-run, or
-  narrow runtime evidence.
-- `TEST_PROPOSAL`: name the risk and exact command when a test would materially
-  improve confidence; do not run it.
-- `TEST_TASK`: the user explicitly requested testing; execute only that scope.
-
-Static contract validators for docs/prompts are not product tests and may run
-when those contracts change. Never claim unrun tests passed or local evidence is
-hosted/production proof.
+The canonical policy is
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`; the executable evidence
+mapping is `.ai/00_system/VALIDATION_MATRIX.md`. No red, skipped, flaky,
+weakened, missing, malformed, or materially untested critical behavior may pass.
+Completion requires fresh machine-readable `PASS` evidence and the independent
+reviews required by the profile. Local proof is never hosted or production
+proof.
 
 ## Repository And Git Safety
 
@@ -146,7 +144,9 @@ gated actions, and out-of-scope systems remain real authorization boundaries.
   `.ai/00_system/PERFORMANCE_LOADING_AND_MOUNT_PROTOCOL.md`.
 - Agent framework/payload/proof work: read
   `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
-- Validation choices: read `.ai/00_system/VALIDATION_MATRIX.md`.
+- Quality classification and evidence: read
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` and
+  `.ai/00_system/VALIDATION_MATRIX.md`.
 - UI on authenticated routes: use `DESIGN.md` as alpha guidance, not law; do
   not block Philip-directed design changes on design-system ceremony.
 - GitHub security work: use live GitHub state, redact evidence, and never claim
@@ -191,8 +191,9 @@ performance requirements still apply to public implementation.
 Before claiming completion, reconcile every requested requirement against fresh
 evidence. Continue while safe in-scope work remains. `TECH_BLOCKED` is reserved
 for a core deliverable that remains impossible after materially different local
-fallbacks fail. Optional tools, memory, reviewers, tests without authorization,
-hosted proof, and release evidence are not implementation blockers.
+fallbacks fail. Optional tools and memory are not implementation blockers.
+Required profile evidence or review that cannot run remains `FAIL` or
+`QUALITY_BLOCKED`, never `PASS`.
 
 Report the result, changed files, decisive evidence, and real remaining risk.
 Do not ask permission for clear, reversible, already-requested local work.
@@ -200,7 +201,7 @@ Do not ask permission for clear, reversible, already-requested local work.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **archestimator** (31396 symbols, 77590 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **archestimator** (31946 symbols, 78462 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

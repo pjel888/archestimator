@@ -19,7 +19,8 @@ Safe local triage and redacted evidence preservation may proceed. Credential
 rotation, WAF changes, Worker isolation/deployment, destructive D1 operations,
 paid or unbound provider actions, legal notifications, and customer
 communications require incident-specific authority. Automated tests, browser
-automation, screenshots, and visual QA remain `TEST_TASK`-gated.
+automation, screenshots, and visual QA are local evidence and run when selected
+by the automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE` profile.
 
 ## Definitions
 

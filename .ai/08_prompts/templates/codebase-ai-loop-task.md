@@ -25,7 +25,9 @@ task-relevant system protocol. Do not linear-read the full history logs.
 - Sequence: `DISCOVER -> DECIDE -> EDIT -> VERIFY -> FINISH`
 - Owner and capability class:
 - Tools and read/write permissions:
-- Evidence/test decision: `NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`
+- Quality profile:
+  `Q0_CONTRACT_ONLY|Q1_CHANGE_GATE|Q2_CRITICAL_CHANGE_GATE|Q3_RELEASE_GATE`
+- Required local evidence and machine-readable artifact paths:
 - Failure/retry and escalation condition:
 
 When orchestration is selected, append bounded Subagent Assignment and Handoff

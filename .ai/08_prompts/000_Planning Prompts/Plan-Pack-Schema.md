@@ -49,11 +49,12 @@ collected.
 
 ## 7. Tests
 
-Use `NOT_REQUIRED`, `TEST_PROPOSAL`, or `TEST_TASK` from the Validation
-Matrix. `TEST_PROPOSAL` records the named risk, exact unrun command, and
-rationale; it never grants test execution. Only explicit current-task user
-authorization permits test execution or edits. Legacy manifest values may
-remain validator compatibility, but they are not authoring guidance.
+Use `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, or
+`Q3_RELEASE_GATE` from the Validation Matrix. Record the selected profile,
+classification reasons, required local evidence, exact commands, and expected
+artifacts. Local test creation, repair, and execution inherit standing
+authorization from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 ## 8. Status, Resume, And Archive
 

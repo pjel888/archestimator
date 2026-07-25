@@ -16,12 +16,12 @@ Suspense placement, or global overlay behavior.
    current server/TanStack Query boundary instead.
 6. Confirm token-bearing routes remain no-store and that segment loading does
    not duplicate the global route overlay.
-7. Review source and diff as the default `NOT_REQUIRED` evidence. Static or lint
-   checks may run when relevant.
-8. If a named interaction risk materially needs product testing, record a
-   `TEST_PROPOSAL` with the exact focused command. Do not run it.
-9. Run Vitest, Playwright, route-transition tests, builds-as-tests, screenshots,
-   Storybook, or visual QA only for an explicit current-task `TEST_TASK`.
+7. Classify the change as `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`,
+   `Q2_CRITICAL_CHANGE_GATE`, or `Q3_RELEASE_GATE`.
+8. Run every selected local source, static, lint, Vitest, Playwright,
+   route-transition, build, screenshot, Storybook, accessibility, and visual-QA
+   layer under the standing authorization in
+   `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
 
 `bun run validate:agents` is a static contract validator and is relevant only
 when the governing agent/protocol documentation changed.

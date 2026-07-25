@@ -6,7 +6,10 @@ This is Archestimator's canonical orchestration contract whenever work uses
 native subagents, parallel threads, emulated specialist passes, or coordinated
 multi-owner execution. It does not override platform instructions,
 `AGENTS.md`, the Task Contract in
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, or the Validation Matrix.
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`, or the Validation Matrix.
+The lead applies automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+classification across the coordinated work.
 
 Load `Frontier-Planning-Kernel.md`, applicable
 `Frontier-Applicability-Gates.md`, this directive, and
@@ -22,7 +25,8 @@ Before coordinated work begins, the lead establishes one parent Task Contract:
 - constraints, dependencies, assumptions, and authorization boundaries;
 - owner, required capability classes, tool permissions, and write permissions;
 - required outputs and acceptance criteria;
-- exact validation commands, test decision, and proof boundaries;
+- selected `Q0`-`Q3` profile, exact required commands, reviews, and proof
+  boundaries;
 - completion condition, stop condition, and escalation condition.
 
 Direct work may keep this contract mental. Brief work records it in-session.
@@ -47,6 +51,10 @@ Short, ordered, tightly coupled, or same-file work stays with one owner.
 Unavailable agents or models trigger a portable fallback, not a blocker.
 
 ## Topology And Lifecycle
+
+Executable work follows
+`DISCOVER -> SPECIFY -> RED -> IMPLEMENT -> VERIFY -> MUTATE/ADVERSARIAL -> REVIEW -> FINISH`.
+The lead cannot waive or downgrade a failed mandatory gate.
 
 Default to a flat lead-and-workers topology. Native recursion is limited by the
 configured runtime; child workers do not delegate unless the assignment and
@@ -85,7 +93,8 @@ Every assignment includes:
 - timeout behavior, including that expiry releases no ownership or authority;
 - prohibited side effects, Git/provider limits, and spawn-depth permission;
 - expected artifact, evidence, and return shape;
-- authorized commands and explicit test decision;
+- authorized commands, selected quality profile, evidence layers, and required
+  independent reviews;
 - completion condition, stop condition, retry budget, and escalation path.
 
 Workers receive only the context needed for their slice. They do not broaden
@@ -126,7 +135,9 @@ Every worker or logical pass returns:
 - files/resources inspected and changed;
 - decisions, assumptions, and scope deviations;
 - commands/evidence with exact results and fresh artifact references;
-- explicitly unrun tests and unproved external boundaries;
+- red-before-green proof; tests added/changed and why; coverage and mutation
+  metrics; security, accessibility, and performance findings;
+- missing, skipped, flaky, malformed, unavailable, or external evidence;
 - conflicts, limitations, cleanup state, remaining risk, and confidence;
 - unresolved questions and whether they affect a core acceptance criterion;
 - recommended next action or escalation.
@@ -151,13 +162,14 @@ exact external boundary before the parent can finish.
 
 ## Independent Review
 
-Use an independent reviewer only when it materially reduces a named risk or the
-Task Contract requires one. Give the reviewer the original requirements,
+Use the independent reviews required by the selected profile: read-only quality
+review for `Q2`, an additional distinct security review for security/auth/data-
+boundary work, and release-gate review for `Q3`. Give the reviewer the original requirements,
 acceptance criteria, scoped final diff, decisive artifacts, validation results,
 and known proof gaps. The reviewer checks actual artifacts, reports
 `PASS|FAIL` with severity and exact repair, and does not edit the reviewed
-surface. One reviewer is sufficient unless the Task Contract names a concrete
-reason for more. A failed review returns to implementation; the final lead
+surface. The author cannot independently approve that surface. A failed review
+returns to implementation; the final lead
 re-verifies invalidated evidence before completion.
 
 ## Failure, Retry, And Recovery Contract
@@ -215,7 +227,7 @@ changes, material findings, blockers, or long waits. Do not narrate every tool
 call.
 
 The lead integrates by dependency boundary, reviews the final source and diff,
-reruns only invalidated authorized evidence, audits the original request, and
+reruns invalidated profile evidence, audits the original request, and
 applies this Completion Contract and the Planning Kernel Completion Contract.
 Multi-agent activity ends when the parent task is achieved, cancelled, or
 honestly blocked; no orphan lane, ownership claim, or cleanup may remain.

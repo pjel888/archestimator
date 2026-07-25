@@ -9,10 +9,12 @@ follow `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.
 When native orchestration is unavailable, use emulated specialist passes or
 sequential lead execution with the same contracts.
 
-Codex's primary lane is implementation, refactoring, debugging, and explicit
-`TEST_TASK` work. Use Direct, Brief, or Plan Pack routing. Test decisions are
-`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`; only `TEST_TASK` permits test execution
-or edits.
+Codex's primary lane is implementation, refactoring, debugging, and quality
+evidence. Use Direct, Brief, or Plan Pack routing. Inherit automatic
+`Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, and
+`Q3_RELEASE_GATE` classification, standing local test authorization, and
+fail-closed completion from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` and the Validation Matrix.
 
 <!-- supermemory-bootstrap: required -->
 Run `bun run supermemory:ensure` before meaningful work. Current source and `.ai`

@@ -21,7 +21,8 @@ A pack needs only:
 - outcome, scope, non-goals, and current evidence;
 - requirements and decisions;
 - dependency-ordered implementation units;
-- applicable authorization/test/evidence boundaries;
+- selected `Q0`-`Q3` profile, evidence, review, and external-authority
+  boundaries;
 - recovery/resume state;
 - final requirement-to-evidence audit.
 
@@ -31,16 +32,18 @@ or evidence freshness requires it. File count is never quality evidence.
 ## Execution
 
 Internally resolvable dependencies are owned continuation work. Repair, reorder,
-absorb, or substitute them. Optional tools, reviewers, memory, unapproved tests,
-hosted proof, and release evidence cannot block safe local implementation.
+absorb, or substitute them. Optional tools and memory cannot block safe local
+implementation. Required profile evidence or review that cannot run remains
+`FAIL` or `QUALITY_BLOCKED`, never `PASS`.
 
-Archestimator is alpha/pre-beta. Prefer the direct target design and fix forward.
+Archestimator is beta software. Prefer the direct target design and fix forward.
 Do not add compatibility, dual paths, flags, rollout, rollback, hosted proof, or
 approval machinery without a proven current obligation.
 
-Use formal leases only for actual concurrent contention. Use independent review
-only for a named risk. Run tests/browser/builds only under explicit current-task
-user authorization.
+Use formal leases only for actual concurrent contention. Inherit automatic
+`Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE` classification, standing local
+evidence authorization, and independent-review requirements from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` and the Validation Matrix.
 
 ## Terminal States
 

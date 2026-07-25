@@ -6,7 +6,7 @@ colors:
   primary: "#3D3D3D"
   ink: "#3D3D3D"
   secondary: "#5D5D5D"
-  tertiary: "#7F7F7F"
+  tertiary: "#666666"
   muted: "#7F7F7F"
   hairline: "#F2F2F2"
   divider: "#F2F2F2"

@@ -10,11 +10,11 @@ task-specific history. Do not linear-read the detailed history below.
 - **Authority:** current source, `AGENTS.md`, and canonical `.ai/00_system` docs
   override historical entries. Older entries may describe superseded provider,
   branch, validation, or workflow policy.
-- **Stage:** preparing for first users. Prioritize auth, estimating workflows,
+- **Stage:** beta quality migration for first users. Prioritize auth, estimating workflows,
   cost library, proposal packages, collaboration/publication proof, provider
   evidence, support readiness, and fast iteration.
-- **Pre-release posture:** Archestimator is alpha-stage, not released, and not
-  beta. Ordinary local edits are not production change events. Prefer direct
+- **Beta posture:** Archestimator is beta software, not a released production
+  system. Ordinary local edits are not production change events. Prefer direct
   replacement and fix-forward iteration; do not invent compatibility, flags,
   rollout/rollback, hosted proof, or approval gates without a proven current
   user/data/integration obligation or actual external side effect.
@@ -51,17 +51,17 @@ task-specific history. Do not linear-read the detailed history below.
   context on demand, use the fewest capable lanes, avoid speculative artifacts
   and abstractions, and stop when the affected acceptance claim is grounded.
   Over-engineering and over-testing are workflow bugs.
-- **Verification:** select the cheapest decisive evidence. **Tests are
-  user-gated under the User Test Authorization Gate, not automatic.** Do not
-  create, expand, repair, or run tests unless the user explicitly requests them.
-  `TEST_TASK` is the only execution trigger and requires an explicit user
-  request. `TEST_PROPOSAL` records a named risk and exact proposed command but
-  does not authorize execution. `NOT_REQUIRED` is the default and uses non-test
-  evidence. Legacy packs may retain `TARGETED`/`BROADER` only as compatibility
-  values; new work uses the canonical three-state taxonomy.
-- **Browser gate:** browser automation, screenshots, Playwright, Storybook, and
-  visual QA are user-gated testing surfaces, not automatic. Run them only when
-  Philip explicitly requests the matching proof for the current task.
+- **Beta quality gate:** every change is automatically classified
+  `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, or
+  `Q3_RELEASE_GATE`. Agents have standing authorization to create, repair, and
+  run the local tests, builds, browser checks, and other evidence required by
+  the selected profile. Missing, red, skipped, flaky, weakened, malformed, or
+  stale required evidence fails closed. Quality-system changes and uncertainty
+  are `Q2`; profiles may escalate and never downgrade.
+- **Canonical quality policy:**
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` owns lifecycle,
+  no-gaming, evidence, and review rules;
+  `.ai/00_system/VALIDATION_MATRIX.md` maps `Q0`-`Q3` to required evidence.
 - **Local debugging:** start with `bun run ops:agent-debug-snapshot`, then use
   `bun run logs:debug`, `bun run logs:tail -- --error --last 20`, or
   `bun run logs:explain <record_id>` as needed. Logs narrow hypotheses; source
@@ -111,7 +111,10 @@ task-specific history. Do not linear-read the detailed history below.
 
 - The lean estimate-sheet performance refactor is archived at `.ai/09_archive/store/2026-07-12-Archestimator-Estimate-Sheet-Lean-Performance-Refactor-Plan-Pack-complete/` after completing its local implementation path: indexed shared-component patching, per-row draft subscriptions, O(depth) ancestor total deltas, gated closed derivations, indexed selected-node presentation, and retirement of the prior mode/evidence framework.
 - UNIT-005 and UNIT-006 remain `NOT_ACTIVATED`: no owner-authorized measurement established a route/server or mount/virtualization bottleneck after the direct production fixes.
-- Static evidence: targeted source/reference searches, `git diff --check`, and `package.json` parse pass. Automated tests, typecheck, build, and browser proof remain unrun under the User Test Authorization Gate; the focused UNIT-002 test proposal is recorded in the active pack ledger.
+- Historical evidence was limited to targeted source/reference searches,
+  `git diff --check`, and `package.json` parsing; automated proof remained
+  unrun under the then-active opt-in policy, which the 2026-07-25 beta quality
+  protocol supersedes.
 
 ### 2026-07-12 - Estimate Sheet Performance Pack Cancelled
 
@@ -289,12 +292,9 @@ Stable current truth (verify against git/source before relying on a detail):
   official GPT-5.6 guidance. `AGENTS.md` is below the Codex 32 KiB project-doc
   limit; duplicated graph blocks were removed from root/Claude entry files; and
   all 16 CommandCode role briefs were reduced from 1,888 to 544 lines while
-  retaining distinct review scopes and current Cloudflare/D1 context. Tests are
-  a conditional proof method: every criterion records `test_requirement` as
-  `NOT_REQUIRED`, `TARGETED`, `BROADER`, or `TEST_TASK`; `NOT_REQUIRED` is the
-  default, while explicit testing work or a concrete MVP-critical invariant can
-  select the narrowest sufficient test. High blast deepens planning/review but
-  does not itself mandate tests, builds, browser automation, or broad suites.
+  retaining distinct review scopes and current Cloudflare/D1 context. This
+  entry records the former opt-in test-decision scheme, superseded by the
+  automatic `Q0`-`Q3` beta quality profiles on 2026-07-25.
   `.ai/08_prompts/000_Planning Prompts/` uses one shared kernel, a versioned
   `plan-pack.json` schema, 10 stable applicability gates, five concise stage
   prompts, and 33 semantic regression scenarios. Physical document count is
@@ -6478,11 +6478,11 @@ src/components/frontdoor src/app/page.tsx` passed; targeted `git diff
   and removed unused legacy hero/testimonial CSS selectors from
   `src/app/globals.css`. The still-used shared public shell and quote-paper
   CSS remain for non-home routes.
-- Verification so far is source-only by Philip's explicit gate: forbidden
+- Historical verification was source-only under the then-active opt-in gate:
+  forbidden
   homepage strings/imports/assets grep clean, `three` is only lazy-loaded by
-  `await import("three")`, and `git diff --check` passed. Do not run tests,
-  build, browser automation, screenshots, or visual QA until Philip approves
-  the landing page.
+  `await import("three")`, and `git diff --check` passed. The 2026-07-25 beta
+  quality protocol supersedes that earlier restriction for future work.
 - The implementation plan folder
   `.ai/03_plans/2026-06-22-LandingPage` is not archived yet. Archive only after
   approval, post-approval validation, and any requested iterations are complete.

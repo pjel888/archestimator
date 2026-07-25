@@ -42,4 +42,5 @@ Start with the narrow current contract:
 For broad, high-risk, or unfamiliar shared-symbol work, use available Code
 Review Graph or GitNexus impact analysis when configured. For narrow reversible
 changes, targeted source, `rg`, diff, and LSP inspection are sufficient.
-Automated tests remain `TEST_TASK`-gated.
+Automated tests and other local evidence run when selected by the automatic
+`Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE` profile.

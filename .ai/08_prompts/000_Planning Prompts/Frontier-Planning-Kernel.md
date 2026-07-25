@@ -45,9 +45,9 @@ Each executable unit states goal, owned paths/resources, dependencies,
 implementation boundary, acceptance evidence, recovery, and completion signal.
 Use one writer for a shared file or contract.
 
-## 4. Pre-Beta Decisions
+## 4. Beta Decisions
 
-Archestimator is alpha/pre-beta. Prefer the direct target design and fix forward.
+Archestimator is beta software. Prefer the direct target design and fix forward.
 Resolve ordinary reversible choices autonomously from current evidence. Ask only
 for irreversible, destructive, paid, credential-gated, external-production, or
 materially scope-changing decisions that cannot be derived safely.
@@ -86,12 +86,11 @@ handoff at meaningful milestones, not on every turn.
 
 ## 7. Verification
 
-Follow `.ai/00_system/VALIDATION_MATRIX.md`. Map every acceptance criterion to
-the cheapest decisive authorized evidence:
-
-- `NOT_REQUIRED` is the default test decision;
-- `TEST_PROPOSAL` records a named risk and exact command without execution;
-- `TEST_TASK` requires an explicit current-task user testing request.
+Follow `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` and
+`.ai/00_system/VALIDATION_MATRIX.md`. Classify the work as
+`Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, or
+`Q3_RELEASE_GATE`, then map every acceptance criterion to the required decisive
+local evidence under standing authorization.
 
 Inspect actual artifacts and fresh output. A worker summary, plan, unrun test, or
 local check cannot prove a stronger claim.
@@ -117,8 +116,8 @@ Completion requires:
 
 - every core requirement reconciled to a current artifact and fresh evidence;
 - final source and diff reviewed for scope, contradictions, and cleanup;
-- relevant authorized validation completed or an honest `NOT_REQUIRED` /
-  `TEST_PROPOSAL` decision recorded;
+- every required profile-selected validation layer completed with fresh
+  machine-readable evidence;
 - failures, unrun tests, external proof gaps, and remaining risk disclosed;
 - no safe in-scope work, active ownership, unresolved handoff, or cleanup left.
 

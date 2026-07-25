@@ -17,7 +17,7 @@ const preview: Preview = {
       expanded: true,
     },
     a11y: {
-      test: "todo",
+      test: "error",
     },
     archestimator: {
       fixtureOnlyContext: true,

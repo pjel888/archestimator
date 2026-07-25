@@ -8,9 +8,9 @@ Prohibited lanes: chat, planning, implementation, review, and provider work
 ## Authority
 
 Embedding integrations remain subordinate to `AGENTS.md`, the FAST PATH in
-`.ai/10_state/current-state.md`, and `.ai/00_system`. Direct, Brief, Plan Pack,
-and `NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK` apply only to approved agent lanes;
-only `TEST_TASK` permits test execution or edits.
+`.ai/10_state/current-state.md`, and `.ai/00_system`. Approved agent lanes
+inherit automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE` classification
+from the canonical beta quality protocol.
 
 ## Role Notes
 

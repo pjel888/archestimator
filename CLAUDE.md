@@ -12,9 +12,11 @@ single-agent execution for tightly coupled work. All modes keep the same Task,
 Handoff, validation, recovery, and Completion contracts.
 
 Claude's primary lane is planning, architecture, critique, and writing. Use
-Direct, Brief, or Plan Pack routing. Test decisions are
-`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`; only `TEST_TASK` permits test execution
-or edits.
+Direct, Brief, or Plan Pack routing. Inherit automatic `Q0_CONTRACT_ONLY`,
+`Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, and `Q3_RELEASE_GATE`
+classification, standing local test authorization, and fail-closed completion
+from `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md` and the Validation
+Matrix.
 
 <!-- supermemory-bootstrap: required -->
 Run `bun run supermemory:ensure` before meaningful work. Current source and `.ai`
@@ -30,7 +32,7 @@ policy here.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **archestimator** (31396 symbols, 77590 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **archestimator** (31946 symbols, 78462 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 

@@ -14,5 +14,7 @@ or a complete ruleset.
 
 Cursor adapters cannot override repository safety, current
 `wrangler.jsonc`/source facts, Direct/Brief/Plan Pack routing, or
-`NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK`. Preserve the shared worktree and do not
-copy canonical policy into this file.
+automatic `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`, `Q2_CRITICAL_CHANGE_GATE`, and
+`Q3_RELEASE_GATE` classification from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`. Preserve the shared
+worktree and do not copy canonical policy into this file.

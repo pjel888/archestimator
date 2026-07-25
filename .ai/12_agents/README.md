@@ -7,8 +7,11 @@ inherits `AGENTS.md`, `.ai/00_system`, and the FAST PATH in
 All approved lanes use:
 
 - Direct, Brief, or Plan Pack routing;
-- pre-beta fix-forward execution;
-- `NOT_REQUIRED|TEST_PROPOSAL|TEST_TASK` test decisions;
+- beta fix-forward execution;
+- automatic `Q0_CONTRACT_ONLY`, `Q1_CHANGE_GATE`,
+  `Q2_CRITICAL_CHANGE_GATE`, and `Q3_RELEASE_GATE` classification plus standing
+  local quality authorization from
+  `.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`;
 - shared-worktree preservation;
 - the current `wrangler.jsonc` provider boundary;
 - Supermemory as required startup and non-blocking auxiliary memory.

@@ -21,7 +21,7 @@ public or otherwise unauthenticated route.
 | `agent-compliance-dry-run.md` | Advisory framework-evaluation dry-runs |
 | `agent-run-log.md` | Material durable run or handoff evidence |
 | `bug-plan-creation.md` | Material unresolved bug or proof gap |
-| `capture-perf-trace-baseline.md` | Symptom-led performance measurement, gated by `TEST_TASK` |
+| `capture-perf-trace-baseline.md` | Symptom-led profile-selected performance measurement |
 | `provider-proof-packet.md` | Redacted proof for bound Cloudflare resources |
 | `verify-loading-state-compliance.md` | Source-first loading and mount review |
 | `security/breach-response-runbook.md` | Counsel-gated breach-response draft |
@@ -43,5 +43,6 @@ public or otherwise unauthenticated route.
   that reference set. The skill and reference set have no design authority over
   public routes, including `/` and `/new`.
 
-Automated product tests, builds-as-tests, browser automation, screenshots,
-Storybook, and visual QA run only for an explicit current-task `TEST_TASK`.
+Every playbook inherits automatic `Q0_CONTRACT_ONLY` through `Q3_RELEASE_GATE`
+classification and standing local evidence authorization from
+`.ai/00_system/BETA_QUALITY_ENGINEERING_PROTOCOL.md`.
