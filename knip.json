@@ -1,0 +1,43 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/app/**/*.{ts,tsx}",
+    "worker.ts",
+    "scripts/**/*.{ts,mts,mjs}",
+    "tests/**/*.{ts,tsx,mts,mjs}",
+    "e2e/**/*.ts",
+    "features/**/*.mjs",
+    ".storybook/main.ts",
+    "vitest*.config.ts",
+    "playwright.config.ts",
+    "stryker.config.mjs",
+    "cucumber.mjs"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,mts,mjs}",
+    "tests/**/*.{ts,tsx,mts,mjs}",
+    "e2e/**/*.ts",
+    "features/**/*.{ts,mjs}",
+    ".storybook/**/*.{ts,tsx}",
+    "*.config.{ts,mjs}"
+  ],
+  "ignore": [
+    ".next/**",
+    ".open-next/**",
+    "artifacts/**",
+    "cloudflare-env.d.ts",
+    "next-env.d.ts",
+    "src/**/*.stories.{ts,tsx}"
+  ],
+  "ignoreDependencies": [
+    "@stryker-mutator/core",
+    "@stryker-mutator/typescript-checker",
+    "@stryker-mutator/vitest-runner"
+  ],
+  "ignoreBinaries": [
+    "actionlint",
+    "zizmor"
+  ],
+  "stryker": false
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "status",
+    "generated_at",
+    "summary",
+    "findings",
+    "data"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "summary": { "type": "string", "minLength": 1 },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "path": { "type": "string" },
+          "detail": {}
+        }
+      }
+    },
+    "data": {}
+  }
+}

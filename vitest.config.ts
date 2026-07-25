@@ -15,6 +15,18 @@ export default defineConfig({
     // isolation. 30s accommodates the genuinely-slow tests without weakening any
     // assertion or parallelizing (which would break the perf-suite serial config).
     testTimeout: 30_000,
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "artifacts/coverage/component",
+      reporter: ["text", "json", "json-summary", "lcov"],
+      exclude: [
+        "cloudflare-env.d.ts",
+        "next-env.d.ts",
+        "tests/**",
+        "**/*.d.ts",
+        "**/*.stories.{ts,tsx}",
+      ],
+    },
   },
   resolve: {
     alias: {

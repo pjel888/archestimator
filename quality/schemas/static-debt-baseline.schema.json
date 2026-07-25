@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tool",
+    "identity_contract",
+    "measurement",
+    "measured_legacy_issues"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "tool": { "const": "knip" },
+    "identity_contract": { "const": "type-file-symbol-v1" },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "command", "issue_count"],
+      "properties": {
+        "scope": {
+          "const": "legacy repository debt measured before static no-new-debt enforcement"
+        },
+        "command": {
+          "const": "knip --reporter json --include files,dependencies,unlisted,unresolved,exports,nsExports,types,nsTypes,enumMembers,namespaceMembers,duplicates,cycles"
+        },
+        "issue_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "measured_legacy_issues": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "file", "symbol"],
+        "properties": {
+          "type": { "type": "string", "minLength": 1 },
+          "file": { "type": "string", "minLength": 1 },
+          "symbol": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

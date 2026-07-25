@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "changed_coverage",
+    "global_ratchet",
+    "mutation",
+    "accessibility",
+    "security",
+    "static",
+    "waivers"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "changed_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Q0_CONTRACT_ONLY",
+        "Q1_CHANGE_GATE",
+        "Q2_CRITICAL_CHANGE_GATE",
+        "Q3_RELEASE_GATE"
+      ],
+      "properties": {
+        "Q0_CONTRACT_ONLY": { "$ref": "#/$defs/q0Coverage" },
+        "Q1_CHANGE_GATE": { "$ref": "#/$defs/q1Coverage" },
+        "Q2_CRITICAL_CHANGE_GATE": { "$ref": "#/$defs/criticalCoverage" },
+        "Q3_RELEASE_GATE": { "$ref": "#/$defs/criticalCoverage" }
+      }
+    },
+    "global_ratchet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allow_regression",
+        "baseline_required",
+        "baseline_path",
+        "baseline_status",
+        "legacy_targets"
+      ],
+      "properties": {
+        "allow_regression": { "const": false },
+        "baseline_required": { "const": true },
+        "baseline_path": { "const": "quality/baseline.json" },
+        "baseline_status": { "enum": ["PENDING", "ADMITTED"] },
+        "legacy_targets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statements", "lines", "functions", "branches"],
+          "properties": {
+            "statements": { "const": 90 },
+            "lines": { "const": 90 },
+            "functions": { "const": 90 },
+            "branches": { "const": 85 }
+          }
+        }
+      }
+    },
+    "mutation": { "type": "object" },
+    "accessibility": { "type": "object" },
+    "security": { "type": "object" },
+    "static": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eslint_max_warnings",
+        "maximum_new_knip_issues",
+        "maximum_new_source_debt",
+        "critical_changed_function_complexity",
+        "duplicate_block_minimum_lines",
+        "duplicate_block_minimum_characters",
+        "oversized_function_lines",
+        "oversized_module_lines"
+      ],
+      "properties": {
+        "eslint_max_warnings": { "const": 0 },
+        "maximum_new_knip_issues": { "const": 0 },
+        "maximum_new_source_debt": { "const": 0 },
+        "critical_changed_function_complexity": { "const": 10 },
+        "duplicate_block_minimum_lines": { "const": 6 },
+        "duplicate_block_minimum_characters": { "const": 120 },
+        "oversized_function_lines": { "const": 80 },
+        "oversized_module_lines": { "const": 500 }
+      }
+    },
+    "waivers": { "type": "object" }
+  },
+  "$defs": {
+    "q0Coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statements", "lines", "functions", "branches"],
+      "properties": {
+        "statements": { "const": 0 },
+        "lines": { "const": 0 },
+        "functions": { "const": 0 },
+        "branches": { "const": 0 }
+      }
+    },
+    "q1Coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statements", "lines", "functions", "branches"],
+      "properties": {
+        "statements": { "const": 100 },
+        "lines": { "const": 100 },
+        "functions": { "const": 100 },
+        "branches": { "const": 95 }
+      }
+    },
+    "criticalCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statements", "lines", "functions", "branches"],
+      "properties": {
+        "statements": { "const": 100 },
+        "lines": { "const": 100 },
+        "functions": { "const": 100 },
+        "branches": { "const": 100 }
+      }
+    }
+  }
+}

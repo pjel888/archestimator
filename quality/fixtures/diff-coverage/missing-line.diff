@@ -1,0 +1,4 @@
++++ b/src/example.ts
+@@ -0,0 +1,2 @@
++export const covered = true
++export const absent = true

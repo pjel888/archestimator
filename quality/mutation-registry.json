@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "id": "MUT-CALCULATION-RESULTS",
+      "targets": [
+        "src/lib/ab-testing/results-calculator.ts"
+      ],
+      "tests": [
+        "tests/vitest/capabilities/results-calculator.invariants.test.ts",
+        "tests/vitest/landing-ab-testing.test.tsx"
+      ],
+      "reason": "Experiment result calculations are a critical numerical decision surface."
+    }
+  ]
+}

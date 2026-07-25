@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "changed_coverage": {
+    "Q0_CONTRACT_ONLY": { "statements": 0, "lines": 0, "functions": 0, "branches": 0 },
+    "Q1_CHANGE_GATE": { "statements": 100, "lines": 100, "functions": 100, "branches": 95 },
+    "Q2_CRITICAL_CHANGE_GATE": { "statements": 100, "lines": 100, "functions": 100, "branches": 100 },
+    "Q3_RELEASE_GATE": { "statements": 100, "lines": 100, "functions": 100, "branches": 100 }
+  },
+  "global_ratchet": {
+    "allow_regression": false,
+    "baseline_required": true,
+    "baseline_path": "quality/baseline.json",
+    "baseline_status": "PENDING",
+    "legacy_targets": {
+      "statements": 90,
+      "lines": 90,
+      "functions": 90,
+      "branches": 85
+    }
+  },
+  "mutation": {
+    "high_risk_survivors": 0,
+    "high_risk_no_coverage": 0
+  },
+  "accessibility": {
+    "serious": 0,
+    "critical": 0
+  },
+  "security": {
+    "new_high": 0,
+    "new_critical": 0
+  },
+  "static": {
+    "eslint_max_warnings": 0,
+    "maximum_new_knip_issues": 0,
+    "maximum_new_source_debt": 0,
+    "critical_changed_function_complexity": 10,
+    "duplicate_block_minimum_lines": 6,
+    "duplicate_block_minimum_characters": 120,
+    "oversized_function_lines": 80,
+    "oversized_module_lines": 500
+  },
+  "waivers": {
+    "maximum_days": 30,
+    "agent_authored": false,
+    "required_approvals": 2
+  }
+}

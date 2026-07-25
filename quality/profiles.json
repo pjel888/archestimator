@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "command_artifacts": {
+    "bun run quality:classify": "artifacts/quality/classification.json",
+    "bun run quality:contracts": "artifacts/quality/contracts.json",
+    "bun run quality:adapters": "artifacts/quality/adapter-validation.json",
+    "bun run quality:anti-bypass": "artifacts/quality/anti-bypass.json",
+    "bun run quality:workflows": "artifacts/quality/workflows.json",
+    "bun run quality:reviews": "artifacts/quality/reviews.json",
+    "bun run quality:enforcement-contract": "artifacts/quality/enforcement.json",
+    "bun run quality:static": "artifacts/quality/static.json",
+    "bun run test:unit:coverage": "artifacts/quality/unit.json",
+    "bun run test:component:change": "artifacts/quality/component.json",
+    "bun run test:component:critical": "artifacts/quality/component.json",
+    "bun run test:component:release": "artifacts/quality/component.json",
+    "bun run quality:diff-coverage": "artifacts/quality/diff-coverage.json",
+    "bun run test:property": "artifacts/quality/property.json",
+    "bun run test:workers:coverage": "artifacts/quality/workers.json",
+    "bun run test:bdd:smoke": "artifacts/quality/bdd-smoke.json",
+    "bun run test:bdd": "artifacts/quality/bdd.json",
+    "bun run test:a11y": "artifacts/quality/a11y.json",
+    "bun run build": "artifacts/quality/build.json",
+    "bun run test:e2e:smoke": "artifacts/quality/e2e-smoke.json",
+    "bun run test:e2e:matrix": "artifacts/quality/e2e-matrix.json",
+    "bun run test:mutation:changed": "artifacts/quality/mutation.json",
+    "bun run test:mutation:critical": "artifacts/quality/mutation.json",
+    "bun run test:mutation:full": "artifacts/quality/mutation.json",
+    "bun run quality:security": "artifacts/quality/security.json",
+    "bun run test:ai-evals": "artifacts/quality/ai-eval.json",
+    "bun run quality:operations": "artifacts/quality/operations.json"
+  },
+  "evidence_commands": {
+    "classification": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run quality:classify",
+      "Q3_RELEASE_GATE": "bun run quality:classify"
+    },
+    "unit": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run test:unit:coverage",
+      "Q3_RELEASE_GATE": "bun run test:unit:coverage"
+    },
+    "component": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run test:component:critical",
+      "Q3_RELEASE_GATE": "bun run test:component:release"
+    },
+    "workers": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run test:workers:coverage",
+      "Q3_RELEASE_GATE": "bun run test:workers:coverage"
+    },
+    "bdd": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run test:bdd:smoke",
+      "Q3_RELEASE_GATE": "bun run test:bdd"
+    },
+    "e2e": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run test:e2e:smoke",
+      "Q3_RELEASE_GATE": "bun run test:e2e:matrix"
+    },
+    "security": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run quality:security",
+      "Q3_RELEASE_GATE": "bun run quality:security"
+    },
+    "ai-eval": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run test:ai-evals",
+      "Q3_RELEASE_GATE": "bun run test:ai-evals"
+    },
+    "operations": {
+      "Q2_CRITICAL_CHANGE_GATE": "bun run quality:operations",
+      "Q3_RELEASE_GATE": "bun run quality:operations"
+    }
+  },
+  "profiles": {
+    "Q0_CONTRACT_ONLY": {
+      "required_review_types": [],
+      "conditional_review_types": [],
+      "required_jobs": [
+        "quality / classify",
+        "quality / contracts",
+        "quality / adapters",
+        "quality / anti-bypass",
+        "quality / workflows"
+      ],
+      "commands": [
+        "bun run quality:contracts",
+        "bun run quality:adapters",
+        "bun run quality:anti-bypass",
+        "bun run quality:workflows"
+      ]
+    },
+    "Q1_CHANGE_GATE": {
+      "required_review_types": [],
+      "conditional_review_types": [],
+      "required_jobs": [
+        "quality / classify",
+        "quality / contracts",
+        "quality / adapters",
+        "quality / anti-bypass",
+        "quality / workflows",
+        "quality / static",
+        "quality / unit",
+        "quality / component",
+        "quality / coverage",
+        "quality / bdd-smoke",
+        "quality / a11y",
+        "quality / build",
+        "quality / e2e-smoke",
+        "quality / security",
+        "quality / operations"
+      ],
+      "commands": [
+        "bun run quality:contracts",
+        "bun run quality:adapters",
+        "bun run quality:anti-bypass",
+        "bun run quality:workflows",
+        "bun run quality:static",
+        "bun run test:unit:coverage",
+        "bun run test:component:change",
+        "bun run quality:diff-coverage",
+        "bun run test:bdd:smoke",
+        "bun run test:a11y",
+        "bun run build",
+        "bun run test:e2e:smoke",
+        "bun run quality:security",
+        "bun run quality:operations"
+      ]
+    },
+    "Q2_CRITICAL_CHANGE_GATE": {
+      "required_review_types": ["quality"],
+      "conditional_review_types": ["security"],
+      "required_jobs": [
+        "quality / classify",
+        "quality / contracts",
+        "quality / adapters",
+        "quality / anti-bypass",
+        "quality / workflows",
+        "quality / review",
+        "quality / static",
+        "quality / unit",
+        "quality / component",
+        "quality / coverage",
+        "quality / property",
+        "quality / workers",
+        "quality / bdd-smoke",
+        "quality / a11y",
+        "quality / build",
+        "quality / e2e-smoke",
+        "quality / mutation",
+        "quality / security",
+        "quality / ai-eval",
+        "quality / operations"
+      ],
+      "commands": [
+        "bun run quality:classify",
+        "bun run quality:contracts",
+        "bun run quality:adapters",
+        "bun run quality:anti-bypass",
+        "bun run quality:workflows",
+        "bun run quality:reviews",
+        "bun run quality:static",
+        "bun run test:unit:coverage",
+        "bun run test:component:critical",
+        "bun run test:property",
+        "bun run test:workers:coverage",
+        "bun run test:bdd:smoke",
+        "bun run test:a11y",
+        "bun run build",
+        "bun run test:e2e:smoke",
+        "bun run test:mutation:critical",
+        "bun run quality:security",
+        "bun run test:ai-evals",
+        "bun run quality:operations",
+        "bun run quality:diff-coverage"
+      ]
+    },
+    "Q3_RELEASE_GATE": {
+      "required_review_types": ["quality", "security", "release"],
+      "conditional_review_types": [],
+      "required_jobs": [
+        "quality / classify",
+        "quality / contracts",
+        "quality / adapters",
+        "quality / anti-bypass",
+        "quality / workflows",
+        "quality / review",
+        "quality / enforcement",
+        "quality / static",
+        "quality / unit",
+        "quality / component",
+        "quality / coverage",
+        "quality / property",
+        "quality / workers",
+        "quality / bdd-smoke",
+        "quality / a11y",
+        "quality / build",
+        "quality / e2e-smoke",
+        "quality / mutation",
+        "quality / security",
+        "quality / ai-eval",
+        "quality / operations"
+      ],
+      "commands": [
+        "bun run quality:classify",
+        "bun run quality:contracts",
+        "bun run quality:adapters",
+        "bun run quality:anti-bypass",
+        "bun run quality:workflows",
+        "bun run quality:reviews",
+        "bun run quality:enforcement-contract",
+        "bun run quality:static",
+        "bun run test:unit:coverage",
+        "bun run test:component:release",
+        "bun run test:property",
+        "bun run test:workers:coverage",
+        "bun run test:bdd",
+        "bun run test:a11y",
+        "bun run build",
+        "bun run test:e2e:matrix",
+        "bun run test:mutation:full",
+        "bun run quality:security",
+        "bun run test:ai-evals",
+        "bun run quality:operations",
+        "bun run quality:diff-coverage"
+      ]
+    }
+  }
+}

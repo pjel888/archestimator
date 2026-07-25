@@ -1,0 +1,8 @@
+{
+  "files": [
+    {
+      "path": "playwright.fixture.ts",
+      "text": "export default { retries: 2, timeout: 120000 }"
+    }
+  ]
+}

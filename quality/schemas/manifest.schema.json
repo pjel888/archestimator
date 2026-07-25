@@ -1,0 +1,413 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "status",
+    "generated_at",
+    "summary",
+    "findings",
+    "data"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "quality-manifest" },
+    "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "summary": { "type": "string", "minLength": 1 },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "mode",
+        "candidate",
+        "classification",
+        "merge_base",
+        "scope",
+        "required_jobs",
+        "commands",
+        "command_results",
+        "job_results",
+        "evidence",
+        "reviews",
+        "quality_domains",
+        "traceability",
+        "waivers",
+        "external_evidence",
+        "aggregate",
+        "remaining_risk",
+        "stop_condition"
+      ],
+      "properties": {
+        "profile": { "$ref": "#/$defs/profile" },
+        "mode": { "enum": ["plan", "execute", "ci"] },
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["commit_sha", "sha256"],
+          "properties": {
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "classification": { "type": "object" },
+        "merge_base": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "scope": {
+          "type": "object",
+          "required": [
+            "changed_files",
+            "inherited_dirty_files",
+            "migration_changed_files",
+            "overlapping_files"
+          ],
+          "properties": {
+            "changed_files": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            },
+            "inherited_dirty_files": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            },
+            "migration_changed_files": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            },
+            "overlapping_files": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "required_jobs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "commands": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "command_results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/commandResult" }
+        },
+        "job_results": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/jobResult" }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "reviews": { "$ref": "#/$defs/reviewSummary" },
+        "quality_domains": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "coverage",
+            "mutation",
+            "bdd",
+            "test_health",
+            "accessibility",
+            "security",
+            "performance_operations",
+            "waivers"
+          ],
+          "properties": {
+            "coverage": { "$ref": "#/$defs/domain" },
+            "mutation": { "$ref": "#/$defs/domain" },
+            "bdd": { "$ref": "#/$defs/domain" },
+            "test_health": { "$ref": "#/$defs/testHealthDomain" },
+            "accessibility": { "$ref": "#/$defs/domain" },
+            "security": { "$ref": "#/$defs/domain" },
+            "performance_operations": { "$ref": "#/$defs/domain" },
+            "waivers": { "$ref": "#/$defs/domain" }
+          }
+        },
+        "traceability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "affected_capabilities", "evidence", "findings"],
+          "properties": {
+            "status": { "enum": ["PASS", "FAIL"] },
+            "affected_capabilities": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "evidence": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/capabilityEvidence" }
+            },
+            "findings": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/finding" }
+            }
+          }
+        },
+        "waivers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/waiver" }
+        },
+        "external_evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "aggregate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "artifact"],
+          "properties": {
+            "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
+            "artifact": { "$ref": "#/$defs/artifact" }
+          }
+        },
+        "remaining_risk": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "stop_condition": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "profile": {
+      "enum": [
+        "Q0_CONTRACT_ONLY",
+        "Q1_CHANGE_GATE",
+        "Q2_CRITICAL_CHANGE_GATE",
+        "Q3_RELEASE_GATE"
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "type": "string" },
+        "detail": {}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "commandResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "status", "source", "artifact"],
+      "properties": {
+        "command": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
+        "source": { "enum": ["local", "ci"] },
+        "job": { "type": "string", "minLength": 1 },
+        "exit_code": { "type": ["integer", "null"] },
+        "duration_ms": { "type": ["number", "null"], "minimum": 0 },
+        "artifact": { "$ref": "#/$defs/artifact" }
+      }
+    },
+    "jobResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "conclusion", "flaky", "artifact"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["success", "failure", "skipped", "cancelled"] },
+        "conclusion": { "enum": ["PASS", "FAIL"] },
+        "flaky": { "type": "boolean" },
+        "artifact": { "$ref": "#/$defs/artifact" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "status", "source", "artifact"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
+        "source": {
+          "enum": ["local", "ci", "remote", "hosted", "external-manifest"]
+        },
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "authoritative_readback": { "type": "boolean" }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_type",
+        "reviewer_id",
+        "decision",
+        "candidate_sha256",
+        "reviewed_at",
+        "read_only",
+        "source"
+      ],
+      "properties": {
+        "review_type": { "enum": ["quality", "security", "release"] },
+        "reviewer_id": { "type": "string", "minLength": 1 },
+        "decision": { "enum": ["APPROVE", "REQUEST_CHANGES", "BLOCKED"] },
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "reviewed_at": { "type": "string", "format": "date-time" },
+        "read_only": { "const": true },
+        "source": { "enum": ["local-agent", "github"] },
+        "review_id": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "reviewSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_sha256", "requirements", "decisions", "artifact"],
+      "properties": {
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "requirements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["quality", "security", "release"],
+          "properties": {
+            "quality": { "type": "boolean" },
+            "security": { "type": "boolean" },
+            "release": { "type": "boolean" }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/review" }
+        },
+        "artifact": {
+          "anyOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicable", "status", "artifacts", "metrics"],
+      "properties": {
+        "applicable": { "type": "boolean" },
+        "status": {
+          "enum": ["PASS", "FAIL", "QUALITY_BLOCKED", "NOT_APPLICABLE"]
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/artifact" }
+        },
+        "metrics": { "type": "object" }
+      }
+    },
+    "testHealthDomain": {
+      "allOf": [
+        { "$ref": "#/$defs/domain" },
+        {
+          "properties": {
+            "metrics": {
+              "type": "object",
+              "required": ["failed", "skipped", "flaky"],
+              "properties": {
+                "failed": { "type": "integer", "minimum": 0 },
+                "skipped": { "type": "integer", "minimum": 0 },
+                "flaky": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "waiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "expires_at", "approvals"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["ACTIVE", "EXPIRED", "REJECTED"] },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "approvals": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "capabilityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability_id", "kind", "command", "status", "artifact"],
+      "properties": {
+        "capability_id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "command": { "type": "string" },
+        "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
+        "artifact": { "type": "string" },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "PASS" } },
+            "required": ["status"]
+          },
+          "then": {
+            "required": ["artifact_sha256"],
+            "properties": {
+              "command": { "minLength": 1 },
+              "artifact": { "minLength": 1 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

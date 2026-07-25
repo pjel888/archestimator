@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "review_type",
+    "reviewer_id",
+    "decision",
+    "candidate_sha256",
+    "reviewed_at",
+    "read_only",
+    "source"
+  ],
+  "properties": {
+    "review_type": { "enum": ["quality", "security", "release"] },
+    "reviewer_id": { "type": "string", "minLength": 1 },
+    "decision": { "enum": ["APPROVE", "REQUEST_CHANGES", "BLOCKED"] },
+    "candidate_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "read_only": { "const": true },
+    "source": { "enum": ["local-agent", "github"] },
+    "review_id": { "type": "string", "minLength": 1 },
+    "url": { "type": "string", "format": "uri" }
+  }
+}

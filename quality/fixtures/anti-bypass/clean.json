@@ -1,0 +1,8 @@
+{
+  "files": [
+    {
+      "path": "tests/fixture.test.ts",
+      "text": "test('visible', () => expect(true).toBe(true))"
+    }
+  ]
+}

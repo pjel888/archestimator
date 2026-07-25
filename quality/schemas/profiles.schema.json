@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "command_artifacts", "evidence_commands", "profiles"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "command_artifacts": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "evidence_commands": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/evidenceProfileCommands" }
+    },
+    "profiles": {
+      "type": "object",
+      "required": [
+        "Q0_CONTRACT_ONLY",
+        "Q1_CHANGE_GATE",
+        "Q2_CRITICAL_CHANGE_GATE",
+        "Q3_RELEASE_GATE"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "Q0_CONTRACT_ONLY": { "$ref": "#/$defs/profile" },
+        "Q1_CHANGE_GATE": { "$ref": "#/$defs/profile" },
+        "Q2_CRITICAL_CHANGE_GATE": { "$ref": "#/$defs/profile" },
+        "Q3_RELEASE_GATE": { "$ref": "#/$defs/profile" }
+      }
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_review_types",
+        "conditional_review_types",
+        "required_jobs",
+        "commands"
+      ],
+      "properties": {
+        "required_review_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["quality", "security", "release"] }
+        },
+        "conditional_review_types": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["quality", "security", "release"] }
+        },
+        "required_jobs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "commands": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "evidenceProfileCommands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"],
+      "properties": {
+        "Q2_CRITICAL_CHANGE_GATE": {
+          "type": "string",
+          "pattern": "^bun run [^\\s]+$"
+        },
+        "Q3_RELEASE_GATE": {
+          "type": "string",
+          "pattern": "^bun run [^\\s]+$"
+        }
+      }
+    }
+  }
+}

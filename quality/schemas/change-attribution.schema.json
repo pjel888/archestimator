@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "merge_base_ref",
+    "merge_base",
+    "inherited_dirty_files",
+    "migration_changed_files",
+    "overlapping_files",
+    "file_hashes",
+    "scope_rule"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "mode": { "enum": ["clean-ci", "local-shared-worktree"] },
+    "merge_base_ref": { "type": "string", "minLength": 1 },
+    "merge_base": { "type": "string", "pattern": "^(?:[a-f0-9]{40}|UNKNOWN)$" },
+    "inherited_dirty_files": { "type": "array", "items": { "type": "string" } },
+    "migration_changed_files": { "type": "array", "items": { "type": "string" } },
+    "overlapping_files": { "type": "array", "items": { "type": "string" } },
+    "file_hashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    },
+    "scope_rule": { "type": "string", "minLength": 1 }
+  }
+}

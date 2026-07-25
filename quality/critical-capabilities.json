@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "capabilities": [
+    {
+      "id": "CAP-AUTH",
+      "name": "Authentication and authorization boundary",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "component", "e2e", "security"]
+    },
+    {
+      "id": "CAP-TENANT",
+      "name": "Tenant isolation",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "workers", "e2e", "security"]
+    },
+    {
+      "id": "CAP-DATA-INTEGRITY",
+      "name": "Persistent data integrity",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "workers", "bdd"]
+    },
+    {
+      "id": "CAP-CACHE-PRIVACY",
+      "name": "Cache and privacy behavior",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "e2e", "security"]
+    },
+    {
+      "id": "CAP-MIGRATION",
+      "name": "D1 migration lifecycle",
+      "owners": ["platform"],
+      "evidence_kinds": ["unit", "workers", "operations"]
+    },
+    {
+      "id": "CAP-COLLABORATION",
+      "name": "Realtime collaboration integrity",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "workers", "e2e"]
+    },
+    {
+      "id": "CAP-UPLOAD",
+      "name": "Upload authorization and storage",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "workers", "security"]
+    },
+    {
+      "id": "CAP-EXPORT",
+      "name": "Export correctness and privacy",
+      "owners": ["application"],
+      "evidence_kinds": ["unit", "component", "e2e"]
+    },
+    {
+      "id": "CAP-AI",
+      "name": "AI grounding and data boundary",
+      "owners": ["ai"],
+      "evidence_kinds": ["ai-eval", "security"]
+    },
+    {
+      "id": "CAP-PROVIDER",
+      "name": "Cloudflare provider boundary",
+      "owners": ["platform"],
+      "evidence_kinds": ["workers", "security", "operations"]
+    },
+    {
+      "id": "CAP-UNKNOWN",
+      "name": "Unknown critical capability",
+      "owners": ["quality-core"],
+      "evidence_kinds": ["classification"],
+      "must_fix": true
+    }
+  ]
+}

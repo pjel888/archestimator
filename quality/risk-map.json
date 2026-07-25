@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "prose_extensions": [".md", ".mdx", ".txt"],
+  "executable_extensions": [
+    ".cjs",
+    ".css",
+    ".html",
+    ".js",
+    ".json",
+    ".mjs",
+    ".sql",
+    ".ts",
+    ".tsx",
+    ".yaml",
+    ".yml"
+  ],
+  "release_flags": [
+    "quality/release-request.json"
+  ],
+  "rules": [
+    {
+      "id": "RISK-QUALITY",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": [
+        "quality/**",
+        "scripts/quality/**",
+        "tests/vitest/quality/**",
+        "scripts/validate-ai-workflow-adapters.mjs"
+      ],
+      "capabilities": [],
+      "reason": "Quality-system changes can weaken every repository gate."
+    },
+    {
+      "id": "RISK-ACTIVE-POLICY",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": [
+        "AGENTS.md",
+        "CODEX.md",
+        "CLAUDE.md",
+        "GEMINI.md",
+        ".gemini/GEMINI.md",
+        ".ai/00_system/**",
+        ".ai/10_state/**",
+        ".ai/12_agents/**",
+        ".codex/**",
+        ".cursor/**",
+        ".commandcode/**"
+      ],
+      "capabilities": [],
+      "reason": "Active agent policy and adapters are executable quality-system behavior."
+    },
+    {
+      "id": "RISK-RUNNER-CONFIG",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": [
+        "package.json",
+        "bun.lock",
+        "vitest*.ts",
+        "playwright.config.ts",
+        "stryker.config.mjs",
+        ".storybook/**",
+        "eslint.config.*",
+        "tsconfig*.json"
+      ],
+      "capabilities": [],
+      "reason": "Runner, dependency, or validation configuration can weaken evidence."
+    },
+    {
+      "id": "RISK-SECURITY-POLICY",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": [
+        ".github/**",
+        "docs/security/**",
+        "SECURITY.md",
+        "quality/**/*security*",
+        "scripts/**/*security*"
+      ],
+      "capabilities": [],
+      "reason": "Security, dependency, or workflow enforcement behavior."
+    },
+    {
+      "id": "RISK-AUTH",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["src/**/auth/**", "src/**/*auth*.ts", "src/**/*auth*.tsx"],
+      "capabilities": ["CAP-AUTH"],
+      "reason": "Authentication and authorization boundary."
+    },
+    {
+      "id": "RISK-DATA",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["migrations/**", "src/db/**", "src/**/*repository*.ts"],
+      "capabilities": ["CAP-DATA-INTEGRITY", "CAP-TENANT", "CAP-MIGRATION"],
+      "reason": "Persistent data or tenant boundary."
+    },
+    {
+      "id": "RISK-PROVIDER",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["wrangler.jsonc", "open-next.config.ts", "src/**/*cloudflare*.ts"],
+      "capabilities": ["CAP-PROVIDER"],
+      "reason": "Cloudflare provider configuration or runtime integration."
+    },
+    {
+      "id": "RISK-CACHE-PRIVACY",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["src/**/middleware.ts", "src/**/*cache*.ts", "src/**/*privacy*.ts"],
+      "capabilities": ["CAP-CACHE-PRIVACY"],
+      "reason": "Caching or privacy behavior."
+    },
+    {
+      "id": "RISK-AI",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["src/**/ai/**", "src/**/*ai*.ts", "src/**/*agent*.ts"],
+      "capabilities": ["CAP-AI"],
+      "reason": "AI authorization, grounding, or provider behavior."
+    },
+    {
+      "id": "RISK-COLLABORATION",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["src/**/*collab*.ts", "src/**/*presence*.ts", "src/**/*realtime*.ts"],
+      "capabilities": ["CAP-COLLABORATION"],
+      "reason": "Realtime collaboration integrity."
+    },
+    {
+      "id": "RISK-UPLOAD",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["src/**/*upload*.ts", "src/**/*r2*.ts"],
+      "capabilities": ["CAP-UPLOAD"],
+      "reason": "Upload authorization or storage."
+    },
+    {
+      "id": "RISK-EXPORT",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": ["src/**/*export*.ts", "src/**/*xlsx*.ts", "src/**/*pdf*.ts"],
+      "capabilities": ["CAP-EXPORT"],
+      "reason": "Export correctness or privacy."
+    },
+    {
+      "id": "RISK-WORKFLOW",
+      "profile": "Q2_CRITICAL_CHANGE_GATE",
+      "patterns": [".github/workflows/**"],
+      "capabilities": [],
+      "reason": "CI workflow security or required-check behavior."
+    },
+    {
+      "id": "RISK-RELEASE",
+      "profile": "Q3_RELEASE_GATE",
+      "patterns": ["quality/release-request.json"],
+      "capabilities": [],
+      "reason": "Explicit release evidence request."
+    }
+  ]
+}

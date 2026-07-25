@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archestimator.local/quality/baseline.schema.json",
+  "title": "Canonical admitted quality baseline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "source",
+    "admission",
+    "suite",
+    "allowed_failures",
+    "coverage"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "status": { "const": "admitted" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "report",
+        "report_sha256",
+        "coverage",
+        "coverage_sha256"
+      ],
+      "properties": {
+        "command": { "type": "string", "minLength": 1 },
+        "report": {
+          "type": "string",
+          "pattern": "^(?!\\.omx/).+"
+        },
+        "report_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "coverage": {
+          "type": "string",
+          "pattern": "^(?!\\.omx/).+"
+        },
+        "coverage_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory",
+        "inventory_sha256",
+        "validation_artifact",
+        "validation_sha256",
+        "quality_review_artifact",
+        "quality_review_sha256",
+        "security_review_artifact",
+        "security_review_sha256"
+      ],
+      "properties": {
+        "inventory": { "type": "string", "pattern": "^(?!\\.omx/).+" },
+        "inventory_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "validation_artifact": { "type": "string", "pattern": "^(?!\\.omx/).+" },
+        "validation_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "quality_review_artifact": {
+          "type": "string",
+          "pattern": "^(?:quality/reviews/|artifacts/quality/).+"
+        },
+        "quality_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "security_review_artifact": {
+          "type": "string",
+          "pattern": "^(?:quality/reviews/|artifacts/quality/).+"
+        },
+        "security_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["test_files", "total_tests"],
+      "properties": {
+        "test_files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "total_tests": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "allowed_failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "file",
+          "test",
+          "kind",
+          "signature",
+          "classification",
+          "owner",
+          "rationale",
+          "expires_at",
+          "quality_reviewer",
+          "security_reviewer"
+        ],
+        "properties": {
+          "identity": { "type": "string", "minLength": 1 },
+          "file": { "type": "string", "minLength": 1 },
+          "test": { "type": "string", "minLength": 1 },
+          "kind": { "const": "test_failure" },
+          "signature": { "type": "string", "minLength": 1 },
+          "classification": { "const": "ratchet_noncritical" },
+          "owner": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "minLength": 1 },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "quality_reviewer": { "type": "string", "minLength": 1 },
+          "security_reviewer": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statements", "branches", "functions", "lines"],
+        "properties": {
+          "statements": { "$ref": "#/$defs/coverageValue" },
+          "branches": { "$ref": "#/$defs/coverageValue" },
+          "functions": { "$ref": "#/$defs/coverageValue" },
+          "lines": { "$ref": "#/$defs/coverageValue" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "coverageValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "covered", "skipped", "pct"],
+      "properties": {
+        "total": { "type": "number", "minimum": 0 },
+        "covered": { "type": "number", "minimum": 0 },
+        "skipped": { "type": "number", "minimum": 0 },
+        "pct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    }
+  }
+}

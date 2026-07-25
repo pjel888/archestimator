@@ -25,6 +25,83 @@ final result: passed
 
 ---
 
+# Design QA: Workshop Root Header Spacing
+
+- **Source visual truth:** the annotated `/workshop` browser capture supplied with the task, where the greeting begins after an empty `32px` back-control slot.
+- **Requested state:** authenticated `/workshop` only, with the greeting aligned directly after the normal header padding. Nested and sibling Workshop routes must retain the existing back button or hidden spacer.
+- **Implementation:** `/workshop` passes `showBackButton={false}` through `WorkshopRouteHeader`; both shared header components default the prop to `true`, so every other caller preserves the established control and spacing contract.
+- **Accessibility:** removing the root-only slot removes no reachable control because the root route previously rendered only an `aria-hidden` spacer. Nested routes retain the accessible `Go back` link.
+- **Regression evidence:** focused Vitest covers the root-only disabled state, nested-route back link, primary-route default spacer, shared-prop forwarding, and root-route wiring. Red-before-green evidence was captured before the implementation.
+- **Coverage:** the focused header suite reports `100%` statements, functions, and lines, with `75%` branch coverage for `WorkshopTitleHeader.tsx`.
+- **Static evidence:** targeted ESLint, authenticated design lint, and scoped `git diff --check` pass.
+- **Independent review:** a read-only verifier returned `PASS` with no P0, P1, or P2 findings.
+- **Visual evidence limitation:** the in-app browser rejected the post-change localhost navigation under its URL policy, so a fresh rendered implementation capture could not be produced or compared against the supplied source screenshot.
+
+## Comparison History
+
+1. **Baseline:** `/workshop` inherited the shared primary-route spacer even though it had no back destination.
+2. **Implementation:** introduced a default-preserving shared prop and disabled the slot only at the root route call.
+3. **Verification:** component, route-wiring, default-spacer, accessibility, coverage, lint, and independent review checks pass; pixel-level comparison remains unavailable.
+
+final result: blocked
+
+---
+
+# Design QA: Workshop Dashboard Lists V2
+
+- **Source visual truth:** the four annotated `/workshop` captures supplied with this task plus `.omo/evidence/workshop-dashboard-list-audit/01-current-desktop.png` and `.omo/evidence/workshop-dashboard-list-audit/02-current-mobile.png`.
+- **Implementation screenshots:** `.omo/evidence/workshop-dashboard-list-audit/03-updated-desktop.png`, `.omo/evidence/workshop-dashboard-list-audit/04-updated-mobile.png`, `.omo/evidence/workshop-dashboard-list-audit/05-updated-mobile-estimates.png`, `.omo/evidence/workshop-dashboard-list-audit/06-updated-mobile-components.png`, `.omo/evidence/workshop-dashboard-list-audit/07-updated-tablet.png`, and `.omo/evidence/workshop-dashboard-list-audit/08-updated-1280.png`.
+- **State:** authenticated `/workshop`, one project, one estimate sheet, project not favorited, estimate sheet favorited, no components, expanded Getting Started checklist.
+- **Projects card:** Published Projects and publishing actions are removed. The panel now renders the Projects list as folder icon, favorite star, and project name with no client name or date.
+- **Estimate Sheets card:** Components is replaced by Estimate Sheets. Rows render estimate-sheet icon, favorite star, estimate name, and lighter project name.
+- **Favorite states:** non-favorites use outlined stars; favorites use filled orange stars. Optimistic project-favorite links now match project-row destinations.
+- **Right ledger:** the duplicate Projects column is removed. Components fills the lower ledger width beneath Favorites and uses component-inspector deep-links.
+- **Scroll ownership:** card panels are bounded at desktop and use `clamp(180px, 48vw, 240px)` below `1024px`; inner list wrappers own `overflow-y-auto`, so longer lists scroll without expanding the cards.
+- **Responsive refinement:** the Templates display title now scales with `clamp(22px, 2vw, 32px)` to avoid the `1280px` crop. The onboarding card uses a tighter split from `1024px` through `1439px`.
+- **Accessibility:** headings, semantic lists, descriptive links, pressed favorite states, disabled pending states, and focus-visible treatments remain. The Estimate Sheets arrow label names the actual conditional destination.
+- **Static evidence:** targeted ESLint, `git diff --check`, and authenticated design lint pass. Automated product tests were not run because repository policy keeps them user-gated.
+- **Independent review:** two re-review gates passed at `93/100` and `96/100`, with no remaining P0, P1, or P2 findings. Composite Visual Ralph score: `95/100`.
+- **Evidence limitation:** Chrome became unavailable before a post-fix lower-state capture. Existing captures prove the requested information architecture; the final scroll-height and Templates title clamps were approved by both source re-reviews rather than a new browser image.
+
+## Comparison History
+
+1. **Baseline:** card 01 was Published Projects, card 02 was Components, and the right ledger duplicated Projects and Sheets.
+2. **First implementation:** moved Projects and Estimate Sheets into cards 01 and 02, promoted Components to the full-width lower ledger, and preserved favorite controls.
+3. **Research correction:** component rows gained exact inspector links, project favorite optimistic links were aligned, and capped counts were relabeled as items shown.
+4. **Responsive gate repair:** bounded mobile/tablet list panels, made conditional arrow labels precise, and scaled the Templates title at narrow desktop widths.
+5. **Final:** both independent gates passed with no actionable P0–P2 findings.
+
+final result: passed
+
+---
+
+# Design QA: Workshop Dashboard Project Lists and Grid
+
+- **Source visual truth:** the four annotated `/workshop` browser captures supplied with the task, normalized into `.omx/artifacts/visual-ralph/workshop-dashboard-grid/reference-desktop.png` and the requirements in `.omx/artifacts/visual-ralph/workshop-dashboard-grid/reference-spec.md`.
+- **Implementation screenshots:** `.omx/artifacts/visual-ralph/workshop-dashboard-grid/actual-desktop.png`, `.omx/artifacts/visual-ralph/workshop-dashboard-grid/actual-tablet.png`, `.omx/artifacts/visual-ralph/workshop-dashboard-grid/actual-mobile.png`, and `.omx/artifacts/visual-ralph/workshop-dashboard-grid/actual-mobile-recents.png`.
+- **Viewport and density:** desktop source and implementation are both `2048x1364` pixels at a `2048x1365` CSS viewport. Tablet is a `900x1100` CSS viewport rendered to `1125x1375`. The mobile fold is a `390x844` CSS viewport rendered to `488x1054`; the final narrow-flow evidence uses a `400px` CSS width and a cropped in-app browser raster to expose the full vertical order.
+- **State:** authenticated `/workshop`, one project, one estimate sheet, project not favorited, estimate sheet favorited, expanded Getting Started checklist, no dialogs.
+- **Full-view comparison:** `.omx/artifacts/visual-ralph/workshop-dashboard-grid/desktop-diff.json` reports matched dimensions and `90/100` similarity. The largest hotspots are the intentionally restructured Getting Started region; the surrounding dashboard geometry remains stable.
+- **Focused project-list comparison:** the project row is folder, outlined star, and project name only. The sheet row is estimate-sheet icon, orange filled star, estimate name, and lighter project name. Client names and dates are absent from both recent lists.
+- **Published Projects:** the panel owns vertical scrolling and its list remains intrinsic-height, so rows begin immediately below the header instead of being distributed through the panel.
+- **Getting Started:** desktop placement is columns `1 / span 2`, rows `4 / -1`, matching the Projects card width and filling the remaining dashboard rows. Tablet and mobile return to normal flow without horizontal overflow.
+- **Responsive repair:** independent review caught the mobile Library card falling into an omitted grid area. The final mobile grid explicitly orders `board` then `continue`, and both the wrapper and Library card hold a `132px` minimum height. Browser geometry reports the card at `366.35x131.99` inside a `400px` document.
+- **Primary interactions:** the project star toggled to filled orange and was restored to outlined; the estimate-sheet star toggled to outlined and was restored to filled orange.
+- **Console:** final browser warning/error logs are empty.
+- **Static checks:** targeted ESLint, `git diff --check`, and authenticated design lint pass. Full TypeScript checking reaches only unrelated existing failures in `src/app/kimi3d/_components/hero-ambition-text.tsx`, `src/app/kimi3d/_components/hero-audience-roles.tsx`, and `src/lib/admin/user-actions.ts`.
+- **Independent review:** both read-only visual gate reviewers returned `PASS` after the mobile grid-area and Library-card height repair.
+
+## Comparison History
+
+1. **Baseline:** recents mixed icons with vertically stacked stars and metadata, Published Projects could distribute list space, and Getting Started occupied three columns in a shallow row.
+2. **First implementation:** simplified the recent rows, added explicit orange favorite states, top-aligned Published Projects, and moved Getting Started into the two-column remaining-row area.
+3. **Responsive review:** both independent reviewers found the mobile Library card in an omitted `continue` area.
+4. **Final:** the mobile grid now places and sizes the Library card explicitly; fresh browser geometry and two independent re-reviews pass with no remaining P0, P1, or P2 findings.
+
+final result: passed
+
+---
+
 # Design QA: Estimate Feature Cards
 
 - **Source visual:** `.omx/artifacts/visual-ralph/estimate-sheet-features/reference.png`.

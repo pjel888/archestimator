@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "id": "route_readiness_contract",
+      "label": "Route readiness evaluator against a deterministic synthetic benchmark",
+      "kind": "local",
+      "path_patterns": ["src/app/**", "src/components/**", "src/**/*.tsx", "next.config.ts"],
+      "capabilities": [],
+      "required_for_q3": true,
+      "provenance": "synthetic-local-evaluator-fixture"
+    },
+    {
+      "id": "bundle_budget",
+      "label": "Strict route bundle budget from the build job",
+      "kind": "local",
+      "path_patterns": ["src/app/**", "src/components/**", "src/**/*.tsx", "next.config.ts", "package.json", "bun.lock"],
+      "capabilities": [],
+      "required_for_q3": true,
+      "provenance": "build-job-command-evidence"
+    },
+    {
+      "id": "query_count_contract",
+      "label": "Dashboard query-count collector against a deterministic synthetic trace",
+      "kind": "local",
+      "path_patterns": ["migrations/**", "src/db/**", "src/**/*repository*.ts", "src/components/workshop/dashboard/**"],
+      "capabilities": ["CAP-DATA-INTEGRITY", "CAP-MIGRATION"],
+      "required_for_q3": true,
+      "provenance": "synthetic-local-collector-fixture"
+    },
+    {
+      "id": "d1_migration_state",
+      "label": "Local D1 migration state",
+      "kind": "local",
+      "path_patterns": ["migrations/**", "src/db/**", "src/**/*repository*.ts"],
+      "capabilities": ["CAP-DATA-INTEGRITY", "CAP-MIGRATION"],
+      "required_for_q3": true,
+      "provenance": "local-d1-migration-check"
+    },
+    {
+      "id": "platform_readiness",
+      "label": "Cloudflare worker manifest readiness",
+      "kind": "local",
+      "path_patterns": ["wrangler.jsonc", "worker.ts", "open-next.config.ts", "src/lib/cloudflare/**"],
+      "capabilities": ["CAP-PROVIDER"],
+      "required_for_q3": true,
+      "provenance": "local-source-and-config-readiness"
+    },
+    {
+      "id": "observability_contract",
+      "label": "Local observability scenario catalog",
+      "kind": "local",
+      "path_patterns": ["scripts/quality/operations*.ts", "quality/operations-policy.json", "src/lib/observability/**", "scripts/**/*observability*.ts", "worker.ts", "wrangler.jsonc"],
+      "capabilities": ["CAP-PROVIDER"],
+      "required_for_q3": true,
+      "provenance": "local-alert-scenario-contract"
+    },
+    {
+      "id": "redaction_contract",
+      "label": "Sensitive operations error and redaction contract",
+      "kind": "local",
+      "path_patterns": ["scripts/quality/operations*.ts", "quality/operations-policy.json", "src/lib/observability/**", "src/app/api/**", "src/lib/email/**", "src/lib/uploads/**", "worker.ts"],
+      "capabilities": ["CAP-PROVIDER"],
+      "required_for_q3": true,
+      "provenance": "local-static-redaction-contract"
+    },
+    {
+      "id": "hosted_route_performance",
+      "label": "Hosted route performance proof",
+      "kind": "external",
+      "path_patterns": ["src/app/**", "src/components/**", "src/**/*.tsx"],
+      "capabilities": [],
+      "required_for_q3": true,
+      "provenance": "external-hosted-evidence-required"
+    },
+    {
+      "id": "hosted_observability",
+      "label": "Hosted observability and alert delivery proof",
+      "kind": "external",
+      "path_patterns": ["src/lib/observability/**", "scripts/**/*observability*.ts", "worker.ts", "wrangler.jsonc"],
+      "capabilities": ["CAP-PROVIDER"],
+      "required_for_q3": true,
+      "provenance": "external-hosted-evidence-required"
+    },
+    {
+      "id": "hosted_provider_readback",
+      "label": "Hosted provider resource readback",
+      "kind": "external",
+      "path_patterns": ["wrangler.jsonc", "worker.ts", "open-next.config.ts", "src/lib/cloudflare/**"],
+      "capabilities": ["CAP-PROVIDER"],
+      "required_for_q3": true,
+      "provenance": "external-credentialed-readback-required"
+    }
+  ]
+}

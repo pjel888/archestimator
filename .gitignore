@@ -10,9 +10,12 @@
 
 # testing
 /coverage
+/artifacts
 /playwright-report
 /test-results
 /storybook-static
+/reports
+/.stryker-tmp
 
 # next.js
 /.next/

@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archestimator.local/schemas/ai-eval-case-report-v1.json",
+  "title": "Archestimator deterministic AI evaluation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "suite",
+    "suiteVersion",
+    "runtime",
+    "budgetAccounting",
+    "status",
+    "summary",
+    "cases"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "ai-eval-report/v1" },
+    "suite": { "type": "string", "minLength": 1 },
+    "suiteVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "runtime": { "const": "local-handler-contract" },
+    "budgetAccounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latencyMetric", "costMetric"],
+      "properties": {
+        "latencyMetric": { "const": "local-handler-wall-clock-ms" },
+        "costMetric": { "const": "provider-reported-total-tokens" }
+      }
+    },
+    "status": { "enum": ["pass", "fail"] },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "passed", "failed", "totalLatencyMs", "totalProviderTokens"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "totalLatencyMs": { "type": "number", "minimum": 0 },
+        "totalProviderTokens": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "category",
+          "requirementIds",
+          "title",
+          "surface",
+          "status",
+          "expectedOutcome",
+          "checks",
+          "metrics",
+          "budgets",
+          "failures"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^AI-EVAL-\\d{3}$" },
+          "category": { "type": "string", "minLength": 1 },
+          "requirementIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "title": { "type": "string", "minLength": 1 },
+          "surface": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["pass", "fail"] },
+          "expectedOutcome": { "type": "string", "minLength": 1 },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "passed"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "passed": { "type": "boolean" }
+              }
+            }
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["latencyMs", "promptTokens", "completionTokens", "totalTokens"],
+            "properties": {
+              "latencyMs": { "type": "number", "minimum": 0 },
+              "promptTokens": { "type": "integer", "minimum": 0 },
+              "completionTokens": { "type": "integer", "minimum": 0 },
+              "totalTokens": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "budgets": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["latencyMs", "totalTokens"],
+            "properties": {
+              "latencyMs": { "type": "number", "exclusiveMinimum": 0 },
+              "totalTokens": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "failures": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

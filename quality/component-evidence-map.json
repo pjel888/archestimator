@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "component_scope_patterns": [
+    "src/app/**/*.tsx",
+    "src/components/**/*.tsx",
+    "tests/vitest/**/*.test.tsx",
+    "scripts/quality/component.ts",
+    "scripts/quality/component-core.ts",
+    "quality/component-evidence-map.json",
+    "quality/baseline.json",
+    "quality/schemas/component-evidence-map.schema.json",
+    "quality/schemas/baseline.schema.json",
+    "vitest.config.ts"
+  ],
+  "affected_rules": [
+    {
+      "id": "QUALITY-COMPONENT-GATE",
+      "source_patterns": [
+        "scripts/quality/component.ts",
+        "scripts/quality/component-core.ts",
+        "quality/component-evidence-map.json",
+        "quality/baseline.json",
+        "quality/schemas/component-evidence-map.schema.json",
+        "quality/schemas/baseline.schema.json",
+        "vitest.config.ts"
+      ],
+      "test_patterns": ["tests/vitest/quality/component-gate.test.ts"]
+    },
+    {
+      "id": "CHANGED-COMPONENT-TEST",
+      "source_patterns": ["tests/vitest/**/*.test.tsx"],
+      "test_patterns": ["tests/vitest/**/*.test.tsx"]
+    },
+    {
+      "id": "AUTHENTICATED-AND-SHARED-UI",
+      "source_patterns": ["src/app/**/*.tsx", "src/components/**/*.tsx"],
+      "test_patterns": ["tests/vitest/**/*.test.tsx"]
+    }
+  ],
+  "critical_capabilities": {
+    "CAP-AUTH": [
+      "tests/vitest/auth-*.test.ts",
+      "tests/vitest/auth-*.test.tsx",
+      "tests/vitest/*auth*.test.ts",
+      "tests/vitest/*auth*.test.tsx"
+    ],
+    "CAP-EXPORT": [
+      "tests/vitest/*export*.test.ts",
+      "tests/vitest/*export*.test.tsx",
+      "tests/vitest/*proposal*.test.ts",
+      "tests/vitest/*proposal*.test.tsx"
+    ]
+  }
+}

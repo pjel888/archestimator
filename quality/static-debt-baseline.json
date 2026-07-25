@@ -1,0 +1,4172 @@
+{
+  "schema_version": 1,
+  "tool": "knip",
+  "identity_contract": "type-file-symbol-v1",
+  "measurement": {
+    "scope": "legacy repository debt measured before static no-new-debt enforcement",
+    "command": "knip --reporter json --include files,dependencies,unlisted,unresolved,exports,nsExports,types,nsTypes,enumMembers,namespaceMembers,duplicates,cycles",
+    "issue_count": 832
+  },
+  "measured_legacy_issues": [
+    {
+      "type": "dependencies",
+      "file": "package.json",
+      "symbol": "@tiptap/extension-file-handler"
+    },
+    {
+      "type": "dependencies",
+      "file": "package.json",
+      "symbol": "@tiptap/extension-image"
+    },
+    {
+      "type": "devDependencies",
+      "file": "package.json",
+      "symbol": "@axe-core/playwright"
+    },
+    {
+      "type": "devDependencies",
+      "file": "package.json",
+      "symbol": "@vitest/expect"
+    },
+    {
+      "type": "devDependencies",
+      "file": "package.json",
+      "symbol": "@vitest/spy"
+    },
+    {
+      "type": "devDependencies",
+      "file": "package.json",
+      "symbol": "shadcn"
+    },
+    {
+      "type": "devDependencies",
+      "file": "package.json",
+      "symbol": "tailwindcss"
+    },
+    {
+      "type": "duplicates",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "BETA_ACCESS_MAILTO_HREF <-> EARLY_ACCESS_HREF"
+    },
+    {
+      "type": "duplicates",
+      "file": "src/lib/component-library/unit-options.ts",
+      "symbol": "CONTENT_UNIT_OPTIONS <-> PACKAGE_UNIT_OPTIONS"
+    },
+    {
+      "type": "duplicates",
+      "file": "src/lib/publisher/roster-filter.ts",
+      "symbol": "parsePublisherRosterFilters <-> parseRosterFilters"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/admin/admin-nav.ts",
+      "symbol": "ADMIN_MOBILE_PRIMARY_NAV"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/admin/admin-nav.ts",
+      "symbol": "isAdminPrimaryNavRoute"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "faqCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "finalCtaCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "footerCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "headerCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "heroCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "heroSteps"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "knowledgeCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-new/new-landing-content.ts",
+      "symbol": "workflowCopy"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx",
+      "symbol": "HERO_CURSOR_TRANSITION_MS"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx",
+      "symbol": "HERO_KITCHEN_NODE_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx",
+      "symbol": "HERO_PROJECT_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx",
+      "symbol": "HERO_WORKSPACE_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing-v3/HeroEstimateWorkspaceMockup.tsx",
+      "symbol": "msUntilHeroPhase"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing/claims-ledger/claims-data.ts",
+      "symbol": "ALL_CLAIM_ROWS"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing/index.ts",
+      "symbol": "ClarityScript"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing/index.ts",
+      "symbol": "CookieConsentBanner"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing/index.ts",
+      "symbol": "LandingAnalyticsLoader"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing/index.ts",
+      "symbol": "LandingFooter"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/landing/index.ts",
+      "symbol": "LandingHeader"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/onboarding/OnboardingPortal.tsx",
+      "symbol": "ONBOARDING_PORTAL_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/context-menu.tsx",
+      "symbol": "ContextMenuPortal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "symbol": "DropdownMenuGroup"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "symbol": "DropdownMenuItem"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Accordion"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "AppModal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Badge"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Banner"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "BulkActionToolbar"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Chip"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CommandDialog"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CommandMenu"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ConfirmDialog"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ContextActionMenuContent"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ContextMenuGroup"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ContextMenuSeparator"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ContextMenuShortcut"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CONTROL_INPUT_SURFACE_CLASS"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ControlField"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ControlInput"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ControlTextarea"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CreatableCombobox"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CurrencyInput"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DataTable"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DatePicker"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DeleteConfirmDialog"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Dialog"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogActions"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogBody"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogCloseButton"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogContent"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogDescription"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogFooter"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogHeader"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogOverlay"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogPortal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DialogTitle"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Drawer"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DropdownSelect"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "EmptyState"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "EstimateCell"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FileUpload"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FilterPopover"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FinancialTotalCard"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FloatingModal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "HeaderIconToolbar"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "HelpPopover"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "HoverCard"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "InfoPopover"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "InspectorDrawer"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Modal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "NumberInput"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Panel"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Popover"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PopupWindow"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Progress"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "RadioGroup"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ResizableModal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "RouteLoadingOverlay"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ScrollArea"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SearchInput"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Separator"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Sheet"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Skeleton"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Spinner"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "StatusBadge"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Switch"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Tabs"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Timeline"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ToastProvider"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ToolbarIconButton"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ToolbarTooltip"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "Tooltip"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "UnsavedChangesDialog"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "useToast"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/shadcn-dropdown-menu.tsx",
+      "symbol": "ShadcnDropdownMenuGroup"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/shadcn-dropdown-menu.tsx",
+      "symbol": "ShadcnDropdownMenuLabel"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/shadcn-dropdown-menu.tsx",
+      "symbol": "ShadcnDropdownMenuPortal"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/shadcn-dropdown-menu.tsx",
+      "symbol": "ShadcnDropdownMenuRadioGroup"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/shadcn-dropdown-menu.tsx",
+      "symbol": "ShadcnDropdownMenuShortcut"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/table.tsx",
+      "symbol": "TableCaption"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/ui/table.tsx",
+      "symbol": "TableFooter"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/helpers.ts",
+      "symbol": "defaultForm"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/helpers.ts",
+      "symbol": "isFormDirty"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/buildLibraryTree.ts",
+      "symbol": "buildComponentLibraryNavigationTree"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/helpers.ts",
+      "symbol": "collectComponentIds"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/helpers.ts",
+      "symbol": "matchesQuery"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "buildComponentLibraryNavigationTree"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "buildTemplatesSelectionNodes"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "buildTemplatesTreeNodes"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "collectComponentIds"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "filterTree"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "findNode"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getAllNodeIds"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getCheckedProjectSourceRowItems"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getCheckedProjectSourceTargets"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getCheckedTemplates"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getCheckedTemplateUnits"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getLibraryItemsForTreeNode"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "getTemplatesTreeAllNodeIds"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "isProjectComponentProjectionItem"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "LIBRARY_TREE_ROOT_ORDER_KEY"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "LibraryTree"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "matchesQuery"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "TemplatesTree"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "templatesTreeCategoryId"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "templatesTreeSectionId"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/tree/TemplatesTreeModel.ts",
+      "symbol": "getCheckedTemplates"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-library/use-estimate-right-sidebar-state.ts",
+      "symbol": "getInitialTemplatesExpandedIds"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-unit-combobox-options.ts",
+      "symbol": "CONTENT_UNIT_COMBOBOX_OPTIONS"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/component-unit-combobox-options.ts",
+      "symbol": "toUnitComboboxOptions"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet-render-probe.ts",
+      "symbol": "reportEstimateSelectedNodePresentationCompute"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-model.ts",
+      "symbol": "calculateQuantityContingencyPercentage"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-model.ts",
+      "symbol": "isQuantityContingencyRow"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-model.ts",
+      "symbol": "parseCostAdjustmentPercentage"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-model.ts",
+      "symbol": "parseEditableContingencyPercentage"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-store.ts",
+      "symbol": "EMPTY_EDITABLE_ROW_COMMIT_STATE"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/row-commit-intent.ts",
+      "symbol": "hasSharedComponentEdit"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/estimate-sheet/rows/row-commit-intent.ts",
+      "symbol": "isProjectComponentRow"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/library/component-facet-filter-model.ts",
+      "symbol": "COMPONENT_PRICING_FRESHNESS_LABELS"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/library/component-facet-filter-model.ts",
+      "symbol": "getComponentPricingFreshness"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/library/component-facet-filter-model.ts",
+      "symbol": "NO_BRAND_OPTION"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/library/component-facet-filter-model.ts",
+      "symbol": "NO_SUPPLIER_OPTION"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/navigation/workshop-navigation.ts",
+      "symbol": "WORKSHOP_HOME_NAV_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/project-activity/action-classes.ts",
+      "symbol": "isProjectActivityActionBucket"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/project-activity/url-state.ts",
+      "symbol": "DEFAULT_ACTIVITY_PAGE_STATE"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/project-activity/url-state.ts",
+      "symbol": "parseActivityScope"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/project-activity/url-state.ts",
+      "symbol": "serializeActivityScope"
+    },
+    {
+      "type": "exports",
+      "file": "src/components/workshop/publisher/PublisherRosterRow.tsx",
+      "symbol": "formatPublisherDate"
+    },
+    {
+      "type": "exports",
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "symbol": "CURSOR_BROADCAST_EVENT"
+    },
+    {
+      "type": "exports",
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "symbol": "MAX_CURSOR_COORDINATE_PX"
+    },
+    {
+      "type": "exports",
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "symbol": "useEstimateCursorBroadcast"
+    },
+    {
+      "type": "exports",
+      "file": "src/hooks/use-estimate-row-update-broadcast.ts",
+      "symbol": "ESTIMATE_ROW_UPDATE_BROADCAST_EVENT"
+    },
+    {
+      "type": "exports",
+      "file": "src/hooks/use-project-collaboration-query.ts",
+      "symbol": "optimisticallySetCollaboratorRole"
+    },
+    {
+      "type": "exports",
+      "file": "src/hooks/use-project-presence.ts",
+      "symbol": "PROJECT_COLLABORATION_CHANNEL_PREFIX"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/activity/activity-outbox.ts",
+      "symbol": "ANONYMIZED_ACTIVITY_ACTOR_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/activation-cohort-repository.ts",
+      "symbol": "ACTIVATION_COHORT_QUERY_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/audit-repository.ts",
+      "symbol": "insertAdminAuditEventInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/beta-operating-overview.ts",
+      "symbol": "ACTIVATION_COHORT_CONSUMER_CONTRACT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/beta-operating-overview.ts",
+      "symbol": "BETA_OPERATING_OVERVIEW_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "linkWorkspaceToCorporateAccount"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "linkWorkspaceToCorporateAccountWithAuditInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "listCorporateAccountReadOnlyViewsInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "listCorporateAccounts"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "listUnlinkedWorkspaces"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "unlinkWorkspaceFromCorporateAccount"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "unlinkWorkspaceFromCorporateAccountWithAuditInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/datetime.ts",
+      "symbol": "ADMIN_DATE_LOCALE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/datetime.ts",
+      "symbol": "ADMIN_TIME_ZONE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "ESTIMATE_SYSTEM_REQUIRED_OPERATION_IDS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/observability-repository.ts",
+      "symbol": "recordOpsRunEvent"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/require-admin.ts",
+      "symbol": "assertAdminApiAccess"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/require-admin.ts",
+      "symbol": "assertAdminApiOrigin"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/search-repository.ts",
+      "symbol": "normalizeSearchQuery"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/support-actions.ts",
+      "symbol": "getSupportMessageForAdmin"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/support-attention-repository.ts",
+      "symbol": "listActiveSupportConversations"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/users-repository.ts",
+      "symbol": "listRecentSignups"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/admin/users-repository.ts",
+      "symbol": "normalizeAccountStatus"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/ai/audit-d1-store.ts",
+      "symbol": "insertAiDataAccessEventsInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/ai/audit-d1-store.ts",
+      "symbol": "insertAiToolCallsInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/ai/audit-d1-store.ts",
+      "symbol": "upsertAiActionRunInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/account-audit.ts",
+      "symbol": "isLegacyPlainSha256Digest"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/account-audit.ts",
+      "symbol": "LEGACY_PLAIN_SHA256_PREFIX"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/account-settings-d1-store.ts",
+      "symbol": "getUserOnboardingProfileFromCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/account-settings-d1-store.ts",
+      "symbol": "getWorkspaceAccountSettingsFromCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/account-settings-d1-store.ts",
+      "symbol": "upsertUserOnboardingProfileInCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/account-settings-d1-store.ts",
+      "symbol": "upsertWorkspaceAccountSettingsInCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/beta-allowlist-admin.ts",
+      "symbol": "isValidClosedBetaAllowlistEmail"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/better-auth-cloudflare.ts",
+      "symbol": "BETTER_AUTH_CLOUDFLARE_BASE_PATH"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/better-auth-cloudflare.ts",
+      "symbol": "BETTER_AUTH_CLOUDFLARE_D1_ROUTE_GATE_PROOF_MARKER"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-auth-gate.ts",
+      "symbol": "CLOSED_BETA_DENIED_CODE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-auth-gate.ts",
+      "symbol": "CLOSED_BETA_DENIED_MESSAGE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-auth-gate.ts",
+      "symbol": "readClosedBetaEmailCandidate"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-auth-gate.ts",
+      "symbol": "resolveClosedBetaAccessForEmailAgainstD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-d1-store.ts",
+      "symbol": "listPendingClosedBetaInviteEmailsFromD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-d1-store.ts",
+      "symbol": "markClosedBetaInviteEmailSentInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/closed-beta-invite-email.ts",
+      "symbol": "buildClosedBetaInviteEmailContent"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/delete-account-repository.ts",
+      "symbol": "DELETE_ACCOUNT_CONFIRMATION_PHRASE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/delete-account-repository.ts",
+      "symbol": "validateDeleteAccountConfirmation"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/dev-auth-gate.ts",
+      "symbol": "isDevAuthBypassEnabled"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/dev-auth.ts",
+      "symbol": "getDevAuthBypassCredentialFromRequestParts"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/dev-auth.ts",
+      "symbol": "isDevAdminDatabaseBypassEnabled"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/dev-auth.ts",
+      "symbol": "isDevAdminDatabaseBypassRequest"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/dev-auth.ts",
+      "symbol": "isDevAuthBypassEnabled"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/dev-auth.ts",
+      "symbol": "isDevAuthBypassRequest"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/profile-d1-store.ts",
+      "symbol": "isAppRole"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/redirects.ts",
+      "symbol": "AUTH_CALLBACK_PATH"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/request-proxy.ts",
+      "symbol": "config"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/roles.ts",
+      "symbol": "isWorkspaceAccountRole"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/set-cookie-forwarding.ts",
+      "symbol": "BETTER_AUTH_OAUTH_STATE_COOKIE_NAMES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/auth/set-cookie-forwarding.ts",
+      "symbol": "getSetCookieHeaders"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/access-service.ts",
+      "symbol": "ClientPortalAccessError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/activity-service.ts",
+      "symbol": "ClientPortalActivityError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/brand-service.ts",
+      "symbol": "assignClientPortalBrandProfiles"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/brand-service.ts",
+      "symbol": "ClientPortalBrandError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/composer-service.ts",
+      "symbol": "ClientPortalComposerError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "CLIENT_PORTAL_ISSUE_DECISION_SCOPE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "CLIENT_PORTAL_LEGACY_COMPATIBILITY"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "CLIENT_PORTAL_PUBLIC_ID_PREFIXES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "CLIENT_PORTAL_RETENTION_BOUNDARY"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "isClientPortalPublicId"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/decision-service.ts",
+      "symbol": "voidClientPortalDecision"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/estimate-browser.ts",
+      "symbol": "CLIENT_PORTAL_ESTIMATE_BROWSER_DEFAULT_PAGE_SIZE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/estimate-browser.ts",
+      "symbol": "CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_ROW_LIMIT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/estimate-browser.ts",
+      "symbol": "CLIENT_PORTAL_ESTIMATE_BROWSER_SCHEMA_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/issue-builder.ts",
+      "symbol": "ClientPortalIssueBuildError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/legacy-migration-service.ts",
+      "symbol": "LegacyClientPortalMigrationError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "ClientPortalPolicyError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "requireClientPortalPolicy"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/publish-service.ts",
+      "symbol": "ClientPortalPublishError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/publisher-discussion-actions.ts",
+      "symbol": "assignClientPortalThreadAction"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/publisher-discussion-service.ts",
+      "symbol": "PublisherDiscussionError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/recipient-service.ts",
+      "symbol": "ClientPortalRecipientError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/rollout.ts",
+      "symbol": "CLIENT_PORTAL_LEGACY_MIGRATION_FLAG_KEY"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/rollout.ts",
+      "symbol": "CLIENT_PORTAL_LEGACY_WRITE_FREEZE_FLAG_KEY"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/section-registry.ts",
+      "symbol": "CLIENT_PORTAL_SECTION_DRAFT_SCHEMA_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/client-portal/section-registry.ts",
+      "symbol": "CLIENT_PORTAL_SECTION_PUBLIC_SCHEMA_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/client-portal-notification-queue.ts",
+      "symbol": "CLIENT_PORTAL_NOTIFICATION_QUEUE_BINDING"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/dev-remote-bindings.ts",
+      "symbol": "DEV_REMOTE_BINDINGS_LOCAL_CONFIG"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/dev-remote-bindings.ts",
+      "symbol": "DEV_REMOTE_BINDINGS_REMOTE_CONFIG"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/dev-remote-bindings.ts",
+      "symbol": "getDevCloudflareBindingsConfigPath"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/estimate-history-proof-router.ts",
+      "symbol": "captureEstimateHistoryProofIntent"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/observability-proof-router.ts",
+      "symbol": "CLOUDFLARE_OBSERVABILITY_PROOF_PATH"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/cloudflare/upload-job-queue.ts",
+      "symbol": "CLOUDFLARE_UPLOAD_JOBS_RETRY_DELAY_SECONDS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/collaboration/actions.ts",
+      "symbol": "readProjectInviteDeliveryReadiness"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/collaboration/presence-surface.ts",
+      "symbol": "describeActiveSurface"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/collaboration/realtime-identity-server.ts",
+      "symbol": "getRealtimeSigningKey"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/collaboration/realtime-room-token.ts",
+      "symbol": "isRealtimeRoomCapability"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/collaboration/realtime-telemetry.ts",
+      "symbol": "sanitizeRealtimeTelemetryEvent"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/compliance/privacy-request-repository.ts",
+      "symbol": "erasePrivacyRequestActivationData"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/compliance/privacy-request-repository.ts",
+      "symbol": "erasePrivacyRequestSupportData"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/compliance/privacy-request-repository.ts",
+      "symbol": "exportPrivacyRequestActivationData"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/compliance/privacy-request-repository.ts",
+      "symbol": "exportPrivacyRequestSupportData"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/compliance/privacy-request-repository.ts",
+      "symbol": "PRIVACY_REQUEST_STATUSES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/actions.ts",
+      "symbol": "loadCurrentWorkspaceComponentLibrary"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/cache-convergence.ts",
+      "symbol": "patchCreatedComponentLibraryDataset"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/cache-convergence.ts",
+      "symbol": "patchCreatedComponentRowsDataset"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/category-folders.ts",
+      "symbol": "getDefaultComponentCategoryFolder"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/category-folders.ts",
+      "symbol": "isSyntheticProjectComponentFolderId"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/estimate-templates.ts",
+      "symbol": "estimateTemplates"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/library-folder-reorder.ts",
+      "symbol": "fromLibraryFolderTreeItemId"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/library-folder-reorder.ts",
+      "symbol": "LIBRARY_FOLDER_ID_PREFIX"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/library-folder-reorder.ts",
+      "symbol": "LIBRARY_FOLDER_TREE_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/library-folder-reorder.ts",
+      "symbol": "LIBRARY_FOLDER_TREE_ROOT_ITEM_ID"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/library-telemetry.ts",
+      "symbol": "buildLibraryTelemetryRecord"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/library-telemetry.ts",
+      "symbol": "LIBRARY_TELEMETRY_EVENTS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/taxonomy.ts",
+      "symbol": "findComponentCategoryPath"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-instance-actions.ts",
+      "symbol": "previewEstimateTemplateInstanceAction"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "ESTIMATE_TEMPLATE_ACTIVE_LINK_STATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "ESTIMATE_TEMPLATE_LINK_FAILURE_CLASSES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "ESTIMATE_TEMPLATE_LINK_STATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "ESTIMATE_TEMPLATE_MUTATION_INTENT_STATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "ESTIMATE_TEMPLATE_PROPAGATION_JOB_STATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-mutations.ts",
+      "symbol": "resolveTemplateMutationIntentId"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/template-versioning-d1.ts",
+      "symbol": "ESTIMATE_TEMPLATE_LINK_PAYLOAD_MAX_BYTES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/unit-options.ts",
+      "symbol": "DIMENSION_UNIT_OPTIONS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/unit-options.ts",
+      "symbol": "MASS_UNIT_OPTIONS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/component-library/unit-options.ts",
+      "symbol": "PACKAGE_UNIT_OPTIONS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-address.ts",
+      "symbol": "containsHeaderInjection"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-address.ts",
+      "symbol": "encodeDisplayName"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-attachments.ts",
+      "symbol": "sanitizeAttachmentFilename"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-config.ts",
+      "symbol": "SUPPORT_MAX_ATTACHMENT_BYTES_DEFAULT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-config.ts",
+      "symbol": "SUPPORT_MAX_ATTACHMENTS_DEFAULT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-config.ts",
+      "symbol": "SUPPORT_MAX_MESSAGE_BYTES_DEFAULT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-config.ts",
+      "symbol": "SUPPORT_MAX_TOTAL_ATTACHMENT_BYTES_DEFAULT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-email-html.ts",
+      "symbol": "SUPPORT_HTML_BODY_MAX"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-outbound-attachments.ts",
+      "symbol": "assertDraftOwnedByAdmin"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/support-outbound-attachments.ts",
+      "symbol": "buildSupportDraftR2Key"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/transactional-email-client.ts",
+      "symbol": "default"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/transactional-email-client.ts",
+      "symbol": "isEmailDeliveryEnabled"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/email/transactional-email-client.ts",
+      "symbol": "TransactionalEmailClient"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimate-health/index.ts",
+      "symbol": "validateEstimateRevisionFactProducerRegistry"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimate-health/normalize.ts",
+      "symbol": "normalizedOrigin"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimate-health/revision-fact-producers.ts",
+      "symbol": "validateEstimateRevisionFactProducerRegistry"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "deleteEstimateSheet"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "updateEstimateSheetAdjustment"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimates/d1-intents/intent-context.ts",
+      "symbol": "readEstimateIntentContext"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimates/estimate-tree-lazy.ts",
+      "symbol": "countEstimateTreeNodes"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/estimates/estimate-tree-reorder.ts",
+      "symbol": "ESTIMATE_TREE_SORT_ORDER_MIN_GAP"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/feature-gates/catalog.ts",
+      "symbol": "FEATURE_GATE_CATALOG"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/feature-gates/enforce.ts",
+      "symbol": "isBetaFeatureEnabled"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/feature-gates/enforce.ts",
+      "symbol": "isSupportChatEnabled"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/landing/beta-telemetry-registry.ts",
+      "symbol": "BETA_TELEMETRY_ENABLE_ENV"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/landing/beta-telemetry-registry.ts",
+      "symbol": "getBetaTelemetryMetric"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/landing/get-landing-auth-state.ts",
+      "symbol": "BETTER_AUTH_SESSION_COOKIE_PATTERN"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/landing/get-landing-auth-state.ts",
+      "symbol": "hasBetterAuthSessionCookie"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/landing/get-landing-auth-state.ts",
+      "symbol": "LANDING_AUTH_HINT_PATH"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/landing/landing-auth-session-cookie.ts",
+      "symbol": "BETTER_AUTH_SESSION_COOKIE_PATTERN"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/legal/limited-cohort-legal-gate.ts",
+      "symbol": "LIMITED_COHORT_LEGAL_DECISION_RECEIPT_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/legal/limited-cohort-legal-gate.ts",
+      "symbol": "LIMITED_COHORT_LEGAL_GATE_VERSION"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/legal/terms-acceptance-d1-store.ts",
+      "symbol": "getCurrentUserTermsAcceptanceStatusFromCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/legal/terms-acceptance-d1-store.ts",
+      "symbol": "recordCurrentTermsAcceptanceInCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/legal/terms-acceptance-status.ts",
+      "symbol": "readCurrentUserTermsAcceptanceStatusFromQueryClient"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/legal/terms-acceptance-status.ts",
+      "symbol": "toLegalTermsAcceptanceQueryClient"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "acknowledgeCurrentUserReleaseModalInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "clampNotificationLimit"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "countCurrentUserUnreadNotificationsFromD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "dismissCurrentUserNotificationInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "getCurrentUserReleaseAnnouncementFromD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "listCurrentUserNotificationsFromD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/notifications/repository.ts",
+      "symbol": "markCurrentUserNotificationReadInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/observability/action-result.ts",
+      "symbol": "isActionFailure"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/observability/client-error-report.ts",
+      "symbol": "sanitizeClientErrorText"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/observability/incident-record-core.ts",
+      "symbol": "INCIDENT_EVENT_KINDS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/observability/logger.ts",
+      "symbol": "buildErrorLogRecord"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/observability/user-facing-error.ts",
+      "symbol": "isUnsafeInfrastructureErrorMessage"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/observability/user-facing-error.ts",
+      "symbol": "USER_FACING_INTERNAL_ERROR_MESSAGE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-actions.ts",
+      "symbol": "getCurrentActivationProgress"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-producer-contract.ts",
+      "symbol": "canonicalActivationDedupeKey"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-repository.ts",
+      "symbol": "recordActivationMilestone"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-repository.ts",
+      "symbol": "recordClassifiedActivationMilestone"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-types.ts",
+      "symbol": "ACTIVATION_ORIGIN_CLASSES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-types.ts",
+      "symbol": "ACTIVATION_OUTBOX_STATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/activation-types.ts",
+      "symbol": "ACTIVATION_PATHS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-repository.ts",
+      "symbol": "OnboardingFlowRepositoryError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-retention.ts",
+      "symbol": "prepareStarterOrganizationCleanupStatements"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "ESTIMATE_PRACTICE_PREDICATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "ONBOARDING_AUDIENCE_KINDS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "ONBOARDING_DATA_PREDICATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "ONBOARDING_FLOW_STATUSES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "ONBOARDING_LESSON_KEYS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "STARTER_READINESS_STATES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/guided-sample.ts",
+      "symbol": "GUIDED_SAMPLE_AREA_NAME"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/guided-sample.ts",
+      "symbol": "GUIDED_SAMPLE_ESTIMATE_NAME"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/guided-sample.ts",
+      "symbol": "GUIDED_SAMPLE_ROW_MATERIAL"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/starter-pack-actions.ts",
+      "symbol": "autoInstallStarterPackIfEligible"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/onboarding/support-context.ts",
+      "symbol": "ONBOARDING_SUPPORT_CONTEXT_KEYS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/perf/server-timing.ts",
+      "symbol": "instrumentDatabaseFetch"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/projects/actions.ts",
+      "symbol": "createProject"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/projects/actions.ts",
+      "symbol": "deleteProject"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/projects/d1-audit.ts",
+      "symbol": "recordMassDeletionStorageCleanupResultInCloudflareD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/proposal-export/build-proposal-export-model.ts",
+      "symbol": "applyAudiencePolicy"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/proposal-export/build-proposal-export-model.ts",
+      "symbol": "resolveSheetAdjustment"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/proposal-export/worksheet-name.ts",
+      "symbol": "GLOBAL_PROPOSAL_WORKSHEET_NAMES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/publisher/roster-filter.ts",
+      "symbol": "PUBLISHER_ROSTER_STATUS_FILTERS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "symbol": "SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "canAccessSupportConversationInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "claimFailedSupportMessageRetryInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "createSupportConversation"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "deleteSupportAttachmentsForMessageInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "insertSupportAttachmentInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "listSupportAttachmentsInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "listSupportConversations"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "listSupportConversationsForUserInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "markSupportConversationReadForAdminInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "markSupportConversationReadForUserInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "markSupportMessageSendStatusInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "replaceSupportConversationLabelsInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "updateSupportConversationStatus"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "updateSupportConversationTriageInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "updateSupportMessageAttachmentCountInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "addSupportDraftAttachmentInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "bindSupportDraftOutboundMessageInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "bindSupportDraftPendingMessageInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "claimSupportDraftForSendInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "deleteSupportDraftForAdminInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "getOrCreateSupportDraftInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "recoverStaleSupportDraftSendsInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "releaseSupportDraftSendClaimInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "updateSupportDraftInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/support/intake-request.ts",
+      "symbol": "SUPPORT_INTAKE_BODY_LIMIT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/support/intake-request.ts",
+      "symbol": "SUPPORT_SCREENSHOT_LIMIT"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/support/intake-request.ts",
+      "symbol": "UNKNOWN_AUTHENTICATED_ROUTE"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/support/privacy-fence.ts",
+      "symbol": "supportOpenFenceSql"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/support/subject-r2-registry.ts",
+      "symbol": "SupportSubjectR2ReservationError"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/component-attachment-client.ts",
+      "symbol": "ALLOWED_COMPONENT_ATTACHMENT_TYPES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/component-attachment-client.ts",
+      "symbol": "hasAllowedComponentAttachmentExtension"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/component-attachment-client.ts",
+      "symbol": "RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/component-attachment-client.ts",
+      "symbol": "SERVER_MEDIATED_COMPONENT_ATTACHMENT_MAX_BYTES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/component-attachment-client.ts",
+      "symbol": "SIGNED_DIRECT_COMPONENT_ATTACHMENT_MAX_BYTES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/direct-upload-records.ts",
+      "symbol": "readUploadSessionForFinalize"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/policy.ts",
+      "symbol": "UPLOAD_POLICIES"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/scan-override.ts",
+      "symbol": "approveUploadScanOverrideInD1"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/server-image-processing.ts",
+      "symbol": "isCloudflareWorkersProofBuild"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/uploads/server-image-processing.ts",
+      "symbol": "shouldUseCloudflareImagesProcessing"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/workshop/virtualization-flags.ts",
+      "symbol": "readPublicFlag"
+    },
+    {
+      "type": "exports",
+      "file": "src/lib/workshop/virtualization-flags.ts",
+      "symbol": "WORKSHOP_VIRTUALIZATION_DEFAULTS"
+    },
+    {
+      "type": "files",
+      "file": "doctor.config.ts",
+      "symbol": "doctor.config.ts"
+    },
+    {
+      "type": "files",
+      "file": "features/support/probe-cache-privacy.ts",
+      "symbol": "features/support/probe-cache-privacy.ts"
+    },
+    {
+      "type": "files",
+      "file": "open-next.config.ts",
+      "symbol": "open-next.config.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "symbol": "src/components/landing-new/ArchestimatorNewLandingPage.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-new/LandingProposalProof.tsx",
+      "symbol": "src/components/landing-new/LandingProposalProof.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-new/MistralPixelField.tsx",
+      "symbol": "src/components/landing-new/MistralPixelField.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-new/NewLandingHeroDemo.tsx",
+      "symbol": "src/components/landing-new/NewLandingHeroDemo.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-new/NewLandingMotionController.tsx",
+      "symbol": "src/components/landing-new/NewLandingMotionController.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "symbol": "src/components/landing-production/ArchestimatorNewLandingPage.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/new-landing-content.ts",
+      "symbol": "src/components/landing-production/new-landing-content.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/NewLandingAuthCta.tsx",
+      "symbol": "src/components/landing-production/NewLandingAuthCta.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/NewLandingHeroDemo.tsx",
+      "symbol": "src/components/landing-production/NewLandingHeroDemo.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/NewLandingMotionController.tsx",
+      "symbol": "src/components/landing-production/NewLandingMotionController.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/NewLandingPrimitives.tsx",
+      "symbol": "src/components/landing-production/NewLandingPrimitives.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/PreReleaseBetaBanner.tsx",
+      "symbol": "src/components/landing-production/PreReleaseBetaBanner.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing-production/ProductionPublicPageShell.tsx",
+      "symbol": "src/components/landing-production/ProductionPublicPageShell.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/landing/shared/BrandComposition.tsx",
+      "symbol": "src/components/landing/shared/BrandComposition.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/workshop/dashboard/PublishedProjectQuickActions.tsx",
+      "symbol": "src/components/workshop/dashboard/PublishedProjectQuickActions.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/workshop/library/overview/RecentComponentCard.tsx",
+      "symbol": "src/components/workshop/library/overview/RecentComponentCard.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/workshop/library/templates-browse/TemplatePreviewDock.tsx",
+      "symbol": "src/components/workshop/library/templates-browse/TemplatePreviewDock.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/components/workshop/publication/publication-optimistic.ts",
+      "symbol": "src/components/workshop/publication/publication-optimistic.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/components/workshop/StaticWorkshopLoadingShell.tsx",
+      "symbol": "src/components/workshop/StaticWorkshopLoadingShell.tsx"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/admin/feedback-attention-repository.ts",
+      "symbol": "src/lib/admin/feedback-attention-repository.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/auth/require-platform-admin-page.ts",
+      "symbol": "src/lib/auth/require-platform-admin-page.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/client-portal/activity-actions.ts",
+      "symbol": "src/lib/client-portal/activity-actions.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/client-portal/brand-actions.ts",
+      "symbol": "src/lib/client-portal/brand-actions.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/client-portal/decision-actions.ts",
+      "symbol": "src/lib/client-portal/decision-actions.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/legal/terms-gate-cookie.ts",
+      "symbol": "src/lib/legal/terms-gate-cookie.ts"
+    },
+    {
+      "type": "files",
+      "file": "src/lib/uploads/sharp-cloudflare-stub.ts",
+      "symbol": "src/lib/uploads/sharp-cloudflare-stub.ts"
+    },
+    {
+      "type": "types",
+      "file": "src/components/admin/admin-nav.ts",
+      "symbol": "AdminNavItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/admin/AdminAllowlistManager.tsx",
+      "symbol": "AdminAllowlistNotice"
+    },
+    {
+      "type": "types",
+      "file": "src/components/admin/AdminAllowlistManager.tsx",
+      "symbol": "AdminAllowlistStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/components/admin/estimate-system-map/EstimateSystemGraph.tsx",
+      "symbol": "EstimateSystemGraphView"
+    },
+    {
+      "type": "types",
+      "file": "src/components/auth/AuthGlassPanel.tsx",
+      "symbol": "AuthGlassPanelVariant"
+    },
+    {
+      "type": "types",
+      "file": "src/components/brand/ArchestimatorLogo.tsx",
+      "symbol": "ArchestimatorLogoTone"
+    },
+    {
+      "type": "types",
+      "file": "src/components/landing/company-proof-data.ts",
+      "symbol": "CompanyProofRelationship"
+    },
+    {
+      "type": "types",
+      "file": "src/components/support/support-center-types.ts",
+      "symbol": "SupportDraftPhase"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/accordion.tsx",
+      "symbol": "AccordionItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/bulk-action-toolbar.tsx",
+      "symbol": "BulkAction"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/control-input.tsx",
+      "symbol": "ControlFieldRenderProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "symbol": "DropdownMenuGroupProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "symbol": "DropdownMenuItemProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "symbol": "DropdownMenuProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "AccordionItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "AccordionProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ActionMenuGroup"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ActionMenuItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "AlertProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "AppModalProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "AvatarProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "BannerProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "BreadcrumbItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "BulkAction"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "BulkActionToolbarProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ButtonSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ButtonVariant"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CardProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CheckboxProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ColumnDef"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CommandGroup"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CommandItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ConfirmDialogProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CreatableComboboxChange"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CreatableComboboxOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "CurrencyInputProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DatePickerProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DropdownMenuGroup"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DropdownMenuItemType"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DropdownMenuProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DropdownSelectOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "DropdownSelectProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "EstimateCellProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FileUploadProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FinancialTotalCardProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "FloatingModalPosition"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "HeaderIconToolbarAddAction"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "HoverCardProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "IconButtonProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ModalSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ModalTone"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "NumberInputProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PageHeaderProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PaginationProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PanelProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PopoverAlign"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PopoverProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "PopoverSide"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ProgressProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "RadioOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ResizableModalProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ResizableModalSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ScrollAreaProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SeparatorProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SheetProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SheetSide"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SheetSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SpinnerProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "StatusBadgeProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "StatusBadgeStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "SwitchProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TabItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TabPanelProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TabStripItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TabStripProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TimelineItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TimelineProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ToastInput"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "ToastTone"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TooltipProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TooltipSide"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TreeItemState"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TreePanelHeaderProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/index.tsx",
+      "symbol": "TreeRowDomProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/modal.tsx",
+      "symbol": "AppModalProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/modal.tsx",
+      "symbol": "ModalSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/modal.tsx",
+      "symbol": "ModalTone"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/command-dialog.tsx",
+      "symbol": "CommandItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/modal.tsx",
+      "symbol": "ModalSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/popover.tsx",
+      "symbol": "PopoverAlign"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/popover.tsx",
+      "symbol": "PopoverSide"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/resizable-modal.tsx",
+      "symbol": "FloatingModalPosition"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/resizable-modal.tsx",
+      "symbol": "ResizableModalSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/sheet-drawer.tsx",
+      "symbol": "SheetSide"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/overlays/sheet-drawer.tsx",
+      "symbol": "SheetSize"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/radio-group.tsx",
+      "symbol": "RadioOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/scroll-area.tsx",
+      "symbol": "ScrollAreaHandle"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/segmented-control.tsx",
+      "symbol": "SegmentedControlOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/tabs.tsx",
+      "symbol": "TabPanelProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/toast.tsx",
+      "symbol": "ToastAction"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/tree.tsx",
+      "symbol": "TreeDragActivation"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/tree.tsx",
+      "symbol": "TreeRootDropZonesOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/ui/tree.tsx",
+      "symbol": "TreeVirtualizationOptions"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/templates.ts",
+      "symbol": "EstimateTemplateSummary"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/buildLibraryTree.ts",
+      "symbol": "ComponentLibraryBrandOption"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "CheckedTemplateUnits"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "LibraryTreeNode"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "LibraryTreeOrder"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "LibraryTreeProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "LibraryTreeTab"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "TemplatesTreeDatum"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/tree/index.ts",
+      "symbol": "TemplatesTreeProps"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/types.ts",
+      "symbol": "LibraryBundleItem"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/types.ts",
+      "symbol": "LibraryFacets"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/types.ts",
+      "symbol": "LibraryPanelTab"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/types.ts",
+      "symbol": "LibraryViewMode"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/component-library/use-estimate-right-sidebar-state.ts",
+      "symbol": "LibraryEditingFolderMode"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-sheet/rows/branch.tsx",
+      "symbol": "SheetMutationHandlers"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-store.ts",
+      "symbol": "EditableRowCommitAdapters"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-sheet/rows/editable-row-store.ts",
+      "symbol": "EditableRowCommitPhase"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-sheet/rows/row-commit-intent.ts",
+      "symbol": "RowCommitIntentKind"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-sheet/rows/row-commit-intent.ts",
+      "symbol": "SharedComponentDefinitionTarget"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-tree-data.ts",
+      "symbol": "EstimateRowItemSource"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/estimate-tree-data.ts",
+      "symbol": "FlatEstimateTreeNode"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/ProjectGroupSection.tsx",
+      "symbol": "ProjectCardDropState"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/ProjectGroupSection.tsx",
+      "symbol": "ProjectGroupReorderState"
+    },
+    {
+      "type": "types",
+      "file": "src/components/workshop/publisher/PublisherProjectMembersPanel.tsx",
+      "symbol": "PublisherProjectMembersPanelProps"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "symbol": "CursorClientFactory"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "symbol": "CursorClientLike"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "symbol": "RealtimeIdentityIssuer"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-library-editor-chrome.ts",
+      "symbol": "LibraryEditorBreadcrumb"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-library-editor-chrome.ts",
+      "symbol": "LibraryEditorSaveState"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-project-presence.ts",
+      "symbol": "PresenceClientFactory"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-project-presence.ts",
+      "symbol": "PresenceIdentityIssuer"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-project-presence.ts",
+      "symbol": "PresenceRoomLike"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-project-presence.ts",
+      "symbol": "ProjectPresenceEntry"
+    },
+    {
+      "type": "types",
+      "file": "src/hooks/use-project-presence.ts",
+      "symbol": "ProjectPresenceStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ab-testing/types.ts",
+      "symbol": "Experiment"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/activity/activity-outbox.ts",
+      "symbol": "ActivityOutboxRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/activity/activity-outbox.ts",
+      "symbol": "ActivityOutboxStatement"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/activity/types.ts",
+      "symbol": "ActivityDelta"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/activity/types.ts",
+      "symbol": "ActivityRaw"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/activity/types.ts",
+      "symbol": "ActivityVisibility"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/action-inbox-repository.ts",
+      "symbol": "ActionItemSourceKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/action-inbox-repository.ts",
+      "symbol": "ActionItemStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/activation-cohort-repository.ts",
+      "symbol": "ActivationCohortRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/activation-cohort-repository.ts",
+      "symbol": "ActivationCohortStalledState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/activation-cohort-repository.ts",
+      "symbol": "ActivationCohortSupportState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/audit.ts",
+      "symbol": "AdminAuditEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/audit.ts",
+      "symbol": "AdminQueryResult"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/audit.ts",
+      "symbol": "ListAuditEventsInput"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/audit.ts",
+      "symbol": "WriteAdminAuditEventInput"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/beta-operating-overview.ts",
+      "symbol": "BetaOperatingMetric"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/beta-operating-overview.ts",
+      "symbol": "BetaOperatingMetricId"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/beta-operating-overview.ts",
+      "symbol": "BetaOperatingSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/corporate-account-repository.ts",
+      "symbol": "CorporateAccountRole"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "EstimateSystemKnowledgeConfidence"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "EstimateSystemKnowledgeInventoryGroup"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "EstimateSystemKnowledgeNodeKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "EstimateSystemKnowledgeRelationEffect"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "EstimateSystemKnowledgeStage"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-knowledge.ts",
+      "symbol": "EstimateSystemKnowledgeStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemCurrentExperienceStep"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemExperienceMap"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemExperienceState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemFlowStep"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemJourneyStep"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemPageRegion"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemPartialExperienceStep"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/estimate-system-map.ts",
+      "symbol": "EstimateSystemPersonaGroup"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/user-intelligence-repository.ts",
+      "symbol": "AdminUserActivitySummary"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/user-intelligence-repository.ts",
+      "symbol": "AdminUserProductActivityRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/user-intelligence-repository.ts",
+      "symbol": "AdminUserProjectRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/admin/user-intelligence-repository.ts",
+      "symbol": "AdminUserSessionRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/aec-classification/disciplines.ts",
+      "symbol": "ClassificationCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/aec-classification/disciplines.ts",
+      "symbol": "DisciplineCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/memory.ts",
+      "symbol": "PackageBuilderComponentMemorySignal"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/memory.ts",
+      "symbol": "PackageBuilderMemorySourceType"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/memory.ts",
+      "symbol": "PackageBuilderTemplateMemorySignal"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/read-tools.ts",
+      "symbol": "PackageBuilderCompactEstimate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/read-tools.ts",
+      "symbol": "PackageBuilderCompactProject"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/read-tools.ts",
+      "symbol": "PackageBuilderReadAuditEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/read-tools.ts",
+      "symbol": "PackageBuilderReadToolName"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderApplyEligibility"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderComponentMatch"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderDraftRequest"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderEstimateDraft"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderFeedbackRequest"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderIntent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderProjectDraft"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderRefineRequest"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderRequestMode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderRowUpdatePatch"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderSourceType"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/package-builder/schemas.ts",
+      "symbol": "PackageBuilderTemplateMatch"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/ai/read-context.ts",
+      "symbol": "AiAskProviderReadContext"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/account-data.ts",
+      "symbol": "CompanySize"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/account-data.ts",
+      "symbol": "OrganizationType"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/account-data.ts",
+      "symbol": "PrimaryUse"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/account-data.ts",
+      "symbol": "UserCategory"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/account-membership.ts",
+      "symbol": "AccountWorkspaceMembershipSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/delete-account-repository.ts",
+      "symbol": "DeleteAccountBlocker"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/auth/roles.ts",
+      "symbol": "PublicShareRecipientAuthority"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/authz/collaboration-policy.ts",
+      "symbol": "CollaborationDecisionReason"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/authz/collaboration-policy.ts",
+      "symbol": "CollaborationGrantSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "ClientPortalDiscussionTarget"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "ClientPortalIssueDecisionContext"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "ClientPortalIssueDecisionScope"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "ClientPortalPublicIdKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/contracts.ts",
+      "symbol": "ClientPortalSectionDefinition"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/estimate-browser.ts",
+      "symbol": "ClientPortalEstimateBrowserTab"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/financial-sections.ts",
+      "symbol": "ClientPortalCategoryHierarchyNode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/issue-builder.ts",
+      "symbol": "ClientPortalD1PayloadReference"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/issue-builder.ts",
+      "symbol": "ClientPortalIssuePayloadReference"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/issue-builder.ts",
+      "symbol": "ClientPortalIssueSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/issue-builder.ts",
+      "symbol": "ClientPortalR2PayloadReference"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "ClientPortalAnonymousActor"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "ClientPortalInternalGrant"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "ClientPortalInternalProjectRole"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "ClientPortalPolicyReasonCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/policy.ts",
+      "symbol": "ClientPortalPolicyThread"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/section-registry.ts",
+      "symbol": "ClientPortalLayoutMode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/section-registry.ts",
+      "symbol": "ClientPortalSectionDataScope"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/section-registry.ts",
+      "symbol": "ClientPortalSectionDraftByKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/thread-repository.ts",
+      "symbol": "ClientPortalRecipientThreadMessage"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/thread-repository.ts",
+      "symbol": "ClientPortalRecipientThreadSummary"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/thread-repository.ts",
+      "symbol": "ClientPortalThreadTarget"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/client-portal/thread-repository.ts",
+      "symbol": "ClientPortalThreadTargetInput"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/cloudflare/collaboration-room-client.ts",
+      "symbol": "CollaborationRoomLike"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/cloudflare/collaboration-room-client.ts",
+      "symbol": "CollaborationRoomStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/cloudflare/upload-job-queue.ts",
+      "symbol": "CloudflareUploadJobQueueDispatchOutcome"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/actions.ts",
+      "symbol": "ProjectInviteDeliveryReadiness"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/estimate-tree-realtime-contract.ts",
+      "symbol": "EstimateTreeBranchChangedEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/estimate-tree-realtime-contract.ts",
+      "symbol": "EstimateTreeFullRefetchRequestedEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/estimate-tree-realtime-contract.ts",
+      "symbol": "EstimateTreeRealtimeEventType"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/estimate-tree-realtime-contract.ts",
+      "symbol": "EstimateTreeSubtreeLoadedEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/estimate-tree-realtime-contract.ts",
+      "symbol": "EstimateTreeSubtreeRequestedEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/feature-flags.ts",
+      "symbol": "TeamspaceFeatureFlags"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/invitation-d1-store.ts",
+      "symbol": "InvitationAcceptanceState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/realtime-telemetry.ts",
+      "symbol": "RealtimeTelemetryDetail"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/collaboration/realtime-telemetry.ts",
+      "symbol": "RealtimeTelemetryType"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/compliance/retention-core.ts",
+      "symbol": "RetentionAction"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/compliance/retention-core.ts",
+      "symbol": "RetentionClassName"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/compliance/retention-core.ts",
+      "symbol": "RetentionD1PreparedStatementLike"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/compliance/retention-core.ts",
+      "symbol": "RetentionD1Result"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/compliance/retention-core.ts",
+      "symbol": "RetentionD1Value"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/compliance/support-privacy-fulfillment.ts",
+      "symbol": "SupportPrivacyExecutionKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/actions.ts",
+      "symbol": "ComponentVariantAttachmentInput"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/actions.ts",
+      "symbol": "ComponentVariantCostEntryInput"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/actions.ts",
+      "symbol": "LibraryOverviewSearchComponent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/actions.ts",
+      "symbol": "LibraryOverviewSearchTemplate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/component-mutation-d1.ts",
+      "symbol": "ComponentMutationLifecycleState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/library-folder-reorder.ts",
+      "symbol": "LibraryFolderReorderPlan"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/library-folder-reorder.ts",
+      "symbol": "LibraryFolderReorderUpdate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-impact-d1.ts",
+      "symbol": "EstimateTemplateMutationImpactLabel"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "EstimateTemplateActiveLinkState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "EstimateTemplateLinkFailureClass"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "EstimateTemplateLinkState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "EstimateTemplateMutationIntentState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "EstimateTemplatePropagationJobState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/component-library/template-link-types.ts",
+      "symbol": "EstimateTemplateSnapshotTakeoffDefaults"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/domain/estimate-tree.ts",
+      "symbol": "EstimateTab"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimate-health/types.ts",
+      "symbol": "EstimateHealthGrade"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "DeleteEstimateSheetInput"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "EstimateSheetHistoryCursor"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "EstimateTemplateUnavailableSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "EstimateTemplateUnavailableSourcePolicy"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "InsertEstimateTemplateRequiresActiveTabResult"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "InsertEstimateTemplateRequiresConfirmationResult"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "MoveEstimateRowItemWithHistoryResultRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/actions.ts",
+      "symbol": "UpdateEstimateSheetAdjustmentResult"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/d1-intents/component-impact.ts",
+      "symbol": "EstimateComponentEditImpactEstimate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/d1-intents/rows.ts",
+      "symbol": "EstimateAuthoritativeRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-row-total.ts",
+      "symbol": "EstimateCalculationErrorCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-row-total.ts",
+      "symbol": "EstimateCalculationFailure"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-row-total.ts",
+      "symbol": "EstimateCalculationSuccess"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-row-tree-move.ts",
+      "symbol": "EstimateRowItemMoveUpdate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-index.ts",
+      "symbol": "EstimateTreeNodeLocation"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-index.ts",
+      "symbol": "EstimateTreeRowLocation"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-lazy.ts",
+      "symbol": "EstimateTreeSubtreeLoadStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-reorder.ts",
+      "symbol": "EstimateNodeReorderPlan"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-reorder.ts",
+      "symbol": "EstimateNodeReorderUpdate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-reorder.ts",
+      "symbol": "EstimateTreeDropPosition"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-reorder.ts",
+      "symbol": "ProjectedEstimateTreeReorderFailureCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/estimate-tree-reorder.ts",
+      "symbol": "ReorderFailureCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/project-estimate-list-row.ts",
+      "symbol": "ProjectEstimateListRowStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/types.ts",
+      "symbol": "EstimateTabTree"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/types.ts",
+      "symbol": "EstimateWithTabs"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/estimates/types.ts",
+      "symbol": "FlatEstimateTreeNode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/landing/beta-telemetry-registry.ts",
+      "symbol": "BetaTelemetryAvailability"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/landing/beta-telemetry-registry.ts",
+      "symbol": "BetaTelemetryConsentBasis"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/landing/beta-telemetry-registry.ts",
+      "symbol": "BetaTelemetryPopulation"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/legal/limited-cohort-legal-gate.ts",
+      "symbol": "LegalGateBlocker"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/legal/terms-acceptance-status.ts",
+      "symbol": "LegalTermsAcceptanceQueryClient"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/mass-deletion/bulk-action.ts",
+      "symbol": "BulkActionIssueCode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/notifications/types.ts",
+      "symbol": "NotificationDefinitionRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/notifications/types.ts",
+      "symbol": "NotificationDeliveryRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/alert-scenarios.ts",
+      "symbol": "AlertScenarioId"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/alert-scenarios.ts",
+      "symbol": "AlertScenarioProofStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/alert-scenarios.ts",
+      "symbol": "AlertScenarioSeverity"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/client-identity.ts",
+      "symbol": "ClientIdentitySource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/incident-record-core.ts",
+      "symbol": "IncidentEventKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/incident-record-core.ts",
+      "symbol": "OperationalIncidentEventRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/incident-record-core.ts",
+      "symbol": "OperationalIncidentRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/logger.ts",
+      "symbol": "DevLogRecord"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/operational-alerts.ts",
+      "symbol": "OperationalIncidentAlertAction"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/operational-alerts.ts",
+      "symbol": "OperationalIncidentAlertScope"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/request-id.ts",
+      "symbol": "RequestIdSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/observability/toast-config.ts",
+      "symbol": "AppErrorToastTone"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/activation-repository.ts",
+      "symbol": "ActivationLedgerStatements"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/activation-repository.ts",
+      "symbol": "ActivationPreparedStatementValues"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/activation-retention.ts",
+      "symbol": "ActivationPrivacyEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/activation-retention.ts",
+      "symbol": "ActivationPrivacyProgress"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/activation-types.ts",
+      "symbol": "ActivationResourceChain"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/client-link-learning.ts",
+      "symbol": "ClientLinkLearningActionKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/first-estimate-checklist.ts",
+      "symbol": "FirstEstimateChecklistItem"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "EstimatePracticePredicate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "OnboardingDataPredicate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/flow-types.ts",
+      "symbol": "SanitizedActivationSnapshot"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/onboarding/starter-pack.ts",
+      "symbol": "StarterNodeDefinition"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/perf/server-timing.ts",
+      "symbol": "PerfTraceEvent"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/project-charts/project-comparison-view.ts",
+      "symbol": "ProjectChartComparisonViewEstimate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/project-charts/types.ts",
+      "symbol": "ProjectChartModeSeries"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/project-charts/types.ts",
+      "symbol": "ProjectChartsDataLoadMode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/projects/d1-audit.ts",
+      "symbol": "ProjectMetadataAuditField"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/proposal-export/types.ts",
+      "symbol": "ProposalConsolidationMode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/proposal-export/types.ts",
+      "symbol": "ProposalExportMode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/proposal-export/types.ts",
+      "symbol": "ProposalSheetAdjustmentMode"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/proposal-export/types.ts",
+      "symbol": "ProposalValidationSeverity"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/proposal-export/xlsx-workbook.ts",
+      "symbol": "FormulaCellValue"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/publication/admin-d1-client.ts",
+      "symbol": "PublicationAdminD1Client"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/publisher/roster-filter.ts",
+      "symbol": "PublicationRosterFilters"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/publisher/roster-filter.ts",
+      "symbol": "PublicationRosterStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/publisher/roster-filter.ts",
+      "symbol": "PublisherRosterSearchParamValue"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/publisher/roster-repository.ts",
+      "symbol": "ProjectPublicationRosterLinkUnavailableReason"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "symbol": "ComponentLibraryFolder"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "symbol": "ComponentLibrarySupplier"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "symbol": "EstimateTemplateSchemaUnavailableState"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "symbol": "LibraryOverviewHealth"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/estimate-health-repository.ts",
+      "symbol": "EstimateHealthIssuePage"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/estimate-health-repository.ts",
+      "symbol": "EstimateHealthIssueReference"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/estimate-health-repository.ts",
+      "symbol": "EstimateHealthIssueSummary"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/project-activity-feed-repository.ts",
+      "symbol": "ProjectActivityFeedSourceName"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/project-data-repository.ts",
+      "symbol": "ProjectDataRollup"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/recipient-proposals-repository.ts",
+      "symbol": "RecipientProposalStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "SupportAttachmentStorageStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/support-conversations-d1.ts",
+      "symbol": "SupportMailboxCursor"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/support-conversations-repository.ts",
+      "symbol": "D1DatabaseLike"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "SupportDraftKind"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "SupportDraftLifecycle"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/repositories/support-drafts-d1.ts",
+      "symbol": "SupportDraftUpdate"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/reusable-sources/types.ts",
+      "symbol": "CustomEstimateTemplateSource"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/support/intake-service.ts",
+      "symbol": "SupportIntakeResponse"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/support/runtime.ts",
+      "symbol": "SupportR2BucketLike"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/support/runtime.ts",
+      "symbol": "SupportR2ObjectLike"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/types/database.ts",
+      "symbol": "AppPlatformRole"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/types/database.ts",
+      "symbol": "ProfileRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/types/database.ts",
+      "symbol": "WorkspaceRow"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/cleanup-job.ts",
+      "symbol": "UploadCleanupEventMetadata"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/cleanup-job.ts",
+      "symbol": "UploadCleanupEventType"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/cleanup-job.ts",
+      "symbol": "UploadCleanupJobAuditSummary"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/cleanup-job.ts",
+      "symbol": "UploadCleanupPreparation"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/cleanup.ts",
+      "symbol": "UploadCleanupReason"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/cleanup.ts",
+      "symbol": "UploadCleanupRejectedRecord"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/operational-telemetry.ts",
+      "symbol": "UploadOperationalTelemetryEventName"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/operations-dashboard.ts",
+      "symbol": "UploadSurfaceOperationsMetrics"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/policy.ts",
+      "symbol": "UploadPolicy"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/provider-portability.ts",
+      "symbol": "TusResumableUploadSession"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/removal-claims.ts",
+      "symbol": "UploadRemovalClaimStatus"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/scan-job.ts",
+      "symbol": "UploadScanJobTarget"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/scan-job.ts",
+      "symbol": "UploadScanObject"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/server-image-processing.ts",
+      "symbol": "ProcessedSupportImage"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/uploads/server-image-processing.ts",
+      "symbol": "ProcessedUploadImage"
+    },
+    {
+      "type": "types",
+      "file": "src/lib/workshop/beta-feedback.ts",
+      "symbol": "BetaFeedbackPayload"
+    },
+    {
+      "type": "types",
+      "file": "src/stores/estimate-ui-store.ts",
+      "symbol": "EstimateDragIntent"
+    },
+    {
+      "type": "types",
+      "file": "src/stores/estimate-ui-store.ts",
+      "symbol": "EstimateDragType"
+    },
+    {
+      "type": "unlisted",
+      "file": "playwright.config.ts",
+      "symbol": "@next/env"
+    },
+    {
+      "type": "unlisted",
+      "file": "scripts/validate-skill-catalog.mjs",
+      "symbol": "js-yaml"
+    },
+    {
+      "type": "unlisted",
+      "file": "scripts/wrangler-undici-timeout.mjs",
+      "symbol": "undici"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/components/charts/CostDonutChart.tsx",
+      "symbol": "d3-shape"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/stories/decorators/withArchEstimatorTheme.tsx",
+      "symbol": "@storybook/react"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/stories/decorators/withMockAuth.tsx",
+      "symbol": "@storybook/react"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/stories/decorators/withMockRouter.tsx",
+      "symbol": "@storybook/react"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/stories/decorators/withReducedMotion.tsx",
+      "symbol": "@storybook/react"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/stories/decorators/withStaticQueryClient.tsx",
+      "symbol": "@storybook/react"
+    },
+    {
+      "type": "unlisted",
+      "file": "src/stories/decorators/withStoryFrame.tsx",
+      "symbol": "@storybook/react"
+    },
+    {
+      "type": "unlisted",
+      "file": "tests/vitest/ai-evals/deterministic-ai-eval.test.ts",
+      "symbol": "zod"
+    },
+    {
+      "type": "unlisted",
+      "file": "tests/workers/local-bindings.integration.test.ts",
+      "symbol": "cloudflare"
+    },
+    {
+      "type": "unresolved",
+      "file": "scripts/quality/verify.ts",
+      "symbol": "scripts/quality/classify.ts"
+    },
+    {
+      "type": "unresolved",
+      "file": "tests/vitest/quality/review-manifest.test.ts",
+      "symbol": "scripts/quality/build-manifest.ts"
+    },
+    {
+      "type": "unresolved",
+      "file": "tests/vitest/quality/review-manifest.test.ts",
+      "symbol": "scripts/quality/report.ts"
+    },
+    {
+      "type": "unresolved",
+      "file": "tests/vitest/quality/review-manifest.test.ts",
+      "symbol": "scripts/quality/review.ts"
+    },
+    {
+      "type": "unresolved",
+      "file": "tests/vitest/quality/traceability-cli.test.ts",
+      "symbol": "scripts/quality/contracts.ts"
+    },
+    {
+      "type": "unresolved",
+      "file": "tests/vitest/quality/traceability-cli.test.ts",
+      "symbol": "scripts/quality/traceability.ts"
+    },
+    {
+      "type": "unresolved",
+      "file": "tests/vitest/quality/traceability-cli.test.ts",
+      "symbol": "scripts/quality/verify.ts"
+    }
+  ]
+}

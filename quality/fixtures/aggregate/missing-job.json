@@ -1,0 +1,17 @@
+{
+  "name": "missing required dependency",
+  "profile": "Q0_CONTRACT_ONLY",
+  "jobs": [
+    {
+      "name": "quality / classify",
+      "status": "success",
+      "conclusion": "PASS",
+      "flaky": false,
+      "artifact": {
+        "path": "artifacts/quality/classification.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ],
+  "expected_status": "FAIL"
+}
