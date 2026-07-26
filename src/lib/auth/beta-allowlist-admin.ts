@@ -7,9 +7,6 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 
 export const CLOSED_BETA_ALLOWLIST_STATUSES = ["invited", "active", "revoked"] as const;
 export const CLOSED_BETA_ALLOWLIST_ADMIN_PATH = "/admin/allowlist";
-const CLOSED_BETA_ALLOWLIST_RETURN_PATHS = new Set([
-  CLOSED_BETA_ALLOWLIST_ADMIN_PATH,
-]);
 const MAX_BULK_ALLOWLIST_EMAILS = 50;
 
 export type ClosedBetaAllowlistStatus = (typeof CLOSED_BETA_ALLOWLIST_STATUSES)[number];
@@ -42,12 +39,6 @@ export function canManageClosedBetaAllowlist(context: {
 
 export function isClosedBetaAllowlistStatus(value: string): value is ClosedBetaAllowlistStatus {
   return CLOSED_BETA_ALLOWLIST_STATUSES.includes(value as ClosedBetaAllowlistStatus);
-}
-
-export function resolveClosedBetaAllowlistReturnPath(formData: FormData) {
-  const raw = String(formData.get("returnPath") ?? "").trim();
-  if (CLOSED_BETA_ALLOWLIST_RETURN_PATHS.has(raw)) return raw;
-  return CLOSED_BETA_ALLOWLIST_ADMIN_PATH;
 }
 
 export function isValidClosedBetaAllowlistEmail(email: string) {

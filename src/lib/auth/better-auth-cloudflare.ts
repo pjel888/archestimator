@@ -26,6 +26,7 @@ type BetterAuthConfig = {
   database: CloudflareD1DatabaseOption;
   socialProviders?: Record<string, unknown>;
   account?: {
+    encryptOAuthTokens?: boolean;
     accountLinking?: {
       enabled?: boolean;
       disableImplicitLinking?: boolean;
@@ -230,6 +231,7 @@ function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOp
     socialProviders: options.socialProviders,
     // SEC-14 / DEC-7: block implicit OAuth↔magic-link account merge (ATO). Explicit link only.
     account: {
+      encryptOAuthTokens: true,
       accountLinking: {
         enabled: true,
         disableImplicitLinking: true,

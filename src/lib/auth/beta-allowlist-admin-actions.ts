@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import {
   createClosedBetaAllowlistEntriesInD1,
@@ -17,20 +16,49 @@ import {
   parseClosedBetaAllowlistBulkCreate,
   parseClosedBetaAllowlistCreate,
   parseClosedBetaAllowlistUpdate,
-  resolveClosedBetaAllowlistReturnPath,
 } from "@/lib/auth/beta-allowlist-admin";
 
+export type ClosedBetaAllowlistActionResult =
+  | {
+      ok: false;
+      code: "duplicate" | "forbidden" | "invalid" | "save";
+      message: string;
+    }
+  | {
+      ok: true;
+      code: "created" | "updated";
+      message: string;
+      stale?: true;
+    };
+
 function revalidateAllowlistPaths() {
-  revalidatePath(CLOSED_BETA_ALLOWLIST_ADMIN_PATH);
+  try {
+    revalidatePath(CLOSED_BETA_ALLOWLIST_ADMIN_PATH);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export async function createClosedBetaAllowlistEntry(formData: FormData) {
-  const returnPath = resolveClosedBetaAllowlistReturnPath(formData);
+function allowlistSuccess(
+  result: Extract<ClosedBetaAllowlistActionResult, { ok: true }>,
+): ClosedBetaAllowlistActionResult {
+  if (revalidateAllowlistPaths()) return result;
+  return {
+    ...result,
+    stale: true,
+    message: `${result.message} Refresh this page to see the latest data.`,
+  };
+}
+
+export async function createClosedBetaAllowlistEntry(formData: FormData): Promise<ClosedBetaAllowlistActionResult> {
   const parsed = parseClosedBetaAllowlistCreate(formData);
-  if (!parsed.ok) redirect(`${returnPath}?error=invalid`);
+  if (!parsed.ok) return { ok: false, code: "invalid", message: "Enter a valid email address." };
 
   const context = await requireCurrentUserContext();
-  if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
+  if (!canManageClosedBetaAllowlist(context)) {
+    return { ok: false, code: "forbidden", message: "Only platform admins can manage the allowlist." };
+  }
 
   try {
     await createClosedBetaAllowlistEntryInD1({
@@ -40,7 +68,7 @@ export async function createClosedBetaAllowlistEntry(formData: FormData) {
       status: parsed.status,
     });
   } catch {
-    redirect(`${returnPath}?error=save`);
+    return { ok: false, code: "save", message: "Allowlist could not be saved." };
   }
 
   try {
@@ -49,17 +77,17 @@ export async function createClosedBetaAllowlistEntry(formData: FormData) {
     // Allowlist write already succeeded; pending cron/page delivery will retry.
   }
 
-  revalidateAllowlistPaths();
-  redirect(`${returnPath}?created=1`);
+  return allowlistSuccess({ ok: true, code: "created", message: "Email added to the allowlist and invite email queued." });
 }
 
-export async function createClosedBetaAllowlistEntries(formData: FormData) {
-  const returnPath = resolveClosedBetaAllowlistReturnPath(formData);
+export async function createClosedBetaAllowlistEntries(formData: FormData): Promise<ClosedBetaAllowlistActionResult> {
   const parsed = parseClosedBetaAllowlistBulkCreate(formData);
-  if (!parsed.ok) redirect(`${returnPath}?error=invalid`);
+  if (!parsed.ok) return { ok: false, code: "invalid", message: "Enter one or more valid email addresses." };
 
   const context = await requireCurrentUserContext();
-  if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
+  if (!canManageClosedBetaAllowlist(context)) {
+    return { ok: false, code: "forbidden", message: "Only platform admins can manage the allowlist." };
+  }
 
   let createdEmails: string[] = [];
   let created = 0;
@@ -73,12 +101,12 @@ export async function createClosedBetaAllowlistEntries(formData: FormData) {
     created = result.created;
     createdEmails = result.createdEmails;
   } catch {
-    redirect(`${returnPath}?error=save`);
+    return { ok: false, code: "save", message: "Allowlist could not be saved." };
   }
 
   if (created === 0) {
     revalidateAllowlistPaths();
-    redirect(`${returnPath}?error=duplicate`);
+    return { ok: false, code: "duplicate", message: "Those emails are already on the allowlist." };
   }
 
   try {
@@ -87,17 +115,21 @@ export async function createClosedBetaAllowlistEntries(formData: FormData) {
     // Allowlist write already succeeded; pending cron/page delivery will retry.
   }
 
-  revalidateAllowlistPaths();
-  redirect(`${returnPath}?created=${created}`);
+  return allowlistSuccess({
+    ok: true,
+    code: "created",
+    message: created === 1 ? "Email added to the allowlist and invite email queued." : `${created} emails added to the allowlist and invite emails queued.`,
+  });
 }
 
-export async function updateClosedBetaAllowlistEntry(formData: FormData) {
-  const returnPath = resolveClosedBetaAllowlistReturnPath(formData);
+export async function updateClosedBetaAllowlistEntry(formData: FormData): Promise<ClosedBetaAllowlistActionResult> {
   const parsed = parseClosedBetaAllowlistUpdate(formData);
-  if (!parsed.ok) redirect(`${returnPath}?error=invalid`);
+  if (!parsed.ok) return { ok: false, code: "invalid", message: "Choose a valid allowlist status before saving." };
 
   const context = await requireCurrentUserContext();
-  if (!canManageClosedBetaAllowlist(context)) redirect(`${returnPath}?error=forbidden`);
+  if (!canManageClosedBetaAllowlist(context)) {
+    return { ok: false, code: "forbidden", message: "Only platform admins can manage the allowlist." };
+  }
 
   try {
     await updateClosedBetaAllowlistEntryInD1({
@@ -107,11 +139,10 @@ export async function updateClosedBetaAllowlistEntry(formData: FormData) {
       status: parsed.status,
     });
   } catch {
-    redirect(`${returnPath}?error=save`);
+    return { ok: false, code: "save", message: "Allowlist could not be saved." };
   }
 
-  revalidateAllowlistPaths();
-  redirect(`${returnPath}?saved=1`);
+  return allowlistSuccess({ ok: true, code: "updated", message: "Allowlist entry updated." });
 }
 
 export async function deliverPendingClosedBetaInviteEmails() {
