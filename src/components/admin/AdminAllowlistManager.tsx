@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -19,10 +19,12 @@ import {
 } from "@/components/ui/control-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/ui/cn";
 import {
   createClosedBetaAllowlistEntries,
   updateClosedBetaAllowlistEntry,
+  type ClosedBetaAllowlistActionResult,
 } from "@/lib/auth/beta-allowlist-admin-actions";
 import { formatAdminDateTime } from "@/lib/admin/datetime";
 
@@ -53,6 +55,15 @@ type AdminAllowlistManagerProps = {
   counts: Record<AdminAllowlistStatus, number> & { total: number };
   statusFilter: string;
   notice: AdminAllowlistNotice;
+};
+
+type AllowlistActionResultHandler = (result: ClosedBetaAllowlistActionResult) => void;
+type AllowlistActionFailureHandler = () => void;
+type AllowlistRowActionsProps = {
+  row: AdminAllowlistRow;
+  mobile?: boolean;
+  onResult: AllowlistActionResultHandler;
+  onFailure: AllowlistActionFailureHandler;
 };
 
 const statusLabels: Record<AdminAllowlistStatus, string> = {
@@ -125,7 +136,7 @@ function RowSaveButton() {
   );
 }
 
-function AllowlistAddForm() {
+function AllowlistAddForm({ onResult, onFailure }: { onResult: AllowlistActionResultHandler; onFailure: AllowlistActionFailureHandler }) {
   const [emailsText, setEmailsText] = useState("");
   const preview = useMemo(() => previewAllowlistEmails(emailsText), [emailsText]);
 
@@ -146,11 +157,17 @@ function AllowlistAddForm() {
       </div>
 
       <form
-        action={createClosedBetaAllowlistEntries}
+        action={async (formData) => {
+          try {
+            const result = await createClosedBetaAllowlistEntries(formData);
+            onResult(result);
+            if (result.ok) setEmailsText("");
+          } catch {
+            onFailure();
+          }
+        }}
         className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,1fr)] lg:items-start"
       >
-        <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
-
         <ControlField
           label="Emails"
           required
@@ -271,11 +288,21 @@ function StatusLegend() {
 }
 
 /** Inline status + notes edit form shared by the desktop table cell and the mobile card. */
-function AllowlistStatusEditor({ row, mobile = false }: { row: AdminAllowlistRow; mobile?: boolean }) {
+function AllowlistStatusEditor({
+  row,
+  mobile = false,
+  onResult,
+  onFailure,
+}: AllowlistRowActionsProps) {
   if (mobile) {
     return (
-      <form action={updateClosedBetaAllowlistEntry} className="mt-2 grid gap-2">
-        <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
+      <form action={async (formData) => {
+        try {
+          onResult(await updateClosedBetaAllowlistEntry(formData));
+        } catch {
+          onFailure();
+        }
+      }} className="mt-2 grid gap-2">
         <input type="hidden" name="id" value={row.id} />
         <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
           <ControlField label="Status" as="div" className="gap-0.5">
@@ -305,10 +332,15 @@ function AllowlistStatusEditor({ row, mobile = false }: { row: AdminAllowlistRow
 
   return (
     <form
-      action={updateClosedBetaAllowlistEntry}
+      action={async (formData) => {
+        try {
+          onResult(await updateClosedBetaAllowlistEntry(formData));
+        } catch {
+          onFailure();
+        }
+      }}
       className="grid grid-cols-[8rem_minmax(8rem,1fr)_auto] items-center gap-1"
     >
-      <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
       <input type="hidden" name="id" value={row.id} />
       <AdminStatusSelect
         name="status"
@@ -329,26 +361,44 @@ function AllowlistStatusEditor({ row, mobile = false }: { row: AdminAllowlistRow
 }
 
 /** Revoke/restore actions with confirm dialog, shared by desktop and mobile rows. */
-function AllowlistAccessActions({ row, mobile = false }: { row: AdminAllowlistRow; mobile?: boolean }) {
+function AllowlistAccessActions({
+  row,
+  mobile = false,
+  onResult,
+  onFailure,
+}: AllowlistRowActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function submitRevoke() {
     const formData = new FormData();
-    formData.set("returnPath", ALLOWLIST_PATH);
     formData.set("id", row.id);
     formData.set("status", "revoked");
     formData.set("notes", row.notes ?? "");
     startTransition(async () => {
-      await updateClosedBetaAllowlistEntry(formData);
+      try {
+        const result = await updateClosedBetaAllowlistEntry(formData);
+        onResult(result);
+        if (result.ok) setConfirmOpen(false);
+      } catch {
+        onFailure();
+      }
     });
   }
 
   return (
     <>
       {row.status === "revoked" ? (
-        <form action={updateClosedBetaAllowlistEntry} className={mobile ? undefined : "flex justify-end"}>
-          <input type="hidden" name="returnPath" value={ALLOWLIST_PATH} />
+        <form
+          action={async (formData) => {
+            try {
+              onResult(await updateClosedBetaAllowlistEntry(formData));
+            } catch {
+              onFailure();
+            }
+          }}
+          className={mobile ? undefined : "flex justify-end"}
+        >
           <input type="hidden" name="id" value={row.id} />
           <input type="hidden" name="status" value="invited" />
           <input type="hidden" name="notes" value={row.notes ?? ""} />
@@ -392,7 +442,15 @@ function AllowlistAccessActions({ row, mobile = false }: { row: AdminAllowlistRo
   );
 }
 
-function AllowlistMobileCard({ row }: { row: AdminAllowlistRow }) {
+function AllowlistMobileCard({
+  row,
+  onResult,
+  onFailure,
+}: {
+  row: AdminAllowlistRow;
+  onResult: AllowlistActionResultHandler;
+  onFailure: AllowlistActionFailureHandler;
+}) {
   return (
     <article className="border-b border-hairline p-3 last:border-b-0">
       <div className="flex items-start justify-between gap-2">
@@ -412,9 +470,9 @@ function AllowlistMobileCard({ row }: { row: AdminAllowlistRow }) {
         {row.invite_email_sent_at ? ` · Invite sent ${formatAdminDateTime(row.invite_email_sent_at)}` : " · Invite email pending"}
       </div>
 
-      <AllowlistStatusEditor row={row} mobile />
+      <AllowlistStatusEditor row={row} mobile onResult={onResult} onFailure={onFailure} />
       <div className="mt-1.5 flex justify-end">
-        <AllowlistAccessActions row={row} mobile />
+        <AllowlistAccessActions row={row} mobile onResult={onResult} onFailure={onFailure} />
       </div>
     </article>
   );
@@ -428,6 +486,21 @@ export function AdminAllowlistManager({
   statusFilter,
   notice,
 }: AdminAllowlistManagerProps) {
+  const { toast } = useToast();
+  const onResult = useCallback<AllowlistActionResultHandler>((result) => {
+    toast({
+      id: "admin-allowlist-action",
+      message: result.message,
+      tone: result.ok ? (result.stale ? "warning" : "success") : "error",
+    });
+  }, [toast]);
+  const onFailure = useCallback(() => {
+    toast({
+      id: "admin-allowlist-action",
+      message: "Allowlist action could not be completed. Please try again.",
+      tone: "error",
+    });
+  }, [toast]);
   const filterLabel =
     statusFilter && statusOptions.some((option) => option.value === statusFilter)
       ? statusLabels[statusFilter as AdminAllowlistStatus]
@@ -477,17 +550,17 @@ export function AdminAllowlistManager({
         id: "context",
         header: "Status and internal context",
         enableSorting: false,
-        cell: ({ row }) => <AllowlistStatusEditor row={row.original} />,
+        cell: ({ row }) => <AllowlistStatusEditor row={row.original} onResult={onResult} onFailure={onFailure} />,
       },
       {
         id: "access",
         header: "Access",
         enableSorting: false,
         meta: { align: "right" },
-        cell: ({ row }) => <AllowlistAccessActions row={row.original} />,
+        cell: ({ row }) => <AllowlistAccessActions row={row.original} onResult={onResult} onFailure={onFailure} />,
       },
     ],
-    [],
+    [onFailure, onResult],
   );
 
   return (
@@ -539,7 +612,7 @@ export function AdminAllowlistManager({
         />
       ) : (
         <>
-          <AllowlistAddForm />
+          <AllowlistAddForm onResult={onResult} onFailure={onFailure} />
 
           <section className="overflow-hidden rounded-xs border border-hairline bg-white" aria-labelledby="allowlist-queue-heading">
             <div className="flex flex-col gap-2 border-b border-hairline p-2 sm:flex-row sm:items-center sm:justify-between">
@@ -584,7 +657,7 @@ export function AdminAllowlistManager({
               <div>
                 <div className="md:hidden">
                   {rows.map((row) => (
-                    <AllowlistMobileCard key={row.id} row={row} />
+                    <AllowlistMobileCard key={row.id} row={row} onResult={onResult} onFailure={onFailure} />
                   ))}
                 </div>
                 <div className="hidden md:block">

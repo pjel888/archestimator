@@ -7,6 +7,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { OnboardingBrandVisual } from "@/components/onboarding/OnboardingBrandVisual";
 import { useWorkshopSettingsModal } from "@/components/workshop/WorkshopSettingsModal";
 import {
   reopenActivationChecklist,
@@ -180,7 +181,7 @@ function FlowCard({
   }
 
   return (
-    <article className="rounded-xs border border-hairline bg-white p-3">
+    <article className="rounded-2xl border border-hairline bg-white p-3 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)]">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h4 className="text-[10px] font-medium leading-4 text-ink">{presentation.title}</h4>
@@ -211,12 +212,12 @@ function FlowCard({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {eligible ? (
           <>
-            <Button type="button" size="sm" variant="primary" onClick={() => launch(action.primaryMode)}>
+            <Button className="rounded-full px-3" type="button" size="sm" variant="brand" onClick={() => launch(action.primaryMode)}>
               <Compass size={13} aria-hidden="true" />
               {action.primaryLabel}
             </Button>
             {action.secondaryMode ? (
-              <Button type="button" size="sm" variant="secondary" onClick={() => launch(action.secondaryMode!)}>
+              <Button className="rounded-full px-3" type="button" size="sm" variant="secondary" onClick={() => launch(action.secondaryMode!)}>
                 <ArrowClockwise size={13} aria-hidden="true" />
                 {action.secondaryLabel}
               </Button>
@@ -310,15 +311,18 @@ export function GuidanceToursSettings({
 
   return (
     <section className="mx-auto max-w-[720px] space-y-4 px-3 py-4 sm:px-5 sm:py-5" aria-labelledby="guidance-tours-title">
-      <div>
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Guidance</p>
-        <h3 id="guidance-tours-title" className="mt-1 text-[12px] font-medium leading-4 text-ink">Guidance & tours</h3>
-        <p className="mt-1 max-w-[68ch] text-[10px] leading-4 text-tertiary">
-          Continue a guide, start one again, or control when guidance appears. Your project work is never changed.
-        </p>
+      <div className="relative overflow-hidden rounded-2xl bg-[#172337] p-4 text-white">
+        <OnboardingBrandVisual className="pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] opacity-70 sm:block" />
+        <div className="relative z-[1] max-w-[68ch]">
+          <p className="text-[9px] font-medium uppercase leading-3 tracking-[0.16em] text-white/70">Guidance</p>
+          <h3 id="guidance-tours-title" className="mt-2 text-[15px] font-semibold leading-5">Guidance & tours</h3>
+          <p className="mt-1 text-[10px] leading-5 text-white/72">
+            Continue a guide, start one again, or control when guidance appears. Your project work is never changed.
+          </p>
+        </div>
       </div>
 
-      <div className="rounded-xs border border-hairline bg-white p-3">
+      <div className="rounded-2xl border border-hairline bg-white p-3 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h4 className="text-[10px] font-medium leading-4 text-ink">Show automatic guidance</h4>
@@ -348,43 +352,43 @@ export function GuidanceToursSettings({
           ))}
         </div>
       ) : (
-        <div className="rounded-xs border border-warningSoft bg-warningSoft/20 p-3">
+        <div className="rounded-2xl border border-warningSoft bg-warningSoft/20 p-3">
           <p className="text-[10px] font-medium text-ink">Guidance status is temporarily unavailable</p>
           <p className="mt-1 text-[9px] leading-4 text-secondary">Other Settings pages remain available. No progress was changed.</p>
         </div>
       )}
 
-      <div className="rounded-xs border border-hairline bg-surfaceMuted/30 p-3">
+      <div className="rounded-2xl border border-hairline bg-surfaceMuted/30 p-3">
         <h4 className="text-[10px] font-medium leading-4 text-ink">Getting-started checklist</h4>
         <p className="mt-1 text-[9px] leading-4 text-tertiary">
           Show the checklist again without changing completed tasks.
         </p>
-        <Button className="mt-2" type="button" size="sm" variant="secondary" disabled={isPending} onClick={reopenChecklist}>
+        <Button className="mt-2 rounded-full px-3" type="button" size="sm" variant="secondary" disabled={isPending} onClick={reopenChecklist}>
           Reopen checklist
         </Button>
       </div>
 
-      <div className="rounded-xs border border-warningSoft bg-white p-3">
+      <div className="rounded-2xl border border-warningSoft bg-white p-3 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)]">
         <h4 className="text-[10px] font-medium leading-4 text-ink">Restart all guides</h4>
         <p className="mt-1 text-[9px] leading-4 text-tertiary">
           Starts each guide from step one. Your projects, estimates, client links, starter examples, and getting-started checklist progress stay unchanged.
         </p>
         {confirmReset ? (
-          <div className="mt-2 rounded-xs border border-warningSoft bg-warningSoft/15 p-2">
+          <div className="mt-2 rounded-xl border border-warningSoft bg-warningSoft/15 p-2">
             <p className="text-[9px] leading-4 text-secondary">
               Restart every guide from the beginning? Your projects, estimates, client links, starter examples, and completed work will not change.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="danger" disabled={isPending} onClick={resetGuidance}>
+              <Button className="rounded-full px-3" type="button" size="sm" variant="danger" disabled={isPending} onClick={resetGuidance}>
                 Restart all guides
               </Button>
-              <Button type="button" size="sm" variant="secondary" disabled={isPending} onClick={() => setConfirmReset(false)}>
+              <Button className="rounded-full px-3" type="button" size="sm" variant="secondary" disabled={isPending} onClick={() => setConfirmReset(false)}>
                 Cancel
               </Button>
             </div>
           </div>
         ) : (
-          <Button className="mt-2" type="button" size="sm" variant="danger" disabled={isPending || !snapshot} onClick={() => setConfirmReset(true)}>
+          <Button className="mt-2 rounded-full px-3" type="button" size="sm" variant="danger" disabled={isPending || !snapshot} onClick={() => setConfirmReset(true)}>
             Restart all guides
           </Button>
         )}

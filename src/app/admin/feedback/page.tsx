@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
+import { AdminFeedbackStatusForm } from "@/components/admin/AdminFeedbackStatusForm";
 import { AdminStatusSelect } from "@/components/admin/AdminStatusSelect";
 import { Button } from "@/components/ui/button";
 import { BETA_FEEDBACK_STATUSES, isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
-import { updateBetaFeedbackReviewStatus } from "@/lib/workshop/beta-feedback-review-actions";
 import { readBetaFeedbackReviewQueue } from "@/lib/workshop/beta-feedback-review";
 import {
   readBetaFeedbackReviewByIdFromD1,
@@ -30,14 +30,6 @@ const betaFeedbackDateFormatter = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
-function feedbackNotice(error?: string, saved?: string) {
-  if (saved) return { tone: "success" as const, text: "Feedback status updated." };
-  if (error === "forbidden") return { tone: "error" as const, text: "Only platform admins can review feedback." };
-  if (error === "invalid") return { tone: "error" as const, text: "Choose a valid feedback status before saving." };
-  if (error === "save") return { tone: "error" as const, text: "Feedback status could not be saved." };
-  return null;
-}
-
 function formatDate(value: string) {
   return betaFeedbackDateFormatter.format(new Date(value));
 }
@@ -45,7 +37,7 @@ function formatDate(value: string) {
 export default async function AdminFeedbackPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string; status?: string; feedback?: string }>;
+  searchParams: Promise<{ status?: string; feedback?: string }>;
 }) {
   const params = await searchParams;
   const requestedFeedbackId = params.feedback?.trim() ?? "";
@@ -62,8 +54,6 @@ export default async function AdminFeedbackPage({
   const submissions = selectedFeedback && !queue.submissions.some((item) => item.id === selectedFeedback.id)
     ? [selectedFeedback, ...queue.submissions]
     : queue.submissions;
-  const notice = feedbackNotice(params.error, params.saved);
-
   return (
     <AdminPage>
       <AdminPageHeader
@@ -71,19 +61,6 @@ export default async function AdminFeedbackPage({
         title="Feedback"
         description="Review authenticated feedback and keep triage status current."
       />
-
-      {notice ? (
-        <div
-          className={[
-            "rounded-xs border p-2 text-[10px] leading-4",
-            notice.tone === "error"
-              ? "border-dangerSoft bg-dangerSoft/40 text-danger"
-              : "border-accent/25 bg-accentSoft text-ink",
-          ].join(" ")}
-        >
-          {notice.text}
-        </div>
-      ) : null}
 
       {!queue.authorized ? (
         <section className="border border-hairline bg-white p-2">
@@ -151,22 +128,13 @@ export default async function AdminFeedbackPage({
 
                       <p className="break-words text-[10px] leading-4 text-ink">{item.message}</p>
 
-                      <form action={updateBetaFeedbackReviewStatus} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-                        <input type="hidden" name="id" value={item.id} />
-                        <div className="grid min-w-0 gap-1 text-[9px] font-medium leading-3 text-tertiary">
-                          <span>Review status</span>
-                          <AdminStatusSelect
-                            name="status"
-                            defaultValue={item.status}
-                            options={statusOptions}
-                            aria-label={`Review status for feedback from ${item.user_email}`}
-                            className="min-h-10 w-full"
-                          />
-                        </div>
-                        <Button type="submit" variant="secondary" size="sm" className="min-h-10 min-w-20">
-                          Save
-                        </Button>
-                      </form>
+                      <AdminFeedbackStatusForm
+                        id={item.id}
+                        label={item.user_email}
+                        mobile
+                        options={statusOptions}
+                        status={item.status}
+                      />
                     </article>
                   ))}
                 </div>
@@ -195,19 +163,12 @@ export default async function AdminFeedbackPage({
                           <td className="border-b border-hairline px-2 py-2 text-secondary">{item.severity}</td>
                           <td className="max-w-md border-b border-hairline px-2 py-2 text-ink">{item.message}</td>
                           <td className="border-b border-hairline px-2 py-2">
-                            <form action={updateBetaFeedbackReviewStatus} className="flex items-center gap-1">
-                              <input type="hidden" name="id" value={item.id} />
-                              <AdminStatusSelect
-                                name="status"
-                                defaultValue={item.status}
-                                options={statusOptions}
-                                aria-label={`Review status for feedback from ${item.user_email}`}
-                                className="min-w-28"
-                              />
-                              <Button type="submit" variant="secondary" size="sm">
-                                Save
-                              </Button>
-                            </form>
+                            <AdminFeedbackStatusForm
+                              id={item.id}
+                              label={item.user_email}
+                              options={statusOptions}
+                              status={item.status}
+                            />
                           </td>
                         </tr>
                       ))}

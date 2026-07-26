@@ -16,6 +16,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { OnboardingBrandVisual } from "./OnboardingBrandVisual";
 import {
   addCurrentStarterContent,
   restoreCurrentStarterContent,
@@ -158,7 +159,7 @@ function FlowStatusCard({
   const status = state?.status;
   const mode = flowLaunchMode(status);
   return (
-    <article className="flex min-h-36 flex-col rounded-xs border border-hairline bg-white p-3">
+    <article className="flex min-h-36 flex-col rounded-2xl border border-hairline bg-white p-3 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)]">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-[11px] font-medium text-ink">{title}</h3>
         <Badge
@@ -176,7 +177,7 @@ function FlowStatusCard({
         ) : (
           <Link
             href={`/workshop/getting-started?tour=${flowKey}&mode=${mode}`}
-            className="inline-flex min-h-7 items-center gap-1 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex min-h-7 items-center gap-1 rounded-full border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
           >
             {mode === "resume"
               ? "Resume guide"
@@ -296,25 +297,28 @@ export function GettingStartedProgress({
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-2 pb-8">
-      <section className="rounded-xs border border-hairline bg-white p-4">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+      <section className="relative overflow-hidden rounded-[1.5rem] border border-[#1b2b44]/20 bg-[#172337] p-5 shadow-[0_22px_54px_-38px_rgba(17,31,50,0.65)]">
+        <OnboardingBrandVisual className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] opacity-75 lg:block" />
+        <div className="relative z-[1] flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2">
-              <Compass size={18} className="text-accent" aria-hidden="true" />
-              <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+              <span className="grid size-8 place-items-center rounded-full bg-white/10 text-brand-orange ring-1 ring-white/15">
+                <Compass size={16} aria-hidden="true" />
+              </span>
+              <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-white/70">
                 Recommended next step
               </p>
             </div>
-            <h2 className="mt-2 text-[16px] font-semibold text-ink">
+            <h2 className="mt-3 max-w-xl text-[19px] font-semibold tracking-[-0.02em] text-white">
               {isCreator ? "Reach your first useful estimate" : "Understand the work shared with you"}
             </h2>
-            <p className="mt-1 text-[10px] leading-5 text-secondary">{recommendation}</p>
+            <p className="mt-2 max-w-xl text-[11px] leading-5 text-white/72">{recommendation}</p>
           </div>
           {showChecklist ? (
-            <div className="w-full max-w-[220px] rounded-xs border border-hairline bg-surface/70 p-2">
-              <div className="flex items-center justify-between text-[9px]">
-                <span className="font-medium text-ink">Getting-started progress</span>
-                <span className="font-numeric text-tertiary">
+            <div className="w-full max-w-[220px] rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm">
+              <div className="flex items-center justify-between text-[9px] text-white/78">
+                <span className="font-medium text-white">Getting-started progress</span>
+                <span className="font-numeric">
                   {checklist.completedCount}/{checklist.items.length}
                 </span>
               </div>
@@ -330,7 +334,7 @@ export function GettingStartedProgress({
       </section>
 
       {showChecklist ? (
-        <section className="rounded-xs border border-hairline bg-white p-4" aria-labelledby="first-estimate-heading">
+        <section className="rounded-2xl border border-hairline bg-white p-4 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)]" aria-labelledby="first-estimate-heading">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 id="first-estimate-heading" className="text-[12px] font-medium text-ink">First estimate checklist</h2>
@@ -344,7 +348,7 @@ export function GettingStartedProgress({
           </div>
           <ol className="mt-3 grid gap-2 md:grid-cols-2">
             {checklist.items.map((item) => (
-              <li key={item.id} className="flex items-start gap-2 rounded-xs border border-hairline bg-surface/60 p-2">
+              <li key={item.id} className="flex items-start gap-2 rounded-xl border border-hairline bg-surface/60 p-2">
                 {item.status === "complete" ? (
                   <Check size={14} weight="bold" className="mt-0.5 shrink-0 text-success" aria-hidden="true" />
                 ) : (
@@ -362,7 +366,7 @@ export function GettingStartedProgress({
           </ol>
         </section>
       ) : checklist.canShow && checklist.isDismissed ? (
-        <section className="flex flex-col justify-between gap-3 rounded-xs border border-hairline bg-white p-4 sm:flex-row sm:items-center">
+        <section className="flex flex-col justify-between gap-3 rounded-2xl border border-hairline bg-white p-4 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)] sm:flex-row sm:items-center">
           <div>
             <h2 className="text-[11px] font-medium text-ink">First estimate checklist hidden</h2>
             <p className="mt-1 text-[9px] leading-4 text-tertiary">
@@ -371,7 +375,7 @@ export function GettingStartedProgress({
           </div>
           <Link
             href="/workshop/settings?page=guidance-tours"
-            className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-xs border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+            className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
           >
             Open Guidance settings
           </Link>
@@ -379,7 +383,7 @@ export function GettingStartedProgress({
       ) : null}
 
       {isCreator ? (
-        <section className="rounded-xs border border-hairline bg-white p-4" aria-labelledby="start-path-heading">
+        <section className="rounded-2xl border border-hairline bg-white p-4 shadow-[0_18px_42px_-38px_rgba(17,31,50,0.42)]" aria-labelledby="start-path-heading">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
               <h2 id="start-path-heading" className="text-[12px] font-medium text-ink">Choose how to start</h2>
@@ -400,7 +404,7 @@ export function GettingStartedProgress({
               return (
                 <article
                   key={path.key}
-                  className="flex min-h-48 flex-col rounded-xs border border-hairline bg-surface/60 p-3"
+                  className="flex min-h-48 flex-col rounded-2xl border border-hairline bg-surface/60 p-3"
                   data-start-path={path.key}
                   data-path-availability={unavailable ? "unavailable" : "available"}
                 >
@@ -412,7 +416,7 @@ export function GettingStartedProgress({
                     </p>
                   ) : null}
                   <Button
-                    className="mt-auto w-full"
+                    className="mt-auto w-full rounded-full"
                     size="sm"
                     variant={path.key === "guided_sample" ? "brand" : "secondary"}
                     disabled={isPending || unavailable}

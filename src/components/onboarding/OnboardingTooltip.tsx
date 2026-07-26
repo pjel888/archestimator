@@ -1,10 +1,11 @@
 "use client";
 
 import type { TooltipRenderProps } from "react-joyride";
-import { X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Compass, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import type { OnboardingContentKey } from "@/lib/onboarding/flow-types";
+import { OnboardingBrandVisual } from "./OnboardingBrandVisual";
 
 const CONTENT: Record<
   OnboardingContentKey,
@@ -168,64 +169,79 @@ export function OnboardingTooltip({
   return (
     <section
       {...tooltipProps}
-      className="pointer-events-auto w-[min(22rem,calc(100vw-2rem))] rounded-xs border border-hairline bg-white p-3 text-ink shadow-2xl motion-reduce:transition-none"
+      className="pointer-events-auto w-[min(25rem,calc(100vw-2rem))] overflow-hidden rounded-[1.25rem] border border-[#1b2b44]/15 bg-white text-ink shadow-[0_24px_60px_-26px_rgba(17,31,50,0.5)] motion-reduce:transition-none"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[9px] font-medium uppercase text-tertiary">
-            Step {index + 1} of {size}
-          </p>
-          <h2 className="mt-1 text-[12px] font-medium">
-            {content?.title ?? step.title ?? "Guidance"}
-          </h2>
+      <OnboardingBrandVisual className="h-24">
+        <div className="flex h-full items-start justify-between p-3 text-white">
+          <div className="flex items-center gap-2 text-[9px] font-medium uppercase tracking-[0.16em] text-white/80">
+            <span className="grid size-6 place-items-center rounded-full bg-white/14 ring-1 ring-white/20">
+              <Compass size={13} weight="bold" aria-hidden="true" />
+            </span>
+            Archestimator guide
+          </div>
+          <button
+            type="button"
+            aria-label={closeProps["aria-label"]}
+            title={closeProps.title}
+            className="grid size-7 shrink-0 place-items-center rounded-full bg-white/12 text-white ring-1 ring-white/20 transition hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            onClick={closeProps.onClick}
+          >
+            <X size={15} aria-hidden="true" />
+          </button>
         </div>
-        <button
-          type="button"
-          aria-label={closeProps["aria-label"]}
-          title={closeProps.title}
-          className="grid size-7 shrink-0 place-items-center rounded-xs text-secondary hover:bg-surfaceMuted hover:text-ink"
-          onClick={closeProps.onClick}
-        >
-          <X size={15} aria-hidden="true" />
-        </button>
-      </div>
-      <div className="mt-2 text-[10px] leading-4 text-secondary">
-        {content?.body ?? step.content}
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3">
-        {index > 0 ? (
+      </OnboardingBrandVisual>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-brand-orange-dark">
+              Step {index + 1} of {size}
+            </p>
+            <h2 className="mt-1 text-[14px] font-semibold tracking-[-0.01em] text-ink">
+              {content?.title ?? step.title ?? "Guidance"}
+            </h2>
+          </div>
+        </div>
+        <div className="mt-2 text-[11px] leading-5 text-secondary">
+          {content?.body ?? step.content}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#1b2b44]/10 pt-3">
+          {index > 0 ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-w-0 rounded-full px-3"
+              aria-label={backProps["aria-label"]}
+              title={backProps.title}
+              onClick={backProps.onClick}
+            >
+              Back
+            </Button>
+          ) : null}
           <Button
             type="button"
-            variant="secondary"
+            variant="ghost"
             size="sm"
-            aria-label={backProps["aria-label"]}
-            title={backProps.title}
-            onClick={backProps.onClick}
+            className="min-w-0 rounded-full px-2 text-tertiary"
+            aria-label={skipProps["aria-label"]}
+            title={skipProps.title}
+            onClick={skipProps.onClick}
           >
-            Back
+            Skip guide
           </Button>
-        ) : null}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-label={skipProps["aria-label"]}
-          title={skipProps.title}
-          onClick={skipProps.onClick}
-        >
-          Skip this guide
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          className="ml-auto"
-          aria-label={primaryProps["aria-label"]}
-          title={primaryProps.title}
-          onClick={primaryProps.onClick}
-        >
-          {isLastStep ? "Finish" : "Next"}
-        </Button>
+          <Button
+            type="button"
+            variant="brand"
+            size="sm"
+            className="ml-auto min-w-0 rounded-full px-3"
+            aria-label={primaryProps["aria-label"]}
+            title={primaryProps.title}
+            onClick={primaryProps.onClick}
+          >
+            {isLastStep ? "Finish" : "Next"}
+            {!isLastStep ? <ArrowRight size={13} weight="bold" aria-hidden="true" /> : null}
+          </Button>
+        </div>
       </div>
     </section>
   );
