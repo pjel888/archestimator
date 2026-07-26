@@ -293,8 +293,8 @@ describe("workshop dashboard homebase", () => {
 
     // Command-center destination field — the populated dashboard starts with
     // the actual surfaces, not an empty greeting shell.
-    expect(screen.getByText("Projects Shown")).toBeInTheDocument();
-    expect(screen.getByText("Sheets Shown")).toBeInTheDocument();
+    expect(screen.getAllByText("Projects").length).toBeGreaterThan(0);
+    expect(screen.getByText("Sheets")).toBeInTheDocument();
 
     // Quick links into the primary surfaces.
     expect(
@@ -366,8 +366,8 @@ describe("workshop dashboard homebase", () => {
     });
 
     // The full bento stays visible even when project/sheet lists are empty.
-    expect(screen.getByText("Projects Shown")).toBeInTheDocument();
-    expect(screen.getByText("Sheets Shown")).toBeInTheDocument();
+    expect(screen.getAllByText("Projects").length).toBeGreaterThan(0);
+    expect(screen.getByText("Sheets")).toBeInTheDocument();
     expect(
       screen.getAllByRole("link", { name: "Open Projects" }).length,
     ).toBeGreaterThan(0);

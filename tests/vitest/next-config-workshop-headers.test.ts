@@ -47,5 +47,6 @@ describe("local next/image optimizer sources", () => {
   it("keeps existing static local image folders queryless", () => {
     expect(config).toContain('pathname: "/component-thumbnails/**", search: ""');
     expect(config).toContain('pathname: "/landing/**", search: ""');
+    expect(config).toContain('pathname: "/Pixel_Images/**", search: ""');
   });
 });
