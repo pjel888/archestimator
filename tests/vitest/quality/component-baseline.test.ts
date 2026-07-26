@@ -1,5 +1,5 @@
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -14,6 +14,10 @@ import {
 import { validateBaselineAdmission } from "../../../scripts/quality/validate-baseline-admission";
 import { sha256 } from "../../../scripts/quality/common";
 import type { VitestJsonReport } from "../../../scripts/quality/component-core";
+
+const qualityScriptDirectory = resolve(process.cwd(), "scripts", "quality");
+const componentBaselineCli = join(qualityScriptDirectory, "component-baseline.ts");
+const baselineAdmissionCli = join(qualityScriptDirectory, "validate-baseline-admission.ts");
 
 const generatedAt = "2026-07-26T00:00:00.000Z";
 const commit = "a".repeat(40);
@@ -171,13 +175,13 @@ describe("component baseline admission validation", () => {
     const admissionPath = join(fixture.root, "quality/baselines/component/admission.json");
     const baselinePath = join(fixture.root, "artifacts/quality/baseline.generated.json");
     const validate = spawnSync("bun", [
-      "scripts/quality/validate-baseline-admission.ts", "--root", fixture.root,
+      baselineAdmissionCli, "--root", fixture.root,
       "--inventory", "quality/baselines/component/inventory.json", "--phase", "admission",
       "--disallowed-reviewers", "author", "--output", "quality/baselines/component/admission.json",
     ], { cwd: process.cwd(), encoding: "utf8" });
     expect(validate.status, validate.stderr).toBe(0);
     const generate = spawnSync("bun", [
-      "scripts/quality/component-baseline.ts", "generate", "--root", fixture.root,
+      componentBaselineCli, "generate", "--root", fixture.root,
       "--inventory", "quality/baselines/component/inventory.json",
       "--validation", "quality/baselines/component/admission.json",
       "--output", "artifacts/quality/baseline.generated.json",
