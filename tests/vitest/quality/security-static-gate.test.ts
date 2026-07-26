@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { evaluateBunAudit } from "../../../scripts/quality/security-audit-core";
+import {
+  evaluateBunAudit,
+  normalizeSecuritySeverity,
+} from "../../../scripts/quality/security-audit-core";
 import { evaluateSecurityGate } from "../../../scripts/quality/security-gate-core";
 import { evaluateSarif } from "../../../scripts/quality/security-sarif-core";
 import {
@@ -89,6 +92,78 @@ describe("security static gate", () => {
     expect(JSON.stringify(result)).not.toContain("sensitive advisory detail");
   });
 
+  it("normalizes numeric, alias, and unknown security severities", () => {
+    expect([
+      normalizeSecuritySeverity(9),
+      normalizeSecuritySeverity("7.0"),
+      normalizeSecuritySeverity("warning"),
+      normalizeSecuritySeverity("note"),
+      normalizeSecuritySeverity("none"),
+      normalizeSecuritySeverity("unexpected"),
+      normalizeSecuritySeverity(Number.NaN),
+    ]).toEqual(["critical", "high", "medium", "low", "info", "unknown", "unknown"]);
+  });
+
+  it("fails malformed and unknown-severity audits without retaining unsafe labels", () => {
+    expect(evaluateBunAudit(undefined).findings).toEqual([
+      {
+        code: "AUDIT_REPORT_MALFORMED",
+        message: "Bun audit did not produce a JSON object",
+      },
+    ]);
+
+    const result = evaluateBunAudit({
+      vulnerable: [
+        {
+          id: "unsafe advisory text with spaces",
+          package: "unsafe package text",
+          severity: "unrated",
+          title: "sensitive advisory detail",
+        },
+      ],
+    });
+
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      "AUDIT_SEVERITY_UNKNOWN",
+    ]);
+    expect(result.advisories).toEqual([
+      {
+        identity: "advisory-1",
+        package: "unknown-package",
+        severity: "unknown",
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("sensitive advisory detail");
+    expect(JSON.stringify(result)).not.toContain("unsafe advisory text");
+  });
+
+  it("uses npm via severities and deduplicates advisories in first-seen order", () => {
+    const result = evaluateBunAudit({
+      vulnerabilities: {
+        alpha: {
+          severity: "critical",
+          via: [
+            { id: "ADV-1", severity: "low" },
+            { id: "ADV-1", severity: "low" },
+            { id: "ADV-2", severity: "moderate" },
+          ],
+        },
+        beta: { id: "ADV-3", severity: "high", via: [] },
+      },
+    });
+
+    expect(result.advisories).toEqual([
+      { identity: "ADV-1", package: "alpha", severity: "low" },
+      { identity: "ADV-2", package: "alpha", severity: "medium" },
+      { identity: "ADV-3", package: "beta", severity: "high" },
+    ]);
+    expect(result.counts).toMatchObject({ critical: 0, high: 1, medium: 1, low: 1 });
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      "DEPENDENCY_MEDIUM_UNWAIVED",
+      "DEPENDENCY_HIGH",
+    ]);
+  });
+
   it("fails supplied high-severity SARIF without retaining messages or snippets", () => {
     const result = evaluateSarif(
       {
@@ -161,6 +236,126 @@ describe("security static gate", () => {
       rule_id: "js/indexed",
       severity: "high",
     });
+  });
+
+  it("preserves SARIF severity-source precedence and fails unknown severity", () => {
+    const result = evaluateSarif(
+      {
+        runs: [
+          {
+            tool: {
+              driver: {
+                rules: [
+                  {
+                    id: "rule/precedence",
+                    properties: { "security-severity": "7.5", severity: "critical" },
+                    defaultConfiguration: { level: "error" },
+                  },
+                ],
+              },
+            },
+            results: [
+              {
+                ruleId: "rule/precedence",
+                level: "error",
+                properties: { "security-severity": "4.5", severity: "critical" },
+              },
+              { ruleIndex: 0, level: "warning" },
+              { ruleId: "rule/unknown", level: "experimental" },
+            ],
+          },
+        ],
+      },
+      "artifacts/codeql/precedence.sarif",
+    );
+
+    expect(result.results.map(({ rule_id, severity }) => ({ rule_id, severity }))).toEqual([
+      { rule_id: "rule/precedence", severity: "medium" },
+      { rule_id: "rule/precedence", severity: "high" },
+      { rule_id: "rule/unknown", severity: "unknown" },
+    ]);
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      "SARIF_MEDIUM_UNWAIVED",
+      "SARIF_HIGH",
+      "SARIF_SEVERITY_UNKNOWN",
+    ]);
+  });
+
+  it("sanitizes SARIF paths while retaining valid relative locations", () => {
+    const result = evaluateSarif(
+      {
+        runs: [
+          {
+            results: [
+              {
+                ruleId: "valid/location",
+                level: "error",
+                locations: [
+                  {
+                    physicalLocation: {
+                      artifactLocation: { uri: "src\\valid file.ts" },
+                      region: { startLine: 8 },
+                    },
+                  },
+                ],
+              },
+              {
+                ruleId: "unsafe/location",
+                level: "error",
+                locations: [
+                  {
+                    physicalLocation: {
+                      artifactLocation: { uri: "../../sensitive.ts" },
+                      region: { startLine: "9" },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      "artifacts/codeql/locations.sarif",
+    );
+
+    expect(result.results).toEqual([
+      {
+        rule_id: "valid/location",
+        severity: "high",
+        path: "src/valid file.ts",
+        line: 8,
+      },
+      {
+        rule_id: "unsafe/location",
+        severity: "high",
+        path: undefined,
+        line: undefined,
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("sensitive.ts");
+  });
+
+  it("reports malformed SARIF elements in deterministic order", () => {
+    const result = evaluateSarif(
+      {
+        runs: [
+          null,
+          {},
+          {
+            results: [null, { ruleId: "unknown/severity" }],
+          },
+        ],
+      },
+      "artifacts/codeql/malformed-elements.sarif",
+    );
+
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      "SARIF_RUN_MALFORMED",
+      "SARIF_RESULTS_MALFORMED",
+      "SARIF_RESULT_MALFORMED",
+      "SARIF_SEVERITY_UNKNOWN",
+    ]);
+    expect(result.counts.unknown).toBe(1);
   });
 
   it("preserves workflow failures and records absent hosted CodeQL as pending", () => {

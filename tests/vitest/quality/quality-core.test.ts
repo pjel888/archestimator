@@ -239,14 +239,12 @@ describe("coverage, workflow security, and traceability", () => {
       functions: 100,
       branches: 100,
     });
-    expect(result.findings.map((finding) => finding.code)).toEqual(
-      expect.arrayContaining([
-        "CHANGED_LINE_COVERAGE",
-        "CHANGED_STATEMENT_COVERAGE",
-        "CHANGED_FUNCTION_COVERAGE",
-        "CHANGED_BRANCH_COVERAGE",
-      ]),
-    );
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      "CHANGED_LINE_COVERAGE",
+      "CHANGED_BRANCH_COVERAGE",
+      "CHANGED_STATEMENT_COVERAGE",
+      "CHANGED_FUNCTION_COVERAGE",
+    ]);
   });
 
   it("fails closed when changed executable files or lines are absent from LCOV", () => {
@@ -280,6 +278,23 @@ describe("coverage, workflow security, and traceability", () => {
     expect(missingLine.findings.map((finding) => finding.code)).toContain(
       "CHANGED_LINE_COVERAGE_MISSING",
     );
+
+    const malformedLcov = evaluateDiffCoverage(
+      parseLcov(["SF:src/example.ts", "DA:not-a-line,not-hits", "end_of_record"].join("\n")),
+      parseAddedLines(
+        ["+++ b/src/example.ts", "@@ -0,0 +1,1 @@", "+export const absent = true"].join(
+          "\n",
+        ),
+      ),
+      { statements: 100, lines: 100, functions: 100, branches: 100 },
+    );
+    expect(malformedLcov.findings.map((finding) => finding.code)).toEqual([
+      "CHANGED_LINE_COVERAGE_MISSING",
+      "CHANGED_LINE_COVERAGE",
+      "CHANGED_BRANCH_COVERAGE",
+      "CHANGED_STATEMENT_COVERAGE",
+      "CHANGED_FUNCTION_COVERAGE",
+    ]);
   });
 
   it("does not require LCOV entries for added blank or comment-only lines", () => {
@@ -355,18 +370,44 @@ describe("coverage, workflow security, and traceability", () => {
     );
   });
 
-  it("merges overlapping runner LCOV without double-counting", () => {
+  it("uses the complete supplied migration diff instead of narrowing its file scope", () => {
+    const changed = parseAddedLines(
+      [
+        "diff --git a/scripts/quality/first.ts b/scripts/quality/first.ts",
+        "--- a/scripts/quality/first.ts",
+        "+++ b/scripts/quality/first.ts",
+        "@@ -0,0 +5,1 @@",
+        "+export const first = true",
+        "diff --git a/scripts/quality/second.ts b/scripts/quality/second.ts",
+        "--- a/scripts/quality/second.ts",
+        "+++ b/scripts/quality/second.ts",
+        "@@ -0,0 +9,2 @@",
+        "+// migration comment",
+        "+export const second = true",
+      ].join("\n"),
+    );
+    expect([...changed]).toEqual([
+      ["scripts/quality/first.ts", new Set([5])],
+      ["scripts/quality/second.ts", new Set([10])],
+    ]);
+  });
+
+  it("merges overlapping runner LCOV with max-hit semantics and Q2 thresholds", () => {
     const lcov = parseLcov(
       [
         "SF:/repo/src/shared.ts",
-        "DA:1,1",
+        "FN:1,shared",
+        "FNDA:0,shared",
+        "DA:1,0",
         "BRDA:1,0,0,1",
         "BRDA:1,0,1,0",
         "end_of_record",
         "SF:src/shared.ts",
-        "DA:1,1",
+        "FN:1,shared",
+        "FNDA:3,shared",
+        "DA:1,7",
         "BRDA:1,0,0,1",
-        "BRDA:1,0,1,0",
+        "BRDA:1,0,1,2",
         "end_of_record",
       ].join("\n"),
     );
@@ -377,15 +418,50 @@ describe("coverage, workflow security, and traceability", () => {
           "\n",
         ),
       ),
-      { statements: 100, lines: 100, functions: 0, branches: 50 },
+      { statements: 100, lines: 100, functions: 100, branches: 100 },
     );
     expect(result.metrics).toMatchObject({
       changed_lines: 1,
       covered_lines: 1,
       changed_branches: 2,
-      covered_branches: 1,
+      covered_branches: 2,
+      changed_functions: 1,
+      covered_functions: 1,
+      line_percent: 100,
+      branch_percent: 100,
+      function_percent: 100,
+      statement_percent: 100,
     });
     expect(result.findings).toEqual([]);
+  });
+
+  it("preserves zero-denominator coverage rules", () => {
+    const noChanges = evaluateDiffCoverage(new Map(), new Map(), {
+      statements: 100,
+      lines: 100,
+      functions: 100,
+      branches: 100,
+    });
+    expect(noChanges.metrics).toMatchObject({
+      line_percent: 100,
+      branch_percent: 100,
+      function_percent: 100,
+      statement_percent: 100,
+    });
+    expect(noChanges.findings).toEqual([]);
+
+    const changedWithoutBranchOrFunction = evaluateDiffCoverage(
+      parseLcov(["SF:src/example.ts", "DA:1,1", "end_of_record"].join("\n")),
+      new Map([["src/example.ts", new Set([1])]]),
+      { statements: 100, lines: 100, functions: 0, branches: 0 },
+    );
+    expect(changedWithoutBranchOrFunction.metrics).toMatchObject({
+      line_percent: 100,
+      branch_percent: 0,
+      function_percent: 0,
+      statement_percent: 100,
+    });
+    expect(changedWithoutBranchOrFunction.findings).toEqual([]);
   });
 
   it("reads nested Vitest summaries and enforces the canonical global ratchet", () => {
@@ -412,7 +488,10 @@ describe("coverage, workflow security, and traceability", () => {
     };
     expect(compareGlobalCoverageRatchet(baseline, current).map((finding) => finding.code))
       .toEqual(["GLOBAL_COVERAGE_REGRESSION"]);
+    expect(compareGlobalCoverageRatchet(baseline, baseline)).toEqual([]);
     expect(compareGlobalCoverageRatchet({}, current).map((finding) => finding.code))
+      .toEqual(["RATCHET_MALFORMED"]);
+    expect(compareGlobalCoverageRatchet(baseline, undefined).map((finding) => finding.code))
       .toEqual(["RATCHET_MALFORMED"]);
   });
 

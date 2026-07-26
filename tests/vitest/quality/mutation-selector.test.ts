@@ -79,27 +79,134 @@ describe("mutation target selection", () => {
     ).toEqual(["src/a.ts(1,1): error TS2322: Type mismatch"]);
   });
 
-  it("selects risk-mapped and registered modules for critical mode", () => {
+  it("selects only changed Q2 quality cores plus unchanged registry targets", () => {
+    const criticalRiskMap: RiskMap = {
+      ...riskMap,
+      rules: [
+        ...riskMap.rules,
+        {
+          id: "QUALITY",
+          profile: "Q2_CRITICAL_CHANGE_GATE",
+          patterns: ["scripts/quality/**"],
+          reason: "Quality-system core",
+        },
+      ],
+    };
     const selected = selectMutationTargets(
       "critical",
       [
         "src/app/auth/session.ts",
         "src/lib/calculator.ts",
-        "src/lib/ordinary.ts",
+        "scripts/quality/classifier-core.ts",
+        "scripts/quality/ordinary-core.ts",
+        "scripts/quality/run-mutation.ts",
       ],
-      inventory,
-      riskMap,
+      {
+        committed: [
+          "src/app/auth/session.ts",
+          "scripts/quality/run-mutation.ts",
+          "scripts/quality/ordinary-core.ts",
+        ],
+        staged: [],
+        unstaged: ["scripts/quality/classifier-core.ts"],
+        untracked: [],
+      },
+      criticalRiskMap,
       registry,
     );
 
     expect(selected.targets).toEqual([
-      "src/app/auth/session.ts",
+      "scripts/quality/classifier-core.ts",
+      "scripts/quality/ordinary-core.ts",
       "src/lib/calculator.ts",
     ]);
     expect(selected.requiredTests).toEqual(["tests/vitest/calculator.test.ts"]);
     expect(selected.targetReasons["src/lib/calculator.ts"]).toContain(
       "registry:CALC: Critical calculation",
     );
+    expect(selected.targets).not.toContain("scripts/quality/run-mutation.ts");
+    expect(selected.targets).not.toContain("src/app/auth/session.ts");
+  });
+
+  it("accepts an explicit base-derived inventory and keeps a nonempty changed scope", () => {
+    const criticalCoreRiskMap: RiskMap = {
+      ...riskMap,
+      rules: [
+        ...riskMap.rules,
+        {
+          id: "QUALITY",
+          profile: "Q2_CRITICAL_CHANGE_GATE",
+          patterns: ["scripts/quality/**"],
+          reason: "Quality-system core",
+        },
+      ],
+    };
+    const selected = selectMutationTargets(
+      "changed",
+      ["scripts/quality/classifier-core.ts", "scripts/quality/mutation-core.ts"],
+      {
+        committed: ["scripts/quality/classifier-core.ts"],
+        staged: [],
+        unstaged: ["scripts/quality/mutation-core.ts"],
+        untracked: [],
+      },
+      criticalCoreRiskMap,
+      registry,
+    );
+
+    expect(selected.targets).toEqual([
+      "scripts/quality/classifier-core.ts",
+      "scripts/quality/mutation-core.ts",
+    ]);
+    expect(selected.targetReasons).toEqual({
+      "scripts/quality/classifier-core.ts": [
+        "risk-map:QUALITY: scripts/quality/classifier-core.ts: Quality-system core",
+        "worktree: changed executable file",
+      ],
+      "scripts/quality/mutation-core.ts": [
+        "risk-map:QUALITY: scripts/quality/mutation-core.ts: Quality-system core",
+        "worktree: changed executable file",
+      ],
+    });
+  });
+
+  it("returns an empty critical selection for the runner to fail closed", () => {
+    const selected = selectMutationTargets(
+      "critical",
+      ["src/lib/ordinary.ts"],
+      inventory,
+      riskMap,
+      registry,
+    );
+
+    expect(selected).toEqual({ targets: [], requiredTests: [], targetReasons: {} });
+    expect(
+      readFileSync(resolve(root, "scripts/quality/run-mutation.ts"), "utf8"),
+    ).toContain('code: "EMPTY_MUTATION_TARGETS"');
+  });
+
+  it("selects the representative numeric registry target with its required tests", () => {
+    const numericRegistry: MutationRegistry = {
+      schema_version: 1,
+      entries: [
+        {
+          id: "NUMERIC",
+          targets: ["src/lib/results-calculator.ts"],
+          tests: ["tests/vitest/results-calculator.test.ts"],
+          reason: "Representative numeric decisions",
+        },
+      ],
+    };
+    const selected = selectMutationTargets(
+      "representative",
+      ["src/lib/results-calculator.ts", "src/lib/ordinary.ts"],
+      inventory,
+      riskMap,
+      numericRegistry,
+    );
+
+    expect(selected.targets).toEqual(["src/lib/results-calculator.ts"]);
+    expect(selected.requiredTests).toEqual(["tests/vitest/results-calculator.test.ts"]);
   });
 
   it("uses every mutation executable for full mode", () => {
@@ -151,6 +258,104 @@ describe("mutation report metrics", () => {
     expect(metrics.compile_errors).toHaveLength(1);
     expect(metrics.high_risk_survivors).toHaveLength(1);
     expect(metrics.high_risk_no_coverage).toHaveLength(0);
+  });
+
+  it("handles malformed mutant fields without inflating the score denominator", () => {
+    const metrics = summarizeMutationReport(
+      { files: { "src/lib/malformed.ts": { mutants: [{}] } } },
+      new Set(["src/lib/malformed.ts"]),
+    );
+
+    expect(metrics).toMatchObject({
+      score: null,
+      counts: { Unknown: 1 },
+      valid_mutants: 0,
+      detected_mutants: 0,
+      high_risk_survivors: [],
+      high_risk_no_coverage: [],
+    });
+  });
+
+  it("separates high-risk survivors and no-coverage mutants", () => {
+    const metrics = summarizeMutationReport(
+      {
+        files: {
+          "src/lib/calculator.ts": {
+            mutants: [
+              { id: "1", status: "Survived" },
+              { id: "2", status: "NoCoverage" },
+            ],
+          },
+        },
+      },
+      new Set(["src/lib/calculator.ts"]),
+    );
+
+    expect(metrics.high_risk_survivors.map((mutant) => mutant.id)).toEqual(["1"]);
+    expect(metrics.high_risk_no_coverage.map((mutant) => mutant.id)).toEqual(["2"]);
+  });
+
+  it("keeps plan reasons and report summaries deterministic", () => {
+    const criticalRiskMap: RiskMap = {
+      ...riskMap,
+      rules: [
+        ...riskMap.rules,
+        {
+          id: "QUALITY",
+          profile: "Q2_CRITICAL_CHANGE_GATE",
+          patterns: ["scripts/quality/**"],
+          reason: "Quality-system core",
+        },
+      ],
+    };
+    const selection = selectMutationTargets(
+      "critical",
+      [
+        "src/lib/calculator.ts",
+        "scripts/quality/mutation-core.ts",
+        "scripts/quality/classifier-core.ts",
+      ],
+      {
+        committed: ["scripts/quality/mutation-core.ts"],
+        staged: [],
+        unstaged: [],
+        untracked: ["scripts/quality/classifier-core.ts"],
+      },
+      criticalRiskMap,
+      registry,
+    );
+    const report = {
+      files: {
+        "src/lib/z.ts": {
+          mutants: [{ id: "2", mutatorName: "BooleanLiteral", status: "Survived" }],
+        },
+        "src/lib/a.ts": {
+          mutants: [{ id: "1", mutatorName: "ArithmeticOperator", status: "Killed" }],
+        },
+      },
+    };
+
+    expect(selection.targets).toEqual([
+      "scripts/quality/classifier-core.ts",
+      "scripts/quality/mutation-core.ts",
+      "src/lib/calculator.ts",
+    ]);
+    expect(selection.targetReasons["src/lib/calculator.ts"]).toEqual([
+      "registry:CALC: Critical calculation",
+      "risk-map:EXECUTABLE: src/lib/calculator.ts: ordinary executable change",
+    ]);
+    const summary = summarizeMutationReport(report, new Set());
+    expect(Object.keys(summary.counts)).toEqual(["Killed", "Survived"]);
+    expect(summary.survivors).toEqual([
+      {
+        file: "src/lib/z.ts",
+        id: "2",
+        mutator: "BooleanLiteral",
+        status: "Survived",
+        status_reason: null,
+        location: null,
+      },
+    ]);
   });
 });
 

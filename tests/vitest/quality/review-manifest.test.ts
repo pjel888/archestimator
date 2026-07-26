@@ -9,18 +9,56 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  buildCandidate,
+  candidateDigest,
+  type CandidateRecord,
+  type CanonicalCandidate,
+} from "../../../scripts/quality/candidate-core";
 import { validateManifest } from "../../../scripts/quality/report-core";
 import {
-  candidateSha256,
   githubReviewTypes,
   reviewRequirements,
   validateReviews,
   type ReviewEvidence,
 } from "../../../scripts/quality/review-core";
 
-const hash = "a".repeat(64);
 const commit = "b".repeat(40);
+const candidateRecord: CandidateRecord = {
+  schema_version: 1,
+  commit_sha: commit,
+  comparison_base: { input_ref: "base", resolved_sha: "c".repeat(40) },
+  profile: "Q2_CRITICAL_CHANGE_GATE",
+  changed_files: [
+    {
+      path: "quality/profiles.json",
+      sha256: "a".repeat(64),
+      deleted: false,
+      sources: ["unstaged"],
+    },
+  ],
+  affected_capabilities: [],
+};
+const candidate: CanonicalCandidate = {
+  record: candidateRecord,
+  sha256: candidateDigest(candidateRecord),
+};
+const hash = candidate.sha256;
 const artifact = { path: "artifacts/quality/example.json", sha256: hash };
+
+function wholeCandidateFiles(root: string, base: string): string[] {
+  const paths = new Set<string>();
+  const collect = (args: string[]) => {
+    const run = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+    if (run.status !== 0) throw new Error(run.stderr);
+    for (const path of run.stdout.split("\0").filter(Boolean)) paths.add(path);
+  };
+  collect(["diff", "-z", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB", base, "HEAD"]);
+  collect(["diff", "-z", "--cached", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB"]);
+  collect(["diff", "-z", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB"]);
+  collect(["ls-files", "-z", "--others", "--exclude-standard"]);
+  return [...paths].sort((left, right) => left.localeCompare(right));
+}
 
 function approval(
   review_type: "quality" | "security" | "release",
@@ -141,8 +179,7 @@ describe("independent review gate", () => {
     expect(
       validateReviews({
         requirements,
-        candidate_sha256: hash,
-        commit_sha: commit,
+        candidate,
         author_ids: ["author"],
         reviews: [approval("quality", "reviewer"), approval("security", "reviewer")],
       }).map((finding) => finding.code),
@@ -154,70 +191,86 @@ describe("independent review gate", () => {
     expect(
       validateReviews({
         requirements: { quality: true, security: false, release: false },
-        candidate_sha256: hash,
-        commit_sha: commit,
+        candidate,
         author_ids: ["author"],
         reviews: [stale, approval("quality", "author")],
       }).map((finding) => finding.code),
-    ).toEqual(
-      expect.arrayContaining([
-        "REVIEW_TARGET_MISMATCH",
-        "REVIEW_NOT_INDEPENDENT",
-        "REVIEW_REQUIRED",
-      ]),
-    );
+    ).toEqual([
+      "REVIEW_TARGET_MISMATCH",
+      "REVIEW_NOT_INDEPENDENT",
+      "REVIEW_REQUIRED",
+    ]);
+  });
+
+  it("requires every review field and enum plus the exact candidate commit", () => {
+    const malformed = [
+      { ...approval("quality", "reviewer-type"), review_type: "other" },
+      { ...approval("quality", ""), reviewer_id: "" },
+      { ...approval("quality", "reviewer-decision"), decision: "COMMENT" },
+      { ...approval("quality", "reviewer-digest"), candidate_sha256: "invalid" },
+      { ...approval("quality", "reviewer-commit"), commit_sha: undefined },
+      { ...approval("quality", "reviewer-date"), reviewed_at: "invalid" },
+      { ...approval("quality", "reviewer-mode"), read_only: false },
+      { ...approval("quality", "reviewer-source"), source: "local" },
+    ] as ReviewEvidence[];
+    const wrongHead = { ...approval("quality", "reviewer-head"), commit_sha: "d".repeat(40) };
+    const findings = validateReviews({
+      requirements: { quality: true, security: false, release: false },
+      candidate,
+      author_ids: [],
+      reviews: [...malformed, wrongHead],
+    });
+    expect(findings.map((finding) => finding.code)).toEqual([
+      ...Array.from({ length: malformed.length }, () => "REVIEW_MALFORMED"),
+      "REVIEW_TARGET_MISMATCH",
+      "REVIEW_REQUIRED",
+    ]);
   });
 
   it("binds deterministic candidate content and recognizes explicit GitHub review roles", () => {
-    const first = candidateSha256({
-      commit_sha: commit,
-      profile: "Q2_CRITICAL_CHANGE_GATE",
-      changed_files: [{ path: "quality/profiles.json", sha256: hash }],
-      affected_capabilities: [],
-    });
-    const second = candidateSha256({
-      commit_sha: commit,
-      profile: "Q2_CRITICAL_CHANGE_GATE",
-      changed_files: [{ path: "quality/profiles.json", sha256: "e".repeat(64) }],
-      affected_capabilities: [],
+    const first = candidateDigest(candidateRecord);
+    const second = candidateDigest({
+      ...candidateRecord,
+      changed_files: [{ ...candidateRecord.changed_files[0], sha256: "e".repeat(64) }],
     });
     expect(first).not.toBe(second);
+    expect(
+      validateReviews({
+        requirements: { quality: false, security: false, release: false },
+        candidate: { ...candidate, sha256: "0".repeat(64) },
+        author_ids: [],
+        reviews: [],
+      }).map((finding) => finding.code),
+    ).toEqual(["REVIEW_TARGET_MISMATCH"]);
     expect(githubReviewTypes("[quality-review]\nReview-Type: security")).toEqual([
       "quality",
       "security",
     ]);
   });
 
-  it("accepts hash-bound local independent artifacts without GitHub or network", () => {
+  it("accepts hash-bound local independent artifacts without GitHub or network", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const directory = mkdtempSync(resolve(tmpdir(), "archestimator-review-"));
     try {
-      const candidateCommit = spawnSync("git", ["rev-parse", "HEAD"], {
+      const base = spawnSync("git", ["rev-parse", "HEAD"], {
         cwd: root,
         encoding: "utf8",
       }).stdout.trim();
-      const profileBytes = readFileSync(resolve(root, "quality/profiles.json"));
-      const candidate = candidateSha256({
-        commit_sha: candidateCommit,
-        profile: "Q2_CRITICAL_CHANGE_GATE",
-        changed_files: [
-          {
-            path: "quality/profiles.json",
-            sha256: createHash("sha256").update(profileBytes).digest("hex"),
-          },
-        ],
+      const classification = {
+        profile: "Q2_CRITICAL_CHANGE_GATE" as const,
+        files: wholeCandidateFiles(root, base),
         affected_capabilities: [],
+        comparison_base: { input_ref: base, resolved_sha: base },
+      };
+      const canonical = await buildCandidate({
+        root,
+        comparison_base: classification.comparison_base,
+        classification,
       });
       const classificationPath = resolve(directory, "classification.json");
       writeFileSync(
         classificationPath,
-        JSON.stringify({
-          data: {
-            profile: "Q2_CRITICAL_CHANGE_GATE",
-            files: ["quality/profiles.json"],
-            affected_capabilities: [],
-          },
-        }),
+        JSON.stringify({ data: classification }),
       );
       const paths = [
         ["quality", "quality-reviewer"],
@@ -230,8 +283,8 @@ describe("independent review gate", () => {
             review_type,
             reviewer_id,
             decision: "APPROVE",
-            candidate_sha256: candidate,
-            commit_sha: candidateCommit,
+            candidate_sha256: canonical.sha256,
+            commit_sha: canonical.record.commit_sha,
             reviewed_at: "2026-07-25T00:00:00.000Z",
             read_only: true,
             source: "local-agent",
@@ -243,9 +296,13 @@ describe("independent review gate", () => {
       const run = spawnSync(
         "bun",
         [
-          "scripts/quality/review.ts",
+          resolve(root, "scripts/quality/review.ts"),
           "--classification",
           classificationPath,
+          "--base",
+          base,
+          "--base-sha",
+          base,
           "--reviews",
           paths.join(","),
           "--author-ids",
@@ -260,7 +317,7 @@ describe("independent review gate", () => {
         kind: "independent-review-gate",
         status: "PASS",
         data: {
-          candidate: { sha256: candidate },
+          candidate: { sha256: canonical.sha256 },
           source: "local-agent",
         },
       });
@@ -286,6 +343,7 @@ describe("final manifest and workflow contract", () => {
     expect(validateManifest(invalid).map((finding) => finding.code)).toEqual(
       expect.arrayContaining(["JOB_NOT_PASSING", "EXTERNAL_EVIDENCE_MALFORMED", "FALSE_PASS"]),
     );
+    expect(validateManifest(invalid).at(-1)?.code).toBe("FALSE_PASS");
   });
 
   it("makes anti-bypass, adapters, reviews, and full release mutation executable dependencies", () => {
@@ -327,7 +385,7 @@ describe("final manifest and workflow contract", () => {
     expect(packageJson.scripts["quality:reviews"]).toBe("bun scripts/quality/review.ts");
   });
 
-  it("builds and validates the final CI manifest from immutable job artifacts", () => {
+  it("builds and validates the final CI manifest from immutable job artifacts", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const directory = mkdtempSync(resolve(tmpdir(), "archestimator-manifest-"));
     try {
@@ -335,6 +393,7 @@ describe("final manifest and workflow contract", () => {
         cwd: root,
         encoding: "utf8",
       }).stdout.trim();
+      const baseSha = commitSha;
       const classification = {
         schema_version: 1,
         kind: "quality-classification",
@@ -345,17 +404,23 @@ describe("final manifest and workflow contract", () => {
         data: {
           profile: "Q0_CONTRACT_ONLY",
           reasons: ["prose"],
-          files: ["docs/quality/readme.md"],
+          files: wholeCandidateFiles(root, baseSha),
           affected_capabilities: [],
+          comparison_base: { input_ref: baseSha, resolved_sha: baseSha },
           fail_closed: false,
           attribution: {
-            merge_base: commitSha,
+            merge_base: baseSha,
             inherited_dirty_files: [],
             migration_changed_files: [],
             overlapping_files: [],
           },
         },
       };
+      const expectedCandidate = await buildCandidate({
+        root,
+        comparison_base: classification.data.comparison_base,
+        classification: classification.data,
+      });
       const definitions = [
         ["quality / classify", "classification.json", "quality-classification", classification],
         ["quality / contracts", "contracts.json", "quality-contracts"],
@@ -413,7 +478,7 @@ describe("final manifest and workflow contract", () => {
       const build = spawnSync(
         "bun",
         [
-          "scripts/quality/build-manifest.ts",
+          resolve(root, "scripts/quality/build-manifest.ts"),
           "--classification",
           resolve(directory, "classification.json"),
           "--jobs",
@@ -431,7 +496,7 @@ describe("final manifest and workflow contract", () => {
       const report = spawnSync(
         "bun",
         [
-          "scripts/quality/report.ts",
+          resolve(root, "scripts/quality/report.ts"),
           "--manifest",
           manifestPath,
           "--require-command-log",
@@ -446,12 +511,38 @@ describe("final manifest and workflow contract", () => {
         status: "PASS",
         data: {
           profile: "Q0_CONTRACT_ONLY",
+          candidate: {
+            commit_sha: expectedCandidate.record.commit_sha,
+            sha256: expectedCandidate.sha256,
+          },
           aggregate: { status: "PASS" },
           quality_domains: {
             test_health: { status: "PASS" },
           },
         },
       });
+      const mismatchManifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      mismatchManifest.data.candidate.sha256 = "0".repeat(64);
+      const mismatchManifestPath = resolve(directory, "mismatch-manifest.json");
+      writeFileSync(mismatchManifestPath, JSON.stringify(mismatchManifest));
+      const mismatchPath = resolve(directory, "mismatch-report.json");
+      const mismatch = spawnSync(
+        "bun",
+        [
+          resolve(root, "scripts/quality/report.ts"),
+          "--manifest",
+          mismatchManifestPath,
+          "--output",
+          mismatchPath,
+        ],
+        { cwd: root, encoding: "utf8" },
+      );
+      expect(mismatch.status).toBe(1);
+      const mismatchReport = JSON.parse(readFileSync(mismatchPath, "utf8"));
+      expect(mismatchReport).toMatchObject({ kind: "quality-report", status: "FAIL" });
+      expect(mismatchReport.findings.map((finding: { code: string }) => finding.code)).toContain(
+        "MANIFEST_MALFORMED",
+      );
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
