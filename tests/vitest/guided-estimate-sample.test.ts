@@ -345,6 +345,109 @@ describe("guided estimate sample", () => {
     });
   });
 
+  it("recreates guided practice when the bound project was archived", async () => {
+    const created = await startGuidedPractice();
+    database.sqlite.prepare(`
+      UPDATE projects
+      SET status = 'archived', updated_at = ?
+      WHERE id = ? AND workspace_id = ?
+    `).run(NOW, created.projectId, WORKSPACE_ID);
+
+    const recovered = await startGuidedPractice();
+
+    expect(recovered).toMatchObject({
+      tutorialVersion: 2,
+      tutorialGeneration: 2,
+      resumed: false,
+    });
+    expect(activePracticeProjects(database)).toEqual([
+      {
+        id: created.projectId,
+        status: "archived",
+        tutorial_generation: 1,
+      },
+      {
+        id: recovered.projectId,
+        status: "ongoing",
+        tutorial_generation: 2,
+      },
+    ]);
+  });
+
+  it("recreates and then resumes guided practice after permanent project deletion", async () => {
+    const created = await startGuidedPractice();
+    database.sqlite.prepare(
+      "DELETE FROM estimates WHERE project_id = ?",
+    ).run(created.projectId);
+    database.sqlite.prepare(
+      "DELETE FROM projects WHERE id = ? AND workspace_id = ?",
+    ).run(created.projectId, WORKSPACE_ID);
+
+    const recovered = await startGuidedPractice();
+    const resumed = await startGuidedPractice();
+
+    expect(recovered).toMatchObject({
+      tutorialVersion: 2,
+      tutorialGeneration: 2,
+      resumed: false,
+    });
+    expect(resumed).toEqual({
+      ...recovered,
+      resumed: true,
+    });
+    expect(activePracticeProjects(database)).toEqual([
+      {
+        id: recovered.projectId,
+        status: "ongoing",
+        tutorial_generation: 2,
+      },
+    ]);
+    expect(database.sqlite.prepare(`
+      SELECT tutorial_version, tutorial_generation, revision
+      FROM beta_onboarding_flow_states
+      WHERE user_id = ? AND workspace_id = ?
+        AND flow_key = 'guided_estimate_practice'
+    `).get(USER_ID, WORKSPACE_ID)).toEqual({
+      tutorial_version: 2,
+      tutorial_generation: 2,
+      revision: 1,
+    });
+  });
+
+  it("migrates a saved v1 practice binding to one current v2 project", async () => {
+    const legacy = await startGuidedPractice();
+    database.sqlite.prepare(`
+      UPDATE projects
+      SET metadata = json_set(metadata, '$.tutorial_version', 1)
+      WHERE id = ? AND workspace_id = ?
+    `).run(legacy.projectId, WORKSPACE_ID);
+    database.sqlite.prepare(`
+      UPDATE beta_onboarding_flow_states
+      SET tutorial_version = 1
+      WHERE user_id = ? AND workspace_id = ?
+        AND flow_key = 'guided_estimate_practice'
+    `).run(USER_ID, WORKSPACE_ID);
+
+    const migrated = await startGuidedPractice();
+
+    expect(migrated).toMatchObject({
+      tutorialVersion: 2,
+      tutorialGeneration: 1,
+      resumed: false,
+    });
+    expect(database.sqlite.prepare(`
+      SELECT
+        status,
+        CAST(json_extract(metadata, '$.tutorial_version') AS INTEGER) AS tutorial_version
+      FROM projects
+      WHERE id IN (?, ?)
+      ORDER BY tutorial_version
+    `).all(legacy.projectId, migrated.projectId)).toEqual([
+      { status: "archived", tutorial_version: 1 },
+      { status: "ongoing", tutorial_version: 2 },
+    ]);
+  });
+
   it("creates one fresh generation and fences stale generation or revision requests", async () => {
     const created = await startGuidedPractice();
     const state = database.sqlite.prepare(`

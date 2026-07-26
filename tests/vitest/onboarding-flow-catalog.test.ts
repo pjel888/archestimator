@@ -140,12 +140,12 @@ describe("onboarding flow catalog", () => {
       filterEligibleOnboardingSteps(definition, currentSnapshot, "desktop").map(
         (step) => step.key,
       ),
-    ).toEqual(["welcome", "workspace_map", "projects_entry", "guidance_and_help"]);
+    ).toEqual(["welcome", "projects_entry", "guidance_and_help"]);
     expect(
       filterEligibleOnboardingSteps(definition, currentSnapshot, "mobile").map(
         (step) => step.key,
       ),
-    ).toEqual(["welcome", "mobile_navigation", "projects_entry", "guidance_and_help"]);
+    ).toEqual(["welcome", "projects_entry", "guidance_and_help"]);
 
     const withoutTargets = snapshot({ availableTargets: [] });
     expect(
@@ -220,13 +220,28 @@ describe("onboarding flow catalog", () => {
       resolveSemanticResume(orientation, mobileSteps, "workspace_map"),
     ).toMatchObject({
       kind: "step",
-      step: { key: "mobile_navigation" },
+      step: { key: "projects_entry" },
       definitionChanged: true,
     });
     expect(resolveSemanticResume(orientation, [], "projects_entry")).toEqual({
       kind: "completed",
       definitionChanged: true,
     });
+  });
+
+  it("caps activation-session guides and keeps advanced lessons contextual", () => {
+    const orientation = getOnboardingFlowDefinition("core_orientation");
+    const practice = getOnboardingFlowDefinition("guided_estimate_practice");
+
+    expect(orientation.steps).toHaveLength(3);
+    expect(practice.steps.length).toBeLessThanOrEqual(7);
+    expect(practice.steps.map((step) => step.key)).toEqual([
+      "practice_workspace",
+      "practice_row_math",
+      "practice_price_and_save",
+      "practice_add_and_source",
+      "practice_organize",
+    ]);
   });
 
   it("does not turn starter seeds or passive route eligibility into activation credit", () => {

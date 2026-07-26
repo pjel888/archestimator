@@ -7,6 +7,7 @@ import type {
   D1Value,
 } from "@/lib/cloudflare/d1";
 import type { OnboardingMutationCommand } from "@/lib/onboarding/flow-repository";
+import { STARTER_PACK_VERSION } from "@/lib/onboarding/starter-pack";
 
 const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
@@ -98,6 +99,15 @@ class ActionStatement<T = Record<string, unknown>>
     if (this.sql.includes("has_existing_data")) {
       return { has_existing_data: this.database.hasExistingData } as R;
     }
+    if (
+      this.sql.includes("AS present")
+      && this.values.some((value) =>
+        typeof value === "string"
+        && this.database.activeStarterResourceIds.has(value)
+      )
+    ) {
+      return { present: 1 } as R;
+    }
     return null;
   }
 
@@ -121,6 +131,7 @@ class ActionDatabase implements D1DatabaseLike {
     workspace_role: "owner",
   };
   hasExistingData = 0;
+  activeStarterResourceIds = new Set<string>();
   firstCalls: Array<{ sql: string; values: D1Value[] }> = [];
 
   prepare<T = Record<string, unknown>>(sql: string) {
@@ -211,6 +222,204 @@ describe("onboarding starter readiness", () => {
       });
     },
   );
+
+  it("exposes the starter workspace state revision rather than the membership revision", async () => {
+    const database = new ActionDatabase();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    flowRepositoryMocks.listStarterPackStates.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        status: "complete",
+        revision: 4,
+        sharedMembershipRevision: 9,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: null,
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "user",
+        scopeOwnerId: "user-1",
+        status: "complete",
+        revision: 2,
+        sharedMembershipRevision: 9,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: null,
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+    ]);
+
+    const current = await loadCurrentOnboardingEligibilitySnapshot();
+
+    expect(current.starter).toMatchObject({
+      state: "complete",
+      workspaceRevision: 4,
+      userRevision: 9,
+    });
+  });
+
+  it("ignores inactive historical generations when the latest claim is active", async () => {
+    const database = new ActionDatabase();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    flowRepositoryMocks.listStarterPackStates.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        status: "complete",
+        revision: 5,
+        sharedMembershipRevision: 3,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: "2026-07-26T00:10:00.000Z",
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:10:00.000Z",
+      },
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "user",
+        scopeOwnerId: "user-1",
+        status: "complete",
+        revision: 1,
+        sharedMembershipRevision: 3,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: null,
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+    ]);
+    flowRepositoryMocks.listStarterAssetClaims.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        assetKey: "component.interior_paint_finish",
+        assetKind: "component",
+        starterGeneration: 1,
+        resourceId: "component-old",
+        lifecycleState: "missing",
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:05:00.000Z",
+      },
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        assetKey: "component.interior_paint_finish",
+        assetKind: "component",
+        starterGeneration: 2,
+        resourceId: "component-current",
+        lifecycleState: "active",
+        createdAt: "2026-07-26T00:10:00.000Z",
+        updatedAt: "2026-07-26T00:10:00.000Z",
+      },
+    ]);
+    database.activeStarterResourceIds.add("component-current");
+
+    const current = await loadCurrentOnboardingEligibilitySnapshot();
+
+    expect(current.starter).toMatchObject({
+      state: "complete",
+      inactiveAssetKeys: [],
+    });
+  });
+
+  it("reports recovery when an active claim no longer has a live resource", async () => {
+    const database = new ActionDatabase();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    flowRepositoryMocks.listStarterPackStates.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        status: "complete",
+        revision: 6,
+        sharedMembershipRevision: 2,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: null,
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "user",
+        scopeOwnerId: "user-1",
+        status: "complete",
+        revision: 1,
+        sharedMembershipRevision: 2,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: null,
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+    ]);
+    flowRepositoryMocks.listStarterAssetClaims.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        assetKey: "project.reference",
+        assetKind: "project",
+        starterGeneration: 1,
+        resourceId: "deleted-reference-project",
+        lifecycleState: "active",
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+    ]);
+
+    const current = await loadCurrentOnboardingEligibilitySnapshot();
+
+    expect(current.starter).toMatchObject({
+      state: "inactive_key_restore",
+      inactiveAssetKeys: ["project.reference"],
+    });
+  });
+
+  it("does not require a user-scoped starter state from workspace viewers", async () => {
+    const database = new ActionDatabase();
+    database.accessibleWorkspace = {
+      access_source: "workspace",
+      effective_role: "viewer",
+      estimate_id: null,
+      project_id: null,
+      workspace_created_by: "user-2",
+      workspace_id: "workspace-1",
+      workspace_role: "viewer",
+    };
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    flowRepositoryMocks.listStarterPackStates.mockResolvedValue([
+      {
+        workspaceId: "workspace-1",
+        packVersion: STARTER_PACK_VERSION,
+        scopeKind: "workspace",
+        scopeOwnerId: "workspace-1",
+        status: "complete",
+        revision: 2,
+        sharedMembershipRevision: 4,
+        installedAt: "2026-07-26T00:00:00.000Z",
+        lastRestoredAt: null,
+        createdAt: "2026-07-26T00:00:00.000Z",
+        updatedAt: "2026-07-26T00:00:00.000Z",
+      },
+    ]);
+
+    const current = await loadCurrentOnboardingEligibilitySnapshot();
+
+    expect(current.starter).toMatchObject({ state: "complete" });
+  });
 });
 
 describe("mutateCurrentOnboardingFlow authorization", () => {

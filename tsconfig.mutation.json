@@ -9,6 +9,7 @@
     ]
   },
   "include": [
+    "css-modules.d.ts",
     "vitest.mutation.config.ts"
   ],
   "exclude": [

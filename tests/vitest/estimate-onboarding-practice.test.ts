@@ -8,6 +8,7 @@ import type {
 } from "@/lib/cloudflare/d1";
 
 const flowMocks = vi.hoisted(() => ({
+  completeOnboardingFlowFromDomainProof: vi.fn(),
   getOnboardingFlowRunBinding: vi.fn(),
   getOnboardingFlowState: vi.fn(),
   hasCurrentTutorialPracticeCompletion: vi.fn(),
@@ -20,6 +21,8 @@ vi.mock("@/lib/onboarding/flow-repository", async (importOriginal) => {
   >();
   return {
     ...actual,
+    completeOnboardingFlowFromDomainProof:
+      flowMocks.completeOnboardingFlowFromDomainProof,
     getOnboardingFlowRunBinding: flowMocks.getOnboardingFlowRunBinding,
     getOnboardingFlowState: flowMocks.getOnboardingFlowState,
     hasCurrentTutorialPracticeCompletion:
@@ -203,6 +206,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   flowMocks.getOnboardingFlowRunBinding.mockResolvedValue(currentBinding());
   flowMocks.getOnboardingFlowState.mockResolvedValue(currentBinding().state);
+  flowMocks.completeOnboardingFlowFromDomainProof.mockResolvedValue({
+    status: "applied",
+    state: { ...currentBinding().state, status: "completed", revision: 8 },
+  });
   flowMocks.hasCurrentTutorialPracticeCompletion.mockResolvedValue(true);
   flowMocks.recordOnboardingDomainEvent.mockResolvedValue({ status: "recorded" });
 });
@@ -254,6 +261,16 @@ describe("estimate onboarding practice", () => {
     expect(eventInsert?.values[12]).toBe(7);
     expect(eventInsert?.values[13]).toBe(2);
     expect(eventInsert?.values[14]).toBe(3);
+    expect(flowMocks.completeOnboardingFlowFromDomainProof).toHaveBeenCalledWith(
+      database,
+      expect.objectContaining({
+        flowKey: "guided_estimate_practice",
+        expectedRevision: 7,
+        runId: "active-run",
+        source: "tutorial_practice",
+        proofSatisfied: true,
+      }),
+    );
 
     database.eventChanges = 0;
     await expect(

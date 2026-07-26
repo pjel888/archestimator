@@ -144,13 +144,29 @@ describe("GettingStartedProgress", () => {
     const user = userEvent.setup();
     render(<GettingStartedProgress snapshot={snapshot()} />);
 
+    if (!screen.queryByRole("button", { name: buttonName })) {
+      await user.click(screen.getByText("Explore finished examples and templates"));
+    }
     await user.click(screen.getByRole("button", { name: buttonName }));
 
     await waitFor(() => expect(mocks.selectPath).toHaveBeenCalledWith(path));
     expect(mocks.push).toHaveBeenCalledWith(href);
   });
 
-  it("keeps starter-dependent examples unavailable while guided practice remains available", () => {
+  it("shows no more than two immediate first-value choices", () => {
+    render(<GettingStartedProgress snapshot={snapshot()} />);
+
+    const recommendedPaths = screen.getByLabelText("Recommended start paths");
+    expect(within(recommendedPaths).getAllByRole("button")).toHaveLength(2);
+    expect(within(recommendedPaths).getByRole("button", { name: "Start guided practice" })).toBeEnabled();
+    expect(within(recommendedPaths).getByRole("button", { name: "Start from scratch" })).toBeEnabled();
+    expect(recommendedPaths).not.toContainElement(
+      screen.getByRole("button", { name: "Open example" }),
+    );
+  });
+
+  it("keeps starter-dependent examples unavailable while guided practice remains available", async () => {
+    const user = userEvent.setup();
     render(
       <GettingStartedProgress
         snapshot={snapshot({ starter: starter("explicit_add") })}
@@ -158,6 +174,7 @@ describe("GettingStartedProgress", () => {
     );
 
     expect(screen.getByRole("button", { name: "Start guided practice" })).toBeEnabled();
+    await user.click(screen.getByText("Explore finished examples and templates"));
     expect(screen.getByRole("button", { name: "Open example" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Open practice project" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add starter content" })).toBeEnabled();

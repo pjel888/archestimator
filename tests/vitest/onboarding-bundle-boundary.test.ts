@@ -116,11 +116,18 @@ describe("onboarding bundle boundary", () => {
       "src/components/onboarding/OnboardingClientBoundary.tsx",
       "utf8",
     );
+    const authenticatedHost = readFileSync(
+      "src/components/onboarding/AuthenticatedOnboardingHost.tsx",
+      "utf8",
+    );
 
     expect(workshopShell).toContain(
       'import { AuthenticatedOnboardingHost } from "@/components/onboarding/AuthenticatedOnboardingHost"',
     );
     expect(workshopShell).toContain("<AuthenticatedOnboardingHost />");
+    expect(authenticatedHost).toContain("await ensureDefaultWorkspace()");
+    expect(authenticatedHost.indexOf("await ensureDefaultWorkspace()"))
+      .toBeLessThan(authenticatedHost.indexOf("await loadCurrentOnboardingEligibilitySnapshot()"));
     expect(clientBoundary).toContain("const DynamicOnboardingTour = dynamic");
     expect(clientBoundary).toContain('import("./OnboardingTourClient")');
     expect(clientBoundary).not.toMatch(

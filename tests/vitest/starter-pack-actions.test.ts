@@ -233,8 +233,8 @@ describe("starter pack actions", () => {
       WHERE membership.workspace_id = ? AND membership.user_id = ?
       ORDER BY project.name
     `).all(WORKSPACE_ID, USER_ID)).toEqual([
-      { name: "Reference — Small Commercial Refresh" },
-      { name: "Tutorial — Residential Fit-Out" },
+      { name: "Casa Amihan - Guided Rizal Residence" },
+      { name: "Habi Studio - Quezon City Fit-Out" },
     ]);
     expect(database.sqlite.prepare(`
       SELECT COUNT(*) AS count
@@ -249,6 +249,53 @@ describe("starter pack actions", () => {
       WHERE row.material = 'Project-specific Feature Partition'
       LIMIT 1
     `).get()).toEqual({ classification: "express" });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM projects
+      WHERE workspace_id = ?
+        AND json_array_length(json_extract(metadata, '$.referenceSources')) >= 4
+        AND json_extract(metadata, '$.taxTreatment.basis') = 'EX_VAT'
+        AND json_extract(metadata, '$.taxTreatment.vatRate') = 0.12
+    `).get(WORKSPACE_ID)).toEqual({ count: 3 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM estimate_row_items
+      WHERE json_extract(source_snapshot_json, '$.pricingBasis') <> 'DEMO_ILLUSTRATIVE'
+        OR json_extract(source_snapshot_json, '$.taxTreatment.basis') <> 'EX_VAT'
+        OR json_array_length(json_extract(source_snapshot_json, '$.referenceSources')) < 4
+    `).get()).toEqual({ count: 0 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM cost_library_item_variant_cost_entries
+      WHERE source_url IS NOT NULL
+        AND json_extract(metadata_json, '$.taxTreatment.basis') = 'EX_VAT'
+        AND json_array_length(json_extract(metadata_json, '$.referenceSources')) >= 2
+    `).get()).toEqual({ count: 7 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM estimate_templates
+      WHERE json_extract(metadata, '$.taxTreatment.basis') = 'EX_VAT'
+        AND json_array_length(json_extract(metadata, '$.referenceSources')) = 2
+    `).get()).toEqual({ count: 3 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS row_count
+      FROM estimate_template_row_items
+      GROUP BY template_id
+      ORDER BY row_count
+    `).all()).toEqual([
+      { row_count: 3 },
+      { row_count: 3 },
+      { row_count: 3 },
+    ]);
+    expect(database.sqlite.prepare(`
+      SELECT json_array_length(json_extract(snapshot_json, '$.rows')) AS row_count
+      FROM estimate_template_versions
+      ORDER BY template_id
+    `).all()).toEqual([
+      { row_count: 3 },
+      { row_count: 3 },
+      { row_count: 3 },
+    ]);
     expect(database.sqlite.prepare(`
       SELECT
         (SELECT COUNT(*) FROM projects WHERE workspace_id = ?) AS projects,
@@ -300,6 +347,55 @@ describe("starter pack actions", () => {
     );
   });
 
+  it("restores from the latest inactive generation even when an older claim is active", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    database.sqlite.prepare(`
+      INSERT INTO beta_starter_asset_claims (
+        workspace_id, pack_version, scope_kind, scope_owner_id, asset_key,
+        asset_kind, starter_generation, resource_id, lifecycle_state,
+        created_at, updated_at
+      ) VALUES (
+        ?, ?, 'workspace', ?, 'component.interior_paint_finish', 'component',
+        2, 'superseded-component-placeholder', 'archived', ?, ?
+      )
+    `).run(
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+      WORKSPACE_ID,
+      NOW,
+      NOW,
+    );
+    const state = database.sqlite.prepare(`
+      SELECT revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+
+    await expect(
+      restoreStarterContent({ expectedRevision: Number(state?.revision) }),
+    ).resolves.toMatchObject({ ready: true });
+
+    expect(database.sqlite.prepare(`
+      SELECT starter_generation, lifecycle_state
+      FROM beta_starter_asset_claims
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace'
+        AND asset_key = 'component.interior_paint_finish'
+      ORDER BY starter_generation
+    `).all(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual([
+      { starter_generation: 1, lifecycle_state: "archived" },
+      { starter_generation: 2, lifecycle_state: "archived" },
+      { starter_generation: 3, lifecycle_state: "active" },
+    ]);
+    expect(activeClaimKeys(database, "workspace", WORKSPACE_ID)).toEqual(
+      [...STARTER_WORKSPACE_ASSET_KEYS].sort(),
+    );
+  });
+
   it("reports stale starter restore revision without blaming another session", async () => {
     await installStarterPackForNewWorkspace(database, {
       workspaceId: WORKSPACE_ID,
@@ -315,12 +411,34 @@ describe("starter pack actions", () => {
     database.sqlite.prepare(
       "DELETE FROM cost_library_items WHERE id = ? AND workspace_id = ?",
     ).run(missingClaim?.resource_id, WORKSPACE_ID);
+    const stateBefore = database.sqlite.prepare(`
+      SELECT revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
 
     await expect(
       restoreStarterContent({ expectedRevision: 999 }),
     ).rejects.toThrow(
       "Starter content changed before recovery finished. Refresh and try again.",
     );
+    expect(database.sqlite.prepare(`
+      SELECT lifecycle_state
+      FROM beta_starter_asset_claims
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace'
+        AND asset_key = 'component.interior_paint_finish'
+      ORDER BY starter_generation DESC LIMIT 1
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({
+      lifecycle_state: "active",
+    });
+    expect(database.sqlite.prepare(`
+      SELECT revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
   });
 
   it("rejects automatic shared installation for non-managers and nonempty workspaces", async () => {

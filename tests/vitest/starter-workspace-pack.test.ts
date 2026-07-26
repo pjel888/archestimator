@@ -6,6 +6,7 @@ import {
   GUIDED_SAMPLE_VERSION,
   STARTER_PACK_MANIFEST,
   STARTER_PACK_VERSION,
+  STARTER_REFERENCE_SOURCES,
   STARTER_USER_ASSET_KEYS,
   STARTER_WORKSPACE_ASSET_KEYS,
 } from "@/lib/onboarding/starter-pack";
@@ -17,7 +18,7 @@ describe("starter workspace pack", () => {
       0,
     );
 
-    expect(STARTER_PACK_VERSION).toBe(1);
+    expect(STARTER_PACK_VERSION).toBe(2);
     expect(GUIDED_SAMPLE_VERSION).toBe(2);
     expect(GUIDED_SAMPLE_KIND).toBe("estimate_sheet_foundations");
     expect(STARTER_PACK_MANIFEST.projects).toHaveLength(3);
@@ -25,6 +26,13 @@ describe("starter workspace pack", () => {
     expect(STARTER_PACK_MANIFEST.folders).toHaveLength(2);
     expect(STARTER_PACK_MANIFEST.components).toHaveLength(6);
     expect(STARTER_PACK_MANIFEST.templates).toHaveLength(3);
+    expect(
+      STARTER_PACK_MANIFEST.projects.flatMap((project) =>
+        project.estimates.flatMap((estimate) =>
+          estimate.nodes.flatMap((node) => node.rows)
+        )
+      ).length,
+    ).toBeGreaterThanOrEqual(20);
   });
 
   it("uses unique deterministic keys and valid cross-asset references", () => {
@@ -44,9 +52,22 @@ describe("starter workspace pack", () => {
     for (const component of STARTER_PACK_MANIFEST.components) {
       expect(folderKeys.has(component.folderKey)).toBe(true);
       expect(component.variants.filter((variant) => variant.isDefault)).toHaveLength(1);
+      expect(component.pricingAsOf).toBe("2026-07-26");
+      expect(component.expiresOn).toMatch(/^2026-/);
+      expect(component.referenceIds.length).toBeGreaterThanOrEqual(2);
+      expect(component.referenceIds.every((referenceId) =>
+        STARTER_REFERENCE_SOURCES[referenceId].url.startsWith("https://")
+      )).toBe(true);
+      expect(component.taxBasis).toBe("EX_VAT");
+      expect(component.vatRate).toBe(0.12);
     }
     for (const template of STARTER_PACK_MANIFEST.templates) {
-      expect(componentKeys.has(template.sourceComponentKey)).toBe(true);
+      expect(template.sourceComponentKeys.length).toBeGreaterThanOrEqual(3);
+      expect(
+        template.sourceComponentKeys.every((componentKey) =>
+          componentKeys.has(componentKey)
+        ),
+      ).toBe(true);
     }
   });
 
@@ -79,6 +100,21 @@ describe("starter workspace pack", () => {
     ).toEqual(["PHP", "PHP", "PHP"]);
     expect(
       STARTER_PACK_MANIFEST.projects.map((project) => project.projectCode),
-    ).toEqual(["START-TUT", "START-REF", "START-SBX"]);
+    ).toEqual(["PH-DEMO-CA", "PH-DEMO-HS", "PH-DEMO-SP"]);
+    expect(
+      STARTER_PACK_MANIFEST.projects.map((project) => project.location),
+    ).toEqual([
+      "Fictional Antipolo site, Rizal",
+      "Fictional Quezon City tenancy, NCR",
+      "Fictional Cebu City barangay site, Region VII",
+    ]);
+    expect(
+      STARTER_PACK_MANIFEST.projects.every((project) =>
+        project.sourceDisclaimer.includes("DEMO_ILLUSTRATIVE")
+        && project.referenceIds.length >= 4
+        && project.taxBasis === "EX_VAT"
+        && project.vatRate === 0.12
+      ),
+    ).toBe(true);
   });
 });

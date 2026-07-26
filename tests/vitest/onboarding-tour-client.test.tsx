@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Controls, EventData, Step } from "react-joyride";
 
@@ -9,6 +9,9 @@ import type {
   EligibleOnboardingFlow,
   OnboardingEligibilitySnapshot,
 } from "@/lib/onboarding/flow-types";
+import {
+  ONBOARDING_TARGET_HANDOFF_EVENT,
+} from "@/components/onboarding/onboarding-runtime-events";
 
 const mocks = vi.hoisted(() => ({
   onEvent: null as ((
@@ -125,6 +128,42 @@ function flow(): EligibleOnboardingFlow {
     (candidate) => candidate.key === "core_orientation",
   );
   if (!definition) throw new Error("Core orientation flow is unavailable.");
+  return {
+    definition,
+    steps: definition.steps,
+    state: null,
+  };
+}
+
+function firstValueFlow(): EligibleOnboardingFlow {
+  const definition = ONBOARDING_FLOW_CATALOG.find(
+    (candidate) => candidate.key === "first_estimate_value",
+  );
+  if (!definition) throw new Error("First-value flow is unavailable.");
+  const currentStep = definition.steps.find((step) => step.key === "add_priced_row");
+  if (!currentStep) throw new Error("First-value add-row step is unavailable.");
+  return {
+    definition,
+    steps: definition.steps,
+    state: {
+      flowKey: definition.key,
+      flowVersion: definition.version,
+      status: "in_progress",
+      currentStepKey: currentStep.key,
+      generation: 1,
+      revision: 2,
+      resetCount: 0,
+      tutorialBinding: null,
+      runId: "run-1",
+    },
+  };
+}
+
+function guidedPracticeFlow(): EligibleOnboardingFlow {
+  const definition = ONBOARDING_FLOW_CATALOG.find(
+    (candidate) => candidate.key === "guided_estimate_practice",
+  );
+  if (!definition) throw new Error("Guided-practice flow is unavailable.");
   return {
     definition,
     steps: definition.steps,
@@ -252,6 +291,77 @@ describe("OnboardingTourClient", () => {
     expect(mocks.initialStepIndex).toBe(0);
   });
 
+  it("carries automatic tour intent across route navigation", async () => {
+    const eligibleFlow = flow();
+    mocks.prepareRoute.mockImplementationOnce(async (input: {
+      navigate: (href: string) => void;
+    }) => {
+      input.navigate("/workshop/projects");
+      return { href: "/workshop/projects", ok: true };
+    });
+
+    render(
+      <OnboardingTourClient
+        flow={eligibleFlow}
+        launchMode="auto"
+        snapshot={snapshot()}
+        mutate={vi.fn()}
+        reducedMotion={false}
+        onLaunchIntentConsumed={vi.fn()}
+      />,
+    );
+
+    const routedStep = mocks.steps.find((step) => step.before);
+    await act(async () => {
+      await routedStep?.before?.();
+    });
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      "/workshop/projects?tour=core_orientation&mode=resume",
+    );
+  });
+
+  it("hands focus to the real target and returns without completing the step", async () => {
+    const eligibleFlow = firstValueFlow();
+    const stepIndex = eligibleFlow.steps.findIndex((step) => step.key === "add_priced_row");
+    const target = document.createElement("button");
+    target.dataset.onboardingTarget = "estimate.add_row";
+    Object.defineProperty(target, "getClientRects", {
+      value: () => [{ width: 120, height: 32 }],
+    });
+    document.body.append(target);
+
+    render(
+      <OnboardingTourClient
+        flow={eligibleFlow}
+        launchMode="resume"
+        snapshot={snapshot()}
+        mutate={vi.fn()}
+        reducedMotion={false}
+        onLaunchIntentConsumed={vi.fn()}
+      />,
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(ONBOARDING_TARGET_HANDOFF_EVENT, {
+        detail: { flowKey: "first_estimate_value", stepKey: "add_priced_row" },
+      }));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+
+    expect(mocks.stop).toHaveBeenCalled();
+    expect(target).toHaveFocus();
+    expect(mocks.replace).toHaveBeenCalledWith(
+      expect.stringContaining("tour=first_estimate_value&mode=resume"),
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(mocks.refresh).toHaveBeenCalled();
+    expect(mocks.start).toHaveBeenCalledWith(stepIndex);
+    expect(screen.queryByRole("button", { name: "Return to guide" })).not.toBeInTheDocument();
+    target.remove();
+  });
+
   it.each(["restart", "replay"] as const)(
     "starts a completed guide in %s mode",
     async (launchMode) => {
@@ -361,6 +471,8 @@ describe("OnboardingTourClient", () => {
       command: "start",
       expectedRevision: null,
       launchMode: "auto",
+      routeKey: eligibleFlow.steps[0]?.route,
+      viewportClass: "desktop",
     }));
   });
 
@@ -570,7 +682,7 @@ describe("OnboardingTourClient", () => {
     expect(
       screen.getByText("The next control is not available in the current view."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Skip this step" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip this step" })).not.toBeInTheDocument();
 
     mocks.start.mockClear();
     await act(async () => {
@@ -582,14 +694,14 @@ describe("OnboardingTourClient", () => {
   });
 
   it("advances an optional missing-target step through persisted state", async () => {
-    const eligibleFlow = flow();
+    const eligibleFlow = guidedPracticeFlow();
     const skippedIndex = eligibleFlow.steps.findIndex(
-      (step) => step.key === "workspace_map",
+      (step) => step.key === "practice_row_math",
     );
     const skippedStep = eligibleFlow.steps[skippedIndex];
     const nextStep = eligibleFlow.steps[skippedIndex + 1];
     if (!skippedStep || !nextStep) {
-      throw new Error("Core orientation optional step sequence is unavailable.");
+      throw new Error("Guided-practice optional step sequence is unavailable.");
     }
     eligibleFlow.state = {
       flowKey: eligibleFlow.definition.key,
@@ -599,7 +711,7 @@ describe("OnboardingTourClient", () => {
       generation: 1,
       revision: 2,
       resetCount: 0,
-      tutorialBinding: null,
+      tutorialBinding: { version: 2, generation: 1 },
       runId: "run-1",
     };
     const mutate = vi.fn()

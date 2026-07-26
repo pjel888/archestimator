@@ -10,7 +10,9 @@ import type {
   D1Value,
 } from "@/lib/cloudflare/d1";
 import {
+  completeOnboardingFlowFromDomainProof,
   getOnboardingFlowRunBinding,
+  importExistingOnboardingState,
   mutateOnboardingFlow,
   resetAllGuidance,
   type OnboardingMutationCommand,
@@ -451,6 +453,162 @@ describe("onboarding flow repository", () => {
         revision: 5,
         status: "dismissed",
       }),
+    });
+  });
+
+  it("rejects first-value completion without user-domain proof", async () => {
+    const started = await mutateOnboardingFlow(
+      database,
+      {
+        userId: USER_ID,
+        workspaceId: WORKSPACE_ID,
+        eligibleStepKeys: ["hierarchy"],
+      },
+      command({
+        command: "start",
+        flowKey: "first_estimate_value",
+        launchMode: "start",
+        mutationId: "first-value-start",
+      }),
+    );
+    if (started.status === "conflict") throw new Error("Expected first-value flow start.");
+
+    await expect(mutateOnboardingFlow(
+      database,
+      {
+        userId: USER_ID,
+        workspaceId: WORKSPACE_ID,
+        eligibleStepKeys: ["hierarchy"],
+      },
+      command({
+        command: "complete",
+        expectedRevision: started.state.revision,
+        expectedStepKey: "hierarchy",
+        flowKey: "first_estimate_value",
+        mutationId: "first-value-false-complete",
+        runId: started.runId,
+      }),
+    )).resolves.toEqual({
+      status: "conflict",
+      code: "ONBOARDING_DOMAIN_PROOF_REQUIRED",
+      state: expect.objectContaining({ status: "in_progress" }),
+    });
+  });
+
+  it("reconciles a valid user-domain total into completed first-value state", async () => {
+    const started = await mutateOnboardingFlow(
+      database,
+      {
+        userId: USER_ID,
+        workspaceId: WORKSPACE_ID,
+        eligibleStepKeys: ["hierarchy", "total_and_save"],
+      },
+      command({
+        command: "start",
+        flowKey: "first_estimate_value",
+        launchMode: "start",
+        mutationId: "first-value-domain-start",
+      }),
+    );
+    if (started.status === "conflict") throw new Error("Expected first-value flow start.");
+    database.sqlite.prepare(`
+      INSERT INTO beta_activation_progress (
+        user_id, workspace_id, last_milestone, first_value_completed_at,
+        last_event_at, created_at, updated_at
+      ) VALUES (?, ?, 'first_valid_total', ?, ?, ?, ?)
+    `).run(USER_ID, WORKSPACE_ID, NOW, NOW, NOW, NOW);
+    database.sqlite.prepare(`
+      INSERT INTO beta_activation_events (
+        id, user_id, workspace_id, milestone, source, origin_class,
+        occurred_at, dedupe_key, metadata_json, created_at
+      ) VALUES (
+        'first-valid-total-event', ?, ?, 'first_valid_total', 'estimate',
+        'user_domain', ?, 'first-valid-total', '{}', ?
+      )
+    `).run(USER_ID, WORKSPACE_ID, NOW, NOW);
+
+    await importExistingOnboardingState(database, {
+      userId: USER_ID,
+      workspaceId: WORKSPACE_ID,
+    });
+
+    expect(database.sqlite.prepare(`
+      SELECT status, current_step_key, revision
+      FROM beta_onboarding_flow_states
+      WHERE user_id = ? AND workspace_id = ?
+        AND flow_key = 'first_estimate_value'
+    `).get(USER_ID, WORKSPACE_ID)).toEqual({
+      status: "completed",
+      current_step_key: null,
+      revision: started.state.revision + 1,
+    });
+    expect(database.sqlite.prepare(`
+      SELECT event_type, source, route_key, step_key, state_revision
+      FROM beta_onboarding_flow_events
+      WHERE user_id = ? AND workspace_id = ?
+        AND flow_key = 'first_estimate_value'
+        AND idempotency_key = 'domain:first-valid-total:1'
+    `).get(USER_ID, WORKSPACE_ID)).toEqual({
+      event_type: "flow_completed",
+      source: "non_starter_domain",
+      route_key: "estimate_sheet",
+      step_key: "total_and_save",
+      state_revision: started.state.revision + 1,
+    });
+  });
+
+  it("completes guided practice only through the domain-proof contract", async () => {
+    database.sqlite.prepare(`
+      INSERT INTO beta_onboarding_flow_states (
+        user_id, workspace_id, flow_key, flow_version, generation,
+        tutorial_version, tutorial_generation, status, current_step_key,
+        revision, reset_count, started_at, created_at, updated_at
+      ) VALUES (
+        ?, ?, 'guided_estimate_practice', 1, 1, 2, 1, 'in_progress',
+        'practice_add_and_source', 3, 0, ?, ?, ?
+      )
+    `).run(USER_ID, WORKSPACE_ID, NOW, NOW, NOW);
+    database.sqlite.prepare(`
+      INSERT INTO beta_onboarding_flow_events (
+        id, user_id, workspace_id, flow_key, flow_version, generation,
+        tutorial_version, tutorial_generation, run_id, launch_mode, step_key,
+        event_type, source, idempotency_key, state_revision, occurred_at, ingested_at
+      ) VALUES (
+        'guided-run-event', ?, ?, 'guided_estimate_practice', 1, 1, 2, 1,
+        'guided-run', 'system', 'practice_add_and_source', 'sample_generated',
+        'tutorial_seed', 'guided-run-started', 3, ?, ?
+      )
+    `).run(USER_ID, WORKSPACE_ID, NOW, NOW);
+
+    const completed = await completeOnboardingFlowFromDomainProof(database, {
+      userId: USER_ID,
+      workspaceId: WORKSPACE_ID,
+      flowKey: "guided_estimate_practice",
+      expectedRevision: 3,
+      runId: "guided-run",
+      mutationId: "guided-domain-complete",
+      source: "tutorial_practice",
+      stepKey: "practice_add_and_source",
+      routeKey: "estimate_sheet",
+      proofSatisfied: true,
+    });
+
+    expect(completed).toEqual({
+      status: "applied",
+      state: expect.objectContaining({
+        status: "completed",
+        currentStepKey: null,
+        revision: 4,
+      }),
+    });
+    expect(database.sqlite.prepare(`
+      SELECT event_type, source, state_revision
+      FROM beta_onboarding_flow_events
+      WHERE idempotency_key = 'guided-domain-complete'
+    `).get()).toEqual({
+      event_type: "flow_completed",
+      source: "tutorial_practice",
+      state_revision: 4,
     });
   });
 

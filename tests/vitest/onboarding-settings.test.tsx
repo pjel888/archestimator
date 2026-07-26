@@ -146,6 +146,27 @@ describe("GuidanceToursSettings", () => {
     expect(mocks.setAutomaticGuidance).not.toHaveBeenCalled();
   });
 
+  it("distinguishes viewed orientation from completed domain work", () => {
+    const currentSnapshot = snapshot();
+    currentSnapshot.flowStates.push({
+      flowKey: "guided_estimate_practice",
+      flowVersion: 1,
+      status: "completed",
+      currentStepKey: null,
+      generation: 1,
+      revision: 3,
+      resetCount: 0,
+      tutorialBinding: null,
+    });
+
+    render(<GuidanceToursSettings snapshot={currentSnapshot} />);
+
+    expect(screen.getByRole("heading", { name: "Core orientation" }).closest("article"))
+      .toHaveTextContent("Viewed");
+    expect(screen.getByRole("heading", { name: "Estimate Sheet guide" }).closest("article"))
+      .toHaveTextContent("Completed");
+  });
+
   it("reactivates automatic guidance without resetting progress", async () => {
     const user = userEvent.setup();
     render(<GuidanceToursSettings snapshot={snapshot()} />);
