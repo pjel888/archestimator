@@ -4,7 +4,10 @@ import { createHash } from "node:crypto";
 
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import { buildClientPortalCostBreakdownPayload, buildClientPortalEstimateComparisonPayload, buildClientPortalFinancialSummaryPayload } from "@/lib/client-portal/financial-sections";
-import { publishClientPortalIssue, type ClientPortalPublishedIssue } from "@/lib/client-portal/issue-builder";
+import { publishClientPortalIssue, type ClientPortalIssuePackage, type ClientPortalPublishedIssue } from "@/lib/client-portal/issue-builder";
+import { getClientPortalIssueDraft } from "@/lib/client-portal/issue-draft-service";
+import type { ClientPortalIssueDraft } from "@/lib/client-portal/issue-draft-repository";
+import { createClientPortalIssueSourceProjection } from "@/lib/client-portal/issue-source-projection";
 import { buildClientPortalEstimateBrowserPayload } from "@/lib/client-portal/estimate-browser";
 import type { ClientPortalInternalActor } from "@/lib/client-portal/policy";
 import { parseClientPortalSectionDraft, type ClientPortalSectionDraft } from "@/lib/client-portal/section-registry";
@@ -61,6 +64,23 @@ type SectionSource = {
   visibility_policy_json: string;
 };
 type TabSource = { estimate_id: string; id: string; is_default: number; name: string; sort_order: number };
+type ArtifactPackageSource = {
+  artifact_id: string;
+  artifact_version_id: string;
+  content_sha256: string;
+  content_type: string;
+  description: string | null;
+  file_name: string;
+  size_bytes: number;
+  title: string;
+};
+type RequestPackageSource = {
+  content_hash: string;
+  request_code: string;
+  request_id: string;
+  request_version_id: string;
+  title: string;
+};
 type PublicationSource = {
   drafts: ClientPortalSectionDraft[];
   estimateIds: string[];
@@ -77,7 +97,7 @@ const MAX_CONSISTENCY_SOURCE_READS = 3;
 const MINOR_UNIT_FACTOR = 10 ** ESTIMATE_CALCULATION_CURRENCY_SCALE;
 
 export class ClientPortalPublishError extends Error {
-  constructor(public readonly code: "client_portal_publish_invalid" | "client_portal_publish_not_found", message: string) {
+  constructor(public readonly code: "client_portal_publish_invalid" | "client_portal_publish_not_found" | "client_portal_publish_stale", message: string) {
     super(message);
     this.name = "ClientPortalPublishError";
   }
@@ -147,6 +167,23 @@ function selectedEstimateIds(drafts: readonly ClientPortalSectionDraft[]) {
     if (draft.kind === "estimate_browser") for (const id of draft.config.selectedEstimateIds ?? []) ids.add(id);
   }
   return [...ids].sort();
+}
+
+function issuePackageEstimateIds(draft: ClientPortalIssueDraft) {
+  return draft.estimates
+    .filter((selection) => selection.included)
+    .sort((left, right) => left.sortOrder - right.sortOrder || left.estimateId.localeCompare(right.estimateId))
+    .map((selection) => selection.estimateId);
+}
+
+function applyIssuePackageEstimateScope(drafts: readonly ClientPortalSectionDraft[], estimateIds: readonly string[]) {
+  return drafts.map((draft) => parseClientPortalSectionDraft({
+    ...draft,
+    dataScope: { ...draft.dataScope, selectedEstimateIds: [...estimateIds] },
+    config: draft.kind === "estimate_browser"
+      ? { ...draft.config, selectedEstimateIds: [...estimateIds] }
+      : draft.config,
+  }));
 }
 
 function sameStringSet(left: readonly string[], right: readonly string[]) {
@@ -241,7 +278,7 @@ function sourceFingerprint(source: PublicationSource, authoringSemanticHash: str
   }));
 }
 
-async function loadPublicationSource(database: D1DatabaseLike, portal: PortalSource): Promise<PublicationSource> {
+async function loadPublicationSource(database: D1DatabaseLike, portal: PortalSource, issueDraft?: ClientPortalIssueDraft): Promise<PublicationSource> {
   const sectionRows = await all<SectionSource>(
     database,
     `SELECT id, section_key, kind, title, description, sort_order, enabled, layout_mode, visibility_policy_json, data_scope_json,
@@ -251,9 +288,12 @@ async function loadPublicationSource(database: D1DatabaseLike, portal: PortalSou
      ORDER BY sort_order ASC, section_key ASC`,
     [portal.id],
   );
-  const drafts = sectionRows.map(draftFromRow);
+  const templateDrafts = sectionRows.map(draftFromRow);
+  const drafts = issueDraft
+    ? applyIssuePackageEstimateScope(templateDrafts, issuePackageEstimateIds(issueDraft))
+    : templateDrafts;
   if (!drafts.length) throw new ClientPortalPublishError("client_portal_publish_invalid", "Add at least one visible section before publishing.");
-  const estimateIds = selectedEstimateIds(drafts);
+  const estimateIds = issueDraft ? issuePackageEstimateIds(issueDraft) : selectedEstimateIds(drafts);
   if (!estimateIds.length) throw new ClientPortalPublishError("client_portal_publish_invalid", "Choose at least one estimate source before publishing.");
 
   const project = await database.prepare<ProjectSource>("SELECT id, name, project_code, currency_code, publication_source_revision FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1").bind(portal.project_id, portal.workspace_id).first<ProjectSource>();
@@ -269,9 +309,9 @@ async function loadPublicationSource(database: D1DatabaseLike, portal: PortalSou
   return { drafts, estimateIds, estimates, nodes, project, rows, sectionRows, tabs };
 }
 
-async function loadConsistentPublicationSource(database: D1DatabaseLike, portal: PortalSource) {
+async function loadConsistentPublicationSource(database: D1DatabaseLike, portal: PortalSource, issueDraft?: ClientPortalIssueDraft) {
   for (let read = 0; read < MAX_CONSISTENCY_SOURCE_READS; read += 1) {
-    const source = await loadPublicationSource(database, portal);
+    const source = await loadPublicationSource(database, portal, issueDraft);
     const sourceRevision = Math.max(0, Math.trunc(numberValue(source.project.publication_source_revision)));
     const revisionAfterRead = await database.prepare<{ publication_source_revision: number | string }>(
       "SELECT publication_source_revision FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",
@@ -293,6 +333,172 @@ async function loadConsistentPublicationSource(database: D1DatabaseLike, portal:
     }
   }
   throw new ClientPortalPublishError("client_portal_publish_invalid", "The selected estimate sources changed repeatedly while the issue was being prepared. Publish again after edits settle.");
+}
+
+function opaquePackageId(prefix: "artifact", namespace: string, sourceId: string) {
+  return `${prefix}_${sha256(`${namespace}\u001f${sourceId}`).slice(0, 32)}`;
+}
+
+async function loadIssuePackage(
+  database: D1DatabaseLike,
+  draft: ClientPortalIssueDraft,
+  input: {
+    namespace: string;
+    snapshotEstimatesBySourceId: ReadonlyMap<string, PublicationSnapshotEstimate>;
+    sourceRevision: number;
+  },
+): Promise<ClientPortalIssuePackage> {
+  const selectedEstimateIds = issuePackageEstimateIds(draft);
+  const estimates = selectedEstimateIds.map((sourceEstimateId, sortOrder) => {
+    const snapshot = input.snapshotEstimatesBySourceId.get(sourceEstimateId);
+    if (!snapshot) throw new ClientPortalPublishError("client_portal_publish_invalid", "A selected estimate is no longer available for this issue draft.");
+    return {
+      publicEstimateId: snapshot.id,
+      sortOrder,
+      sourceEstimateId,
+      sourceHash: sha256(canonicalJson(snapshot)),
+      sourceRevision: input.sourceRevision,
+    };
+  });
+
+  const artifactVersionIds = draft.artifacts.map((selection) => selection.artifactVersionId);
+  const artifactRows = artifactVersionIds.length > 0
+    ? await all<ArtifactPackageSource>(
+        database,
+        `SELECT artifact.id AS artifact_id, version.id AS artifact_version_id, artifact.title,
+                version.file_name, version.content_type, version.size_bytes, version.content_sha256,
+                version.description
+         FROM project_artifact_versions version
+         JOIN project_artifacts artifact
+           ON artifact.id = version.artifact_id
+          AND artifact.workspace_id = version.workspace_id
+          AND artifact.project_id = version.project_id
+         JOIN upload_assets upload ON upload.id = version.upload_asset_id
+         WHERE version.workspace_id = ? AND version.project_id = ?
+           AND version.id IN (${artifactVersionIds.map(() => "?").join(", ")})
+           AND artifact.status = 'active'
+           AND upload.status = 'finalized' AND upload.purge_state = 'active'
+           AND (
+             upload.scan_status = 'clean'
+             OR (
+               upload.scan_status = 'override_approved'
+               AND upload.scan_override_checksum_sha256 = version.content_sha256
+               AND upload.scan_override_expires_at > ?
+             )
+           )`,
+        [draft.workspaceId, draft.projectId, ...artifactVersionIds, new Date().toISOString()],
+      )
+    : [];
+  if (artifactRows.length !== artifactVersionIds.length) {
+    throw new ClientPortalPublishError("client_portal_publish_invalid", "One or more selected artifact versions are no longer publishable.");
+  }
+  const artifactByVersionId = new Map(artifactRows.map((row) => [row.artifact_version_id, row]));
+  const artifacts = draft.artifacts.map((selection) => {
+    const row = artifactByVersionId.get(selection.artifactVersionId);
+    if (!row) throw new ClientPortalPublishError("client_portal_publish_invalid", "A selected artifact version is unavailable.");
+    return {
+      artifactId: row.artifact_id,
+      artifactVersionId: row.artifact_version_id,
+      commentable: selection.commentable,
+      contentSha256: row.content_sha256,
+      contentType: row.content_type,
+      decisionRelevant: selection.decisionRelevant,
+      description: selection.description ?? row.description,
+      displayTitle: selection.displayTitle ?? row.title,
+      downloadable: selection.downloadable,
+      fileName: row.file_name,
+      publicArtifactId: opaquePackageId("artifact", input.namespace, row.artifact_version_id),
+      purpose: selection.purpose,
+      sizeBytes: row.size_bytes,
+      sortOrder: selection.sortOrder,
+    };
+  });
+
+  const requestVersionIds = draft.requests.map((selection) => selection.requestVersionId);
+  const requestRows = requestVersionIds.length > 0
+    ? await all<RequestPackageSource>(
+        database,
+        `SELECT request.id AS request_id, request.request_code,
+                version.id AS request_version_id, version.title, version.content_hash
+         FROM project_change_request_versions version
+         JOIN project_change_requests request ON request.id = version.request_id
+         WHERE request.workspace_id = ? AND request.project_id = ?
+           AND request.status <> 'initializing'
+           AND version.id IN (${requestVersionIds.map(() => "?").join(", ")})`,
+        [draft.workspaceId, draft.projectId, ...requestVersionIds],
+      )
+    : [];
+  if (requestRows.length !== requestVersionIds.length) {
+    throw new ClientPortalPublishError("client_portal_publish_invalid", "One or more selected request versions are no longer available.");
+  }
+  const requestByVersionId = new Map(requestRows.map((row) => [row.request_version_id, row]));
+  const requests = draft.requests.map((selection) => {
+    const row = requestByVersionId.get(selection.requestVersionId);
+    if (!row || row.request_id !== selection.requestId) {
+      throw new ClientPortalPublishError("client_portal_publish_invalid", "A selected request version does not belong to its request.");
+    }
+    return {
+      contentHash: row.content_hash,
+      relationship: selection.relationship,
+      requestCode: row.request_code,
+      requestId: row.request_id,
+      requestVersionId: row.request_version_id,
+      sortOrder: selection.sortOrder,
+      title: row.title,
+    };
+  });
+
+  if (!draft.revisionNote?.trim()) {
+    throw new ClientPortalPublishError("client_portal_publish_invalid", "Add a final revision narrative before publishing.");
+  }
+  return {
+    artifacts,
+    basedOnBaselineId: draft.basedOnBaselineId,
+    comparisonIssueId: draft.comparisonIssueId,
+    draftId: draft.id,
+    draftRevision: draft.draftRevision,
+    estimates,
+    issueKind: draft.issueKind,
+    requestedDecision: draft.requestedDecision,
+    requests,
+    revisionNote: draft.revisionNote,
+    sectionOverrides: draft.sectionOverrides,
+    unresolvedItems: draft.unresolvedItems,
+  };
+}
+
+async function assertIssuePackageCurrent(input: {
+  database: D1DatabaseLike;
+  draft: ClientPortalIssueDraft;
+  issuePackage: ClientPortalIssuePackage;
+  namespace: string;
+  snapshotEstimatesBySourceId: ReadonlyMap<string, PublicationSnapshotEstimate>;
+  sourceRevision: number;
+}) {
+  const currentPackage = await loadIssuePackage(input.database, input.draft, {
+    namespace: input.namespace,
+    snapshotEstimatesBySourceId: input.snapshotEstimatesBySourceId,
+    sourceRevision: input.sourceRevision,
+  });
+  if (canonicalJson(currentPackage) !== canonicalJson(input.issuePackage)) {
+    throw new ClientPortalPublishError("client_portal_publish_stale", "Selected artifact or request versions changed after issue readiness review.");
+  }
+  if (input.draft.basedOnBaselineId) {
+    const baseline = await input.database.prepare<{ id: string }>(
+      "SELECT id FROM client_portal_baselines WHERE id = ? AND portal_id = ? AND status = 'active' LIMIT 1",
+    ).bind(input.draft.basedOnBaselineId, input.draft.portalId).first<{ id: string }>();
+    if (!baseline) {
+      throw new ClientPortalPublishError("client_portal_publish_stale", "The selected comparison baseline is no longer active.");
+    }
+  }
+  if (input.draft.comparisonIssueId) {
+    const comparisonIssue = await input.database.prepare<{ id: string }>(
+      "SELECT id FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1",
+    ).bind(input.draft.comparisonIssueId, input.draft.portalId).first<{ id: string }>();
+    if (!comparisonIssue) {
+      throw new ClientPortalPublishError("client_portal_publish_stale", "The selected comparison issue is no longer available.");
+    }
+  }
 }
 
 function groupByEstimate<T extends { estimate_id: string }>(rows: readonly T[]) {
@@ -363,13 +569,25 @@ function payloadForSection(
   }
 }
 
-export async function publishClientPortalDraft({ actor, database, idempotencyKey, portalId }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; idempotencyKey: string; portalId: string }): Promise<ClientPortalPublishedIssue> {
+export async function publishClientPortalDraft({ actor, database, draftId, idempotencyKey, portalId }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; draftId?: string; idempotencyKey: string; portalId: string }): Promise<ClientPortalPublishedIssue> {
   const portal = await database.prepare<PortalSource>("SELECT id, workspace_id, project_id, status FROM client_portals WHERE id = ? LIMIT 1").bind(portalId).first<PortalSource>();
   if (!portal || portal.project_id !== actor.projectId || portal.workspace_id !== actor.workspaceId) throw new ClientPortalPublishError("client_portal_publish_not_found", "Client Portal was not found.");
-  const { authoringSemanticHash, estimates, fingerprint, source, sourceRevision } = await loadConsistentPublicationSource(database, portal);
+  const issueDraft = draftId
+    ? await getClientPortalIssueDraft(database, {
+        draftId,
+        portalId: portal.id,
+        projectId: portal.project_id,
+        workspaceId: portal.workspace_id,
+      })
+    : undefined;
+  if (issueDraft && issueDraft.status !== "ready") {
+    throw new ClientPortalPublishError("client_portal_publish_invalid", "Issue draft must be ready before publishing.");
+  }
+  const { authoringSemanticHash, estimates, fingerprint, source, sourceRevision } = await loadConsistentPublicationSource(database, portal, issueDraft);
+  const namespace = createPublicationOpaqueIdNamespace(source.project.id, authoringSemanticHash);
   const snapshot = sanitizeProjectPublicationSnapshotForPublicRead(buildProjectPublicationSnapshot({
     generatedAt: new Date().toISOString(),
-    idNamespace: createPublicationOpaqueIdNamespace(source.project.id, authoringSemanticHash),
+    idNamespace: namespace,
     semanticHash: authoringSemanticHash,
     sourceRevision,
     project: { id: source.project.id, name: source.project.name, projectCode: source.project.project_code, clientName: null, location: null, locationVisibility: "hidden", currencyCode: source.project.currency_code },
@@ -377,16 +595,33 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
   }));
   const estimatesBySourceId = new Map(source.estimates.map((estimate, index) => [estimate.id, snapshot.estimates[index]!]));
   const totalCostMinorUnits = snapshot.totalCostMinorUnits ?? Math.round(snapshot.totalCost * MINOR_UNIT_FACTOR);
+  const issuePackage = issueDraft
+    ? await loadIssuePackage(database, issueDraft, {
+        namespace,
+        snapshotEstimatesBySourceId: estimatesBySourceId,
+        sourceRevision,
+      })
+    : undefined;
+  const privateSourceProjection = issuePackage
+    ? createClientPortalIssueSourceProjection({
+        currencyCode: source.project.currency_code,
+        estimates,
+        estimateSourceHashes: new Map(issuePackage.estimates.map((estimate) => [estimate.sourceEstimateId, estimate.sourceHash])),
+      })
+    : undefined;
 
   return publishClientPortalIssue({
     actor,
     database,
     idempotencyKey,
+    issuePackage,
+    privateSourceProjection,
     portalId: portal.id,
+    versionLabel: issueDraft?.versionLabel ?? undefined,
     source: {
       currencyCode: source.project.currency_code,
-      decisionPolicySnapshot: { requiredApprovals: 1, rule: "any_approver", scope: "issue" },
-      exclusions: [],
+      decisionPolicySnapshot: issueDraft?.decisionPolicy ?? { requiredApprovals: 1, rule: "any_approver", scope: "issue" },
+      exclusions: issueDraft?.exclusions ?? [],
       projectSnapshot: { code: source.project.project_code, name: source.project.name },
       projectionSchemaVersion: CLIENT_PORTAL_PROJECTION_SCHEMA_VERSION,
       authoringSemanticHash,
@@ -395,10 +630,31 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
       semanticHash: fingerprint,
       totalCost: snapshot.totalCost,
       totalCostMinorUnits,
-      assumptions: [],
+      assumptions: issueDraft?.assumptions ?? [],
     },
     assertSourceCurrent: async () => {
-      const current = await loadPublicationSource(database, portal);
+      const currentIssueDraft = issueDraft
+        ? await getClientPortalIssueDraft(database, {
+            draftId: issueDraft.id,
+            portalId: portal.id,
+            projectId: portal.project_id,
+            workspaceId: portal.workspace_id,
+          })
+        : undefined;
+      if (currentIssueDraft && (currentIssueDraft.status !== "ready" || currentIssueDraft.draftRevision !== issueDraft?.draftRevision)) {
+        throw new ClientPortalPublishError("client_portal_publish_stale", "Issue draft changed before publication. Review readiness and publish again.");
+      }
+      if (currentIssueDraft && issuePackage) {
+        await assertIssuePackageCurrent({
+          database,
+          draft: currentIssueDraft,
+          issuePackage,
+          namespace,
+          snapshotEstimatesBySourceId: estimatesBySourceId,
+          sourceRevision,
+        });
+      }
+      const current = await loadPublicationSource(database, portal, currentIssueDraft);
       const currentRevision = Math.max(0, Math.trunc(numberValue(current.project.publication_source_revision)));
       const currentEstimates = authoringEstimates(current);
       const currentAuthoringSemanticHash = createPublicationAuthoringSemanticHash({
@@ -407,7 +663,7 @@ export async function publishClientPortalDraft({ actor, database, idempotencyKey
         estimates: currentEstimates,
       });
       if (currentRevision !== sourceRevision || sourceFingerprint(current, currentAuthoringSemanticHash) !== fingerprint) {
-        throw new ClientPortalPublishError("client_portal_publish_invalid", "Client Portal source content changed before issue commit. Publish again to issue one consistent revision.");
+        throw new ClientPortalPublishError("client_portal_publish_stale", "Client Portal source content changed before issue commit. Publish again to issue one consistent revision.");
       }
     },
     buildSectionPayload: async ({ draft }) => payloadForSection(draft, {

@@ -54,9 +54,9 @@ export async function reorderClientPortalSectionsAction({ portalId, projectId, s
   revalidatePath(detailPath(projectId, portalId));
 }
 
-export async function publishClientPortalDraftAction({ idempotencyKey, portalId, projectId }: { idempotencyKey: string; portalId: string; projectId: string }) {
+export async function publishClientPortalDraftAction({ draftId, idempotencyKey, portalId, projectId }: { draftId?: string; idempotencyKey: string; portalId: string; projectId: string }) {
   const { actor, database } = await context(projectId);
-  const issue = await publishClientPortalDraft({ actor, database, idempotencyKey, portalId });
+  const issue = await publishClientPortalDraft({ actor, database, draftId, idempotencyKey, portalId });
   revalidatePath(detailPath(projectId, portalId));
   return issue;
 }

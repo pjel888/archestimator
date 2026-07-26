@@ -11,6 +11,12 @@ import {
   summarizeClientPortalEstimateBrowserPayload,
   type ClientPortalEstimateBrowserPayload,
 } from "@/lib/client-portal/estimate-browser";
+import type {
+  ClientPortalIssueArtifactPurpose,
+  ClientPortalIssueKind,
+  ClientPortalIssueRequestRelationship,
+} from "@/lib/client-portal/issue-draft-contracts";
+import type { ClientPortalIssueSourceProjection } from "@/lib/client-portal/issue-source-projection";
 import { ESTIMATE_CALCULATION_CURRENCY_SCALE } from "@/lib/estimates/estimate-row-total";
 import { type ClientPortalInternalActor, evaluateClientPortalPolicy } from "@/lib/client-portal/policy";
 import {
@@ -101,11 +107,57 @@ export type ClientPortalD1PayloadReference = {
 
 export type ClientPortalIssuePayloadReference = ClientPortalR2PayloadReference | ClientPortalD1PayloadReference;
 
+export type ClientPortalIssuePackage = {
+  artifacts: readonly {
+    artifactId: string;
+    artifactVersionId: string;
+    commentable: boolean;
+    contentSha256: string;
+    contentType: string;
+    decisionRelevant: boolean;
+    description: string | null;
+    displayTitle: string;
+    downloadable: boolean;
+    fileName: string;
+    publicArtifactId: string;
+    purpose: ClientPortalIssueArtifactPurpose;
+    sizeBytes: number;
+    sortOrder: number;
+  }[];
+  basedOnBaselineId: string | null;
+  comparisonIssueId: string | null;
+  draftId: string;
+  draftRevision: number;
+  estimates: readonly {
+    publicEstimateId: string;
+    sortOrder: number;
+    sourceEstimateId: string;
+    sourceHash: string;
+    sourceRevision: number;
+  }[];
+  issueKind: ClientPortalIssueKind;
+  requestedDecision: "none" | "acknowledgement" | "formal";
+  requests: readonly {
+    contentHash: string;
+    relationship: ClientPortalIssueRequestRelationship;
+    requestCode: string;
+    requestId: string;
+    requestVersionId: string;
+    sortOrder: number;
+    title: string;
+  }[];
+  revisionNote: string;
+  sectionOverrides: JsonRecord;
+  unresolvedItems: readonly string[];
+};
+
 export type ClientPortalIssueBuildInput = {
   actor: ClientPortalInternalActor;
   buildSectionPayload: (input: { draft: ClientPortalSectionDraft; sectionKey: string }) => Promise<unknown>;
   database: D1DatabaseLike;
   idempotencyKey: string;
+  issuePackage?: ClientPortalIssuePackage;
+  privateSourceProjection?: ClientPortalIssueSourceProjection;
   portalId: string;
   source: ClientPortalIssueSource;
   assertSourceCurrent?: () => Promise<void>;
@@ -204,6 +256,55 @@ function requireSource(source: ClientPortalIssueSource) {
   }
   if (!Number.isSafeInteger(source.projectionSchemaVersion) || source.projectionSchemaVersion < 1) {
     throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue projectionSchemaVersion must be a positive integer.");
+  }
+}
+
+function requireIssuePackage(issuePackage: ClientPortalIssuePackage | undefined, source: ClientPortalIssueSource) {
+  if (!issuePackage) return;
+  if (!issuePackage.draftId.trim() || !Number.isSafeInteger(issuePackage.draftRevision) || issuePackage.draftRevision < 1) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue package draft identity is invalid.");
+  }
+  if (!issuePackage.revisionNote.trim()) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue package revision note is required.");
+  }
+  const packageEstimateIds = issuePackage.estimates.map((estimate) => estimate.sourceEstimateId);
+  if (packageEstimateIds.length !== source.selectedEstimateIds.length || packageEstimateIds.some((id) => !source.selectedEstimateIds.includes(id))) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue package estimates must match the issued source selection.");
+  }
+  const publicEstimateIds = issuePackage.estimates.map((estimate) => estimate.publicEstimateId);
+  if (new Set(publicEstimateIds).size !== publicEstimateIds.length || issuePackage.estimates.some((estimate) => !/^[a-f0-9]{64}$/.test(estimate.sourceHash))) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue package estimate projections are invalid.");
+  }
+  const publicArtifactIds = issuePackage.artifacts.map((artifact) => artifact.publicArtifactId);
+  if (new Set(publicArtifactIds).size !== publicArtifactIds.length || issuePackage.artifacts.some((artifact) => !/^[a-f0-9]{64}$/.test(artifact.contentSha256))) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue package artifact projections are invalid.");
+  }
+  if (issuePackage.requests.some((request) => !/^[a-f0-9]{64}$/.test(request.contentHash))) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue package request projections are invalid.");
+  }
+}
+
+function requirePrivateSourceProjection(
+  projection: ClientPortalIssueSourceProjection | undefined,
+  issuePackage: ClientPortalIssuePackage | undefined,
+  source: ClientPortalIssueSource,
+) {
+  if (!projection) return;
+  if (!issuePackage) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Private issue source projections require an issue package draft.");
+  }
+  if (projection.currencyCode !== source.currencyCode || projection.totalMinorUnits !== source.totalCostMinorUnits) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Private issue source projection totals must reconcile with the issued source.");
+  }
+  const packageEstimates = new Map(issuePackage.estimates.map((estimate) => [estimate.sourceEstimateId, estimate]));
+  if (projection.estimates.length !== packageEstimates.size) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Private issue source projections must match the package estimate selection.");
+  }
+  for (const estimate of projection.estimates) {
+    const packageEstimate = packageEstimates.get(estimate.sourceEstimateId);
+    if (!packageEstimate || packageEstimate.sourceHash !== estimate.sourceHash || estimate.currencyCode !== source.currencyCode) {
+      throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Private issue estimate projections must match the package source hashes.");
+    }
   }
 }
 
@@ -334,6 +435,8 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   if (!input.database.batch) throw new ClientPortalIssueBuildError("client_portal_batch_required", "Client Portal publish requires D1 batch support.");
   if (!input.idempotencyKey.trim()) throw new ClientPortalIssueBuildError("client_portal_invalid_input", "An idempotency key is required.");
   requireSource(input.source);
+  requireIssuePackage(input.issuePackage, input.source);
+  requirePrivateSourceProjection(input.privateSourceProjection, input.issuePackage, input.source);
 
   const portal = await first<PortalRow>(
     input.database,
@@ -379,6 +482,8 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     portalId: portal.id,
     brandSnapshot,
     source: input.source,
+    issuePackage: input.issuePackage ?? null,
+    privateSourceProjection: input.privateSourceProjection ?? null,
     sections: draftedSections.map(({ draft, policySnapshot, sectionKey }) => ({ draft, policySnapshot, sectionKey })),
     validThrough: input.validThrough ?? null,
     versionLabel: input.versionLabel?.trim() || null,
@@ -451,6 +556,34 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     totalCost: input.source.totalCost,
     currencyCode: input.source.currencyCode,
     project: input.source.projectSnapshot,
+    package: input.issuePackage ? {
+      issueKind: input.issuePackage.issueKind,
+      revisionNote: input.issuePackage.revisionNote,
+      requestedDecision: input.issuePackage.requestedDecision,
+      unresolvedItems: input.issuePackage.unresolvedItems,
+      estimates: input.issuePackage.estimates.map((estimate) => ({
+        id: estimate.publicEstimateId,
+        sortOrder: estimate.sortOrder,
+      })),
+      artifacts: input.issuePackage.artifacts.map((artifact) => ({
+        id: artifact.publicArtifactId,
+        purpose: artifact.purpose,
+        title: artifact.displayTitle,
+        description: artifact.description,
+        contentType: artifact.contentType,
+        sizeBytes: artifact.sizeBytes,
+        commentable: artifact.commentable,
+        downloadable: artifact.downloadable,
+        decisionRelevant: artifact.decisionRelevant,
+        sortOrder: artifact.sortOrder,
+      })),
+      requests: input.issuePackage.requests.map((request) => ({
+        code: request.requestCode,
+        title: request.title,
+        relationship: request.relationship,
+        sortOrder: request.sortOrder,
+      })),
+    } : null,
     sections: issuedSections.map(({ manifest: section, sectionKey }) => ({
       id: `section_${randomUUID()}`,
       kind: section.kind,
@@ -469,13 +602,21 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       `INSERT INTO client_portal_issues (
         id, portal_id, issue_number, version_label, status, issued_at, issued_by, idempotency_key, valid_through, supersedes_issue_id,
         manifest_json, content_hash, total_cost, currency_code, selected_estimate_ids_json, brand_snapshot_json,
-        decision_policy_snapshot_json, assumptions_json, exclusions_json, created_at
+        decision_policy_snapshot_json, assumptions_json, exclusions_json, created_at,
+        issue_kind, draft_id, based_on_baseline_id, comparison_issue_id, revision_note
       )
-      SELECT ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      SELECT ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       FROM client_portals source_portal
       JOIN projects source_project
         ON source_project.id = source_portal.project_id
        AND source_project.workspace_id = source_portal.workspace_id
+      ${input.issuePackage ? `JOIN client_portal_issue_drafts source_draft
+        ON source_draft.id = ?
+       AND source_draft.portal_id = source_portal.id
+       AND source_draft.project_id = source_portal.project_id
+       AND source_draft.workspace_id = source_portal.workspace_id
+       AND source_draft.status = 'ready'
+       AND source_draft.draft_revision = ?` : ""}
       WHERE source_portal.id = ?
         AND source_portal.workspace_id = ?
         AND source_portal.project_id = ?
@@ -484,10 +625,139 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         issueId, portal.id, issueNumber, versionLabel, issuedAt, input.actor.userId, input.idempotencyKey, input.validThrough ?? null, latestIssue?.id ?? null,
         canonicalJson(manifest), contentHash, input.source.totalCost, input.source.currencyCode, JSON.stringify(input.source.selectedEstimateIds),
         canonicalJson(brandSnapshot), canonicalJson(input.source.decisionPolicySnapshot), JSON.stringify(input.source.assumptions),
-        JSON.stringify(input.source.exclusions), issuedAt, portal.id, portal.workspace_id, portal.project_id, input.source.sourceRevision,
+        JSON.stringify(input.source.exclusions), issuedAt,
+        input.issuePackage?.issueKind ?? "initial_estimate", input.issuePackage?.draftId ?? null,
+        input.issuePackage?.basedOnBaselineId ?? null, input.issuePackage?.comparisonIssueId ?? null,
+        input.issuePackage?.revisionNote ?? null,
+        ...(input.issuePackage ? [input.issuePackage.draftId, input.issuePackage.draftRevision] : []),
+        portal.id, portal.workspace_id, portal.project_id, input.source.sourceRevision,
       ],
     ),
   ];
+
+  if (input.issuePackage) {
+    statements.push(
+      ...packedInsertStatements(
+        input.database,
+        "client_portal_issue_estimates",
+        ["issue_id", "source_estimate_id", "public_estimate_id", "sort_order", "source_revision", "source_hash"],
+        input.issuePackage.estimates.map((estimate) => [
+          issueId,
+          estimate.sourceEstimateId,
+          estimate.publicEstimateId,
+          estimate.sortOrder,
+          estimate.sourceRevision,
+          estimate.sourceHash,
+        ]),
+        commitGuard,
+      ),
+      ...input.issuePackage.artifacts.map((artifact) => conditionalInsertStatement(
+        input.database,
+        "client_portal_issue_artifacts",
+        [
+          "id", "issue_id", "artifact_id", "artifact_version_id", "public_artifact_id", "purpose", "display_title",
+          "description", "file_name_snapshot", "content_type_snapshot", "size_bytes_snapshot", "content_sha256_snapshot",
+          "commentable", "downloadable", "decision_relevant", "sort_order", "policy_snapshot_json", "created_at",
+        ],
+        [
+          `issue-artifact_${randomUUID()}`, issueId, artifact.artifactId, artifact.artifactVersionId, artifact.publicArtifactId,
+          artifact.purpose, artifact.displayTitle, artifact.description, artifact.fileName, artifact.contentType, artifact.sizeBytes,
+          artifact.contentSha256, artifact.commentable ? 1 : 0, artifact.downloadable ? 1 : 0,
+          artifact.decisionRelevant ? 1 : 0, artifact.sortOrder,
+          canonicalJson({ commentable: artifact.commentable, downloadable: artifact.downloadable }), issuedAt,
+        ],
+        commitGuard,
+      )),
+      ...input.issuePackage.requests.map((request) => conditionalInsertStatement(
+        input.database,
+        "client_portal_issue_requests",
+        [
+          "issue_id", "request_id", "request_version_id", "relationship", "request_code_snapshot",
+          "title_snapshot", "content_hash_snapshot", "sort_order",
+        ],
+        [
+          issueId, request.requestId, request.requestVersionId, request.relationship, request.requestCode,
+          request.title, request.contentHash, request.sortOrder,
+        ],
+        commitGuard,
+      )),
+    );
+  }
+
+  if (input.privateSourceProjection) {
+    statements.push(
+      ...packedInsertStatements(
+        input.database,
+        "client_portal_issue_source_estimates",
+        ["issue_id", "source_estimate_id", "sheet_code_snapshot", "name_snapshot", "total_minor_units", "currency_code", "source_hash"],
+        input.privateSourceProjection.estimates.map((estimate) => [
+          issueId,
+          estimate.sourceEstimateId,
+          estimate.sheetCode,
+          estimate.name,
+          estimate.totalMinorUnits,
+          estimate.currencyCode,
+          estimate.sourceHash,
+        ]),
+        commitGuard,
+      ),
+      ...packedInsertStatements(
+        input.database,
+        "client_portal_issue_source_rows",
+        [
+          "issue_id", "source_estimate_id", "source_tab_id", "source_node_id", "source_row_id", "source_component_id",
+          "source_variant_id", "row_revision", "description", "designation", "discipline", "material", "quantity_scaled",
+          "unit", "unit_cost_minor_units", "misc_cost_minor_units", "contingency_basis_points", "adjustment_basis_points",
+          "row_total_minor_units", "scope_status", "canonical_row_hash", "sort_order",
+        ],
+        input.privateSourceProjection.estimates.flatMap((estimate) => estimate.rows.map((row) => [
+          issueId,
+          row.sourceEstimateId,
+          row.sourceTabId,
+          row.sourceNodeId,
+          row.sourceRowId,
+          row.sourceComponentId,
+          row.sourceVariantId,
+          row.rowRevision,
+          row.description,
+          row.designation,
+          row.discipline,
+          row.material,
+          row.quantityScaled,
+          row.unit,
+          row.unitCostMinorUnits,
+          row.miscCostMinorUnits,
+          row.contingencyBasisPoints,
+          row.adjustmentBasisPoints,
+          row.rowTotalMinorUnits,
+          row.scopeStatus,
+          row.canonicalRowHash,
+          row.sortOrder,
+        ])),
+        commitGuard,
+      ),
+      ...packedInsertStatements(
+        input.database,
+        "client_portal_issue_source_nodes",
+        [
+          "issue_id", "source_estimate_id", "source_tab_id", "source_node_id", "parent_source_node_id", "kind", "name",
+          "sort_order", "canonical_node_hash",
+        ],
+        input.privateSourceProjection.estimates.flatMap((estimate) => estimate.nodes.map((node) => [
+          issueId,
+          node.sourceEstimateId,
+          node.sourceTabId,
+          node.sourceNodeId,
+          node.parentSourceNodeId,
+          node.kind,
+          node.name,
+          node.sortOrder,
+          node.canonicalNodeHash,
+        ])),
+        commitGuard,
+      ),
+    );
+  }
 
   for (const [index, section] of issuedSections.entries()) {
     const manifestSection = manifest.sections[index];
@@ -577,6 +847,21 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       commitGuard,
     ),
   );
+  if (input.issuePackage) {
+    statements.push(statement(
+      input.database,
+      `UPDATE client_portal_issue_drafts
+       SET status = 'published', published_issue_id = ?, published_at = ?, updated_at = ?, updated_by = ?
+       WHERE id = ? AND portal_id = ? AND project_id = ? AND workspace_id = ?
+         AND status = 'ready' AND draft_revision = ?
+         AND ${issueCommitGuardSql()}`,
+      [
+        issueId, issuedAt, issuedAt, input.actor.userId,
+        input.issuePackage.draftId, portal.id, portal.project_id, portal.workspace_id, input.issuePackage.draftRevision,
+        ...issueCommitGuardValues(commitGuard),
+      ],
+    ));
+  }
   for (const recipient of activeRecipients) {
     statements.push(
       conditionalInsertStatement(

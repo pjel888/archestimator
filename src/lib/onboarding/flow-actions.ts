@@ -465,13 +465,23 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
     listOnboardingFlowStates(database, actor),
     getActivationProgress(database, actor),
     database.prepare<ActivationFactsRow>(`
-      WITH target_estimate(estimate_id) AS (SELECT ?)
+      WITH
+      target_estimate(estimate_id) AS (SELECT ?),
+      trusted_activation(milestone, estimate_id) AS (
+        SELECT milestone, estimate_id
+        FROM beta_activation_events
+        WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
+        UNION ALL
+        SELECT milestone, estimate_id
+        FROM beta_activation_outbox
+        WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
+          AND state IN ('pending', 'processing', 'delivered')
+      )
       SELECT
         (
           EXISTS (
-            SELECT 1 FROM beta_activation_events
-            WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
-              AND milestone = 'project_created'
+            SELECT 1 FROM trusted_activation
+            WHERE milestone = 'project_created'
           )
           OR EXISTS (
             SELECT 1 FROM beta_onboarding_flow_events
@@ -483,9 +493,8 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
         ) AS project_started,
         (
           EXISTS (
-            SELECT 1 FROM beta_activation_events
-            WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
-              AND milestone IN ('first_area_created', 'first_row_priced', 'first_valid_total')
+            SELECT 1 FROM trusted_activation
+            WHERE milestone IN ('first_area_created', 'first_row_priced', 'first_valid_total')
               AND (
                 (SELECT estimate_id FROM target_estimate) IS NULL
                 OR estimate_id = (SELECT estimate_id FROM target_estimate)
@@ -504,27 +513,24 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
           )
         ) AS estimate_started,
         EXISTS (
-          SELECT 1 FROM beta_activation_events
-          WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
-            AND milestone = 'first_area_created'
+          SELECT 1 FROM trusted_activation
+          WHERE milestone = 'first_area_created'
             AND (
               (SELECT estimate_id FROM target_estimate) IS NULL
               OR estimate_id = (SELECT estimate_id FROM target_estimate)
             )
         ) AS first_area_created,
         EXISTS (
-          SELECT 1 FROM beta_activation_events
-          WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
-            AND milestone = 'first_row_priced'
+          SELECT 1 FROM trusted_activation
+          WHERE milestone = 'first_row_priced'
             AND (
               (SELECT estimate_id FROM target_estimate) IS NULL
               OR estimate_id = (SELECT estimate_id FROM target_estimate)
             )
         ) AS first_row_priced,
         EXISTS (
-          SELECT 1 FROM beta_activation_events
-          WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
-            AND milestone = 'first_valid_total'
+          SELECT 1 FROM trusted_activation
+          WHERE milestone = 'first_valid_total'
             AND (
               (SELECT estimate_id FROM target_estimate) IS NULL
               OR estimate_id = (SELECT estimate_id FROM target_estimate)
@@ -532,9 +538,6 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
         ) AS first_valid_total_reached
     `).bind(
       intendedEstimateId,
-      actor.userId, actor.workspaceId,
-      actor.userId, actor.workspaceId,
-      actor.userId, actor.workspaceId,
       actor.userId, actor.workspaceId,
       actor.userId, actor.workspaceId,
       actor.userId, actor.workspaceId,

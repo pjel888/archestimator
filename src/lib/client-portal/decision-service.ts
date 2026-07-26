@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import { prepareClientPortalBaselineAcceptanceWrites } from "@/lib/client-portal/baseline-service";
 import { clientPortalOwnerNotificationStatement } from "@/lib/client-portal/owner-notification";
 import { evaluateClientPortalPolicy, type ClientPortalInternalActor, type ClientPortalPolicyPortal, type ClientPortalRecipientActor } from "@/lib/client-portal/policy";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
@@ -104,6 +105,7 @@ export async function submitClientPortalDecision({ actor, database, decision, ex
   const row: DecisionRow = { id: `decision_${randomUUID()}`, issue_id: issue.id, decision, note, signer_name: signerName, issue_content_hash: issue.content_hash, intent_hash: intendedHash, submitted_at: timestamp };
   const requiredApproverClause = policy.requiredRecipientIds.length ? `decision_row.recipient_id IN (${policy.requiredRecipientIds.map(() => "?").join(", ")})` : "approver.is_required_approver = 1";
   if (!database.batch) throw new ClientPortalDecisionError("client_portal_decision_write_failed", "Client Portal decision writes require D1 batch support.");
+  const baselineAcceptance = prepareClientPortalBaselineAcceptanceWrites({ database, decisionId: row.id, issueId: issue.id, portalId, timestamp });
   try {
     const result = await database.batch([
       statement(database, `INSERT INTO client_portal_decisions (id, portal_id, issue_id, recipient_id, scope_kind, scope_key, decision, note, signer_name, signer_email_snapshot, signer_role_snapshot, issue_content_hash, intent_hash, idempotency_key, submitted_at)
@@ -121,6 +123,7 @@ export async function submitClientPortalDecision({ actor, database, decision, ex
           ELSE 'under_review'
         END
         WHERE id = ? AND content_hash = ? AND EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)`, [...policy.requiredRecipientIds, ...policy.requiredRecipientIds, policy.requiredApprovals, issue.id, issue.content_hash, row.id]),
+      ...baselineAcceptance.statements,
       statement(database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) SELECT ?, ?, ?, issue.id, 'system', NULL, 'issue_decision_status_updated', 'client_safe', json_object('decisionId', ?, 'status', issue.status), ?, ? FROM client_portal_issues issue WHERE issue.id = ? AND EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)", [randomUUID(), policyPortal.workspaceId, portalId, row.id, timestamp, timestamp, issue.id, row.id]),
       statement(database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) SELECT ?, ?, ?, ?, 'recipient', ?, 'decision_submitted', 'client_safe', ?, ?, ? WHERE EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)", [randomUUID(), policyPortal.workspaceId, portalId, issue.id, actor.recipientId, JSON.stringify({ decision, decisionId: row.id, issueNumber: issue.issue_number }), timestamp, timestamp, row.id]),
       statement(database, "INSERT INTO client_portal_analytics_events (id, portal_id, issue_id, recipient_id, event_type, verified_human, occurred_at, metadata_json, created_at) SELECT ?, ?, ?, ?, 'decision_submitted', 1, ?, ?, ? WHERE EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)", [`analytics_${randomUUID()}`, portalId, issue.id, actor.recipientId, timestamp, JSON.stringify({ decisionId: row.id }), timestamp, row.id]),
