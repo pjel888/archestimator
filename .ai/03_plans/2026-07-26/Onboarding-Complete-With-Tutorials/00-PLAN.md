@@ -6,16 +6,17 @@ Deliver a reliable authenticated onboarding journey from first workshop load thr
 
 ## Current Evidence
 
-- The focused onboarding baseline is green: 11 Vitest files, 85 tests, one worker.
-- GitNexus is stale by 16 commits and is navigation evidence only; current source and focused tests remain authoritative.
-- GitNexus reports critical upstream risk for `readStarterReadiness`, `restoreStarterContent`, and `startGuidedPractice`; changes to those symbols require dependency-ordered tests and SQLite evidence.
-- `estimate.add_row` is a required guided target with no current DOM owner.
-- Cross-route automatic tours lose continuity because automatic launch does not carry a resume query.
-- Interactive Joyride handoffs remain focus-trapped inside an `aria-modal` tooltip and can be falsely advanced with Next.
-- Starter restore receives the shared-membership revision instead of the starter workspace-state revision.
-- Starter readiness treats historical inactive generations as restorable and applies user-scope requirements to viewers.
-- Existing starter content is shallow and omits useful Philippine project context, provenance, regional labor references, and multi-row templates.
-- Another active plan owns onboarding button-link styling. This plan must not edit `GettingStartedProgress.tsx` until that ownership is released or the files are explicitly sequenced.
+- Focused onboarding coverage is green: 38 files and 276 tests passed with zero failed or skipped tests.
+- SQLite onboarding evidence is green: 25/25 migration, guided-sample, starter-install, authorization, lease-takeover, fencing, and restore-CAS cases passed.
+- Scoped lint, scoped TypeScript, repository TypeScript, and the production build are green.
+- Browser evidence is green for 35/35 first-value cases across Chromium, Firefox, WebKit, Mobile Safari, iPhone SE, iPad, and Pixel 8, plus 3/3 settings cases.
+- Architecture review is PASS/CLEAR and security review is APPROVE, each with zero unresolved findings.
+- Starter mutations now use exact-token database fencing in the same atomic D1 batch as business writes; expired leases are reclaimable and stale restores return a typed result without residue.
+- The Philippine starter pack supplies three projects, four estimate sheets, six components, three templates, more than twenty rows, PHP pricing, provenance, and explicit illustrative tax/rate context without in-place overwrite.
+- Route continuity, the real `estimate.add_row` target, nonmodal keyboard handoff, passive Viewed semantics, and persisted domain proof are implemented.
+- Q2 remains FAIL: changed-code coverage is 10.20% for lines/statements and 44.44% for branches, canonical mutation selected only an unrelated AB target, and GitNexus is 31 commits stale.
+- Direct acceptance proof remains missing for mobile pointer-to-domain progress and explicit edited starter-resource preservation across install/upgrade/restore.
+- The authoritative aggregate receipt is `evidence/q2-evidence-summary.json`; the independent quality review remains FAIL until those evidence gaps close.
 
 ## Requirements
 
@@ -82,6 +83,8 @@ Orientation is at most three passive steps. The activation session shows one rec
 Reference context comes from official DPWH bill-of-quantities patterns, BIR VAT instructions, NWPC regional wage sources, PSA construction price indices and permit statistics, DOLE construction safety guidance, and the National Building Code. Source links belong in seed metadata or documentation, never as claims that illustrative rates are official quotations.
 
 ## Units
+
+Current execution state: UNIT-001 and UNIT-002 are VERIFIED; UNIT-003 and UNIT-004 remain IN_PROGRESS for direct acceptance proof; UNIT-005 is VERIFIED; UNIT-006 remains PLANNED until those prerequisites close.
 
 ## Ownership And Handoffs
 
@@ -228,4 +231,4 @@ Mitigate by confirming current callers in source and focused tests; do not treat
 
 ## Stop Condition
 
-Stop only when every requirement maps to fresh Q2 evidence, all three Philippine starter projects are installed and recoverable without overwriting user data, the full authenticated activation journey passes browser and accessibility checks, independent reviewers report no unresolved critical finding, and GitNexus `detect_changes` shows only expected symbols and flows. No deployment or hosted-state claim is required.
+Remain active until AC-003 and AC-004 receive direct executable proof, changed critical onboarding line/statement/branch coverage reaches the Q2 threshold, mutation selects and passes the onboarding critical paths, GitNexus is freshly indexed, and the independent quality review plus aggregate Q2 gate are PASS. No deployment or hosted-state claim is required.

@@ -139,7 +139,7 @@ Archestimator should proceed because a coherent working wedge and credible profe
 - **Missing evidence:** qualifying incidents/artifacts, buyer/budget, unaided recipient behavior, paid commitment, and second-cycle retention.
 - **Immediate action:** execute the field kit and gates continuously while limiting product work to test blockers.
 - **Stop doing:** treating architecture completion, signups, synthetic data, or favorable framework fit as validation.
-- **Next decision gate:** at least two evidence-backed paid repeat accounts from three qualified pilots within 30–45 days.
+- **Next decision gate:** within 30–45 days, at least two of three pilots must complete the incident/artifact, first-loop, and economic conditions and record a dated natural second cycle; final expansion requires at least two full EBPRA by the cohort’s latest precommitted due date.
 
 ### Timeline verdict — `TIMELINE_PROCEED_BUT_NARROW`
 
@@ -157,4 +157,4 @@ Archestimator should proceed because a coherent working wedge and credible profe
 - **Missing evidence:** beachhead-specific rate-build-up needs and natural terminology.
 - **Immediate action:** test small Template packages and unlabeled examples in real estimating tasks.
 - **Stop doing:** creating separate identity/version/migration complexity for Assembly before behavioral proof.
-- **Next decision gate:** at least six of eight users recognize a distinct model and at least five choose it over Templates or Project Sources for a real task.
+- **Next decision gate:** at least six of eight users recognize the same distinct model and correctly predict its behavior; at least five choose it over Templates or Project Sources for a real task; the task shows a measurable time or accuracy gain.

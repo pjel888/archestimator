@@ -11,13 +11,13 @@
 | SRC-I01 | Archestimator Product Canon — Startup School | Founder / Notion | Current page accessed 2026-07-27 | [Notion](https://app.notion.com/p/Archestimator-Product-Canon-Startup-School-3a93f3aafe3e80168e25d42512ef7b81) | Product thesis, invariants, evidence gaps, capability history |
 | SRC-I02 | Founder-product discovery archive | Founder / Notion | Historical transcript | [Notion](https://app.notion.com/p/5d6618387b944b099a0be1903953eb60) | Product-model evolution and decision provenance |
 | SRC-I03 | Shared ChatGPT discovery conversation | Founder / ChatGPT | Historical transcript | [ChatGPT share](https://chatgpt.com/share/6a6624de-2314-83ec-9b5d-b79bb5ca3913) | Ledger/portal architecture origin and plan-pack intent |
-| SRC-I04 | Archestimator repository | pjel888 / GitHub | HEAD `efa25a00413185aed6de64ad040d8b473c81a6ac` observed 2026-07-27 | [GitHub](https://github.com/pjel888/archestimator) | Current committed implementation and history |
+| SRC-I04 | Archestimator repository | pjel888 / GitHub | Audit span `efa25a00413185aed6de64ad040d8b473c81a6ac` → `8e19d90ddf2220df38ae9c0d054d6cc041a7001b`, observed 2026-07-27 | [GitHub](https://github.com/pjel888/archestimator) | Current committed implementation and history |
 | SRC-I05 | Comprehensive validation prompt | Founder | 2026-07-27 input | `C:\Users\phili\Downloads\01-ARCHESTIMATOR-COMPREHENSIVE-VALIDATION-PROMPT.md` | Scope, evidence rules, workstreams, deliverables, verdict vocabulary |
 | SRC-I06 | Selected skills list | Founder | 2026-07-27 input | `C:\Users\phili\Downloads\02-SELECTED-SKILLS.md` | Research frameworks applied |
 | SRC-I07 | Product validation gauntlet | Founder | 2026-07-27 input | `C:\Users\phili\Downloads\archestimator_codex_product_validation_gauntlet.md` | Adversarial posture and completion standard |
 | SRC-I08 | Active Project Ledger & Commitment Timeline plan pack | Archestimator | 2026-07-26, locally in progress | `.ai/03_plans/2026-07-26/Project-Ledger-Commitment-Timeline/` | Planned architecture, workstreams, local drift, scope critique |
 | SRC-I09 | Product marketing operating context | Archestimator | Current repository | `.agents/product-marketing.md` | Current positioning experiments and explicit absence of customer proof |
-| SRC-I10 | Current source and uncommitted Timeline implementation | Archestimator | Observed 2026-07-27 | `src/`, `migrations/0106*`–`0112*`, `tests/` | Capability status and implementation-versus-validation gap |
+| SRC-I10 | Current Timeline implementation, observed before and after concurrent commits | Archestimator | Observed 2026-07-27 | `src/`, `migrations/0106*`–`0116*`, `tests/` | Capability status and implementation-versus-validation gap |
 
 ## Startup and Product Framework Sources
 

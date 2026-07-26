@@ -51,7 +51,8 @@ This hypothesis remains fully alive because:
 
 - `[ACTIVE_PLAN | HIGH]` Fourteen implementation units and multiple cross-cutting systems substantially exceed the minimum needed to test customer demand.
 - `[ACTIVE_PLAN | HIGH]` The target outcome “one disputed change resolved in minutes” is a plan hypothesis, not an observed customer baseline.
-- `[CODEBASE_FACT | HIGH]` The plan README reported “Not started” while migrations, routes, UI, tests, and evidence were actively appearing in the dirty worktree.
+- `[CODEBASE_FACT | HIGH]` The plan README still reports “Not started” while `plan-pack.json` reports `IN_PROGRESS` and migrations, routes, UI, and focused tests were committed during this audit.
+- `[ACTIVE_PLAN | HIGH]` `bun run validate:plan-pack -- .ai/03_plans/2026-07-26/Project-Ledger-Commitment-Timeline` fails only on an inherited `README.md hash mismatch`; this audit leaves the active pack untouched and does not claim its manifest is current.
 - `[ACTIVE_PLAN | HIGH]` The manifest observed during the audit marked implementation in progress, next work at Unit 001, all acceptance criteria failing, and evidence stale.
 - `[CODEBASE_FACT | HIGH]` Baseline, event, artifact, and request schemas are ahead of connected runtime writers.
 - `[RESEARCH_GAP | HIGH]` No primary evidence selects which object types, roles, or artifacts the first ICP actually needs.

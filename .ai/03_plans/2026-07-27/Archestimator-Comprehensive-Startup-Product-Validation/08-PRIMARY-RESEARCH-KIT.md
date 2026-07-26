@@ -370,7 +370,7 @@ Tasks:
 
 Do not reveal “Assembly” until after natural naming is captured.
 
-**Pass signal:** At least six of eight target estimating users independently recognize a distinct reusable concept, and at least five choose it over Templates or Project Sources for a real task. The canonical gate is in `09-METRICS-EXPERIMENTS-AND-DECISION-GATES.md`.
+**Pass signal:** At least six of eight target estimating users independently recognize the same distinct reusable concept and correctly predict its behavior; at least five choose it over Templates or Project Sources for a real task; the task shows a measurable time or accuracy gain. The canonical gate is in `09-METRICS-EXPERIMENTS-AND-DECISION-GATES.md`.
 
 ### Reuse Behavior Test
 
@@ -406,17 +406,22 @@ Present a concrete offer, not a feature wishlist.
 
 ### Precommitted Offer V1 — Paid Problem-Proof Pilot
 
-Present this unchanged to the first five comparable qualified economic buyers:
+- **Target condition:** owner-led contractor with a live upcoming estimate and a recent revision/approval incident.
+- **Boundary:** one company workspace, up to three internal users, unlimited external recipients, one live project, one reusable-source import, and one estimate → issue → decision → revision cycle.
+- **Founder support:** up to three hours for setup, training, and ordinary support; the founder may not operate the customer workflow.
+- **Migration help:** import one sanitized Template, prior-project source, or equivalent estimate source; no broad cleanup or custom integration.
+- **Duration:** 30 days for activation and economic review; any second natural cycle is judged on its precommitted due date.
+- **Cohort eligibility:** before first-cycle completion, record a named next project, bid, or revision expected within 90 days; otherwise the account cannot enter the first retention cohort.
+- **Deliverables:** configured workspace, imported source, completed live estimate, standard XLSX/browser-print outputs, externally reviewable Issue, recorded recipient decision, revision/delta record, and evidence summary.
+- **Price:** `₱5,000` one-time, paid before setup; refund only if a verified Archestimator defect prevents the agreed workflow and no reasonable workaround or extension is accepted.
+- **Post-pilot price:** `₱2,500/month` per company workspace, up to three internal users, unlimited external recipients, monthly cancellation, and standard product support.
+- **Success criteria:** complete the first real loop without founder operation, keep median ordinary net-new capture at or below ten minutes, obtain unaided recipient action, retain payment, and record the dated next natural cycle.
+- **Exclusions:** custom integrations, bespoke feature development, broad historical-data cleanup, legal/contract advice, guaranteed dispute prevention, and founder operation of the customer workflow.
+- **Data boundary:** only customer-authorized or sanitized project material; standard access/security controls remain in force, with no weakening of scan, tenant, or record-integrity rules.
+- **Commitment test:** payment or a signed/datable commitment to the identical amount/package with named approver and start date. Refunded pilots do not pass.
+- **Evidence status:** `[WORKING_HYPOTHESIS | LOW]`; this is the immutable first-five offer, not validated pricing or a public recommendation.
 
-- **Pilot price:** `₱5,000` one-time, paid before setup, for 30 days.
-- **Post-pilot price:** `₱2,500/month` per company workspace, monthly cancellation.
-- **Included:** one company workspace; up to three internal users; unlimited external recipients; one live project; one Template or prior-project source import; one estimate → issue → recipient decision → revision cycle; standard XLSX/browser-print outputs; up to three founder hours for setup, training, and ordinary support.
-- **Excluded:** custom integrations, bespoke feature development, historical data cleanup beyond the one source import, legal/contract advice, guaranteed dispute prevention, and founder operation of the customer’s workflow.
-- **Success measures:** complete the real loop, median ordinary net-new capture at or below ten minutes, unaided recipient action, and one natural second cycle where cadence permits.
-- **Data boundary:** only customer-authorized/sanitized project material; standard product access/security controls; no weakening of scan, tenant, or record-integrity rules.
-- **Cancellation/refund:** no renewal obligation; refund only if a verified Archestimator defect prevents the agreed live workflow and no reasonable workaround or extension is accepted. A refunded pilot does not pass the Economic Gate.
-
-`[WORKING_HYPOTHESIS | LOW]` These amounts are experimental offer terms, not validated pricing or a public recommendation. Fixing them before the first five offers prevents post-hoc discounting and makes rejection evidence interpretable.
+Present these terms unchanged to the first five comparable qualified economic buyers. Options B and C in `03-ICP-BUYER-AND-WILLINGNESS-TO-PAY.md` are frozen later-round alternatives and may not replace V1 after an objection or weak result.
 
 Ask the real budget holder for one decision: pay, sign a time-bounded purchase commitment contingent on stated proof, decline, or identify the exact approval step and date. “Interested” is not a pass.
 

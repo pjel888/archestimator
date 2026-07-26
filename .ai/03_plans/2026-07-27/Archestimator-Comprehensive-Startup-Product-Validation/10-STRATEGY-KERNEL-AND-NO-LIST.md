@@ -105,9 +105,9 @@ Within 30–45 days, produce:
 6. five recipient behavior tests;
 7. the unchanged ₱5,000 Offer V1 presented to five comparable real budget holders;
 8. three live pilots; and
-9. at least two Evidence-Backed Paid Repeat Accounts (`EBPRA`).
+9. at least two accounts meeting the acquisition/economic checkpoint with a named, dated second natural cycle.
 
-Success earns the right to choose the next coherent implementation slice. Failure produces an explicit ICP, product-model, or stop decision.
+This 30–45-day checkpoint does not prove retention. The cohort earns the full expansion decision only when at least two accounts become Evidence-Backed Paid Repeat Accounts (`EBPRA`) by the latest precommitted natural-cycle due date. Failure produces an explicit ICP, product-model, or stop decision.
 
 ## Coherent Actions
 
@@ -159,7 +159,7 @@ Run card sorts and real estimate-start tasks before designing a new object. Unti
 
 ### Action 6 — Test a real price
 
-Offer a fixed 30-day pilot and stated post-pilot package in Philippine pesos. Test per-workspace/user against active-project or annual-volume pricing. External recipients should initially be free because charging them increases adoption friction and competitor references commonly include free/unlimited external portal users.
+For the first-five gate, offer only the fixed 30-day Offer V1 and its stated post-pilot package in Philippine pesos. After that gate is complete and its result is recorded, use a separately labeled later round to test per-workspace/user against active-project or annual-volume pricing; never mix those alternatives into the first-five sample. External recipients should initially be free because charging them increases adoption friction and competitor references commonly include free/unlimited external portal users.
 
 ### Action 7 — Review gates, not opinions
 

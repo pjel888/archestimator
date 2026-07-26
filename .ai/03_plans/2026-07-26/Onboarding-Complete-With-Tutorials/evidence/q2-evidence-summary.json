@@ -1,0 +1,45 @@
+{
+  "profile": "Q2_CRITICAL_CHANGE_GATE",
+  "status": "FAIL",
+  "implementation_status": "IN_PROGRESS",
+  "release_status": "NOT_READY",
+  "recorded_at": "2026-07-26T17:55:00.000Z",
+  "acceptance": {
+    "AC-001": "PASS",
+    "AC-002": "PASS",
+    "AC-003": "FAIL",
+    "AC-004": "FAIL",
+    "AC-005": "PASS",
+    "AC-006": "FAIL"
+  },
+  "passing_evidence": [
+    { "path": "artifacts/quality/onboarding-sqlite.json", "result": "25/25 tests passed" },
+    { "path": "artifacts/quality/onboarding-coverage-command.json", "result": "38/38 files and 276/276 tests passed" },
+    { "path": "artifacts/quality/onboarding-lint-scoped.json", "result": "scoped lint passed with zero warnings" },
+    { "path": "artifacts/quality/onboarding-typecheck-scoped.json", "result": "scoped TypeScript passed" },
+    { "path": "artifacts/quality/onboarding-typecheck.json", "result": "repository TypeScript passed" },
+    { "path": "artifacts/quality/onboarding-build.json", "result": "production build passed" },
+    { "path": "artifacts/quality/onboarding-first-value-playwright-matrix.json", "result": "35/35 expected tests passed across seven browser/device projects" },
+    { "path": "artifacts/quality/onboarding-settings-playwright.json", "result": "3/3 expected tests passed" },
+    { "path": "evidence/reviews/architecture-review.md", "result": "PASS/CLEAR with zero unresolved findings" },
+    { "path": "evidence/reviews/security-review.md", "result": "APPROVE with zero findings" }
+  ],
+  "failing_evidence": [
+    { "path": "artifacts/quality/onboarding-diff-coverage.json", "result": "FAIL: 10.20% changed lines/statements, 44.44% changed branches, canonical baseline pending" },
+    { "path": "artifacts/quality/mutation.json", "result": "NOT APPLICABLE: 100% score selected only src/lib/ab-testing/results-calculator.ts" },
+    { "path": "evidence/gitnexus-detect-changes.json", "result": "FAIL: index is 31 commits behind the reviewed worktree" }
+  ],
+  "acceptance_gaps": [
+    "Mobile browser projects do not yet activate the real product target and prove persisted domain progress.",
+    "No executable fixture edits a starter-owned resource and proves install, upgrade, and restore preserve the edit.",
+    "Critical changed onboarding code lacks 100% changed line, statement, and branch coverage.",
+    "Critical mutation has not selected the onboarding authorization, lease, CAS, proof, preservation, or handoff paths.",
+    "GitNexus detect_changes is not fresh against the current worktree."
+  ],
+  "independent_review": {
+    "architecture": "PASS",
+    "security": "PASS",
+    "quality": "FAIL"
+  },
+  "stop_condition": "Remain active until every acceptance gap is closed and every required Q2 receipt is fresh and PASS."
+}

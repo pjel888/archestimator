@@ -30,8 +30,8 @@ Reusable cost knowledge
 
 ## Point-in-Time Audit Boundary
 
-- Snapshot observed on 2026-07-27 in a dirty shared `main` worktree.
-- `LIVE` below means reachable local runtime source, not deployed or beta-user proof.
+- Snapshot began at `efa25a00` and was finalized at `8e19d90d` on 2026-07-27 while shared `main` advanced concurrently.
+- `LIVE` below means reachable current committed source, not deployed or beta-user proof.
 - `PARTIAL` means connected behavior exists with material product gaps.
 - `PLANNED` means schema, contracts, or plan-pack intent without complete runtime orchestration.
 - New Timeline files were appearing during the audit; this is a moving implementation snapshot, not a release certification.
@@ -63,7 +63,7 @@ Reusable cost knowledge
 - `[CODEBASE_FACT | HIGH]` Decision capture verifies current issue state and expected content/intent hashes and preserves signer snapshots.
 - `[CODEBASE_FACT | HIGH]` Legacy token mapping can preserve old share entry points while routing to a modern portal.
 - `[CODEBASE_FACT | MEDIUM]` Internal artifact upload and scan-gated immutable versions exist locally with R2-backed delivery paths.
-- `[CODEBASE_FACT | HIGH]` Change-request create/amend/state services and recipient-visible public handlers exist in the local worktree.
+- `[CODEBASE_FACT | HIGH]` Change-request create/amend/state services and recipient-visible public handlers exist in current committed source.
 - `[CODEBASE_FACT | HIGH]` Recipient-owned evidence bytes can be validated, stored, related to the request, and returned as `201 pending_scan`.
 - `[CODEBASE_FACT | HIGH]` `recordProjectCommitmentEvent` can write an idempotent event and optional client-safe exposure in one D1 batch.
 

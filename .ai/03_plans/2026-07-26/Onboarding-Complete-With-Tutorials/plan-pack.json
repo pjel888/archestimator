@@ -4,15 +4,15 @@
   "package_id": "PLAN-2026-07-26-onboarding-complete-with-tutorials",
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
-  "last_observed_run_scope": "PLAN_ONLY",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
   "package_status": "CONDITIONALLY_READY",
-  "implementation_status": "NOT_STARTED",
-  "release_status": "NOT_EVALUATED",
+  "implementation_status": "IN_PROGRESS",
+  "release_status": "NOT_READY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-26T00:00:00.000Z",
+  "updated_at": "2026-07-26T17:55:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": "UNIT-003",
   "baseline": {
     "head": "c3c0b5d21de906c1258578841c5c57c0b6149c51",
     "scoped_status_sha256": "57fc3e8e1bd2ccc4e05a9122207fd96d10ab648f9316ab9da7d10b36b42f5cfd",
@@ -23,13 +23,19 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "03c223c853ae2da92933637d430bf1e0a87c11be45bc60f4dedfba3732298522"
+      "sha256": "50721a112cbb71ff905960681ab66d81f4e7a87c0efa764730cb3d6c5232ffee"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb"
+      "sha256": "11b72dceef43a9b1f3b57c07ae54151a0d616df093afa1681c45a1e64f0bc1a7"
+    },
+    {
+      "id": "ART-003",
+      "role": "evidence",
+      "path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9"
     }
   ],
   "sources": [
@@ -184,7 +190,7 @@
   "risks": [
     {
       "id": "RISK-001",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
         "UNIT-001",
@@ -211,7 +217,7 @@
     },
     {
       "id": "RISK-003",
-      "status": "OPEN",
+      "status": "MITIGATED",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
         "UNIT-001",
@@ -224,7 +230,7 @@
     },
     {
       "id": "RISK-004",
-      "status": "OPEN",
+      "status": "CLOSED",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
         "UNIT-005"
@@ -235,7 +241,7 @@
     },
     {
       "id": "RISK-005",
-      "status": "OPEN",
+      "status": "REALIZED",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
         "UNIT-006"
@@ -248,7 +254,7 @@
   "criteria": [
     {
       "id": "AC-001",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
@@ -268,7 +274,7 @@
     },
     {
       "id": "AC-002",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
@@ -281,8 +287,7 @@
         "TEST-003"
       ],
       "evidence_ids": [
-        "EVID-001",
-        "EVID-003"
+        "EVID-001"
       ],
       "authorization_boundary_id": null
     },
@@ -327,7 +332,7 @@
     },
     {
       "id": "AC-005",
-      "status": "FAIL",
+      "status": "PASS",
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TEST_PROPOSAL",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
@@ -340,8 +345,7 @@
         "TEST-006"
       ],
       "evidence_ids": [
-        "EVID-005",
-        "EVID-006"
+        "EVID-005"
       ],
       "authorization_boundary_id": null
     },
@@ -367,7 +371,7 @@
   "tests": [
     {
       "id": "TEST-001",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-001",
@@ -379,7 +383,7 @@
     },
     {
       "id": "TEST-002",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-001"
@@ -390,7 +394,7 @@
     },
     {
       "id": "TEST-003",
-      "status": "PLANNED",
+      "status": "FAIL",
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-002",
@@ -402,7 +406,7 @@
     },
     {
       "id": "TEST-004",
-      "status": "PLANNED",
+      "status": "FAIL",
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-004"
@@ -413,7 +417,7 @@
     },
     {
       "id": "TEST-005",
-      "status": "PLANNED",
+      "status": "PASS",
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-005"
@@ -424,7 +428,7 @@
     },
     {
       "id": "TEST-006",
-      "status": "PLANNED",
+      "status": "FAIL",
       "artifact_path": "00-PLAN.md",
       "criterion_ids": [
         "AC-003",
@@ -463,7 +467,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "00-PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -480,7 +484,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "00-PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -497,7 +501,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "artifact_path": "00-PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -516,7 +520,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "artifact_path": "00-PLAN.md",
       "depends_on": [
         "UNIT-002"
@@ -533,7 +537,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "BLOCKED",
+      "status": "VERIFIED",
       "artifact_path": "00-PLAN.md",
       "depends_on": [
         "UNIT-003",
@@ -577,16 +581,19 @@
       "status": "READY",
       "artifact_path": "00-PLAN.md",
       "unit_ids": [
-        "UNIT-001"
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004"
       ]
     }
   ],
   "evidence_index": [
     {
       "id": "EVID-001",
-      "status": "STALE",
-      "artifact_path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -601,9 +608,9 @@
     },
     {
       "id": "EVID-002",
-      "status": "STALE",
-      "artifact_path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9",
       "claim_ids": [
         "REQ-001",
         "UNIT-002",
@@ -616,14 +623,11 @@
     },
     {
       "id": "EVID-003",
-      "status": "STALE",
-      "artifact_path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb",
+      "status": "FAIL",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9",
       "claim_ids": [
-        "REQ-002",
-        "REQ-003",
         "UNIT-003",
-        "AC-002",
         "AC-003",
         "TEST-003",
         "GATE-Q2-001"
@@ -633,11 +637,10 @@
     },
     {
       "id": "EVID-004",
-      "status": "STALE",
-      "artifact_path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb",
+      "status": "FAIL",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9",
       "claim_ids": [
-        "REQ-004",
         "UNIT-004",
         "AC-004",
         "TEST-004",
@@ -648,9 +651,9 @@
     },
     {
       "id": "EVID-005",
-      "status": "STALE",
-      "artifact_path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9",
       "claim_ids": [
         "REQ-004",
         "UNIT-005",
@@ -663,14 +666,12 @@
     },
     {
       "id": "EVID-006",
-      "status": "STALE",
-      "artifact_path": "00-PLAN.md",
-      "sha256": "08bcbcf492801ea0dd56d41032600fe86d90f2263d44f806e2aa2855ba56cefb",
+      "status": "FAIL",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "sha256": "6d129721e20552fe0ad3a9b9bb0afaaf27ff5fee979da695ff1e16a158ec59f9",
       "claim_ids": [
-        "REQ-005",
         "UNIT-006",
         "AC-003",
-        "AC-005",
         "AC-006",
         "TEST-006",
         "GATE-Q2-001"
@@ -685,5 +686,5 @@
     "auth-or-role-contract-change",
     "quality-policy-change"
   ],
-  "manifest_sha256": "7b56008ea1540c063961d0a5830b2bbf3271bff38cd9ad7e4fd4a8f50720a1f5"
+  "manifest_sha256": "a385f6054a1447e88bda3dedb1fdc76fce08a2846ea74f981920a05313602351"
 }

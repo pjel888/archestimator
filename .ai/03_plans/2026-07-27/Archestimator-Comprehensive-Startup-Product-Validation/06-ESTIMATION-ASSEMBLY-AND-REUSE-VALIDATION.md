@@ -13,7 +13,7 @@
 - **Missing evidence:** `[RESEARCH_GAP | HIGH]` No customer transcript, natural-language card sort, reuse observation, frequency data, or paid commitment establishes a distinct Assembly job.
 - **Immediate action:** Treat reusable multi-row structures as Templates and run the language/reuse gate before adding another object.
 - **Stop doing:** Stop using “Assembly” as if it were a current differentiated Archestimator capability or a settled cross-segment term.
-- **Next decision gate:** Eight target estimators must sort/name examples unprompted; a separate concept proceeds only if at least six recognize it as distinct and at least five select it over Templates or Project Sources for a real task.
+- **Next decision gate:** Eight target estimators must sort/name examples unprompted; at least six must recognize the same distinct concept and correctly predict its behavior, at least five must select it over Templates or Project Sources in a real task, and the task must show a measurable time or accuracy gain. A first-class object still requires the repeated-value and WTP evidence listed below.
 
 ## Current and Historical Implementation
 
@@ -63,17 +63,17 @@ The domain-design rule is therefore: use the smallest term with one predictable 
 
 | Question | Desk answer | Evidence status |
 |---|---|---|
-| Is Assembly distinct from Component? | Potentially: a multi-row/composite structure versus one reusable item, but no user proof exists | `[WORKING_HYPOTHESIS | LOW]` |
-| Is it distinct from Template? | Not in current Archestimator behavior; historical lightweight bundles map naturally to smaller Templates | `[EVIDENCE_BACKED_INFERENCE | HIGH]` |
-| Is it distinct from Project Source? | A curated reusable source could differ from a copied prior project, but both serve “start from proven work” | `[EVIDENCE_BACKED_INFERENCE | MEDIUM]` |
-| Is it distinct from Group/Area? | A reusable source can differ from local hierarchy; current legacy assembly nodes do not preserve that distinction | `[CODEBASE_FACT | HIGH]` |
-| Does it need independent identity/lifecycle? | Not demonstrated; Templates already supply identity/version/lifecycle | `[RESEARCH_GAP | HIGH]` |
-| Should changes propagate? | Current Templates make linked versus copied semantics explicit; this is safer than one implicit Assembly rule | `[CODEBASE_FACT | HIGH]` |
-| What happens when component prices change? | Linked component behavior exists, but the correct propagation/trust model is not customer-validated | `[CODEBASE_FACT | MEDIUM]` + `[RESEARCH_GAP | HIGH]` |
-| What provenance is needed? | Source type, source version, insertion time, linked/copied mode, and later detach/update state | `[EVIDENCE_BACKED_INFERENCE | HIGH]` |
-| Does first-class Assembly solve a proven problem? | No proof supplied | `[RESEARCH_GAP | HIGH]` |
-| Which current concept gives fastest value? | Project Source for immediate copying; Template for curated repeat use; Component for item-level price reuse | `[WORKING_HYPOTHESIS | MEDIUM]` |
-| Which compounds after repeated projects? | Components and Templates may compound; Project Sources preserve practical precedent; actual retention is unobserved | `[WORKING_HYPOTHESIS | MEDIUM]` |
+| Is Assembly distinct from Component? | Potentially: a multi-row/composite structure versus one reusable item, but no user proof exists | `[WORKING_HYPOTHESIS \| LOW]` |
+| Is it distinct from Template? | Not in current Archestimator behavior; historical lightweight bundles map naturally to smaller Templates | `[EVIDENCE_BACKED_INFERENCE \| HIGH]` |
+| Is it distinct from Project Source? | A curated reusable source could differ from a copied prior project, but both serve “start from proven work” | `[EVIDENCE_BACKED_INFERENCE \| MEDIUM]` |
+| Is it distinct from Group/Area? | A reusable source can differ from local hierarchy; current legacy assembly nodes do not preserve that distinction | `[CODEBASE_FACT \| HIGH]` |
+| Does it need independent identity/lifecycle? | Not demonstrated; Templates already supply identity/version/lifecycle | `[RESEARCH_GAP \| HIGH]` |
+| Should changes propagate? | Current Templates make linked versus copied semantics explicit; this is safer than one implicit Assembly rule | `[CODEBASE_FACT \| HIGH]` |
+| What happens when component prices change? | Linked component behavior exists, but the correct propagation/trust model is not customer-validated | `[CODEBASE_FACT \| MEDIUM]` + `[RESEARCH_GAP \| HIGH]` |
+| What provenance is needed? | Source type, source version, insertion time, linked/copied mode, and later detach/update state | `[EVIDENCE_BACKED_INFERENCE \| HIGH]` |
+| Does first-class Assembly solve a proven problem? | No proof supplied | `[RESEARCH_GAP \| HIGH]` |
+| Which current concept gives fastest value? | Project Source for immediate copying; Template for curated repeat use; Component for item-level price reuse | `[WORKING_HYPOTHESIS \| MEDIUM]` |
+| Which compounds after repeated projects? | Components and Templates may compound; Project Sources preserve practical precedent; actual retention is unobserved | `[WORKING_HYPOTHESIS \| MEDIUM]` |
 
 ## Model Comparison
 

@@ -45,6 +45,8 @@ The recommended entry wedge is familiar estimating/proposal workflow for a tight
 | `EVIDENCE-REGISTER.md` | Material claims with classification, support, contradiction, confidence, missing evidence, and affected decision. |
 | `SOURCES.md` | Supplied, internal, framework, competitor, AEC, and Philippine sources with use notes and limitations. |
 | `METHOD-AND-SKILL-APPLICATION.md` | Resolution and concrete application trace for every selected and user-named skill. |
+| `VERIFICATION-REPORT.md` | Final structural checks, focused tests, reviewer verdicts, inherited plan-pack risk, and scope boundary. |
+| `AUTORESEARCH-COMPLETION.json` | Machine-readable completion gate, requirement results, command evidence, reviewers, and artifact hashes. |
 
 ## Recommended Reading Order
 
@@ -65,15 +67,15 @@ The recommended entry wedge is familiar estimating/proposal workflow for a tight
 - If estimating retains but Timeline behavior fails, keep the ledger as supporting infrastructure.
 - If two materially different narrow segments fail the Problem Proof and Economic gates, seriously consider pivoting or stopping.
 
-## Immediate 30–45 Day Objective
+## Immediate Validation Objective
 
-Reach at least two `EBPRA` accounts—Evidence-Backed Paid Repeat Accounts—from three qualified pilots:
+Use two explicit clocks. Within 30–45 days, at least two of three qualified pilots must reach the acquisition/economic checkpoint:
 
 1. recent qualifying incident and source artifact;
 2. real estimate-to-issue workflow;
 3. external recipient review or decision;
-4. later natural revision or second project;
+4. a named, dated later natural revision, bid, or second project recorded before first-cycle completion;
 5. payment, deposit, or detailed dated purchase commitment;
 6. no extraordinary founder rescue that makes the behavior non-repeatable.
 
-Until that objective is reached, the correct operating stage is **Problem Proof**, not category creation, scale, or full-platform completion.
+Do not call these accounts `EBPRA` until the dated repeat actually occurs. The retention decision is made at the cohort’s latest precommitted natural-cycle due date, when at least two accounts must have completed the repeat without extraordinary founder rescue. Until that objective is reached, the correct operating stage is **Problem Proof**, not category creation, scale, or full-platform completion.

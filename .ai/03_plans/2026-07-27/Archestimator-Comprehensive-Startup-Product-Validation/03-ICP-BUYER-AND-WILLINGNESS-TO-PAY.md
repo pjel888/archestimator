@@ -180,25 +180,59 @@ Prices below are point-in-time public anchors in other markets, not recommended 
 
 Test value and packaging before optimizing a public price page.
 
-### Offer A — Precommitted Paid Problem-Proof Pilot V1
+### Three-Option Paid Pilot Structure
 
-- **Customer:** owner-led contractor with a live upcoming estimate and recent revision/approval incident.
-- **Price:** `₱5,000` one-time, paid before setup; refund only if a verified Archestimator defect prevents the agreed workflow and no workaround/extension is accepted.
-- **Promise:** one company workspace, up to three internal users, unlimited external recipients, one live project, one reusable-source import, and one estimate → issue → decision → revision cycle.
-- **Service boundary:** up to three founder hours for setup/training/ordinary support; no custom integration, bespoke feature, broad data cleanup, legal advice, or founder operation of the customer workflow.
-- **Term:** 30 days.
+All three options are bounded paid experiments, not validated or public pricing. **Only Option A is presented to the first five comparable buyers.** Options B and C stay frozen as separately labeled later-round alternatives; they may not replace Option A after an objection or weak result.
+
+#### Option A — Precommitted Connected Problem-Proof Pilot V1
+
+- **Target condition:** owner-led contractor with a live upcoming estimate and a recent revision/approval incident.
+- **Boundary:** one company workspace, up to three internal users, unlimited external recipients, one live project, one reusable-source import, and one estimate → issue → decision → revision cycle.
+- **Founder support:** up to three hours for setup, training, and ordinary support; the founder may not operate the customer workflow.
+- **Migration help:** import one sanitized Template, prior-project source, or equivalent estimate source; no broad cleanup or custom integration.
+- **Duration:** 30 days for activation and economic review; any second natural cycle is judged on its precommitted due date.
+- **Cohort eligibility:** before first-cycle completion, record a named next project, bid, or revision expected within 90 days; otherwise the account cannot enter the first retention cohort.
+- **Deliverables:** configured workspace, imported source, completed live estimate, standard XLSX/browser-print outputs, externally reviewable Issue, recorded recipient decision, revision/delta record, and evidence summary.
+- **Price:** `₱5,000` one-time, paid before setup; refund only if a verified Archestimator defect prevents the agreed workflow and no reasonable workaround or extension is accepted.
+- **Post-pilot price:** `₱2,500/month` per company workspace, up to three internal users, unlimited external recipients, monthly cancellation, and standard product support.
+- **Success criteria:** complete the first real loop without founder operation, keep median ordinary net-new capture at or below ten minutes, obtain unaided recipient action, retain payment, and record the dated next natural cycle.
+- **Exclusions:** custom integrations, bespoke feature development, broad historical-data cleanup, legal/contract advice, guaranteed dispute prevention, and founder operation of the customer workflow.
+- **Data boundary:** only customer-authorized or sanitized project material; standard access/security controls remain in force, with no weakening of scan, tenant, or record-integrity rules.
 - **Commitment test:** payment or a signed/datable commitment to the identical amount/package with named approver and start date. Refunded pilots do not pass.
-- **What it measures:** urgency, services tolerance, onboarding cost, repeat behavior, and economic-buyer identity.
-- **Evidence status:** `[WORKING_HYPOTHESIS | LOW]`; this is an experiment, not validated or public pricing.
+- **Evidence status:** `[WORKING_HYPOTHESIS | LOW]`; this is the immutable first-five offer, not validated pricing or a public recommendation.
 
-### Offer B — Core estimating/proposal subscription
+#### Option B — Estimating-and-Proposal Wedge Pilot
 
-- **Precommitted post-pilot offer:** `₱2,500/month` per company workspace, up to three internal users, unlimited external recipients, monthly cancellation, standard product support.
+- **Target condition:** owner-/estimator-led firm with an imminent estimate but no suitable live change-control event.
+- **Boundary:** one company workspace, up to three internal users, unlimited external recipients, one live project, one source import, and one estimate → externally issued proposal workflow; no accepted-baseline or change-ledger promise.
+- **Founder support:** up to two hours for setup, training, and ordinary support; no founder data entry after setup.
+- **Migration help:** import one sanitized workbook, Template, or prior estimate source; no historical cleanup, takeoff service, or custom formula integration.
+- **Duration:** 21 days.
+- **Deliverables:** reusable-source insertion, completed estimate, standard XLSX/browser-print output, one external Issue/proposal link, recipient-open observation, and time/error comparison with the prior workflow.
+- **Price:** `₱3,500` one-time, paid before setup, with the same verified-blocking-defect refund boundary.
+- **Success criteria:** participant issues one credible live estimate without founder operation, an external recipient opens it, measurable time or error reduction is recorded, payment is retained, and a next estimating event is dated.
+- **Evidence status:** `[WORKING_HYPOTHESIS | LOW]`; later-round fallback only after the Option A five-offer gate is interpreted.
+
+#### Option C — Commitment-Control Pilot
+
+- **Target condition:** firm with an existing accepted commercial reference and one live or imminent client-driven change.
+- **Boundary:** one company workspace, up to three internal users, unlimited external recipients, one active project, one accepted reference, one request → Issue/delta/evidence → recipient decision/receipt workflow, and one dated follow-on cycle; no general DMS, procurement, ERP, or legal-enforceability promise.
+- **Founder support:** up to four hours for setup, training, and ordinary support; no founder maintenance of the record.
+- **Migration help:** establish one sanitized accepted reference and attach up to three selected supporting files; no portfolio migration or broad reconstruction.
+- **Duration:** 45 days for activation and economic review; retention is judged on the precommitted natural-cycle due date if later.
+- **Deliverables:** accepted-reference snapshot, change record, selected evidence/assumptions/exclusions, deterministic delta, externally reviewable Issue, attributable decision/receipt, and current-state/history summary.
+- **Price:** `₱7,500` one-time, paid before setup, with the same verified-blocking-defect refund boundary.
+- **Success criteria:** proposer captures the critical record with median net-new time at or below ten minutes, recipient correctly identifies the requested decision and acts unaided, payment is retained, and the second natural cycle completes by its dated due date.
+- **Evidence status:** `[WORKING_HYPOTHESIS | LOW]`; do not offer until the minimum baseline/package path is test-ready, and never substitute it inside Option A’s first-five round.
+
+### Post-Pilot Subscription Hypothesis
+
+- **Precommitted Option A post-pilot offer:** `₱2,500/month` per company workspace, up to three internal users, unlimited external recipients, monthly cancellation, standard product support.
 - **Pricing metric hypothesis:** company workspace, not external recipient seats.
 - **Rationale:** external-seat charges would directly tax the behavior the product needs to create.
 - **Evidence status:** `WORKING_HYPOTHESIS`.
 
-### Offer C — Commitment-control add-on or later tier
+### Later Commitment-Tier Hypothesis
 
 - **Packaging hypothesis:** accepted baseline, revision delta, evidence packet, and decision history become a higher-value tier only after repeated use proves they are a separate paid outcome.
 - **Risk:** packaging the ledger separately too early may hide the connected advantage or create a second-product burden.

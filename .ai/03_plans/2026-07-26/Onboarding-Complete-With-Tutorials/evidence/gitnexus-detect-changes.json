@@ -2,19 +2,28 @@
   "schema_version": 1,
   "kind": "gitnexus-detect-changes",
   "status": "FAIL",
-  "generated_at": "2026-07-26T17:15:00.000Z",
+  "generated_at": "2026-07-26T17:49:00.000Z",
   "repository": "archestimator",
   "scope": "all",
   "summary": {
-    "changed_symbols": 61,
-    "changed_files": 43,
+    "changed_symbols": 16,
+    "changed_files": 21,
     "affected_processes": 0,
     "reported_risk_level": "low"
   },
   "onboarding_symbols_detected": [
     "src/lib/onboarding/starter-pack-actions.ts:nowIso",
-    "src/lib/onboarding/starter-pack-actions.ts:restoreStarterContent",
-    "src/lib/onboarding/starter-pack.ts:createStarterRowMetadata"
+    "src/lib/onboarding/starter-pack-actions.ts:first",
+    "src/lib/onboarding/starter-pack-actions.ts:all",
+    "src/lib/onboarding/starter-pack-actions.ts:prepareClaimInsert",
+    "src/lib/onboarding/starter-pack-actions.ts:readState",
+    "src/lib/onboarding/starter-pack-actions.ts:readClaims",
+    "src/lib/onboarding/starter-pack-actions.ts:ensureState",
+    "src/lib/onboarding/starter-pack-actions.ts:readPendingUserMembershipScopes",
+    "tests/vitest/beta-onboarding-flow-migration.test.ts:createDatabase",
+    "tests/vitest/guided-estimate-sample.test.ts:createDatabase",
+    "tests/vitest/starter-pack-actions.test.ts:SqliteD1Database",
+    "tests/vitest/starter-pack-actions.test.ts:SqliteD1Database.batch"
   ],
   "index": {
     "indexed_at": "2026-07-26T06:55:45.989Z",
@@ -24,7 +33,7 @@
   },
   "findings": [
     "detect_changes completed successfully and reported no affected indexed processes.",
-    "The index is 31 commits behind HEAD and detected only three onboarding symbols, so LOW risk and zero affected processes are not accepted as complete blast-radius proof.",
+    "The index is 31 commits behind HEAD and omits current starter fencing and restore-result symbols, so LOW risk and zero affected processes are not accepted as complete blast-radius proof.",
     "A safe local reindex was attempted and refused because the wrapper would resolve an unpinned registry latest package; the stale result is retained fail-closed."
   ]
 }

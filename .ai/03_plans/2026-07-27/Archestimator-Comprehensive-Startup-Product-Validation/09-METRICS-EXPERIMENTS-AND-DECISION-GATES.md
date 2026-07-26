@@ -12,7 +12,7 @@
 
 ### Evidence-Backed Paid Repeat Accounts
 
-**Definition:** The count of distinct accounts in one deliberately narrow ICP that, within the measurement window:
+**Definition:** The count of distinct accounts in one deliberately narrow ICP that, by each account’s precommitted natural-cycle due date:
 
 1. supply a recent, concrete problem incident and a real sanitized artifact;
 2. complete the agreed estimating-to-decision workflow on a live or immediately upcoming project;
@@ -25,7 +25,9 @@
 EBPRA = count(distinct qualified ICP accounts meeting all four conditions)
 ```
 
-**Next-window target:** `EBPRA >= 2` from at least three active pilots within 30–45 days.
+**30–45-day acquisition/economic checkpoint:** From at least three active pilots, at least two accounts must satisfy conditions 1, 2, and 4 above and have a named, dated second natural cycle. This checkpoint is not reported as EBPRA unless the repeat has actually occurred.
+
+**Retention target:** `EBPRA >= 2` from that same cohort by the latest precommitted natural-cycle due date. Record each account’s due date before first-cycle completion from a named project, bid, revision, or scheduled operating event. Recruit the first cohort only when a genuine second cycle is expected within 90 days; otherwise classify the account as a cadence mismatch before enrollment rather than manufacturing a repeat.
 
 - `[WORKING_HYPOTHESIS | MEDIUM]` Two accounts are not product-market fit. They are the minimum credible signal that the problem, behavior, repeat value, and budget can coexist in the same narrow segment.
 - `[EVIDENCE_BACKED_INFERENCE | HIGH]` A count is preferable to an averaged engagement metric at this stage because the sample is intentionally small and the decision is whether to earn the right to expand delivery.
@@ -39,7 +41,7 @@ An account does **not** count if:
 - only a founder-created demo dataset is used;
 - the workflow succeeds only through unbounded founder administration;
 - the recipient never participates when recipient behavior is part of the value promise;
-- the second cycle is manufactured solely for the test;
+- the second cycle is manufactured solely for the test, lacks a named due date recorded before first-cycle completion, or occurs only after the precommitted due date without a documented external schedule change;
 - the commitment is “interested,” a nonbinding compliment, or an undisclosed discount;
 - the payer is not a genuine budget holder or approved delegate;
 - the price changes opportunistically after every objection; or
@@ -69,14 +71,14 @@ This table is the canonical threshold source for this research cycle. If another
 | Gate | Minimum evidence | Pass | Fail / inconclusive action |
 |---|---|---|---|
 | Problem Proof | 8 qualified interviews in one candidate ICP | ≥5 recent incidents and unprompted active concern; ≥4 artifacts; ≥4 quantified material consequences; ≥4 active workarounds; pattern is substantially the same job | Change/narrow ICP or problem; do not add broad scope |
-| Timeline comprehension | 6 uncoached tests: at least 3 proposers and 3 recipients | ≥5 correctly identify baseline, pending proposal, change, evidence, assumptions, exclusions, unresolved items, and decision; zero authority errors | Revise vocabulary/model; if repeat failure, keep Timeline supporting-only |
-| Timeline capture behavior | 6 realistic capture sessions | ≥5 complete critical record; median guardrail met; ≥4 replace existing work rather than add duplicate admin | Narrow required fields/events or stop Timeline expansion |
+| Timeline comprehension | 6 uncoached tests: at least 3 proposers and 3 recipients | ≥5 correctly identify the current accepted baseline, pending Issue, what changed, why, supporting evidence, assumptions, exclusions, unresolved consequences, requested decision, and resulting state after acceptance; zero authority errors | Revise vocabulary/model; if repeat failure, keep Timeline supporting-only |
+| Timeline capture behavior | 6 realistic capture sessions | ≥5 complete the critical record; median net-new capture time ≤10 minutes; no session >20 minutes without material offsetting task removal; ≥4 replace existing work rather than add duplicate admin | Narrow required fields/events or stop Timeline expansion |
 | Recipient behavior | 5 live or high-fidelity sends | ≥4 open uncoached; ≥3 act in workflow; ≤1 comprehension-driven external fallback | Treat portal as owner-side record/export; do not require recipient adoption |
-| Assembly language | 8 estimating users across target segment | ≥6 naturally recognize a distinct reusable concept and ≥5 predict consistent behavior/value beyond templates/prior projects | Merge with Templates or Project Sources; do not create first-class Assembly |
+| Assembly language | 8 estimating users across target segment | ≥6 naturally recognize the same distinct reusable concept and correctly predict its behavior; ≥5 select it over Templates or Project Sources for a real task; the task shows a measurable time or accuracy gain | Merge with Templates or Project Sources; do not create first-class Assembly |
 | Connected product | 3 active account pilots | ≥2 complete estimate → issue → decision → revision as one natural workflow and return for another cycle | Separate or sequence products; lead with the stage showing value |
 | Design partner | 5 qualified asks | ≥3 contribute costly commitment: real project, artifacts, time, introductions, or paid pilot | Revisit urgency/ICP; stop using “design partner” loosely |
 | Economic | Identical Offer V1 to 5 comparable budget holders: ₱5,000/30 days, then ₱2,500/month | ≥2 paid or dated purchase commitments to the unchanged package; refunded pilots do not pass | Change value proposition, buyer, package, or stop expansion—not merely lower price |
-| Retention | 3 pilots reaching a second natural cycle | ≥2 repeat without more than one ordinary reminder and without founder operating the workflow | No product-user fit; diagnose value/capture burden before growth |
+| Retention | 3 pilots with a named natural second-cycle due date recorded before first-cycle completion | ≥2 repeat by their precommitted due dates, without more than one ordinary reminder and without founder operating the workflow | No product-user fit; diagnose value/capture burden before growth |
 
 ## Experiment Backlog
 
@@ -157,7 +159,7 @@ This table is the canonical threshold source for this research cycle. If another
 
 - **Claim tested:** Reusable estimating knowledge and commitment history are one natural product loop.
 - **Method:** Three real accounts complete one full loop and a second cycle.
-- **Pass:** Connected-product and retention gates; at least two meet EBPRA conditions except where billing date legitimately follows the window.
+- **Pass:** At least two satisfy the 30–45-day acquisition/economic checkpoint; the connected-product and retention verdict is deferred until those accounts reach their precommitted natural-cycle due dates and at least two satisfy full EBPRA.
 - **Disconfirming result:** Different roles, budgets, cadences, or systems own the two stages; one stage is repeatedly skipped.
 - **Decision:** Sequence as separate wedges or integrations instead of forcing one product narrative.
 
@@ -206,7 +208,7 @@ Do not ask “Did people like it?” Apply the gates:
 3. Did recipients participate?
 4. Did Assembly earn a separate concept?
 5. Did two buyers commit at a real price?
-6. Is a second natural cycle scheduled or completed?
+6. Does each pilot have a named, dated second natural cycle, and has any account legitimately completed it already?
 
 ## Kill, Narrow, and Pivot Triggers
 
@@ -255,4 +257,4 @@ Narrow to: current accepted state, pending proposal, exact issued snapshot, conc
 - **Red flag:** A founder-assisted first cycle is not retention.
 - **Red flag:** Changing thresholds after weak results would destroy the value of precommitment.
 - **Data gap:** The proposed thresholds have not yet been calibrated against actual Archestimator workflows.
-- **Data gap:** Natural workflow cadence may exceed 30 days for some segments; the second-cycle window must be set from observed cadence before each pilot.
+- **Data gap:** Natural workflow cadence may exceed 30 days; each pilot therefore needs a named second-cycle due date recorded before first-cycle completion, and the cohort retention verdict occurs only at the latest of those precommitted dates.
