@@ -5,6 +5,8 @@ export type ComparisonCapability = "full" | "aggregate_only" | "unavailable";
 export type PrivateScopeStatus = "included" | "excluded" | "allowance" | "alternate" | "informational";
 export type PrivateLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
 export type RequestedDecision = "none" | "acknowledgement" | "formal";
+export type PrivateArtifactPurpose = "reference" | "review" | "approval" | "evidence" | "contract" | "drawing" | "supporting";
+export type PrivateRequestRelationship = "origin" | "addresses" | "supports" | "related";
 
 export type PrivateRowProjection = {
   sourceRowId: string;
@@ -61,7 +63,7 @@ export type PrivateArtifactProjection = {
   publicId: string;
   publicLabel: string;
   versionLabel: string;
-  purpose: string;
+  purpose: PrivateArtifactPurpose;
   downloadAllowed: boolean;
   commentAllowed: boolean;
   decisionRelevant: boolean;
@@ -74,7 +76,7 @@ export type PrivateRequestProjection = {
   publicCode: string;
   publicTitle: string;
   versionNumber: number;
-  relationship: string;
+  relationship: PrivateRequestRelationship;
 };
 
 export type NarrativePolicyItem = {
@@ -482,28 +484,36 @@ export function normalizePrivateIssueProjection(source: PrivateIssueProjection):
   assertUnique(estimates, (item) => item.sourceEstimateId, "estimates");
   estimates.reduce((total, item) => safeAdd(total, item.totalMinorUnits, "issue total"), 0);
 
-  const artifacts = source.artifacts.map((item, index): PrivateArtifactProjection => ({
-    sourceArtifactId: canonicalText(item.sourceArtifactId, `artifacts[${index}].sourceArtifactId`),
-    sourceVersionId: canonicalText(item.sourceVersionId, `artifacts[${index}].sourceVersionId`),
-    publicId: canonicalText(item.publicId, `artifacts[${index}].publicId`),
-    publicLabel: canonicalText(item.publicLabel, `artifacts[${index}].publicLabel`),
-    versionLabel: canonicalText(item.versionLabel, `artifacts[${index}].versionLabel`),
-    purpose: canonicalText(item.purpose, `artifacts[${index}].purpose`),
-    downloadAllowed: Boolean(item.downloadAllowed),
-    commentAllowed: Boolean(item.commentAllowed),
-    decisionRelevant: Boolean(item.decisionRelevant),
-  })).sort((left, right) => compareText(left.sourceArtifactId, right.sourceArtifactId));
+  const artifactPurposes: readonly PrivateArtifactPurpose[] = ["reference", "review", "approval", "evidence", "contract", "drawing", "supporting"];
+  const artifacts = source.artifacts.map((item, index): PrivateArtifactProjection => {
+    if (!artifactPurposes.includes(item.purpose)) throw new Error(`artifacts[${index}].purpose is invalid.`);
+    return {
+      sourceArtifactId: canonicalText(item.sourceArtifactId, `artifacts[${index}].sourceArtifactId`),
+      sourceVersionId: canonicalText(item.sourceVersionId, `artifacts[${index}].sourceVersionId`),
+      publicId: canonicalText(item.publicId, `artifacts[${index}].publicId`),
+      publicLabel: canonicalText(item.publicLabel, `artifacts[${index}].publicLabel`),
+      versionLabel: canonicalText(item.versionLabel, `artifacts[${index}].versionLabel`),
+      purpose: item.purpose,
+      downloadAllowed: Boolean(item.downloadAllowed),
+      commentAllowed: Boolean(item.commentAllowed),
+      decisionRelevant: Boolean(item.decisionRelevant),
+    };
+  }).sort((left, right) => compareText(left.sourceArtifactId, right.sourceArtifactId));
   assertUnique(artifacts, (item) => item.sourceArtifactId, "artifacts");
 
-  const requests = source.requests.map((item, index): PrivateRequestProjection => ({
-    sourceRequestId: canonicalText(item.sourceRequestId, `requests[${index}].sourceRequestId`),
-    sourceRequestVersionId: canonicalText(item.sourceRequestVersionId, `requests[${index}].sourceRequestVersionId`),
-    publicId: canonicalText(item.publicId, `requests[${index}].publicId`),
-    publicCode: canonicalText(item.publicCode, `requests[${index}].publicCode`),
-    publicTitle: canonicalText(item.publicTitle, `requests[${index}].publicTitle`),
-    versionNumber: safeInteger(item.versionNumber, `requests[${index}].versionNumber`, { nonnegative: true }),
-    relationship: canonicalText(item.relationship, `requests[${index}].relationship`),
-  })).sort((left, right) => compareText(left.sourceRequestId, right.sourceRequestId));
+  const requestRelationships: readonly PrivateRequestRelationship[] = ["origin", "addresses", "supports", "related"];
+  const requests = source.requests.map((item, index): PrivateRequestProjection => {
+    if (!requestRelationships.includes(item.relationship)) throw new Error(`requests[${index}].relationship is invalid.`);
+    return {
+      sourceRequestId: canonicalText(item.sourceRequestId, `requests[${index}].sourceRequestId`),
+      sourceRequestVersionId: canonicalText(item.sourceRequestVersionId, `requests[${index}].sourceRequestVersionId`),
+      publicId: canonicalText(item.publicId, `requests[${index}].publicId`),
+      publicCode: canonicalText(item.publicCode, `requests[${index}].publicCode`),
+      publicTitle: canonicalText(item.publicTitle, `requests[${index}].publicTitle`),
+      versionNumber: safeInteger(item.versionNumber, `requests[${index}].versionNumber`, { nonnegative: true }),
+      relationship: item.relationship,
+    };
+  }).sort((left, right) => compareText(left.sourceRequestId, right.sourceRequestId));
   assertUnique(requests, (item) => item.sourceRequestId, "requests");
 
   const decisions: readonly RequestedDecision[] = ["none", "acknowledgement", "formal"];
@@ -1045,7 +1055,7 @@ export function createClientPortalChangeSet(input: CreateClientPortalChangeSetIn
   const narrativeChanges = comparison.capability === "unavailable" ? emptyNarrativeChanges() : compareNarrative(previous!, current);
   const rowChanges = estimateChanges.flatMap((estimate) => estimate.rowChanges);
   const addressedRequests = requestChanges
-    .filter((item) => item.type !== "removed" && (item.after?.relationship === "addresses" || item.after?.relationship === "resolves"))
+    .filter((item) => item.type !== "removed" && item.after?.relationship === "addresses")
     .map((item) => item.publicCode)
     .sort(compareText);
   const privateChangeSet: PrivateClientPortalChangeSet = {
