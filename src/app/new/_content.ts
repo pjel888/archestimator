@@ -16,7 +16,7 @@ export const newLandingCopy = {
     intro:
       "Pricing can start in a spreadsheet, leave as a workbook or PDF, and continue in email or chat. The review version, questions, revisions, and response can become separate records.",
     connection:
-      "Archestimator keeps the working price, published proposal, discussion, and response in one product context.",
+      "Archestimator keeps the working price, published proposal, questions, and response connected in one place.",
     audience:
       "The same job can begin with a building estimate, subcontract package, fabricated assembly, material supply quote, or professional service scope: project-specific pricing that another party must review and answer.",
     summary:
@@ -26,7 +26,7 @@ export const newLandingCopy = {
     eyebrow: "One connected workflow",
     headline: "Three stages, one commercial thread.",
     intro:
-      "Build, Publish, and Decide carry internal pricing into external review as one workflow, with each stage preserving the proposal context the next stage needs.",
+      "Build, Publish, and Decide carry internal pricing into external review as one workflow, with each stage passing forward the version and information the next stage needs.",
     stages: [
       {
         number: "01",
@@ -41,7 +41,7 @@ export const newLandingCopy = {
         label: "Publish",
         heading: "Create the proposal version intended for review.",
         copy:
-          "Select estimates and create a proposal snapshot for review. Overview, estimate, and financial views present the published context, not the editable workspace.",
+          "Select estimates and create a proposal snapshot for review. Overview, estimate, and financial views present the published version, not the editable workspace.",
         terms: ["Selected estimates", "Proposal snapshot", "Overview", "Financial views"],
       },
       {
@@ -49,22 +49,22 @@ export const newLandingCopy = {
         label: "Decide",
         heading: "Keep questions and the response with the proposal.",
         copy:
-          "Recipients review in the browser, discuss supported context, and use a personalized secure link to choose Approve proposal, Request changes, or Decline. The response stays tied to the reviewed version.",
+          "Recipients review in the browser, discuss proposal details, and use a personalized secure link to choose Approve proposal, Request changes, or Decline. The response stays tied to the reviewed version.",
         terms: ["Discussion", "Approve proposal", "Request changes", "Decline"],
       },
     ],
   },
   proof: {
     eyebrow: "Current product capabilities",
-    headline: "Structure before the handoff. Context after it.",
+    headline: "Structure before the handoff. Questions and responses after it.",
     intro:
-      "Current capabilities cover the proposer's structure and the recipient's review surface.",
+      "Current capabilities cover how the proposer structures pricing and how the recipient reviews it.",
     modules: [
       {
         label: "Structured estimating",
         heading: "Build around the project, not an empty sheet.",
         copy:
-          "Groups and areas shape the estimate. Reusable components retain variants, supplier or source context, quantities, and costs. Templates and editable XLSX support repeatable work.",
+          "Groups and areas shape the estimate. Reusable components retain variants, supplier or source details, quantities, and costs. Templates and editable XLSX support repeatable work.",
         details: ["Group and area hierarchy", "Cost component variants", "Estimate templates", "Editable XLSX"],
       },
       {
@@ -76,7 +76,7 @@ export const newLandingCopy = {
       },
     ],
     boundary:
-      "Archestimator adds structure and review context without replacing every working document.",
+      "Archestimator adds structure and a browser review page without replacing every working document.",
   },
   objections: {
     eyebrow: "Current product boundary",
@@ -86,7 +86,7 @@ export const newLandingCopy = {
       {
         heading: "Does Archestimator replace Excel?",
         copy:
-          "No. Editable XLSX preserves a familiar output. Archestimator adds project structure, reusable costs, review, discussion, and decision context.",
+          "No. Editable XLSX preserves a familiar output. Archestimator adds project structure, reusable costs, proposal review, discussion, and decision records.",
       },
       {
         heading: "Can it fit how our business structures estimates or quotations?",
@@ -109,7 +109,7 @@ export const newLandingCopy = {
     eyebrow: "Request early access",
     headline: "Bring the next quote into one connected workflow.",
     copy:
-      "Test Archestimator with real project-specific pricing and keep the working price, review version, and response in context.",
+      "Test Archestimator with real project-specific pricing and keep the working price, review version, questions, and response connected.",
     ctaLabel: "Request early access",
     signedInCtaLabel: "Open workspace",
   },

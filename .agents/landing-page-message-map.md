@@ -10,7 +10,7 @@
 | Control protection | The 49-file control fixture protects `/`, the Kimi composition, shared hero components, motion code, styles, and image assets. |
 | Preserved visual invariant | The responsive source image and `HeroVoxelRippleImage` Three.js ripple engine remain shared and unchanged. |
 | Intentionally changed above fold | `/new` owns its hero category, headline, supporting copy, CTA layout, audience line, image framing, and responsive composition. |
-| Historical starting point | `/new` was first captured as an exact desktop/mobile copy of `/`; the portable parity record is tracked at `tests/fixtures/new-landing-initial-copy-parity.json`. |
+| Historical starting point | `/new` was first captured as an exact desktop/mobile copy of `/`; the portable parity record is stored at `tests/fixtures/new-landing-initial-copy-parity.json`. |
 | Approved working category | `Estimating and proposal workflow for AEC businesses`. |
 | Approved working one-liner | `Archestimator helps businesses in the AEC industry to build structured cost estimates and turn them into client-ready proposals that can be reviewed, discussed, and decided in one connected workflow.` |
 | Jobs to Be Done | Move project-specific pricing from working estimate to reviewable proposal and explicit response without losing the commercial thread. |
@@ -24,7 +24,7 @@
 - `FACT`: A proposer can publish a proposal review version with Overview, Estimate, Financials, Discussion, and Decision views.
 - `FACT`: A recipient can review in the browser; optional password protection and personalized links govern supported discussion and response actions.
 - `FACT`: Supported responses are Approve proposal, Request changes, and Decline, tied to the reviewed proposal version.
-- `EVIDENCE-BACKED INFERENCE`: Architects, contractors, subcontractors, suppliers, fabricators, and professional-service firms can share the commercial job of pricing project-specific work for another party.
+- `WORKING HYPOTHESIS`: Architects, contractors, subcontractors, suppliers, fabricators, and professional-service firms may share the commercial job of pricing project-specific work for another party. The page provides recognition cues; actual resonance is unvalidated.
 - `WORKING HYPOTHESIS`: `Estimating and proposal workflow` will be understood faster than `construction cost intelligence software` when paired with a recognizable quote-to-response circumstance.
 - `RESEARCH GAP`: No customer interviews, win-loss evidence, funnel data, or message-test results establish which category or audience framing wins.
 
@@ -57,13 +57,13 @@
 
 - Structured estimating: groups and areas, cost component variants, estimate templates, and editable XLSX.
 - Proposal review: browser review, password option, contextual comments, and explicit response.
-- Boundary: Archestimator adds structure and review context without replacing every working document.
+- Boundary: Archestimator adds structure and a browser review page without replacing every working document.
 
 ### Body Chapter 4: Boundaries, Objections, And Action
 
 | Objection | Current answer |
 | --- | --- |
-| Does Archestimator replace Excel? | No. Editable XLSX remains available; Archestimator adds connected project structure, reusable costs, review, discussion, and decision context. |
+| Does Archestimator replace Excel? | No. Editable XLSX remains available; Archestimator adds project structure, reusable costs, proposal review, discussion, and decision records. |
 | Can it fit different estimate or quotation structures? | Named groups and areas, flexible rows, reusable components, and templates support different project-specific scopes. |
 | Does the proposal recipient install anything? | No software install. Review happens in the browser; supported discussion and response use the recipient's personalized secure link. |
 | Is Archestimator available now? | Access is limited and available by request while Archestimator prepares the workflow for broader testing with AEC businesses. |
@@ -79,7 +79,7 @@
 | Proposal snapshot with Overview, Estimate, Financials, Discussion, and Decision views | `FACT` | Current publication and proposal portal behavior. |
 | Browser review, optional password, and personalized secure links | `FACT` | Current public proposal review and recipient-action boundaries. |
 | Approve proposal, Request changes, or Decline | `FACT` | Current decision states and tests. |
-| Relevant to multiple AEC business types | `EVIDENCE-BACKED INFERENCE` | Capability fit, not customer adoption evidence. |
+| Relevant to multiple AEC business types | `WORKING HYPOTHESIS` | Capability fit and explicit recognition cues, not segment-resonance or customer-adoption evidence. |
 | Category superiority, adoption, or improved business outcomes | `RESEARCH GAP` | Requires customer and funnel evidence. |
 
 ### Prohibited Claims
@@ -90,17 +90,23 @@ Do not claim live RFQ intake, payment processing, contracts, purchase orders, in
 
 | Dimension | `/` control | `/new` experiment | Test intent |
 | --- | --- | --- | --- |
-| Hero category | `Construction cost intelligence software` | `Estimating and proposal workflow for AEC businesses` | Compare a broad intelligence category with a familiar workflow category. |
-| Hero headline | `Build with ambition` | `Build. Publish. Decide.` | Compare brand ambition with an explicit workflow mnemonic. |
-| Hero visual | Full-width Acropolis image, role overlay, ripple | Shared Acropolis image and ripple in a two-column composition | Preserve the liked visual engine while removing the role overlay and comprehension delay. |
+| Hero | Brand-led full-width composition and animated role overlay | Category-led two-column composition with the same image and ripple engine | Apply the latest founder override: hold the liked image and interaction constant while testing the rest of the above-fold message. |
+| Product category | `Construction cost intelligence software` | `Estimating and proposal workflow for AEC businesses` | Compare a broad intelligence category with a familiar workflow category. |
 | Primary audience | Named AEC professions and roles | Businesses preparing project-specific pricing for review | Test commercial behavior instead of profession alone. |
 | Triggering circumstance | Implied by estimate and proposal proof | `Someone asks for a quote.` | Name the moment that starts the job. |
+| Core problem | Disconnected work is implied through product demonstrations | Pricing, review version, questions, revisions, and response split across files and channels | Test whether naming the commercial handoff improves recognition. |
 | Product narrative | Product demo -> workflow -> client review -> roles -> FAQs | Category -> circumstance -> Build/Publish/Decide -> current capabilities -> objections | Test a shorter reasoning sequence. |
-| Body chapters | Control composition | Four route-owned chapters | Remove the duplicated product-definition bridge after promoting it into the hero. |
-| Rendered core body words | Control not used as a copy-budget target | 452 across desktop, mobile, and 320px | Stay within the 450-750 word budget. |
-| CTA intent | Request early access | Request early access, plus `See the workflow` | Keep acquisition intent while offering a lower-commitment internal jump. |
+| Post-hero headline | Product workspace demonstration, then `Build estimates your way.` | `Someone asks for a quote.` | Begin with the commercial circumstance before feature depth. |
+| One-liner | Distributed across hero lead and supporting copy | Approved one-liner appears once in the hero | Test a single explicit definition. |
+| Product proof sequence | Interactive workspace -> workflow runway -> client proof -> roles and FAQ | Workflow mechanics -> current estimating and review capabilities -> objections | Trade demonstration depth for a shorter explanatory sequence. |
+| Section count | Five post-hero sections | Four route-owned post-hero chapters | Reduce repetition after moving the product definition into the hero. |
+| Approximate word count | 478 rendered main words; not governed by the experiment budget | 510 rendered main words, including 462 core-body words | Keep the experimental body inside the required 450-750 range while making the hero self-defining. |
+| Competitive alternative | Spreadsheets are discussed mainly in FAQ copy | Spreadsheet or estimating tool -> exported file -> email or chat -> manual reconciliation | Make the current workflow alternative explicit without attacking Excel. |
+| Main promise | Build detailed estimates and carry them through client approval | Keep working price, review version, questions, and response connected | Test a more concrete commercial-thread promise. |
+| CTA structure | Request early access in header, hero, and closing | Request early access in header, hero, and closing, plus `See the workflow` | Retain acquisition intent and add a lower-commitment internal jump. |
 | Main strength | Rich, concrete product UI proof | Immediate category, circumstance, and workflow comprehension | Compare demonstration depth with message clarity. |
-| Main risk | Category and circumstance remain implicit | Behavioral audience may still be too broad | Both require customer evidence. |
+| Main weakness | Category and circumstance remain implicit | Less interactive product proof than the control | Preserve an honest comparison instead of declaring a winner. |
+| Main unsupported assumption | The broad intelligence category and profession list create understanding | Multiple AEC segments describe the quote-to-response job similarly | Both routes require customer evidence. |
 
 ### First-Viewport Comprehension Target
 
@@ -114,9 +120,9 @@ Before the first body chapter, `/new` should communicate:
 
 ## Audience Review
 
-- Supplier: recognizes material supply quotes and source context without implying RFQ, procurement, purchase-order, or payment features.
-- Contractor: recognizes building estimates, subcontract packages, structured cost rows, proposal review, and change-request responses.
-- Architect: recognizes professional service scopes and client proposal review.
+- Supplier cue: material supply quotes and supplier or source details are named without implying RFQ, procurement, purchase-order, or payment features.
+- Contractor cue: building estimates, subcontract packages, structured cost rows, proposal review, and change-request responses are named.
+- Architect cue: professional service scopes and client proposal review are named.
 - Audience risk: the behavior-led definition may be too broad unless customer research confirms that these businesses describe the job similarly.
 
 ## Quality Scorecard
@@ -125,16 +131,26 @@ Scores are message-design judgments, not customer evidence. No route is declared
 
 | Dimension | `/` | `/new` | Rationale |
 | --- | ---: | ---: | --- |
-| Above-fold category clarity | 6 | 9 | `/new` names the workflow directly. |
+| Hero quality | 9 | 9 | Both retain the strong Acropolis image and shared ripple engine. |
+| Hero-to-body continuity | 8 | 9 | `/new` carries its explicit workflow mnemonic into the body sequence. |
+| Category clarity | 6 | 9 | `/new` names the estimating-and-proposal workflow directly. |
 | Customer-circumstance clarity | 6 | 9 | `/new` names the quote trigger and fragmented handoff. |
-| Audience relevance | 7 | 8 | Behavioral breadth improves recognition but needs validation. |
+| Audience relevance | 7 | 8 | Behavioral breadth is explicit, but actual segment resonance is unvalidated. |
+| Supplier recognition cue strength | 7 | 8 | Material supply quotes and source details are explicit; recognition is still a hypothesis. |
+| Contractor recognition cue strength | 8 | 9 | Building estimates, subcontract packages, and change requests are explicit. |
+| Architect recognition cue strength | 9 | 8 | Professional-service scopes remain visible, but architecture is intentionally not the only frame. |
 | Product comprehension | 7 | 9 | `/new` defines Build, Publish, and Decide before feature depth. |
-| Problem recognition | 7 | 9 | `/new` names spreadsheet/PDF/email/chat fragmentation. |
+| Problem recognition | 7 | 9 | `/new` names spreadsheet, file, email, and chat fragmentation. |
+| Outcome clarity | 8 | 8 | Both reach an explicit response without promising an unverified business result. |
+| Differentiation | 7 | 8 | `/new` contrasts connected mechanics with a fragmented alternative without claiming uniqueness. |
 | Concreteness | 9 | 9 | Both use specific current capabilities. |
 | Credibility | 8 | 9 | `/new` states current boundaries and avoids unsupported outcomes. |
-| Memorability | 8 | 9 | Build, Publish, Decide is compact and repeatable. |
-| Product proof depth | 10 | 8 | The control retains richer UI demonstration. |
-| Visual distinction | 9 | 9 | Both use the same liked image and ripple through different compositions. |
+| Memorability | 8 | 8 | Build, Publish, Decide is compact, but recall has not been tested. |
+| CTA clarity | 9 | 9 | Both keep `Request early access` as the primary action. |
+| Claim truthfulness | 8 | 9 | `/new` records current behavior, qualifications, and prohibited claims explicitly. |
+| Body length discipline | 7 | 9 | `/new` uses four chapters and keeps core body copy inside 450-750 words. |
+| Product proof depth | 10 | 8 | The control retains richer interactive UI demonstration. |
+| Visual coherence | 9 | 9 | The same image and ripple support two coherent compositions. |
 
 ## Visual And Machine Evidence
 
@@ -149,7 +165,7 @@ Scores are message-design judgments, not customer evidence. No route is declared
 Fresh manifest facts:
 
 - Three profiles: 1280 x 800, 390 x 844, and 320 x 812.
-- 452 rendered core body words at every profile.
+- 462 rendered core body words at every profile.
 - Four major body chapters and four objections.
 - Matching responsive image source, natural dimensions, object fit, and object position between control and experiment.
 - Desktop/mobile historical copy parity remains recorded with zero differing pixels and matching screenshot hashes.
@@ -158,7 +174,7 @@ Fresh manifest facts:
 ## Completion Audit
 
 - [x] `/` remains protected by the 49-file control hash fixture.
-- [x] `/new` began as an exact desktop/mobile copy of `/`, recorded in a tracked portable fixture.
+- [x] `/new` began as an exact desktop/mobile copy of `/`, recorded in a portable fixture.
 - [x] The user-approved image and Three.js ripple implementation remain unchanged.
 - [x] `/new` now owns the rest of the hero.
 - [x] Category, H1, one-liner, CTA, and audience are visible above the body.

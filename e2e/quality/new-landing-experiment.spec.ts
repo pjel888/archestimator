@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
@@ -32,6 +32,19 @@ const evidenceMarkers = [
   "mobile-menu",
   "contracts",
   "no-javascript",
+] as const;
+
+const candidateSourceFiles = [
+  ".agents/landing-page-message-map.md",
+  ".agents/product-marketing.md",
+  "e2e/quality/new-landing-experiment.spec.ts",
+  "src/app/new/_components/new-experiment-cta.tsx",
+  "src/app/new/_components/new-landing-page.tsx",
+  "src/app/new/_content.ts",
+  "src/app/new/new-landing.module.css",
+  "src/app/new/page.tsx",
+  "tests/vitest/new-landing-experiment-contract.test.ts",
+  "tests/vitest/new-landing-experiment-cta.test.tsx",
 ] as const;
 
 function artifactRoot(testInfo: TestInfo) {
@@ -217,6 +230,7 @@ async function captureStatic(
     const image = document.querySelector<HTMLImageElement>("#product picture img");
     const imageStyle = image ? getComputedStyle(image) : null;
     const hero = document.querySelector("#product");
+    const main = document.querySelector("main");
     const body = document.querySelector("[data-new-experiment-body]");
     const coreCopy = Array.from(document.querySelectorAll("[data-core-copy]"))
       .map((section) => section.textContent ?? "")
@@ -249,6 +263,7 @@ async function captureStatic(
       chapterCount: body?.querySelectorAll("[data-new-major-chapter]").length ?? 0,
       objectionCount: body?.querySelectorAll("[data-new-objection]").length ?? 0,
       coreCopy,
+      mainCopy: main?.textContent ?? "",
       rippleCanvasCount: document.querySelectorAll("[data-hero-ripple-canvas]").length,
       scrollHeight: document.documentElement.scrollHeight,
       horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
@@ -439,6 +454,8 @@ test("final experiment preserves the shared hero image and captures the comparis
       },
       controlScrollHeight: control.metrics.scrollHeight,
       experimentScrollHeight: experiment.metrics.scrollHeight,
+      controlMainWordCount: countWords(control.metrics.mainCopy),
+      experimentMainWordCount: countWords(experiment.metrics.mainCopy),
       experimentCoreWordCount: countWords(experiment.metrics.coreCopy),
       experimentChapterCount: experiment.metrics.chapterCount,
       experimentObjectionCount: experiment.metrics.objectionCount,
@@ -463,19 +480,30 @@ test("final experiment preserves the shared hero image and captures the comparis
     });
   }
 
+  const candidateSources = Object.fromEntries(
+    await Promise.all(
+      candidateSourceFiles.map(async (filePath) => [
+        filePath,
+        sha256(await readFile(path.resolve(process.cwd(), filePath))),
+      ]),
+    ),
+  );
+
   await writeFile(
     path.join(stagingRoot, "manifest.json"),
     `${JSON.stringify(
       {
-        schemaVersion: 2,
+        schemaVersion: 3,
         phase: "final-comparison",
         createdAt: new Date().toISOString(),
+        verificationStatus: "PENDING_PUBLICATION_GATE",
         authState: "signed-out-empty-storage",
         reducedMotion: "reduce",
         preservedInvariant: "shared-image-source-and-ripple-engine",
         initialCopyParityFixture:
           "tests/fixtures/new-landing-initial-copy-parity.json",
         publicationGate: evidenceMarkers,
+        candidateSources,
         results,
       },
       null,
@@ -486,7 +514,7 @@ test("final experiment preserves the shared hero image and captures the comparis
   await markEvidence(testInfo, "comparison");
 });
 
-test("fine-pointer ripple structure and response match the control", async ({ browser }, testInfo) => {
+test("the shared fine-pointer ripple engine responds on both routes", async ({ browser }, testInfo) => {
   test.setTimeout(60_000);
   const control = await rippleEvidence(browser, "/");
   const experiment = await rippleEvidence(browser, "/new");
@@ -613,6 +641,16 @@ test("body, metadata, navigation, CTA, and accessibility contracts pass", async 
   await expect(page.locator('a[href="/new"]')).toHaveCount(0);
 
   await page.goto("/new", { waitUntil: "networkidle" });
+  const liveObjections = page.locator("[data-new-objection]");
+  const firstObjection = liveObjections.first();
+  await firstObjection.locator("summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(firstObjection).toHaveAttribute("open", "");
+  await expect(firstObjection.locator("p")).toBeVisible();
+  for (let index = 1; index < 4; index += 1) {
+    await liveObjections.nth(index).locator("summary").click();
+    await expect(liveObjections.nth(index)).toHaveAttribute("open", "");
+  }
   const accessibility = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
@@ -635,6 +673,16 @@ test("the experimental narrative remains readable without JavaScript", async ({ 
 
   await expect(page.locator("#hero-title")).toBeVisible();
   await expect(page.getByText(approvedOneLiner, { exact: true })).toBeVisible();
+  const noJavaScriptCtas = page.getByRole("link", {
+    name: "Request early access",
+    exact: true,
+  });
+  await expect(noJavaScriptCtas).toHaveCount(2);
+  const noJavaScriptCtaHrefs = await noJavaScriptCtas.evaluateAll((links) =>
+    links.map((link) => link.getAttribute("href")),
+  );
+  expect(new Set(noJavaScriptCtaHrefs).size).toBe(1);
+  expect(noJavaScriptCtaHrefs[0]).toMatch(/^mailto:/u);
   await expect(page.locator("[data-new-major-chapter]")).toHaveCount(4);
   await expect(page.locator("[data-hero-ripple-canvas]")).toHaveCount(0);
   expect(await page.locator("[data-new-experiment-body]").textContent()).toContain(
@@ -653,7 +701,24 @@ test("publishes final artifacts only after the complete evidence set passes", as
   );
 
   expect(missingMarkers).toEqual([]);
-  expect(existsSync(path.join(stagingRoot, "manifest.json"))).toBe(true);
+  const manifestPath = path.join(stagingRoot, "manifest.json");
+  expect(existsSync(manifestPath)).toBe(true);
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<
+    string,
+    unknown
+  >;
+  const currentCandidateSources = Object.fromEntries(
+    await Promise.all(
+      candidateSourceFiles.map(async (filePath) => [
+        filePath,
+        sha256(await readFile(path.resolve(process.cwd(), filePath))),
+      ]),
+    ),
+  );
+  expect(currentCandidateSources).toEqual(manifest.candidateSources);
+  manifest.verificationStatus = "PASS";
+  manifest.verifiedAt = new Date().toISOString();
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   await Promise.all(
     evidenceMarkers.map((marker) =>

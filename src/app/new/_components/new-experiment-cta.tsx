@@ -10,34 +10,42 @@ import {
   BETA_ACCESS_MAILTO_HREF,
   WORKSPACE_HREF,
 } from "../../kimi3d/_content";
+import lockedStyles from "../../kimi3d/kimi-landing.module.css";
 import { newLandingCopy } from "../_content";
 import styles from "../new-landing.module.css";
 
-export function NewExperimentCta({ className }: { className?: string }) {
-  const { isLoggedIn, isLoading } = useLandingAuthHintState();
+type NewExperimentCtaProps = {
+  className?: string;
+  placement?: "closing" | "hero";
+};
 
-  if (isLoading) {
-    return (
-      <span
-        className={cn(styles.closingCta, styles.closingCtaSkeleton, className)}
-        data-new-closing-cta-loading
-        aria-hidden="true"
-      />
-    );
-  }
+export function NewExperimentCta({
+  className,
+  placement = "closing",
+}: NewExperimentCtaProps) {
+  const { isLoggedIn, isLoading } = useLandingAuthHintState();
+  const showSignedOutFallback = isLoading || !isLoggedIn;
+  const isHero = placement === "hero";
 
   return (
     <Link
-      href={isLoggedIn ? WORKSPACE_HREF : BETA_ACCESS_MAILTO_HREF}
-      className={cn(styles.closingCta, className)}
-      data-new-closing-cta
+      href={showSignedOutFallback ? BETA_ACCESS_MAILTO_HREF : WORKSPACE_HREF}
+      className={cn(isHero ? lockedStyles.ctaButton : styles.closingCta, className)}
+      data-new-experiment-cta={placement}
+      data-new-cta-loading={isLoading ? "" : undefined}
     >
       <span>
-        {isLoggedIn
-          ? newLandingCopy.closing.signedInCtaLabel
-          : newLandingCopy.closing.ctaLabel}
+        {showSignedOutFallback
+          ? newLandingCopy.closing.ctaLabel
+          : newLandingCopy.closing.signedInCtaLabel}
       </span>
-      <ArrowRight size={18} weight="bold" aria-hidden="true" />
+      {isHero ? (
+        <span className={lockedStyles.ctaArrow} aria-hidden="true">
+          <ArrowRight size={16} weight="bold" />
+        </span>
+      ) : (
+        <ArrowRight size={18} weight="bold" aria-hidden="true" />
+      )}
     </Link>
   );
 }
