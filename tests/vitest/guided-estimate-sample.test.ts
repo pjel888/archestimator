@@ -148,6 +148,10 @@ function createDatabase() {
     "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
     "utf8",
   ));
+  sqlite.exec(readFileSync(
+    "migrations/0117_onboarding_starter_mutation_fences.sql",
+    "utf8",
+  ));
   sqlite.prepare(`
     INSERT INTO workspaces (id, name, created_by, created_at, updated_at)
     VALUES (?, 'Workspace', ?, ?, ?)

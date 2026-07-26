@@ -80,14 +80,35 @@ describe("startGuidedSample", () => {
   );
 
   it("passes the guarded revision through starter restore before revalidating", async () => {
-    mocks.restoreStarterContent.mockResolvedValue({ status: "complete" });
+    mocks.restoreStarterContent.mockResolvedValue({
+      status: "restored",
+      workspaceStatus: "complete",
+      userStatus: "complete",
+      ready: true,
+    });
 
     await expect(restoreCurrentStarterContent(7)).resolves.toEqual({
-      status: "complete",
+      status: "restored",
+      workspaceStatus: "complete",
+      userStatus: "complete",
+      ready: true,
     });
 
     expect(mocks.restoreStarterContent).toHaveBeenCalledWith({
       expectedRevision: 7,
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop", "layout");
+  });
+
+  it("passes through the typed stale starter restore result", async () => {
+    mocks.restoreStarterContent.mockResolvedValue({
+      status: "stale",
+      currentRevision: 8,
+    });
+
+    await expect(restoreCurrentStarterContent(7)).resolves.toEqual({
+      status: "stale",
+      currentRevision: 8,
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop", "layout");
   });

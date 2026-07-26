@@ -357,6 +357,25 @@ async function expectNoAxeViolations(page: Page) {
   expect(accessibility.violations).toEqual([]);
 }
 
+async function waitForEstimateRowSaved(page: Page) {
+  const globalStatus = page.locator("[data-estimate-row-save-status]");
+  const pendingRows = page.locator('tr[data-estimate-row-mutation-status="pending"]');
+  const failedRows = page.locator('tr[data-estimate-row-mutation-status="failed"]');
+  let settledSince = 0;
+  await expect.poll(async () => {
+    if (await failedRows.count()) return -1;
+    const saving = (await globalStatus.textContent()) === "Saving row changes"
+      || await pendingRows.count() > 0;
+    if (saving) {
+      settledSince = 0;
+      return 0;
+    }
+    if (!settledSince) settledSince = Date.now();
+    return Date.now() - settledSince;
+  }, { intervals: [100], timeout: 15_000 }).toBeGreaterThanOrEqual(500);
+  await expect(failedRows).toHaveCount(0);
+}
+
 test.describe("onboarding first-value journey", () => {
   test.skip(
     !enabled,
@@ -493,9 +512,9 @@ test.describe("onboarding first-value journey", () => {
     await expect(firstEstimate).not.toContainText("Viewed");
   });
 
-  test("hands keyboard control to the real task target, with desktop pointer creation", async ({
+  test("hands keyboard and pointer control to the real task target and resumes from persisted progress", async ({
     page,
-  }, testInfo) => {
+  }) => {
     seedFirstValueHandoffState();
     await page.waitForTimeout(1_000);
     await openAuthenticatedRoute(
@@ -532,13 +551,25 @@ test.describe("onboarding first-value journey", () => {
     await expect(tryItNow).toBeVisible();
     await expect(returnToGuide).toHaveCount(0);
 
-    if (!["chromium", "firefox", "webkit"].includes(testInfo.project.name)) return;
-
     await tryItNow.click();
     await expect(realTarget).toBeFocused();
     const rows = page.locator("tr[data-estimate-row-id]");
     const rowCountBefore = await rows.count();
     await realTarget.click();
     await expect(rows).toHaveCount(rowCountBefore + 1, { timeout: 15_000 });
+    const createdRow = rows.nth(rowCountBefore);
+    const unitCost = createdRow.getByLabel("Unit cost", { exact: true });
+    await unitCost.fill("1250");
+    await unitCost.press("Enter");
+    await waitForEstimateRowSaved(page);
+
+    await returnToGuide.click();
+    await expect(
+      page.getByRole("heading", { name: "Price the work", exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator('tr[data-estimate-row-id]').getByLabel("Unit cost", { exact: true }))
+      .toHaveValue("1250");
   });
 });

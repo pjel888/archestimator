@@ -127,6 +127,7 @@ function createDatabase() {
     "migrations/0101_beta_onboarding_flow_state.sql",
     "migrations/0103_onboarding_activation_resource_integrity.sql",
     "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
+    "migrations/0117_onboarding_starter_mutation_fences.sql",
   ]) {
     sqlite.exec(readFileSync(migration, "utf8"));
   }

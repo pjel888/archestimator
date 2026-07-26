@@ -78,6 +78,7 @@ function dependencies(
 
   return {
     assertSameOrigin: vi.fn(() => ({ ok: true as const })),
+    requiresPassword: vi.fn(async () => false),
     readRecipientSession: vi.fn(async () => actor),
     resolvePublicContext: vi.fn(async () => ({
       database: {} as never,
@@ -276,6 +277,7 @@ describe("recipient change-request evidence byte upload route", () => {
   });
 
   it.each([
+    ["missing portal password session", { requiresPassword: vi.fn(async () => true) }],
     ["missing recipient session", { readRecipientSession: vi.fn(async () => null) }],
     ["request exposure not owned", { readVisibleOwnedRequestExposure: vi.fn(async () => null) }],
     ["policy denied", {

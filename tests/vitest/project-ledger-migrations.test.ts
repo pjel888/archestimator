@@ -37,9 +37,14 @@ function createDatabaseThrough(maximumMigration: string) {
   return database;
 }
 
-function applyMigrationRange(database: LocalSqliteDatabase, firstMigration: string) {
+function applyMigrationRange(
+  database: LocalSqliteDatabase,
+  firstMigration: string,
+  lastMigration = "0116_project_change_request_notification_outbox.sql",
+) {
   for (const file of migrationFiles) {
     if (file < firstMigration) continue;
+    if (file > lastMigration) break;
     database.exec(`BEGIN;\n${readFileSync(`migrations/${file}`, "utf8")}\nCOMMIT;`);
   }
 }

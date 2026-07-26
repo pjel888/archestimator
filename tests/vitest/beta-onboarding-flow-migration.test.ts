@@ -20,6 +20,10 @@ const onboardingResourceBindingsMigration = readFileSync(
   "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
   "utf8",
 );
+const starterMutationFencesMigration = readFileSync(
+  "migrations/0117_onboarding_starter_mutation_fences.sql",
+  "utf8",
+);
 
 type LocalSqliteDatabase = {
   exec(sql: string): void;
@@ -170,6 +174,7 @@ describe("beta onboarding flow D1 migrations", () => {
       `).run(tenant.userId, tenant.workspaceId, now, now);
 
       database.exec(onboardingResourceBindingsMigration);
+      database.exec(starterMutationFencesMigration);
 
       expect(database.prepare(`
         SELECT id, resource_id
@@ -187,6 +192,38 @@ describe("beta onboarding flow D1 migrations", () => {
           expires_at, created_at
         ) VALUES (?, 2, 'lease-1', ?, 'restore', ?, ?)
       `).run(tenant.workspaceId, tenant.userId, "2026-07-23T00:10:00.000Z", now);
+      database.prepare(`
+        INSERT INTO beta_starter_pack_states (
+          workspace_id, pack_version, scope_kind, scope_owner_id, status,
+          revision, shared_membership_revision, created_at, updated_at
+        ) VALUES (?, 2, 'workspace', ?, 'complete', 0, 1, ?, ?)
+      `).run(tenant.workspaceId, tenant.workspaceId, now, now);
+      expect(() => database.prepare(`
+        INSERT INTO beta_starter_restore_cas_guards (
+          guard_nonce, workspace_id, pack_version, scope_owner_id,
+          expected_revision, created_at
+        ) VALUES ('restore-guard-stale', ?, 2, ?, 1, ?)
+      `).run(tenant.workspaceId, tenant.workspaceId, now)).toThrow(/starter_restore_stale/);
+      database.prepare(`
+        INSERT INTO beta_starter_restore_cas_guards (
+          guard_nonce, workspace_id, pack_version, scope_owner_id,
+          expected_revision, created_at
+        ) VALUES ('restore-guard-current', ?, 2, ?, 0, ?)
+      `).run(tenant.workspaceId, tenant.workspaceId, now);
+      database.prepare(`
+        DELETE FROM beta_starter_restore_cas_guards
+        WHERE guard_nonce = 'restore-guard-current'
+      `).run();
+      database.prepare(`
+        INSERT INTO beta_starter_mutation_fence_guards (
+          guard_nonce, workspace_id, pack_version, lease_token, created_at
+        ) VALUES ('guard-1', ?, 2, 'lease-1', ?)
+      `).run(tenant.workspaceId, now);
+      expect(() => database.prepare(`
+        INSERT INTO beta_starter_mutation_fence_guards (
+          guard_nonce, workspace_id, pack_version, lease_token, created_at
+        ) VALUES ('guard-invalid', ?, 2, 'missing-lease', ?)
+      `).run(tenant.workspaceId, now)).toThrow();
       expect(() => database.prepare(`
         INSERT INTO beta_starter_mutation_leases (
           workspace_id, pack_version, lease_token, actor_user_id, operation,
@@ -201,6 +238,9 @@ describe("beta onboarding flow D1 migrations", () => {
       database.prepare("DELETE FROM workspaces WHERE id = ?").run(tenant.workspaceId);
       expect(database.prepare(
         "SELECT COUNT(*) AS count FROM beta_starter_mutation_leases",
+      ).get()).toEqual({ count: 0 });
+      expect(database.prepare(
+        "SELECT COUNT(*) AS count FROM beta_starter_mutation_fence_guards",
       ).get()).toEqual({ count: 0 });
       expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
     } finally {

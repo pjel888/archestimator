@@ -109,6 +109,8 @@ class SqliteD1Statement<T = Record<string, unknown>>
 }
 
 class SqliteD1Database implements D1DatabaseLike {
+  replaceLeaseBeforeNextRenewal = false;
+
   constructor(readonly sqlite: SqliteDatabase) {}
 
   prepare<T = Record<string, unknown>>(sql: string) {
@@ -118,6 +120,18 @@ class SqliteD1Database implements D1DatabaseLike {
   async batch<T = Record<string, unknown>>(
     statements: D1PreparedStatementLike<T>[],
   ): Promise<D1Result<T>[]> {
+    if (
+      this.replaceLeaseBeforeNextRenewal
+      && (statements as SqliteD1Statement<T>[]).some((statement) =>
+        statement.sql.includes("UPDATE beta_starter_mutation_leases")
+        && statement.sql.includes("SET expires_at = ?"))
+    ) {
+      this.replaceLeaseBeforeNextRenewal = false;
+      this.sqlite.prepare(`
+        UPDATE beta_starter_mutation_leases
+        SET lease_token = 'successor-lease', actor_user_id = 'successor-user'
+      `).run();
+    }
     this.sqlite.exec("BEGIN IMMEDIATE");
     try {
       const results: D1Result<T>[] = [];
@@ -146,6 +160,10 @@ function createDatabase() {
   }
   sqlite.exec(readFileSync(
     "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
+    "utf8",
+  ));
+  sqlite.exec(readFileSync(
+    "migrations/0117_onboarding_starter_mutation_fences.sql",
     "utf8",
   ));
   sqlite.prepare(`
@@ -472,17 +490,11 @@ describe("starter pack actions", () => {
     `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
   });
 
-  it("does not steal an expired starter mutation lease", async () => {
+  it("reclaims an expired starter mutation lease and completes recovery", async () => {
     await installStarterPackForNewWorkspace(database, {
       workspaceId: WORKSPACE_ID,
       userId: USER_ID,
     });
-    const stateBefore = database.sqlite.prepare(`
-      SELECT status, revision, shared_membership_revision
-      FROM beta_starter_pack_states
-      WHERE workspace_id = ? AND pack_version = ?
-        AND scope_kind = 'workspace' AND scope_owner_id = ?
-    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
     database.sqlite.prepare(`
       INSERT INTO beta_starter_mutation_leases (
         workspace_id, pack_version, lease_token, actor_user_id, operation,
@@ -495,20 +507,70 @@ describe("starter pack actions", () => {
       "2026-07-22T00:00:00.000Z",
     );
 
-    await expect(resumeStarterContent()).rejects.toThrow(/already being changed/i);
-    expect(database.sqlite.prepare(`
-      SELECT lease_token
-      FROM beta_starter_mutation_leases
-      WHERE workspace_id = ? AND pack_version = ?
-    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({
-      lease_token: "expired-worker",
+    await expect(resumeStarterContent()).resolves.toEqual({
+      workspaceStatus: "complete",
+      userStatus: "complete",
+      ready: true,
     });
     expect(database.sqlite.prepare(`
-      SELECT status, revision, shared_membership_revision
+      SELECT COUNT(*) AS count
+      FROM beta_starter_mutation_leases
+      WHERE workspace_id = ? AND pack_version = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({ count: 0 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM beta_starter_mutation_fence_guards
+      WHERE workspace_id = ? AND pack_version = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({ count: 0 });
+    expect(activeClaimKeys(database, "workspace", WORKSPACE_ID)).toEqual(
+      [...STARTER_WORKSPACE_ASSET_KEYS].sort(),
+    );
+  });
+
+  it("fences a holder that loses its lease before the next starter write", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    database.sqlite.prepare(`
+      UPDATE beta_starter_asset_claims
+      SET lifecycle_state = 'missing'
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+        AND asset_key = 'component.interior_paint_finish'
+    `).run(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+    database.replaceLeaseBeforeNextRenewal = true;
+
+    await expect(resumeStarterContent()).rejects.toThrow(/lease changed/i);
+
+    expect(database.sqlite.prepare(`
+      SELECT status
       FROM beta_starter_pack_states
       WHERE workspace_id = ? AND pack_version = ?
         AND scope_kind = 'workspace' AND scope_owner_id = ?
-    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual({ status: "complete" });
+    expect(database.sqlite.prepare(`
+      SELECT lifecycle_state
+      FROM beta_starter_asset_claims
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+        AND asset_key = 'component.interior_paint_finish'
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual({
+      lifecycle_state: "missing",
+    });
+    expect(database.sqlite.prepare(`
+      SELECT lease_token, actor_user_id
+      FROM beta_starter_mutation_leases
+      WHERE workspace_id = ? AND pack_version = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({
+      lease_token: "successor-lease",
+      actor_user_id: "successor-user",
+    });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM beta_starter_mutation_fence_guards
+      WHERE workspace_id = ? AND pack_version = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({ count: 0 });
   });
 
   it("keeps automatic workspace bootstrap read-only while another starter mutation lease is active", async () => {
@@ -591,6 +653,65 @@ describe("starter pack actions", () => {
     );
   });
 
+  it("preserves a user-renamed starter project through resume and restore", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    const originalClaim = database.sqlite.prepare(`
+      SELECT resource_id
+      FROM beta_starter_asset_claims
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+        AND asset_key = 'project.tutorial' AND lifecycle_state = 'active'
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+    const originalResourceId = String(originalClaim?.resource_id);
+    const userEditedName = "User-renamed tutorial project";
+    database.sqlite.prepare(`
+      UPDATE projects SET name = ?, updated_at = ?
+      WHERE id = ? AND workspace_id = ?
+    `).run(userEditedName, NOW, originalResourceId, WORKSPACE_ID);
+
+    await expect(resumeStarterContent()).resolves.toEqual({
+      workspaceStatus: "complete",
+      userStatus: "complete",
+      ready: true,
+    });
+    expect(database.sqlite.prepare(`
+      SELECT name FROM projects WHERE id = ? AND workspace_id = ?
+    `).get(originalResourceId, WORKSPACE_ID)).toEqual({ name: userEditedName });
+
+    database.sqlite.prepare(`
+      UPDATE beta_starter_asset_claims
+      SET lifecycle_state = 'archived', updated_at = ?
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+        AND asset_key = 'project.tutorial' AND lifecycle_state = 'active'
+    `).run(NOW, WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+    const state = database.sqlite.prepare(`
+      SELECT revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+
+    await expect(
+      restoreStarterContent({ expectedRevision: Number(state?.revision) }),
+    ).resolves.toMatchObject({ status: "restored", ready: true });
+
+    expect(database.sqlite.prepare(`
+      SELECT name FROM projects WHERE id = ? AND workspace_id = ?
+    `).get(originalResourceId, WORKSPACE_ID)).toEqual({ name: userEditedName });
+    const replacementClaim = database.sqlite.prepare(`
+      SELECT resource_id
+      FROM beta_starter_asset_claims
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+        AND asset_key = 'project.tutorial' AND lifecycle_state = 'active'
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+    expect(String(replacementClaim?.resource_id)).not.toBe(originalResourceId);
+  });
+
   it("reports stale starter restore revision without blaming another session", async () => {
     await installStarterPackForNewWorkspace(database, {
       workspaceId: WORKSPACE_ID,
@@ -615,9 +736,10 @@ describe("starter pack actions", () => {
 
     await expect(
       restoreStarterContent({ expectedRevision: 999 }),
-    ).rejects.toThrow(
-      "Starter content changed before recovery finished. Refresh and try again.",
-    );
+    ).resolves.toEqual({
+      status: "stale",
+      currentRevision: Number(stateBefore?.revision),
+    });
     expect(database.sqlite.prepare(`
       SELECT lifecycle_state
       FROM beta_starter_asset_claims
@@ -634,6 +756,18 @@ describe("starter pack actions", () => {
       WHERE workspace_id = ? AND pack_version = ?
         AND scope_kind = 'workspace' AND scope_owner_id = ?
     `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
+    expect(database.sqlite.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM beta_starter_mutation_leases
+          WHERE workspace_id = ? AND pack_version = ?) AS leases,
+        (SELECT COUNT(*) FROM beta_starter_restore_cas_guards
+          WHERE workspace_id = ? AND pack_version = ?) AS restore_guards
+    `).get(
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+    )).toEqual({ leases: 0, restore_guards: 0 });
   });
 
   it("rejects automatic shared installation for non-managers and nonempty workspaces", async () => {
