@@ -109,7 +109,7 @@ function readProcessCommand(pid) {
       // Fall through to ps for non-procfs environments.
     }
   }
-  const result = spawnSync("/bin/ps", ["-p", String(pid), "-o", "command="], {
+  const result = spawnSync(join("/bin", "ps"), ["-p", String(pid), "-o", "command="], {
     encoding: "utf8",
   });
   return result.status === 0 ? result.stdout.trim() : "";

@@ -114,6 +114,15 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    files: ["src/components/workshop/estimate-sheet/rows/row-table.tsx"],
+    rules: {
+      "react-hooks/incompatible-library": [
+        "warn",
+        { compilationMode: "annotation" },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

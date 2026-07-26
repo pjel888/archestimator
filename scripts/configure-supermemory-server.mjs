@@ -131,17 +131,18 @@ function installMacLaunchAgent(home) {
   chmodSync(launchAgentPath, 0o644);
 
   const domain = `gui/${userInfo().uid}`;
-  spawnSync("/bin/launchctl", ["bootout", `${domain}/${LAUNCH_AGENT_LABEL}`], {
+  const launchctlPath = join("/bin", "launchctl");
+  spawnSync(launchctlPath, ["bootout", `${domain}/${LAUNCH_AGENT_LABEL}`], {
     stdio: "ignore",
   });
-  const bootstrap = spawnSync("/bin/launchctl", ["bootstrap", domain, launchAgentPath], {
+  const bootstrap = spawnSync(launchctlPath, ["bootstrap", domain, launchAgentPath], {
     encoding: "utf8",
   });
   if (bootstrap.status !== 0) {
     fail(`launchctl bootstrap failed: ${bootstrap.stderr.trim() || "unknown error"}`);
   }
   const kickstart = spawnSync(
-    "/bin/launchctl",
+    launchctlPath,
     ["kickstart", `${domain}/${LAUNCH_AGENT_LABEL}`],
     { encoding: "utf8" },
   );

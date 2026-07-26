@@ -81,7 +81,8 @@ yarn-error.log*
 
 # local agent CLI state is machine-specific
 /.antigravitycli/
-/.gemini/
+/.gemini/*
+!/.gemini/GEMINI.md
 .claude/settings.local.json
 .claude/worktrees/
 .worktrees/
