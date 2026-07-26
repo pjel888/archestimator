@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 import {
   readClientPortalRecipientSession,
+  requiresClientPortalPassword,
   resolveClientPortalBaseContext,
 } from "@/lib/client-portal/public-repository";
 import {
@@ -46,6 +47,7 @@ export type PendingEvidenceUploadInput = {
 
 export type RecipientEvidenceByteUploadDependencies = {
   assertSameOrigin: typeof assertSameOriginPublicPost;
+  requiresPassword: typeof requiresClientPortalPassword;
   readRecipientSession: typeof readClientPortalRecipientSession;
   resolvePublicContext: typeof resolveClientPortalBaseContext;
   evaluatePolicy: typeof evaluateClientPortalPolicy;
@@ -206,6 +208,7 @@ export async function insertPendingEvidenceUpload(
 
 const dependencies: RecipientEvidenceByteUploadDependencies = {
   assertSameOrigin: assertSameOriginPublicPost,
+  requiresPassword: requiresClientPortalPassword,
   readRecipientSession: readClientPortalRecipientSession,
   resolvePublicContext: resolveClientPortalBaseContext,
   evaluatePolicy: evaluateClientPortalPolicy,
@@ -227,13 +230,15 @@ async function authorizeRecipientRequest(
   publicRequestId: string,
   routeDependencies: RecipientEvidenceByteUploadDependencies,
 ) {
+  const cookie = request.headers.get("cookie") ?? "";
+  if (await routeDependencies.requiresPassword(token, cookie)) return null;
   const actor = await routeDependencies.readRecipientSession(
     token,
-    request.headers.get("cookie") ?? "",
+    cookie,
   );
   if (!actor || actor.status !== "active" || actor.verificationState !== "verified") return null;
 
-  const context = await routeDependencies.resolvePublicContext(token, actor, false) as PublicContext | null;
+  const context = await routeDependencies.resolvePublicContext(token, actor, true) as PublicContext | null;
   if (!context) return null;
   const exposure = await routeDependencies.readVisibleOwnedRequestExposure({
     database: context.database,

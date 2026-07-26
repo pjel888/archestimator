@@ -7,6 +7,7 @@ import {
   getCloudflareD1Database,
   type D1DatabaseLike,
   type D1PreparedStatementLike,
+  type D1Result,
   type D1Value,
 } from "@/lib/cloudflare/d1";
 
@@ -66,10 +67,19 @@ export type StarterInstallResult = {
   ready: boolean;
 };
 
+export type StarterRestoreResult =
+  | ({ status: "restored" } & StarterInstallResult)
+  | { status: "stale"; currentRevision: number };
+
 const starterActivationCapability = issueStarterSeedActivationCapability();
 const STARTER_MUTATION_LEASE_MS = 10 * 60 * 1000;
 
 class StarterMutationLeaseConflictError extends Error {}
+class StarterRestoreStaleError extends Error {
+  constructor(readonly currentRevision: number) {
+    super("Starter content changed before recovery finished.");
+  }
+}
 const STARTER_WORKSPACE_ASSET_KEY_PLACEHOLDERS =
   STARTER_WORKSPACE_ASSET_KEYS.map(() => "?").join(", ");
 
@@ -101,7 +111,10 @@ async function all<T>(
   return result.results ?? [];
 }
 
-async function assertAndRenewStarterMutationLease(context: InstallContext) {
+function prepareFencedMutationStatements(
+  context: InstallContext,
+  businessStatements: D1PreparedStatementLike[],
+) {
   if (!context.mutationLeaseToken) {
     throw new Error("Starter content mutation requires an active lease.");
   }
@@ -109,21 +122,62 @@ async function assertAndRenewStarterMutationLease(context: InstallContext) {
   const expiresAt = new Date(
     Date.parse(renewedAt) + STARTER_MUTATION_LEASE_MS,
   ).toISOString();
-  const result = await context.database.prepare(`
-    UPDATE beta_starter_mutation_leases
-    SET expires_at = ?
-    WHERE workspace_id = ? AND pack_version = ? AND lease_token = ?
-  `).bind(
-    expiresAt,
-    context.workspaceId,
-    STARTER_PACK_VERSION,
-    context.mutationLeaseToken,
-  ).run();
-  if (result.success === false || (result.meta?.changes ?? 0) !== 1) {
+  const guardNonce = randomUUID();
+  return [
+    context.database.prepare(`
+      UPDATE beta_starter_mutation_leases
+      SET expires_at = ?
+      WHERE workspace_id = ? AND pack_version = ? AND lease_token = ?
+    `).bind(
+      expiresAt,
+      context.workspaceId,
+      STARTER_PACK_VERSION,
+      context.mutationLeaseToken,
+    ),
+    context.database.prepare(`
+      INSERT INTO beta_starter_mutation_fence_guards (
+        guard_nonce, workspace_id, pack_version, lease_token, created_at
+      ) VALUES (?, ?, ?, ?, ?)
+    `).bind(
+      guardNonce,
+      context.workspaceId,
+      STARTER_PACK_VERSION,
+      context.mutationLeaseToken,
+      renewedAt,
+    ),
+    ...businessStatements,
+    context.database.prepare(`
+      DELETE FROM beta_starter_mutation_fence_guards
+      WHERE guard_nonce = ? AND workspace_id = ? AND pack_version = ? AND lease_token = ?
+    `).bind(
+      guardNonce,
+      context.workspaceId,
+      STARTER_PACK_VERSION,
+      context.mutationLeaseToken,
+    ),
+  ];
+}
+
+async function throwIfStarterMutationLeaseChanged(
+  context: InstallContext,
+  error: unknown,
+): Promise<never> {
+  const currentLease = await first<{ lease_token: string }>(
+    context.database,
+    `
+      SELECT lease_token
+      FROM beta_starter_mutation_leases
+      WHERE workspace_id = ? AND pack_version = ?
+      LIMIT 1
+    `,
+    [context.workspaceId, STARTER_PACK_VERSION],
+  );
+  if (currentLease?.lease_token !== context.mutationLeaseToken) {
     throw new StarterMutationLeaseConflictError(
       "Starter content lease changed before the mutation finished. Refresh and try again.",
     );
   }
+  throw error;
 }
 
 async function run(
@@ -131,20 +185,47 @@ async function run(
   sql: string,
   values: D1Value[] = [],
 ) {
-  await assertAndRenewStarterMutationLease(context);
-  const result = await context.database.prepare(sql).bind(...values).run();
-  if (result.success === false) throw new Error("Starter content could not be persisted.");
-  return result;
+  if (!context.database.batch) throw new Error("Starter content requires D1 batch support.");
+  const statements = prepareFencedMutationStatements(context, [
+    context.database.prepare(sql).bind(...values),
+  ]);
+  let results: D1Result[];
+  try {
+    results = await context.database.batch(statements);
+  } catch (error) {
+    return throwIfStarterMutationLeaseChanged(context, error);
+  }
+  if (
+    results.length !== statements.length
+    || results.some((result) => result.success === false)
+    || (results[0]?.meta?.changes ?? 0) !== 1
+    || (results[1]?.meta?.changes ?? 0) !== 1
+    || (results.at(-1)?.meta?.changes ?? 0) !== 1
+  ) {
+    throw new Error("Starter content could not be persisted.");
+  }
+  return results[2];
 }
 
 async function runCheckedBatch(
   context: InstallContext,
   statements: D1PreparedStatementLike[],
 ) {
-  await assertAndRenewStarterMutationLease(context);
   if (!context.database.batch) throw new Error("Starter content requires D1 batch support.");
-  const results = await context.database.batch(statements);
-  if (results.length !== statements.length || results.some((result) => result.success === false)) {
+  const fencedStatements = prepareFencedMutationStatements(context, statements);
+  let results: D1Result[];
+  try {
+    results = await context.database.batch(fencedStatements);
+  } catch (error) {
+    return throwIfStarterMutationLeaseChanged(context, error);
+  }
+  if (
+    results.length !== fencedStatements.length
+    || results.some((result) => result.success === false)
+    || (results[0]?.meta?.changes ?? 0) !== 1
+    || (results[1]?.meta?.changes ?? 0) !== 1
+    || (results.at(-1)?.meta?.changes ?? 0) !== 1
+  ) {
     throw new Error("A starter asset batch did not commit.");
   }
 }
@@ -1917,6 +1998,20 @@ async function acquireStarterMutationLease(
     ),
   ];
   if (expectedRevision !== undefined) {
+    const restoreGuardNonce = randomUUID();
+    statements.push(context.database.prepare(`
+      INSERT INTO beta_starter_restore_cas_guards (
+        guard_nonce, workspace_id, pack_version, scope_owner_id,
+        expected_revision, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(
+      restoreGuardNonce,
+      context.workspaceId,
+      STARTER_PACK_VERSION,
+      context.workspaceId,
+      expectedRevision,
+      acquiredAt,
+    ));
     statements.push(context.database.prepare(`
       UPDATE beta_starter_pack_states
       SET status = 'partial', revision = revision + 1, updated_at = ?
@@ -1938,8 +2033,27 @@ async function acquireStarterMutationLease(
       expectedRevision,
       leaseToken,
     ));
+    statements.push(context.database.prepare(`
+      DELETE FROM beta_starter_restore_cas_guards
+      WHERE guard_nonce = ? AND workspace_id = ? AND pack_version = ?
+    `).bind(
+      restoreGuardNonce,
+      context.workspaceId,
+      STARTER_PACK_VERSION,
+    ));
   }
-  const results = await context.database.batch(statements);
+  let results: D1Result[];
+  try {
+    results = await context.database.batch(statements);
+  } catch (error) {
+    if (expectedRevision !== undefined) {
+      const currentState = await readState(context, "workspace", context.workspaceId);
+      if (currentState?.revision !== expectedRevision) {
+        throw new StarterRestoreStaleError(currentState?.revision ?? 0);
+      }
+    }
+    throw error;
+  }
   if (results.some((result) => result.success === false)) {
     throw new Error("Starter content mutation lease could not be acquired.");
   }
@@ -1950,10 +2064,11 @@ async function acquireStarterMutationLease(
   }
   if (
     expectedRevision !== undefined
-    && (results[2]?.meta?.changes ?? 0) !== 1
+    && (results[3]?.meta?.changes ?? 0) !== 1
   ) {
     await releaseStarterMutationLease(context, leaseToken);
-    throw new Error("Starter content changed before recovery finished. Refresh and try again.");
+    const currentState = await readState(context, "workspace", context.workspaceId);
+    throw new StarterRestoreStaleError(currentState?.revision ?? 0);
   }
   return leaseToken;
 }
@@ -2221,7 +2336,7 @@ export async function resumeStarterContent(): Promise<StarterInstallResult> {
 
 export async function restoreStarterContent(input: {
   expectedRevision: number;
-}): Promise<StarterInstallResult> {
+}): Promise<StarterRestoreResult> {
   "use server";
   if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0) {
     throw new Error("Starter restore revision is invalid.");
@@ -2237,11 +2352,19 @@ export async function restoreStarterContent(input: {
     mode: "restore",
   };
   await assertOwnerOrManager(context);
-  const leaseToken = await acquireStarterMutationLease(
-    context,
-    "restore",
-    input.expectedRevision,
-  );
+  let leaseToken: string;
+  try {
+    leaseToken = await acquireStarterMutationLease(
+      context,
+      "restore",
+      input.expectedRevision,
+    );
+  } catch (error) {
+    if (error instanceof StarterRestoreStaleError) {
+      return { status: "stale", currentRevision: error.currentRevision };
+    }
+    throw error;
+  }
   const leasedContext = { ...context, mutationLeaseToken: leaseToken };
   try {
   await reconcileClaimLifecycle(leasedContext, "workspace", leasedContext.workspaceId);
@@ -2260,7 +2383,7 @@ export async function restoreStarterContent(input: {
   );
   if (inactiveAssetKeys.length === 0) {
     await installStarterPack(leasedContext);
-    return readStarterInstallResult(leasedContext);
+    return { status: "restored", ...await readStarterInstallResult(leasedContext) };
   }
   const requiresMembershipRebind = inactiveAssetKeys.includes("project.tutorial")
     || inactiveAssetKeys.includes("project.reference");
@@ -2288,7 +2411,7 @@ export async function restoreStarterContent(input: {
     ]);
   }
   await installStarterPack(leasedContext);
-  return readStarterInstallResult(leasedContext);
+  return { status: "restored", ...await readStarterInstallResult(leasedContext) };
   } finally {
     await releaseStarterMutationLease(context, leaseToken);
   }

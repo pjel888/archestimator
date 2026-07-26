@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { ArrowClockwise, PaperPlaneTilt, Plus, X } from "@phosphor-icons/react";
+import { ArrowClockwise, FileArrowUp, PaperPlaneTilt, Plus, X } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
 type PublicRequest = {
+  canAmend: boolean;
+  canWithdraw: boolean;
   currentVersion: {
+    contentHash: string;
     description: string;
     requestedEffectiveDate: string | null;
     title: string;
@@ -44,6 +47,7 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
   const [submitting, setSubmitting] = useState(false);
   const [composing, setComposing] = useState(false);
   const [amending, setAmending] = useState(false);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const selected = useMemo(
@@ -51,8 +55,7 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
     [requests, selectedId],
   );
   const canCreate = capabilities.includes("request:create");
-  const canAmend = capabilities.includes("request:amend_own");
-  const canWithdraw = capabilities.includes("request:withdraw_own");
+  const canUploadEvidence = capabilities.includes("artifact:upload_evidence");
 
   const load = useCallback(async () => {
     const response = await fetch(requestPath(token), { cache: "no-store" }).catch(() => null);
@@ -140,6 +143,7 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
         ...createPublicationCsrfHeaders(),
       },
       body: JSON.stringify({
+        contentHash: selected.currentVersion.contentHash,
         description: form.get("description"),
         requestedEffectiveDate: form.get("requestedEffectiveDate"),
         title: form.get("title"),
@@ -178,6 +182,31 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
     setNotice("Request withdrawn. Its history remains available.");
     await load();
     setSubmitting(false);
+  }
+
+  async function uploadEvidence(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setUploadingEvidence(true);
+    setNotice(null);
+    const response = await fetch(
+      requestPath(token, `/${encodeURIComponent(selected.publicRequestId)}/evidence`),
+      {
+        method: "POST",
+        headers: createPublicationCsrfHeaders(),
+        body: form,
+      },
+    ).catch(() => null);
+    if (!response?.ok) {
+      setNotice(response ? await errorMessage(response, "Evidence could not be uploaded.") : "Evidence could not be uploaded.");
+      setUploadingEvidence(false);
+      return;
+    }
+    formElement.reset();
+    setNotice("Evidence uploaded and queued for security scanning.");
+    setUploadingEvidence(false);
   }
 
   return (
@@ -232,8 +261,8 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
             <p className="mt-4 whitespace-pre-wrap text-[13px] leading-6 text-secondary">{selected.currentVersion.description}</p>
             {selected.currentVersion.requestedEffectiveDate ? <p className="mt-3 text-[11px] text-tertiary">Desired date: {selected.currentVersion.requestedEffectiveDate}</p> : null}
             <div className="mt-5 flex flex-wrap gap-2">
-              {canAmend && !["resolved", "rejected", "withdrawn"].includes(selected.status) ? <Button onClick={() => setAmending((value) => !value)} size="sm" variant="secondary">Amend request</Button> : null}
-              {canWithdraw && !["resolved", "rejected", "withdrawn"].includes(selected.status) ? <Button disabled={submitting} onClick={() => void withdraw()} size="sm" variant="danger">Withdraw</Button> : null}
+              {selected.canAmend && !["resolved", "rejected", "withdrawn"].includes(selected.status) ? <Button onClick={() => setAmending((value) => !value)} size="sm" variant="secondary">Amend request</Button> : null}
+              {selected.canWithdraw && !["resolved", "rejected", "withdrawn"].includes(selected.status) ? <Button disabled={submitting} onClick={() => void withdraw()} size="sm" variant="danger">Withdraw</Button> : null}
             </div>
             {amending ? (
               <form className="mt-4 grid gap-3 border-t border-hairline pt-4" onSubmit={submitAmendment}>
@@ -241,6 +270,16 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
                 <label className={LABEL_CLASS}>Updated description<textarea className={`${FIELD_CLASS} min-h-28 resize-y`} defaultValue={selected.currentVersion.description} maxLength={4000} name="description" required /></label>
                 <label className={LABEL_CLASS}>Desired date<input className={FIELD_CLASS} defaultValue={selected.currentVersion.requestedEffectiveDate ?? ""} name="requestedEffectiveDate" type="date" /></label>
                 <Button className="justify-self-start" disabled={submitting} size="sm" type="submit" variant="primary">Submit amendment</Button>
+              </form>
+            ) : null}
+            {canUploadEvidence && selected.canAmend && !["resolved", "rejected", "withdrawn"].includes(selected.status) ? (
+              <form className="mt-4 grid gap-3 border-t border-hairline pt-4" onSubmit={uploadEvidence}>
+                <div>
+                  <p className="text-[12px] font-medium text-ink">Supporting evidence</p>
+                  <p className="mt-1 text-[11px] leading-5 text-tertiary">PDF, JPEG, PNG, WebP, or AVIF. Files remain pending until security scanning completes.</p>
+                </div>
+                <label className={LABEL_CLASS}>Evidence file<input accept="application/pdf,image/jpeg,image/png,image/webp,image/avif" className={FIELD_CLASS} name="file" required type="file" /></label>
+                <Button className="justify-self-start" disabled={uploadingEvidence} size="sm" type="submit" variant="secondary"><FileArrowUp size={14} /> Upload evidence</Button>
               </form>
             ) : null}
           </article>
