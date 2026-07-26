@@ -137,6 +137,17 @@ Create contracts for:
 
 Contracts must separate internal/private DTOs from public DTOs.
 
+#### TASK-002-01A — Foundational public policy
+
+Before UNIT-003 or UNIT-004 creates a public route:
+
+- add requester capabilities and the requester role template;
+- add deny-by-default authorization for request, artifact, artifact-page, timeline-event, and baseline targets;
+- define exposure visibility and withdrawal semantics;
+- prove verified-recipient, cross-portal, hidden-count, hidden-name, and capability-denial behavior.
+
+UNIT-010 retains management UI, full role previews, approval-authority integration, and the comprehensive access matrix; it must not be the first implementation of policy needed by earlier public routes.
+
 #### TASK-002-02 — Migration A: participant roles and portal audience
 
 - add portal audience/primary fields or mapping;
@@ -153,6 +164,8 @@ Contracts must separate internal/private DTOs from public DTOs.
 - issued-reference-ready schema;
 - indexes;
 - upload-asset relationship.
+- controlled `upload_sessions`/`upload_assets` rebuild preserving existing surfaces, rows, indexes, and lifecycle triggers while adding `project-artifact` and `portal-request-evidence`;
+- reserved-session orphan recovery proof for R2-first failure and retry.
 
 #### TASK-002-04 — Migration C: change requests
 
@@ -194,6 +207,9 @@ Contracts must separate internal/private DTOs from public DTOs.
 - fixture with several portals/issues/decisions/uploads;
 - idempotent backfill markers;
 - rollback/fix-forward notes.
+- typed event-source integrity checks;
+- composite workspace/project ownership denial;
+- R2/D1 cleanup-claim recovery fixtures.
 
 ### Principal paths
 
@@ -661,7 +677,7 @@ A portal recipient can navigate the visible project commitment history, submit a
 
 #### TASK-010-01 — Role templates
 
-Add requester template and capabilities.
+Complete management and preview behavior for the requester template and capabilities established in UNIT-002.
 
 #### TASK-010-02 — Domain role fields
 
@@ -669,11 +685,11 @@ Recipient manager and project membership updates.
 
 #### TASK-010-03 — Exposure policy
 
-Create/manage event exposures and role previews.
+Complete exposure management, withdrawal/redaction controls, and role previews on top of the deny-by-default UNIT-002 policy.
 
 #### TASK-010-04 — Target policy
 
-Requests, artifacts, pages, timeline events, baseline.
+Complete target-management and access-matrix coverage for requests, artifacts, pages, timeline events, and baselines; foundational read/write authorization already exists from UNIT-002.
 
 #### TASK-010-05 — Approval authority
 
@@ -832,7 +848,17 @@ src/lib/client-portal/decision-service.ts
 src/lib/client-portal/public-repository.ts
 src/components/client-portal/ClientPortalShell.tsx
 src/app/share/[token]/page.tsx
+src/lib/project-ledger/event-service.ts
+src/lib/client-portal/owner-notification.ts
+src/lib/uploads/upload-records.ts
+src/lib/uploads/upload-lifecycle-service.ts
+src/components/workshop/project-timeline/**
+src/components/client-portal/ClientPortalTimeline*
+migrations/**
+.ai/03_plans/2026-07-26/Project-Ledger-Commitment-Timeline/plan-pack.json
 ```
+
+The lead owns every migration and `plan-pack.json` for the full run. `project-ledger/event-service.ts`, owner notifications, and upload lifecycle services have one active writer at a time across UNIT-003, UNIT-004, UNIT-008, and UNIT-009. The internal and public timeline component trees are separate ownership lanes, but shared primitives require lead serialization.
 
 ## Implementation checkpoints
 

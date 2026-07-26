@@ -2,10 +2,12 @@
 
 **Plan date:** 26 July 2026  
 **Repository:** `pjel888/archestimator`  
-**Observed `main` head:** `1c26b29edd969357c389c6432439dec82cb54389`  
+**Observed execution head:** `efa25a00413185aed6de64ad040d8b473c81a6ac`
 **Plan profile:** High blast radius / `Q2_CRITICAL_CHANGE_GATE`  
 **Implementation status:** Not started  
 **Canonical execution artifact:** [`00-PLAN.md`](./00-PLAN.md)
+
+`Archestimator_VIP_Implementation_Orchestrator_Prompt.md` is a non-canonical execution adapter supplied with the implementation request. It is intentionally outside the plan-pack hash manifest; `AGENTS.md`, `.ai/00_system`, `plan-pack.json`, and `00-PLAN.md` remain authoritative when any wording differs.
 
 ## Purpose
 

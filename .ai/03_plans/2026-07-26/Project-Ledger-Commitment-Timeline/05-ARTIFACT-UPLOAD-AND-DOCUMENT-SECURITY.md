@@ -156,13 +156,17 @@ The original file name is metadata only.
 7. Validate file presence and size.
 8. Read magic bytes.
 9. Reject MIME/extension mismatch.
-10. Upload to private R2.
-11. Atomically record upload session, asset, and event.
-12. Queue scan if required.
-13. Create logical artifact/version only after upload metadata is durable.
+10. Insert or reuse the exact D1 upload session in `reserved` state before writing R2; this is the durable orphan-recovery claim.
+11. Upload or reuse the content-addressed object in private R2.
+12. Atomically record the upload asset, artifact/version relationship, event, scan state, and finalized session.
+13. Queue scan if required.
 14. Mark version unavailable until scan permits use.
 15. Emit project event only when the artifact version is safely recorded.
-16. If any metadata step fails after object upload, register cleanup claim; do not orphan silently.
+16. A failed final D1 batch leaves the session reserved and discoverable; a successful batch disarms cleanup by finalizing it.
+17. Reuse the same content-addressed object, session, and intent identity on retry; reject the same key with different bytes or intent.
+18. Reclaim only expired reserved-session objects after rechecking upload asset, issue, baseline, request, retention, and legal-hold relationships.
+
+The detailed R2/D1 saga, failure states, and required recovery tests are canonical in `03-DATABASE-AND-MIGRATION-DESIGN.md`. No implementation may treat an R2 write and D1 batch as one transaction or create an R2 object before its reserved upload session is durable.
 
 ## Recipient evidence upload flow
 

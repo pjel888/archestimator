@@ -349,10 +349,10 @@ Implement additive D1 migrations and TypeScript contracts for:
 - normalized issued estimates, requests, artifacts, private source rows, and change sets;
 - portal baselines;
 - project commitment events and portal exposures;
-- domain-role fields and requester capability;
+- domain-role fields, requester capabilities, target authorization, and the foundational exposure policy required before public artifact or request routes exist;
 - discussion targets for requests, artifacts, artifact pages, and timeline events.
 
-Add indexes, unique active-baseline enforcement, idempotency keys, foreign-key checks, lifecycle triggers, clean-apply proof, and backfill scripts.
+Add indexes, unique active-baseline enforcement, idempotency keys, composite ownership checks, typed event-source integrity, lifecycle triggers, clean-apply proof, and backfill scripts. UNIT-003 and UNIT-004 may not expose public routes until the UNIT-002 requester, target, and exposure policy tests pass.
 
 ### UNIT-003 — Implement secure project artifact lifecycle
 

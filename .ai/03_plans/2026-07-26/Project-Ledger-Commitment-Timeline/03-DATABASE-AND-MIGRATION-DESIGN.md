@@ -183,7 +183,7 @@ project_id TEXT NOT NULL
 origin_portal_id TEXT
 request_number INTEGER NOT NULL
 request_code TEXT NOT NULL
-current_version_id TEXT NOT NULL
+current_version_id TEXT
 status TEXT NOT NULL
 requested_by_actor_type TEXT NOT NULL
 requested_by_actor_id TEXT NOT NULL
@@ -206,6 +206,7 @@ updated_at TEXT NOT NULL
 Status values:
 
 ```text
+initializing
 submitted
 acknowledged
 under_assessment
@@ -219,6 +220,9 @@ Rules:
 
 - Unique `(project_id, request_number)`.
 - `request_code` may be `CR-0001`, generated transactionally.
+- `initializing` is an internal write-only state. `current_version_id` is null if and only if status is `initializing`; every externally readable status requires a non-null current version.
+- First creation uses one D1 batch: insert the request as `initializing`, insert version 1, then guarded-update `current_version_id` and status to `submitted`. A CHECK enforces the null/state relationship, and `current_version_id` references a version owned by that request through an insert/update trigger.
+- No repository or API may return an `initializing` request. Because the three statements share one D1 transaction, failure rolls back the request and version together.
 - Origin portal is optional for internal requests.
 - A request cannot move directly to `resolved` without a linked accepted issue or an explicitly recorded non-financial resolution policy.
 - Request status changes occur through the service and create state events in the same D1 batch.
@@ -265,7 +269,7 @@ request_id TEXT NOT NULL
 from_status TEXT
 to_status TEXT NOT NULL
 actor_type TEXT NOT NULL
-actor_id TEXT
+actor_id TEXT NOT NULL
 note TEXT
 idempotency_key TEXT NOT NULL
 occurred_at TEXT NOT NULL
@@ -278,6 +282,8 @@ Unique:
 (request_id, actor_type, actor_id, idempotency_key)
 ```
 
+Every internal and recipient transition uses its stable actor ID. System transitions use the literal normalized actor ID `system`; nullable actor identities are not permitted, so SQLite uniqueness cannot be bypassed through `NULL` semantics.
+
 ### `project_change_request_targets`
 
 Affected scope references.
@@ -285,6 +291,7 @@ Affected scope references.
 Suggested columns:
 
 ```sql
+id TEXT PRIMARY KEY
 request_version_id TEXT NOT NULL
 target_kind TEXT NOT NULL
 estimate_id TEXT
@@ -292,9 +299,11 @@ estimate_tab_id TEXT
 node_id TEXT
 row_id TEXT
 artifact_id TEXT
+discipline_key TEXT
+location_key TEXT
+other_key TEXT
 target_label_snapshot TEXT NOT NULL
 metadata_json TEXT NOT NULL DEFAULT '{}'
-PRIMARY KEY (request_version_id, target_kind, stable target columns)
 ```
 
 Target kinds:
@@ -311,7 +320,23 @@ location
 other
 ```
 
-Use explicit nullable columns and CHECK rules rather than a single unvalidated generic target ID where practical.
+The migration must enforce one exact target shape:
+
+```sql
+CHECK (
+  (target_kind = 'project' AND estimate_id IS NULL AND estimate_tab_id IS NULL AND node_id IS NULL AND row_id IS NULL AND artifact_id IS NULL AND discipline_key IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'estimate' AND estimate_id IS NOT NULL AND estimate_tab_id IS NULL AND node_id IS NULL AND row_id IS NULL AND artifact_id IS NULL AND discipline_key IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'estimate_tab' AND estimate_id IS NOT NULL AND estimate_tab_id IS NOT NULL AND node_id IS NULL AND row_id IS NULL AND artifact_id IS NULL AND discipline_key IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'area_group' AND estimate_id IS NOT NULL AND estimate_tab_id IS NOT NULL AND node_id IS NOT NULL AND row_id IS NULL AND artifact_id IS NULL AND discipline_key IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'row' AND estimate_id IS NOT NULL AND estimate_tab_id IS NOT NULL AND node_id IS NULL AND row_id IS NOT NULL AND artifact_id IS NULL AND discipline_key IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'artifact' AND artifact_id IS NOT NULL AND estimate_id IS NULL AND estimate_tab_id IS NULL AND node_id IS NULL AND row_id IS NULL AND discipline_key IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'discipline' AND discipline_key IS NOT NULL AND estimate_id IS NULL AND estimate_tab_id IS NULL AND node_id IS NULL AND row_id IS NULL AND artifact_id IS NULL AND location_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'location' AND location_key IS NOT NULL AND estimate_id IS NULL AND estimate_tab_id IS NULL AND node_id IS NULL AND row_id IS NULL AND artifact_id IS NULL AND discipline_key IS NULL AND other_key IS NULL) OR
+  (target_kind = 'other' AND other_key IS NOT NULL AND estimate_id IS NULL AND estimate_tab_id IS NULL AND node_id IS NULL AND row_id IS NULL AND artifact_id IS NULL AND discipline_key IS NULL AND location_key IS NULL)
+)
+```
+
+Use partial unique indexes per target kind, for example `(request_version_id)` for `project`, `(request_version_id, estimate_id)` for `estimate`, and the corresponding complete non-null key for every other shape. Foreign-key-backed kinds use their concrete columns; `discipline_key`, `location_key`, and `other_key` are normalized service-owned keys rather than arbitrary object IDs.
 
 ### `project_change_request_artifacts`
 
@@ -661,7 +686,6 @@ baseline_number INTEGER NOT NULL
 issue_id TEXT NOT NULL
 status TEXT NOT NULL
 content_hash TEXT NOT NULL
-total_cost REAL NOT NULL
 total_minor_units INTEGER NOT NULL
 currency_code TEXT NOT NULL
 established_by_decision_id TEXT NOT NULL
@@ -673,6 +697,8 @@ voided_by TEXT
 void_reason TEXT
 created_at TEXT NOT NULL
 ```
+
+`total_minor_units` is the sole stored monetary truth. Derive decimal presentation from `total_minor_units` and the currency exponent in application DTOs. Existing issue `total_cost` fields remain compatibility data and must reconcile to the issue's authoritative minor-unit projection before baseline creation.
 
 Status:
 
@@ -710,6 +736,14 @@ event_type TEXT NOT NULL
 source_type TEXT NOT NULL
 source_id TEXT NOT NULL
 source_version_id TEXT
+issue_id TEXT
+decision_id TEXT
+baseline_id TEXT
+request_id TEXT
+request_version_id TEXT
+artifact_id TEXT
+artifact_version_id TEXT
+legacy_publication_id TEXT
 root_request_id TEXT
 correlation_id TEXT NOT NULL
 causation_event_id TEXT
@@ -725,6 +759,8 @@ internal_metadata_json TEXT NOT NULL DEFAULT '{}'
 occurred_at TEXT NOT NULL
 created_at TEXT NOT NULL
 ```
+
+The generic `source_type`, `source_id`, and `source_version_id` fields are descriptive snapshots, not the integrity boundary. Each row must populate exactly one typed source family and carry ordinary foreign keys through the corresponding concrete columns. A migration CHECK maps every `source_type` to its allowed non-null typed columns, and insert services verify `source_id`/`source_version_id` equal those typed values. The legacy publication family uses `legacy_publication_id`; source families without a concrete foreign key are not accepted until they receive one. Migration proof and the repository integrity scan must reject orphaned or mismatched event sources.
 
 Constraints:
 
@@ -887,6 +923,29 @@ Update:
 - policy;
 - tests.
 
+## Ownership and cross-resource invariants
+
+- Every workspace/project-owned parent exposes a unique composite key that includes its identity and ownership columns.
+- Child rows that repeat `workspace_id` or `project_id` use composite foreign keys to the parent; cross-domain links use guarded `INSERT ... SELECT` statements that join both ownership columns before writing.
+- Artifact/request/issue/exposure services fail closed when the linked portal, project, upload asset, or source object does not share the same workspace and project.
+- Migration and service tests cover cross-workspace and cross-project insert denial, not only application authorization.
+- `project_artifact_versions.upload_asset_id` references an upload asset owned by the same workspace/project and in a publishable lifecycle state; guarded service insertion plus an integrity trigger or equivalent migration-owned invariant check enforces this relationship.
+
+## R2/D1 staging and cleanup contract
+
+R2 and D1 do not share a transaction. Artifact and recipient-evidence writes therefore use the existing reserved upload session as a recoverable cleanup claim:
+
+1. allocate one idempotency identity and content-addressed immutable R2 key;
+2. before writing R2, insert or reuse a D1 `upload_sessions` row in `reserved` state with the exact bucket/key/checksum, intent metadata, and expiry;
+3. write or reuse the staged object, rejecting a checksum or intent mismatch;
+4. atomically create the upload asset, artifact/version or request-evidence linkage, scan state, timeline event, and outbox rows in D1 while moving the session to `finalized`;
+5. a successful final batch disarms cleanup because the session is no longer reserved; a failed batch leaves the durable reserved session discoverable for retry or expiry cleanup;
+6. on retry, reuse the same object, session, and D1 identities when intent/checksum match; reject key reuse with different intent;
+7. a scheduled reclaimer deletes only expired reserved-session objects after rechecking upload asset, artifact, request, issue, baseline, and legal-hold references;
+8. deletion failure records a bounded cleanup attempt/event and retains the reserved session; issued or otherwise protected evidence is never reclaimed.
+
+Tests cover object-write/D1-failure, D1-retry replay, queue/scan failure, cleanup race with issue publication, checksum mismatch, and reclaimer idempotency.
+
 ## Migration sequence
 
 Use next available migration numbers at implementation time.
@@ -904,7 +963,9 @@ Use next available migration numbers at implementation time.
 - create `project_artifacts`;
 - create `project_artifact_versions`;
 - create request-artifact link prerequisites;
-- extend upload surface acceptance in application, not necessarily a DB enum if surface is free text;
+- rebuild `upload_sessions` and `upload_assets` CHECK-constrained surface enums to preserve all existing values and add `project-artifact` and `portal-request-evidence`;
+- preflight/copy/row-count/critical-column/FK verification and recreate every upload index and trigger from migrations `0084` and `0087` before swapping rebuilt tables;
+- retain reserved upload sessions as the R2 orphan-recovery claim and preserve existing asset-removal cleanup state;
 - add retention/legal-hold relationships if required.
 
 ### MIG-C — Change requests

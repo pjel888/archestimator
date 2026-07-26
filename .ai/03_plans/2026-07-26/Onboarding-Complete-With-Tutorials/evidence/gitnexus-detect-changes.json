@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "gitnexus-detect-changes",
+  "status": "FAIL",
+  "generated_at": "2026-07-26T17:15:00.000Z",
+  "repository": "archestimator",
+  "scope": "all",
+  "summary": {
+    "changed_symbols": 61,
+    "changed_files": 43,
+    "affected_processes": 0,
+    "reported_risk_level": "low"
+  },
+  "onboarding_symbols_detected": [
+    "src/lib/onboarding/starter-pack-actions.ts:nowIso",
+    "src/lib/onboarding/starter-pack-actions.ts:restoreStarterContent",
+    "src/lib/onboarding/starter-pack.ts:createStarterRowMetadata"
+  ],
+  "index": {
+    "indexed_at": "2026-07-26T06:55:45.989Z",
+    "last_commit": "5c4407869cbd42f90e4b02fa5a25e9828a32ca50",
+    "commits_behind_head": 31,
+    "fresh": false
+  },
+  "findings": [
+    "detect_changes completed successfully and reported no affected indexed processes.",
+    "The index is 31 commits behind HEAD and detected only three onboarding symbols, so LOW risk and zero affected processes are not accepted as complete blast-radius proof.",
+    "A safe local reindex was attempted and refused because the wrapper would resolve an unpinned registry latest package; the stale result is retained fail-closed."
+  ]
+}

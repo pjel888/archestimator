@@ -4,26 +4,26 @@
   "package_id": "PLAN-2026-07-26-project-ledger-commitment-timeline",
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
-  "last_observed_run_scope": "PLAN_ONLY",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
   "package_status": "CONDITIONALLY_READY",
-  "implementation_status": "NOT_STARTED",
+  "implementation_status": "IN_PROGRESS",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-26T00:00:00.000Z",
+  "updated_at": "2026-07-26T12:00:00.000Z",
   "canonical_execution_artifact": "00-PLAN.md",
   "next_unit": "UNIT-001",
   "baseline": {
-    "head": "1c26b29edd969357c389c6432439dec82cb54389",
-    "scoped_status_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    "head": "efa25a00413185aed6de64ad040d8b473c81a6ac",
+    "scoped_status_sha256": "450083ead67e573317baf26ef314eb846369ffe9a8f64e16c807f99dcf49e78d",
+    "scoped_diff_sha256": "aa8a914fa19ee1bee90ed1f72d873d471c74357065b549ee89e5cdbb3a280279"
   },
   "artifacts": [
     {
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "e74a6ff00bf9e212a2019d8ef64a68ff6abda90d2686792635db1e141593b254"
+      "sha256": "1cbb8841152b6c96629f98ae3995bbcbe2996c47f12b8168bf0f4c097c589860"
     },
     {
       "id": "ART-002",
@@ -41,7 +41,7 @@
       "id": "ART-004",
       "role": "supporting-plan",
       "path": "03-DATABASE-AND-MIGRATION-DESIGN.md",
-      "sha256": "9d48d7bd2309919cc4e58ac45827d4cf3fe28c9337a28ae2a5e7838a95528fb1"
+      "sha256": "9f8da080543f2b92b4fcb74c09b4f3fdd86cf127becb0ea17bc69653f71f05a2"
     },
     {
       "id": "ART-005",
@@ -53,7 +53,7 @@
       "id": "ART-006",
       "role": "supporting-plan",
       "path": "05-ARTIFACT-UPLOAD-AND-DOCUMENT-SECURITY.md",
-      "sha256": "fe2da7bf1793e02c0fb583d7848dbab6524debf1f8d93e5f030c7795248c70bd"
+      "sha256": "eb179c74c29156a5d99e5b6122310e06722712d59c4ace0a0c136640f2485b53"
     },
     {
       "id": "ART-007",
@@ -71,7 +71,7 @@
       "id": "ART-009",
       "role": "supporting-plan",
       "path": "08-IMPLEMENTATION-WORKSTREAMS-AND-TASKS.md",
-      "sha256": "b86c4f3e929e155d5876bb28bef1ec5591f6e6bb7351c47935b7d379f1c9fb24"
+      "sha256": "59365e60c9e73e3c316f87359fc3640ea8a4b06e5a559fb142ffa3626debd295"
     },
     {
       "id": "ART-010",
@@ -107,7 +107,7 @@
       "id": "ART-015",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "01e6539d290d8adc1947894de8206abb066908df7327a59a482f57681054e878"
+      "sha256": "819411e97a0f84ea26912ecc383592554a62fb5a864875d816c8502b8a5ce97c"
     }
   ],
   "sources": [
@@ -165,7 +165,8 @@
         "UNIT-010"
       ],
       "criterion_ids": [
-        "AC-002"
+        "AC-002",
+        "AC-009"
       ]
     },
     {
@@ -180,7 +181,9 @@
         "UNIT-009"
       ],
       "criterion_ids": [
-        "AC-003"
+        "AC-008",
+        "AC-009",
+        "AC-015"
       ]
     },
     {
@@ -198,7 +201,8 @@
         "UNIT-010"
       ],
       "criterion_ids": [
-        "AC-004"
+        "AC-003",
+        "AC-011"
       ]
     },
     {
@@ -215,7 +219,8 @@
         "UNIT-009"
       ],
       "criterion_ids": [
-        "AC-005"
+        "AC-004",
+        "AC-011"
       ]
     },
     {
@@ -230,7 +235,7 @@
         "UNIT-005"
       ],
       "criterion_ids": [
-        "AC-006"
+        "AC-005"
       ]
     },
     {
@@ -245,7 +250,7 @@
         "UNIT-006"
       ],
       "criterion_ids": [
-        "AC-007"
+        "AC-006"
       ]
     },
     {
@@ -260,7 +265,7 @@
         "UNIT-013"
       ],
       "criterion_ids": [
-        "AC-008"
+        "AC-014"
       ]
     },
     {
@@ -275,7 +280,7 @@
         "UNIT-007"
       ],
       "criterion_ids": [
-        "AC-009"
+        "AC-007"
       ]
     },
     {
@@ -307,7 +312,8 @@
         "UNIT-010"
       ],
       "criterion_ids": [
-        "AC-011"
+        "AC-002",
+        "AC-009"
       ]
     },
     {
@@ -358,7 +364,8 @@
         "UNIT-014"
       ],
       "criterion_ids": [
-        "AC-014"
+        "AC-011",
+        "AC-016"
       ]
     },
     {
@@ -541,7 +548,41 @@
       ]
     }
   ],
-  "authorization_boundaries": [],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "RESOLVED",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011",
+        "UNIT-012",
+        "UNIT-013",
+        "UNIT-014",
+        "GATE-Q2-001"
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "status": "SUPERSEDED",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-013",
+        "REQ-014",
+        "REQ-016",
+        "GATE-Q2-001"
+      ]
+    }
+  ],
   "risks": [
     {
       "id": "RISK-001",
@@ -799,7 +840,7 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: every commitment-domain object must retain one authoritative workspace/project owner. Cheaper source inspection is insufficient because targeted migration and repository tests must execute foreign-key, tenant, and projection behavior.",
       "requirement_ids": [
         "REQ-001"
       ],
@@ -817,9 +858,10 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: one project's portals must expose different audiences without cross-portal inference or leakage. Cheaper source inspection and targeted happy-path evidence are insufficient because the boundary spans D1 exposure joins, public routes, recipient policy, artifacts, requests, issues, and events, so the broader denial matrix is required.",
       "requirement_ids": [
-        "REQ-002"
+        "REQ-002",
+        "REQ-011"
       ],
       "test_ids": [
         "TEST-002"
@@ -835,9 +877,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: a verified recipient request must version, discuss, amend, withdraw, and attach evidence without authorizing work or changing a baseline. Cheaper source inspection is insufficient because targeted state-machine, idempotency, policy, and persistence tests must execute.",
       "requirement_ids": [
-        "REQ-003"
+        "REQ-004"
       ],
       "test_ids": [
         "TEST-003"
@@ -853,9 +895,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: project artifact versions must remain immutable and issued packages must continue resolving the exact historical bytes after later uploads. Cheaper source inspection is insufficient because targeted lifecycle, scan, retention, cleanup, and historical-reference tests must execute.",
       "requirement_ids": [
-        "REQ-004"
+        "REQ-005"
       ],
       "test_ids": [
         "TEST-004"
@@ -871,9 +913,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: a published issue must bind exact estimates, artifact versions, request versions, notes, exclusions, and its content identity immutably. Cheaper source inspection and a single targeted test are insufficient because publication, storage, public retrieval, and later-version stability span multiple domain boundaries, so broader integration evidence is required.",
       "requirement_ids": [
-        "REQ-005"
+        "REQ-006"
       ],
       "test_ids": [
         "TEST-005"
@@ -889,9 +931,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: deterministic comparison must use private stable source identity, reconcile financial deltas, and refuse ambiguous matches. Cheaper source inspection is insufficient because targeted fixtures, property cases, and mutation evidence must execute the comparison branches.",
       "requirement_ids": [
-        "REQ-006"
+        "REQ-007"
       ],
       "test_ids": [
         "TEST-006"
@@ -907,9 +949,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: publishing a proposal must never replace an approved baseline, while one accepted decision establishes exactly one next baseline. Cheaper source inspection and isolated targeted tests are insufficient because publish, decision, concurrency, idempotency, and upgrade-backfill paths must be exercised together, so broader transaction evidence is required.",
       "requirement_ids": [
-        "REQ-007"
+        "REQ-009"
       ],
       "test_ids": [
         "TEST-007"
@@ -925,9 +967,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: users must understand the current agreement and meaningful causal history without audit-feed noise. Cheaper copy or source review is insufficient because targeted rendered, keyboard, filtering, deep-link, and repository behavior must execute.",
       "requirement_ids": [
-        "REQ-008"
+        "REQ-003"
       ],
       "test_ids": [
         "TEST-008"
@@ -943,9 +985,11 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: a stable portal destination must safely expose timeline, historical issue, artifact, request, discussion, and decision journeys to the permitted audience only. Cheaper source inspection and targeted evidence are insufficient because policy, public DTOs, deep links, responsive UI, and browser behavior form one boundary, so broader evidence is required.",
       "requirement_ids": [
-        "REQ-009"
+        "REQ-002",
+        "REQ-003",
+        "REQ-011"
       ],
       "test_ids": [
         "TEST-009"
@@ -961,7 +1005,7 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: domain identity, permission capabilities, and approval authority must remain independent under explicit allow, deny, ceiling, and required-approver rules. Cheaper source inspection is insufficient because a targeted executable access matrix must prove both grants and denials.",
       "requirement_ids": [
         "REQ-010"
       ],
@@ -979,9 +1023,11 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: portal projection and artifact delivery must never leak internal notes, hidden counts, storage identities, or another audience's objects. Cheaper source inspection and targeted happy paths are insufficient because the boundary spans policy snapshots, SQL filtering, range serving, revocation, and public serialization, so broader abuse and runtime evidence is required.",
       "requirement_ids": [
-        "REQ-011"
+        "REQ-004",
+        "REQ-005",
+        "REQ-014"
       ],
       "test_ids": [
         "TEST-011"
@@ -997,7 +1043,7 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: the workspace Commitment Center must read modern portal, request, issue, decision, baseline, and event state and must not create legacy publications. Cheaper source inspection is insufficient because targeted repository, component, routing, and legacy-zero-write tests must execute.",
       "requirement_ids": [
         "REQ-012"
       ],
@@ -1015,7 +1061,7 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: modern portals must become the sole authoring path without losing legacy issued content, decisions, comments, tokens, or public access. Cheaper source inspection and targeted evidence are insufficient because clean and upgrade D1 applies, idempotent backfill, token dispatch, write freeze, and zero-write scans require broader evidence.",
       "requirement_ids": [
         "REQ-013"
       ],
@@ -1033,9 +1079,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "TARGETED",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: deterministic structured changes and human approval must remain authoritative when AI is absent, stale, malformed, or adversarial. Cheaper source inspection is insufficient because targeted fallback, sanitization, stale-input, and no-authority tests must execute.",
       "requirement_ids": [
-        "REQ-014"
+        "REQ-008"
       ],
       "test_ids": [
         "TEST-014"
@@ -1051,8 +1097,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: internal and public commitment journeys must remain operable across keyboard, mobile, 200% zoom, reduced motion, large issues, PDFs, and degraded services. Cheaper source inspection and targeted component tests are insufficient for cross-browser, device, performance, and recovery behavior, so broader evidence is required.",
       "requirement_ids": [
+        "REQ-003",
         "REQ-015"
       ],
       "test_ids": [
@@ -1069,8 +1116,9 @@
       "artifact_path": "00-PLAN.md",
       "test_requirement": "BROADER",
       "test_trigger": "MVP_CRITICAL_INVARIANT",
-      "test_rationale": "Critical invariant requires executable Q2 evidence across persisted data, authorization, public access, upload, state, migration, or client journey; source inspection alone is insufficient.",
+      "test_rationale": "Critical invariant: the complete persisted-data, upload, public-access, authorization, migration, and contractual-state change must satisfy the repository's Q2 profile with independent quality and security approval. Cheaper source inspection and targeted evidence are insufficient for the integrated blast radius, so aggregate coverage, mutation, browser, migration, security, and review evidence is required.",
       "requirement_ids": [
+        "REQ-014",
         "REQ-016"
       ],
       "test_ids": [
@@ -1307,7 +1355,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "artifact_path": "08-IMPLEMENTATION-WORKSTREAMS-AND-TASKS.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1352,6 +1400,7 @@
       "evidence_ids": [
         "EVID-001",
         "EVID-002",
+        "EVID-003",
         "EVID-004",
         "EVID-005",
         "EVID-006",
@@ -1359,7 +1408,7 @@
         "EVID-009",
         "EVID-010",
         "EVID-011",
-        "EVID-014"
+        "EVID-016"
       ]
     },
     {
@@ -1381,10 +1430,11 @@
         "RISK-011"
       ],
       "evidence_ids": [
+        "EVID-003",
         "EVID-004",
-        "EVID-005",
-        "EVID-014",
-        "EVID-015"
+        "EVID-011",
+        "EVID-015",
+        "EVID-016"
       ]
     },
     {
@@ -1404,8 +1454,9 @@
         "RISK-011"
       ],
       "evidence_ids": [
-        "EVID-004",
-        "EVID-014"
+        "EVID-003",
+        "EVID-011",
+        "EVID-016"
       ]
     },
     {
@@ -1427,9 +1478,10 @@
         "RISK-006"
       ],
       "evidence_ids": [
+        "EVID-004",
         "EVID-005",
-        "EVID-006",
-        "EVID-014"
+        "EVID-011",
+        "EVID-016"
       ]
     },
     {
@@ -1450,8 +1502,8 @@
         "RISK-012"
       ],
       "evidence_ids": [
-        "EVID-007",
-        "EVID-008"
+        "EVID-006",
+        "EVID-014"
       ]
     },
     {
@@ -1470,7 +1522,7 @@
         "RISK-001"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-007"
       ]
     },
     {
@@ -1495,8 +1547,9 @@
       ],
       "evidence_ids": [
         "EVID-001",
-        "EVID-003",
-        "EVID-011",
+        "EVID-002",
+        "EVID-008",
+        "EVID-009",
         "EVID-015"
       ]
     },
@@ -1527,10 +1580,11 @@
         "EVID-002",
         "EVID-003",
         "EVID-004",
-        "EVID-005",
+        "EVID-008",
+        "EVID-009",
         "EVID-011",
-        "EVID-014",
-        "EVID-015"
+        "EVID-015",
+        "EVID-016"
       ]
     },
     {
@@ -1555,10 +1609,11 @@
       ],
       "evidence_ids": [
         "EVID-002",
-        "EVID-004",
+        "EVID-003",
+        "EVID-009",
         "EVID-010",
         "EVID-011",
-        "EVID-014"
+        "EVID-016"
       ]
     },
     {
@@ -1600,8 +1655,9 @@
         "RISK-008"
       ],
       "evidence_ids": [
+        "EVID-011",
         "EVID-013",
-        "EVID-014"
+        "EVID-016"
       ]
     },
     {
@@ -1620,7 +1676,7 @@
         "RISK-012"
       ],
       "evidence_ids": [
-        "EVID-008"
+        "EVID-014"
       ]
     },
     {
@@ -1657,7 +1713,7 @@
         "RISK-012"
       ],
       "evidence_ids": [
-        "EVID-014",
+        "EVID-011",
         "EVID-015",
         "EVID-016"
       ]
@@ -1683,7 +1739,10 @@
         "REQ-001",
         "AC-001",
         "TEST-001",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-008"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1695,9 +1754,14 @@
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
         "REQ-002",
+        "REQ-011",
         "AC-002",
         "TEST-002",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1708,10 +1772,15 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-003",
+        "REQ-004",
         "AC-003",
         "TEST-003",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-009",
+        "UNIT-010"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1722,10 +1791,14 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-004",
+        "REQ-005",
         "AC-004",
         "TEST-004",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-009"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1736,10 +1809,12 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-005",
+        "REQ-006",
         "AC-005",
         "TEST-005",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-005"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1750,10 +1825,12 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-006",
+        "REQ-007",
         "AC-006",
         "TEST-006",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-006"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1764,10 +1841,12 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-007",
+        "REQ-009",
         "AC-007",
         "TEST-007",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-007"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1778,10 +1857,12 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-008",
+        "REQ-003",
         "AC-008",
         "TEST-008",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-008",
+        "UNIT-009"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1792,10 +1873,16 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-009",
+        "REQ-002",
+        "REQ-003",
+        "REQ-011",
         "AC-009",
         "TEST-009",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1809,7 +1896,9 @@
         "REQ-010",
         "AC-010",
         "TEST-010",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-010"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1820,10 +1909,20 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-011",
+        "REQ-004",
+        "REQ-005",
+        "REQ-014",
         "AC-011",
         "TEST-011",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-012",
+        "UNIT-014"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1837,7 +1936,8 @@
         "REQ-012",
         "AC-012",
         "TEST-012",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-011"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1851,7 +1951,10 @@
         "REQ-013",
         "AC-013",
         "TEST-013",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-001",
+        "UNIT-011",
+        "UNIT-012"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1862,10 +1965,12 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
-        "REQ-014",
+        "REQ-008",
         "AC-014",
         "TEST-014",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-006",
+        "UNIT-013"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1876,10 +1981,16 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
+        "REQ-003",
         "REQ-015",
         "AC-015",
         "TEST-015",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-003",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-011",
+        "UNIT-014"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1890,10 +2001,19 @@
       "artifact_path": "10-VERIFICATION-QUALITY-AND-ACCEPTANCE.md",
       "sha256": "7d28618dd83f79604bfeea47621c67fe001f050df5bb12792b2916cf0cc0aef8",
       "claim_ids": [
+        "REQ-014",
         "REQ-016",
         "AC-016",
         "TEST-016",
-        "GATE-Q2-001"
+        "GATE-Q2-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-012",
+        "UNIT-014"
       ],
       "source_revision": "1c26b29edd969357c389c6432439dec82cb54389",
       "valid_until": null
@@ -1908,5 +2028,5 @@
     "role-or-exposure-policy-change",
     "legacy-cutover-state-change"
   ],
-  "manifest_sha256": "7b26543c5793ec2b92c72ecdf33a5849ed9535e3e10814db8e7aa377837a7401"
+  "manifest_sha256": "4dc2eb31b5db7b370eca226dc4fc15c5ef6211f4bc215bd32dd51ea136ecd4e6"
 }
