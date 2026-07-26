@@ -16,6 +16,7 @@ export type ClientPortalIssueSourceRowProjection = {
   designation: string;
   discipline: string;
   material: string;
+  linkState: "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
   miscCostMinorUnits: number;
   quantityScaled: number;
   rowRevision: number;
@@ -102,6 +103,12 @@ function normalizeScopeStatus(value: SnapshotRowInput["scopeStatus"]): ClientPor
   return "included";
 }
 
+function normalizeLinkState(value: SnapshotRowInput["linkState"]): ClientPortalIssueSourceRowProjection["linkState"] {
+  return value === "linked-clean" || value === "linked-overridden" || value === "source-changed" || value === "detached"
+    ? value
+    : "unlinked";
+}
+
 function calculateRowTotalMinorUnits(row: SnapshotRowInput, currencyCode: string, scopeStatus: ClientPortalIssueSourceScopeStatus) {
   if (scopeStatus !== "included") return 0;
   const legacyAdjustmentPercentage = row.quantityBase === null || row.quantityBase === undefined
@@ -136,6 +143,7 @@ function rowProjection(
     description: canonicalText(row.description),
     designation: canonicalText(row.designation),
     discipline: canonicalText(row.discipline),
+    linkState: normalizeLinkState(row.linkState),
     material: canonicalText(row.material),
     miscCostMinorUnits: minorUnits(row.miscCost, "Miscellaneous cost"),
     quantityScaled: scaledInteger(row.quantity, CLIENT_PORTAL_QUANTITY_SCALE, "Quantity"),

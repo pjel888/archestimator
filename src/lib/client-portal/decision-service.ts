@@ -6,6 +6,7 @@ import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/clo
 import { prepareClientPortalBaselineAcceptanceWrites } from "@/lib/client-portal/baseline-service";
 import { clientPortalOwnerNotificationStatement } from "@/lib/client-portal/owner-notification";
 import { evaluateClientPortalPolicy, type ClientPortalInternalActor, type ClientPortalPolicyPortal, type ClientPortalRecipientActor } from "@/lib/client-portal/policy";
+import { prepareProjectCommitmentEventWrites } from "@/lib/project-ledger/event-service";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
 
 type PortalRow = { id: string; workspace_id: string; project_id: string; status: "draft" | "ready" | "live" | "access_off" | "archived"; current_issue_id: string | null };
@@ -106,6 +107,41 @@ export async function submitClientPortalDecision({ actor, database, decision, ex
   const requiredApproverClause = policy.requiredRecipientIds.length ? `decision_row.recipient_id IN (${policy.requiredRecipientIds.map(() => "?").join(", ")})` : "approver.is_required_approver = 1";
   if (!database.batch) throw new ClientPortalDecisionError("client_portal_decision_write_failed", "Client Portal decision writes require D1 batch support.");
   const baselineAcceptance = prepareClientPortalBaselineAcceptanceWrites({ database, decisionId: row.id, issueId: issue.id, portalId, timestamp });
+  const publicEventSuffix = createHash("sha256").update(`${issue.content_hash}:${actor.recipientId}:${decision}`).digest("hex").slice(0, 20);
+  const decisionEvent = prepareProjectCommitmentEventWrites({
+    actor: { actorId: actor.recipientId, actorType: "recipient", domainRoleSnapshot: recipient.role_template, nameSnapshot: recipient.display_name },
+    clientSafeSnapshot: { decision, issueNumber: issue.issue_number, signerName },
+    correlationId: `decision:${row.id}:submitted`,
+    database,
+    eventId: `commitment_${row.id}`,
+    eventType: `decision.${decision}`,
+    exposure: { exposureKind: "automatic", policySnapshot: { capability: "timeline:view", issueNumber: issue.issue_number }, portalId, publicEventId: `decision_event_${publicEventSuffix}` },
+    internalMetadata: { decisionId: row.id, issueContentHash: issue.content_hash },
+    occurredAt: timestamp,
+    originPortalId: portalId,
+    projectId: policyPortal.projectId,
+    source: { decisionId: row.id, sourceType: "decision" },
+    summary: note,
+    title: decision === "approved" ? `${issue.version_label} was approved` : decision === "declined" ? `${issue.version_label} was declined` : `Changes were requested for ${issue.version_label}`,
+    workspaceId: policyPortal.workspaceId,
+  });
+  const baselineEvent = prepareProjectCommitmentEventWrites({
+    actor: { actorId: actor.recipientId, actorType: "recipient", domainRoleSnapshot: recipient.role_template, nameSnapshot: recipient.display_name },
+    clientSafeSnapshot: { currencyCode: issue.currency_code, issueNumber: issue.issue_number, status: "active", totalCost: issue.total_cost },
+    correlationId: `baseline:${row.id}:established`,
+    database,
+    eventId: `commitment_${baselineAcceptance.baselineId}`,
+    eventType: "baseline.established",
+    exposure: { exposureKind: "automatic", policySnapshot: { capability: "timeline:view", issueNumber: issue.issue_number }, portalId, publicEventId: `baseline_event_${publicEventSuffix}` },
+    internalMetadata: { baselineId: baselineAcceptance.baselineId, decisionId: row.id, issueId: issue.id },
+    occurredAt: timestamp,
+    originPortalId: portalId,
+    projectId: policyPortal.projectId,
+    source: { baselineId: baselineAcceptance.baselineId, sourceType: "baseline" },
+    title: `${issue.version_label} became the active baseline`,
+    workspaceId: policyPortal.workspaceId,
+  });
+  const requestDecisionKey = `decision:${row.id}:request-transition`;
   try {
     const result = await database.batch([
       statement(database, `INSERT INTO client_portal_decisions (id, portal_id, issue_id, recipient_id, scope_kind, scope_key, decision, note, signer_name, signer_email_snapshot, signer_role_snapshot, issue_content_hash, intent_hash, idempotency_key, submitted_at)
@@ -124,6 +160,38 @@ export async function submitClientPortalDecision({ actor, database, decision, ex
         END
         WHERE id = ? AND content_hash = ? AND EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)`, [...policy.requiredRecipientIds, ...policy.requiredRecipientIds, policy.requiredApprovals, issue.id, issue.content_hash, row.id]),
       ...baselineAcceptance.statements,
+      ...decisionEvent.statements,
+      ...baselineEvent.statements,
+      statement(database, `INSERT INTO project_change_request_state_events (
+          id, request_id, from_status, to_status, actor_type, actor_id, note, idempotency_key, occurred_at, metadata_json
+        )
+        SELECT 'request-event_' || lower(hex(randomblob(16))), request.id, request.status,
+               CASE issue.status WHEN 'changes_requested' THEN 'under_assessment' ELSE 'rejected' END,
+               'recipient', ?, ?, ?, ?, json_object('issueId', ?, 'decisionId', ?)
+        FROM project_change_requests request
+        JOIN client_portal_issue_requests linked ON linked.request_id = request.id AND linked.relationship IN ('origin', 'addresses')
+        JOIN client_portal_issues issue ON issue.id = linked.issue_id
+        WHERE issue.id = ? AND issue.portal_id = ? AND issue.status IN ('changes_requested', 'declined')
+          AND request.status = 'proposal_issued'
+          AND NOT EXISTS (
+            SELECT 1 FROM project_change_request_state_events existing
+            WHERE existing.request_id = request.id AND existing.actor_type = 'recipient'
+              AND existing.actor_id = ? AND existing.idempotency_key = ?
+          )`, [actor.recipientId, note, requestDecisionKey, timestamp, issue.id, row.id, issue.id, portalId, actor.recipientId, requestDecisionKey]),
+      statement(database, `UPDATE project_change_requests
+        SET status = CASE
+          WHEN EXISTS (SELECT 1 FROM client_portal_issues issue WHERE issue.id = ? AND issue.status = 'changes_requested') THEN 'under_assessment'
+          ELSE 'rejected'
+        END,
+        updated_at = ?
+        WHERE status = 'proposal_issued'
+          AND EXISTS (
+            SELECT 1 FROM client_portal_issue_requests linked
+            JOIN project_change_request_state_events event ON event.request_id = project_change_requests.id
+            WHERE linked.issue_id = ? AND linked.request_id = project_change_requests.id
+              AND linked.relationship IN ('origin', 'addresses')
+              AND event.actor_type = 'recipient' AND event.actor_id = ? AND event.idempotency_key = ?
+          )`, [issue.id, timestamp, issue.id, actor.recipientId, requestDecisionKey]),
       statement(database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) SELECT ?, ?, ?, issue.id, 'system', NULL, 'issue_decision_status_updated', 'client_safe', json_object('decisionId', ?, 'status', issue.status), ?, ? FROM client_portal_issues issue WHERE issue.id = ? AND EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)", [randomUUID(), policyPortal.workspaceId, portalId, row.id, timestamp, timestamp, issue.id, row.id]),
       statement(database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) SELECT ?, ?, ?, ?, 'recipient', ?, 'decision_submitted', 'client_safe', ?, ?, ? WHERE EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)", [randomUUID(), policyPortal.workspaceId, portalId, issue.id, actor.recipientId, JSON.stringify({ decision, decisionId: row.id, issueNumber: issue.issue_number }), timestamp, timestamp, row.id]),
       statement(database, "INSERT INTO client_portal_analytics_events (id, portal_id, issue_id, recipient_id, event_type, verified_human, occurred_at, metadata_json, created_at) SELECT ?, ?, ?, ?, 'decision_submitted', 1, ?, ?, ? WHERE EXISTS (SELECT 1 FROM client_portal_decisions WHERE id = ?)", [`analytics_${randomUUID()}`, portalId, issue.id, actor.recipientId, timestamp, JSON.stringify({ decisionId: row.id }), timestamp, row.id]),

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import { buildClientPortalCostBreakdownPayload, buildClientPortalEstimateComparisonPayload, buildClientPortalFinancialSummaryPayload } from "@/lib/client-portal/financial-sections";
+import { createClientPortalChangeSet } from "@/lib/client-portal/change-set";
+import { ClientPortalChangeSetComparisonError, createCurrentClientPortalIssueProjection, loadClientPortalChangeSetComparison } from "@/lib/client-portal/change-set-repository";
 import { publishClientPortalIssue, type ClientPortalIssuePackage, type ClientPortalPublishedIssue } from "@/lib/client-portal/issue-builder";
 import { getClientPortalIssueDraft } from "@/lib/client-portal/issue-draft-service";
 import type { ClientPortalIssueDraft } from "@/lib/client-portal/issue-draft-repository";
@@ -71,15 +73,19 @@ type ArtifactPackageSource = {
   content_type: string;
   description: string | null;
   file_name: string;
+  revision_label: string | null;
   size_bytes: number;
   title: string;
+  version_number: number;
 };
 type RequestPackageSource = {
   content_hash: string;
   request_code: string;
   request_id: string;
   request_version_id: string;
+  status: "submitted" | "acknowledged" | "under_assessment" | "proposal_issued" | "resolved" | "rejected" | "withdrawn";
   title: string;
+  version_number: number;
 };
 type PublicationSource = {
   drafts: ClientPortalSectionDraft[];
@@ -367,7 +373,7 @@ async function loadIssuePackage(
         database,
         `SELECT artifact.id AS artifact_id, version.id AS artifact_version_id, artifact.title,
                 version.file_name, version.content_type, version.size_bytes, version.content_sha256,
-                version.description
+                version.description, version.version_number, version.revision_label
          FROM project_artifact_versions version
          JOIN project_artifacts artifact
            ON artifact.id = version.artifact_id
@@ -411,6 +417,7 @@ async function loadIssuePackage(
       purpose: selection.purpose,
       sizeBytes: row.size_bytes,
       sortOrder: selection.sortOrder,
+      versionLabel: row.revision_label?.trim() || `Version ${row.version_number}`,
     };
   });
 
@@ -418,8 +425,8 @@ async function loadIssuePackage(
   const requestRows = requestVersionIds.length > 0
     ? await all<RequestPackageSource>(
         database,
-        `SELECT request.id AS request_id, request.request_code,
-                version.id AS request_version_id, version.title, version.content_hash
+        `SELECT request.id AS request_id, request.request_code, request.status,
+                version.id AS request_version_id, version.title, version.content_hash, version.version_number
          FROM project_change_request_versions version
          JOIN project_change_requests request ON request.id = version.request_id
          WHERE request.workspace_id = ? AND request.project_id = ?
@@ -437,6 +444,9 @@ async function loadIssuePackage(
     if (!row || row.request_id !== selection.requestId) {
       throw new ClientPortalPublishError("client_portal_publish_invalid", "A selected request version does not belong to its request.");
     }
+    if ((selection.relationship === "origin" || selection.relationship === "addresses") && row.status !== "under_assessment" && row.status !== "proposal_issued") {
+      throw new ClientPortalPublishError("client_portal_publish_invalid", `${row.request_code} must be under assessment before an issue can address it.`);
+    }
     return {
       contentHash: row.content_hash,
       relationship: selection.relationship,
@@ -445,6 +455,7 @@ async function loadIssuePackage(
       requestVersionId: row.request_version_id,
       sortOrder: selection.sortOrder,
       title: row.title,
+      versionNumber: row.version_number,
     };
   });
 
@@ -609,10 +620,48 @@ export async function publishClientPortalDraft({ actor, database, draftId, idemp
         estimateSourceHashes: new Map(issuePackage.estimates.map((estimate) => [estimate.sourceEstimateId, estimate.sourceHash])),
       })
     : undefined;
+  const changeSet = issueDraft && issuePackage && privateSourceProjection
+    ? await (async () => {
+        const comparison = await loadClientPortalChangeSetComparison({
+          basedOnBaselineId: issueDraft.basedOnBaselineId,
+          comparisonIssueId: issueDraft.comparisonIssueId,
+          database,
+          portalId: portal.id,
+        }).catch((error: unknown) => {
+          if (error instanceof ClientPortalChangeSetComparisonError) {
+            throw new ClientPortalPublishError("client_portal_publish_stale", error.message);
+          }
+          throw error;
+        });
+        const current = createCurrentClientPortalIssueProjection({
+          assumptions: issueDraft.assumptions,
+          exclusions: issueDraft.exclusions,
+          issuePackage,
+          namespace,
+          sourceProjection: privateSourceProjection,
+          validThrough: undefined,
+        });
+        const result = createClientPortalChangeSet({
+          issueLabel: issueDraft.versionLabel?.trim() || "This issue",
+          comparison: comparison.comparison,
+          previous: comparison.previous,
+          current,
+        });
+        return {
+          deterministicSummary: result.deterministicSummary,
+          finalNarrative: issueDraft.revisionNote ?? result.deterministicSummary,
+          narrativeSource: "human" as const,
+          privateChangeSet: result.privateChangeSet,
+          publicChangeSet: result.publicChangeSet,
+          structuredDiffHash: sha256(result.hashInput),
+        };
+      })()
+    : undefined;
 
   return publishClientPortalIssue({
     actor,
     database,
+    changeSet,
     idempotencyKey,
     issuePackage,
     privateSourceProjection,

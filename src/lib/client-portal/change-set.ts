@@ -257,7 +257,7 @@ export type PrivateClientPortalChangeSet = {
 
 export type PublicClientPortalChangeSet = {
   schemaVersion: typeof CLIENT_PORTAL_CHANGE_SET_SCHEMA_VERSION;
-  comparison: PrivateClientPortalChangeSet["comparison"];
+  comparison: Pick<PrivateClientPortalChangeSet["comparison"], "capability" | "limitationReason">;
   currencyCode: string;
   summary: ChangeSetSummary;
   estimateChanges: Array<{
@@ -893,7 +893,10 @@ export function createPublicSafeChangeSet(changeSet: PrivateClientPortalChangeSe
   const publicNarrativeItems = (items: readonly NarrativeItemChange[]) => items.map(({ type, before, after }) => ({ type, before, after }));
   return {
     schemaVersion: changeSet.schemaVersion,
-    comparison: changeSet.comparison,
+    comparison: {
+      capability: changeSet.comparison.capability,
+      limitationReason: changeSet.comparison.limitationReason,
+    },
     currencyCode: changeSet.currencyCode,
     summary: changeSet.summary,
     estimateChanges: changeSet.estimateChanges.map((estimate) => ({

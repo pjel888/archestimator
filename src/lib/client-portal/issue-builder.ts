@@ -16,9 +16,11 @@ import type {
   ClientPortalIssueKind,
   ClientPortalIssueRequestRelationship,
 } from "@/lib/client-portal/issue-draft-contracts";
+import type { PrivateClientPortalChangeSet, PublicClientPortalChangeSet } from "@/lib/client-portal/change-set";
 import type { ClientPortalIssueSourceProjection } from "@/lib/client-portal/issue-source-projection";
 import { ESTIMATE_CALCULATION_CURRENCY_SCALE } from "@/lib/estimates/estimate-row-total";
 import { type ClientPortalInternalActor, evaluateClientPortalPolicy } from "@/lib/client-portal/policy";
+import { prepareProjectCommitmentEventWrites } from "@/lib/project-ledger/event-service";
 import {
   CLIENT_PORTAL_SECTION_REGISTRY,
   buildClientPortalPublicSection,
@@ -123,6 +125,7 @@ export type ClientPortalIssuePackage = {
     purpose: ClientPortalIssueArtifactPurpose;
     sizeBytes: number;
     sortOrder: number;
+    versionLabel: string;
   }[];
   basedOnBaselineId: string | null;
   comparisonIssueId: string | null;
@@ -145,10 +148,20 @@ export type ClientPortalIssuePackage = {
     requestVersionId: string;
     sortOrder: number;
     title: string;
+    versionNumber: number;
   }[];
   revisionNote: string;
   sectionOverrides: JsonRecord;
   unresolvedItems: readonly string[];
+};
+
+export type ClientPortalIssueChangeSet = {
+  deterministicSummary: string;
+  finalNarrative: string;
+  narrativeSource: "deterministic" | "human";
+  privateChangeSet: PrivateClientPortalChangeSet;
+  publicChangeSet: PublicClientPortalChangeSet;
+  structuredDiffHash: string;
 };
 
 export type ClientPortalIssueBuildInput = {
@@ -156,6 +169,7 @@ export type ClientPortalIssueBuildInput = {
   buildSectionPayload: (input: { draft: ClientPortalSectionDraft; sectionKey: string }) => Promise<unknown>;
   database: D1DatabaseLike;
   idempotencyKey: string;
+  changeSet?: ClientPortalIssueChangeSet;
   issuePackage?: ClientPortalIssuePackage;
   privateSourceProjection?: ClientPortalIssueSourceProjection;
   portalId: string;
@@ -308,6 +322,20 @@ function requirePrivateSourceProjection(
   }
 }
 
+function requireChangeSet(changeSet: ClientPortalIssueChangeSet | undefined, issuePackage: ClientPortalIssuePackage | undefined) {
+  if (!changeSet) return;
+  if (!issuePackage) throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue change sets require an issue package draft.");
+  if (!/^[a-f0-9]{64}$/.test(changeSet.structuredDiffHash)) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue change-set hash must be a lowercase SHA-256 digest.");
+  }
+  if (!changeSet.deterministicSummary.trim() || !changeSet.finalNarrative.trim()) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue change-set narratives must be non-empty.");
+  }
+  if (changeSet.privateChangeSet.currencyCode !== changeSet.publicChangeSet.currencyCode) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Private and public issue change sets must use one currency.");
+  }
+}
+
 function toSectionDraft(row: DraftSectionRow): { draft: ClientPortalSectionDraft; policySnapshot: JsonRecord; sectionKey: string } {
   const visibilityPolicy = parseJsonRecord(row.visibility_policy_json, `visibility policy for ${row.section_key}`);
   const fieldPolicy = parseJsonRecord(row.field_policy_json, `field policy for ${row.section_key}`);
@@ -437,6 +465,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   requireSource(input.source);
   requireIssuePackage(input.issuePackage, input.source);
   requirePrivateSourceProjection(input.privateSourceProjection, input.issuePackage, input.source);
+  requireChangeSet(input.changeSet, input.issuePackage);
 
   const portal = await first<PortalRow>(
     input.database,
@@ -482,6 +511,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     portalId: portal.id,
     brandSnapshot,
     source: input.source,
+    changeSet: input.changeSet ?? null,
     issuePackage: input.issuePackage ?? null,
     privateSourceProjection: input.privateSourceProjection ?? null,
     sections: draftedSections.map(({ draft, policySnapshot, sectionKey }) => ({ draft, policySnapshot, sectionKey })),
@@ -541,6 +571,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   const issueId = `issue_${randomUUID()}`;
   const issuedAt = new Date().toISOString();
   const versionLabel = input.versionLabel?.trim() || `Issue ${issueNumber}`;
+  const replacesPendingIssue = Boolean(latestIssue && CLIENT_PORTAL_SUPERSEDABLE_ISSUE_STATUSES.has(latestIssue.status));
   const manifest = {
     schemaVersion: 1,
     portalId: portal.id,
@@ -584,6 +615,12 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         sortOrder: request.sortOrder,
       })),
     } : null,
+    changeSet: input.changeSet ? {
+      structured: input.changeSet.publicChangeSet,
+      deterministicSummary: input.changeSet.deterministicSummary,
+      finalNarrative: input.changeSet.finalNarrative,
+      narrativeSource: input.changeSet.narrativeSource,
+    } : null,
     sections: issuedSections.map(({ manifest: section, sectionKey }) => ({
       id: `section_${randomUUID()}`,
       kind: section.kind,
@@ -596,6 +633,38 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
   };
 
   const commitGuard = { contentHash, issueId, portalId: portal.id };
+  const rootRequestId = input.issuePackage?.requests.find((request) => request.relationship === "origin")?.requestId ?? null;
+  const issueEvent = prepareProjectCommitmentEventWrites({
+    actor: { actorId: input.actor.userId, actorType: "internal_user", domainRoleSnapshot: "publisher" },
+    clientSafeSnapshot: {
+      currencyCode: input.source.currencyCode,
+      issueNumber,
+      requestCodes: input.issuePackage?.requests.filter((request) => request.relationship === "origin" || request.relationship === "addresses").map((request) => request.requestCode) ?? [],
+      status: "issued",
+      totalCost: input.source.totalCost,
+      versionLabel,
+      ...(replacesPendingIssue && latestIssue ? { replacesIssueNumber: latestIssue.issue_number } : {}),
+    },
+    correlationId: `issue:${contentHash}:published`,
+    database: input.database,
+    eventId: `commitment_${issueId}`,
+    eventType: replacesPendingIssue ? "issue.replaced" : "issue.issued",
+    exposure: {
+      exposureKind: "automatic",
+      policySnapshot: { capability: "timeline:view", issueNumber },
+      portalId: portal.id,
+      publicEventId: `issue_event_${issueNumber}_${contentHash.slice(0, 16)}`,
+    },
+    internalMetadata: { contentHash, sourceRevision: input.source.sourceRevision, supersedesIssueId: replacesPendingIssue ? latestIssue?.id ?? null : null },
+    occurredAt: issuedAt,
+    originPortalId: portal.id,
+    projectId: portal.project_id,
+    rootRequestId,
+    source: { issueId, sourceType: "issue" },
+    summary: input.changeSet?.finalNarrative ?? input.issuePackage?.revisionNote ?? null,
+    title: replacesPendingIssue ? `${versionLabel} replaced the pending proposal` : `${versionLabel} was issued`,
+    workspaceId: portal.workspace_id,
+  });
   const statements: D1PreparedStatementLike[] = [
     statement(
       input.database,
@@ -603,9 +672,9 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         id, portal_id, issue_number, version_label, status, issued_at, issued_by, idempotency_key, valid_through, supersedes_issue_id,
         manifest_json, content_hash, total_cost, currency_code, selected_estimate_ids_json, brand_snapshot_json,
         decision_policy_snapshot_json, assumptions_json, exclusions_json, created_at,
-        issue_kind, draft_id, based_on_baseline_id, comparison_issue_id, revision_note
+        issue_kind, draft_id, based_on_baseline_id, comparison_issue_id, revision_note, change_set_hash
       )
-      SELECT ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      SELECT ?, ?, ?, ?, 'issued', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       FROM client_portals source_portal
       JOIN projects source_project
         ON source_project.id = source_portal.project_id
@@ -628,11 +697,12 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         JSON.stringify(input.source.exclusions), issuedAt,
         input.issuePackage?.issueKind ?? "initial_estimate", input.issuePackage?.draftId ?? null,
         input.issuePackage?.basedOnBaselineId ?? null, input.issuePackage?.comparisonIssueId ?? null,
-        input.issuePackage?.revisionNote ?? null,
+        input.issuePackage?.revisionNote ?? null, input.changeSet?.structuredDiffHash ?? null,
         ...(input.issuePackage ? [input.issuePackage.draftId, input.issuePackage.draftRevision] : []),
         portal.id, portal.workspace_id, portal.project_id, input.source.sourceRevision,
       ],
     ),
+    ...issueEvent.statements,
   ];
 
   if (input.issuePackage) {
@@ -682,6 +752,41 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         commitGuard,
       )),
     );
+    for (const request of input.issuePackage.requests.filter((candidate) => candidate.relationship === "origin" || candidate.relationship === "addresses")) {
+      const requestTransitionKey = `issue:${issueId}:proposal-issued`;
+      statements.push(
+        statement(
+          input.database,
+          `INSERT INTO project_change_request_state_events (
+            id, request_id, from_status, to_status, actor_type, actor_id, note, idempotency_key, occurred_at, metadata_json
+          )
+          SELECT ?, request.id, request.status, 'proposal_issued', 'system', 'client-portal-issue',
+                 'Proposal issued in Client Portal', ?, ?, json_object('issueId', ?, 'issueNumber', ?)
+          FROM project_change_requests request
+          WHERE request.id = ? AND request.workspace_id = ? AND request.project_id = ?
+            AND request.current_version_id = ? AND request.status = 'under_assessment'
+            AND EXISTS (SELECT 1 FROM client_portal_issue_requests linked WHERE linked.issue_id = ? AND linked.request_id = request.id)
+            AND NOT EXISTS (
+              SELECT 1 FROM project_change_request_state_events existing
+              WHERE existing.request_id = request.id AND existing.actor_type = 'system'
+                AND existing.actor_id = 'client-portal-issue' AND existing.idempotency_key = ?
+            )`,
+          [`request-event_${randomUUID()}`, requestTransitionKey, issuedAt, issueId, issueNumber, request.requestId, portal.workspace_id, portal.project_id, request.requestVersionId, issueId, requestTransitionKey],
+        ),
+        statement(
+          input.database,
+          `UPDATE project_change_requests
+           SET status = 'proposal_issued', updated_at = ?
+           WHERE id = ? AND workspace_id = ? AND project_id = ? AND status = 'under_assessment'
+             AND EXISTS (
+               SELECT 1 FROM project_change_request_state_events event
+               WHERE event.request_id = project_change_requests.id AND event.actor_type = 'system'
+                 AND event.actor_id = 'client-portal-issue' AND event.idempotency_key = ? AND event.to_status = 'proposal_issued'
+             )`,
+          [issuedAt, request.requestId, portal.workspace_id, portal.project_id, requestTransitionKey],
+        ),
+      );
+    }
   }
 
   if (input.privateSourceProjection) {
@@ -708,7 +813,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
           "issue_id", "source_estimate_id", "source_tab_id", "source_node_id", "source_row_id", "source_component_id",
           "source_variant_id", "row_revision", "description", "designation", "discipline", "material", "quantity_scaled",
           "unit", "unit_cost_minor_units", "misc_cost_minor_units", "contingency_basis_points", "adjustment_basis_points",
-          "row_total_minor_units", "scope_status", "canonical_row_hash", "sort_order",
+          "row_total_minor_units", "scope_status", "link_state", "canonical_row_hash", "sort_order",
         ],
         input.privateSourceProjection.estimates.flatMap((estimate) => estimate.rows.map((row) => [
           issueId,
@@ -731,6 +836,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
           row.adjustmentBasisPoints,
           row.rowTotalMinorUnits,
           row.scopeStatus,
+          row.linkState,
           row.canonicalRowHash,
           row.sortOrder,
         ])),
@@ -757,6 +863,30 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         commitGuard,
       ),
     );
+  }
+
+  if (input.changeSet) {
+    statements.push(conditionalInsertStatement(
+      input.database,
+      "client_portal_issue_change_sets",
+      [
+        "issue_id", "comparison_issue_id", "comparison_baseline_id", "schema_version", "structured_diff_json",
+        "structured_diff_hash", "deterministic_summary", "final_narrative", "narrative_source", "created_at",
+      ],
+      [
+        issueId,
+        input.changeSet.privateChangeSet.comparison.issueId,
+        input.changeSet.privateChangeSet.comparison.baselineId,
+        input.changeSet.privateChangeSet.schemaVersion,
+        canonicalJson(input.changeSet.privateChangeSet),
+        input.changeSet.structuredDiffHash,
+        input.changeSet.deterministicSummary,
+        input.changeSet.finalNarrative,
+        input.changeSet.narrativeSource,
+        issuedAt,
+      ],
+      commitGuard,
+    ));
   }
 
   for (const [index, section] of issuedSections.entries()) {
