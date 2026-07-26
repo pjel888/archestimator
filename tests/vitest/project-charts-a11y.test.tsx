@@ -70,6 +70,23 @@ describe("project charts accessibility", () => {
     // A non-color cue token (letter) accompanies the swatch.
     expect(within(row).getByText("A")).toBeInTheDocument();
   });
+
+  it("exposes pinned state independently from transient hover state", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectChartsClient data={twoEstimateData()} initialGroupingMode="space" initialLeftEstimateId="estimate-a" initialRightEstimateId="estimate-b" />,
+    );
+
+    const spineButton = within(screen.getByTestId("project-variance-spine")).getByRole("button");
+    expect(spineButton).toHaveAttribute("aria-pressed", "false");
+    await user.hover(spineButton);
+    expect(spineButton).toHaveAttribute("aria-pressed", "false");
+    await user.click(spineButton);
+    expect(spineButton).toHaveAttribute("aria-pressed", "true");
+
+    const compositionButtons = screen.getAllByRole("button", { name: "Toggle Structural pin" });
+    expect(compositionButtons.every((button) => button.getAttribute("aria-pressed") === "true")).toBe(true);
+  });
 });
 
 describe("SegmentedControl roving tabindex (P3.5 / A11Y-8)", () => {

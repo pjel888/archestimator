@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -24,28 +26,41 @@ const enabled =
   process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL?.trim().toLowerCase() === FIXTURE_EMAIL;
 
 function executeLocalD1(sql: string) {
-  const result = spawnSync(
-    "bun",
-    [
-      "x",
-      "wrangler",
-      "d1",
-      "execute",
-      "ARCH_DB",
-      "--local",
-      "--command",
-      sql,
-    ],
-    {
-      cwd: process.cwd(),
-      encoding: "utf8",
-      timeout: 45_000,
-    },
+  const persistPath = process.env.ARCHESTIMATOR_E2E_WRANGLER_PERSIST_PATH?.trim();
+  const sqlPath = join(
+    process.cwd(),
+    "artifacts",
+    "quality",
+    `.onboarding-first-value-${process.pid}.sql`,
   );
-  if (result.status !== 0 || result.error || result.signal) {
-    throw new Error(
-      `Local onboarding first-value fixture command failed: ${result.error?.message ?? result.signal ?? result.stderr}`,
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    const result = spawnSync(
+      "bun",
+      [
+        "x",
+        "wrangler",
+        "d1",
+        "execute",
+        "ARCH_DB",
+        "--local",
+        ...(persistPath ? ["--persist-to", persistPath] : []),
+        "--file",
+        sqlPath,
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        timeout: 45_000,
+      },
     );
+    if (result.status !== 0 || result.error || result.signal) {
+      throw new Error(
+        `Local onboarding first-value fixture command failed: ${result.error?.message ?? result.signal ?? result.stderr}`,
+      );
+    }
+  } finally {
+    rmSync(sqlPath, { force: true });
   }
 }
 
@@ -129,7 +144,7 @@ function seedFirstValueHandoffState() {
       1,
       1,
       'in_progress',
-      'add_area',
+      'add_priced_row',
       1,
       0,
       '${FIXTURE_TIMESTAMP}',
@@ -349,13 +364,18 @@ test.describe("onboarding first-value journey", () => {
     expect(isLocalDevAuthBypassReady(auth)).toBe(true);
   });
 
-  test.afterAll(() => {
+  test.afterAll(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 750));
     deactivateFixture();
   });
 
   test.beforeEach(async ({ context }) => {
     seedCoreViewedState();
     await installLocalDevAuthBypass(context, auth);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await page.close();
   });
 
   test("shows only two immediate start choices and keeps examples behind disclosure on desktop @a11y", async ({
@@ -470,6 +490,7 @@ test.describe("onboarding first-value journey", () => {
     page,
   }) => {
     seedFirstValueHandoffState();
+    await page.waitForTimeout(1_000);
     await openAuthenticatedRoute(
       page,
       `/workshop/projects/${FIXTURE_PROJECT_ID}/estimates/${FIXTURE_NODE_ID}?tour=first_estimate_value&mode=resume`,
@@ -477,7 +498,7 @@ test.describe("onboarding first-value journey", () => {
 
     const tryItNow = page.getByRole("button", { name: "Try it now", exact: true });
     const realTarget = page.locator(
-      '[data-onboarding-target="estimate.add_area"]',
+      '[data-onboarding-target="estimate.add_row"]',
     );
     await expect(tryItNow).toBeVisible({ timeout: 15_000 });
     await expect(realTarget).toBeVisible();

@@ -238,6 +238,9 @@ describe("shared Button primitive", () => {
     fireEvent.pointerDown(button, { button: 0, pointerType: "mouse" });
     fireEvent.pointerCancel(button, { pointerType: "mouse" });
     expect(onClick).not.toHaveBeenCalled();
+    fireEvent.focus(button);
+    expect(button).toHaveAttribute("aria-describedby");
+    fireEvent.blur(button);
 
     await user.click(button);
     expect(onClick).toHaveBeenCalledTimes(1);

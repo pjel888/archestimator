@@ -268,7 +268,6 @@ describe("estimate onboarding practice", () => {
         expectedRevision: 7,
         runId: "active-run",
         source: "tutorial_practice",
-        proofSatisfied: true,
       }),
     );
 

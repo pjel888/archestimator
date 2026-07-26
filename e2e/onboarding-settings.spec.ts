@@ -18,6 +18,7 @@ const enabled =
   process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL?.trim().toLowerCase() === FIXTURE_EMAIL;
 
 function executeLocalD1(sql: string) {
+  const persistPath = process.env.ARCHESTIMATOR_E2E_WRANGLER_PERSIST_PATH?.trim();
   const result = spawnSync(
     "bun",
     [
@@ -27,6 +28,7 @@ function executeLocalD1(sql: string) {
       "execute",
       "ARCH_DB",
       "--local",
+      ...(persistPath ? ["--persist-to", persistPath] : []),
       "--command",
       sql,
     ],
@@ -216,12 +218,17 @@ test.describe("onboarding settings and runtime", () => {
     expect(isLocalDevAuthBypassReady(auth)).toBe(true);
   });
 
-  test.afterAll(() => {
+  test.afterAll(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 750));
     deactivateFixture();
   });
 
   test.beforeEach(async ({ context }) => {
     await installLocalDevAuthBypass(context, auth);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await page.close();
   });
 
   test("does not let saved guide progress take over normal Projects navigation", async ({
@@ -248,13 +255,14 @@ test.describe("onboarding settings and runtime", () => {
         "/workshop/projects?tour=core_orientation&mode=resume",
         { waitUntil: "domcontentloaded" },
       );
+      const onboardingPortal = page.locator("#archestimator-onboarding-portal");
       await expect(
-        page.getByRole("heading", { name: "Your Workshop", exact: true }),
+        onboardingPortal.getByRole("heading", { name: "Projects", exact: true }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(page.locator("#archestimator-onboarding-portal")).toBeVisible();
+      await expect(onboardingPortal).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(
-        page.getByRole("heading", { name: "Your Workshop", exact: true }),
+        onboardingPortal.getByRole("heading", { name: "Projects", exact: true }),
       ).toHaveCount(0);
       expect(pageErrors).toEqual([]);
     } finally {

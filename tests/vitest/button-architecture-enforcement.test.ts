@@ -29,7 +29,7 @@ describe("button architecture enforcement", () => {
   it("finds button-shaped links styled through CSS modules", () => {
     const records = scanSourceText(
       "src/components/landing/Example.tsx",
-      `export function Example() { return <Link href="/next" className={styles.primaryCta}>Next</Link>; }`,
+      `export function Example() { return <Link href="/next" className={styles.primary}>Next</Link>; }`,
     );
 
     expect(records).toHaveLength(1);
@@ -58,6 +58,20 @@ describe("button architecture enforcement", () => {
     expect(inventory.entries[0]).toMatchObject({ disposition: "UNCLASSIFIED" });
     expect(validateInventory(records, inventory)).toEqual([
       "src/components/workshop/Example.tsx:1 has invalid disposition UNCLASSIFIED",
+    ]);
+  });
+
+  it("rejects a handcrafted exception that is absent from the reviewed baseline", () => {
+    const [record] = scanSourceText(
+      "src/components/workshop/Example.tsx",
+      `export function Example() { return <button type="button">Save</button>; }`,
+    );
+    const inventory = {
+      entries: [{ ...record, disposition: "SPECIALIZED_SEMANTIC_CONTROL", reason: "Reviewed specialized control." }],
+    };
+
+    expect(validateInventory([record], inventory)).toEqual([
+      "src/components/workshop/Example.tsx:1 introduces an unreviewed SPECIALIZED_SEMANTIC_CONTROL exception",
     ]);
   });
 
@@ -97,6 +111,6 @@ describe("button architecture enforcement", () => {
       ],
     };
 
-    expect(validateInventory([record], inventory)).toEqual([]);
+    expect(validateInventory([record], inventory, { entries: inventory.entries })).toEqual([]);
   });
 });

@@ -129,7 +129,6 @@ describe("library onboarding domain proof", () => {
       expect.objectContaining({
         expectedRevision: 3,
         flowKey: "library_reuse",
-        proofSatisfied: true,
         routeKey: "estimate_sheet",
         runId: "run-1",
       }),

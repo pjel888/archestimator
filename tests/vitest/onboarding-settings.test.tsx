@@ -167,6 +167,26 @@ describe("GuidanceToursSettings", () => {
       .toHaveTextContent("Completed");
   });
 
+  it("uses viewed semantics for passive reader lessons", () => {
+    const currentSnapshot = snapshot();
+    currentSnapshot.flowStates.push({
+      flowKey: "estimate_reader_orientation",
+      flowVersion: 1,
+      status: "completed",
+      currentStepKey: null,
+      generation: 1,
+      revision: 3,
+      resetCount: 0,
+      tutorialBinding: null,
+    });
+
+    render(<GuidanceToursSettings snapshot={currentSnapshot} />);
+
+    const readerCard = screen.getByRole("heading", { name: "Estimate reader guide" }).closest("article");
+    expect(readerCard).toHaveTextContent("Viewed");
+    expect(readerCard).not.toHaveTextContent("Completed");
+  });
+
   it("reactivates automatic guidance without resetting progress", async () => {
     const user = userEvent.setup();
     render(<GuidanceToursSettings snapshot={snapshot()} />);

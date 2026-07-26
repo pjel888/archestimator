@@ -12,6 +12,7 @@ import type {
 import {
   installStarterPackForEligibleWorkspace,
   installStarterPackForNewWorkspace,
+  resumeStarterContent,
   restoreStarterContent,
 } from "@/lib/onboarding/starter-pack-actions";
 import {
@@ -23,6 +24,8 @@ import {
 
 const requireRuntime = createRequire(import.meta.url);
 const USER_ID = "user-1";
+const MEMBER_ID = "user-2";
+const OTHER_MEMBER_ID = "user-3";
 const WORKSPACE_ID = "workspace-1";
 const NOW = "2026-07-24T00:00:00.000Z";
 
@@ -140,6 +143,10 @@ function createDatabase() {
     .sort()) {
     sqlite.exec(readFileSync(`migrations/${migration}`, "utf8"));
   }
+  sqlite.exec(readFileSync(
+    "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
+    "utf8",
+  ));
   sqlite.prepare(`
     INSERT INTO workspaces (id, name, created_by, created_at, updated_at)
     VALUES (?, 'Workspace', ?, ?, ?)
@@ -345,6 +352,76 @@ describe("starter pack actions", () => {
     expect(activeClaimKeys(database, "workspace", WORKSPACE_ID)).toEqual(
       [...STARTER_WORKSPACE_ASSET_KEYS].sort(),
     );
+  });
+
+  it("does not let a member reconcile another user's starter scope", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    database.sqlite.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at)
+      VALUES (?, ?, 'member', ?, ?), (?, ?, 'member', ?, ?)
+    `).run(
+      WORKSPACE_ID,
+      MEMBER_ID,
+      NOW,
+      NOW,
+      WORKSPACE_ID,
+      OTHER_MEMBER_ID,
+      NOW,
+      NOW,
+    );
+
+    await installStarterPackForEligibleWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: MEMBER_ID,
+    });
+
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'user' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, MEMBER_ID)).toEqual({ count: 1 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'user' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, OTHER_MEMBER_ID)).toEqual({ count: 0 });
+  });
+
+  it("blocks resume while another starter mutation lease is active", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    const stateBefore = database.sqlite.prepare(`
+      SELECT revision, shared_membership_revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+    database.sqlite.prepare(`
+      INSERT INTO beta_starter_mutation_leases (
+        workspace_id, pack_version, lease_token, actor_user_id, operation,
+        expires_at, created_at
+      ) VALUES (?, ?, 'other-lease', 'other-user', 'restore', ?, ?)
+    `).run(
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+      "2026-07-27T00:00:00.000Z",
+      NOW,
+    );
+
+    await expect(resumeStarterContent()).rejects.toThrow(/already being changed/i);
+    expect(database.sqlite.prepare(`
+      SELECT revision, shared_membership_revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
   });
 
   it("restores from the latest inactive generation even when an older claim is active", async () => {

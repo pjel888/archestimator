@@ -22,6 +22,8 @@ import type { OnboardingFlowKey } from "@/lib/onboarding/flow-types";
 const requireRuntime = createRequire(import.meta.url);
 const USER_ID = "user-1";
 const WORKSPACE_ID = "workspace-1";
+const INTENDED_ESTIMATE_ID = "estimate-intended";
+const OTHER_ESTIMATE_ID = "estimate-other";
 const NOW = "2026-07-24T00:00:00.000Z";
 
 type SqliteStatement = {
@@ -124,6 +126,7 @@ function createDatabase() {
     "migrations/0067_beta_activation_events.sql",
     "migrations/0101_beta_onboarding_flow_state.sql",
     "migrations/0103_onboarding_activation_resource_integrity.sql",
+    "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
   ]) {
     sqlite.exec(readFileSync(migration, "utf8"));
   }
@@ -143,6 +146,14 @@ function createDatabase() {
     )
     VALUES ('business-project', ?, 'Business project', ?, '{}', ?, ?)
   `).run(WORKSPACE_ID, USER_ID, NOW, NOW);
+  sqlite.prepare(`
+    INSERT INTO estimates (id, project_id, name, created_by, created_at, updated_at)
+    VALUES (?, 'business-project', 'Intended estimate', ?, ?, ?)
+  `).run(INTENDED_ESTIMATE_ID, USER_ID, NOW, NOW);
+  sqlite.prepare(`
+    INSERT INTO estimates (id, project_id, name, created_by, created_at, updated_at)
+    VALUES (?, 'business-project', 'Other estimate', ?, ?, ?)
+  `).run(OTHER_ESTIMATE_ID, USER_ID, NOW, NOW);
   return new SqliteD1Database(sqlite);
 }
 
@@ -223,6 +234,7 @@ describe("onboarding flow repository", () => {
       }),
     ).resolves.toEqual({
       runId: "sample-run",
+      resourceId: null,
       state: expect.objectContaining({
         currentStepKey: "practice_workspace",
         revision: 0,
@@ -502,6 +514,7 @@ describe("onboarding flow repository", () => {
         userId: USER_ID,
         workspaceId: WORKSPACE_ID,
         eligibleStepKeys: ["hierarchy", "total_and_save"],
+        resourceId: INTENDED_ESTIMATE_ID,
       },
       command({
         command: "start",
@@ -519,13 +532,13 @@ describe("onboarding flow repository", () => {
     `).run(USER_ID, WORKSPACE_ID, NOW, NOW, NOW, NOW);
     database.sqlite.prepare(`
       INSERT INTO beta_activation_events (
-        id, user_id, workspace_id, milestone, source, origin_class,
+        id, user_id, workspace_id, project_id, estimate_id, milestone, source, origin_class,
         occurred_at, dedupe_key, metadata_json, created_at
       ) VALUES (
-        'first-valid-total-event', ?, ?, 'first_valid_total', 'estimate',
+        'first-valid-total-event', ?, ?, 'business-project', ?, 'first_valid_total', 'estimate',
         'user_domain', ?, 'first-valid-total', '{}', ?
       )
-    `).run(USER_ID, WORKSPACE_ID, NOW, NOW);
+    `).run(USER_ID, WORKSPACE_ID, INTENDED_ESTIMATE_ID, NOW, NOW);
 
     await importExistingOnboardingState(database, {
       userId: USER_ID,
@@ -557,6 +570,56 @@ describe("onboarding flow repository", () => {
     });
   });
 
+  it("does not complete a first-value run from another estimate's total", async () => {
+    const started = await mutateOnboardingFlow(
+      database,
+      {
+        userId: USER_ID,
+        workspaceId: WORKSPACE_ID,
+        eligibleStepKeys: ["hierarchy", "total_and_save"],
+        resourceId: INTENDED_ESTIMATE_ID,
+      },
+      command({
+        command: "start",
+        flowKey: "first_estimate_value",
+        launchMode: "start",
+        mutationId: "first-value-bound-start",
+      }),
+    );
+    if (started.status === "conflict") throw new Error("Expected first-value flow start.");
+    database.sqlite.prepare(`
+      INSERT INTO beta_activation_progress (
+        user_id, workspace_id, project_id, estimate_id, last_milestone,
+        first_value_completed_at, last_event_at, created_at, updated_at
+      ) VALUES (?, ?, 'business-project', ?, 'first_valid_total', ?, ?, ?, ?)
+    `).run(USER_ID, WORKSPACE_ID, OTHER_ESTIMATE_ID, NOW, NOW, NOW, NOW);
+    database.sqlite.prepare(`
+      INSERT INTO beta_activation_events (
+        id, user_id, workspace_id, project_id, estimate_id, milestone, source,
+        origin_class, occurred_at, dedupe_key, metadata_json, created_at
+      ) VALUES (
+        'other-estimate-total', ?, ?, 'business-project', ?, 'first_valid_total',
+        'estimate', 'user_domain', ?, 'other-estimate-total', '{}', ?
+      )
+    `).run(USER_ID, WORKSPACE_ID, OTHER_ESTIMATE_ID, NOW, NOW);
+
+    await importExistingOnboardingState(database, {
+      userId: USER_ID,
+      workspaceId: WORKSPACE_ID,
+    });
+
+    expect(database.sqlite.prepare(`
+      SELECT status, current_step_key, revision
+      FROM beta_onboarding_flow_states
+      WHERE user_id = ? AND workspace_id = ?
+        AND flow_key = 'first_estimate_value'
+    `).get(USER_ID, WORKSPACE_ID)).toEqual({
+      status: "in_progress",
+      current_step_key: "hierarchy",
+      revision: started.state.revision,
+    });
+  });
+
   it("completes guided practice only through the domain-proof contract", async () => {
     database.sqlite.prepare(`
       INSERT INTO beta_onboarding_flow_states (
@@ -579,6 +642,26 @@ describe("onboarding flow repository", () => {
         'tutorial_seed', 'guided-run-started', 3, ?, ?
       )
     `).run(USER_ID, WORKSPACE_ID, NOW, NOW);
+    for (const stepKey of ["practice_price_and_save", "practice_add_and_source"]) {
+      database.sqlite.prepare(`
+        INSERT INTO beta_onboarding_flow_events (
+          id, user_id, workspace_id, flow_key, flow_version, generation,
+          tutorial_version, tutorial_generation, run_id, launch_mode, step_key,
+          event_type, source, idempotency_key, state_revision, occurred_at, ingested_at
+        ) VALUES (
+          ?, ?, ?, 'guided_estimate_practice', 1, 1, 2, 1, 'guided-run',
+          'task', ?, 'practice_action_completed', 'tutorial_practice', ?, 3, ?, ?
+        )
+      `).run(
+        `guided-proof-${stepKey}`,
+        USER_ID,
+        WORKSPACE_ID,
+        stepKey,
+        `guided-proof-${stepKey}`,
+        NOW,
+        NOW,
+      );
+    }
 
     const completed = await completeOnboardingFlowFromDomainProof(database, {
       userId: USER_ID,
@@ -590,7 +673,6 @@ describe("onboarding flow repository", () => {
       source: "tutorial_practice",
       stepKey: "practice_add_and_source",
       routeKey: "estimate_sheet",
-      proofSatisfied: true,
     });
 
     expect(completed).toEqual({

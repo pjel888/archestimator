@@ -165,6 +165,32 @@ describe("GettingStartedProgress", () => {
     );
   });
 
+  it("labels completed passive reader guidance as viewed", () => {
+    render(
+      <GettingStartedProgress
+        snapshot={snapshot({
+          workspaceRole: "viewer",
+          effectiveRole: "viewer",
+          capabilities: ["view_workshop", "view_estimate"],
+          flowStates: [{
+            flowKey: "estimate_reader_orientation",
+            flowVersion: 1,
+            status: "completed",
+            currentStepKey: null,
+            generation: 1,
+            revision: 2,
+            resetCount: 0,
+            tutorialBinding: null,
+          }],
+        })}
+      />,
+    );
+
+    const card = screen.getByRole("heading", { name: "Read an Estimate Sheet" }).closest("article");
+    expect(card).toHaveTextContent("Viewed");
+    expect(card).not.toHaveTextContent("Complete");
+  });
+
   it("keeps starter-dependent examples unavailable while guided practice remains available", async () => {
     const user = userEvent.setup();
     render(

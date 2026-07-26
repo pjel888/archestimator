@@ -16,6 +16,10 @@ const activationResourceIntegrityMigration = readFileSync(
   "migrations/0103_onboarding_activation_resource_integrity.sql",
   "utf8",
 );
+const onboardingResourceBindingsMigration = readFileSync(
+  "migrations/0105_onboarding_resource_bindings_and_starter_leases.sql",
+  "utf8",
+);
 
 type LocalSqliteDatabase = {
   exec(sql: string): void;
@@ -141,6 +145,69 @@ function seedActivationState(database: LocalSqliteDatabase) {
 }
 
 describe("beta onboarding flow D1 migrations", () => {
+  it("preserves prior flow events and adds exclusive starter mutation leases", () => {
+    const database = createDatabase();
+    try {
+      const tenant = seedActivationState(database);
+      const now = "2026-07-23T00:00:00.000Z";
+      database.exec(onboardingMigration);
+      database.prepare(`
+        INSERT INTO beta_onboarding_flow_states (
+          user_id, workspace_id, flow_key, flow_version, status,
+          created_at, updated_at
+        ) VALUES (?, ?, 'first_estimate_value', 1, 'in_progress', ?, ?)
+      `).run(tenant.userId, tenant.workspaceId, now, now);
+      database.prepare(`
+        INSERT INTO beta_onboarding_flow_events (
+          id, user_id, workspace_id, flow_key, flow_version, generation,
+          run_id, launch_mode, event_type, source, idempotency_key,
+          state_revision, occurred_at, ingested_at
+        ) VALUES (
+          'pre-binding-event', ?, ?, 'first_estimate_value', 1, 1,
+          'run-1', 'start', 'flow_started', 'user_command',
+          'pre-binding-event', 0, ?, ?
+        )
+      `).run(tenant.userId, tenant.workspaceId, now, now);
+
+      database.exec(onboardingResourceBindingsMigration);
+
+      expect(database.prepare(`
+        SELECT id, resource_id
+        FROM beta_onboarding_flow_events
+        WHERE id = 'pre-binding-event'
+      `).get()).toEqual({ id: "pre-binding-event", resource_id: null });
+      expect(database.prepare(`
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'beta_starter_mutation_leases'
+      `).get()).toEqual({ name: "beta_starter_mutation_leases" });
+      database.prepare(`
+        INSERT INTO beta_starter_mutation_leases (
+          workspace_id, pack_version, lease_token, actor_user_id, operation,
+          expires_at, created_at
+        ) VALUES (?, 2, 'lease-1', ?, 'restore', ?, ?)
+      `).run(tenant.workspaceId, tenant.userId, "2026-07-23T00:10:00.000Z", now);
+      expect(() => database.prepare(`
+        INSERT INTO beta_starter_mutation_leases (
+          workspace_id, pack_version, lease_token, actor_user_id, operation,
+          expires_at, created_at
+        ) VALUES (?, 2, 'lease-2', ?, 'resume', ?, ?)
+      `).run(
+        tenant.workspaceId,
+        tenant.userId,
+        "2026-07-23T00:10:00.000Z",
+        now,
+      )).toThrow();
+      database.prepare("DELETE FROM workspaces WHERE id = ?").run(tenant.workspaceId);
+      expect(database.prepare(
+        "SELECT COUNT(*) AS count FROM beta_starter_mutation_leases",
+      ).get()).toEqual({ count: 0 });
+      expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally {
+      database.close();
+    }
+  });
+
   it("backfills activation origin and rebuilds progress from user-domain evidence only", () => {
     const database = createDatabase();
     try {

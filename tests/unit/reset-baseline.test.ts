@@ -124,7 +124,7 @@ describe("workshop dashboard baseline", () => {
     expect(sidebar).toContain('<Folder size={16} weight="regular"');
     expect(sidebar).toContain('<FileText size={11} weight="regular"');
     expect(sidebar).toContain('<SidebarSimple');
-    expect(sidebar).toContain('aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}');
+    expect(sidebar).toContain('label={expanded ? "Collapse sidebar" : "Expand sidebar"}');
     expect(sidebarHeader).not.toContain("SidebarSimple");
     expect(sidebarNavItemRow).not.toContain('expanded ? "w-full pr-2"');
     expect(sidebar).not.toContain("clipPath");
