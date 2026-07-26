@@ -10,7 +10,14 @@ import {
   sha256,
   type QualityFinding,
 } from "./common";
-import { aggregateJobs, type JobResult, type ProfilesFile } from "./aggregate-core";
+import {
+  aggregateJobs,
+  expectedArtifactEvidenceId,
+  expectedArtifactKind,
+  jobArtifacts,
+  type JobResult,
+  type ProfilesFile,
+} from "./aggregate-core";
 import type { QualityProfile } from "./classifier-core";
 
 const { flags } = parseArgs();
@@ -110,57 +117,82 @@ if (profile && profiles.profiles[profile]) {
   for (const job of jobs.filter((candidate) =>
     profiles.profiles[profile!].required_jobs.includes(candidate.name)
   )) {
-    if (!job.artifact) continue;
-    try {
-      const bytes = await readFile(resolve(root, job.artifact.path));
-      if (sha256(bytes) !== job.artifact.sha256) {
-        findings.push({
-          code: "ARTIFACT_HASH_MISMATCH",
-          message: `${job.name} artifact hash does not match`,
-          path: job.artifact.path,
-        });
-        continue;
-      }
-      if (job.name === "quality / review") {
-        try {
-          const report = JSON.parse(bytes.toString("utf8")) as {
-            kind?: string;
-            status?: string;
-            data?: {
+    for (const [index, artifact] of jobArtifacts(job).entries()) {
+      try {
+        const bytes = await readFile(resolve(root, artifact.path));
+        if (sha256(bytes) !== artifact.sha256) {
+          findings.push({
+            code: "ARTIFACT_HASH_MISMATCH",
+            message: `${job.name} artifact hash does not match`,
+            path: artifact.path,
+          });
+          continue;
+        }
+        const report = JSON.parse(bytes.toString("utf8")) as {
+          schema_version?: number;
+          kind?: string;
+          status?: string;
+          findings?: unknown[];
+          data?: Record<string, unknown>;
+        };
+        if (
+          report.schema_version !== 1 ||
+          !report.kind ||
+          report.status !== "PASS" ||
+          !Array.isArray(report.findings) ||
+          report.findings.length !== 0 ||
+          !report.data ||
+          typeof report.data !== "object"
+        ) {
+          throw new Error("artifact report contract is malformed or not PASS");
+        }
+        const expectedKind = expectedArtifactKind(artifact.path);
+        const expectedEvidenceId = expectedArtifactEvidenceId(artifact.path);
+        if (!expectedKind || report.kind !== expectedKind) {
+          throw new Error(`artifact kind does not match ${String(expectedKind)}`);
+        }
+        if (
+          expectedKind === "command-evidence" &&
+          report.data.evidence_id !== expectedEvidenceId
+        ) {
+          throw new Error("command evidence findings or evidence_id do not match");
+        }
+        if (job.name === "quality / review" && index === 0) {
+          try {
+            const reviewData = report.data as {
               candidate?: { sha256?: string };
               requirements?: Record<string, boolean>;
               reviews?: Record<string, unknown>[];
             };
-          };
-          if (
-            report.kind !== "independent-review-gate" ||
-            report.status !== "PASS" ||
-            !/^[a-f0-9]{64}$/u.test(report.data?.candidate?.sha256 ?? "") ||
-            typeof report.data?.requirements !== "object" ||
-            !Array.isArray(report.data?.reviews)
-          ) {
-            throw new Error("review report contract is malformed or not PASS");
+            if (
+              report.kind !== "independent-review-gate" ||
+              !/^[a-f0-9]{64}$/u.test(reviewData.candidate?.sha256 ?? "") ||
+              typeof reviewData.requirements !== "object" ||
+              !Array.isArray(reviewData.reviews)
+            ) {
+              throw new Error("review report contract is malformed or not PASS");
+            }
+            reviews = {
+              candidate_sha256: reviewData.candidate.sha256!,
+              requirements: reviewData.requirements!,
+              decisions: reviewData.reviews,
+              artifact,
+            };
+          } catch (error) {
+            findings.push({
+              code: "REVIEW_ARTIFACT_MALFORMED",
+              message: `Independent review artifact is malformed: ${String(error)}`,
+              path: artifact.path,
+            });
           }
-          reviews = {
-            candidate_sha256: report.data.candidate.sha256!,
-            requirements: report.data.requirements!,
-            decisions: report.data.reviews,
-            artifact: job.artifact,
-          };
-        } catch (error) {
-          findings.push({
-            code: "REVIEW_ARTIFACT_MALFORMED",
-            message: `Independent review artifact is malformed: ${String(error)}`,
-            path: job.artifact.path,
-          });
         }
+      } catch (error) {
+        findings.push({
+          code: "ARTIFACT_UNREADABLE",
+          message: `${job.name} artifact is missing or malformed: ${String(error)}`,
+          path: artifact.path,
+        });
       }
-    } catch {
-      findings.push({
-        code: "ARTIFACT_UNREADABLE",
-        message: `${job.name} artifact is missing`,
-        path: job.artifact.path,
-      });
     }
   }
 }

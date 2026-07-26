@@ -133,6 +133,7 @@ async function executeVitest(
   root: string,
   name: "strict" | "full",
   tests: string[],
+  reportOnFailure: boolean,
 ): Promise<VitestRun> {
   const reportPath = resolve(root, `artifacts/quality/component-${name}.vitest.json`);
   const coverageDirectory = resolve(
@@ -144,6 +145,7 @@ async function executeVitest(
     ...tests,
     "--maxWorkers=1",
     "--coverage",
+    ...(reportOnFailure ? ["--coverage.reportOnFailure=true"] : []),
     "--coverage.reporter=json-summary",
     "--coverage.reporter=lcov",
     `--coverage.reportsDirectory=${coverageDirectory}`,
@@ -277,7 +279,7 @@ if (profile !== "Q3_RELEASE_GATE" && evidenceMap) {
 
 const runs: VitestRun[] = [];
 if (findings.length === 0 && profile !== "Q3_RELEASE_GATE") {
-  const strict = await executeVitest(root, "strict", strictTests);
+  const strict = await executeVitest(root, "strict", strictTests, true);
   runs.push(strict);
   requireRunArtifacts(strict, findings);
   if (strict.report) findings.push(...evaluateRawGreenComponentRun(strict.report, root));
@@ -290,7 +292,7 @@ if (findings.length === 0 && profile !== "Q3_RELEASE_GATE") {
 }
 
 if (findings.length === 0) {
-  const full = await executeVitest(root, "full", []);
+  const full = await executeVitest(root, "full", [], profile !== "Q3_RELEASE_GATE");
   runs.push(full);
   requireRunArtifacts(full, findings);
   if (full.report && full.coverage) {

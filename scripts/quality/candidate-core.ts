@@ -148,6 +148,18 @@ async function candidateFiles(
   }));
 }
 
+export async function candidateFileInventory(
+  root: string,
+  baseSha: string,
+  excludedPaths: ReadonlySet<string> = new Set(),
+): Promise<CandidateFile[]> {
+  const sources = collectCandidateSources(root, baseSha);
+  const paths = [...sources.keys()]
+    .filter((path) => !excludedPaths.has(path))
+    .sort((left, right) => left.localeCompare(right));
+  return candidateFiles(root, paths, sources);
+}
+
 function validateExpectedCandidate(digest: string, expected: string | undefined): void {
   if (
     expected !== undefined &&

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import {
   buildCandidate,
   type CandidateRecord,
@@ -15,11 +16,28 @@ import {
   sha256,
   type QualityFinding,
 } from "./common";
-import type { JobResult, ProfilesFile } from "./aggregate-core";
+import {
+  aggregateJobs,
+  expectedArtifactEvidenceId,
+  expectedArtifactKind,
+  findJobArtifact,
+  jobArtifacts,
+  type JobResult,
+  type ProfilesFile,
+} from "./aggregate-core";
 import type { QualityProfile } from "./classifier-core";
 import type { ComparisonBase } from "./comparison-base-core";
-import { validateManifest } from "./report-core";
-import { validateReviews, type ReviewEvidence } from "./review-core";
+import { jobNameForCommand } from "./job-command-core";
+import {
+  canonicalProfilesOverrideFinding,
+  expectedArtifactReportError,
+  validateManifest,
+} from "./report-core";
+import {
+  reviewRequirements as computeReviewRequirements,
+  validateReviews,
+  type ReviewEvidence,
+} from "./review-core";
 import {
   buildCapabilityEvidence,
   validateTraceability,
@@ -46,8 +64,10 @@ const required = (name: string) => {
 const classificationPath = required("classification");
 const jobsPath = required("jobs");
 const aggregatePath = required("aggregate");
+const policyOverride = canonicalProfilesOverrideFinding(root, flagString(flags, "profiles"));
+if (policyOverride) findings.push(policyOverride);
 const profiles = await readJson<ProfilesFile & { evidence_commands: EvidenceCommandMap }>(
-  resolve(root, flagString(flags, "profiles", "quality/profiles.json")!),
+  resolve(root, "quality/profiles.json"),
 );
 const registry = await readJson<{ capabilities: Capability[] }>(
   resolve(root, flagString(flags, "registry", "quality/critical-capabilities.json")!),
@@ -116,36 +136,47 @@ try {
 }
 
 const reportsByJob = new Map<string, QualityReport>();
+const allReports: QualityReport[] = [];
+const validatedArtifacts = new Set<string>();
+const reportsByArtifact = new Map<string, QualityReport>();
 for (const job of jobs) {
-  if (!job.artifact) continue;
-  try {
-    const bytes = await readFile(resolve(root, job.artifact.path));
-    if (sha256(bytes) !== job.artifact.sha256) {
-      throw new Error("artifact hash mismatch");
+  const seenPaths = new Set<string>();
+  for (const [index, artifact] of jobArtifacts(job).entries()) {
+    try {
+      if (seenPaths.has(artifact.path)) {
+        throw new Error("artifact path is duplicated within the job result");
+      }
+      seenPaths.add(artifact.path);
+      const bytes = await readFile(resolve(root, artifact.path));
+      if (sha256(bytes) !== artifact.sha256) {
+        throw new Error("artifact hash mismatch");
+      }
+      const report = JSON.parse(bytes.toString("utf8")) as QualityReport;
+      const reportError = expectedArtifactReportError(report, artifact.path);
+      if (reportError) throw new Error(reportError);
+      const artifactKey = `${artifact.path}\0${artifact.sha256}`;
+      validatedArtifacts.add(artifactKey);
+      reportsByArtifact.set(artifactKey, report);
+      allReports.push(report);
+      if (index === 0) reportsByJob.set(job.name, report);
+    } catch (error) {
+      findings.push({
+        code: "JOB_ARTIFACT_MALFORMED",
+        message: `${job.name} artifact is missing or malformed: ${String(error)}`,
+        path: artifact.path,
+      });
     }
-    const report = JSON.parse(bytes.toString("utf8")) as QualityReport;
-    if (
-      report.schema_version !== 1 ||
-      report.status !== "PASS" ||
-      !report.kind ||
-      !Array.isArray(report.findings) ||
-      typeof report.data !== "object" ||
-      report.data === null
-    ) {
-      throw new Error("artifact is malformed or not PASS");
-    }
-    reportsByJob.set(job.name, report);
-  } catch (error) {
-    findings.push({
-      code: "JOB_ARTIFACT_MALFORMED",
-      message: `${job.name} artifact is missing or malformed: ${String(error)}`,
-      path: job.artifact.path,
-    });
   }
 }
 
 const computedCandidate = candidate?.sha256 ?? "0".repeat(64);
 const commitSha = candidate?.record.commit_sha ?? "";
+if (!isDeepStrictEqual(reportsByJob.get("quality / classify")?.data, classification)) {
+  findings.push({
+    code: "CLASSIFICATION_ARTIFACT_MISMATCH",
+    message: "Classification input does not equal the validated classification job artifact",
+  });
+}
 
 const reviewJob = jobs.find((job) => job.name === "quality / review");
 const reviewReport = reportsByJob.get("quality / review");
@@ -159,26 +190,13 @@ const reviewData = reviewReport?.data as
     }
   | undefined;
 const profile = classification?.profile;
-const profileReviews = profile ? profiles.profiles[profile] : undefined;
-const defaultReviewRequirements = {
-  quality: profileReviews?.required_review_types.includes("quality") ?? false,
-  security: profileReviews?.required_review_types.includes("security") ?? false,
-  release: profileReviews?.required_review_types.includes("release") ?? false,
-};
-const reviewRequirements = {
-  quality:
-    typeof reviewData?.requirements?.quality === "boolean"
-      ? reviewData.requirements.quality
-      : defaultReviewRequirements.quality,
-  security:
-    typeof reviewData?.requirements?.security === "boolean"
-      ? reviewData.requirements.security
-      : defaultReviewRequirements.security,
-  release:
-    typeof reviewData?.requirements?.release === "boolean"
-      ? reviewData.requirements.release
-      : defaultReviewRequirements.release,
-};
+const reviewRequirements = profile && classification
+  ? computeReviewRequirements(
+      profile,
+      classification.files,
+      classification.affected_capabilities,
+    )
+  : { quality: true, security: true, release: true };
 const reviewAuthors = Array.isArray(reviewData?.author_ids) ? reviewData.author_ids : [];
 const reviewEvidence = Array.isArray(reviewData?.reviews) ? reviewData.reviews : [];
 if (
@@ -221,25 +239,60 @@ if (reviewReport && !reviewCandidate) {
 }
 
 const selected = profile ? profiles.profiles[profile] : undefined;
-const commandResults = (selected?.commands ?? []).map((command) => {
-  const expected = profiles.command_artifacts[command];
-  const job = jobs.find(
-    (candidate) =>
-      candidate.artifact &&
-      expected &&
-      basename(candidate.artifact.path) === basename(expected),
+findings.push(...aggregateJobs(selected?.required_jobs ?? [], jobs));
+
+function artifactKey(artifact: { path: string; sha256: string } | undefined): string | undefined {
+  return artifact ? `${artifact.path}\0${artifact.sha256}` : undefined;
+}
+
+function reportMatchesExpectedArtifact(
+  report: QualityReport | undefined,
+  expected: string | undefined,
+): boolean {
+  if (!report || !expected) return false;
+  const expectedKind = expectedArtifactKind(expected);
+  if (!expectedKind || report.kind !== expectedKind) return false;
+  if (expectedKind !== "command-evidence") return true;
+  const expectedEvidenceId = expectedArtifactEvidenceId(expected);
+  return (
+    report.findings.length === 0 &&
+    expectedEvidenceId !== undefined &&
+    report.data.evidence_id === expectedEvidenceId
   );
+}
+
+function jobProvesArtifact(
+  job: JobResult | undefined,
+  artifact: { path: string; sha256: string } | undefined,
+): boolean {
+  if (!job || !artifact) return false;
+  return (
+    job.status === "success" &&
+    job.conclusion === "PASS" &&
+    job.flaky === false &&
+    validatedArtifacts.has(`${artifact.path}\0${artifact.sha256}`)
+  );
+}
+
+function buildCommandResult(command: string) {
+  const expected = profiles.command_artifacts[command];
+  const match = findJobArtifact(jobs, jobNameForCommand(command), expected);
+  const job = match?.job;
+  const artifact = match?.artifact;
+  const key = artifactKey(artifact);
+  const report = key ? reportsByArtifact.get(key) : undefined;
+  const passing =
+    jobProvesArtifact(job, artifact) && reportMatchesExpectedArtifact(report, expected);
   return {
     command,
-    status:
-      job?.status === "success" && job.conclusion === "PASS" && job.flaky === false
-        ? ("PASS" as const)
-        : ("FAIL" as const),
+    status: passing ? ("PASS" as const) : ("FAIL" as const),
     source: "ci" as const,
     ...(job ? { job: job.name } : {}),
-    artifact: job?.artifact ?? { path: expected ?? "UNMAPPED", sha256: "0".repeat(64) },
+    artifact: artifact ?? { path: expected ?? "UNMAPPED", sha256: "0".repeat(64) },
   };
-});
+}
+
+const commandResults = (selected?.commands ?? []).map(buildCommandResult);
 const capabilityInputs = commandResults.map((result) => ({
   command: result.command,
   exit_code: result.status === "PASS" ? 0 : 1,
@@ -285,7 +338,7 @@ function numericMetric(report: QualityReport | undefined, names: string[]): numb
 
 function domain(jobNames: string[], applicable: boolean) {
   const matching = jobs.filter((job) => jobNames.includes(job.name));
-  const artifacts = matching.flatMap((job) => (job.artifact ? [job.artifact] : []));
+  const artifacts = matching.flatMap(jobArtifacts);
   const passing =
     applicable &&
     matching.length > 0 &&
@@ -323,7 +376,7 @@ if (waiversPath) {
     });
   }
 }
-const failed = [...reportsByJob.values()].reduce(
+const failed = allReports.reduce(
   (total, report) =>
     total +
     numericMetric(report, [
@@ -334,7 +387,7 @@ const failed = [...reportsByJob.values()].reduce(
     ]),
   0,
 );
-const skipped = [...reportsByJob.values()].reduce(
+const skipped = allReports.reduce(
   (total, report) =>
     total +
     numericMetric(report, [
@@ -346,7 +399,7 @@ const skipped = [...reportsByJob.values()].reduce(
   0,
 );
 const flaky = jobs.filter((job) => job.flaky).length;
-const testArtifacts = jobs.flatMap((job) => (job.artifact ? [job.artifact] : []));
+const testArtifacts = jobs.flatMap(jobArtifacts);
 const testHealth = {
   applicable: true,
   status: failed === 0 && skipped === 0 && flaky === 0 ? "PASS" : "FAIL",
@@ -378,16 +431,12 @@ const qualityDomains = {
 };
 
 const allEvidence = jobs.flatMap((job) =>
-  job.artifact
-    ? [
-        {
-          kind: job.name,
-          status: job.conclusion,
-          source: "ci" as const,
-          artifact: job.artifact,
-        },
-      ]
-    : [],
+  jobArtifacts(job).map((artifact) => ({
+    kind: job.name,
+    status: job.conclusion,
+    source: "ci" as const,
+    artifact,
+  })),
 );
 const externalEvidence = [];
 if (reviewJob?.artifact && reviewData?.source) {
@@ -459,7 +508,22 @@ const flattened = {
   ...manifestData,
   status: findings.length === 0 ? "PASS" : "FAIL",
 };
-findings.push(...validateManifest(flattened));
+findings.push(...validateManifest(flattened, profiles));
+if (candidate && classification) {
+  try {
+    candidate = await buildCandidate({
+      root,
+      comparison_base: classification.comparison_base,
+      classification,
+      expected: computedCandidate,
+    });
+  } catch (error) {
+    findings.push({
+      code: "CANDIDATE_CHANGED_BEFORE_OUTPUT",
+      message: `Final manifest candidate changed before output: ${String(error)}`,
+    });
+  }
+}
 manifestData.remaining_risk = findings.map((finding) => finding.message);
 if (findings.length > 0) {
   manifestData.stop_condition = "Quality gate stopped because required evidence is red or missing";

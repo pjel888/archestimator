@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import {
@@ -6,11 +7,22 @@ import {
 } from "./common";
 import {
   buildBaselineInventory,
+  validateComponentMeasurementArtifactResult,
+  validateComponentMeasurementEnvelope,
   validateInventorySemantics,
   type BaselineInventory,
   type BaselineInventoryRecord,
+  type ComponentMeasurementArtifactResult,
+  type ComponentMeasurementEnvelope,
   type RatchetProposal,
 } from "./component-baseline-core";
+import {
+  candidateDigest,
+  candidateFileInventory,
+  type CandidateFile,
+  type CandidateRecord,
+} from "./candidate-core";
+import { resolveComparisonBase, type ComparisonBase } from "./comparison-base-core";
 import type { ComponentEvidenceMap, CoverageSummary, VitestJsonReport } from "./component-core";
 
 interface ReviewDecision {
@@ -19,6 +31,9 @@ interface ReviewDecision {
   candidateSha?: string;
   reviewer?: string;
   role?: string;
+  source?: string;
+  reviewerAssurance?: string;
+  authorAssurance?: string;
 }
 
 export interface AdmissionValidationOptions {
@@ -35,12 +50,32 @@ export interface AdmissionValidationData extends Record<string, unknown> {
   phase: "draft" | "admission";
   inventory: string;
   inventory_sha256: string | null;
-  candidate_sha256: string | null;
+  candidate_digest: string | null;
   record_count: number;
   author_ids: string[];
+  review_source: "local-agent";
+  reviewer_identity_assurance: "asserted-local";
+  author_identity_assurance: "asserted-local";
+  quality_review_sha256: string | null;
+  security_review_sha256: string | null;
+}
+
+interface ResolvedReviewPaths {
+  quality: string;
+  security: string;
 }
 
 const shaPattern = /^[a-f0-9]{64}$/u;
+const commitPattern = /^[a-f0-9]{40}$/u;
+const candidateSources = new Set(["committed", "staged", "unstaged", "untracked"]);
+export const canonicalBaselineEvidencePaths = new Set([
+  "quality/baselines/component/source.vitest.json",
+  "quality/baselines/component/coverage-summary.json",
+  "quality/baselines/component/inventory.json",
+  "quality/baselines/component/admission.json",
+  "quality/reviews/component-baseline-quality.md",
+  "quality/reviews/component-baseline-security.md",
+]);
 const canonicalSourcePaths = new Set([
   "quality/baselines/component/source.vitest.json",
   "quality/baselines/component/coverage-summary.json",
@@ -89,6 +124,53 @@ export function validateRecordShape(record: BaselineInventoryRecord, index: numb
   validateRecordCollections(record, path, findings);
 }
 
+export function validateInventoryStructure(value: unknown): QualityFinding[] {
+  if (!isObject(value)) {
+    return [{ code: "INVENTORY_STRUCTURE", message: "Inventory must be a JSON object" }];
+  }
+  const findings: QualityFinding[] = [];
+  if (!isObject(value.source)) findings.push({ code: "SOURCE_STRUCTURE", message: "Inventory source must be an object" });
+  else findings.push(...sourceStructureFindings(value.source));
+  if (!isObject(value.admission)) findings.push({ code: "ADMISSION_STRUCTURE", message: "Inventory admission must be an object" });
+  else findings.push(...admissionStructureFindings(value.admission));
+  if (!isObject(value.counts)) findings.push({ code: "COUNTS_STRUCTURE", message: "Inventory counts must be an object" });
+  else findings.push(...countStructureFindings(value.counts));
+  if (!Array.isArray(value.records)) {
+    findings.push({ code: "RECORDS_STRUCTURE", message: "Inventory records must be an array" });
+  } else {
+    value.records.forEach((record, index) => {
+      if (!isObject(record) || !isObject(record.acceptance) || !Array.isArray(record.critical_capability_ids)) findings.push({ code: "RECORD_STRUCTURE", message: `records[${index}] must be an object with acceptance and critical_capability_ids` });
+    });
+  }
+  return findings;
+}
+
+function sourceStructureFindings(source: Record<string, unknown>): QualityFinding[] {
+  const requiredStrings = ["runner", "command", "commit", "measurement_artifact", "measurement_sha256", "artifact", "artifact_sha256", "coverage_artifact", "coverage_sha256", "candidate_artifact", "candidate_sha256", "candidate_digest"];
+  const valid = requiredStrings.every((field) => typeof source[field] === "string") && isObject(source.measurement);
+  return valid ? [] : [{ code: "SOURCE_STRUCTURE", message: "Inventory source lacks required string bindings or embedded measurement" }];
+}
+
+function admissionStructureFindings(admission: Record<string, unknown>): QualityFinding[] {
+  const qualityReview = admission.quality_review;
+  const securityReview = admission.security_review;
+  const valid = typeof admission.phase === "string" && typeof admission.status === "string" &&
+    Number.isInteger(admission.open_must_fix_records) && Number.isInteger(admission.proposed_ratchet_records) &&
+    isObject(qualityReview) && typeof qualityReview.artifact === "string" &&
+    isObject(securityReview) && typeof securityReview.artifact === "string";
+  return valid ? [] : [{ code: "ADMISSION_STRUCTURE", message: "Inventory admission lacks required counts, status, or review pointers" }];
+}
+
+function countStructureFindings(counts: Record<string, unknown>): QualityFinding[] {
+  const keys = [...failureKindsForStructure, ...classificationsForStructure, "total_records"];
+  return keys.every((key) => Number.isInteger(counts[key]))
+    ? []
+    : [{ code: "COUNTS_STRUCTURE", message: "Inventory counts must contain every integer counter" }];
+}
+
+const failureKindsForStructure = ["failed_file", "failed_test", "skipped_file", "skipped_test", "collection_failure", "unhandled_error", "infrastructure_failure", "malformed_evidence"];
+const classificationsForStructure = ["must_fix_critical", "must_fix_infrastructure", "must_fix_noncritical", "ratchet_noncritical"];
+
 function validatePhase(inventory: BaselineInventory, phase: "draft" | "admission", findings: QualityFinding[]): void {
   const expectedStatus = phase === "draft" ? "draft" : "review_pending";
   if (inventory.admission?.phase !== phase || inventory.admission?.status !== expectedStatus) {
@@ -115,27 +197,44 @@ function parseReview(text: string): ReviewDecision {
   return {
     decision: text.match(/(?:Decision|Status)\s*:\s*`?(APPROVE|REJECT)`?/iu)?.[1],
     inventorySha: text.match(/Inventory SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
-    candidateSha: text.match(/Candidate SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
+    candidateSha: text.match(/Candidate Digest\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
     reviewer: text.match(/Reviewer\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
     role: text.match(/Reviewer Role\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    source: text.match(/Source\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    reviewerAssurance: text.match(/Reviewer Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    authorAssurance: text.match(/Author Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
   };
 }
 
-async function readReview(path: string, findings: QualityFinding[]): Promise<ReviewDecision> {
-  try {
-    return parseReview(await readFile(path, "utf8"));
-  } catch {
-    findings.push({ code: "MISSING_REVIEW", message: `Missing independent review ${path}` });
-    return {};
-  }
+export function validateReviewBuffers(input: {
+  qualityRaw: Buffer | string;
+  securityRaw: Buffer | string;
+  inventorySha256: string;
+  candidateDigest: string;
+  disallowedReviewers: string[];
+}): { findings: QualityFinding[]; qualityReviewer?: string; securityReviewer?: string } {
+  const findings: QualityFinding[] = [];
+  const quality = parseReview(input.qualityRaw.toString());
+  const security = parseReview(input.securityRaw.toString());
+  validateReviewDecision(quality, "Quality", input.inventorySha256, input.candidateDigest, findings);
+  validateReviewDecision(security, "Security", input.inventorySha256, input.candidateDigest, findings);
+  validateReviewerSeparation(quality, security, input.disallowedReviewers, findings);
+  return {
+    findings,
+    qualityReviewer: quality.reviewer,
+    securityReviewer: security.reviewer,
+  };
 }
 
-function validateReviewDecision(review: ReviewDecision, label: string, inventorySha: string, candidateSha: string, findings: QualityFinding[]): void {
+function validateReviewDecision(review: ReviewDecision, label: string, inventorySha: string, candidateDigestValue: string, findings: QualityFinding[]): void {
   if (review.decision !== "APPROVE") findings.push({ code: "REVIEW_DECISION", message: `${label} review must record APPROVE` });
   if (review.inventorySha !== inventorySha) findings.push({ code: "REVIEW_SHA", message: `${label} review does not bind the exact inventory SHA` });
-  if (review.candidateSha !== candidateSha) findings.push({ code: "REVIEW_CANDIDATE_SHA", message: `${label} review does not bind the measurement candidate SHA` });
+  if (review.candidateSha !== candidateDigestValue) findings.push({ code: "REVIEW_CANDIDATE_DIGEST", message: `${label} review does not bind the measurement candidate digest` });
   if (!review.reviewer) findings.push({ code: "REVIEWER_MISSING", message: `${label} review does not identify a reviewer` });
   if (review.role?.toLowerCase() !== "read-only") findings.push({ code: "REVIEWER_NOT_READ_ONLY", message: `${label} reviewer role must be read-only` });
+  if (review.source !== "local-agent") findings.push({ code: "REVIEW_SOURCE", message: `${label} review source must honestly state local-agent` });
+  if (review.reviewerAssurance !== "asserted-local") findings.push({ code: "REVIEWER_IDENTITY_ASSURANCE", message: `${label} reviewer identity assurance must be asserted-local` });
+  if (review.authorAssurance !== "asserted-local") findings.push({ code: "AUTHOR_IDENTITY_ASSURANCE", message: `${label} author identity assurance must be asserted-local` });
 }
 
 function validateReviewerSeparation(quality: ReviewDecision, security: ReviewDecision, disallowed: string[], findings: QualityFinding[]): void {
@@ -146,23 +245,48 @@ function validateReviewerSeparation(quality: ReviewDecision, security: ReviewDec
   }
 }
 
-async function validateReviews(options: AdmissionValidationOptions, inventory: BaselineInventory, inventorySha: string, findings: QualityFinding[]): Promise<void> {
-  const qualityPath = resolve(options.root, options.qualityReviewPath ?? inventory.admission.quality_review.artifact);
-  const securityPath = resolve(options.root, options.securityReviewPath ?? inventory.admission.security_review.artifact);
-  const [quality, security] = await Promise.all([readReview(qualityPath, findings), readReview(securityPath, findings)]);
-  validateReviewDecision(quality, "Quality", inventorySha, inventory.source.candidate_sha256, findings);
-  validateReviewDecision(security, "Security", inventorySha, inventory.source.candidate_sha256, findings);
-  validateReviewerSeparation(quality, security, options.disallowedReviewers, findings);
+async function validateReviews(options: AdmissionValidationOptions, inventory: BaselineInventory, inventorySha: string, paths: ResolvedReviewPaths, findings: QualityFinding[]): Promise<void> {
+  try {
+    const [qualityRaw, securityRaw] = await Promise.all([readFile(paths.quality), readFile(paths.security)]);
+    findings.push(...validateReviewBuffers({
+      qualityRaw, securityRaw, inventorySha256: inventorySha,
+      candidateDigest: inventory.source.candidate_digest,
+      disallowedReviewers: options.disallowedReviewers,
+    }).findings);
+  } catch {
+    findings.push({ code: "MISSING_REVIEW", message: "Missing independent baseline review" });
+  }
+}
+
+function resolvedReviewPaths(options: AdmissionValidationOptions, inventory: BaselineInventory): ResolvedReviewPaths {
+  return {
+    quality: resolve(options.root, options.qualityReviewPath ?? inventory.admission.quality_review.artifact),
+    security: resolve(options.root, options.securityReviewPath ?? inventory.admission.security_review.artifact),
+  };
 }
 
 function validateImmutablePaths(options: AdmissionValidationOptions, inventory: BaselineInventory, findings: QualityFinding[]): void {
   if (options.phase !== "admission") return;
-  for (const path of [inventory.source.artifact, inventory.source.coverage_artifact]) {
-    if (!canonicalSourcePaths.has(normalizedRelative(options.root, path))) findings.push({ code: "SOURCE_PATH_MUTABLE", message: `Admission source evidence must use its tracked immutable path`, path });
+  const expectedSources = [
+    [inventory.source.artifact, "quality/baselines/component/source.vitest.json", "report"],
+    [inventory.source.coverage_artifact, "quality/baselines/component/coverage-summary.json", "coverage"],
+  ] as const;
+  for (const [path, expected, role] of expectedSources) {
+    if (normalizedRelative(options.root, path) !== expected || !canonicalSourcePaths.has(expected)) {
+      findings.push({ code: "SOURCE_PATH_MUTABLE", message: `Admission ${role} evidence must use ${expected}`, path });
+    }
   }
   if (normalizedRelative(options.root, options.inventoryPath) !== "quality/baselines/component/inventory.json") findings.push({ code: "INVENTORY_PATH_MUTABLE", message: "Admission inventory must use quality/baselines/component/inventory.json", path: options.inventoryPath });
-  for (const path of [inventory.admission.quality_review.artifact, inventory.admission.security_review.artifact]) {
-    if (!normalizedRelative(options.root, path).startsWith("quality/reviews/")) findings.push({ code: "REVIEW_PATH_MUTABLE", message: "Admission reviews must use tracked quality/reviews paths", path });
+  const expectedReviews = [
+    [inventory.admission.quality_review.artifact, options.qualityReviewPath, "quality/reviews/component-baseline-quality.md", "quality"],
+    [inventory.admission.security_review.artifact, options.securityReviewPath, "quality/reviews/component-baseline-security.md", "security"],
+  ] as const;
+  for (const [inventoryPath, overridePath, expected, role] of expectedReviews) {
+    const inventoryRelative = normalizedRelative(options.root, inventoryPath);
+    if (inventoryRelative !== expected) findings.push({ code: "REVIEW_PATH_MUTABLE", message: `Admission ${role} review must use ${expected}`, path: inventoryPath });
+    if (overridePath && (normalizedRelative(options.root, overridePath) !== expected || normalizedRelative(options.root, overridePath) !== inventoryRelative)) {
+      findings.push({ code: "REVIEW_PATH_OVERRIDE_MISMATCH", message: `Admission ${role} review override must equal its inventory pointer and canonical path`, path: overridePath });
+    }
   }
 }
 
@@ -183,7 +307,204 @@ async function validateSources(root: string, inventory: BaselineInventory, findi
     validateBoundFile(root, inventory.source.artifact, inventory.source.artifact_sha256, "source report", findings),
     validateBoundFile(root, inventory.source.coverage_artifact, inventory.source.coverage_sha256, "source coverage", findings),
     validateBoundFile(root, inventory.source.candidate_artifact, inventory.source.candidate_sha256, "measurement candidate", findings),
+    validateBoundFile(root, inventory.source.measurement_artifact, inventory.source.measurement_sha256, "measurement envelope", findings),
   ]);
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function validStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0);
+}
+
+function validCandidateSources(value: unknown): boolean {
+  return validStringList(value) && value.length > 0 &&
+    new Set(value).size === value.length && value.every((source) => candidateSources.has(source));
+}
+
+function validCandidateFiles(value: unknown): boolean {
+  return Array.isArray(value) && value.every((item) =>
+    isObject(item) && typeof item.path === "string" && item.path.length > 0 &&
+    typeof item.sha256 === "string" && shaPattern.test(item.sha256) &&
+    typeof item.deleted === "boolean" && validCandidateSources(item.sources));
+}
+
+function currentHead(root: string): string | null {
+  const run = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
+  const head = run.status === 0 ? run.stdout.trim().toLowerCase() : "";
+  return commitPattern.test(head) ? head : null;
+}
+
+function candidateParts(candidate: Record<string, unknown>, findings: QualityFinding[]): { data: Record<string, unknown>; record: Record<string, unknown> } | null {
+  const data = isObject(candidate.data) ? candidate.data : undefined;
+  const record = data && isObject(data.record) ? data.record : undefined;
+  if (candidate.schema_version !== 1 || candidate.kind !== "quality-candidate" || candidate.status !== "PASS" ||
+      !Array.isArray(candidate.findings) || candidate.findings.length !== 0 || !record) {
+    findings.push({ code: "CANDIDATE_PROVENANCE_MALFORMED", message: "Measurement candidate envelope must be a finding-free PASS quality-candidate checkpoint" });
+    return null;
+  }
+  return { data: data!, record };
+}
+
+function validateCandidateSource(record: Record<string, unknown>, findings: QualityFinding[]): boolean {
+  if (record.schema_version !== 1 || !commitPattern.test(String(record.commit_sha ?? "")) ||
+      !validCandidateFiles(record.changed_files) || !validStringList(record.affected_capabilities)) {
+    findings.push({ code: "CANDIDATE_SOURCE_MALFORMED", message: "Measurement candidate record source inventory is malformed" });
+    return false;
+  }
+  return true;
+}
+
+function candidateComparisonBase(record: Record<string, unknown>, findings: QualityFinding[]): ComparisonBase | null {
+  const comparisonBase = isObject(record.comparison_base) ? record.comparison_base : undefined;
+  if (!comparisonBase || typeof comparisonBase.input_ref !== "string" || !comparisonBase.input_ref.trim() ||
+      typeof comparisonBase.resolved_sha !== "string" || !commitPattern.test(comparisonBase.resolved_sha)) {
+    findings.push({ code: "CANDIDATE_COMPARISON_BASE_MALFORMED", message: "Measurement candidate comparison base is malformed" });
+    return null;
+  }
+  return { input_ref: comparisonBase.input_ref, resolved_sha: comparisonBase.resolved_sha };
+}
+
+async function validateCandidateComparisonBase(root: string, base: ComparisonBase, findings: QualityFinding[]): Promise<boolean> {
+  try {
+    const current = await resolveComparisonBase({ root, input_ref: base.input_ref });
+    if (current.resolved_sha === base.resolved_sha) return true;
+  } catch {
+    // The single fail-closed finding below is deterministic for all resolution failures.
+  }
+  findings.push({ code: "CANDIDATE_COMPARISON_BASE_MISMATCH", message: "Measurement candidate comparison base does not resolve to its recorded commit" });
+  return false;
+}
+
+function validateCandidateProfile(record: Record<string, unknown>, findings: QualityFinding[]): void {
+  if (record.profile !== "Q2_CRITICAL_CHANGE_GATE" && record.profile !== "Q3_RELEASE_GATE") {
+    findings.push({ code: "CANDIDATE_PROFILE_MISMATCH", message: "Baseline migration candidate must use Q2_CRITICAL_CHANGE_GATE or Q3_RELEASE_GATE" });
+  }
+}
+
+function validateCandidateCommits(root: string, inventoryCommit: string, record: Record<string, unknown>, findings: QualityFinding[]): void {
+  const embeddedCommit = typeof record.commit_sha === "string" ? record.commit_sha : "";
+  if (embeddedCommit !== inventoryCommit) {
+    findings.push({ code: "CANDIDATE_COMMIT_MISMATCH", message: "Measurement candidate commit does not match inventory source.commit" });
+  }
+  const head = currentHead(root);
+  if (!head) {
+    findings.push({ code: "CURRENT_HEAD_MALFORMED", message: "Current Git HEAD is unavailable or malformed" });
+  } else if (embeddedCommit !== head) {
+    findings.push({ code: "CANDIDATE_HEAD_MISMATCH", message: "Measurement candidate commit does not match current Git HEAD" });
+  }
+}
+
+function validateCandidateRecordDigest(data: Record<string, unknown>, record: Record<string, unknown>, findings: QualityFinding[]): void {
+  if (typeof data?.sha256 !== "string" || !shaPattern.test(data.sha256) ||
+      data.sha256 !== candidateDigest(record as unknown as CandidateRecord)) {
+    findings.push({ code: "CANDIDATE_RECORD_DIGEST_MISMATCH", message: "Measurement candidate record digest is missing or incorrect" });
+  }
+}
+
+function recordedCandidateFiles(record: Record<string, unknown>): CandidateFile[] {
+  return (record.changed_files as CandidateFile[])
+    .filter((file) => !canonicalBaselineEvidencePaths.has(file.path));
+}
+
+function candidatePaths(files: CandidateFile[]): string[] {
+  return files.map((file) => file.path);
+}
+
+async function validateCurrentCandidateFiles(root: string, base: ComparisonBase, record: Record<string, unknown>, findings: QualityFinding[]): Promise<void> {
+  try {
+    const expected = recordedCandidateFiles(record);
+    const current = await candidateFileInventory(root, base.resolved_sha, canonicalBaselineEvidencePaths);
+    if (JSON.stringify(candidatePaths(expected)) !== JSON.stringify(candidatePaths(current))) {
+      findings.push({ code: "CANDIDATE_PATH_SET_MISMATCH", message: "Measurement candidate path set does not equal the current Git candidate" });
+      return;
+    }
+    if (JSON.stringify(expected) !== JSON.stringify(current)) {
+      findings.push({ code: "CANDIDATE_FILE_PROVENANCE_MISMATCH", message: "Measurement candidate file hashes, deletion state, or source categories are stale" });
+    }
+  } catch (error) {
+    findings.push({ code: "CANDIDATE_CURRENT_STATE_UNAVAILABLE", message: `Current Git candidate could not be reconstructed: ${String(error)}` });
+  }
+}
+
+export interface CandidateCheckpointBinding {
+  artifact_sha256: string;
+  inner_sha256: string;
+  commit_sha: string;
+  comparison_base: ComparisonBase;
+  profile: CandidateRecord["profile"];
+}
+
+async function loadCandidateCheckpoint(root: string, candidatePath: string): Promise<{ raw: Buffer; candidate: Record<string, unknown> }> {
+  const raw = await readFile(resolve(root, candidatePath));
+  const parsed: unknown = JSON.parse(raw.toString());
+  if (!isObject(parsed)) throw new Error("candidate checkpoint must be an object");
+  return { raw, candidate: parsed };
+}
+
+function candidateBinding(raw: Buffer, parts: { data: Record<string, unknown>; record: Record<string, unknown> }, comparisonBase: ComparisonBase | null): CandidateCheckpointBinding | undefined {
+  const innerSha = typeof parts.data.sha256 === "string" ? parts.data.sha256 : "";
+  const commitSha = typeof parts.record.commit_sha === "string" ? parts.record.commit_sha : "";
+  if (!comparisonBase) return undefined;
+  if (!shaPattern.test(innerSha)) return undefined;
+  if (!commitPattern.test(commitSha)) return undefined;
+  return {
+    artifact_sha256: sha256(raw), inner_sha256: innerSha, commit_sha: commitSha,
+    comparison_base: comparisonBase, profile: parts.record.profile as CandidateRecord["profile"],
+  };
+}
+
+export async function validateCandidateCheckpointAgainstWorktree(
+  root: string,
+  candidatePath: string,
+): Promise<{ raw?: Buffer; binding?: CandidateCheckpointBinding; findings: QualityFinding[] }> {
+  const findings: QualityFinding[] = [];
+  let loaded: { raw: Buffer; candidate: Record<string, unknown> };
+  try {
+    loaded = await loadCandidateCheckpoint(root, candidatePath);
+  } catch (error) {
+    return { findings: [{ code: "CANDIDATE_PROVENANCE_MALFORMED", message: `Measurement candidate provenance is missing or malformed: ${String(error)}` }] };
+  }
+  const parts = candidateParts(loaded.candidate, findings);
+  if (!parts) return { raw: loaded.raw, findings };
+  const sourceValid = validateCandidateSource(parts.record, findings);
+  const comparisonBase = candidateComparisonBase(parts.record, findings);
+  validateCandidateProfile(parts.record, findings);
+  validateCandidateCommits(root, String(parts.record.commit_sha ?? ""), parts.record, findings);
+  validateCandidateRecordDigest(parts.data, parts.record, findings);
+  if (sourceValid && comparisonBase && await validateCandidateComparisonBase(root, comparisonBase, findings)) {
+    await validateCurrentCandidateFiles(root, comparisonBase, parts.record, findings);
+  }
+  return { raw: loaded.raw, binding: candidateBinding(loaded.raw, parts, comparisonBase), findings };
+}
+
+async function validateCandidateProvenance(root: string, inventory: BaselineInventory, findings: QualityFinding[]): Promise<void> {
+  const checked = await validateCandidateCheckpointAgainstWorktree(root, inventory.source.candidate_artifact);
+  findings.push(...checked.findings);
+  if (checked.binding?.commit_sha !== inventory.source.commit) {
+    findings.push({ code: "CANDIDATE_COMMIT_MISMATCH", message: "Measurement candidate commit does not match inventory source.commit" });
+  }
+  if (checked.binding?.inner_sha256 !== inventory.source.candidate_digest) {
+    findings.push({ code: "CANDIDATE_DIGEST_MISMATCH", message: "Validated candidate record digest does not match inventory source.candidate_digest" });
+  }
+  try {
+    const artifact = JSON.parse(await readFile(resolve(root, inventory.source.measurement_artifact), "utf8")) as { data?: { measurement?: ComponentMeasurementEnvelope } };
+    const candidate = artifact.data?.measurement?.candidate;
+    const expected = candidate ? {
+      artifact_sha256: candidate.artifact_sha256,
+      inner_sha256: candidate.inner_sha256,
+      commit_sha: candidate.commit_sha,
+      comparison_base: candidate.comparison_base,
+      profile: candidate.profile,
+    } : undefined;
+    if (!expected || JSON.stringify(checked.binding) !== JSON.stringify(expected)) {
+      findings.push({ code: "MEASUREMENT_CANDIDATE_BINDING_MISMATCH", message: "Measurement candidate metadata does not match the validated candidate checkpoint" });
+    }
+  } catch (error) {
+    findings.push({ code: "MEASUREMENT_ENVELOPE_INVALID", message: `Measurement candidate binding is unavailable: ${String(error)}` });
+  }
 }
 
 function inventoryProposals(inventory: BaselineInventory): Record<string, RatchetProposal> {
@@ -196,21 +517,54 @@ function observedIdentitySummary(inventory: BaselineInventory): string[] {
   return inventory.records.map((record) => JSON.stringify([record.id, record.failure_kind, record.critical_capability_ids])).sort();
 }
 
+function measurementMatchesInventory(measurement: ComponentMeasurementEnvelope, inventory: BaselineInventory): boolean {
+  return [
+    JSON.stringify(measurement) === JSON.stringify(inventory.source.measurement),
+    measurement.command === inventory.source.command,
+    measurement.candidate.artifact === inventory.source.candidate_artifact,
+    measurement.candidate.artifact_sha256 === inventory.source.candidate_sha256,
+    measurement.candidate.inner_sha256 === inventory.source.candidate_digest,
+    measurement.candidate.commit_sha === inventory.source.commit,
+    measurement.report.sha256 === inventory.source.artifact_sha256,
+    measurement.coverage.sha256 === inventory.source.coverage_sha256,
+  ].every(Boolean);
+}
+
 async function validateSourceContents(root: string, inventory: BaselineInventory, findings: QualityFinding[]): Promise<void> {
   try {
-    const [report, coverage, candidate, evidenceMap, registry] = await Promise.all([
-      readFile(resolve(root, inventory.source.artifact), "utf8").then((text) => JSON.parse(text) as VitestJsonReport),
-      readFile(resolve(root, inventory.source.coverage_artifact), "utf8").then((text) => JSON.parse(text) as CoverageSummary),
-      readFile(resolve(root, inventory.source.candidate_artifact), "utf8").then((text) => JSON.parse(text) as { status?: string }),
-      readFile(resolve(root, "quality/component-evidence-map.json"), "utf8").then((text) => JSON.parse(text) as ComponentEvidenceMap),
-      readFile(resolve(root, "quality/critical-capabilities.json"), "utf8").then((text) => JSON.parse(text) as { capabilities: Array<{ id: string; name: string }> }),
+    const [reportRaw, coverageRaw, candidateRaw, measurementRaw, evidenceMapRaw, registryRaw] = await Promise.all([
+      readFile(resolve(root, inventory.source.artifact), "utf8"),
+      readFile(resolve(root, inventory.source.coverage_artifact), "utf8"),
+      readFile(resolve(root, inventory.source.candidate_artifact), "utf8"),
+      readFile(resolve(root, inventory.source.measurement_artifact), "utf8"),
+      readFile(resolve(root, "quality/component-evidence-map.json"), "utf8"),
+      readFile(resolve(root, "quality/critical-capabilities.json"), "utf8"),
     ]);
-    if (!coverage || typeof coverage !== "object" || !coverage.total) findings.push({ code: "COVERAGE_EVIDENCE_MALFORMED", message: "Source coverage summary is malformed" });
+    const report = JSON.parse(reportRaw) as VitestJsonReport;
+    const coverage = JSON.parse(coverageRaw) as CoverageSummary;
+    const candidate = JSON.parse(candidateRaw) as { status?: string };
+    const measurementArtifact = JSON.parse(measurementRaw) as ComponentMeasurementArtifactResult;
+    const evidenceMap = JSON.parse(evidenceMapRaw) as ComponentEvidenceMap;
+    const registry = JSON.parse(registryRaw) as { capabilities: Array<{ id: string; name: string }> };
+    const measurement = measurementArtifact.data?.measurement;
+    const coverageValid = [Boolean(coverage), typeof coverage === "object", Boolean(coverage.total)].every(Boolean);
+    if (!coverageValid) findings.push({ code: "COVERAGE_EVIDENCE_MALFORMED", message: "Source coverage summary is malformed" });
     if (candidate.status !== "PASS") findings.push({ code: "CANDIDATE_NOT_PASS", message: "Measurement candidate checkpoint must record PASS" });
+    findings.push(...validateComponentMeasurementArtifactResult(measurementArtifact));
+    const measurementFindings = validateComponentMeasurementEnvelope(measurement ?? undefined);
+    findings.push(...measurementFindings);
+    const retainedMeasurementFindings = validateComponentMeasurementEnvelope(inventory.source.measurement);
+    findings.push(...retainedMeasurementFindings.map((finding) => ({ ...finding, code: "RETAINED_MEASUREMENT_ENVELOPE_INVALID" })));
+    const measurementBindingValid = measurement ? measurementMatchesInventory(measurement, inventory) : false;
+    if (measurementFindings.length === 0 && !measurementBindingValid) {
+      findings.push({ code: "MEASUREMENT_INVENTORY_BINDING_MISMATCH", message: "Inventory source bindings do not exactly match the measurement envelope" });
+    }
     const rebuilt = buildBaselineInventory({
       report, reportPath: inventory.source.artifact, reportSha256: inventory.source.artifact_sha256,
       coveragePath: inventory.source.coverage_artifact, coverageSha256: inventory.source.coverage_sha256,
       candidatePath: inventory.source.candidate_artifact, candidateSha256: inventory.source.candidate_sha256,
+      measurementPath: inventory.source.measurement_artifact, measurementSha256: inventory.source.measurement_sha256,
+      measurement: inventory.source.measurement,
       command: inventory.source.command, commit: inventory.source.commit, generatedAt: inventory.generated_at, root,
       evidenceMap, capabilities: registry.capabilities.map((capability) => ({ ...capability, critical: true as const })),
       proposals: inventoryProposals(inventory), phase: inventory.admission.phase,
@@ -227,30 +581,58 @@ function validateTopLevel(inventory: BaselineInventory, findings: QualityFinding
   if (Number.isNaN(Date.parse(inventory.generated_at))) findings.push({ code: "GENERATED_AT", message: "generated_at must be an ISO date-time" });
   if (!Array.isArray(inventory.records)) findings.push({ code: "RECORDS", message: "records must be an array" });
   if (!/^[a-f0-9]{40}$/u.test(inventory.source?.commit ?? "")) findings.push({ code: "SOURCE_COMMIT", message: "source.commit must be a full commit SHA" });
+  if (!shaPattern.test(inventory.source?.candidate_digest ?? "")) findings.push({ code: "SOURCE_CANDIDATE_DIGEST", message: "source.candidate_digest must be a SHA-256 digest" });
 }
 
 export async function validateBaselineAdmission(options: AdmissionValidationOptions): Promise<{ findings: QualityFinding[]; data: AdmissionValidationData }> {
   const findings = validateAuthorIds(options);
   let inventory: BaselineInventory | undefined;
+  let parsed: unknown;
   let raw = "";
+  let reviewPaths: ResolvedReviewPaths | undefined;
   try {
     raw = await readFile(options.inventoryPath, "utf8");
-    inventory = JSON.parse(raw) as BaselineInventory;
+    parsed = JSON.parse(raw) as unknown;
   } catch (error) {
     findings.push({ code: "INVENTORY_MALFORMED", message: `Inventory is missing or malformed: ${String(error)}` });
   }
-  if (inventory) await validateLoadedInventory(options, inventory, raw, findings);
+  if (raw) {
+    const structural = validateInventoryStructure(parsed);
+    findings.push(...structural);
+    if (structural.length === 0) {
+      inventory = parsed as BaselineInventory;
+      reviewPaths = resolvedReviewPaths(options, inventory);
+      await validateLoadedInventory(options, inventory, raw, reviewPaths, findings);
+    }
+  }
+  const reviewHashes = inventory && reviewPaths && options.phase === "admission"
+    ? await admittedReviewHashes(reviewPaths)
+    : { quality: null, security: null };
   return {
     findings,
     data: {
       phase: options.phase,
       inventory: normalizedRelative(options.root, options.inventoryPath),
       inventory_sha256: raw ? sha256(raw) : null,
-      candidate_sha256: inventory?.source?.candidate_sha256 ?? null,
+      candidate_digest: inventory?.source?.candidate_digest ?? null,
       record_count: inventory?.records?.length ?? 0,
       author_ids: [...options.disallowedReviewers].sort(),
+      review_source: "local-agent",
+      reviewer_identity_assurance: "asserted-local",
+      author_identity_assurance: "asserted-local",
+      quality_review_sha256: reviewHashes.quality,
+      security_review_sha256: reviewHashes.security,
     },
   };
+}
+
+async function admittedReviewHashes(paths: ResolvedReviewPaths): Promise<{ quality: string | null; security: string | null }> {
+  try {
+    const [quality, security] = await Promise.all([readFile(paths.quality), readFile(paths.security)]);
+    return { quality: sha256(quality), security: sha256(security) };
+  } catch {
+    return { quality: null, security: null };
+  }
 }
 
 function validateAuthorIds(options: AdmissionValidationOptions): QualityFinding[] {
@@ -258,7 +640,7 @@ function validateAuthorIds(options: AdmissionValidationOptions): QualityFinding[
   return [{ code: "AUTHOR_IDS_REQUIRED", message: "Admission requires the complete author ID list for reviewer independence validation" }];
 }
 
-async function validateLoadedInventory(options: AdmissionValidationOptions, inventory: BaselineInventory, raw: string, findings: QualityFinding[]): Promise<void> {
+async function validateLoadedInventory(options: AdmissionValidationOptions, inventory: BaselineInventory, raw: string, reviewPaths: ResolvedReviewPaths, findings: QualityFinding[]): Promise<void> {
   validateTopLevel(inventory, findings);
   (inventory.records ?? []).forEach((record, index) => validateRecordShape(record, index, findings));
   findings.push(...validateInventorySemantics(inventory, options.now));
@@ -267,8 +649,9 @@ async function validateLoadedInventory(options: AdmissionValidationOptions, inve
   await validateSources(options.root, inventory, findings);
   await validateSourceContents(options.root, inventory, findings);
   if (options.phase !== "admission") return;
+  await validateCandidateProvenance(options.root, inventory, findings);
   validateAdmissionRecords(inventory, findings);
-  await validateReviews(options, inventory, sha256(raw), findings);
+  await validateReviews(options, inventory, sha256(raw), reviewPaths, findings);
 }
 
 async function main(): Promise<never> {

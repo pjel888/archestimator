@@ -1,12 +1,16 @@
 import { readFile } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { posix, relative, resolve, sep } from "node:path";
 import { readJson, sha256, type QualityFinding } from "./common";
+import { candidateDigest, type CandidateRecord } from "./candidate-core";
 
 export const COMPONENT_PROFILES = [
   "Q1_CHANGE_GATE",
   "Q2_CRITICAL_CHANGE_GATE",
   "Q3_RELEASE_GATE",
 ] as const;
+
+export const COMPONENT_BASELINE_MEASUREMENT_COMMAND =
+  "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json";
 
 export type ComponentProfile = (typeof COMPONENT_PROFILES)[number];
 export type CoverageMetric = "statements" | "branches" | "functions" | "lines";
@@ -75,6 +79,19 @@ export interface ComponentBaseline {
     report_sha256: string;
     coverage: string;
     coverage_sha256: string;
+    candidate: { record: CandidateRecord; digest: string };
+    measurement: {
+      integrity_status: "PASS";
+      command: string;
+      duration_ms: number;
+      exit_status: number;
+      candidate_digest: string;
+      candidate_commit: string;
+      comparison_base: { input_ref: string; resolved_sha: string };
+      profile: "Q2_CRITICAL_CHANGE_GATE" | "Q3_RELEASE_GATE";
+      report_sha256: string;
+      coverage_sha256: string;
+    };
   };
   admission: {
     inventory: string;
@@ -85,6 +102,13 @@ export interface ComponentBaseline {
     quality_review_sha256: string;
     security_review_artifact: string;
     security_review_sha256: string;
+    candidate_digest: string;
+    author_ids: string[];
+    quality_reviewer: string;
+    security_reviewer: string;
+    review_source: "local-agent";
+    reviewer_identity_assurance: "asserted-local";
+    author_identity_assurance: "asserted-local";
   };
   suite: {
     test_files: string[];
@@ -387,6 +411,55 @@ function isSha256(value: unknown): value is string {
   return typeof value === "string" && /^[a-f0-9]{64}$/u.test(value);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function baselineObject(value: unknown): value is ComponentBaseline {
+  return isRecord(value) && isRecord(value.source) && isRecord(value.admission);
+}
+
+function sortedUniqueStrings(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0) &&
+    new Set(value).size === value.length && JSON.stringify(value) === JSON.stringify([...value].sort());
+}
+
+function candidateFileIsNormalized(value: unknown): boolean {
+  if (!isRecord(value) || typeof value.path !== "string" || !value.path || !isSha256(value.sha256) || typeof value.deleted !== "boolean") return false;
+  const sources = value.sources;
+  return sortedUniqueStrings(sources) && sources.every((source) => ["committed", "staged", "unstaged", "untracked"].includes(source));
+}
+
+function candidateRecordIsNormalized(value: unknown): value is CandidateRecord {
+  if (!isRecord(value)) return false;
+  return [
+    candidateRecordHeaderIsNormalized(value),
+    candidateRecordFilesAreNormalized(value.changed_files),
+    sortedUniqueStrings(value.affected_capabilities),
+  ].every(Boolean);
+}
+
+function candidateRecordHeaderIsNormalized(value: Record<string, unknown>): boolean {
+  const base = value.comparison_base;
+  if (!isRecord(base)) return false;
+  return [
+    value.schema_version === 1,
+    /^[a-f0-9]{40}$/u.test(String(value.commit_sha)),
+    typeof base.input_ref === "string",
+    Boolean(base.input_ref),
+    /^[a-f0-9]{40}$/u.test(String(base.resolved_sha)),
+    ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"].includes(String(value.profile)),
+  ].every(Boolean);
+}
+
+function candidateRecordFilesAreNormalized(value: unknown): boolean {
+  if (!Array.isArray(value) || !value.every(candidateFileIsNormalized)) return false;
+  const paths = value.map((file) => (file as Record<string, unknown>).path);
+  return [
+    JSON.stringify(paths) === JSON.stringify([...paths].sort()),
+  ].every(Boolean);
+}
+
 function validateBaselineAdmissionDecision(baseline: ComponentBaseline): QualityFinding[] {
   if (baseline.schema_version === 1 && baseline.status === "admitted") return [];
   return [{
@@ -396,15 +469,12 @@ function validateBaselineAdmissionDecision(baseline: ComponentBaseline): Quality
 }
 
 function validateBaselineSource(baseline: ComponentBaseline): QualityFinding[] {
-  if (
-    baseline.source?.command &&
-    baseline.source?.report === "quality/baselines/component/source.vitest.json" &&
-    isSha256(baseline.source.report_sha256) &&
-    baseline.source?.coverage === "quality/baselines/component/coverage-summary.json" &&
-    isSha256(baseline.source.coverage_sha256)
-  ) {
-    return [];
-  }
+  const valid = [
+    baselineSourcePointersAreValid(baseline.source),
+    embeddedCandidateIsValid(baseline.source.candidate),
+    embeddedMeasurementIsValid(baseline.source.measurement),
+  ].every(Boolean);
+  if (valid) return [];
   return [{
     code: "COMPONENT_BASELINE_SOURCE_MALFORMED",
     message: "Component baseline source evidence is missing or malformed",
@@ -412,28 +482,54 @@ function validateBaselineSource(baseline: ComponentBaseline): QualityFinding[] {
 }
 
 function validateBaselineAdmissionFields(baseline: ComponentBaseline): QualityFinding[] {
-  const findings: QualityFinding[] = [];
-  for (const [field, value] of Object.entries(baseline.admission ?? {})) {
-    if (!value) {
-      findings.push({
-        code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
-        message: `Component baseline admission.${field} is missing`,
-      });
-    }
-    if (field.endsWith("_sha256") && !isSha256(value)) {
-      findings.push({
-        code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
-        message: `Component baseline admission.${field} is not a SHA-256 digest`,
-      });
-    }
-  }
-  if (!baseline.admission || Object.keys(baseline.admission).length !== 8) {
-    findings.push({
+  const admission = baseline.admission;
+  const findings = Object.entries(admission).flatMap(([field, value]) => admissionFieldFindings(field, value));
+  if (!admissionBindingIsComplete(admission)) findings.push({
       code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
       message: "Component baseline lacks the complete independently reviewed admission binding",
-    });
-  }
+  });
   return findings;
+}
+
+const baselineAdmissionFieldCount = 15;
+
+function admissionFieldFindings(field: string, value: unknown): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  if (!value) findings.push({
+    code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
+    message: `Component baseline admission.${field} is missing`,
+  });
+  if (field.endsWith("_sha256") && !isSha256(value)) findings.push({
+    code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
+    message: `Component baseline admission.${field} is not a SHA-256 digest`,
+  });
+  return findings;
+}
+
+function admissionBindingIsComplete(admission: ComponentBaseline["admission"]): boolean {
+  return [
+    Object.keys(admission).length === baselineAdmissionFieldCount,
+    admission.review_source === "local-agent",
+    admission.reviewer_identity_assurance === "asserted-local",
+    admission.author_identity_assurance === "asserted-local",
+    admissionAuthorsAreValid(admission),
+    admissionReviewersAreValid(admission),
+    isSha256(admission.candidate_digest),
+  ].every(Boolean);
+}
+
+function admissionAuthorsAreValid(admission: ComponentBaseline["admission"]): boolean {
+  return sortedUniqueStrings(admission.author_ids) && admission.author_ids.length > 0;
+}
+
+function admissionReviewersAreValid(admission: ComponentBaseline["admission"]): boolean {
+  const reviewers = [admission.quality_reviewer, admission.security_reviewer];
+  if (!Array.isArray(admission.author_ids)) return false;
+  return [
+    reviewers.every(Boolean),
+    admission.quality_reviewer !== admission.security_reviewer,
+    reviewers.every((reviewer) => !admission.author_ids.includes(reviewer)),
+  ].every(Boolean);
 }
 
 function validateCanonicalAdmissionPaths(baseline: ComponentBaseline): QualityFinding[] {
@@ -445,6 +541,39 @@ function validateCanonicalAdmissionPaths(baseline: ComponentBaseline): QualityFi
     code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
     message: "Canonical admission must use tracked immutable component baseline paths",
   }];
+}
+
+function baselineSourcePointersAreValid(source: ComponentBaseline["source"]): boolean {
+  return [
+    Boolean(source.command),
+    source.report === "quality/baselines/component/source.vitest.json",
+    isSha256(source.report_sha256),
+    source.coverage === "quality/baselines/component/coverage-summary.json",
+    isSha256(source.coverage_sha256),
+  ].every(Boolean);
+}
+
+function embeddedCandidateIsValid(value: unknown): boolean {
+  if (!isRecord(value) || !candidateRecordIsNormalized(value.record) || !isSha256(value.digest)) return false;
+  return candidateDigest(value.record) === value.digest;
+}
+
+function embeddedMeasurementIsValid(value: unknown): boolean {
+  if (!isRecord(value) || !isRecord(value.comparison_base)) return false;
+  return [
+    value.integrity_status === "PASS",
+    Boolean(value.command),
+    Number.isInteger(value.duration_ms),
+    Number(value.duration_ms) >= 0,
+    Number.isInteger(value.exit_status),
+    isSha256(value.candidate_digest),
+    /^[a-f0-9]{40}$/u.test(String(value.candidate_commit)),
+    Boolean(value.comparison_base.input_ref),
+    /^[a-f0-9]{40}$/u.test(String(value.comparison_base.resolved_sha)),
+    ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"].includes(String(value.profile)),
+    isSha256(value.report_sha256),
+    isSha256(value.coverage_sha256),
+  ].every(Boolean);
 }
 
 function validateCanonicalReviewPaths(baseline: ComponentBaseline): QualityFinding[] {
@@ -468,8 +597,8 @@ function validateBaselineShape(baseline: ComponentBaseline): QualityFinding[] {
     Number.isInteger(baseline.suite.total_tests) &&
     baseline.suite.total_tests >= 0 &&
     Array.isArray(baseline.allowed_failures) &&
-    baseline.coverage &&
-    typeof baseline.coverage === "object"
+    baseline.allowed_failures.every(isRecord) &&
+    coverageSummaryIsComplete(baseline.coverage)
   ) {
     return [];
   }
@@ -513,18 +642,43 @@ function validateAllowedBaselineFailures(
 }
 
 export function validateComponentBaseline(
-  baseline: ComponentBaseline,
+  baseline: ComponentBaseline | unknown,
   now = Date.now(),
 ): QualityFinding[] {
-  return [
-    ...validateBaselineAdmissionDecision(baseline),
+  if (!baselineObject(baseline)) {
+    return [{ code: "COMPONENT_BASELINE_STRUCTURE_MALFORMED", message: "Component baseline must be an object with source and admission objects" }];
+  }
+  const decision = validateBaselineAdmissionDecision(baseline);
+  const structural = [
     ...validateBaselineSource(baseline),
     ...validateBaselineAdmissionFields(baseline),
     ...validateCanonicalAdmissionPaths(baseline),
     ...validateCanonicalReviewPaths(baseline),
     ...validateBaselineShape(baseline),
-    ...validateAllowedBaselineFailures(baseline, now),
   ];
+  if (structural.length > 0) return [...decision, ...structural];
+  return [...decision, ...validateAllowedBaselineFailures(baseline, now)];
+}
+
+const coverageMetrics: CoverageMetric[] = ["statements", "branches", "functions", "lines"];
+
+function coverageValueIsComplete(value: unknown): value is CoverageValue {
+  if (!isRecord(value)) return false;
+  return ["total", "covered", "skipped", "pct"].every((field) =>
+    typeof value[field] === "number" && Number.isFinite(value[field]));
+}
+
+function coverageSummaryIsComplete(value: unknown): value is CoverageSummary {
+  if (!isRecord(value) || !isRecord(value.total)) return false;
+  return Object.values(value).every((metrics) =>
+    isRecord(metrics) && coverageMetrics.every((metric) => coverageValueIsComplete(metrics[metric])));
+}
+
+function validateCurrentCoverageShape(coverage: unknown): QualityFinding[] {
+  return coverageSummaryIsComplete(coverage) ? [] : [{
+    code: "COMPONENT_COVERAGE_MALFORMED",
+    message: "Current component coverage must contain complete finite statements, branches, functions, and lines metrics",
+  }];
 }
 
 interface BaselineInventory {
@@ -533,7 +687,20 @@ interface BaselineInventory {
     phase?: string;
     status?: string;
   };
-  source?: { candidate_sha256?: string };
+  source?: {
+    command?: string;
+    commit?: string;
+    measurement?: RetainedComponentMeasurement;
+    measurement_artifact?: string;
+    measurement_sha256?: string;
+    artifact?: string;
+    artifact_sha256?: string;
+    coverage_artifact?: string;
+    coverage_sha256?: string;
+    candidate_artifact?: string;
+    candidate_sha256?: string;
+    candidate_digest?: string;
+  };
   records?: Array<{
     file?: string;
     test_or_scenario?: string;
@@ -546,7 +713,35 @@ interface BaselineInventory {
 
 interface BaselineValidation {
   status?: string;
-  data?: { phase?: string; inventory_sha256?: string; candidate_sha256?: string; author_ids?: string[] };
+  data?: {
+    phase?: string;
+    inventory_sha256?: string;
+    candidate_digest?: string;
+    author_ids?: string[];
+    review_source?: string;
+    reviewer_identity_assurance?: string;
+    author_identity_assurance?: string;
+    quality_review_sha256?: string;
+    security_review_sha256?: string;
+  };
+}
+
+interface RetainedComponentMeasurement {
+  schema_version?: number;
+  integrity_status?: string;
+  command?: string;
+  duration_ms?: number;
+  exit_status?: number | null;
+  candidate?: {
+    artifact?: string;
+    artifact_sha256?: string;
+    inner_sha256?: string;
+    commit_sha?: string;
+    comparison_base?: { input_ref?: string; resolved_sha?: string };
+    profile?: string;
+  };
+  report?: { artifact?: string; sha256?: string };
+  coverage?: { artifact?: string; sha256?: string };
 }
 
 interface ReviewDecision {
@@ -555,6 +750,9 @@ interface ReviewDecision {
   candidateSha?: string;
   reviewer?: string;
   role?: string;
+  source?: string;
+  reviewerAssurance?: string;
+  authorAssurance?: string;
 }
 
 type BaselineArtifact = readonly [label: string, path: string, expectedSha: string];
@@ -563,9 +761,12 @@ function reviewDecision(text: string): ReviewDecision {
   return {
     decision: text.match(/(?:Decision|Status)\s*:\s*`?(APPROVE|REJECT)`?/iu)?.[1],
     inventorySha: text.match(/Inventory SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
-    candidateSha: text.match(/Candidate SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
+    candidateSha: text.match(/Candidate Digest\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
     reviewer: text.match(/Reviewer\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
     role: text.match(/Reviewer Role\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    source: text.match(/Source\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    reviewerAssurance: text.match(/Reviewer Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    authorAssurance: text.match(/Author Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
   };
 }
 
@@ -660,6 +861,76 @@ function identitySetsMatch(left: Set<string>, right: Set<string>): boolean {
   return left.size === right.size && [...left].every((identity) => right.has(identity));
 }
 
+function runtimeInventoryIsStructured(inventory: unknown): inventory is BaselineInventory {
+  return isRecord(inventory) && isRecord(inventory.source) && isRecord(inventory.admission) &&
+    Array.isArray(inventory.records) && inventory.records.every(isRecord);
+}
+
+function validateBaselineInventorySourceBinding(
+  baseline: ComponentBaseline,
+  inventory: BaselineInventory,
+): QualityFinding[] {
+  const measurementFindings = validateRetainedMeasurement(inventory);
+  if (
+    Boolean(inventory.source?.measurement_artifact) &&
+    isSha256(inventory.source?.measurement_sha256 ?? "") &&
+    inventory.source?.artifact === baseline.source.report &&
+    inventory.source.artifact_sha256 === baseline.source.report_sha256 &&
+    inventory.source.coverage_artifact === baseline.source.coverage &&
+    inventory.source.coverage_sha256 === baseline.source.coverage_sha256
+  ) return measurementFindings;
+  return [...measurementFindings, {
+    code: "COMPONENT_BASELINE_SOURCE_INVENTORY_MISMATCH",
+    message: "Canonical baseline source paths and hashes do not match the admitted inventory",
+  }];
+}
+
+function validateRetainedMeasurement(inventory: BaselineInventory): QualityFinding[] {
+  const measurement = inventory.source?.measurement;
+  const candidate = measurement?.candidate;
+  const validShape = [
+    measurement?.schema_version === 1,
+    measurement?.integrity_status === "PASS",
+    measurement?.command === COMPONENT_BASELINE_MEASUREMENT_COMMAND,
+    Number.isInteger(measurement?.duration_ms),
+    Number(measurement?.duration_ms) >= 0,
+    Number.isInteger(measurement?.exit_status),
+    Boolean(candidate?.artifact),
+    isSha256(String(candidate?.artifact_sha256)),
+    isSha256(String(candidate?.inner_sha256)),
+    /^[a-f0-9]{40}$/u.test(String(candidate?.commit_sha)),
+    Boolean(candidate?.comparison_base?.input_ref),
+    /^[a-f0-9]{40}$/u.test(String(candidate?.comparison_base?.resolved_sha)),
+    ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"].includes(String(candidate?.profile)),
+    transientMeasurementOrigin(measurement?.report?.artifact),
+    isSha256(String(measurement?.report?.sha256)),
+    transientMeasurementOrigin(measurement?.coverage?.artifact),
+    isSha256(String(measurement?.coverage?.sha256)),
+  ].every(Boolean);
+  if (!validShape) {
+    return [{ code: "COMPONENT_BASELINE_MEASUREMENT_PROOF_INVALID", message: "Admitted inventory lacks a complete integrity-PASS measurement proof" }];
+  }
+  const bindingsMatch = [
+    measurement.command === inventory.source?.command,
+    candidate?.artifact === inventory.source?.candidate_artifact,
+    candidate?.artifact_sha256 === inventory.source?.candidate_sha256,
+    candidate?.inner_sha256 === inventory.source?.candidate_digest,
+    candidate?.commit_sha === inventory.source?.commit,
+    measurement.report?.sha256 === inventory.source?.artifact_sha256,
+    measurement.coverage?.sha256 === inventory.source?.coverage_sha256,
+  ].every(Boolean);
+  return bindingsMatch ? [] : [{
+    code: "COMPONENT_BASELINE_MEASUREMENT_PROOF_MISMATCH",
+    message: "Retained measurement proof does not match inventory candidate, report, and coverage bindings",
+  }];
+}
+
+function transientMeasurementOrigin(value: unknown): boolean {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const normalized = posix.normalize(value.replaceAll("\\", "/"));
+  return normalized !== "quality" && !normalized.startsWith("quality/");
+}
+
 async function validateBaselineInventory(
   root: string,
   baseline: ComponentBaseline,
@@ -669,12 +940,16 @@ async function validateBaselineInventory(
     const inventory = await readJson<BaselineInventory>(
       resolve(root, baseline.admission.inventory),
     );
+    if (!runtimeInventoryIsStructured(inventory)) {
+      return [{ code: "COMPONENT_BASELINE_INVENTORY_MALFORMED", message: "Canonical baseline inventory has invalid source, admission, or records structure", path: baseline.admission.inventory }];
+    }
     if (!inventoryIsAdmitted(inventory)) {
       findings.push({
         code: "COMPONENT_BASELINE_INVENTORY_NOT_ADMITTED",
         message: "Canonical baseline inventory lacks two approved reviews bound to its hash",
       });
     }
+    findings.push(...validateBaselineInventorySourceBinding(baseline, inventory));
     const admittedIdentities = admittedInventoryIdentities(inventory);
     const baselineIdentities = new Set(
       baseline.allowed_failures.map((failure) => failure.identity),
@@ -698,15 +973,18 @@ async function validateBaselineInventory(
 function validationApprovesInventory(
   validation: BaselineValidation,
   expectedSha: string,
-  candidateSha: string | undefined,
+  candidateDigestValue: string | undefined,
 ): boolean {
   return (
     validation.status === "PASS" &&
     validation.data?.phase === "admission" &&
     validation.data?.inventory_sha256 === expectedSha &&
-    validation.data?.candidate_sha256 === candidateSha &&
+    validation.data?.candidate_digest === candidateDigestValue &&
     Array.isArray(validation.data?.author_ids) &&
-    validation.data.author_ids.length > 0
+    validation.data.author_ids.length > 0 &&
+    validation.data.review_source === "local-agent" &&
+    validation.data.reviewer_identity_assurance === "asserted-local" &&
+    validation.data.author_identity_assurance === "asserted-local"
   );
 }
 
@@ -720,7 +998,10 @@ async function validateBaselineValidationArtifact(
       resolve(root, baseline.admission.validation_artifact),
     );
     const inventory = await readJson<BaselineInventory>(resolve(root, baseline.admission.inventory));
-    if (!validationApprovesInventory(validation, baseline.admission.inventory_sha256, inventory.source?.candidate_sha256)) {
+    if (!runtimeInventoryIsStructured(inventory)) {
+      return [{ code: "COMPONENT_BASELINE_VALIDATION_MALFORMED", message: "Admission validation cannot bind a malformed inventory", path: baseline.admission.validation_artifact }];
+    }
+    if (!validationApprovesInventory(validation, baseline.admission.inventory_sha256, inventory.source?.candidate_digest)) {
       findings.push({
         code: "COMPONENT_BASELINE_ADMISSION_NOT_APPROVED",
         message: "Baseline validation artifact does not approve the bound inventory",
@@ -773,10 +1054,136 @@ function validateBaselineReviews(
   if (reviews.some((review) => review.role?.toLowerCase() !== "read-only")) {
     findings.push({ code: "COMPONENT_BASELINE_REVIEW_NOT_READ_ONLY", message: "Baseline reviewers must record a read-only role" });
   }
+  if (reviews.some((review) => review.source !== "local-agent" || review.reviewerAssurance !== "asserted-local" || review.authorAssurance !== "asserted-local")) {
+    findings.push({ code: "COMPONENT_BASELINE_REVIEW_ASSURANCE_INVALID", message: "Baseline reviews must honestly assert local-agent reviewer and author identity assurance" });
+  }
   if (reviews.some((review) => review.reviewer && authors.includes(review.reviewer))) {
     findings.push({ code: "COMPONENT_BASELINE_REVIEW_IS_AUTHOR", message: "Baseline authors cannot approve their own inventory" });
   }
   return findings;
+}
+
+export function validateCanonicalGenerationBindings(input: {
+  inventoryRaw: Buffer;
+  validationRaw: Buffer;
+  reportRaw: Buffer;
+  coverageRaw: Buffer;
+  candidateRaw?: Buffer;
+  measurementRaw?: Buffer;
+  expectedInventorySha256: string;
+  expectedValidationSha256: string;
+}): QualityFinding[] {
+  const parsed = parseGenerationBindings(input);
+  if ("finding" in parsed) return [parsed.finding];
+  const { inventory, validation, candidateArtifact, measurementArtifact } = parsed;
+  const inventorySha = sha256(input.inventoryRaw);
+  return [
+    ...validateGenerationByteBindings(input, inventory, validation, inventorySha),
+    ...validateGenerationCandidateBinding(input.candidateRaw, candidateArtifact, inventory),
+    ...validateGenerationMeasurementBinding(input.measurementRaw, measurementArtifact, inventory),
+    ...validateRetainedMeasurement(inventory),
+  ];
+}
+
+interface ParsedGenerationBindings {
+  inventory: BaselineInventory;
+  validation: BaselineValidation;
+  candidateArtifact: { data?: { record?: CandidateRecord; sha256?: string } };
+  measurementArtifact: { data?: { measurement?: RetainedComponentMeasurement } };
+}
+
+function parseOptionalGenerationJson(raw: Buffer | undefined): unknown {
+  if (!raw) return {};
+  return JSON.parse(raw.toString()) as unknown;
+}
+
+function optionalCandidateIsStructured(raw: Buffer | undefined, value: unknown): boolean {
+  if (!raw) return true;
+  return isRecord(value) && isRecord(value.data) && isRecord(value.data.record);
+}
+
+function optionalMeasurementIsStructured(raw: Buffer | undefined, value: unknown): boolean {
+  if (!raw) return true;
+  return isRecord(value) && isRecord(value.data) && isRecord(value.data.measurement);
+}
+
+function generationBindingsAreStructured(input: { candidateRaw?: Buffer; measurementRaw?: Buffer }, parsed: ParsedGenerationBindings): boolean {
+  return [
+    isRecord(parsed.inventory),
+    isRecord(parsed.inventory.source),
+    isRecord(parsed.validation),
+    optionalCandidateIsStructured(input.candidateRaw, parsed.candidateArtifact),
+    optionalMeasurementIsStructured(input.measurementRaw, parsed.measurementArtifact),
+  ].every(Boolean);
+}
+
+function parseGenerationBindings(input: { inventoryRaw: Buffer; validationRaw: Buffer; candidateRaw?: Buffer; measurementRaw?: Buffer }): ParsedGenerationBindings | { finding: QualityFinding } {
+  try {
+    const parsed = {
+      inventory: JSON.parse(input.inventoryRaw.toString()) as BaselineInventory,
+      validation: JSON.parse(input.validationRaw.toString()) as BaselineValidation,
+      candidateArtifact: parseOptionalGenerationJson(input.candidateRaw) as ParsedGenerationBindings["candidateArtifact"],
+      measurementArtifact: parseOptionalGenerationJson(input.measurementRaw) as ParsedGenerationBindings["measurementArtifact"],
+    };
+    if (!generationBindingsAreStructured(input, parsed)) throw new Error("generation inputs lack required object structure");
+    return parsed;
+  } catch (error) {
+    return { finding: { code: "GENERATION_BINDING_MALFORMED", message: `Canonical generation binding is malformed: ${String(error)}` } };
+  }
+}
+
+function validateGenerationByteBindings(
+  input: { inventoryRaw: Buffer; validationRaw: Buffer; reportRaw: Buffer; coverageRaw: Buffer; expectedInventorySha256: string; expectedValidationSha256: string },
+  inventory: BaselineInventory,
+  validation: BaselineValidation,
+  inventorySha: string,
+): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  if (inventorySha !== input.expectedInventorySha256) {
+    findings.push({ code: "GENERATION_INVENTORY_DRIFT", message: "Admission inventory changed after validation" });
+  }
+  if (sha256(input.validationRaw) !== input.expectedValidationSha256) {
+    findings.push({ code: "GENERATION_ADMISSION_DRIFT", message: "Admission validation artifact changed before canonical generation" });
+  }
+  if (!validationApprovesInventory(validation, inventorySha, inventory.source?.candidate_digest)) {
+    findings.push({ code: "GENERATION_ADMISSION_BINDING_MISMATCH", message: "Admission validation no longer binds the exact inventory and candidate" });
+  }
+  if (sha256(input.reportRaw) !== inventory.source?.artifact_sha256) {
+    findings.push({ code: "GENERATION_REPORT_DRIFT", message: "Source report bytes no longer match the admitted inventory" });
+  }
+  if (sha256(input.coverageRaw) !== inventory.source?.coverage_sha256) {
+    findings.push({ code: "GENERATION_COVERAGE_DRIFT", message: "Source coverage bytes no longer match the admitted inventory" });
+  }
+  return findings;
+}
+
+function validateGenerationCandidateBinding(
+  raw: Buffer | undefined,
+  artifact: ParsedGenerationBindings["candidateArtifact"],
+  inventory: BaselineInventory,
+): QualityFinding[] {
+  if (!raw) return [];
+  const record = artifact.data?.record;
+  const digest = record ? candidateDigest(record) : "";
+  const valid = [
+    sha256(raw) === inventory.source?.candidate_sha256,
+    digest === artifact.data?.sha256,
+    digest === inventory.source?.candidate_digest,
+  ].every(Boolean);
+  return valid ? [] : [{ code: "GENERATION_CANDIDATE_DRIFT", message: "Candidate checkpoint bytes or inner digest no longer match the admitted inventory" }];
+}
+
+function validateGenerationMeasurementBinding(
+  raw: Buffer | undefined,
+  artifact: ParsedGenerationBindings["measurementArtifact"],
+  inventory: BaselineInventory,
+): QualityFinding[] {
+  if (!raw) return [];
+  const valid = [
+    sha256(raw) === inventory.source?.measurement_sha256,
+    JSON.stringify(artifact.data?.measurement) === JSON.stringify(inventory.source?.measurement),
+  ].every(Boolean);
+  return valid ? [] : [{ code: "GENERATION_MEASUREMENT_DRIFT", message: "Measurement artifact no longer matches the admitted inventory" }];
 }
 
 function validateOneBaselineReview(review: ReviewDecision, index: number, inventorySha: string): QualityFinding[] {
@@ -784,32 +1191,81 @@ function validateOneBaselineReview(review: ReviewDecision, index: number, invent
   return [{ code: "COMPONENT_BASELINE_REVIEW_INVALID", message: `${index === 0 ? "Quality" : "Security"} review does not independently approve the bound inventory` }];
 }
 
+function validateEmbeddedBaselineLineage(
+  baseline: ComponentBaseline,
+  inventory: BaselineInventory,
+  validation: BaselineValidation,
+  reviews: ReviewDecision[],
+): QualityFinding[] {
+  const candidate = baseline.source.candidate;
+  const measurement = baseline.source.measurement;
+  const retained = inventory.source?.measurement;
+  const digest = candidateDigest(candidate.record);
+  const validationAuthors = Array.isArray(validation.data?.author_ids)
+    ? [...validation.data.author_ids].sort()
+    : [];
+  const valid = [
+    digest === candidate.digest,
+    digest === inventory.source?.candidate_digest,
+    digest === retained?.candidate?.inner_sha256,
+    digest === measurement.candidate_digest,
+    digest === baseline.admission.candidate_digest,
+    digest === validation.data?.candidate_digest,
+    reviews.every((review) => review.candidateSha === digest),
+    candidate.record.commit_sha === measurement.candidate_commit,
+    candidate.record.commit_sha === retained?.candidate?.commit_sha,
+    candidate.record.commit_sha === inventory.source?.commit,
+    JSON.stringify(candidate.record.comparison_base) === JSON.stringify(measurement.comparison_base),
+    JSON.stringify(candidate.record.comparison_base) === JSON.stringify(retained?.candidate?.comparison_base),
+    candidate.record.profile === measurement.profile,
+    candidate.record.profile === retained?.candidate?.profile,
+    measurement.command === retained?.command,
+    measurement.duration_ms === retained?.duration_ms,
+    measurement.exit_status === retained?.exit_status,
+    measurement.report_sha256 === baseline.source.report_sha256,
+    measurement.report_sha256 === retained?.report?.sha256,
+    measurement.coverage_sha256 === baseline.source.coverage_sha256,
+    measurement.coverage_sha256 === retained?.coverage?.sha256,
+    JSON.stringify(baseline.admission.author_ids) === JSON.stringify(validationAuthors),
+    baseline.admission.quality_reviewer === reviews[0]?.reviewer,
+    baseline.admission.security_reviewer === reviews[1]?.reviewer,
+  ].every(Boolean);
+  return valid ? [] : [{
+    code: "COMPONENT_BASELINE_EMBEDDED_LINEAGE_MISMATCH",
+    message: "Embedded candidate, measurement, admission, inventory, validation, or review lineage does not form one exact chain",
+  }];
+}
+
 export async function validateCanonicalBaselineArtifacts(
   root: string,
-  baseline: ComponentBaseline,
+  baseline: ComponentBaseline | unknown,
 ): Promise<QualityFinding[]> {
   const findings = validateComponentBaseline(baseline);
   if (findings.some((finding) => finding.code.startsWith("COMPONENT_BASELINE_"))) {
     return findings;
   }
 
-  findings.push(...await validateBaselineArtifactHashes(root, baseline));
-  findings.push(...await validateBaselineInventory(root, baseline));
-  findings.push(...await validateBaselineValidationArtifact(root, baseline));
+  const canonical = baseline as ComponentBaseline;
+  findings.push(...await validateBaselineArtifactHashes(root, canonical));
+  findings.push(...await validateBaselineInventory(root, canonical));
+  findings.push(...await validateBaselineValidationArtifact(root, canonical));
   let inventory: BaselineInventory = {};
   let validation: BaselineValidation = {};
   try {
-    inventory = await readJson<BaselineInventory>(resolve(root, baseline.admission.inventory));
+    const loaded = await readJson<BaselineInventory>(resolve(root, canonical.admission.inventory));
+    if (runtimeInventoryIsStructured(loaded)) inventory = loaded;
   } catch {
     // The inventory validator above already records the malformed artifact.
   }
   try {
-    validation = await readJson<BaselineValidation>(resolve(root, baseline.admission.validation_artifact));
+    validation = await readJson<BaselineValidation>(resolve(root, canonical.admission.validation_artifact));
   } catch {
     // The validation-artifact validator above already records the malformed artifact.
   }
-  const reviews = await readBaselineReviews(root, baseline);
-  findings.push(...validateBaselineReviews(baseline, inventory.source?.candidate_sha256, validation.data?.author_ids ?? [], reviews));
+  const reviews = await readBaselineReviews(root, canonical);
+  const validationAuthors = Array.isArray(validation.data?.author_ids) ? validation.data.author_ids : [];
+  findings.push(...validateBaselineReviews(canonical, inventory.source?.candidate_digest, validationAuthors, reviews));
+  findings.push(...validateEmbeddedBaselineLineage(canonical, inventory, validation, reviews));
   return findings;
 }
 
@@ -866,6 +1322,11 @@ function findComponentCoverageRegressions(
   coverage: CoverageSummary,
   baselineCoverage: CoverageSummary,
 ): QualityFinding[] {
+  const malformed = validateCurrentCoverageShape(coverage);
+  if (malformed.length > 0 || !coverageSummaryIsComplete(baselineCoverage)) return malformed.length > 0 ? malformed : [{
+    code: "COMPONENT_BASELINE_SHAPE_MALFORMED",
+    message: "Component baseline coverage is malformed",
+  }];
   const findings: QualityFinding[] = [];
   for (const [file, baselineMetrics] of Object.entries(baselineCoverage)) {
     const currentMetrics = coverage[file];
@@ -877,7 +1338,7 @@ function findComponentCoverageRegressions(
       });
       continue;
     }
-    for (const metric of ["statements", "branches", "functions", "lines"] as const) {
+    for (const metric of coverageMetrics) {
       if (currentMetrics[metric].pct < baselineMetrics[metric].pct) {
         findings.push({
           code: "COMPONENT_COVERAGE_REGRESSION",
@@ -902,6 +1363,8 @@ export function compareComponentRatchet(
   if (findings.some((finding) => finding.code.startsWith("COMPONENT_BASELINE_"))) {
     return findings;
   }
+  const coverageFindings = validateCurrentCoverageShape(coverage);
+  if (coverageFindings.length > 0) return [...findings, ...coverageFindings];
 
   findings.push(...findNewComponentFailures(normalized.failures, baseline.allowed_failures));
   findings.push(

@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import type { ProfilesFile } from "./aggregate-core";
 import { buildCandidate, type CandidateClassification } from "./candidate-core";
 import {
   finishCli,
@@ -9,12 +10,15 @@ import {
   readJson,
   type QualityFinding,
 } from "./common";
-import { validateManifest } from "./report-core";
+import { canonicalProfilesOverrideFinding, validateManifest } from "./report-core";
 
 const { flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
 const manifestPath = flagString(flags, "manifest");
+const policyOverride = canonicalProfilesOverrideFinding(root, flagString(flags, "profiles"));
+if (policyOverride) findings.push(policyOverride);
+const profiles = await readJson<ProfilesFile>(resolve(root, "quality/profiles.json"));
 let manifest: Record<string, unknown> = {};
 try {
   if (!manifestPath) throw new Error("--manifest is required");
@@ -26,7 +30,7 @@ try {
       status: manifest.status,
     };
   }
-  findings.push(...validateManifest(manifest));
+  findings.push(...validateManifest(manifest, profiles));
   const classification = manifest.classification as CandidateClassification | undefined;
   const candidate = manifest.candidate as
     | { commit_sha?: string; sha256?: string }

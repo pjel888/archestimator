@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   compareComponentRatchet,
@@ -12,8 +13,18 @@ import {
   type CoverageSummary,
   type VitestJsonReport,
 } from "../../../scripts/quality/component-core";
+import { candidateDigest, type CandidateRecord } from "../../../scripts/quality/candidate-core";
 
 const root = "/repo";
+const candidateRecord: CandidateRecord = {
+  schema_version: 1,
+  commit_sha: "1".repeat(40),
+  comparison_base: { input_ref: "main", resolved_sha: "2".repeat(40) },
+  profile: "Q2_CRITICAL_CHANGE_GATE",
+  changed_files: [],
+  affected_capabilities: [],
+};
+const candidateDigestValue = candidateDigest(candidateRecord);
 const coverageValue = (pct: number) => ({
   total: 100,
   covered: pct,
@@ -66,6 +77,19 @@ function admittedBaseline(failureReport = report("failed")): ComponentBaseline {
       report_sha256: "a".repeat(64),
       coverage: "quality/baselines/component/coverage-summary.json",
       coverage_sha256: "b".repeat(64),
+      candidate: { record: structuredClone(candidateRecord), digest: candidateDigestValue },
+      measurement: {
+        integrity_status: "PASS",
+        command: "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json",
+        duration_ms: 1,
+        exit_status: 0,
+        candidate_digest: candidateDigestValue,
+        candidate_commit: candidateRecord.commit_sha,
+        comparison_base: candidateRecord.comparison_base,
+        profile: "Q2_CRITICAL_CHANGE_GATE",
+        report_sha256: "a".repeat(64),
+        coverage_sha256: "b".repeat(64),
+      },
     },
     admission: {
       inventory: "quality/baselines/component/inventory.json",
@@ -76,6 +100,13 @@ function admittedBaseline(failureReport = report("failed")): ComponentBaseline {
       quality_review_sha256: "e".repeat(64),
       security_review_artifact: "quality/reviews/component-baseline-security.md",
       security_review_sha256: "f".repeat(64),
+      candidate_digest: candidateDigestValue,
+      author_ids: ["author"],
+      quality_reviewer: "quality-reviewer",
+      security_reviewer: "security-reviewer",
+      review_source: "local-agent",
+      reviewer_identity_assurance: "asserted-local",
+      author_identity_assurance: "asserted-local",
     },
     suite: {
       test_files: ["tests/vitest/example.test.tsx"],
@@ -101,6 +132,13 @@ function admittedBaseline(failureReport = report("failed")): ComponentBaseline {
 }
 
 describe("component evidence selection", () => {
+  it("requests coverage reports on failed Q1/Q2 Vitest runs", () => {
+    const source = readFileSync("scripts/quality/component.ts", "utf8");
+    expect(source).toContain('...(reportOnFailure ? ["--coverage.reportOnFailure=true"] : [])');
+    expect(source).toContain('executeVitest(root, "strict", strictTests, true)');
+    expect(source).toContain('executeVitest(root, "full", [], profile !== "Q3_RELEASE_GATE")');
+  });
+
   const evidenceMap: ComponentEvidenceMap = {
     schema_version: 1,
     component_scope_patterns: ["src/components/**/*.tsx"],
@@ -166,6 +204,24 @@ describe("component evidence selection", () => {
 });
 
 describe("component failure normalization and ratchet", () => {
+  it.each([null, {}, { source: null, admission: {} }, { source: {}, admission: null }])(
+    "returns structured baseline findings without throwing for malformed input %#",
+    (malformed) => {
+      expect(() => validateComponentBaseline(malformed)).not.toThrow();
+      expect(validateComponentBaseline(malformed).length).toBeGreaterThan(0);
+    },
+  );
+
+  it.each([
+    ["null candidate file", (baseline: ComponentBaseline) => { (baseline.source.candidate.record.changed_files as unknown[]) = [null]; }],
+    ["non-array author IDs", (baseline: ComponentBaseline) => { (baseline.admission as unknown as Record<string, unknown>).author_ids = {}; }],
+  ])("returns structured findings without throwing for %s", (_label, mutate) => {
+    const malformed = admittedBaseline();
+    mutate(malformed);
+    expect(() => validateComponentBaseline(malformed)).not.toThrow();
+    expect(validateComponentBaseline(malformed).length).toBeGreaterThan(0);
+  });
+
   it("normalizes assertion failures to leaf identities without file-level duplicates", () => {
     const normalized = normalizeVitestFailures(report("failed"), root);
     expect(normalized.failures).toHaveLength(1);
@@ -227,6 +283,26 @@ describe("component failure normalization and ratchet", () => {
         "COMPONENT_TEST_COUNT_REGRESSION",
       ]),
     );
+  });
+
+  it.each([
+    ["null total", { total: null }],
+    ["array total", { total: [] }],
+    ["missing metric", { total: { statements: coverageValue(100), branches: coverageValue(100), functions: coverageValue(100) } }],
+    ["null metric", { total: { statements: null, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+    ["nonnumeric pct", { total: { statements: { ...coverageValue(100), pct: "100" }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+    ["nonfinite pct", { total: { statements: { ...coverageValue(100), pct: Number.NaN }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+  ])("returns a structured finding for malformed current coverage: %s", (_label, malformed) => {
+    const baseline = admittedBaseline();
+    expect(() => compareComponentRatchet(report("failed"), malformed as CoverageSummary, baseline, root)).not.toThrow();
+    expect(compareComponentRatchet(report("failed"), malformed as CoverageSummary, baseline, root).map((finding) => finding.code)).toContain("COMPONENT_COVERAGE_MALFORMED");
+  });
+
+  it("rejects malformed nested baseline coverage before ratchet comparison", () => {
+    const baseline = admittedBaseline();
+    (baseline as unknown as { coverage: unknown }).coverage = { total: { statements: null } };
+    expect(() => validateComponentBaseline(baseline)).not.toThrow();
+    expect(validateComponentBaseline(baseline).map((finding) => finding.code)).toContain("COMPONENT_BASELINE_SHAPE_MALFORMED");
   });
 
   it("never admits critical, infrastructure, expired, or non-independent debt", () => {

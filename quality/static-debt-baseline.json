@@ -5,7 +5,7 @@
   "measurement": {
     "scope": "legacy repository debt measured before static no-new-debt enforcement",
     "command": "knip --reporter json --include files,dependencies,unlisted,unresolved,exports,nsExports,types,nsTypes,enumMembers,namespaceMembers,duplicates,cycles",
-    "issue_count": 828
+    "issue_count": 827
   },
   "measured_legacy_issues": [
     {
@@ -17,11 +17,6 @@
       "type": "dependencies",
       "file": "package.json",
       "symbol": "@tiptap/extension-image"
-    },
-    {
-      "type": "devDependencies",
-      "file": "package.json",
-      "symbol": "@axe-core/playwright"
     },
     {
       "type": "devDependencies",

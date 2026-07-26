@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import {
   classifyFiles,
   type RiskMap,
@@ -10,7 +12,16 @@ import {
   scanAntiBypass,
   validateWaiver,
 } from "../../../scripts/quality/anti-bypass-core";
-import { aggregateJobs } from "../../../scripts/quality/aggregate-core";
+import {
+  aggregateJobs,
+  findJobArtifact,
+  type ProfilesFile,
+} from "../../../scripts/quality/aggregate-core";
+import {
+  artifactBelongsToJob,
+  artifactNameForCommand,
+  jobNameForCommand,
+} from "../../../scripts/quality/job-command-core";
 import {
   compareGlobalCoverageRatchet,
   evaluateDiffCoverage,
@@ -19,7 +30,10 @@ import {
   parseLcov,
 } from "../../../scripts/quality/diff-coverage-core";
 import { scanWorkflow } from "../../../scripts/quality/workflow-security-core";
-import { validateManifest } from "../../../scripts/quality/report-core";
+import {
+  expectedArtifactReportError,
+  validateManifest,
+} from "../../../scripts/quality/report-core";
 import { parseCommandCounts } from "../../../scripts/quality/evidence-counts";
 import {
   buildCapabilityEvidence,
@@ -30,6 +44,9 @@ const root = resolve(import.meta.dirname, "../../..");
 const riskMap = JSON.parse(
   readFileSync(resolve(root, "quality/risk-map.json"), "utf8"),
 ) as RiskMap;
+const profilesPolicy = JSON.parse(
+  readFileSync(resolve(root, "quality/profiles.json"), "utf8"),
+) as ProfilesFile;
 
 describe("Q0-Q3 classification", () => {
   it("classifies prose, executable, critical policy, and explicit release", () => {
@@ -142,6 +159,79 @@ describe("anti-bypass", () => {
 });
 
 describe("aggregate and report", () => {
+  it("fails closed for component baseline measurement status combinations", () => {
+    const schema = JSON.parse(readFileSync(
+      resolve(root, "quality/schemas/component-baseline-measurement.schema.json"),
+      "utf8",
+    ));
+    const ajv = new Ajv2020({ strict: false });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+    const base = {
+      schema_version: 1,
+      kind: "component-baseline-measurement",
+      generated_at: "2026-07-26T00:00:00.000Z",
+      summary: "measurement",
+      findings: [],
+      data: { measurement: null },
+    };
+    expect(validate({ ...base, status: "FAIL" })).toBe(true);
+    expect(validate({ ...base, status: "PASS" })).toBe(false);
+    const measurement = {
+      schema_version: 1,
+      integrity_status: "PASS",
+      command: "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json",
+      duration_ms: 1,
+      exit_status: 0,
+      candidate: {
+        artifact: "candidate.json",
+        artifact_sha256: "a".repeat(64),
+        inner_sha256: "b".repeat(64),
+        commit_sha: "c".repeat(40),
+        comparison_base: { input_ref: "main", resolved_sha: "d".repeat(40) },
+        profile: "Q2_CRITICAL_CHANGE_GATE",
+      },
+      report: { artifact: "report.json", sha256: "e".repeat(64) },
+      coverage: { artifact: "coverage.json", sha256: "f".repeat(64) },
+    };
+    expect(validate({ ...base, status: "PASS", data: { measurement } })).toBe(true);
+    expect(validate({
+      ...base,
+      status: "PASS",
+      findings: [{ code: "RED" }],
+      data: { measurement },
+    })).toBe(false);
+    expect(validate({
+      ...base,
+      status: "PASS",
+      data: { measurement: { ...measurement, exit_status: null } },
+    })).toBe(false);
+  });
+
+  it("requires the canonical artifact kind, empty findings, and exact command evidence id", () => {
+    const report = {
+      schema_version: 1,
+      kind: "quality-static",
+      status: "PASS",
+      findings: [],
+      data: {},
+    };
+    expect(expectedArtifactReportError(report, "artifacts/quality/static.json")).toBeUndefined();
+    expect(expectedArtifactReportError({ ...report, kind: undefined }, "artifacts/quality/static.json"))
+      .toMatch(/kind/u);
+    expect(expectedArtifactReportError({ ...report, kind: "focused-fixture" }, "artifacts/quality/static.json"))
+      .toMatch(/kind/u);
+    expect(expectedArtifactReportError({ ...report, findings: [{ code: "RED" }] }, "artifacts/quality/static.json"))
+      .toMatch(/empty/u);
+    const commandEvidence = { ...report, kind: "command-evidence", data: { evidence_id: "forged" } };
+    expect(expectedArtifactReportError(commandEvidence, "artifacts/quality/unit.json"))
+      .toMatch(/test:unit:coverage/u);
+    expect(expectedArtifactReportError(
+      { ...commandEvidence, data: { evidence_id: "test:unit:coverage" } },
+      "artifacts/quality/unit.json",
+    )).toBeUndefined();
+  });
+
   it("extracts counts from Bun, Vitest, Playwright, and Cucumber summaries", () => {
     expect(parseCommandCounts("34 pass\n1 fail\n2 skip")).toMatchObject({
       tests_passed: 34,
@@ -194,6 +284,166 @@ describe("aggregate and report", () => {
     );
   });
 
+  it("rejects malformed, empty, and duplicate additional job artifacts", () => {
+    const base = {
+      name: "quality / build",
+      status: "success" as const,
+      conclusion: "PASS" as const,
+      flaky: false,
+      artifact: { path: "build.json", sha256: "a".repeat(64) },
+    };
+    for (const artifacts of [
+      [],
+      [{ path: "bundle-budget.json", sha256: "not-a-hash" }],
+      [{ path: "build.json", sha256: "b".repeat(64) }],
+      [{ path: "nested/build.json", sha256: "b".repeat(64) }],
+      [{ path: "bundle-budget.json", sha256: "a".repeat(64) }],
+    ]) {
+      expect(
+        aggregateJobs([base.name], [{ ...base, artifacts }]).map((finding) => finding.code),
+      ).toContain("MISSING_JOB_ARTIFACT");
+    }
+  });
+
+  it("rejects valid evidence assigned to the wrong aggregate job", () => {
+    const base = {
+      status: "success" as const,
+      conclusion: "PASS" as const,
+      flaky: false,
+    };
+    const buildArtifacts = {
+      artifact: { path: "downloads/build.json", sha256: "a".repeat(64) },
+      artifacts: [{ path: "downloads/bundle-budget.json", sha256: "b".repeat(64) }],
+    };
+    const e2eArtifacts = {
+      artifact: { path: "downloads/e2e-smoke.json", sha256: "c".repeat(64) },
+      artifacts: [{ path: "downloads/e2e-matrix.json", sha256: "d".repeat(64) }],
+    };
+
+    for (const job of [
+      { ...base, name: "quality / build", ...e2eArtifacts },
+      { ...base, name: "quality / e2e-smoke", ...buildArtifacts },
+      {
+        ...base,
+        name: "quality / build",
+        artifact: buildArtifacts.artifact,
+        artifacts: e2eArtifacts.artifacts,
+      },
+      {
+        ...base,
+        name: "quality / e2e-smoke",
+        artifact: e2eArtifacts.artifact,
+        artifacts: buildArtifacts.artifacts,
+      },
+    ]) {
+      expect(aggregateJobs([job.name], [job]).map((finding) => finding.code)).toContain(
+        "MISSING_JOB_ARTIFACT",
+      );
+    }
+  });
+
+  it("maps exact commands to primary and additional artifacts without duplicating jobs", () => {
+    const build = {
+      name: "quality / build",
+      status: "success" as const,
+      conclusion: "PASS" as const,
+      flaky: false,
+      artifact: { path: "downloads/build.json", sha256: "a".repeat(64) },
+      artifacts: [{ path: "downloads/bundle-budget.json", sha256: "b".repeat(64) }],
+    };
+    const e2e = {
+      ...build,
+      name: "quality / e2e-smoke",
+      artifact: { path: "downloads/e2e-smoke.json", sha256: "c".repeat(64) },
+      artifacts: [{ path: "downloads/e2e-matrix.json", sha256: "d".repeat(64) }],
+    };
+    const impostor = {
+      ...e2e,
+      artifacts: [{ path: "downloads/bundle-budget.json", sha256: "e".repeat(64) }],
+    };
+
+    expect(findJobArtifact([build, e2e], "quality / build", "artifacts/quality/build.json")).toEqual({
+      job: build,
+      artifact: build.artifact,
+    });
+    expect(findJobArtifact([build, e2e], "quality / build", "artifacts/quality/bundle-budget.json")).toEqual({
+      job: build,
+      artifact: build.artifacts[0],
+    });
+    expect(findJobArtifact([build, e2e], "quality / e2e-smoke", "artifacts/quality/e2e-matrix.json")).toEqual({
+      job: e2e,
+      artifact: e2e.artifacts[0],
+    });
+    expect(
+      findJobArtifact([impostor], "quality / build", "bundle-budget.json"),
+    ).toBeUndefined();
+    expect(jobNameForCommand("bun run quality:bundle-budget")).toBe("quality / build");
+    expect(jobNameForCommand("bun run test:e2e:smoke")).toBe("quality / e2e-smoke");
+    expect(jobNameForCommand("bun run test:e2e:matrix")).toBe("quality / e2e-smoke");
+    expect(jobNameForCommand("bun run test:e2e:matrix --forged")).toBeUndefined();
+    expect(artifactNameForCommand("bun run quality:bundle-budget")).toBe(
+      "bundle-budget.json",
+    );
+    expect(artifactBelongsToJob("quality / build", "downloads/build.json")).toBe(true);
+    expect(artifactBelongsToJob("quality / build", "downloads/e2e-smoke.json")).toBe(false);
+    const profiles = JSON.parse(
+      readFileSync(resolve(root, "quality/profiles.json"), "utf8"),
+    ) as { profiles: Record<string, { commands: string[] }> };
+    for (const command of Object.values(profiles.profiles).flatMap((entry) => entry.commands)) {
+      expect(jobNameForCommand(command), command).toBeDefined();
+    }
+  });
+
+  it("rejects unknown, duplicate, and impersonated local command results", () => {
+    const artifact = { path: "command.json", sha256: "a".repeat(64) };
+    const findings = validateManifest({
+      schema_version: 1,
+      profile: "Q2_CRITICAL_CHANGE_GATE",
+      merge_base: "a".repeat(40),
+      candidate: { commit_sha: "b".repeat(40), sha256: "c".repeat(64) },
+      scope: {
+        changed_files: [],
+        inherited_dirty_files: [],
+        migration_changed_files: [],
+        overlapping_files: [],
+      },
+      required_jobs: [],
+      commands: ["bun run quality:contracts"],
+      command_results: [
+        {
+          command: "bun run quality:contracts",
+          executed_command: "bun run quality:workflows",
+          status: "PASS",
+          source: "local",
+          artifact,
+        },
+        {
+          command: "bun run quality:contracts",
+          executed_command: "bun run quality:contracts -- --comparison-base main",
+          status: "PASS",
+          source: "local",
+          artifact,
+        },
+        {
+          command: "bun run unknown",
+          status: "PASS",
+          source: "ci",
+          artifact,
+        },
+      ],
+      job_results: [],
+      evidence: [],
+      status: "FAIL",
+    }, profilesPolicy);
+    expect(findings.map((finding) => finding.code)).toEqual(
+      expect.arrayContaining([
+        "COMMAND_RESULT_MALFORMED",
+        "COMMAND_RESULT_DUPLICATE",
+        "COMMAND_RESULT_UNKNOWN",
+      ]),
+    );
+  });
+
   it("rejects false PASS and unproven hosted evidence", () => {
     const findings = validateManifest({
       schema_version: 1,
@@ -210,7 +460,7 @@ describe("aggregate and report", () => {
         { kind: "hosted", status: "PASS", source: "hosted", artifact: "x.json" },
       ],
       status: "PASS",
-    });
+    }, profilesPolicy);
     expect(findings.map((finding) => finding.code)).toContain("UNPROVEN_EXTERNAL_CLAIM");
     expect(findings.map((finding) => finding.code)).toContain("FALSE_PASS");
   });

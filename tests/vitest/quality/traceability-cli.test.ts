@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
@@ -8,6 +8,41 @@ const root = resolve(import.meta.dirname, "../../..");
 
 async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8");
+}
+
+async function fakeClassifier(
+  temporaryDirectory: string,
+  classification: Record<string, unknown>,
+): Promise<NodeJS.ProcessEnv> {
+  const bin = join(temporaryDirectory, "bin");
+  const source = `
+const { writeFileSync } = require("node:fs");
+const args = process.argv.slice(2);
+const outputIndex = args.indexOf("--output");
+writeFileSync(args[outputIndex + 1], JSON.stringify({
+  schema_version: 1,
+  kind: "quality-classification",
+  status: "PASS",
+  generated_at: new Date().toISOString(),
+  summary: "fixture",
+  findings: [],
+  data: JSON.parse(process.env.FAKE_CLASSIFICATION_DATA),
+}));
+`;
+  await mkdir(bin);
+  if (process.platform === "win32") {
+    await writeFile(join(bin, "bun.cmd"), '@echo off\r\nnode "%~dp0fake-bun.cjs" %*\r\n');
+    await writeFile(join(bin, "fake-bun.cjs"), source);
+  } else {
+    const executable = join(bin, "bun");
+    await writeFile(executable, `#!/usr/bin/env node\n${source}`);
+    await chmod(executable, 0o755);
+  }
+  return {
+    ...process.env,
+    PATH: `${bin}${delimiter}${process.env.PATH ?? ""}`,
+    FAKE_CLASSIFICATION_DATA: JSON.stringify(classification),
+  };
 }
 
 describe("quality traceability CLI integration", () => {
@@ -44,33 +79,31 @@ describe("quality traceability CLI integration", () => {
     const temporaryDirectory = await mkdtemp(join(tmpdir(), "arch-quality-traceability-"));
     const classificationPath = join(temporaryDirectory, "classification.json");
     const manifestPath = join(temporaryDirectory, "manifest.json");
-    await writeJson(classificationPath, {
-      schema_version: 1,
-      kind: "quality-classification",
-      status: "PASS",
-      generated_at: new Date().toISOString(),
-      summary: "fixture",
-      findings: [],
-      data: {
-        profile: "Q2_CRITICAL_CHANGE_GATE",
-        reasons: ["fixture"],
-        files: ["src/lib/auth.ts"],
-        affected_capabilities: ["CAP-AUTH"],
-        attribution: { merge_base: "a".repeat(40) },
-      },
-    });
+    const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .stdout.trim();
+    const classification = {
+      profile: "Q2_CRITICAL_CHANGE_GATE",
+      reasons: ["fixture"],
+      files: ["src/lib/auth.ts"],
+      affected_capabilities: ["CAP-AUTH"],
+      comparison_base: { input_ref: "HEAD", resolved_sha: head },
+      attribution: { merge_base: head },
+    };
+    const env = await fakeClassifier(temporaryDirectory, classification);
 
     const run = spawnSync(
       "bun",
       [
         "scripts/quality/verify.ts",
         "--plan",
+        "--base", "HEAD",
+        "--base-sha", head,
         "--classification",
         classificationPath,
         "--output",
         manifestPath,
       ],
-      { cwd: root, encoding: "utf8" },
+      { cwd: root, encoding: "utf8", env },
     );
     expect(run.status).toBe(1);
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -97,47 +130,42 @@ describe("quality traceability CLI integration", () => {
   it("builds passing capability traceability from a freshly executed command artifact", async () => {
     const temporaryDirectory = await mkdtemp(join(tmpdir(), "arch-quality-traceability-"));
     const classificationPath = join(temporaryDirectory, "classification.json");
-    const profilesPath = join(temporaryDirectory, "profiles.json");
     const registryPath = join(temporaryDirectory, "registry.json");
     const manifestPath = join(temporaryDirectory, "manifest.json");
-    const profiles = JSON.parse(
-      await readFile(resolve(root, "quality/profiles.json"), "utf8"),
-    );
-    profiles.evidence_commands.contracts = {
-      Q0_CONTRACT_ONLY: "bun run quality:contracts",
-    };
-    await writeJson(profilesPath, profiles);
+    const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .stdout.trim();
     await writeJson(registryPath, {
-      capabilities: [{ id: "CAP-TEST", evidence_kinds: ["contracts"] }],
+      capabilities: [{ id: "CAP-TEST", evidence_kinds: ["classification"] }],
     });
-    await writeJson(classificationPath, {
-      data: {
-        profile: "Q0_CONTRACT_ONLY",
-        reasons: ["fixture"],
-        files: ["docs/quality/readme.md"],
-        affected_capabilities: ["CAP-TEST"],
-        attribution: { merge_base: "a".repeat(40) },
-      },
-    });
+    const classification = {
+      profile: "Q2_CRITICAL_CHANGE_GATE",
+      reasons: ["fixture"],
+      files: ["scripts/quality/traceability.ts"],
+      affected_capabilities: ["CAP-TEST"],
+      comparison_base: { input_ref: "HEAD", resolved_sha: head },
+      attribution: { merge_base: head },
+    };
+    const env = await fakeClassifier(temporaryDirectory, classification);
 
     const run = spawnSync(
       "bun",
       [
         "scripts/quality/verify.ts",
+        "--plan",
+        "--base", "HEAD",
+        "--base-sha", head,
         "--classification",
         classificationPath,
-        "--profiles",
-        profilesPath,
         "--registry",
         registryPath,
         "--output",
         manifestPath,
       ],
-      { cwd: root, encoding: "utf8" },
+      { cwd: root, encoding: "utf8", env },
     );
-    expect(run.status).toBe(0);
+    expect(run.status).toBe(1);
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    expect(manifest.status).toBe("PASS");
+    expect(manifest.status).toBe("QUALITY_BLOCKED");
     expect(manifest.data.traceability).toMatchObject({
       status: "PASS",
       affected_capabilities: ["CAP-TEST"],
@@ -145,10 +173,10 @@ describe("quality traceability CLI integration", () => {
       evidence: [
         {
           capability_id: "CAP-TEST",
-          kind: "contracts",
-          command: "bun run quality:contracts",
+          kind: "classification",
+          command: "bun run quality:classify",
           status: "PASS",
-          artifact: "artifacts/quality/contracts.json",
+          artifact: classificationPath,
         },
       ],
     });

@@ -235,10 +235,20 @@
         "status": { "enum": ["PASS", "FAIL", "QUALITY_BLOCKED"] },
         "source": { "enum": ["local", "ci"] },
         "job": { "type": "string", "minLength": 1 },
+        "executed_command": { "type": "string", "minLength": 1 },
         "exit_code": { "type": ["integer", "null"] },
         "duration_ms": { "type": ["number", "null"], "minimum": 0 },
         "artifact": { "$ref": "#/$defs/artifact" }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "source": { "const": "local" } },
+            "required": ["source"]
+          },
+          "then": { "required": ["executed_command"] }
+        }
+      ]
     },
     "jobResult": {
       "type": "object",
@@ -249,7 +259,13 @@
         "status": { "enum": ["success", "failure", "skipped", "cancelled"] },
         "conclusion": { "enum": ["PASS", "FAIL"] },
         "flaky": { "type": "boolean" },
-        "artifact": { "$ref": "#/$defs/artifact" }
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/artifact" }
+        }
       }
     },
     "evidence": {

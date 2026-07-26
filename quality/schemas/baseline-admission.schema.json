@@ -11,17 +11,21 @@
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["runner", "command", "commit", "artifact", "artifact_sha256", "coverage_artifact", "coverage_sha256", "candidate_artifact", "candidate_sha256"],
+      "required": ["runner", "command", "commit", "measurement", "measurement_artifact", "measurement_sha256", "artifact", "artifact_sha256", "coverage_artifact", "coverage_sha256", "candidate_artifact", "candidate_sha256", "candidate_digest"],
       "properties": {
         "runner": { "const": "vitest" },
         "command": { "type": "string", "minLength": 1 },
         "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "measurement": { "$ref": "#/$defs/measurement" },
+        "measurement_artifact": { "type": "string", "minLength": 1 },
+        "measurement_sha256": { "$ref": "#/$defs/sha256" },
         "artifact": { "type": "string", "minLength": 1 },
         "artifact_sha256": { "$ref": "#/$defs/sha256" },
         "coverage_artifact": { "type": "string", "minLength": 1 },
         "coverage_sha256": { "$ref": "#/$defs/sha256" },
         "candidate_artifact": { "type": "string", "minLength": 1 },
-        "candidate_sha256": { "$ref": "#/$defs/sha256" }
+        "candidate_sha256": { "$ref": "#/$defs/sha256" },
+        "candidate_digest": { "$ref": "#/$defs/sha256" }
       }
     },
     "counts": {
@@ -85,6 +89,51 @@
   },
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "sha256"],
+      "properties": {
+        "artifact": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "artifact_sha256", "inner_sha256", "commit_sha", "comparison_base", "profile"],
+      "properties": {
+        "artifact": { "type": "string", "minLength": 1 },
+        "artifact_sha256": { "$ref": "#/$defs/sha256" },
+        "inner_sha256": { "$ref": "#/$defs/sha256" },
+        "commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "comparison_base": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input_ref", "resolved_sha"],
+          "properties": {
+            "input_ref": { "type": "string", "minLength": 1 },
+            "resolved_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+          }
+        },
+        "profile": { "enum": ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"] }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "integrity_status", "command", "duration_ms", "exit_status", "candidate", "report", "coverage"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "integrity_status": { "const": "PASS" },
+        "command": { "const": "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "exit_status": { "type": "integer" },
+        "candidate": { "$ref": "#/$defs/candidate" },
+        "report": { "$ref": "#/$defs/artifact" },
+        "coverage": { "$ref": "#/$defs/artifact" }
+      }
+    },
     "count": { "type": "integer", "minimum": 0 },
     "reviewPointer": {
       "type": "object",

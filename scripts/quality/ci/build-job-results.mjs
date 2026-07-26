@@ -17,8 +17,10 @@ if (!/^\d+$/u.test(runId ?? "") || !/^\d+$/u.test(runAttempt ?? "")) {
 }
 
 const selectedBddReport = profile === "Q3_RELEASE_GATE" ? "bdd.json" : "bdd-smoke.json";
-const selectedE2eReport =
-  profile === "Q3_RELEASE_GATE" ? "e2e-matrix.json" : "e2e-smoke.json";
+const selectedE2eReports =
+  profile === "Q2_CRITICAL_CHANGE_GATE"
+    ? ["e2e-smoke.json", "e2e-matrix.json"]
+    : [profile === "Q3_RELEASE_GATE" ? "e2e-matrix.json" : "e2e-smoke.json"];
 const definitions = [
   ["quality / classify", "CLASSIFY", "classification", "classification.json"],
   ["quality / contracts", "CONTRACTS", "contracts", "contracts.json"],
@@ -34,8 +36,8 @@ const definitions = [
   ["quality / workers", "WORKERS", "workers", "workers.json"],
   ["quality / bdd-smoke", "BDD_SMOKE", "bdd", selectedBddReport],
   ["quality / a11y", "A11Y", "a11y", "a11y.json"],
-  ["quality / build", "BUILD", "build", "build.json"],
-  ["quality / e2e-smoke", "E2E_SMOKE", "e2e", selectedE2eReport],
+  ["quality / build", "BUILD", "build", ["build.json", "bundle-budget.json"]],
+  ["quality / e2e-smoke", "E2E_SMOKE", "e2e", selectedE2eReports],
   ["quality / mutation", "MUTATION", "mutation", "mutation.json"],
   ["quality / security", "SECURITY", "security", "security.json"],
   ["quality / ai-eval", "AI_EVAL", "ai-eval", "ai-eval.json"],
@@ -65,6 +67,19 @@ const expectedKinds = new Map([
   ["quality / operations", "quality-operations"],
   ["quality / coverage", "diff-coverage"],
 ]);
+const expectedEvidenceIds = new Map([
+  ["unit.json", "test:unit:coverage"],
+  ["property.json", "test:property"],
+  ["workers.json", "test:workers:coverage"],
+  ["bdd-smoke.json", "test:bdd:smoke"],
+  ["bdd.json", "test:bdd"],
+  ["a11y.json", "test:a11y"],
+  ["build.json", "build"],
+  ["bundle-budget.json", "bundle-budget"],
+  ["e2e-smoke.json", "test:e2e:smoke"],
+  ["e2e-matrix.json", "test:e2e:matrix"],
+  ["ai-eval.json", "test:ai-evals"],
+]);
 
 async function findNamedFiles(directory, basename) {
   const matches = [];
@@ -81,7 +96,10 @@ async function findNamedFiles(directory, basename) {
 
 const allowedStatuses = new Set(["success", "failure", "skipped", "cancelled"]);
 const jobs = [];
-for (const [name, statusEnvironment, artifactSlug, reportName] of definitions) {
+for (const [name, statusEnvironment, artifactSlug, configuredReportNames] of definitions) {
+  const reportNames = Array.isArray(configuredReportNames)
+    ? configuredReportNames
+    : [configuredReportNames];
   const expectedKind = expectedKinds.get(name);
   const rawStatus = process.env[statusEnvironment];
   const status = allowedStatuses.has(rawStatus) ? rawStatus : "failure";
@@ -89,40 +107,67 @@ for (const [name, statusEnvironment, artifactSlug, reportName] of definitions) {
     downloads,
     `quality-${artifactSlug}-${runId}-${runAttempt}`,
   );
-  let artifact;
+  const artifacts = [];
+  const validatedReports = [];
   let evidencePass = false;
   try {
-    const matches = await findNamedFiles(artifactDirectory, reportName);
-    if (matches.length !== 1) {
-      throw new Error(
-        `${name} must provide exactly one ${reportName}; found ${matches.length}`,
-      );
+    for (const reportName of reportNames) {
+      const matches = (await findNamedFiles(artifactDirectory, reportName)).sort();
+      if (matches.length !== 1) {
+        throw new Error(
+          `${name} must provide exactly one ${reportName}; found ${matches.length}`,
+        );
+      }
+      const bytes = await readFile(matches[0]);
+      const report = JSON.parse(bytes.toString("utf8"));
+      if (
+        report?.schema_version !== 1 ||
+        report?.kind !== expectedKind ||
+        report?.status !== "PASS" ||
+        !Array.isArray(report?.findings) ||
+        report.findings.length !== 0 ||
+        report?.data === null ||
+        typeof report?.data !== "object"
+      ) {
+        throw new Error(`${name} produced a malformed or non-passing ${expectedKind} report`);
+      }
+      const expectedEvidenceId = expectedEvidenceIds.get(reportName);
+      if (expectedEvidenceId && report.data.evidence_id !== expectedEvidenceId) {
+        throw new Error(
+          `${name} ${reportName} evidence_id must be ${expectedEvidenceId}`,
+        );
+      }
+      validatedReports.push({
+        reportName,
+        bytes,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      });
     }
-    const bytes = await readFile(matches[0]);
-    const report = JSON.parse(bytes.toString("utf8"));
-    evidencePass =
-      report?.schema_version === 1 &&
-      report?.kind === expectedKind &&
-      report?.status === "PASS" &&
-      Array.isArray(report?.findings) &&
-      report?.data !== null &&
-      typeof report?.data === "object";
-    if (!evidencePass) {
-      throw new Error(`${name} produced a malformed or non-passing ${expectedKind} report`);
+    for (const report of validatedReports) {
+      const canonicalPath = resolve(root, "artifacts/quality", report.reportName);
+      await mkdir(dirname(canonicalPath), { recursive: true });
+      await writeFile(canonicalPath, report.bytes);
+      artifacts.push({
+        path: relative(root, canonicalPath).split(sep).join("/"),
+        sha256: report.sha256,
+      });
     }
-    artifact = {
-      path: relative(root, matches[0]).split(sep).join("/"),
-      sha256: createHash("sha256").update(bytes).digest("hex"),
-    };
+    evidencePass = true;
   } catch (error) {
     process.stderr.write(`${String(error)}\n`);
+    artifacts.length = 0;
   }
   jobs.push({
     name,
     status,
     conclusion: status === "success" && evidencePass ? "PASS" : "FAIL",
     flaky: false,
-    ...(artifact ? { artifact } : {}),
+    ...(artifacts.length > 0
+      ? {
+          artifact: artifacts[0],
+          ...(artifacts.length > 1 ? { artifacts: artifacts.slice(1) } : {}),
+        }
+      : {}),
   });
 }
 

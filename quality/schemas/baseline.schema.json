@@ -24,14 +24,26 @@
         "report",
         "report_sha256",
         "coverage",
-        "coverage_sha256"
+        "coverage_sha256",
+        "candidate",
+        "measurement"
       ],
       "properties": {
         "command": { "type": "string", "minLength": 1 },
         "report": { "const": "quality/baselines/component/source.vitest.json" },
         "report_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "coverage": { "const": "quality/baselines/component/coverage-summary.json" },
-        "coverage_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        "coverage_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["record", "digest"],
+          "properties": {
+            "record": { "$ref": "#/$defs/candidateRecord" },
+            "digest": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "measurement": { "$ref": "#/$defs/measurementLineage" }
       }
     },
     "admission": {
@@ -45,7 +57,14 @@
         "quality_review_artifact",
         "quality_review_sha256",
         "security_review_artifact",
-        "security_review_sha256"
+        "security_review_sha256",
+        "candidate_digest",
+        "author_ids",
+        "quality_reviewer",
+        "security_reviewer",
+        "review_source",
+        "reviewer_identity_assurance",
+        "author_identity_assurance"
       ],
       "properties": {
         "inventory": { "const": "quality/baselines/component/inventory.json" },
@@ -61,7 +80,14 @@
           "type": "string",
           "const": "quality/reviews/component-baseline-security.md"
         },
-        "security_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        "security_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "candidate_digest": { "$ref": "#/$defs/sha256" },
+        "author_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "quality_reviewer": { "type": "string", "minLength": 1 },
+        "security_reviewer": { "type": "string", "minLength": 1 },
+        "review_source": { "const": "local-agent" },
+        "reviewer_identity_assurance": { "const": "asserted-local" },
+        "author_identity_assurance": { "const": "asserted-local" }
       }
     },
     "suite": {
@@ -137,6 +163,57 @@
     }
   },
   "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "comparisonBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_ref", "resolved_sha"],
+      "properties": {
+        "input_ref": { "type": "string", "minLength": 1 },
+        "resolved_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+      }
+    },
+    "candidateFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "deleted", "sources"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "deleted": { "type": "boolean" },
+        "sources": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["committed", "staged", "unstaged", "untracked"] } }
+      }
+    },
+    "candidateRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "commit_sha", "comparison_base", "profile", "changed_files", "affected_capabilities"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "comparison_base": { "$ref": "#/$defs/comparisonBase" },
+        "profile": { "enum": ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"] },
+        "changed_files": { "type": "array", "items": { "$ref": "#/$defs/candidateFile" } },
+        "affected_capabilities": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "measurementLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["integrity_status", "command", "duration_ms", "exit_status", "candidate_digest", "candidate_commit", "comparison_base", "profile", "report_sha256", "coverage_sha256"],
+      "properties": {
+        "integrity_status": { "const": "PASS" },
+        "command": { "const": "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "exit_status": { "type": "integer" },
+        "candidate_digest": { "$ref": "#/$defs/sha256" },
+        "candidate_commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "comparison_base": { "$ref": "#/$defs/comparisonBase" },
+        "profile": { "enum": ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"] },
+        "report_sha256": { "$ref": "#/$defs/sha256" },
+        "coverage_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
     "coverageValue": {
       "type": "object",
       "additionalProperties": false,

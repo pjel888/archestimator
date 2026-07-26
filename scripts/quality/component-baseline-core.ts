@@ -1,6 +1,7 @@
-import { relative, resolve, sep } from "node:path";
-import { globMatches, type ComponentBaseline, type ComponentEvidenceMap, type CoverageSummary, type VitestAssertion, type VitestFileResult, type VitestJsonReport } from "./component-core";
+import { posix, relative, resolve, sep } from "node:path";
+import { COMPONENT_BASELINE_MEASUREMENT_COMMAND, globMatches, type ComponentBaseline, type ComponentEvidenceMap, type CoverageSummary, type VitestAssertion, type VitestFileResult, type VitestJsonReport } from "./component-core";
 import { sha256, type QualityFinding } from "./common";
+import { candidateDigest, type CandidateRecord } from "./candidate-core";
 
 export type BaselineFailureKind =
   | "failed_file"
@@ -50,12 +51,16 @@ export interface BaselineInventory {
     runner: string;
     command: string;
     commit: string;
+    measurement: ComponentMeasurementEnvelope;
+    measurement_artifact: string;
+    measurement_sha256: string;
     artifact: string;
     artifact_sha256: string;
     coverage_artifact: string;
     coverage_sha256: string;
     candidate_artifact: string;
     candidate_sha256: string;
+    candidate_digest: string;
   };
   counts: Record<BaselineFailureKind | BaselineClassification | "total_records", number>;
   critical_capabilities: Array<{ id: string; name: string; critical: true }>;
@@ -83,6 +88,9 @@ export interface InventoryBuildInput {
   coverageSha256: string;
   candidatePath: string;
   candidateSha256: string;
+  measurementPath: string;
+  measurementSha256: string;
+  measurement: ComponentMeasurementEnvelope;
   command: string;
   commit: string;
   generatedAt: string;
@@ -94,6 +102,144 @@ export interface InventoryBuildInput {
   phase?: "draft" | "admission";
   qualityReviewPath?: string;
   securityReviewPath?: string;
+}
+
+export interface ComponentMeasurementEnvelope {
+  schema_version: 1;
+  integrity_status: "PASS" | "FAIL";
+  command: string;
+  duration_ms: number;
+  exit_status: number | null;
+  candidate: {
+    artifact: string;
+    artifact_sha256: string;
+    inner_sha256: string;
+    commit_sha: string;
+    comparison_base: { input_ref: string; resolved_sha: string };
+    profile: "Q2_CRITICAL_CHANGE_GATE" | "Q3_RELEASE_GATE";
+  };
+  report: { artifact: string; sha256: string };
+  coverage: { artifact: string; sha256: string };
+}
+
+export interface ComponentMeasurementArtifactResult {
+  kind?: string;
+  status?: string;
+  findings?: Array<{ code?: string }>;
+  data?: { measurement?: ComponentMeasurementEnvelope | null };
+}
+
+function measurementResultIsGreen(
+  artifact: ComponentMeasurementArtifactResult,
+  measurement: ComponentMeasurementEnvelope | null | undefined,
+  findings: Array<{ code?: string }>,
+): boolean {
+  return artifact.status === "PASS" && findings.length === 0 &&
+    measurement?.integrity_status === "PASS" && measurement.exit_status === 0;
+}
+
+function measurementResultIsExactRed(
+  artifact: ComponentMeasurementArtifactResult,
+  measurement: ComponentMeasurementEnvelope | null | undefined,
+  findings: Array<{ code?: string }>,
+): boolean {
+  return artifact.status === "FAIL" && findings.length === 1 &&
+    findings[0]?.code === "COMPONENT_MEASUREMENT_RED" &&
+    measurement?.integrity_status === "PASS" && Number.isInteger(measurement.exit_status) &&
+    Number(measurement.exit_status) !== 0;
+}
+
+function measurementOriginIsTransient(value: unknown): boolean {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const normalized = posix.normalize(value.replaceAll("\\", "/"));
+  return normalized !== "quality" && !normalized.startsWith("quality/");
+}
+
+export function validateComponentMeasurementEnvelope(
+  measurement: ComponentMeasurementEnvelope | undefined,
+): QualityFinding[] {
+  const shaPattern = /^[a-f0-9]{64}$/u;
+  const commitPattern = /^[a-f0-9]{40}$/u;
+  if (!measurement) return [{ code: "MEASUREMENT_ENVELOPE_INVALID", message: "Component measurement envelope is malformed or lacks integrity PASS" }];
+  const candidate = measurement.candidate;
+  const comparisonBase = candidate?.comparison_base;
+  const report = measurement.report;
+  const coverage = measurement.coverage;
+  const durationValid = Number.isInteger(measurement.duration_ms) ? measurement.duration_ms >= 0 : false;
+  const exitValid = Number.isInteger(measurement.exit_status);
+  const valid = [
+    measurement.schema_version === 1,
+    measurement.integrity_status === "PASS",
+    measurement.command === COMPONENT_BASELINE_MEASUREMENT_COMMAND,
+    durationValid, exitValid, Boolean(candidate?.artifact),
+    shaPattern.test(String(candidate?.artifact_sha256)),
+    shaPattern.test(String(candidate?.inner_sha256)),
+    commitPattern.test(String(candidate?.commit_sha)),
+    Boolean(comparisonBase?.input_ref),
+    commitPattern.test(String(comparisonBase?.resolved_sha)),
+    ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"].includes(String(candidate?.profile)),
+    measurementOriginIsTransient(report?.artifact), shaPattern.test(String(report?.sha256)),
+    measurementOriginIsTransient(coverage?.artifact), shaPattern.test(String(coverage?.sha256)),
+  ].every(Boolean);
+  if (valid) return [];
+  return [{ code: "MEASUREMENT_ENVELOPE_INVALID", message: "Component measurement envelope is malformed or lacks integrity PASS" }];
+}
+
+export function validateComponentMeasurementArtifactResult(
+  artifact: ComponentMeasurementArtifactResult,
+): QualityFinding[] {
+  const measurement = artifact.data?.measurement;
+  const findings = Array.isArray(artifact.findings) ? artifact.findings : [];
+  const green = measurementResultIsGreen(artifact, measurement, findings);
+  const red = measurementResultIsExactRed(artifact, measurement, findings);
+  if (artifact.kind === "component-baseline-measurement" && (green || red)) return [];
+  return [{
+    code: "MEASUREMENT_RESULT_INVALID",
+    message: "Measurement result must be green with exit 0 or contain only COMPONENT_MEASUREMENT_RED with a nonzero integer exit",
+  }];
+}
+
+export function buildComponentMeasurementEnvelope(input: {
+  command: string;
+  candidateArtifact: string;
+  before?: ComponentMeasurementEnvelope["candidate"];
+  after?: ComponentMeasurementEnvelope["candidate"];
+  beforeFindings: QualityFinding[];
+  afterFindings: QualityFinding[];
+  reportPath: string;
+  reportRaw?: Buffer;
+  coveragePath: string;
+  coverageRaw?: Buffer;
+  durationMs: number;
+  exitStatus: number | null;
+}): { measurement?: ComponentMeasurementEnvelope; findings: QualityFinding[] } {
+  const findings = [...input.beforeFindings, ...input.afterFindings];
+  const snapshotsAvailable = [input.before, input.after].every(Boolean);
+  if (!snapshotsAvailable) {
+    findings.push({ code: "MEASUREMENT_CANDIDATE_INVALID", message: "Measurement requires valid candidate snapshots before and after execution" });
+  } else if (JSON.stringify(input.before) !== JSON.stringify(input.after)) {
+    findings.push({ code: "MEASUREMENT_CANDIDATE_DRIFT", message: "Candidate artifact or worktree binding changed during measurement" });
+  }
+  if (!input.reportRaw) findings.push({ code: "COMPONENT_REPORT_MALFORMED", message: "Measurement report is missing" });
+  if (!input.coverageRaw) findings.push({ code: "COMPONENT_COVERAGE_MALFORMED", message: "Measurement coverage is missing" });
+  if (!Number.isInteger(input.exitStatus) && !findings.some((finding) => finding.code === "COMPONENT_INFRASTRUCTURE_FAILURE")) {
+    findings.push({ code: "COMPONENT_INFRASTRUCTURE_FAILURE", message: "Component measurement has no integer exit status" });
+  }
+  const sourcesAvailable = [input.before, input.reportRaw, input.coverageRaw].every(Boolean);
+  if (!sourcesAvailable) return { findings };
+  return {
+    findings,
+    measurement: {
+      schema_version: 1,
+      integrity_status: findings.length === 0 ? "PASS" : "FAIL",
+      command: input.command,
+      duration_ms: input.durationMs,
+      exit_status: input.exitStatus,
+      candidate: { ...input.before!, artifact: input.candidateArtifact },
+      report: { artifact: input.reportPath, sha256: sha256(input.reportRaw) },
+      coverage: { artifact: input.coveragePath, sha256: sha256(input.coverageRaw) },
+    },
+  };
 }
 
 export interface CanonicalBaselineInput {
@@ -115,6 +261,8 @@ export interface CanonicalBaselineInput {
   securityReviewPath: string;
   securityReviewSha256: string;
   securityReviewer: string;
+  candidateRecord: CandidateRecord;
+  authorIds: string[];
 }
 
 const failureKinds: BaselineFailureKind[] = [
@@ -165,6 +313,14 @@ function capabilityIds(file: string, evidenceMap: ComponentEvidenceMap): string[
     .filter(([, patterns]) => patterns.some((pattern) => globMatches(file, pattern)))
     .map(([id]) => id)
     .sort();
+}
+
+function failureCriticality(file: string, evidenceMap: ComponentEvidenceMap): "critical" | "noncritical" | "unknown" {
+  if (capabilityIds(file, evidenceMap).length > 0) return "critical";
+  const mapped = evidenceMap.affected_rules.some((rule) =>
+    rule.test_patterns.some((pattern) => globMatches(file, pattern))
+  );
+  return mapped ? "noncritical" : "unknown";
 }
 
 interface RawRecord {
@@ -228,21 +384,10 @@ function malformedCounter(name: string, reported: number, observed: number): Raw
   return { file: "<report>", test: `<${name}>`, kind: "malformed_evidence", signature: `${name}:${reported};observed:${observed}` };
 }
 
-function proposalIsCurrent(proposal: RatchetProposal | undefined, generatedAt: string): proposal is RatchetProposal {
-  if (!proposal) return false;
-  const strings = [proposal.owner, proposal.rationale, proposal.acceptance?.command, proposal.acceptance?.expected_artifact];
-  return strings.every((value) => Boolean(value?.trim())) && validFutureDate(proposal.expires_at, generatedAt);
-}
-
-function validFutureDate(value: string, reference: string): boolean {
-  const parsed = Date.parse(value);
-  return !Number.isNaN(parsed) && parsed > Date.parse(reference);
-}
-
-function recordClassification(kind: BaselineFailureKind, critical: boolean, mayRatchet: boolean): BaselineClassification {
+function recordClassification(kind: BaselineFailureKind, critical: boolean): BaselineClassification {
   if (critical) return "must_fix_critical";
   if (kind !== "failed_test" && kind !== "failed_file") return "must_fix_infrastructure";
-  return mayRatchet ? "ratchet_noncritical" : "must_fix_noncritical";
+  return "must_fix_noncritical";
 }
 
 function proposalMetadata(proposal: RatchetProposal | undefined, proposed: boolean): Pick<BaselineInventoryRecord,
@@ -261,18 +406,18 @@ function proposalMetadata(proposal: RatchetProposal | undefined, proposed: boole
 
 function toInventoryRecord(raw: RawRecord, input: InventoryBuildInput): BaselineInventoryRecord {
   const criticalIds = capabilityIds(raw.file, input.evidenceMap);
+  const criticality = failureCriticality(raw.file, input.evidenceMap);
   const identityInput = { runner: "vitest", file: raw.file, test_or_scenario: raw.test, failure_kind: raw.kind, normalized_signature: raw.signature };
   const id = stableBaselineRecordId(identityInput);
   const proposal = input.proposals?.[id];
-  const mayRatchet = raw.kind === "failed_test" && criticalIds.length === 0 && proposalIsCurrent(proposal, input.generatedAt);
-  const classification = recordClassification(raw.kind, criticalIds.length > 0, mayRatchet);
+  const classification = recordClassification(raw.kind, criticality === "critical");
   return {
     id,
     ...identityInput,
     critical_capability_ids: criticalIds,
     root_cause_cluster: `identity:${id}`,
     classification,
-    ...proposalMetadata(proposal, mayRatchet),
+    ...proposalMetadata(proposal, false),
     evidence_artifact: null,
   };
 }
@@ -299,9 +444,12 @@ export function buildBaselineInventory(input: InventoryBuildInput): BaselineInve
     generated_at: input.generatedAt,
     source: {
       runner: "vitest", command: input.command, commit: input.commit,
+      measurement: input.measurement,
+      measurement_artifact: input.measurementPath, measurement_sha256: input.measurementSha256,
       artifact: input.reportPath, artifact_sha256: input.reportSha256,
       coverage_artifact: input.coveragePath, coverage_sha256: input.coverageSha256,
       candidate_artifact: input.candidatePath, candidate_sha256: input.candidateSha256,
+      candidate_digest: input.measurement.candidate.inner_sha256,
     },
     counts: countRecords(records),
     critical_capabilities: [...input.capabilities].sort((left, right) => left.id.localeCompare(right.id)),
@@ -331,12 +479,15 @@ function validateRecordSemantics(record: BaselineInventoryRecord, now: number, i
 }
 
 function ratchetMetadataValid(record: BaselineInventoryRecord, now: number): boolean {
-  const values = [record.owner, record.rationale, record.acceptance.command, record.acceptance.expected_artifact];
+  const values = [record.owner, record.rationale, record.acceptance?.command, record.acceptance?.expected_artifact];
   return values.every(Boolean) && Boolean(record.expires_at) && Date.parse(record.expires_at!) > now;
 }
 
 function validateInventoryCounts(inventory: BaselineInventory): QualityFinding[] {
   const findings: QualityFinding[] = [];
+  if (!Array.isArray(inventory.records) || !inventory.counts || typeof inventory.counts !== "object") {
+    return [{ code: "INVENTORY_STRUCTURE_INVALID", message: "Inventory records and counts must be structurally valid before count validation" }];
+  }
   for (const key of [...failureKinds, ...classifications, "total_records"] as const) {
     const expected = key === "total_records" ? inventory.records.length : inventory.records.filter((record) => record.failure_kind === key || record.classification === key).length;
     if (inventory.counts?.[key] !== expected) findings.push({ code: "COUNT_MISMATCH", message: `counts.${key} is ${inventory.counts?.[key]}, expected ${expected}` });
@@ -345,11 +496,17 @@ function validateInventoryCounts(inventory: BaselineInventory): QualityFinding[]
 }
 
 function validateInventoryAdmissionCount(inventory: BaselineInventory): QualityFinding[] {
+  if (!Array.isArray(inventory.records) || !inventory.admission || typeof inventory.admission !== "object") {
+    return [{ code: "INVENTORY_STRUCTURE_INVALID", message: "Inventory records and admission must be structurally valid before admission count validation" }];
+  }
   const open = inventory.records.filter((record) => record.classification !== "ratchet_noncritical" && record.status !== "closed").length;
   return inventory.admission?.open_must_fix_records === open ? [] : [{ code: "ADMISSION_OPEN_COUNT", message: `admission.open_must_fix_records must be ${open}` }];
 }
 
 export function validateInventorySemantics(inventory: BaselineInventory, now: number): QualityFinding[] {
+  if (!inventory || typeof inventory !== "object" || !Array.isArray(inventory.records) || inventory.records.some((record) => !record || typeof record !== "object" || !Array.isArray(record.critical_capability_ids) || !record.acceptance || typeof record.acceptance !== "object")) {
+    return [{ code: "INVENTORY_STRUCTURE_INVALID", message: "Inventory structure is invalid; semantic validation stopped" }];
+  }
   const ids = new Set<string>();
   const identities = new Set<string>();
   return [
@@ -373,12 +530,38 @@ export function buildCanonicalBaseline(input: CanonicalBaselineInput): Component
   const testFiles = (input.report.testResults ?? []).map((result) => result.name).filter((name): name is string => Boolean(name)).map((name) => relativePath(input.root, name)).sort();
   return {
     schema_version: 1, status: "admitted",
-    source: { command: input.inventory.source.command, report: input.reportPath, report_sha256: input.reportSha256, coverage: input.coveragePath, coverage_sha256: input.coverageSha256 },
+    source: {
+      command: input.inventory.source.command,
+      report: input.reportPath,
+      report_sha256: input.reportSha256,
+      coverage: input.coveragePath,
+      coverage_sha256: input.coverageSha256,
+      candidate: { record: input.candidateRecord, digest: candidateDigest(input.candidateRecord) },
+      measurement: {
+        integrity_status: "PASS",
+        command: input.inventory.source.measurement.command,
+        duration_ms: input.inventory.source.measurement.duration_ms,
+        exit_status: input.inventory.source.measurement.exit_status,
+        candidate_digest: input.inventory.source.measurement.candidate.inner_sha256,
+        candidate_commit: input.inventory.source.measurement.candidate.commit_sha,
+        comparison_base: input.inventory.source.measurement.candidate.comparison_base,
+        profile: input.inventory.source.measurement.candidate.profile,
+        report_sha256: input.inventory.source.measurement.report.sha256,
+        coverage_sha256: input.inventory.source.measurement.coverage.sha256,
+      },
+    },
     admission: {
       inventory: input.inventoryPath, inventory_sha256: input.inventorySha256,
       validation_artifact: input.validationPath, validation_sha256: input.validationSha256,
       quality_review_artifact: input.qualityReviewPath, quality_review_sha256: input.qualityReviewSha256,
       security_review_artifact: input.securityReviewPath, security_review_sha256: input.securityReviewSha256,
+      candidate_digest: input.inventory.source.candidate_digest,
+      author_ids: [...input.authorIds].sort(),
+      quality_reviewer: input.qualityReviewer,
+      security_reviewer: input.securityReviewer,
+      review_source: "local-agent",
+      reviewer_identity_assurance: "asserted-local",
+      author_identity_assurance: "asserted-local",
     },
     suite: { test_files: testFiles, total_tests: input.report.numTotalTests ?? 0 },
     allowed_failures: failures,

@@ -80,6 +80,7 @@
         "quality / workflows"
       ],
       "commands": [
+        "bun run quality:classify",
         "bun run quality:contracts",
         "bun run quality:adapters",
         "bun run quality:anti-bypass",
@@ -107,6 +108,7 @@
         "quality / operations"
       ],
       "commands": [
+        "bun run quality:classify",
         "bun run quality:contracts",
         "bun run quality:adapters",
         "bun run quality:anti-bypass",

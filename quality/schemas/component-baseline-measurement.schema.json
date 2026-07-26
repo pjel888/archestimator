@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archestimator.local/quality/component-baseline-measurement.schema.json",
+  "title": "Candidate-bound component baseline measurement",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "generated_at", "summary", "findings", "data"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kind": { "const": "component-baseline-measurement" },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "summary": { "type": "string", "minLength": 1 },
+    "findings": { "type": "array" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measurement"],
+      "properties": {
+        "measurement": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": { "integrity_status": { "const": "PASS" } },
+                "required": ["integrity_status"]
+              },
+              "then": { "properties": { "exit_status": { "type": "integer" } } }
+            }
+          ],
+          "required": ["schema_version", "integrity_status", "command", "duration_ms", "exit_status", "candidate", "report", "coverage"],
+          "properties": {
+            "schema_version": { "const": 1 },
+            "integrity_status": { "enum": ["PASS", "FAIL"] },
+            "command": { "const": "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json" },
+            "duration_ms": { "type": "integer", "minimum": 0 },
+            "exit_status": { "type": ["integer", "null"] },
+            "candidate": { "$ref": "#/$defs/candidate" },
+            "report": { "$ref": "#/$defs/artifact" },
+            "coverage": { "$ref": "#/$defs/artifact" }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "PASS" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "findings": { "maxItems": 0 },
+          "data": {
+            "properties": {
+              "measurement": {
+                "type": "object",
+                "required": ["integrity_status", "exit_status"],
+                "properties": {
+                  "integrity_status": { "const": "PASS" },
+                  "exit_status": { "const": 0 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "properties": { "measurement": { "type": "null" } },
+            "required": ["measurement"]
+          }
+        },
+        "required": ["data"]
+      },
+      "then": { "properties": { "status": { "const": "FAIL" } } }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "sha256"],
+      "properties": {
+        "artifact": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact", "artifact_sha256", "inner_sha256", "commit_sha", "comparison_base", "profile"],
+      "properties": {
+        "artifact": { "type": "string", "minLength": 1 },
+        "artifact_sha256": { "$ref": "#/$defs/sha256" },
+        "inner_sha256": { "$ref": "#/$defs/sha256" },
+        "commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "comparison_base": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input_ref", "resolved_sha"],
+          "properties": {
+            "input_ref": { "type": "string", "minLength": 1 },
+            "resolved_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+          }
+        },
+        "profile": { "enum": ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"] }
+      }
+    }
+  }
+}
