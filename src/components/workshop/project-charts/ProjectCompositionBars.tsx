@@ -7,6 +7,7 @@ import { cn } from "@/lib/ui/cn";
 type ProjectCompositionBarsProps = {
   view: ProjectChartComparisonView;
   activeBucketId: string | null;
+  pinnedBucketId: string | null;
   onActiveBucketChange: (bucketId: string | null) => void;
   onTogglePin: (bucketId: string) => void;
 };
@@ -21,6 +22,7 @@ type ProjectCompositionBarsProps = {
 export function ProjectCompositionBars({
   view,
   activeBucketId,
+  pinnedBucketId,
   onActiveBucketChange,
   onTogglePin,
 }: ProjectCompositionBarsProps) {
@@ -64,6 +66,7 @@ export function ProjectCompositionBars({
                     type="button"
                     data-bucket-id={bucket.id}
                     aria-label={`Toggle ${bucket.label} pin`}
+                    aria-pressed={bucket.id === pinnedBucketId}
                     title={`${bucket.label}: ${formatChartShare(share)} · ${formatChartMoney(bucket.perEstimateTotals[estimate.id] ?? 0, view.currencyCode)}`}
                     onMouseEnter={() => onActiveBucketChange(bucket.id)}
                     onMouseLeave={() => onActiveBucketChange(null)}

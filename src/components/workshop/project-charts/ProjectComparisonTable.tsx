@@ -1,6 +1,7 @@
 "use client";
 
 import type { ProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
+import { Button } from "@/components/ui/button";
 import { bucketCueToken, formatChartMoney, formatChartShare, formatSignedChartMoney } from "@/lib/project-charts/format";
 import { formatDeltaPercent } from "@/lib/project-charts/build-insight-sentence";
 import { cn } from "@/lib/ui/cn";
@@ -10,6 +11,7 @@ type ProjectComparisonTableProps = {
   /** Stable id so each chart can point at this table via aria-describedby. */
   id: string;
   activeBucketId: string | null;
+  pinnedBucketId: string | null;
   onActiveBucketChange: (bucketId: string | null) => void;
   onTogglePin: (bucketId: string) => void;
 };
@@ -28,6 +30,7 @@ export function ProjectComparisonTable({
   view,
   id,
   activeBucketId,
+  pinnedBucketId,
   onActiveBucketChange,
   onTogglePin,
 }: ProjectComparisonTableProps) {
@@ -67,12 +70,15 @@ export function ProjectComparisonTable({
                 onMouseLeave={() => onActiveBucketChange(null)}
               >
                 <th scope="row" className="max-w-40 truncate py-1 pl-2 pr-2 text-left font-medium text-foreground">
-                  <button
+                  <Button
                     type="button"
+                    variant="plain"
+                    size="xs"
+                    aria-pressed={bucket.id === pinnedBucketId}
                     onClick={() => onTogglePin(bucket.id)}
                     onFocus={() => onActiveBucketChange(bucket.id)}
                     onBlur={() => onActiveBucketChange(null)}
-                    className="inline-flex max-w-full items-center gap-1.5 rounded-xs text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    className="min-h-7 min-w-0 max-w-full justify-start gap-1.5 px-0 text-left"
                   >
                     <span
                       aria-hidden="true"
@@ -82,7 +88,7 @@ export function ProjectComparisonTable({
                       {bucketCueToken(index)}
                     </span>
                     <span className="truncate">{bucket.label}</span>
-                  </button>
+                  </Button>
                 </th>
                 {view.estimates.map((estimate) => (
                   <td key={estimate.id} className="whitespace-nowrap px-2 py-1 text-right tabular-nums">

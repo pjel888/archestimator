@@ -12,6 +12,7 @@ type ProjectVarianceSpineProps = {
   /** id used by the chart's `aria-describedby` → the detail table. */
   tableId: string;
   activeBucketId: string | null;
+  pinnedBucketId: string | null;
   onActiveBucketChange: (bucketId: string | null) => void;
   onTogglePin: (bucketId: string) => void;
 };
@@ -30,10 +31,10 @@ export function ProjectVarianceSpine({
   view,
   tableId,
   activeBucketId,
+  pinnedBucketId,
   onActiveBucketChange,
   onTogglePin,
 }: ProjectVarianceSpineProps) {
-  const baselineId = view.baselineEstimateId;
   const baselineName = view.estimates.find((estimate) => estimate.isBaseline)?.name ?? "Baseline";
   const comparandName = view.estimates.find((estimate) => estimate.id === view.comparandEstimateId)?.name ?? "Comparand";
 
@@ -71,6 +72,7 @@ export function ProjectVarianceSpine({
       <ul className="divide-y divide-hairline" role="presentation">
         {view.buckets.map((bucket, index) => {
           const isActive = bucket.id === activeBucketId;
+          const isPinned = bucket.id === pinnedBucketId;
           const lower = bucket.delta < 0;
           const higher = bucket.delta > 0;
           const directionTextClass = lower ? "text-success" : higher ? "text-danger" : "text-tertiary";
@@ -93,7 +95,7 @@ export function ProjectVarianceSpine({
             <li key={bucket.id} data-bucket-id={bucket.id} data-testid="variance-row">
               <button
                 type="button"
-                aria-pressed={isActive}
+                aria-pressed={isPinned}
                 onMouseEnter={() => onActiveBucketChange(bucket.id)}
                 onMouseLeave={() => onActiveBucketChange(null)}
                 onFocus={() => onActiveBucketChange(bucket.id)}

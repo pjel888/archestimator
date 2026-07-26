@@ -441,6 +441,18 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
     if (!database) throw new Error("Onboarding state is unavailable.");
     const actor = await resolveCurrentOnboardingActor(database);
     await importExistingOnboardingState(database, actor);
+    const firstValueDefinition = ONBOARDING_FLOW_CATALOG.find(
+      (definition) => definition.key === "first_estimate_value",
+    );
+    const firstValueBinding = firstValueDefinition
+      ? await getOnboardingFlowRunBinding(database, {
+          userId: actor.userId,
+          workspaceId: actor.workspaceId,
+          flowKey: firstValueDefinition.key,
+          flowVersion: firstValueDefinition.version,
+        })
+      : null;
+    const intendedEstimateId = firstValueBinding?.resourceId ?? null;
     const [
     flowStates,
     activation,
@@ -453,6 +465,7 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
     listOnboardingFlowStates(database, actor),
     getActivationProgress(database, actor),
     database.prepare<ActivationFactsRow>(`
+      WITH target_estimate(estimate_id) AS (SELECT ?)
       SELECT
         (
           EXISTS (
@@ -473,6 +486,10 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
             SELECT 1 FROM beta_activation_events
             WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
               AND milestone IN ('first_area_created', 'first_row_priced', 'first_valid_total')
+              AND (
+                (SELECT estimate_id FROM target_estimate) IS NULL
+                OR estimate_id = (SELECT estimate_id FROM target_estimate)
+              )
           )
           OR EXISTS (
             SELECT 1 FROM beta_onboarding_flow_events
@@ -480,24 +497,41 @@ const loadCurrentOnboardingEligibilitySnapshotCached = cache(
               AND source = 'non_starter_domain'
               AND event_type = 'step_completed'
               AND flow_key = 'first_estimate_value'
+              AND (
+                (SELECT estimate_id FROM target_estimate) IS NULL
+                OR resource_id = (SELECT estimate_id FROM target_estimate)
+              )
           )
         ) AS estimate_started,
         EXISTS (
           SELECT 1 FROM beta_activation_events
           WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
             AND milestone = 'first_area_created'
+            AND (
+              (SELECT estimate_id FROM target_estimate) IS NULL
+              OR estimate_id = (SELECT estimate_id FROM target_estimate)
+            )
         ) AS first_area_created,
         EXISTS (
           SELECT 1 FROM beta_activation_events
           WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
             AND milestone = 'first_row_priced'
+            AND (
+              (SELECT estimate_id FROM target_estimate) IS NULL
+              OR estimate_id = (SELECT estimate_id FROM target_estimate)
+            )
         ) AS first_row_priced,
         EXISTS (
           SELECT 1 FROM beta_activation_events
           WHERE user_id = ? AND workspace_id = ? AND origin_class = 'user_domain'
             AND milestone = 'first_valid_total'
+            AND (
+              (SELECT estimate_id FROM target_estimate) IS NULL
+              OR estimate_id = (SELECT estimate_id FROM target_estimate)
+            )
         ) AS first_valid_total_reached
     `).bind(
+      intendedEstimateId,
       actor.userId, actor.workspaceId,
       actor.userId, actor.workspaceId,
       actor.userId, actor.workspaceId,
@@ -686,6 +720,10 @@ export async function mutateCurrentOnboardingFlow(
   return mutateOnboardingFlow(database, {
     userId: actor.userId,
     workspaceId: actor.workspaceId,
+    resourceId: command.flowKey === "first_estimate_value"
+      || command.flowKey === "estimate_reader_orientation"
+      ? snapshot.resourceContext.estimateId
+      : null,
     eligibleStepKeys: eligibleFlow.steps.map((step) => step.key),
     tutorialBinding: guidedState?.tutorialBinding ?? null,
     guidedPracticeComplete: command.flowKey === "guided_estimate_practice"

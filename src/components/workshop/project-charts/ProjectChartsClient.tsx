@@ -333,6 +333,7 @@ export function ProjectChartsClient({
             view={view}
             tableId={COMPARISON_TABLE_ID}
             activeBucketId={activeBucketId}
+            pinnedBucketId={pinnedBucketId}
             onActiveBucketChange={setActiveBucket}
             onTogglePin={togglePin}
           />
@@ -342,6 +343,7 @@ export function ProjectChartsClient({
           <ProjectCompositionBars
             view={view}
             activeBucketId={activeBucketId}
+            pinnedBucketId={pinnedBucketId}
             onActiveBucketChange={setActiveBucket}
             onTogglePin={togglePin}
           />
@@ -370,6 +372,7 @@ export function ProjectChartsClient({
             <ProjectCompositionBars
               view={view}
               activeBucketId={activeBucketId}
+              pinnedBucketId={pinnedBucketId}
               onActiveBucketChange={setActiveBucket}
               onTogglePin={togglePin}
             />
@@ -377,6 +380,7 @@ export function ProjectChartsClient({
               view={view}
               id={COMPARISON_TABLE_ID}
               activeBucketId={activeBucketId}
+              pinnedBucketId={pinnedBucketId}
               onActiveBucketChange={setActiveBucket}
               onTogglePin={togglePin}
             />
@@ -386,6 +390,7 @@ export function ProjectChartsClient({
             view={view}
             id={COMPARISON_TABLE_ID}
             activeBucketId={activeBucketId}
+            pinnedBucketId={pinnedBucketId}
             onActiveBucketChange={setActiveBucket}
             onTogglePin={togglePin}
           />

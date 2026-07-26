@@ -134,10 +134,15 @@ const STARTER_STATE_CONTENT: Record<
   },
 };
 
-function flowStatusLabel(status: OnboardingFlowStatus | undefined) {
+function flowStatusLabel(
+  flowKey: OnboardingFlowKey,
+  status: OnboardingFlowStatus | undefined,
+) {
   if (!status || status === "not_started") return "Not started";
   if (status === "in_progress") return "In progress";
-  if (status === "completed") return "Complete";
+  if (status === "completed") {
+    return flowKey === "estimate_reader_orientation" ? "Viewed" : "Complete";
+  }
   return "Skipped";
 }
 
@@ -173,7 +178,7 @@ function FlowStatusCard({
           className="min-w-0"
           tone={status === "completed" ? "success" : status === "in_progress" ? "accent" : "neutral"}
         >
-          {flowStatusLabel(status)}
+          {flowStatusLabel(flowKey, status)}
         </Badge>
       </div>
       <p className="mt-2 text-[9px] leading-4 text-tertiary">{description}</p>
@@ -212,6 +217,9 @@ export function GettingStartedProgress({
   const [starterActionPending, setStarterActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [starterActionError, setStarterActionError] = useState<string | null>(null);
+  const [secondaryPathsOpen, setSecondaryPathsOpen] = useState(
+    () => SECONDARY_PATHS.some((path) => path.key === snapshot.activation.selectedPath),
+  );
   const checklist = deriveFirstEstimateChecklist(snapshot);
   const isCreator = checklist.canShow;
   const showChecklist = checklist.canShow && !checklist.isDismissed;
@@ -419,7 +427,9 @@ export function GettingStartedProgress({
                   <h3 className="text-[11px] font-medium text-ink">{path.title}</h3>
                   <p className="mt-2 text-[10px] leading-4 text-tertiary">{path.description}</p>
                   <Button
-                    className="mt-auto w-full rounded-full"
+                    className={path.key === "guided_sample"
+                      ? "mt-auto w-full rounded-full bg-[#d63a00] hover:bg-[#c93400]"
+                      : "mt-auto w-full rounded-full"}
                     size="sm"
                     variant={path.key === "guided_sample" ? "brand" : "secondary"}
                     disabled={isPending}
@@ -439,6 +449,8 @@ export function GettingStartedProgress({
           </div>
           <details
             className="mt-3 rounded-xl border border-hairline bg-surface/40 p-3"
+            open={secondaryPathsOpen}
+            onToggle={(event) => setSecondaryPathsOpen(event.currentTarget.open)}
           >
             <summary className="cursor-pointer text-[10px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus">
               Explore finished examples and templates

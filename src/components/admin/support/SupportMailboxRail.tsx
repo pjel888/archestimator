@@ -146,12 +146,14 @@ export function SupportMailboxRail({
 
         <nav className="mt-2 grid grid-cols-3 gap-1" aria-label="Mailbox folders">
           {folders.map((item) => (
-            <button
+            <Button
               key={item.id}
               type="button"
+              variant="plain"
+              size="xs"
               aria-current={folder === item.id ? "page" : undefined}
               className={cn(
-                "flex min-h-8 cursor-pointer items-center justify-between gap-1 rounded-xs border px-1.5 text-[9px] font-medium leading-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:min-h-7",
+                "flex min-h-8 min-w-0 cursor-pointer items-center justify-between gap-1 rounded-xs border px-1.5 !text-[9px] font-medium leading-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus md:min-h-7",
                 folder === item.id
                   ? "border-ink bg-ink text-white"
                   : "border-hairline bg-white text-secondary hover:bg-surfaceMuted hover:text-ink",
@@ -160,7 +162,7 @@ export function SupportMailboxRail({
             >
               <span>{item.label}</span>
               <span className={cn("tabular-nums", folder === item.id ? "text-white/70" : "text-tertiary")}>{mailboxCounts[item.id]}</span>
-            </button>
+            </Button>
           ))}
         </nav>
 
@@ -191,8 +193,10 @@ export function SupportMailboxRail({
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-1.5">
-          <button
+          <Button
             type="button"
+            variant="plain"
+            size="xs"
             aria-pressed={unreadOnly}
             className={cn(
               "min-h-8 cursor-pointer rounded-xs border px-2 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
@@ -201,9 +205,11 @@ export function SupportMailboxRail({
             onClick={onUnreadOnlyChange}
           >
             Unread only
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="plain"
+            size="xs"
             aria-pressed={assignedToMe}
             className={cn(
               "min-h-8 cursor-pointer rounded-xs border px-2 text-[10px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
@@ -212,7 +218,7 @@ export function SupportMailboxRail({
             onClick={onAssignedToMeChange}
           >
             Assigned to me
-          </button>
+          </Button>
         </div>
 
         <details className="group mt-2" open={Boolean(labelFilter)}>
@@ -244,15 +250,17 @@ export function SupportMailboxRail({
           {!draftsLoading && !draftsError && drafts?.length === 0 ? <p className="text-[9px] text-tertiary">No saved drafts.</p> : null}
           <div className="space-y-1">
             {drafts?.map((draft) => (
-              <button
+              <Button
                 key={draft.id}
                 type="button"
+                variant="plain"
+                size="xs"
                 onClick={() => onResumeDraft(draft)}
-                className="block min-h-8 w-full cursor-pointer rounded-xs border border-hairline bg-white px-2 py-1.5 text-left text-[9px] text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className="block min-h-8 w-full min-w-0 cursor-pointer rounded-xs border border-hairline bg-white px-2 py-1.5 text-left !text-[9px] text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 <span className="font-medium text-ink">{draft.kind === "reply" ? "Reply" : "New email"}</span>
                 <span className="ml-1 line-clamp-1">{draft.subject || draft.body_text || "Untitled draft"}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

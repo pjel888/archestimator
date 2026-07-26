@@ -209,7 +209,13 @@ function FlowCard({
               <li key={lessonKey} className="flex min-w-0 items-center gap-1 text-[9px] leading-4 text-secondary">
                 {completed ? <CheckCircle size={12} className="text-success" aria-hidden="true" /> : current ? <Play size={12} className="text-accent" aria-hidden="true" /> : <Eye size={12} className="text-tertiary" aria-hidden="true" />}
                 <span className="truncate">{LESSON_LABELS[lessonKey]}</span>
-                <span className="ml-auto shrink-0 text-tertiary">{completed ? "Completed" : current ? "Resume" : eligible ? "Available" : "Blocked"}</span>
+                <span className="ml-auto shrink-0 text-tertiary">
+                  {completed
+                    ? PASSIVE_VIEW_FLOWS.has(definition.key) ? "Viewed" : "Completed"
+                    : current ? "Resume"
+                    : eligible ? "Available"
+                    : "Blocked"}
+                </span>
               </li>
             );
           })}

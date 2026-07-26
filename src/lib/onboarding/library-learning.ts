@@ -310,7 +310,6 @@ export async function recordLibraryLearningMutation(
       mutationId: `${libraryMutationKey(input)}:complete`,
       source: "non_starter_domain",
       stepKey: templateMutation ? "library_templates" : "library_sources",
-      proofSatisfied: predicates.libraryReuseComplete,
       routeKey: input.kind === "component_inserted"
         ? "estimate_sheet"
         : templateMutation

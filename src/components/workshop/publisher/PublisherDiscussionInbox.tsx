@@ -118,10 +118,18 @@ export function PublisherDiscussionInbox({ portalId, projectId }: Props) {
           {state === "loading" ? <p className="p-3 text-[12px] text-secondary">Loading discussions…</p> : null}
           {threads.length === 0 && state !== "loading" ? <p className="p-3 text-[12px] text-secondary">No client discussions yet.</p> : null}
           {threads.map((thread) => (
-            <button key={thread.id} type="button" onClick={() => setSelectedThreadId(thread.id)} className={`w-full border px-3 py-2 text-left ${thread.id === selectedThreadId ? "border-ink bg-surfaceMuted" : "border-transparent hover:border-hairline hover:bg-surfaceMuted/50"}`}>
+            <Button
+              key={thread.id}
+              type="button"
+              variant="plain"
+              size="xs"
+              aria-pressed={thread.id === selectedThreadId}
+              onClick={() => setSelectedThreadId(thread.id)}
+              className={`min-h-0 w-full min-w-0 justify-start border px-3 py-2 text-left ${thread.id === selectedThreadId ? "border-ink bg-surfaceMuted" : "border-transparent hover:border-hairline hover:bg-surfaceMuted/50"}`}
+            >
               <span className="block truncate text-[12px] font-medium text-ink">{thread.subject}</span>
               <span className="mt-1 block truncate text-[10px] text-secondary">{thread.target.label} · {thread.waitingState.replace(/_/g, " ")}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </aside>

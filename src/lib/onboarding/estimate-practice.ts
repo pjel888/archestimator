@@ -448,7 +448,6 @@ export async function recordEstimatePracticeMutation(
           source: "tutorial_practice",
           stepKey,
           routeKey: "estimate_sheet",
-          proofSatisfied: true,
         });
       } catch {
         return eventStatus;

@@ -110,6 +110,7 @@ export type OnboardingMutationCommand = {
 export type OnboardingMutationContext = {
   userId: string;
   workspaceId: string;
+  resourceId?: string | null;
   eligibleStepKeys?: readonly OnboardingStepKey[];
   tutorialBinding?: TutorialBinding | null;
   guidedPracticeComplete?: boolean;
@@ -181,6 +182,7 @@ type IdempotencyRow = {
 
 type RunBindingRow = {
   run_id: string;
+  resource_id: string | null;
 };
 
 type StarterPackStateRow = {
@@ -445,13 +447,13 @@ export async function getOnboardingFlowRunBinding(
     flowKey: OnboardingFlowKey;
     flowVersion: number;
   },
-): Promise<{ runId: string; state: OnboardingFlowState } | null> {
+): Promise<{ runId: string; resourceId: string | null; state: OnboardingFlowState } | null> {
   if (!database) return null;
   validateIdentity(input);
   const state = await getOnboardingFlowState(database, input);
   if (!state) return null;
   const row = await database.prepare<RunBindingRow>(`
-    SELECT event.run_id
+    SELECT event.run_id, event.resource_id
     FROM beta_onboarding_flow_events event
     WHERE event.user_id = ?
       AND event.workspace_id = ?
@@ -480,7 +482,9 @@ export async function getOnboardingFlowRunBinding(
     state.generation,
     state.revision,
   ).first<RunBindingRow>();
-  return row?.run_id ? { runId: row.run_id, state } : null;
+  return row?.run_id
+    ? { runId: row.run_id, resourceId: row.resource_id, state }
+    : null;
 }
 
 export async function listOnboardingFlowStates(
@@ -592,12 +596,13 @@ function prepareEventInsert(
       id, user_id, workspace_id, flow_key, flow_version, generation,
       tutorial_version, tutorial_generation, run_id, launch_mode, step_key,
       event_type, source, reason_code, route_key, viewport_class,
-      idempotency_key, request_fingerprint, state_revision, occurred_at, ingested_at
+      resource_id, idempotency_key, request_fingerprint, state_revision,
+      occurred_at, ingested_at
     )
     SELECT
       ?, state.user_id, state.workspace_id, state.flow_key, state.flow_version,
       state.generation, state.tutorial_version, state.tutorial_generation,
-      ?, ?, ?, ?, 'user_command', ?, ?, ?, ?, ?, state.revision, ?, ?
+      ?, ?, ?, ?, 'user_command', ?, ?, ?, ?, ?, ?, state.revision, ?, ?
     FROM beta_onboarding_flow_states state
     WHERE state.user_id = ?
       AND state.workspace_id = ?
@@ -615,6 +620,7 @@ function prepareEventInsert(
     input.command.reasonCode ?? null,
     input.command.routeKey ?? null,
     input.command.viewportClass ?? null,
+    input.context.resourceId ?? null,
     input.command.mutationId,
     input.requestFingerprint,
     input.occurredAt,
@@ -910,6 +916,7 @@ export async function mutateOnboardingFlow(
     nextStepKey: command.nextStepKey ?? null,
     reasonCode: command.reasonCode ?? null,
     routeKey: command.routeKey ?? null,
+    resourceId: context.resourceId ?? null,
     selectedPath: command.selectedPath ?? null,
     runId: command.runId ?? null,
     viewportClass: command.viewportClass ?? null,
@@ -1086,7 +1093,12 @@ export async function mutateOnboardingFlow(
 
   statements.push(
     prepareEventInsert(database, {
-      context,
+      context: {
+        ...context,
+        resourceId: continuationCommand
+          ? binding?.resourceId ?? null
+          : context.resourceId ?? null,
+      },
       command,
       flowVersion: definition.version,
       eventType: MUTATING_EVENT[command.command],
@@ -1343,7 +1355,6 @@ export async function completeOnboardingFlowFromDomainProof(
     source: "publication_domain" | "non_starter_domain" | "tutorial_practice";
     stepKey: OnboardingStepKey;
     routeKey: OnboardingRouteIntent;
-    proofSatisfied?: boolean;
   },
 ): Promise<OnboardingDomainCompletionResult> {
   if (!database?.batch) {
@@ -1360,19 +1371,17 @@ export async function completeOnboardingFlowFromDomainProof(
       && input.stepKey === "client_links_verify"
       && input.routeKey === "client_links"
     : input.flowKey === "library_reuse"
-      ? input.source === "non_starter_domain" && input.proofSatisfied === true
+      ? input.source === "non_starter_domain"
       : input.flowKey === "first_estimate_value"
         ? input.source === "non_starter_domain"
           && input.stepKey === "total_and_save"
           && input.routeKey === "estimate_sheet"
-          && input.proofSatisfied === true
         : input.source === "tutorial_practice"
           && (
             input.stepKey === "practice_price_and_save"
             || input.stepKey === "practice_add_and_source"
           )
-          && input.routeKey === "estimate_sheet"
-          && input.proofSatisfied === true;
+          && input.routeKey === "estimate_sheet";
   if (
     !isClosedValue(ONBOARDING_STEP_KEYS, input.stepKey)
     || !isClosedValue(ONBOARDING_ROUTE_INTENTS, input.routeKey)
@@ -1399,6 +1408,7 @@ export async function completeOnboardingFlowFromDomainProof(
     flowVersion: definition.version,
     routeKey: input.routeKey,
     runId: input.runId,
+    resourceId: binding?.resourceId ?? null,
     source: input.source,
     stepKey: input.stepKey,
   });
@@ -1436,6 +1446,55 @@ export async function completeOnboardingFlowFromDomainProof(
     };
   }
   if (binding.runId !== input.runId) {
+    return {
+      status: "conflict",
+      code: "ONBOARDING_DOMAIN_BINDING_MISMATCH",
+      state: current,
+    };
+  }
+  const proofSatisfied = input.flowKey === "client_link_publishing"
+    ? true
+    : input.flowKey === "guided_estimate_practice"
+      ? await hasCurrentTutorialPracticeCompletion(database, input)
+      : input.flowKey === "library_reuse"
+        ? (await database.prepare<{ matches: number }>(`
+            SELECT EXISTS (
+              SELECT 1
+              FROM beta_onboarding_flow_events event
+              WHERE event.user_id = ?
+                AND event.workspace_id = ?
+                AND event.flow_key = 'library_reuse'
+                AND event.flow_version = ?
+                AND event.generation = ?
+                AND event.run_id = ?
+                AND event.event_type = 'practice_action_completed'
+                AND event.source = 'non_starter_domain'
+                AND event.step_key = 'library_sources'
+            ) AS matches
+          `).bind(
+            input.userId,
+            input.workspaceId,
+            definition.version,
+            current.generation,
+            binding.runId,
+          ).first<{ matches: number }>())?.matches === 1
+        : binding.resourceId !== null
+          && (await database.prepare<{ matches: number }>(`
+              SELECT EXISTS (
+                SELECT 1
+                FROM beta_activation_events activation
+                WHERE activation.user_id = ?
+                  AND activation.workspace_id = ?
+                  AND activation.estimate_id = ?
+                  AND activation.origin_class = 'user_domain'
+                  AND activation.milestone = 'first_valid_total'
+              ) AS matches
+            `).bind(
+              input.userId,
+              input.workspaceId,
+              binding.resourceId,
+            ).first<{ matches: number }>())?.matches === 1;
+  if (!proofSatisfied) {
     return {
       status: "conflict",
       code: "ONBOARDING_DOMAIN_BINDING_MISMATCH",
@@ -1776,7 +1835,16 @@ export async function importExistingOnboardingState(
 ): Promise<void> {
   if (!database?.batch) return;
   validateIdentity(input);
+  const valueFlow = getOnboardingFlowDefinition("first_estimate_value");
+  const valueBinding = await getOnboardingFlowRunBinding(database, {
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    flowKey: valueFlow.key,
+    flowVersion: valueFlow.version,
+  });
+  const intendedEstimateId = valueBinding?.resourceId ?? null;
   const evidence = await database.prepare<ImportEvidenceRow>(`
+    WITH target_estimate(estimate_id) AS (SELECT ?)
     SELECT
       EXISTS (
         SELECT 1 FROM beta_activation_progress
@@ -1793,20 +1861,33 @@ export async function importExistingOnboardingState(
         WHERE user_id = ? AND workspace_id = ?
           AND origin_class = 'user_domain'
           AND milestone = 'first_area_created'
+          AND (
+            (SELECT estimate_id FROM target_estimate) IS NULL
+            OR estimate_id = (SELECT estimate_id FROM target_estimate)
+          )
       ) AS has_area,
       EXISTS (
         SELECT 1 FROM beta_activation_events
         WHERE user_id = ? AND workspace_id = ?
           AND origin_class = 'user_domain'
           AND milestone = 'first_row_priced'
+          AND (
+            (SELECT estimate_id FROM target_estimate) IS NULL
+            OR estimate_id = (SELECT estimate_id FROM target_estimate)
+          )
       ) AS has_priced_row,
       EXISTS (
         SELECT 1 FROM beta_activation_events
         WHERE user_id = ? AND workspace_id = ?
           AND origin_class = 'user_domain'
           AND milestone = 'first_valid_total'
+          AND (
+            (SELECT estimate_id FROM target_estimate) IS NULL
+            OR estimate_id = (SELECT estimate_id FROM target_estimate)
+          )
       ) AS has_valid_total
   `).bind(
+    intendedEstimateId,
     input.userId, input.workspaceId,
     input.userId, input.workspaceId,
     input.userId, input.workspaceId,
@@ -1864,7 +1945,6 @@ export async function importExistingOnboardingState(
     || evidence.has_priced_row
     || evidence.has_valid_total
   ) {
-    const valueFlow = getOnboardingFlowDefinition("first_estimate_value");
     const completed = evidence.has_valid_total === 1;
     const currentStep = completed
       ? null
@@ -1944,6 +2024,7 @@ export async function importExistingOnboardingState(
               AND activation.workspace_id = state.workspace_id
               AND activation.origin_class = 'user_domain'
               AND activation.milestone = 'first_valid_total'
+              AND (? IS NULL OR activation.estimate_id = ?)
           )
         ON CONFLICT(user_id, workspace_id, idempotency_key) DO NOTHING
       `).bind(
@@ -1956,6 +2037,8 @@ export async function importExistingOnboardingState(
         input.workspaceId,
         valueFlow.key,
         valueFlow.version,
+        intendedEstimateId,
+        intendedEstimateId,
       )] : []),
     );
   }

@@ -39,6 +39,7 @@ export function ToolbarIconButton({
   onClick,
   onFocus,
   onPointerDown,
+  onPointerCancel,
   onPointerEnter,
   onPointerLeave,
   onPointerUp,
@@ -77,6 +78,13 @@ export function ToolbarIconButton({
     onPointerDown?.(event);
     pointerActivationRef.current = true;
     clearHoverTooltipTimer();
+  }
+
+  function handlePointerCancel(event: PointerEvent<HTMLButtonElement>) {
+    onPointerCancel?.(event);
+    pointerActivationRef.current = false;
+    clearHoverTooltipTimer();
+    setTooltipOpen(false);
   }
 
   function handlePointerLeave(event: PointerEvent<HTMLButtonElement>) {
@@ -132,6 +140,7 @@ export function ToolbarIconButton({
         onClick={handleClick}
         onFocus={handleFocus}
         onPointerDownCapture={handlePointerDown}
+        onPointerCancel={handlePointerCancel}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onPointerUpCapture={handlePointerUp}
