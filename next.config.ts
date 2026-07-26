@@ -12,6 +12,8 @@ const isCloudflareWorkersProofBuild = process.env.ARCHESTIMATOR_CLOUDFLARE_BUILD
 const useCloudflareImageLoader = isCloudflareWorkersProofBuild;
 const isolatedDevelopmentDistDir =
   process.env.ARCHESTIMATOR_NEXT_DEV_DIST_DIR?.trim();
+const isolatedDevelopmentBindingsPath =
+  process.env.ARCHESTIMATOR_DEV_BINDINGS_PERSIST_PATH?.trim();
 
 if (process.env.NODE_ENV === "development" && !isCloudflareWorkersProofBuild) {
   // Strict === "1" is deliberate: remote bindings mutate production D1/R2.
@@ -27,6 +29,9 @@ if (process.env.NODE_ENV === "development" && !isCloudflareWorkersProofBuild) {
   void initOpenNextCloudflareForDev({
     configPath,
     remoteBindings: useRemoteBindings,
+    ...(isolatedDevelopmentBindingsPath
+      ? { persist: { path: isolatedDevelopmentBindingsPath } }
+      : {}),
   });
 }
 

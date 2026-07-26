@@ -3,9 +3,18 @@ import { loadEnvConfig } from "@next/env";
 
 loadEnvConfig(process.cwd(), true);
 
-const port = process.env.PLAYWRIGHT_PORT ?? "3020";
+const rawPort = (process.env.PLAYWRIGHT_PORT ?? "3020").trim();
+const parsedPort = Number(rawPort);
+if (!Number.isSafeInteger(parsedPort) || parsedPort < 1024 || parsedPort > 65_535) {
+  throw new Error("PLAYWRIGHT_PORT must be an integer from 1024 through 65535.");
+}
+const port = String(parsedPort);
 const baseURL = `http://127.0.0.1:${port}`;
 const isolatedDevelopmentDistDir = `.next/playwright-${port}`;
+const isolatedWranglerPersistPath = `.wrangler/playwright-${port}`;
+const isolatedDevelopmentBindingsPath = `${isolatedWranglerPersistPath}/v3`;
+process.env.ARCHESTIMATOR_E2E_WRANGLER_PERSIST_PATH = isolatedWranglerPersistPath;
+process.env.ARCHESTIMATOR_DEV_BINDINGS_PERSIST_PATH = isolatedDevelopmentBindingsPath;
 const libraryBrowserMatrixEnabled = process.env.ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX === "1";
 const ciReporters: ReporterDescription[] = [
   ["blob", { outputDir: "artifacts/playwright/blob" }],
@@ -69,9 +78,10 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: `bun run predev && bun x next dev --webpack --port ${port}`,
+    command: `bun run predev && bun x wrangler d1 migrations apply ARCH_DB --local --persist-to ${isolatedWranglerPersistPath} && bun x next dev --webpack --port ${port}`,
     env: {
       ARCHESTIMATOR_NEXT_DEV_DIST_DIR: isolatedDevelopmentDistDir,
+      ARCHESTIMATOR_DEV_BINDINGS_PERSIST_PATH: isolatedDevelopmentBindingsPath,
     },
     url: baseURL,
     reuseExistingServer: false,
