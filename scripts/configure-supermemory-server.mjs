@@ -153,8 +153,9 @@ function installMacLaunchAgent(home) {
 }
 
 const home = homedir();
+const defaultBinaryName = platform() === "win32" ? "supermemory-server.exe" : "supermemory-server";
 const installedBinary = resolve(
-  process.env.SUPERMEMORY_INSTALL_BIN || join(supermemoryHome(home), "bin", "supermemory-server"),
+  process.env.SUPERMEMORY_INSTALL_BIN || join(supermemoryHome(home), "bin", defaultBinaryName),
 );
 const versionPath = `${installedBinary}.version`;
 const checksumsPath = resolve(
@@ -162,7 +163,7 @@ const checksumsPath = resolve(
 );
 
 try {
-  accessSync(installedBinary, constants.X_OK);
+  accessSync(installedBinary, platform() === "win32" ? constants.F_OK : constants.X_OK);
 } catch {
   fail(`missing executable ${installedBinary}; install the pinned supermemory-server first.`);
 }
@@ -195,7 +196,7 @@ const config = [
   "",
 ].join("\n");
 writeFileAtomic(configPath, config, 0o600);
-updateZshenv(home, configPath);
+if (platform() !== "win32") updateZshenv(home, configPath);
 log(`verified supermemory-server ${version} for ${platformKey}; wrote ${configPath}`);
 
 if (installLaunchAgent) installMacLaunchAgent(home);

@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+
+import { runLocalSqliteCli } from "./lib/local-sqlite-proof";
 
 type ProofStatus = "local-pass" | "local-fail";
 
@@ -962,8 +963,6 @@ WHERE id = 'item-rollback'
 COMMIT;
 `;
 
-// These local p95 checks execute through the sqlite3 CLI, so the budget includes
-// process startup jitter, especially when proof suites run beside other work.
 // The gate is a local sanity check for indexed query shape; hosted Worker+D1
 // latency remains covered by the production proof gate.
 const LOCAL_SQLITE_CLI_BUDGET_MS = 30;
@@ -1033,25 +1032,17 @@ function readEnv(name: string) {
 }
 
 function runSqlite(args: string[], input?: string) {
-  const result = spawnSync("sqlite3", args, {
-    input,
-    encoding: "utf8",
-    maxBuffer: 20 * 1024 * 1024,
-  });
+  const result = runLocalSqliteCli(args, input);
   if (result.error) throw result.error;
   if (result.status !== 0) {
     const detail = result.stderr.trim() || result.stdout.trim() || `exit ${result.status}`;
-    throw new Error(`sqlite3 ${args.join(" ")} failed: ${detail}`);
+    throw new Error(`SQLite ${args.join(" ")} failed: ${detail}`);
   }
   return result.stdout;
 }
 
 function runSqliteAllowFailure(args: string[], input: string) {
-  return spawnSync("sqlite3", args, {
-    input,
-    encoding: "utf8",
-    maxBuffer: 20 * 1024 * 1024,
-  });
+  return runLocalSqliteCli(args, input);
 }
 
 function runSqliteScript(databasePath: string, sql: string) {

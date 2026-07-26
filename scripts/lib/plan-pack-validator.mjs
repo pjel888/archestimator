@@ -9,7 +9,7 @@ import {
   unlink,
   writeFile,
 } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -82,6 +82,27 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const SHELL_INERT_TEST_PATH_PATTERN = /^[A-Za-z0-9._/-]+$/u;
 const REQUIREMENT_ID_PATTERN = /^(?:REQ|UX|SEC|DATA|PERF|OPS)-\d+$/u;
 const TRACE_ID_PATTERN = /^(?:SRC|REQ|UX|SEC|DATA|PERF|OPS|ASSUMP|DEC-AUTO|AUTH|RISK|AC|TEST|EVID|ART|UNIT|GATE|SLICE)-[A-Z0-9-]+$/u;
+const TEXT_ARTIFACT_EXTENSIONS = new Set([
+  ".cjs",
+  ".css",
+  ".csv",
+  ".html",
+  ".js",
+  ".json",
+  ".jsx",
+  ".md",
+  ".mjs",
+  ".mts",
+  ".sh",
+  ".sql",
+  ".toml",
+  ".ts",
+  ".tsx",
+  ".txt",
+  ".xml",
+  ".yaml",
+  ".yml",
+]);
 
 const ESTIMATE_RUNTIME_CONTRACT = "estimate-sheet-runtime-manifest-state.v1";
 const ESTIMATE_RUNTIME_REGISTRY = {
@@ -106,6 +127,13 @@ const ESTIMATE_RUNTIME_PROJECTIONS = [
 
 export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+export function artifactSha256(path, bytes) {
+  if (!TEXT_ARTIFACT_EXTENSIONS.has(extname(path).toLowerCase())) return sha256(bytes);
+  const text = bytes.toString("utf8");
+  if (!Buffer.from(text, "utf8").equals(bytes)) return sha256(bytes);
+  return sha256(Buffer.from(text.replace(/\r\n?/gu, "\n"), "utf8"));
 }
 
 function isPlainObject(value) {
@@ -468,13 +496,16 @@ async function validateExistingTestIdentity(testRecord, baseline, errors) {
       return;
     }
 
-    const currentHash = sha256(await readFile(actual));
+    const currentHash = artifactSha256(testPath, await readFile(actual));
     const { stdout: baselineBytes } = await execFileAsync(
       "git",
       ["-C", repositoryRoot, "show", `${baselineHead}:${testPath}`],
       { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 },
     );
-    const baselineHash = sha256(Buffer.isBuffer(baselineBytes) ? baselineBytes : Buffer.from(baselineBytes));
+    const baselineHash = artifactSha256(
+      testPath,
+      Buffer.isBuffer(baselineBytes) ? baselineBytes : Buffer.from(baselineBytes),
+    );
     if (baselineHash !== expectedHash) {
       errors.push(`${label}: existing_test_sha256 does not match the test at baseline.head`);
     }
@@ -916,7 +947,7 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
         continue;
       }
       const bytes = await readFile(actual);
-      const digest = sha256(bytes);
+      const digest = artifactSha256(artifact.path, bytes);
       if (write) {
         if (!SHA256_PATTERN.test(artifact.sha256 ?? "") || artifact.sha256 !== digest) {
           changedArtifactPaths.add(artifact.path);

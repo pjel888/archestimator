@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -200,7 +199,7 @@ function collectCoverage(options = {}) {
   const files = walk(storyRoot);
   const stories = files.map(parseStoryFile).filter((story) => story.title).map((story) => ({
     ...story,
-    file: relative(root, story.absoluteFile),
+    file: relative(root, story.absoluteFile).replaceAll("\\", "/"),
   }));
   const byTitle = new Map(stories.map((story) => [story.title, story]));
   const missingStories = [];

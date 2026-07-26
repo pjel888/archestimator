@@ -109,6 +109,20 @@ function readProcessCommand(pid) {
       // Fall through to ps for non-procfs environments.
     }
   }
+  if (process.platform === "win32") {
+    const result = spawnSync(
+      "powershell.exe",
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        `$process = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' -ErrorAction SilentlyContinue; if ($process) { [Console]::Out.Write($process.CommandLine) }`,
+      ],
+      { encoding: "utf8", windowsHide: true },
+    );
+    return result.status === 0 ? result.stdout.trim() : "";
+  }
   const result = spawnSync(join("/bin", "ps"), ["-p", String(pid), "-o", "command="], {
     encoding: "utf8",
   });
@@ -116,6 +130,26 @@ function readProcessCommand(pid) {
 }
 
 function listeningPids(port) {
+  if (process.platform === "win32") {
+    const result = spawnSync(
+      "powershell.exe",
+      [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique`,
+      ],
+      { encoding: "utf8", windowsHide: true },
+    );
+    if (result.status !== 0) return null;
+    return new Set(
+      result.stdout
+        .split(/\s+/u)
+        .map((value) => Number.parseInt(value, 10))
+        .filter((value) => Number.isInteger(value) && value > 0),
+    );
+  }
   const lsofCandidates = ["/usr/sbin/lsof", "/usr/bin/lsof"];
   for (const command of lsofCandidates) {
     if (!existsSync(command)) continue;
@@ -152,7 +186,11 @@ export function inspectServerProcess({ bin, expectedHash, pid, port }) {
   } catch {
     return { ok: false, reason: "configured executable cannot be resolved" };
   }
-  if (!readProcessCommand(pid).includes(resolvedBin)) {
+  const processCommand = readProcessCommand(pid);
+  const commandMatches = process.platform === "win32"
+    ? processCommand.toLowerCase().includes(resolvedBin.toLowerCase())
+    : processCommand.includes(resolvedBin);
+  if (!commandMatches) {
     return { ok: false, reason: "process command does not contain the configured executable path" };
   }
   const owners = listeningPids(port);
@@ -178,7 +216,7 @@ export function findAttestedServerPid({ bin, expectedHash, port }) {
 export function readRuntimeState(home = homedir()) {
   try {
     const path = runtimeStatePath(home);
-    if ((statSync(path).mode & 0o077) !== 0) return null;
+    if (process.platform !== "win32" && (statSync(path).mode & 0o077) !== 0) return null;
     return JSON.parse(readFileSync(path, "utf8"));
   } catch {
     return null;
@@ -277,7 +315,7 @@ export function writeFileAtomic(filePath, content, mode) {
   try {
     writeFileSync(tempPath, content, { mode });
     renameSync(tempPath, filePath);
-    chmodSync(filePath, mode);
+    if (process.platform !== "win32") chmodSync(filePath, mode);
   } finally {
     rmSync(tempPath, { force: true });
   }

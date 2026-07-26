@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 import { chmodSync, closeSync, mkdirSync, openSync } from "node:fs";
 import { access, constants } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import {
@@ -38,6 +38,13 @@ function readPositiveIntegerEnv(name, fallback) {
 function describeChildExit(code, signal) {
   if (signal) return `signal ${signal}`;
   return `code ${code ?? "unknown"}`;
+}
+
+function serverLaunchCommand(serverBin) {
+  if ([".cjs", ".js", ".mjs"].includes(extname(serverBin).toLowerCase())) {
+    return { command: process.execPath, args: [serverBin] };
+  }
+  return { command: serverBin, args: [] };
 }
 
 async function assertChildBecomesHealthy(child, healthUrl, timeoutMs) {
@@ -88,7 +95,7 @@ if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash)) {
 const serverBin = resolve(configuredBin);
 
 try {
-  await access(serverBin, constants.X_OK);
+  await access(serverBin, process.platform === "win32" ? constants.F_OK : constants.X_OK);
 } catch {
   fail(`${serverBin} is not executable.`);
 }
@@ -128,11 +135,12 @@ const logPath = process.env.SUPERMEMORY_LOG_PATH || DEFAULT_LOG_PATH;
 mkdirSync(dirname(logPath), { recursive: true, mode: 0o700 });
 const out = openSync(logPath, "a", 0o600);
 const err = openSync(logPath, "a", 0o600);
-chmodSync(logPath, 0o600);
+if (process.platform !== "win32") chmodSync(logPath, 0o600);
 let child = null;
 
 try {
-  child = spawn(serverBin, [], {
+  const launch = serverLaunchCommand(serverBin);
+  child = spawn(launch.command, launch.args, {
     detached: true,
     env: {
       ...childEnv,
@@ -140,6 +148,7 @@ try {
       SUPERMEMORY_PORT: port,
     },
     stdio: ["ignore", out, err],
+    windowsHide: true,
   });
   await assertChildBecomesHealthy(child, healthUrl, startupTimeoutMs);
   const attestation = inspectServerProcess({ bin: serverBin, expectedHash, pid: child.pid, port });

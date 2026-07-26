@@ -31,8 +31,12 @@ function fail(message) {
 
 function readApiKey() {
   if (!existsSync(keyPath)) fail(`missing local API key file ${keyPath}.`);
-  const mode = statSync(keyPath).mode & 0o777;
-  if ((mode & 0o077) !== 0) fail(`local API key file ${keyPath} must not be group/world accessible.`);
+  const keyInfo = statSync(keyPath);
+  if (!keyInfo.isFile()) fail(`local API key path ${keyPath} must be a regular file.`);
+  const mode = keyInfo.mode & 0o777;
+  if (process.platform !== "win32" && (mode & 0o077) !== 0) {
+    fail(`local API key file ${keyPath} must not be group/world accessible.`);
+  }
   const key = readFileSync(keyPath, "utf8").trim();
   if (!key) fail(`local API key file ${keyPath} is empty.`);
   return key;

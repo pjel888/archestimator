@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+
+import { runLocalSqliteCli } from "./lib/local-sqlite-proof";
 
 type ProofStatus = "local-pass" | "local-fail";
 
@@ -619,11 +620,7 @@ function readEnv(name: string) {
 }
 
 function runSql(dbPath: string, sql: string) {
-  return spawnSync("sqlite3", [dbPath], {
-    input: sql,
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024 * 8,
-  });
+  return runLocalSqliteCli([dbPath], sql);
 }
 
 function runSqlOrThrow(dbPath: string, sql: string) {
@@ -645,7 +642,7 @@ function scalarNumber(dbPath: string, sql: string) {
 }
 
 function sqliteVersion() {
-  const result = spawnSync("sqlite3", ["--version"], { encoding: "utf8" });
+  const result = runLocalSqliteCli(["--version"]);
   if (result.status !== 0) return "unknown";
   return result.stdout.trim().split(/\s+/)[0] ?? "unknown";
 }
