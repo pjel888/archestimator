@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.mutation.json",
+  "include": [
+    "css-modules.d.ts",
+    "src/components/ui/button.tsx",
+    "src/components/ui/toolbar-icon-button.tsx",
+    "scripts/enforce-button-architecture.mjs",
+    "tests/vitest/ui-button.test.tsx",
+    "tests/vitest/button-architecture-enforcement.test.ts",
+    "vitest.mutation.config.ts"
+  ]
+}

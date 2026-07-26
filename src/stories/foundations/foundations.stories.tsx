@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { Button } from "@/components/ui/button";
+
 import {
   MotionBoundaryPreview,
   Note,
@@ -88,9 +90,9 @@ export const FocusStatusAndDoDont: Story = {
       />
       <StoryGrid>
         <StoryPanel>
-          <button className="h-8 rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+          <Button size="sm" className="min-w-0">
             Keyboard focus sample
-          </button>
+          </Button>
         </StoryPanel>
         <Note tone="success">Do: pair semantic color with text labels and compact layout.</Note>
         <Note tone="danger">Do not: use oversized marketing typography, soft orbs, broad radius, or live provider data.</Note>

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DropdownMenu } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { Gear, SignOut, UserCircle } from "@phosphor-icons/react";
 
 const meta: Meta<typeof DropdownMenu> = {
@@ -14,7 +15,7 @@ type Story = StoryObj<typeof DropdownMenu>;
 export const Default: Story = {
   render: () => (
     <DropdownMenu
-      trigger={<button className="rounded-xs bg-surface border border-hairline px-3 py-1.5 text-[10px] font-medium text-ink tracking-normal">Open Menu</button>}
+      trigger={<Button size="sm" className="min-w-0 px-3">Open Menu</Button>}
     >
       <DropdownMenu.Item label="Profile" icon={<UserCircle weight="regular" />} onClick={() => {}} />
       <DropdownMenu.Item label="Settings" icon={<Gear weight="regular" />} onClick={() => {}} />
@@ -26,7 +27,7 @@ export const Default: Story = {
 export const WithGroups: Story = {
   render: () => (
     <DropdownMenu
-      trigger={<button className="rounded-xs bg-surface border border-hairline px-3 py-1.5 text-[10px] font-medium text-ink tracking-normal">Actions</button>}
+      trigger={<Button size="sm" className="min-w-0 px-3">Actions</Button>}
     >
       <DropdownMenu.Group label="Account">
         <DropdownMenu.Item label="View Profile" onClick={() => {}} />
@@ -44,7 +45,7 @@ export const WithGroups: Story = {
 export const WithShortcuts: Story = {
   render: () => (
     <DropdownMenu
-      trigger={<button className="rounded-xs bg-surface border border-hairline px-3 py-1.5 text-[10px] font-medium text-ink tracking-normal">Edit</button>}
+      trigger={<Button size="sm" className="min-w-0 px-3">Edit</Button>}
     >
       <DropdownMenu.Item label="Copy" shortcut="⌘C" onClick={() => {}} />
       <DropdownMenu.Item label="Paste" shortcut="⌘V" onClick={() => {}} />
@@ -56,7 +57,7 @@ export const WithShortcuts: Story = {
 export const Disabled: Story = {
   render: () => (
     <DropdownMenu
-      trigger={<button className="rounded-xs bg-surface border border-hairline px-3 py-1.5 text-[10px] font-medium text-ink tracking-normal">Menu</button>}
+      trigger={<Button size="sm" className="min-w-0 px-3">Menu</Button>}
     >
       <DropdownMenu.Item label="Enabled Action" onClick={() => {}} />
       <DropdownMenu.Item label="Disabled Action" onClick={() => {}} disabled />

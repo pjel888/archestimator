@@ -204,13 +204,15 @@ function ComponentModalForm() {
                     <span className="block truncate">{label}</span>
                   </button>
                 ))}
-                <button
+                <Button
                   type="button"
+                  size="icon-sm"
+                  variant="ghost"
                   aria-label="Add variant"
-                  className="ml-auto grid size-8 place-items-center border-l border-hairline text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  className="ml-auto size-8 min-w-8 border-l border-hairline text-tertiary transition hover:bg-white hover:text-ink"
                 >
                   <Plus size={12} weight="regular" aria-hidden="true" />
-                </button>
+                </Button>
               </div>
               <div role="tabpanel" aria-label="Variant 1" className="grid gap-3 p-3">
                 <div className="grid gap-x-2 gap-y-3 md:grid-cols-[minmax(0,1fr)_8.5rem]">
