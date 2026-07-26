@@ -78,6 +78,7 @@ const localImagePatterns: ImageLocalPattern[] = [
   { pathname: "/api/projects/images" },
   { pathname: "/component-thumbnails/**", search: "" },
   { pathname: "/landing/**", search: "" },
+  { pathname: "/Pixel_Images/**", search: "" },
 ];
 
 // cacheComponents: DEFERRED 2026-07-10 — build fails (45 route-segment-config conflicts) +

@@ -168,7 +168,7 @@ export function WorkshopDashboard({
                 }}
               >
                 <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
-                  Projects Shown
+                  Projects
                 </span>
                 <span className="dashboard-bignum-value">{projectCount}</span>
               </div>
@@ -228,7 +228,7 @@ export function WorkshopDashboard({
                 }}
               >
                 <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
-                  Sheets Shown
+                  Sheets
                 </span>
                 <span className="dashboard-bignum-value">{estimateSheetCount}</span>
               </div>
