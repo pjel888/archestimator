@@ -2087,6 +2087,8 @@ export async function installStarterPackForEligibleWorkspace(
     userId: input.userId,
     mode: "install",
   };
+  const currentResult = await readStarterInstallResult(context);
+  if (currentResult.ready) return currentResult;
   return withStarterMutationLease(context, "install", async () => {
   const [workspaceState, userState, claims] = await Promise.all([
     readState(context, "workspace", context.workspaceId),

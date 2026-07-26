@@ -499,6 +499,7 @@ describe("mutateCurrentOnboardingFlow authorization", () => {
       {
         eligibleStepKeys: ["welcome", "projects_entry"],
         guidedPracticeComplete: undefined,
+        resourceId: null,
         tutorialBinding: null,
         userId: "user-1",
         workspaceId: "workspace-1",
