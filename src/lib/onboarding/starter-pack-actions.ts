@@ -239,7 +239,7 @@ async function ensureState(
   const claims = await readClaims(context, scopeKind, scopeOwnerId);
   const timestamp = nowIso();
   await run(
-    context.database,
+    context,
     `
       INSERT OR IGNORE INTO beta_starter_pack_states (
         workspace_id, pack_version, scope_kind, scope_owner_id, status,
@@ -369,7 +369,7 @@ async function setScopeStatus(
 ) {
   const timestamp = nowIso();
   await run(
-    context.database,
+    context,
     `
       UPDATE beta_starter_pack_states
       SET status = ?,
@@ -404,7 +404,7 @@ async function finalizeWorkspaceScopeIfReady(context: InstallContext) {
   }
   const timestamp = nowIso();
   const result = await run(
-    context.database,
+    context,
     `
       UPDATE beta_starter_pack_states AS workspace_state
       SET status = 'complete',
@@ -661,7 +661,7 @@ async function reconcileClaimLifecycle(
     const lifecycleState = await classifyClaimResource(context, claim);
     if (lifecycleState === "active") continue;
     await run(
-      context.database,
+      context,
       `
         UPDATE beta_starter_asset_claims
         SET lifecycle_state = ?, updated_at = ?
@@ -683,7 +683,7 @@ async function reconcileClaimLifecycle(
     );
     if (claim.asset_kind === "project_group_membership") {
       await run(
-        context.database,
+        context,
         `
           DELETE FROM project_group_memberships
           WHERE id = ? AND workspace_id = ? AND user_id = ?
@@ -711,7 +711,7 @@ async function resolveAssetGeneration(
   }
   if (latest) {
     await run(
-      context.database,
+      context,
       `
         UPDATE beta_starter_asset_claims
         SET lifecycle_state = 'archived', updated_at = ?
@@ -1052,7 +1052,7 @@ async function installProject(context: InstallContext, project: StarterProjectDe
     resourceId: projectId,
     timestamp,
   }));
-  await runCheckedBatch(context.database, statements);
+  await runCheckedBatch(context, statements);
   await assertAssetCommitted(context, "workspace", context.workspaceId, project.key);
 }
 
@@ -1073,7 +1073,7 @@ async function installFolder(
     table: "library_folders",
     canonicalName: folder.name,
   });
-  await runCheckedBatch(context.database, [
+  await runCheckedBatch(context, [
     context.database.prepare(`
       INSERT INTO library_folders (
         id, workspace_id, parent_id, name, sort_order, source_category_node_id,
@@ -1116,7 +1116,7 @@ async function ensureProtectedDefaultFolder(context: InstallContext) {
   const folderId = randomUUID();
   const timestamp = nowIso();
   await run(
-    context.database,
+    context,
     `
       INSERT OR IGNORE INTO library_folders (
         id, workspace_id, parent_id, name, sort_order, folder_kind,
@@ -1324,7 +1324,7 @@ async function installComponent(
       timestamp,
     }),
   );
-  await runCheckedBatch(context.database, statements);
+  await runCheckedBatch(context, statements);
   await assertAssetCommitted(context, "workspace", context.workspaceId, component.key);
 }
 
@@ -1415,7 +1415,7 @@ async function installTemplate(
       sourceLibraryItemId: claim.resource_id,
     })),
   });
-  await runCheckedBatch(context.database, [
+  await runCheckedBatch(context, [
     context.database.prepare(`
       INSERT INTO estimate_templates (
         id, workspace_id, name, description, category, sort_order, metadata,
@@ -1602,7 +1602,7 @@ async function installUserScope(context: InstallContext) {
       `,
       [context.workspaceId, context.userId],
     );
-    await runCheckedBatch(context.database, [
+    await runCheckedBatch(context, [
       context.database.prepare(`
         INSERT INTO project_groups (
           id, workspace_id, user_id, name, accent_id, position,
@@ -1663,7 +1663,7 @@ async function installUserScope(context: InstallContext) {
     if (!projectClaim) continue;
     const membershipId = randomUUID();
     const timestamp = nowIso();
-    await runCheckedBatch(context.database, [
+    await runCheckedBatch(context, [
       context.database.prepare(`
         INSERT INTO project_group_memberships (
           id, group_id, workspace_id, user_id, project_id, position,
@@ -1716,7 +1716,7 @@ async function installUserScope(context: InstallContext) {
   await setScopeStatus(context, "user", context.userId, complete ? "complete" : "partial");
   if (complete) {
     await run(
-      context.database,
+      context,
       `
         UPDATE beta_starter_pack_states
         SET shared_membership_revision = COALESCE((
@@ -1827,7 +1827,7 @@ async function cleanupStarterUserScope(context: InstallContext) {
       context.userId,
     ),
   );
-  await runCheckedBatch(context.database, statements);
+  await runCheckedBatch(context, statements);
   if (await canGroupProjects(context)) {
     await installUserScope({ ...context, mode: "restore" });
     return false;
@@ -1889,6 +1889,10 @@ async function acquireStarterMutationLease(
   ).toISOString();
   const statements: D1PreparedStatementLike[] = [
     context.database.prepare(`
+      DELETE FROM beta_starter_mutation_leases
+      WHERE workspace_id = ? AND pack_version = ? AND expires_at <= ?
+    `).bind(context.workspaceId, STARTER_PACK_VERSION, acquiredAt),
+    context.database.prepare(`
       INSERT INTO beta_starter_mutation_leases (
         workspace_id, pack_version, lease_token, actor_user_id, operation,
         expires_at, created_at
@@ -1939,14 +1943,14 @@ async function acquireStarterMutationLease(
   if (results.some((result) => result.success === false)) {
     throw new Error("Starter content mutation lease could not be acquired.");
   }
-  if ((results[0]?.meta?.changes ?? 0) !== 1) {
+  if ((results[1]?.meta?.changes ?? 0) !== 1) {
     throw new StarterMutationLeaseConflictError(
       "Starter content is already being changed. Refresh and try again.",
     );
   }
   if (
     expectedRevision !== undefined
-    && (results[1]?.meta?.changes ?? 0) !== 1
+    && (results[2]?.meta?.changes ?? 0) !== 1
   ) {
     await releaseStarterMutationLease(context, leaseToken);
     throw new Error("Starter content changed before recovery finished. Refresh and try again.");
@@ -1958,24 +1962,22 @@ async function releaseStarterMutationLease(
   context: InstallContext,
   leaseToken: string,
 ) {
-  await run(
-    context.database,
-    `
-      DELETE FROM beta_starter_mutation_leases
-      WHERE workspace_id = ? AND pack_version = ? AND lease_token = ?
-    `,
-    [context.workspaceId, STARTER_PACK_VERSION, leaseToken],
-  );
+  const result = await context.database.prepare(`
+    DELETE FROM beta_starter_mutation_leases
+    WHERE workspace_id = ? AND pack_version = ? AND lease_token = ?
+  `).bind(context.workspaceId, STARTER_PACK_VERSION, leaseToken).run();
+  if (result.success === false) throw new Error("Starter content lease could not be released.");
 }
 
 async function withStarterMutationLease<T>(
   context: InstallContext,
   operation: StarterInstallMode,
-  work: () => Promise<T>,
+  work: (leasedContext: InstallContext) => Promise<T>,
 ) {
   const leaseToken = await acquireStarterMutationLease(context, operation);
+  const leasedContext = { ...context, mutationLeaseToken: leaseToken };
   try {
-    return await work();
+    return await work(leasedContext);
   } finally {
     await releaseStarterMutationLease(context, leaseToken);
   }
@@ -1983,7 +1985,7 @@ async function withStarterMutationLease<T>(
 
 async function withAutomaticStarterMutationLease<T extends StarterInstallResult | null>(
   context: InstallContext,
-  work: () => Promise<T>,
+  work: (leasedContext: InstallContext) => Promise<T>,
 ): Promise<T | StarterInstallResult> {
   try {
     return await withStarterMutationLease(context, "install", work);
@@ -2113,8 +2115,8 @@ export async function installStarterPackForNewWorkspace(
     userId: input.userId,
     mode: "install",
   };
-  return withAutomaticStarterMutationLease(context, () =>
-    installStarterPack(context));
+  return withAutomaticStarterMutationLease(context, (leasedContext) =>
+    installStarterPack(leasedContext));
 }
 
 export async function installStarterPackForEligibleWorkspace(
@@ -2129,30 +2131,30 @@ export async function installStarterPackForEligibleWorkspace(
   };
   const currentResult = await readStarterInstallResult(context);
   if (currentResult.ready) return currentResult;
-  return withAutomaticStarterMutationLease(context, async () => {
+  return withAutomaticStarterMutationLease(context, async (leasedContext) => {
   const [workspaceState, userState, claims] = await Promise.all([
-    readState(context, "workspace", context.workspaceId),
-    readState(context, "user", context.userId),
-    readClaims(context, "workspace", context.workspaceId),
+    readState(leasedContext, "workspace", leasedContext.workspaceId),
+    readState(leasedContext, "user", leasedContext.userId),
+    readClaims(leasedContext, "workspace", leasedContext.workspaceId),
   ]);
   if (workspaceState?.status === "complete") {
-    await installUserScope({ ...context, mode: userState ? "resume" : "install" });
-    if (await canManageSharedStarter(context)) {
-      await reconcileStarterUserBatch(context);
+    await installUserScope({ ...leasedContext, mode: userState ? "resume" : "install" });
+    if (await canManageSharedStarter(leasedContext)) {
+      await reconcileStarterUserBatch(leasedContext);
     }
-    return readStarterInstallResult(context);
+    return readStarterInstallResult(leasedContext);
   }
   const membership = await first<{ role: string }>(
     database,
     "SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ? LIMIT 1",
-    [context.workspaceId, context.userId],
+    [leasedContext.workspaceId, leasedContext.userId],
   );
   if (membership?.role !== "owner" && membership?.role !== "admin") return null;
   if (workspaceState || userState || claims.length > 0) {
-    return installStarterPack({ ...context, mode: "resume" });
+    return installStarterPack({ ...leasedContext, mode: "resume" });
   }
-  if (!await isWorkspaceEmptyForAutomaticInstall(context)) return null;
-  return installStarterPack(context);
+  if (!await isWorkspaceEmptyForAutomaticInstall(leasedContext)) return null;
+  return installStarterPack(leasedContext);
   });
 }
 
@@ -2177,8 +2179,8 @@ export async function addStarterContent(): Promise<StarterInstallResult> {
     mode: "install",
   };
   await assertOwnerOrManager(context);
-  return withStarterMutationLease(context, "install", () =>
-    installStarterPack(context));
+  return withStarterMutationLease(context, "install", (leasedContext) =>
+    installStarterPack(leasedContext));
 }
 
 export async function resumeStarterContent(): Promise<StarterInstallResult> {
@@ -2207,13 +2209,13 @@ export async function resumeStarterContent(): Promise<StarterInstallResult> {
   if (workspaceState?.status !== "complete") {
     await assertOwnerOrManager(context);
   }
-  return withStarterMutationLease(context, "resume", async () => {
+  return withStarterMutationLease(context, "resume", async (leasedContext) => {
     if (workspaceState?.status === "complete" && !canManageShared) {
-      await installUserScope(context);
+      await installUserScope(leasedContext);
     } else {
-      await installStarterPack(context);
+      await installStarterPack(leasedContext);
     }
-    return readStarterInstallResult(context);
+    return readStarterInstallResult(leasedContext);
   });
 }
 
@@ -2240,9 +2242,10 @@ export async function restoreStarterContent(input: {
     "restore",
     input.expectedRevision,
   );
+  const leasedContext = { ...context, mutationLeaseToken: leaseToken };
   try {
-  await reconcileClaimLifecycle(context, "workspace", context.workspaceId);
-  const claims = await readClaims(context, "workspace", context.workspaceId);
+  await reconcileClaimLifecycle(leasedContext, "workspace", leasedContext.workspaceId);
+  const claims = await readClaims(leasedContext, "workspace", leasedContext.workspaceId);
   const latestClaims = new Map<string, StarterClaimRow>();
   for (const claim of claims) {
     if (!latestClaims.has(claim.asset_key)) latestClaims.set(claim.asset_key, claim);
@@ -2256,14 +2259,14 @@ export async function restoreStarterContent(input: {
     (assetKey) => !activeKeys.has(assetKey),
   );
   if (inactiveAssetKeys.length === 0) {
-    await installStarterPack(context);
-    return readStarterInstallResult(context);
+    await installStarterPack(leasedContext);
+    return readStarterInstallResult(leasedContext);
   }
   const requiresMembershipRebind = inactiveAssetKeys.includes("project.tutorial")
     || inactiveAssetKeys.includes("project.reference");
   if (requiresMembershipRebind) {
     const timestamp = nowIso();
-    await runCheckedBatch(database, [
+    await runCheckedBatch(leasedContext, [
       database.prepare(`
         UPDATE beta_starter_pack_states
         SET shared_membership_revision = shared_membership_revision + 1,
@@ -2272,20 +2275,20 @@ export async function restoreStarterContent(input: {
           AND scope_kind = 'workspace' AND scope_owner_id = ?
       `).bind(
         timestamp,
-        context.workspaceId,
+        leasedContext.workspaceId,
         STARTER_PACK_VERSION,
-        context.workspaceId,
+        leasedContext.workspaceId,
       ),
       database.prepare(`
         UPDATE beta_starter_pack_states
         SET status = 'partial', updated_at = ?
         WHERE workspace_id = ? AND pack_version = ?
           AND scope_kind = 'user'
-      `).bind(timestamp, context.workspaceId, STARTER_PACK_VERSION),
+      `).bind(timestamp, leasedContext.workspaceId, STARTER_PACK_VERSION),
     ]);
   }
-  await installStarterPack(context);
-  return readStarterInstallResult(context);
+  await installStarterPack(leasedContext);
+  return readStarterInstallResult(leasedContext);
   } finally {
     await releaseStarterMutationLease(context, leaseToken);
   }
