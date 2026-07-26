@@ -274,8 +274,8 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
       expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
     expect(within(sheet).getByText("Discontinued Plank")).toBeInTheDocument();
-    expect(within(sheet).getByRole("list")).toHaveAccessibleName(/component catalogue grid/);
-    expect(within(sheet).getAllByRole("listitem")).toHaveLength(1);
+    const catalogue = within(sheet).getByRole("list", { name: /component catalogue grid/ });
+    expect(within(catalogue).getAllByRole("listitem")).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
     await waitFor(() => {

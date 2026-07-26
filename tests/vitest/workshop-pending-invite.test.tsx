@@ -64,7 +64,7 @@ describe("workshop pending invite bridge", () => {
     expect(authSetup).toContain("return sanitizeProtectedReturnPath(requestedNext);");
     expect(sanitizeProtectedReturnPath("/workshop/pending-invite")).toBe("/workshop/pending-invite");
     expect(workshopPage).toContain('redirect("/workshop/pending-invite")');
-    const getRoute = pendingInviteRoute.match(/export async function GET[\s\S]*?\n}\n\nexport async function POST/)?.[0];
+    const getRoute = pendingInviteRoute.match(/export async function GET[\s\S]*?\r?\n}\r?\n\r?\nexport async function POST/)?.[0];
     const postRoute = pendingInviteRoute.match(/export async function POST[\s\S]*/)?.[0];
 
     expect(getRoute).toContain("createPendingInviteConfirmationHtml");

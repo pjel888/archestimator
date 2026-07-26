@@ -1,4 +1,4 @@
-import { act } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -115,6 +115,7 @@ function TestManager() {
       libraryFolders={libraryFolders}
       libraryItems={libraryItems}
       workspaceId="workspace-1"
+      canManageLibrary
     />
   );
 }
@@ -122,8 +123,10 @@ function TestManager() {
 describe("ComponentLibraryManager hydration", () => {
   let root: Root | null = null;
 
-  afterEach(() => {
-    root?.unmount();
+  afterEach(async () => {
+    await act(async () => {
+      root?.unmount();
+    });
     root = null;
     navigationMocks.searchParams = "";
     vi.restoreAllMocks();
@@ -145,11 +148,11 @@ describe("ComponentLibraryManager hydration", () => {
           recoverableErrors.push(error);
         },
       });
-      await Promise.resolve();
-      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     expect(recoverableErrors.map((error) => error.message).join("\n")).not.toMatch(/hydration|hydrated/i);
-    expect(container.querySelector('[role="dialog"][aria-label="Add Component"]')).not.toBeNull();
+    await waitFor(() => {
+      expect(container.querySelector('[role="dialog"][aria-label="Add Component"]')).not.toBeNull();
+    });
   });
 });

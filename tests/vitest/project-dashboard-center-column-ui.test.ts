@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   estimateCenterColumnBoundary,
   estimateCenterColumnBoundaryVars,
-  workshopPageShell,
+  workshopShell,
   sidePanelWidths,
   resizableSidePanel,
   workshopTitleHeader,
@@ -23,9 +23,8 @@ describe("project dashboard center-column UI governance", () => {
     expect(estimateCenterColumnBoundaryVars).toContain('"--estimate-tree-panel-width": "376px"');
     expect(estimateCenterColumnBoundaryVars).toContain('"--estimate-library-panel-width": "560px"');
     expect(estimateCenterColumnBoundaryVars).toContain('"--project-mini-sidebar-width": "104px"');
-    expect(workshopPageShell).toContain("getSidePanelWidthCssVariables");
-    expect(sidePanelWidths).toContain("estimate_component_library_width");
-    expect(sidePanelWidths).toContain("defaultWidth: 560");
+    expect(workshopShell).toContain("getSidePanelWidthCssVariables");
+    expect(sidePanelWidths).toMatch(/storageKey: "estimate_component_library_width",[\s\S]*?defaultWidth: 400,[\s\S]*?minWidth: 360,[\s\S]*?maxWidth: 480,/);
     expect(sidePanelWidths).toContain("component_library_tree_width");
     expect(resizableSidePanel).toContain("document.cookie");
     expect(workshopTitleHeader).toContain("EstimateCenterColumnBoundary");
@@ -34,15 +33,15 @@ describe("project dashboard center-column UI governance", () => {
     expect(projectEstimateMetadataStrip).not.toContain("workshopTitleBlock.hidden");
     expect(projectEstimateMetadataStrip).toContain('workshopCanvas.dataset.estimateSheetRoute = "true"');
     expect(projectEstimateMetadataStrip).toContain("delete workshopCanvas.dataset.estimateSheetRoute");
-    expect(workshopPageShell).toContain("data-workshop-page-shell-canvas");
+    expect(workshopShell).toContain("data-workshop-page-shell-canvas");
     expect(projectDashboardLayout).not.toContain("ProjectWorkspaceHeaderRow");
     expect(projectDashboardLayout).toContain('{ label: "Projects", href: "/workshop/projects" }');
     expect(projectDashboardLayout).toContain('{ label: title, href: `/workshop/projects/${projectId}` }');
     expect(projectDashboardLayout).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
-    expect(workshopPageShell).toContain('import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs"');
-    expect(workshopPageShell).toContain("breadcrumbs={resolvedBreadcrumbs}");
-    expect(workshopPageShell).toContain("projectId={projectId}");
-    expect(workshopPageShell).not.toContain("breadcrumbNav");
+    expect(workshopTitleHeader).toContain('import { WorkshopBreadcrumbs, type WorkshopBreadcrumb } from "./WorkshopBreadcrumbs"');
+    expect(workshopTitleHeader).toContain("breadcrumbs={visibleBreadcrumbs}");
+    expect(workshopTitleHeader).toContain("projectId={projectId}");
+    expect(workshopShell).not.toContain("breadcrumbNav");
     expect(workshopTitleHeader).toContain("WorkshopBreadcrumbs");
     expect(workshopTitleHeader).toContain("data-workshop-title-region");
     expect(workshopBreadcrumbs).toContain('data-workshop-layout="workshop-breadcrumbs"');

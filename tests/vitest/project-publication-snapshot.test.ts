@@ -219,7 +219,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(JSON.stringify(snapshot)).not.toContain(leafCategoryId);
   });
 
-  it("uses the included proposal basis and retains only safe canonical calculation provenance", () => {
+  it("uses the included direct-cost basis and ignores removed legacy labor fields", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-07-12T00:00:00.000Z",
       project: { id: "project-1", name: "Parity", projectCode: null, clientName: null, location: null, currencyCode: "PHP" },
@@ -235,11 +235,11 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       }],
     });
 
-    expect(snapshot.totalCost).toBe(165);
+    expect(snapshot.totalCost).toBe(110);
     expect(snapshot.estimates[0]?.rows).toEqual([expect.objectContaining({
       id: "included",
-      rowTotal: 165,
-      rowTotalMinorUnits: 16_500,
+      rowTotal: 110,
+      rowTotalMinorUnits: 11_000,
       calculationVersion: 1,
       calculationBasis: "proposal_included_direct",
       currencyCode: "PHP",
@@ -558,7 +558,6 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       quantity: 2,
       unit: "cu.m",
       rowTotal: 2300,
-      imageUrl: null,
       nodeId: "node-legacy",
       tabId: "tab-base",
     });
@@ -573,6 +572,16 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
 
     try {
       const legacySupabaseCover = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/cover.webp";
+      const expectedRowIds = [
+        "safe-local-row",
+        "unsafe-remote-row",
+        "unsafe-data-row",
+        "unsafe-supabase-query-row",
+        "unsafe-supabase-svg-row",
+        "unsafe-project-image-row",
+        "private-project-broker-row",
+        "private-library-broker-row",
+      ];
       const snapshot = buildProjectPublicationSnapshot({
         generatedAt: "2026-05-27T00:00:00.000Z",
         project: {
@@ -700,15 +709,14 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
         ],
       });
 
+      const snapshotRows = snapshot.estimates[0]!.rows;
+      expect(snapshotRows).toHaveLength(expectedRowIds.length);
+      expect(snapshotRows.map((row) => row.id)).toEqual(expectedRowIds);
       expect(snapshot.project.coverImageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[0]?.imageUrl).toBe("/component-thumbnails/lib-sofa.jpg");
-      expect(snapshot.estimates[0]?.rows[1]?.imageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[2]?.imageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[3]?.imageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[4]?.imageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[5]?.imageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[6]?.imageUrl).toBeNull();
-      expect(snapshot.estimates[0]?.rows[7]?.imageUrl).toBeNull();
+      expect(snapshotRows[0]!.imageUrl).toBe("/component-thumbnails/lib-sofa.jpg");
+      for (const row of snapshotRows.slice(1)) {
+        expect(row).not.toHaveProperty("imageUrl");
+      }
       expect(JSON.stringify(snapshot)).not.toContain("11111111-1111-4111-8111-111111111111");
       expect(JSON.stringify(snapshot)).not.toContain("workspace/user/components/private.webp");
 
@@ -755,8 +763,13 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
           } : row),
         } : estimate),
       });
+      const sanitizedLegacyRows = sanitizedLegacySnapshot.estimates[0]!.rows;
+      expect(sanitizedLegacyRows).toHaveLength(expectedRowIds.length);
+      expect(sanitizedLegacyRows.map((row) => row.id)).toEqual(expectedRowIds);
       expect(sanitizedLegacySnapshot.project.coverImageUrl).toBeNull();
-      expect(sanitizedLegacySnapshot.estimates[0]?.rows[0]?.imageUrl).toBeNull();
+      for (const row of sanitizedLegacyRows) {
+        expect(row).not.toHaveProperty("imageUrl");
+      }
       expect(JSON.stringify(sanitizedLegacySnapshot)).not.toContain("?path=");
     } finally {
       if (originalSupabaseUrl === undefined) {

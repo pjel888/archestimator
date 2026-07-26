@@ -11,6 +11,7 @@ import type { LibraryFolderRecord } from "@/lib/component-library/library-folder
 
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
+  findCurrentWorkspaceCostLibraryComponentDuplicate: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
   updateCostLibraryComponentWithPriceOptions: vi.fn(),
 }));
@@ -36,6 +37,7 @@ const folders: LibraryFolderRecord[] = [{
 describe("estimate component edit-surface ownership", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate.mockResolvedValue(null);
   });
 
   it("creates a library master through Add Component without invoking the master-update path", async () => {
@@ -45,6 +47,11 @@ describe("estimate component edit-surface ownership", () => {
       versionNumber: 1,
       createdAt: "2026-07-13T09:00:00.000Z",
       updatedAt: "2026-07-13T09:00:00.000Z",
+      component: {
+        id: "created-component",
+        material: "New Door Stop",
+        name: "New Door Stop",
+      },
     });
 
     render(createElement(AddComponentModal, {

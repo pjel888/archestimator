@@ -7,6 +7,7 @@ const root = process.cwd();
 
 const PUBLIC_STATIC_ROUTE_FILES = [
   "src/app/page.tsx",
+  "src/app/new/page.tsx",
   "src/app/about/page.tsx",
   "src/app/features/page.tsx",
   "src/app/pricing/page.tsx",
@@ -57,6 +58,13 @@ describe("public static route contract", () => {
     expect(contactPage).toContain("<ContactFormFromSearchParams />");
     expect(contactForm).toContain("useSearchParams");
     expect(authState).toContain("useSearchParams");
-    expect(authState).toContain("sanitizeNextPath");
+    expect(authState).toContain(
+      'import { sanitizeProtectedReturnPath } from "@/lib/auth/redirects";',
+    );
+    expect(
+      authState.match(
+        /sanitizeProtectedReturnPath\(getSearchParam\(searchParams, "next"\)\)/g,
+      ),
+    ).toHaveLength(2);
   });
 });

@@ -1,43 +1,67 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
-const performancePlanDir = existsSync(
-  ".ai/03_plans/2026-06-05-performance-and-speed/evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-summary.json",
-)
-  ? ".ai/03_plans/2026-06-05-performance-and-speed"
-  : ".ai/09_archive/2026-06-05-performance-and-speed";
-const globals = readFileSync("src/app/globals.css", "utf8");
-const evidenceSummary = readFileSync(
-  `${performancePlanDir}/evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-summary.json`,
+const newLandingPage = readFileSync(
+  "src/app/new/_components/new-landing-page.tsx",
+  "utf8",
+);
+const kimiHeroImage = readFileSync(
+  "src/app/kimi3d/_components/hero-voxel-ripple-image.tsx",
   "utf8",
 );
 
-describe("public image/font LCP audit", () => {
-  it("keeps font tokens CSS-only so Cloudflare worker builds avoid next/font metrics", () => {
-    expect(rootLayout).not.toContain("next/font");
-    expect(rootLayout).not.toContain("Roboto_Mono");
-    expect(globals).toContain("--font-roboto-mono:");
-    expect(globals).toContain("--font-geist:");
-    expect(globals).toContain("--font-doto:");
-    expect(globals).toContain('url("/fonts/doto/doto-rond-100-400.ttf")');
-    expect(globals).toContain('font-variation-settings: "ROND" 100;');
-    expect(rootLayout).not.toContain("Inter");
-    expect(rootLayout).not.toContain("Poppins");
-    expect(rootLayout).not.toContain("Source_Serif_4");
-    expect(rootLayout).not.toContain("--font-inter");
-    expect(rootLayout).not.toContain("--font-poppins");
-    expect(rootLayout).not.toContain("--font-source-serif");
-    expect(globals).not.toContain("--font-poppins: var(--font-poppins)");
-    expect(globals).not.toContain("--font-serif: var(--font-source-serif)");
+describe("public image/font LCP source contract", () => {
+  it("keeps public next/font loaders on swap with their CSS variables applied", () => {
+    expect(rootLayout).toContain(
+      'import { Plus_Jakarta_Sans, Roboto_Mono } from "next/font/google";',
+    );
+    expect(rootLayout).toMatch(
+      /const plusJakartaSans = Plus_Jakarta_Sans\(\{\s*subsets: \["latin"\],\s*variable: "--font-plus-jakarta",\s*display: "swap",\s*\}\);/,
+    );
+    expect(rootLayout).toMatch(
+      /const robotoMono = Roboto_Mono\(\{\s*subsets: \["latin"\],\s*variable: "--font-roboto-mono",\s*display: "swap",\s*\}\);/,
+    );
+    expect(rootLayout).toContain(
+      'className={`${plusJakartaSans.variable} ${robotoMono.variable}`}',
+    );
+
+    expect(newLandingPage).toContain(
+      'import { Jersey_25 } from "next/font/google";',
+    );
+    expect(newLandingPage).toMatch(
+      /const jersey25 = Jersey_25\(\{\s*display: "swap",\s*subsets: \["latin"\],\s*variable: "--font-jersey-25",\s*weight: "400",\s*\}\);/,
+    );
+    expect(newLandingPage).toContain("jersey25.variable");
   });
 
-  it("keeps public LCP evidence image-free before adding image preloads", () => {
-    const summary = JSON.parse(evidenceSummary) as { rows: Array<{ file: string; lcpMs: number }> };
+  it("preloads the responsive Kimi AVIF hero sources at high priority", () => {
+    expect(newLandingPage).toContain(
+      'import LandingPageHeroMobileAvif from "../../../../public/landing-hero-day-1280.avif";',
+    );
+    expect(newLandingPage).toContain(
+      'import LandingPageHeroAvif from "../../../../public/landing-hero-day-2400.avif";',
+    );
+    expect(newLandingPage).toMatch(
+      /const heroPreloads = \[\s*\{ media: "\(max-width: 640px\)", src: LandingPageHeroMobileAvif\.src \},\s*\{ media: "\(min-width: 641px\)", src: LandingPageHeroAvif\.src \},\s*\] as const;/,
+    );
+    expect(newLandingPage).toMatch(
+      /preload\(image\.src, \{\s*as: "image",\s*fetchPriority: "high",\s*media: image\.media,\s*type: "image\/avif",\s*\}\);/,
+    );
+    expect(newLandingPage).toContain("preloadHeroImages();");
 
-    expect(summary.rows.some((row) => row.file.includes("home-mobile"))).toBe(true);
-    expect(rootLayout).not.toContain("preload={true}");
-    expect(globals).toContain('font-family: var(--font-sf-pro)');
-    expect(globals).toContain('"SF Pro Text", "SF Pro Display", -apple-system');
+    expect(kimiHeroImage).toContain(
+      'import LandingPageHeroMobileAvif from "../../../../public/landing-hero-day-1280.avif";',
+    );
+    expect(kimiHeroImage).toContain(
+      'import LandingPageHeroAvif from "../../../../public/landing-hero-day-2400.avif";',
+    );
+    expect(kimiHeroImage).toMatch(
+      /type="image\/avif"\s*media="\(max-width: 640px\)"\s*srcSet=\{LandingPageHeroMobileAvif\.src\}/,
+    );
+    expect(kimiHeroImage).toMatch(
+      /type="image\/avif"\s*media="\(min-width: 641px\)"\s*srcSet=\{LandingPageHeroAvif\.src\}/,
+    );
+    expect(kimiHeroImage).toContain('fetchPriority="high"');
   });
 });

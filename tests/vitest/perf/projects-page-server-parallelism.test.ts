@@ -242,6 +242,28 @@ function overlaps(a: QueryRecord, b: QueryRecord) {
   return a.startTime < b.endTime && b.startTime < a.endTime;
 }
 
+function elapsed(record: QueryRecord) {
+  return record.endTime - record.startTime;
+}
+
+function unionElapsed(a: QueryRecord, b: QueryRecord) {
+  return Math.max(a.endTime, b.endTime) - Math.min(a.startTime, b.startTime);
+}
+
+function maximumSequentialQueryDepth(records: QueryRecord[]) {
+  const recordsByEndTime = [...records].sort((left, right) => left.endTime - right.endTime);
+  let depth = 0;
+  let previousEndTime = Number.NEGATIVE_INFINITY;
+
+  for (const entry of recordsByEndTime) {
+    if (entry.startTime < previousEndTime) continue;
+    depth += 1;
+    previousEndTime = entry.endTime;
+  }
+
+  return depth;
+}
+
 describe("listCurrentWorkspaceProjects server query parallelism (Phase 1)", () => {
   it("runs wave-2 and wave-3 query pairs concurrently, not serially", async () => {
     const { listCurrentWorkspaceProjects } = await import("@/lib/repositories/workspace-repository");
@@ -270,16 +292,25 @@ describe("listCurrentWorkspaceProjects server query parallelism (Phase 1)", () =
       "wave 3 should overlap: publications and pending-invite reads run concurrently",
     ).toBe(true);
 
-    // --- Total wall-clock: parallel waves cost ~2 sequential round-trips, not ~4. ---
-    // Sequential cost of just the two optimized waves alone would be ~4 * QUERY_DELAY_MS.
-    // Parallel cost is ~2 * QUERY_DELAY_MS. The route now also performs starter-pack
-    // state, claim, membership, and empty-workspace reads before listing projects.
-    const serialEquivalentMs = 4 * QUERY_DELAY_MS;
-    // The two optimized waves, run in parallel, must save at least ~one round-trip vs serial.
-    // Ten round-trips is the all-serial floor for the current fake-backed app path,
-    // so this ceiling still requires the optimized waves to save at least one trip.
-    const allSerialFloorMs = 10 * QUERY_DELAY_MS;
-    expect(overallTotalMs).toBeLessThan(allSerialFloorMs);
+    // --- Measured savings: each optimized pair must save meaningful wall-clock time. ---
+    // Compare the observed union of each pair against its observed serial equivalent.
+    // This preserves the end-to-end concurrency contract without depending on the host
+    // delivering a nominal 50 ms timer in exactly 50 ms under load.
+    const minimumConcurrencySavingsMs = QUERY_DELAY_MS / 2;
+    const wave2SerialElapsedMs = elapsed(sharedRead) + elapsed(favoriteEstimatesRead);
+    const wave2UnionElapsedMs = unionElapsed(sharedRead, favoriteEstimatesRead);
+    const wave3SerialElapsedMs = elapsed(publicationsRead) + elapsed(invitationsRead);
+    const wave3UnionElapsedMs = unionElapsed(publicationsRead, invitationsRead);
+
+    expect(wave2SerialElapsedMs - wave2UnionElapsedMs).toBeGreaterThan(minimumConcurrencySavingsMs);
+    expect(wave3SerialElapsedMs - wave3UnionElapsedMs).toBeGreaterThan(minimumConcurrencySavingsMs);
+
+    // Guard the entire query path structurally: the current app path has eight
+    // sequential stages. Unlike a fixed millisecond ceiling, this fails on an extra
+    // serial query before, between, or after the optimized waves without depending
+    // on host timer precision.
+    const sequentialQueryDepth = maximumSequentialQueryDepth(queryLog);
+    expect(sequentialQueryDepth).toBeLessThanOrEqual(8);
 
     // Emit the measured numbers for the report (visible with --reporter=verbose / on failure).
     console.log(
@@ -287,7 +318,9 @@ describe("listCurrentWorkspaceProjects server query parallelism (Phase 1)", () =
         {
           QUERY_DELAY_MS,
           overallTotalMs: Math.round(overallTotalMs),
-          serialEquivalentForTwoWavesMs: serialEquivalentMs,
+          sequentialQueryDepth,
+          observedSerialEquivalentForTwoWavesMs: Math.round(wave2SerialElapsedMs + wave3SerialElapsedMs),
+          observedConcurrentElapsedForTwoWavesMs: Math.round(wave2UnionElapsedMs + wave3UnionElapsedMs),
           wave2: {
             sharedProjects: { start: Math.round(sharedRead.startTime), end: Math.round(sharedRead.endTime) },
             favoriteEstimates: {

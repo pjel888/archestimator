@@ -41,6 +41,16 @@ vi.mock("@/components/workshop/NewProjectModal", () => ({
   NewProjectModal: () => null,
 }));
 
+vi.mock("@/components/onboarding/AuthenticatedOnboardingHost", () => ({
+  AuthenticatedOnboardingHost: () => null,
+}));
+
+vi.mock("@/components/workshop/WorkshopFeedbackModal", () => ({
+  WorkshopFeedbackModal: () => (
+    <button type="button" aria-haspopup="dialog">Send feedback</button>
+  ),
+}));
+
 const workshopHomebase = {
   workspace: {
     id: "workspace-1",

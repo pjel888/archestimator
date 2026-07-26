@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthUtilityLink, EarlyAccessCta } from "@/components/landing-new/NewLandingAuthCta";
+import { BETA_ACCESS_MAILTO_HREF } from "@/components/landing-new/new-landing-content";
 
 describe("new landing auth CTAs", () => {
   afterEach(() => {
@@ -39,7 +40,7 @@ describe("new landing auth CTAs", () => {
     expect(await screen.findByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=/workshop/projects");
     expect(screen.getByRole("link", { name: "Request beta access" })).toHaveAttribute(
       "href",
-      "/contact?intent=beta-request",
+      BETA_ACCESS_MAILTO_HREF,
     );
   });
 });

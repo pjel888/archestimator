@@ -13,6 +13,11 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import {
+  isStorybookInfrastructurePath,
+  normalizeStorybookBoundaryPath,
+} from "../../scripts/check-storybook-boundary.mjs";
+
 const root = process.cwd();
 const storyRoots = [".storybook", "src/stories", "src"];
 const scannedExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mdx"]);
@@ -56,7 +61,7 @@ function walk(dir: string, files: string[] = []) {
 
     const extension = entry.slice(entry.lastIndexOf("."));
     const storyFile = /\.(stories|story)\.(ts|tsx|js|jsx|mdx)$/.test(entry);
-    const storyInfrastructure = absolute.includes(`${join(root, "src/stories")}/`) || absolute.includes(`${join(root, ".storybook")}/`);
+    const storyInfrastructure = isStorybookInfrastructurePath(relative(root, absolute));
     const previewHead = entry === "preview-head.html";
     if ((storyInfrastructure || storyFile || previewHead) && (scannedExtensions.has(extension) || previewHead)) {
       files.push(absolute);
@@ -67,6 +72,15 @@ function walk(dir: string, files: string[] = []) {
 }
 
 describe("Storybook provider boundary", () => {
+  it("normalizes adversarial Windows-separated Storybook paths without widening scope", () => {
+    expect(normalizeStorybookBoundaryPath(".storybook\\preview.ts")).toBe(".storybook/preview.ts");
+    expect(normalizeStorybookBoundaryPath(".\\src\\stories\\decorators\\query.tsx")).toBe("src/stories/decorators/query.tsx");
+    expect(isStorybookInfrastructurePath(".storybook\\preview.ts")).toBe(true);
+    expect(isStorybookInfrastructurePath("src\\stories\\decorators\\query.tsx")).toBe(true);
+    expect(isStorybookInfrastructurePath("src\\stories-archive\\fixture.tsx")).toBe(false);
+    expect(isStorybookInfrastructurePath("..\\external\\.storybook\\preview.ts")).toBe(false);
+  });
+
   it("keeps stories, fixtures, decorators, and config provider-free", () => {
     const files = Array.from(new Set(storyRoots.flatMap((storyRoot) => walk(join(root, storyRoot)))));
     expect(files.length).toBeGreaterThan(0);
