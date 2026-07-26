@@ -46,42 +46,50 @@ export function compareThresholds(
   after: unknown,
   prefix = "",
 ): QualityFinding[] {
+  const numericFindings = compareNumericThreshold(before, after, prefix);
+  if (numericFindings) return numericFindings;
+  if (!isRecord(before)) return [];
+  if (!isRecord(after)) return [];
+  return compareThresholdRecords(before, after, prefix);
+}
+
+function compareNumericThreshold(
+  before: unknown,
+  after: unknown,
+  prefix: string,
+): QualityFinding[] | undefined {
+  if (typeof before !== "number") return undefined;
+  if (typeof after !== "number") return undefined;
+  if (after >= before) return [];
+  return [{
+    code: "THRESHOLD_LOWERED",
+    message: `${prefix || "threshold"} lowered from ${before} to ${after}`,
+  }];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (!value) return false;
+  if (typeof value !== "object") return false;
+  return !Array.isArray(value);
+}
+
+function thresholdPath(prefix: string, key: string): string {
+  return prefix ? `${prefix}.${key}` : key;
+}
+
+function compareThresholdRecords(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  prefix: string,
+): QualityFinding[] {
   const findings: QualityFinding[] = [];
-  if (
-    typeof before === "number" &&
-    typeof after === "number" &&
-    after < before
-  ) {
-    findings.push({
-      code: "THRESHOLD_LOWERED",
-      message: `${prefix || "threshold"} lowered from ${before} to ${after}`,
-    });
-    return findings;
-  }
-  if (
-    before &&
-    after &&
-    typeof before === "object" &&
-    typeof after === "object" &&
-    !Array.isArray(before) &&
-    !Array.isArray(after)
-  ) {
-    for (const [key, value] of Object.entries(before)) {
-      if (!(key in after)) {
-        findings.push({
-          code: "THRESHOLD_REMOVED",
-          message: `${prefix ? `${prefix}.` : ""}${key} was removed`,
-        });
-      } else {
-        findings.push(
-          ...compareThresholds(
-            value,
-            (after as Record<string, unknown>)[key],
-            prefix ? `${prefix}.${key}` : key,
-          ),
-        );
-      }
+  for (const [key, value] of Object.entries(before)) {
+    const path = thresholdPath(prefix, key);
+    if (!(key in after)) {
+      findings.push({ code: "THRESHOLD_REMOVED", message: `${path} was removed` });
+      continue;
     }
+    findings.push(...compareThresholds(value, after[key], path));
   }
   return findings;
 }

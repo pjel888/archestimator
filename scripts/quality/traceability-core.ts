@@ -63,51 +63,10 @@ export function validateTraceability(
   registry: Capability[],
   evidence: CapabilityEvidence[],
 ): QualityFinding[] {
-  const findings: QualityFinding[] = [];
   const registryById = new Map(registry.map((capability) => [capability.id, capability]));
-  const evidenceIdentities = evidence.map((item) => `${item.capability_id}\u0000${item.kind}`);
-  if (new Set(evidenceIdentities).size !== evidenceIdentities.length) {
-    findings.push({
-      code: "DUPLICATE_EVIDENCE",
-      message: "Capability evidence identities must be unique",
-    });
-  }
+  const findings = duplicateEvidenceFindings(evidence);
   for (const capabilityId of affectedCapabilities) {
-    const capability = registryById.get(capabilityId);
-    if (!capability) {
-      findings.push({
-        code: "UNKNOWN_CAPABILITY",
-        message: `Affected capability ${capabilityId} is not registered`,
-      });
-      continue;
-    }
-    if (capability.must_fix) {
-      findings.push({
-        code: "UNKNOWN_MUST_FIX",
-        message: `${capabilityId} is fail-closed and must be resolved`,
-      });
-    }
-    for (const kind of capability.evidence_kinds) {
-      const item = evidence.find(
-        (candidate) => candidate.capability_id === capabilityId && candidate.kind === kind,
-      );
-      if (!item) {
-        findings.push({
-          code: "MISSING_CAPABILITY_EVIDENCE",
-          message: `${capabilityId} lacks ${kind} evidence`,
-        });
-      } else if (
-        item.status !== "PASS" ||
-        !item.command ||
-        !item.artifact ||
-        !/^[a-f0-9]{64}$/u.test(item.artifact_sha256 ?? "")
-      ) {
-        findings.push({
-          code: "CAPABILITY_EVIDENCE_FAILED",
-          message: `${capabilityId}/${kind} lacks passing executable artifact evidence`,
-        });
-      }
-    }
+    findings.push(...validateCapability(capabilityId, registryById, evidence));
   }
   for (const item of evidence) {
     if (!registryById.has(item.capability_id)) {
@@ -118,4 +77,66 @@ export function validateTraceability(
     }
   }
   return findings;
+}
+
+function duplicateEvidenceFindings(evidence: CapabilityEvidence[]): QualityFinding[] {
+  const identities = evidence.map((item) => `${item.capability_id}\u0000${item.kind}`);
+  if (new Set(identities).size === identities.length) return [];
+  return [{
+    code: "DUPLICATE_EVIDENCE",
+    message: "Capability evidence identities must be unique",
+  }];
+}
+
+function validateCapability(
+  capabilityId: string,
+  registryById: Map<string, Capability>,
+  evidence: CapabilityEvidence[],
+): QualityFinding[] {
+  const capability = registryById.get(capabilityId);
+  if (!capability) {
+    return [{
+      code: "UNKNOWN_CAPABILITY",
+      message: `Affected capability ${capabilityId} is not registered`,
+    }];
+  }
+  const findings: QualityFinding[] = [];
+  if (capability.must_fix) {
+    findings.push({
+      code: "UNKNOWN_MUST_FIX",
+      message: `${capabilityId} is fail-closed and must be resolved`,
+    });
+  }
+  for (const kind of capability.evidence_kinds) {
+    findings.push(...validateEvidenceKind(capabilityId, kind, evidence));
+  }
+  return findings;
+}
+
+function validateEvidenceKind(
+  capabilityId: string,
+  kind: string,
+  evidence: CapabilityEvidence[],
+): QualityFinding[] {
+  const item = evidence.find(
+    (candidate) => candidate.capability_id === capabilityId && candidate.kind === kind,
+  );
+  if (!item) {
+    return [{
+      code: "MISSING_CAPABILITY_EVIDENCE",
+      message: `${capabilityId} lacks ${kind} evidence`,
+    }];
+  }
+  if (hasPassingArtifact(item)) return [];
+  return [{
+    code: "CAPABILITY_EVIDENCE_FAILED",
+    message: `${capabilityId}/${kind} lacks passing executable artifact evidence`,
+  }];
+}
+
+function hasPassingArtifact(item: CapabilityEvidence): boolean {
+  if (item.status !== "PASS") return false;
+  if (!item.command) return false;
+  if (!item.artifact) return false;
+  return /^[a-f0-9]{64}$/u.test(item.artifact_sha256 ?? "");
 }

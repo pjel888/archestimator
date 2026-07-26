@@ -76,6 +76,55 @@ clearly exceeds coordination cost. The lead owns integration and the final claim
 Use the directive above for native, parallel-thread, emulated-pass, and
 single-agent fallback behavior.
 
+## Host Resource Safety
+
+Host capacity is an execution boundary, not an optimization hint. At session
+startup, inspect physical memory with `sysctl -n hw.memsize` and current pressure
+with `memory_pressure` on macOS, or the operating system equivalent, before
+selecting an orchestration topology. Select the lowest applicable ceiling:
+
+| Physical memory | Native subagents | Concurrent heavy commands |
+| --- | ---: | ---: |
+| 8 GiB or less | 0 | 1 |
+| 9-31 GiB | 2 | 1 |
+| 32-47 GiB | 4 | 2 |
+| 48 GiB or more | 6 | 4 |
+
+These values are ceilings, not targets. Increase toward the ceiling only when
+lanes are independent, one-writer-per-file ownership is explicit, and memory
+pressure remains healthy. A browser, build, coverage, mutation, type-check,
+Java, Node/Bun, or graph process occupies one heavy-command slot.
+
+On a host with 8 GiB of memory or less:
+
+- use one lead agent and zero native subagents for implementation or verification;
+- perform specialist passes sequentially in the lead context;
+- run only one Node, Bun, Java, browser, build, coverage, mutation, or graph job at
+  a time, with one worker where the tool supports it;
+- never overlap type checking, Next.js builds, coverage, mutation, Storybook,
+  Playwright, GitNexus analysis, or full-suite execution;
+- do not launch local GitNexus/codegraph indexing or CLI impact analysis; use an
+  already-running MCP without rebuilding, or current-source callers and focused
+  tests as degraded graph evidence;
+- start a heavy command only when no `sysdiagnose` is active, system-wide memory
+  free is at least 40 percent, and swapouts are stable;
+- stop new work when free memory falls below 25 percent or swapouts increase, then
+  wait for three healthy samples before continuing;
+- partition full suites into deterministic serial shards and merge their reports
+  without narrowing coverage, skipping tests, or weakening the selected profile.
+
+On a host with 48 GiB or more, start with at most four native subagents and two
+heavy-command slots, then scale to the six-agent/four-command ceiling only after
+two healthy samples with at least 24 GiB available and no swap growth. Keep at
+least 16 GiB available while fully fanned out. GitNexus indexing remains a single
+heavy job and must not overlap mutation or a production build. GPU memory does not
+count toward these system-memory budgets.
+
+Configured thread ceilings never override the lower host-safe limit. Available
+memory and pressure can reduce any tier at runtime. Resource exhaustion, watchdog
+stalls, or Jetsam events force immediate serialization and a cooldown before
+further repository work.
+
 ## Beta Quality Gate
 
 Every change is automatically classified `Q0_CONTRACT_ONLY`,

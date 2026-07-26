@@ -50,6 +50,34 @@ context isolation, specialist accuracy, or named-risk coverage.
 Short, ordered, tightly coupled, or same-file work stays with one owner.
 Unavailable agents or models trigger a portable fallback, not a blocker.
 
+Host resources are part of the Task Contract. Before selecting native or parallel
+lanes, record physical memory, current memory pressure, active diagnostics, and
+whether the planned tools can allocate multi-gigabyte heaps.
+
+- Host ceilings are: 0 native subagents and 1 heavy command at 8 GiB or less; 2
+  and 1 at 9-31 GiB; 4 and 2 at 32-47 GiB; 6 and 4 at 48 GiB or more.
+- These are ceilings, not targets. Start below the ceiling, scale only while
+  memory remains healthy, and preserve one-writer-per-file ownership.
+- On hosts with 8 GiB or less, implementation and verification use the
+  single-agent fallback. Specialist roles are emulated as labeled sequential
+  passes, full suites use deterministic serial shards with merged evidence, and
+  local GitNexus/codegraph indexing or CLI impact analysis is prohibited.
+- An already-running graph MCP may be used without rebuilding on the low-memory
+  host; otherwise current source, callers, and focused tests are the degraded
+  graph fallback.
+- Do not begin a heavy command while `sysdiagnose` is active, system-wide memory
+  free is below 40 percent, or swapouts are increasing.
+- If free memory falls below 25 percent, swapouts increase, Jetsam occurs, or the
+  watchdog stalls, stop new work and require three healthy cooldown samples before
+  resuming.
+- On hosts with 48 GiB or more, begin with 4 agents and 2 heavy-command slots.
+  Scale to 6 agents and 4 slots only after two samples show at least 24 GiB
+  available with no swap growth; retain at least 16 GiB available. Graph indexing
+  remains a single heavy job and cannot overlap mutation or a production build.
+- GPU VRAM does not count as system memory for concurrency selection.
+- Runtime thread limits are ceilings only. The host-safe concurrency limit always
+  wins when it is lower.
+
 ## Topology And Lifecycle
 
 Executable work follows
@@ -71,9 +99,11 @@ The lead:
 6. consumes structured handoffs and inspects actual artifacts;
 7. resolves conflicts, integrates, verifies, cleans up, and owns completion.
 
-Normal parallel fan-out is three lanes. The configured thread ceiling is a hard
-runtime limit, not a target. More lanes require a concrete elapsed-time or
-coverage benefit.
+Normal parallel fan-out follows the host ceiling above. The configured thread
+ceiling is a hard runtime limit, not a target. More than one lane requires both a
+concrete elapsed-time or coverage benefit and a healthy resource preflight.
+Low-memory hosts remain serialized; workstation hosts may use all six lanes when
+the measured memory budget permits it.
 
 Each lane moves from assigned to running, then either waits at a named barrier
 or returns one terminal handoff: `COMPLETE|PARTIAL|FAILED|CANCELLED`. The lead
