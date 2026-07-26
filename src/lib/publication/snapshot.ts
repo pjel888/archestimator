@@ -275,17 +275,9 @@ function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, idNamespa
 
   const snapshotRow: PublicationSnapshotRow = {
     id: row.id,
-    componentAnchor: row.componentId ? createOpaqueSnapshotId("component", row.componentId, idNamespace) : null,
-    variantAnchor: row.variantId ? createOpaqueSnapshotId("variant", row.variantId, idNamespace) : null,
-    componentVersionNumber: Number.isSafeInteger(row.componentVersionNumber) && Number(row.componentVersionNumber) >= 0 ? Number(row.componentVersionNumber) : null,
-    variantLabel: row.variantLabel?.trim() || null,
-    rowRevision: Number.isSafeInteger(row.rowRevision) && Number(row.rowRevision) >= 0 ? Number(row.rowRevision) : 0,
-    linkState: row.linkState ?? "unlinked",
     description: row.description,
     designation: row.designation,
     discipline: row.discipline,
-    category: categorySnapshot.category,
-    supplier: row.supplierLabel?.trim() || null,
     material: row.material,
     quantity: toFiniteNumber(row.quantity),
     unit: row.unit,
@@ -295,10 +287,24 @@ function buildSnapshotRow(row: SnapshotRowInput, currencyCode: string, idNamespa
     calculationBasis: "proposal_included_direct",
     currencyCode: costParts.value.currencyCode,
     scopeStatus: row.scopeStatus ?? "included",
-    // P9 additive (undefined/null if absent in source_snapshot at publish)
-    imageUrl: normalizeIssuedPublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
   };
+  if (row.componentId) snapshotRow.componentAnchor = createOpaqueSnapshotId("component", row.componentId, idNamespace);
+  if (row.variantId) snapshotRow.variantAnchor = createOpaqueSnapshotId("variant", row.variantId, idNamespace);
+  if (Number.isSafeInteger(row.componentVersionNumber) && Number(row.componentVersionNumber) >= 0) {
+    snapshotRow.componentVersionNumber = Number(row.componentVersionNumber);
+  }
+  const variantLabel = row.variantLabel?.trim();
+  if (variantLabel) snapshotRow.variantLabel = variantLabel;
+  if (Number.isSafeInteger(row.rowRevision) && Number(row.rowRevision) > 0) {
+    snapshotRow.rowRevision = Number(row.rowRevision);
+  }
+  if (row.linkState && row.linkState !== "unlinked") snapshotRow.linkState = row.linkState;
+  if (categorySnapshot.category) snapshotRow.category = categorySnapshot.category;
+  const supplier = row.supplierLabel?.trim();
+  if (supplier) snapshotRow.supplier = supplier;
+  const imageUrl = normalizeIssuedPublicationImageUrl(row.imageUrl);
+  if (imageUrl) snapshotRow.imageUrl = imageUrl;
   if (categorySnapshot.categoryId) snapshotRow.categoryId = createOpaqueSnapshotId("category", categorySnapshot.categoryId, idNamespace);
   if (categorySnapshot.categoryPath.length > 0) snapshotRow.categoryPath = categorySnapshot.categoryPath;
   if (categorySnapshot.categoryPathIds.length > 0) {
@@ -332,9 +338,10 @@ function sanitizeSnapshotRow(
     quantity: toFiniteNumber(Number(row.quantity)),
     unit: row.unit,
     rowTotal: toFiniteNumber(Number(row.rowTotal)),
-    imageUrl: normalizeIssuedPublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ? mapPublicSnapshotId(idMaps, "node", row.nodeId) : null,
   };
+  const imageUrl = normalizeIssuedPublicationImageUrl(row.imageUrl);
+  if (imageUrl) snapshotRow.imageUrl = imageUrl;
   if (typeof row.componentAnchor === "string" && /^cmp_[A-Za-z0-9_-]{20}$/.test(row.componentAnchor)) snapshotRow.componentAnchor = row.componentAnchor;
   if (typeof row.variantAnchor === "string" && /^var_[A-Za-z0-9_-]{20}$/.test(row.variantAnchor)) snapshotRow.variantAnchor = row.variantAnchor;
   if (Number.isSafeInteger(row.componentVersionNumber) && Number(row.componentVersionNumber) >= 0) snapshotRow.componentVersionNumber = Number(row.componentVersionNumber);

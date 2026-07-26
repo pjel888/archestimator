@@ -1,11 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { updateCorporateAccountStatusAction } from "@/lib/admin/corporate-account-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+
+type AccountStatus = "active" | "suspended" | "archived";
 
 export function AdminAccountStatusControls({
   accountId,
@@ -17,22 +21,60 @@ export function AdminAccountStatusControls({
   accountName: string;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [requestedStatus, setRequestedStatus] = useState<AccountStatus | null>(null);
 
-  function handleStatusChange(newStatus: string) {
-    const verb = newStatus === "active" ? "reactivate" : newStatus === "suspended" ? "suspend" : "archive";
-    const confirmed = window.confirm(
-      `${verb.charAt(0).toUpperCase() + verb.slice(1)} "${accountName}"?` +
-        (newStatus === "archived" ? "\n\nArchived accounts are hidden from the default list but can be restored." : ""),
-    );
-    if (!confirmed) return;
+  const actionLabel =
+    requestedStatus === "active"
+      ? status === "archived"
+        ? "Restore"
+        : "Reactivate"
+      : requestedStatus === "suspended"
+        ? "Suspend"
+        : requestedStatus === "archived"
+          ? "Archive"
+          : "Update";
+  const completedAction =
+    requestedStatus === "active"
+      ? status === "archived"
+        ? "restored"
+        : "reactivated"
+      : requestedStatus === "suspended"
+        ? "suspended"
+        : "archived";
 
+  function handleStatusChange(newStatus: AccountStatus) {
+    setRequestedStatus(newStatus);
+  }
+
+  function confirmStatusChange() {
+    const newStatus = requestedStatus;
+    if (!newStatus || isPending) return;
     startTransition(async () => {
-      const result = await updateCorporateAccountStatusAction({ accountId, status: newStatus });
-      if (result.ok) {
+      try {
+        const result = await updateCorporateAccountStatusAction({ accountId, status: newStatus });
+        if (!result.ok) {
+          toast({
+            id: `admin-account-status-${accountId}`,
+            message: "Account status could not be updated. Please try again.",
+            tone: "error",
+          });
+          return;
+        }
+
+        toast({
+          id: `admin-account-status-${accountId}`,
+          message: `${accountName} ${completedAction}.`,
+          tone: "success",
+        });
         router.refresh();
-      } else {
-        window.alert(result.error);
+      } catch {
+        toast({
+          id: `admin-account-status-${accountId}`,
+          message: "Account status could not be updated. Please try again.",
+          tone: "error",
+        });
       }
     });
   }
@@ -101,6 +143,31 @@ export function AdminAccountStatusControls({
           Restore
         </Button>
       )}
+
+      <ConfirmDialog
+        open={requestedStatus !== null}
+        onOpenChange={(open) => {
+          if (!open) setRequestedStatus(null);
+        }}
+        title={`${actionLabel} "${accountName}"?`}
+        description={
+          requestedStatus === "archived"
+            ? "Archived accounts are hidden from the default list but can be restored."
+            : "This account status change takes effect immediately."
+        }
+        confirmLabel={`${actionLabel} account`}
+        cancelLabel="Keep current status"
+        tone={
+          requestedStatus === "archived"
+            ? "danger"
+            : requestedStatus === "suspended"
+              ? "warning"
+              : "default"
+        }
+        busy={isPending}
+        initialFocus="cancel"
+        onConfirm={confirmStatusChange}
+      />
     </div>
   );
 }
