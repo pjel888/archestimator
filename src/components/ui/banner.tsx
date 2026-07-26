@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Info, CheckCircle, WarningCircle, XCircle, X } from "@phosphor-icons/react/dist/ssr";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 export interface BannerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -71,14 +72,16 @@ export function Banner({ className, tone = "info", title, description, actions, 
         <div className="flex shrink-0 items-center gap-2">
           {actions && <div className="flex items-center gap-2">{actions}</div>}
           {onDismiss && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={onDismiss}
-              className="flex size-6 cursor-pointer items-center justify-center rounded-xs text-secondary hover:bg-black/5 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+              className="size-6 min-h-6 min-w-6 text-secondary hover:bg-black/5 hover:text-ink focus-visible:ring-1"
               aria-label="Dismiss"
             >
               <X size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
-            </button>
+            </Button>
           )}
         </div>
       )}

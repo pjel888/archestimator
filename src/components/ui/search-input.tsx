@@ -1,5 +1,6 @@
 import { type InputHTMLAttributes, type Ref } from "react";
 import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
@@ -45,14 +46,16 @@ export function SearchInput({ className, wrapperClassName, shortcutKey, onClear,
         {...props}
       />
       {hasValue ? (
-        <button
+        <Button
           type="button"
-          className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs bg-transparent text-tertiary transition-colors hover:bg-white/45 hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40"
+          variant="ghost"
+          size="icon-sm"
+          className="size-6 min-h-6 min-w-6 shrink-0 bg-transparent text-tertiary transition-colors hover:bg-white/45 hover:text-ink focus-visible:ring-1 focus-visible:ring-focus/40"
           aria-label="Clear search"
           onClick={onClear}
         >
           <X size={11} className="pointer-events-none" aria-hidden="true" />
-        </button>
+        </Button>
       ) : shortcutKey ? (
         <kbd className="shrink-0 rounded-xs bg-white/45 px-1 text-[9px] font-medium text-tertiary shadow-[inset_0_1px_0_rgba(255,255,255,0.62)]">
           {shortcutKey}

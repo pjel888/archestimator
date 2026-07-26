@@ -38,7 +38,6 @@ export function ToolbarIconButton({
   onBlur,
   onClick,
   onFocus,
-  onMouseUp,
   onPointerDown,
   onPointerEnter,
   onPointerLeave,
@@ -49,7 +48,6 @@ export function ToolbarIconButton({
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const wrapperRef = useRef<HTMLSpanElement>(null);
   const hoverTooltipTimerRef = useRef<number | null>(null);
-  const manualActivationRef = useRef(false);
   const pointerActivationRef = useRef(false);
   const tooltipId = useId();
   const describedBy = hasVisibleLabel
@@ -79,7 +77,6 @@ export function ToolbarIconButton({
     onPointerDown?.(event);
     pointerActivationRef.current = true;
     clearHoverTooltipTimer();
-    if (event.button === 0) activateFromPointer(event);
   }
 
   function handlePointerLeave(event: PointerEvent<HTMLButtonElement>) {
@@ -88,26 +85,11 @@ export function ToolbarIconButton({
     setTooltipOpen(false);
   }
 
-  function activateFromPointer(event: MouseEvent<HTMLButtonElement> | PointerEvent<HTMLButtonElement>) {
-    if (props.disabled || manualActivationRef.current) return;
-    manualActivationRef.current = true;
-    clearHoverTooltipTimer();
-    setTooltipOpen(false);
-    onClick?.(event as MouseEvent<HTMLButtonElement>);
-    window.setTimeout(() => {
-      manualActivationRef.current = false;
-    }, 1_000);
-  }
-
   function handlePointerUp(event: PointerEvent<HTMLButtonElement>) {
     onPointerUp?.(event);
-    if (event.pointerType !== "mouse") activateFromPointer(event);
+    clearHoverTooltipTimer();
+    setTooltipOpen(false);
     pointerActivationRef.current = false;
-  }
-
-  function handleMouseUp(event: MouseEvent<HTMLButtonElement>) {
-    onMouseUp?.(event);
-    if (event.button === 0) activateFromPointer(event);
   }
 
   function handleFocus(event: FocusEvent<HTMLButtonElement>) {
@@ -126,11 +108,6 @@ export function ToolbarIconButton({
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
     clearHoverTooltipTimer();
     setTooltipOpen(false);
-    if (manualActivationRef.current) {
-      manualActivationRef.current = false;
-      pointerActivationRef.current = false;
-      return;
-    }
     onClick?.(event);
     pointerActivationRef.current = false;
   }
@@ -154,7 +131,6 @@ export function ToolbarIconButton({
         onBlur={handleBlur}
         onClick={handleClick}
         onFocus={handleFocus}
-        onMouseUpCapture={handleMouseUp}
         onPointerDownCapture={handlePointerDown}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}

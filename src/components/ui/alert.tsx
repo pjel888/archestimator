@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -49,10 +50,12 @@ export function Alert({ className, tone = "info", title, description, icon, acti
         <div className="flex items-center gap-2 shrink-0 ml-2">
           {action}
           {onClose && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={onClose}
-              className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-focus"
+              className="size-6 min-h-6 min-w-6 shrink-0 opacity-70 transition-opacity hover:opacity-100 focus:ring-1"
               aria-label="Close alert"
             >
               <svg
@@ -70,7 +73,7 @@ export function Alert({ className, tone = "info", title, description, icon, acti
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-            </button>
+            </Button>
           )}
         </div>
       )}

@@ -51,8 +51,10 @@ function FloatingDockItem({
   const isDanger = variant === "danger";
 
   return (
-    <button
+    <Button
       type="button"
+      size="icon-sm"
+      variant={isDanger ? "danger" : "secondary"}
       disabled={disabled}
       onClick={onClick}
       title={title ?? label}
@@ -60,7 +62,7 @@ function FloatingDockItem({
         // Named group: a plain `group` here would inherit hover state from
         // ancestor `group` containers like ResizableSidePanel.
         "group/dock-item relative flex cursor-pointer items-center justify-center",
-        "size-6 rounded-xs",
+        "size-6 min-h-6 min-w-6 rounded-xs",
         "transition-all duration-200 ease-out",
         "hover:scale-[1.15] hover:z-10",
         "focus-visible:scale-[1.15] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
@@ -85,7 +87,7 @@ function FloatingDockItem({
       >
         {label}
       </span>
-    </button>
+    </Button>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useState, useRef, type DragEvent, type ChangeEvent, type Ref } from "react";
 import { UploadSimple, X, File as FileIcon } from "@phosphor-icons/react/dist/ssr";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 export type FileUploadProps = {
@@ -145,18 +146,20 @@ export function FileUpload({ className, accept, multiple, maxSize, onFilesSelect
                   <span className="truncate text-[10px] font-medium text-ink">{file.name}</span>
                   <span className="shrink-0 text-[9px] text-tertiary">{formatFileSize(file.size)}</span>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={(e) => {
                     e.preventDefault();
                     removeFile(index);
                   }}
                   disabled={disabled}
-                  className="grid size-5 shrink-0 cursor-pointer place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                  className="size-6 min-h-6 min-w-6 shrink-0 text-tertiary hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed"
                   aria-label={`Remove ${file.name}`}
                 >
                   <X size={10} weight="regular" className="pointer-events-none" aria-hidden="true" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>
