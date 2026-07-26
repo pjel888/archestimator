@@ -7,24 +7,29 @@ const readProjectFile = (path: string) => readFileSync(join(process.cwd(), path)
 const deletedGeneratedFolder = "src/components/landing/aec" + "-cost-intelligence";
 const deletedHomeFolder = "src/components/home";
 
-describe("deleted landing page implementation", () => {
+describe("public landing implementation", () => {
   it("removes generated and superseded home implementation directories", () => {
     expect(existsSync(join(process.cwd(), deletedGeneratedFolder))).toBe(false);
     expect(existsSync(join(process.cwd(), deletedHomeFolder))).toBe(false);
   });
 
-  it("keeps the active homepage on landing-v3, not generated variants or frontdoor", () => {
+  it("keeps the active homepage on the Kimi composition, not superseded variants", () => {
     const page = readProjectFile("src/app/page.tsx");
-    const landingV3 = readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx");
+    const landing = readProjectFile("src/app/kimi3d/_components/kimi-landing-page.tsx");
+    const content = readProjectFile("src/app/kimi3d/_content.ts");
 
-    expect(page).toContain("@/components/landing-v3/ArchestimatorLandingPage");
+    expect(page).toContain('./kimi3d/_components/kimi-landing-page');
+    expect(page).toContain("return <KimiLandingPage />");
     expect(page).not.toContain("@/components/frontdoor");
+    expect(page).not.toContain("@/components/landing-v3");
     expect(page).not.toMatch(new RegExp("Redesigned" + "LandingPage"));
     expect(page).not.toMatch(new RegExp("gpt" + "-taste"));
-    expect(landingV3).toMatch(/Where estimates become client‑approved proposals\./);
-    expect(landingV3).toMatch(/Stop losing time to spreadsheets and revisions\./);
-    expect(landingV3).toMatch(/archestimator turns estimating and proposals into one workflow so you spend less time working and more time winning\./);
-    expect(`${page}\n${landingV3}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
-    expect(`${page}\n${landingV3}`).not.toMatch(/Start Winning|Close Projects Faster/i);
+    expect(landing).toContain("HeroVoxelRippleImage");
+    expect(landing).toContain("HeroWorkspaceProof");
+    expect(landing).toContain("LandingMotionLoader");
+    expect(content).toContain('leadTitleStart: "From cost estimate to client approval."');
+    expect(content).toContain('leadTitleHighlight: "All in one workflow."');
+    expect(`${page}\n${landing}\n${content}`).not.toMatch(new RegExp("Contractor " + "bid desk", "i"));
+    expect(`${page}\n${landing}\n${content}`).not.toMatch(/Start Winning|Close Projects Faster/i);
   });
 });

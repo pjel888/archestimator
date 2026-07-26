@@ -41,8 +41,8 @@ describe("public Kimi landing contract", () => {
     expect(landingSource).toContain("PrimaryCtaLink");
     expect(ctaSource).toContain("export function PrimaryCtaLink");
     expect(ctaSource).toContain("className={cn(styles.ctaButton, className)}");
-    expect(landingCss).toMatch(/\.root a\.ctaButton\s*\{[^}]*inline-size: 12rem;/su);
-    expect(landingCss).toMatch(/\.root a\.ctaButton\s*\{[^}]*block-size: 3rem;/su);
+    expect(landingCss).toMatch(/\.root a\.ctaButton,[^{]*\{[^}]*inline-size: 12rem;/su);
+    expect(landingCss).toMatch(/\.root a\.ctaButton,[^{]*\{[^}]*block-size: 3rem;/su);
     expect(landingCss).toMatch(/\.ctaArrow\s*\{[^}]*inline-size: 2rem;[^}]*block-size: 2rem;/su);
   });
 

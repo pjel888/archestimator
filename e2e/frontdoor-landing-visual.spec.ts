@@ -7,18 +7,15 @@ const VIEWPORTS = [
   { name: "narrow", width: 320, height: 812 },
 ] as const;
 
-test.describe("landing-v3 visual proof", () => {
+test.describe("frontdoor landing visual proof", () => {
   for (const viewport of VIEWPORTS) {
     test(`${viewport.name} renders without overflow and with a product-led hero`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto("/", { waitUntil: "networkidle" });
 
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: "Where estimates become client‑approved proposals.",
-        }),
-      ).toBeVisible();
+      const heroHeading = page.locator("#hero-title");
+      await expect(heroHeading).toBeVisible();
+      await expect(heroHeading).toContainText("BUILD WITH AMBITION.");
 
       const overflow = await page.evaluate(() => {
         const documentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
@@ -32,7 +29,9 @@ test.describe("landing-v3 visual proof", () => {
 
       await page.waitForTimeout(400);
 
-      const stage = page.locator("[class*='productStage']").first();
+      const stage = page.locator("[data-proof-phase]").first();
+      await stage.waitFor({ state: "visible" });
+      await expect(stage).toHaveAttribute("data-proof-phase", /\S+/u);
       await stage.scrollIntoViewIfNeeded();
       const stageBox = await stage.boundingBox();
       expect(stageBox).not.toBeNull();

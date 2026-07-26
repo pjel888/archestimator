@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "phase": "temporary-full-control-copy",
+  "capturedAt": "2026-07-26T07:02:22.487Z",
+  "routeSourceSha256": "dce784ec5197a9bb4a69790a1a645522cab125d176b627236f8d66b5b0846c94",
+  "controlSourceSha256": "f712d31d7e0d069e937b51359b1443b0b2d9297106d46839c4cc56d529f8717c",
+  "results": [
+    {
+      "profile": {
+        "name": "desktop",
+        "viewport": { "width": 1280, "height": 800 },
+        "isMobile": false
+      },
+      "pixelDiff": { "pixelDiffCount": 0, "maxChannelDelta": 0 },
+      "controlScreenshotSha256": "e400d1d7597f4a4988ba0d4d21084b27cd612e1a6ba04f0ca9d75cde4595e1be",
+      "experimentScreenshotSha256": "e400d1d7597f4a4988ba0d4d21084b27cd612e1a6ba04f0ca9d75cde4595e1be",
+      "controlArtifact": "artifacts/landing-new-experiment/initial-copy-parity/root-desktop-full.png",
+      "experimentArtifact": "artifacts/landing-new-experiment/initial-copy-parity/new-desktop-full.png"
+    },
+    {
+      "profile": {
+        "name": "mobile",
+        "viewport": { "width": 390, "height": 844 },
+        "isMobile": true
+      },
+      "pixelDiff": { "pixelDiffCount": 0, "maxChannelDelta": 0 },
+      "controlScreenshotSha256": "a3b9e609ba63c74c29cfb78fe64cf23277196eba977fc70618cb255767433653",
+      "experimentScreenshotSha256": "a3b9e609ba63c74c29cfb78fe64cf23277196eba977fc70618cb255767433653",
+      "controlArtifact": "artifacts/landing-new-experiment/initial-copy-parity/root-mobile-full.png",
+      "experimentArtifact": "artifacts/landing-new-experiment/initial-copy-parity/new-mobile-full.png"
+    }
+  ]
+}
