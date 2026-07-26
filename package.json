@@ -259,6 +259,8 @@
     "@vitest/coverage-v8": "4.1.10",
     "@vitest/expect": "4.1.10",
     "@vitest/spy": "4.1.10",
+    "ajv": "8.18.0",
+    "ajv-formats": "3.0.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.6",
     "fast-check": "4.9.0",

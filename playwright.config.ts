@@ -69,7 +69,10 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: `bun run predev && ARCHESTIMATOR_NEXT_DEV_DIST_DIR=${isolatedDevelopmentDistDir} bun x next dev --webpack --port ${port}`,
+    command: `bun run predev && bun x next dev --webpack --port ${port}`,
+    env: {
+      ARCHESTIMATOR_NEXT_DEV_DIST_DIR: isolatedDevelopmentDistDir,
+    },
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,
