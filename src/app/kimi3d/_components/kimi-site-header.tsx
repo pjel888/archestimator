@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
-import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
+import { useLandingAuthHintState } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
 
 import { headerCopy, preReleaseCopy } from "../_content";
@@ -20,7 +20,7 @@ import styles from "../kimi-landing.module.css";
 export function KimiSiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const isLoggedIn = useLandingAuthHint();
+  const { isLoggedIn, isLoading } = useLandingAuthHintState();
   const brandLinkRef = useRef<HTMLAnchorElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuDialogRef = useRef<HTMLDivElement>(null);
@@ -165,7 +165,7 @@ export function KimiSiteHeader() {
             ))}
           </nav>
           <div className={styles.headerActions}>
-            {!isLoggedIn ? (
+            {!isLoggedIn && !isLoading ? (
               <AuthUtilityLink className={styles.signInLink} />
             ) : null}
             <PrimaryCtaLink />
@@ -218,7 +218,7 @@ export function KimiSiteHeader() {
           <div>
             <PrimaryCtaLink />
           </div>
-          {!isLoggedIn ? (
+          {!isLoggedIn && !isLoading ? (
             <AuthUtilityLink className={styles.signInLink} />
           ) : null}
         </div>

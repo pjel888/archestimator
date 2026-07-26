@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
-import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
+import { useLandingAuthHintState } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
 
 import {
@@ -23,7 +23,11 @@ import styles from "../kimi-landing.module.css";
  */
 
 export function PrimaryCtaLink({ className }: { className?: string }) {
-  const isLoggedIn = useLandingAuthHint();
+  const { isLoggedIn, isLoading } = useLandingAuthHintState();
+
+  if (isLoading) {
+    return <span className={cn(styles.ctaButton, styles.ctaButtonSkeleton)} aria-hidden="true" />;
+  }
 
   return (
     <Link
@@ -39,7 +43,11 @@ export function PrimaryCtaLink({ className }: { className?: string }) {
 }
 
 export function AuthUtilityLink({ className }: { className?: string }) {
-  const isLoggedIn = useLandingAuthHint();
+  const { isLoggedIn, isLoading } = useLandingAuthHintState();
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <Link href={isLoggedIn ? WORKSPACE_HREF : LOGIN_HREF} className={className}>

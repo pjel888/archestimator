@@ -72,9 +72,10 @@
      #6b6b6b ≈ 5.3:1 on white and clears WCAG 1.4.3 for body text. */
   --muted-foreground: #6b6b6b;
   --accent: #3d3d3d;
-  --font-geist:
-    "Geist", "SF Pro Text", "SF Pro Display", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-plus-jakarta:
+    "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-geist: var(--font-plus-jakarta);
   --font-roboto-mono:
     "Roboto Mono", "SF Mono", "Cascadia Mono", "Segoe UI Mono",
     "Liberation Mono", ui-monospace, monospace;
@@ -227,9 +228,7 @@
   --danger: #b91c1c;
   --danger-soft: #fee2e2;
   --proposal-paper: #fffdf8;
-  --font-sf-pro:
-    "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  --font-sf-pro: var(--font-plus-jakarta);
   --radius-xs: 3px;
 
   /* ─── Liquid-glass sidebar (brand-adapted, light) ───────────────────────
@@ -321,7 +320,7 @@
   --landing-paper: var(
     --proposal-paper
   ); /* #fffdf8 — Direction D only; NOT used on Glass routes */
-  --font-ui: var(--font-sf-pro); /* SF Pro (C-2 resolution) */
+  --font-ui: var(--font-plus-jakarta); /* Plus Jakarta Sans — all platforms */
 
   /* === Landing type scale (doc 03 §3.4) — mobile-first clamp, editorial register ===
      Mobile floor → desktop ceiling. Body floor = 16px (≥14px landing floor; app floor
@@ -362,7 +361,7 @@
   --landing-tracking-display: 0.02em; /* Doto uppercase — wide, not negative */
   --landing-tracking-headline: 0;
   --landing-tracking-prose: 0;
-  --landing-tracking-label: 0.08em; /* SF Pro uppercase pills */
+  --landing-tracking-label: 0.08em; /* uppercase pills */
   --landing-measure-prose: 70ch; /* body prose */
   --landing-measure-lead: 60ch; /* hero subhead */
 
@@ -452,12 +451,12 @@
   --color-dangerSoft: var(--danger-soft);
   --color-proposal-paper: var(--proposal-paper);
   --color-proposalPaper: var(--proposal-paper);
-  --font-sans: var(--font-sf-pro);
+  --font-sans: var(--font-plus-jakarta);
   --font-mono: var(--font-roboto-mono);
   /* Dashboard-hero display + numeric families (Workshop Dashboard, 2026-06-17).
      `font-display` = Doto for the Improve-ROI-inspired editorial headline;
      `font-numeric` reuses Roboto Mono for codes/dates/totals. Path-scoped to
-     dashboard surfaces; the rest of the app keeps SF Pro. */
+     dashboard surfaces; the rest of the app uses Plus Jakarta Sans. */
   --font-display:
     var(--font-doto), var(--font-roboto-mono), ui-monospace, monospace;
   --font-numeric: var(--font-roboto-mono), ui-monospace, monospace;
@@ -475,7 +474,7 @@
   --color-landing-hairline: var(--landing-hairline);
   --color-landing-hairline-strong: var(--landing-hairline-strong);
   --color-landing-paper: var(--landing-paper);
-  --font-landing-display: var(--font-geist), var(--font-sf-pro);
+  --font-landing-display: var(--font-plus-jakarta);
   --font-landing-numeric: var(--font-numeric);
   --font-landing-ui: var(--font-ui);
 
@@ -512,14 +511,14 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sf-pro);
+  font-family: var(--font-plus-jakarta);
   font-feature-settings: "kern";
   /* 320px hard floor (doc 07 §2.2) — clip horizontal overflow so no landing element forces a scrollbar. */
   overflow-x: clip;
 }
 
 body:has([data-landing-page-root="true"]) {
-  font-family: var(--font-sf-pro);
+  font-family: var(--font-plus-jakarta);
 }
 
 .rough-annotation {

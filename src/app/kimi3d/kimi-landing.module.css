@@ -66,7 +66,7 @@
     ),
     var(--glass-inset-hi, inset 0 1px 0 rgba(255, 255, 255, 0.45));
   --k-font-sans:
-    var(--font-geist), var(--font-sf-pro), -apple-system, sans-serif;
+    var(--font-plus-jakarta), -apple-system, sans-serif;
   --k-font-mono: var(--font-roboto-mono), ui-monospace, monospace;
   --k-font-display: var(--k-font-sans);
   --k-font-ambition: var(--font-jersey-25), var(--k-font-sans);
@@ -307,7 +307,8 @@
 }
 
 /* Primary CTA with a nested arrow plate. */
-.root a.ctaButton {
+.root a.ctaButton,
+.ctaButtonSkeleton {
   display: inline-flex;
   flex: none;
   inline-size: 12rem;
@@ -330,6 +331,16 @@
     background-color 180ms ease,
     color 180ms ease,
     transform 180ms var(--k-ease-out);
+}
+
+/* Auth-loading placeholder: reserves the CTA footprint so the header layout
+   does not shift when the real CTA appears after the auth hint resolves. */
+.ctaButtonSkeleton {
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+  cursor: default;
+  pointer-events: none;
 }
 
 .root a.ctaButton:hover {

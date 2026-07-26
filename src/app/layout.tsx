@@ -1,10 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans, Roboto_Mono } from "next/font/google";
 import { AuthStateMismatchRecoveryScript } from "@/components/auth/AuthStateMismatchRecoveryScript";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { LandingStructuredData } from "@/components/landing/structured-data";
 import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
 import { AppProviders } from "./providers";
 import "./globals.css";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  variable: "--font-roboto-mono",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -34,7 +47,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${plusJakartaSans.variable} ${robotoMono.variable}`}>
         <AuthStateMismatchRecoveryScript />
         <AppProviders>{children}</AppProviders>
         {/* JSON-LD structured data (Organization + WebSite) sitewide (doc 13 §4). */}
