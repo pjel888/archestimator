@@ -9,24 +9,26 @@ import { parseLoopbackHttpUrl } from "./lib/supermemory-config.mjs";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..");
 let apiUrl;
-try {
-  apiUrl = parseLoopbackHttpUrl(
-    process.env.SUPERMEMORY_API_URL?.trim() || "http://localhost:6767",
-    "SUPERMEMORY_API_URL",
-  );
-} catch (error) {
-  process.stderr.write(`supermemory:memory: ${error instanceof Error ? error.message : String(error)}\n`);
-  process.exit(1);
-}
-const keyPath = resolve(
-  process.env.SUPERMEMORY_API_KEY_FILE?.trim() || join(REPO_ROOT, ".supermemory", "api-key"),
-);
+let keyPath;
 const command = process.argv[2];
 const args = process.argv.slice(3);
 
 function fail(message) {
-  process.stderr.write(`supermemory:memory: ${message}\n`);
-  process.exit(1);
+  throw new Error(message);
+}
+
+function loadConfiguration() {
+  try {
+    apiUrl = parseLoopbackHttpUrl(
+      process.env.SUPERMEMORY_API_URL?.trim() || "http://localhost:6767",
+      "SUPERMEMORY_API_URL",
+    );
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  keyPath = resolve(
+    process.env.SUPERMEMORY_API_KEY_FILE?.trim() || join(REPO_ROOT, ".supermemory", "api-key"),
+  );
 }
 
 function readApiKey() {
@@ -134,32 +136,40 @@ function readAddContent() {
   return args.join(" ").trim();
 }
 
-let result;
-if (command === "search") {
-  const query = args.join(" ").trim();
-  if (!query) fail("usage: bun run supermemory:search -- <query>.");
-  assertSanitized(query);
-  result = await request("/v3/search", {
-    includeFullDocs: true,
-    limit: 5,
-    q: query,
-  });
-} else if (command === "add") {
-  const content = readAddContent();
-  if (!content) fail("usage: bun run supermemory:add -- <sanitized memory>.");
-  assertSanitized(content);
-  const accepted = await request("/v3/documents", {
-    containerTag: "archestimator",
-    content,
-    metadata: {
-      repo: "archestimator",
-      source: "coding-agent",
-    },
-    taskType: "memory",
-  });
-  result = await waitForSearchableDocument(accepted, content);
-} else {
+async function main() {
+  loadConfiguration();
+  if (command === "search") {
+    const query = args.join(" ").trim();
+    if (!query) fail("usage: bun run supermemory:search -- <query>.");
+    assertSanitized(query);
+    return request("/v3/search", {
+      includeFullDocs: true,
+      limit: 5,
+      q: query,
+    });
+  }
+  if (command === "add") {
+    const content = readAddContent();
+    if (!content) fail("usage: bun run supermemory:add -- <sanitized memory>.");
+    assertSanitized(content);
+    const accepted = await request("/v3/documents", {
+      containerTag: "archestimator",
+      content,
+      metadata: {
+        repo: "archestimator",
+        source: "coding-agent",
+      },
+      taskType: "memory",
+    });
+    return waitForSearchableDocument(accepted, content);
+  }
   fail("usage: supermemory-memory.mjs <search|add> <text>.");
 }
 
-process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+try {
+  const result = await main();
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+} catch (error) {
+  process.stderr.write(`supermemory:memory: ${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+}

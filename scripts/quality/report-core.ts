@@ -52,6 +52,15 @@ interface ReviewDecision {
   source: "local-agent" | "github";
 }
 
+interface LocalCommandExpectations {
+  profile?: string;
+  candidateSha256?: string;
+  baseRef?: string;
+  baseSha?: string;
+  reviewPaths?: string;
+  authorIds?: string;
+}
+
 export function canonicalProfilesOverrideFinding(
   root: string,
   requestedPath: string | undefined,
@@ -202,6 +211,7 @@ function validateCommandResults(
   const resultCounts = new Map<string, number>();
   const claimedArtifactPaths = new Map<string, string>();
   const claimedArtifactHashes = new Map<string, string>();
+  const localExpectations = localCommandExpectations(manifest);
   for (const result of commandResults) {
     validateCommandResult(
       result,
@@ -211,6 +221,7 @@ function validateCommandResults(
       profiles.command_artifacts,
       claimedArtifactPaths,
       claimedArtifactHashes,
+      localExpectations,
       findings,
     );
   }
@@ -227,10 +238,11 @@ function validateCommandResult(
   commandArtifacts: Record<string, string>,
   claimedArtifactPaths: Map<string, string>,
   claimedArtifactHashes: Map<string, string>,
+  localExpectations: LocalCommandExpectations,
   findings: QualityFinding[],
 ): void {
   resultCounts.set(result.command, (resultCounts.get(result.command) ?? 0) + 1);
-  if (malformedCommandResult(result)) {
+  if (malformedCommandResult(result, localExpectations)) {
     findings.push({ code: "COMMAND_RESULT_MALFORMED", message: "Command result is malformed" });
   } else if (result.status !== "PASS") {
     findings.push({
@@ -345,14 +357,39 @@ function validateCanonicalCommandResult(
   }
 }
 
-function malformedCommandResult(result: CommandResult): boolean {
+function malformedCommandResult(
+  result: CommandResult,
+  expectations: LocalCommandExpectations,
+): boolean {
   if (!result.command || !["local", "ci"].includes(result.source) || !validArtifact(result.artifact)) {
     return true;
   }
   return (
     result.source === "local" &&
-    (typeof result.executed_command !== "string" || !validLocalExecutedCommand(result))
+    (typeof result.executed_command !== "string" ||
+      !validLocalExecutedCommand(result, expectations))
   );
+}
+
+function localCommandExpectations(manifest: Record<string, unknown>): LocalCommandExpectations {
+  const candidate = manifest.candidate as Record<string, unknown> | undefined;
+  const classification = manifest.classification as Record<string, unknown> | undefined;
+  const comparisonBase = classification?.comparison_base as Record<string, unknown> | undefined;
+  const reviews = manifest.reviews as Record<string, unknown> | undefined;
+  const inputPaths = Array.isArray(reviews?.input_paths) ? reviews.input_paths : undefined;
+  const authorIds = Array.isArray(reviews?.author_ids) ? reviews.author_ids : undefined;
+  return {
+    profile: typeof manifest.profile === "string" ? manifest.profile : undefined,
+    candidateSha256: typeof candidate?.sha256 === "string" ? candidate.sha256 : undefined,
+    baseRef: typeof comparisonBase?.input_ref === "string" ? comparisonBase.input_ref : undefined,
+    baseSha: typeof comparisonBase?.resolved_sha === "string" ? comparisonBase.resolved_sha : undefined,
+    reviewPaths: inputPaths?.every((value) => typeof value === "string")
+      ? inputPaths.join(",")
+      : undefined,
+    authorIds: authorIds?.every((value) => typeof value === "string")
+      ? authorIds.join(",")
+      : undefined,
+  };
 }
 
 const BASE_AWARE_LOCAL_SCRIPTS = new Set([
@@ -367,7 +404,10 @@ const BASE_AWARE_LOCAL_SCRIPTS = new Set([
   "test:mutation:full",
 ]);
 
-function validLocalExecutedCommand(result: CommandResult): boolean {
+function validLocalExecutedCommand(
+  result: CommandResult,
+  expectations: LocalCommandExpectations,
+): boolean {
   const executed = result.executed_command!;
   if (/\r|\n|&&|\|\||[;|<>`]|\$\(/u.test(executed)) return false;
   const canonical = result.command.split(/\s+/u);
@@ -376,13 +416,13 @@ function validLocalExecutedCommand(result: CommandResult): boolean {
   const script = canonical[2];
   let index = canonical.length;
   if (BASE_AWARE_LOCAL_SCRIPTS.has(script)) {
-    if (!validFlagValue(tokens, index, "--base", /^[A-Za-z0-9_./\\-]+$/u)) return false;
+    if (!exactFlagValue(tokens, index, "--base", expectations.baseRef)) return false;
     index += 2;
-    if (!validFlagValue(tokens, index, "--base-sha", /^[a-f0-9]{40}$/u)) return false;
+    if (!exactFlagValue(tokens, index, "--base-sha", expectations.baseSha)) return false;
     index += 2;
   }
   if (script === "quality:classify" && tokens[index] === "--profile") {
-    if (!validFlagValue(tokens, index, "--profile", /^Q[0-3]_[A-Z_]+$/u)) return false;
+    if (!exactFlagValue(tokens, index, "--profile", expectations.profile)) return false;
     index += 2;
   }
   if (script === "quality:classify") {
@@ -393,14 +433,23 @@ function validLocalExecutedCommand(result: CommandResult): boolean {
     index += 2;
   }
   if (script === "quality:reviews") {
-    if (!validFlagValue(tokens, index, "--expected", /^[a-f0-9]{64}$/u)) return false;
+    if (!exactFlagValue(tokens, index, "--expected", expectations.candidateSha256)) return false;
     index += 2;
-    if (!validFlagValue(tokens, index, "--reviews", /^[A-Za-z0-9_./\\,-]+$/u)) return false;
+    if (!exactFlagValue(tokens, index, "--reviews", expectations.reviewPaths)) return false;
     index += 2;
-    if (!validFlagValue(tokens, index, "--author-ids", /^[A-Za-z0-9_,-]+$/u)) return false;
+    if (!exactFlagValue(tokens, index, "--author-ids", expectations.authorIds)) return false;
     index += 2;
   }
   return index === tokens.length;
+}
+
+function exactFlagValue(
+  tokens: string[],
+  index: number,
+  flag: string,
+  expected: string | undefined,
+): boolean {
+  return expected !== undefined && tokens[index] === flag && tokens[index + 1] === expected;
 }
 
 function validFlagValue(
@@ -529,6 +578,17 @@ function validReviewRequirements(
   );
 }
 
+function validReviewInputs(reviews: Record<string, unknown> | undefined): boolean {
+  const inputPaths = reviews?.input_paths;
+  const authorIds = reviews?.author_ids;
+  return (
+    validDistinctStringArray(inputPaths) &&
+    inputPaths.every(canonicalRepositoryRelativePath) &&
+    validDistinctStringArray(authorIds) &&
+    authorIds.every((value) => /^[A-Za-z0-9_-]+$/u.test(value))
+  );
+}
+
 function validReviewSummary(
   manifest: Record<string, unknown>,
   candidate: Record<string, unknown> | undefined,
@@ -543,7 +603,11 @@ function validReviewSummary(
   const decisions = Array.isArray(reviews?.decisions)
     ? (reviews.decisions as ReviewDecision[])
     : [];
-  if (!validReviewBinding(reviews, candidate) || !validReviewRequirements(requirements)) {
+  if (
+    !validReviewBinding(reviews, candidate) ||
+    !validReviewRequirements(requirements) ||
+    !validReviewInputs(reviews)
+  ) {
     findings.push({
       code: "REVIEW_SUMMARY_MALFORMED",
       message: "Manifest review summary is missing or does not bind the candidate",

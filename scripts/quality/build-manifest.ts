@@ -482,6 +482,8 @@ const manifestData = {
     candidate_sha256: reviewData?.candidate?.sha256 ?? computedCandidate,
     requirements: reviewRequirements,
     decisions: reviewData?.reviews ?? [],
+    input_paths: [],
+    author_ids: reviewAuthors,
     artifact: reviewJob?.artifact ?? null,
   },
   quality_domains: qualityDomains,

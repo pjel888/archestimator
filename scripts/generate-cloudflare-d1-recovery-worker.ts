@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const SCRATCH_ROOT = resolve(".ai/99_scratch/cloudflare-d1-recovery");
 
@@ -184,7 +184,15 @@ export function generateCloudflareD1RecoveryWorker(
 ): CloudflareD1RecoveryWorkerOutput {
   assertSafeInput(inputs);
   const outputDirectory = resolve(SCRATCH_ROOT, inputs.runId);
-  if (!outputDirectory.startsWith(`${SCRATCH_ROOT}/`)) throw new Error("Recovery overlay must remain within the scratch root.");
+  const relativeOutputDirectory = relative(SCRATCH_ROOT, outputDirectory);
+  if (
+    !relativeOutputDirectory ||
+    relativeOutputDirectory === ".." ||
+    relativeOutputDirectory.startsWith(`..${sep}`) ||
+    isAbsolute(relativeOutputDirectory)
+  ) {
+    throw new Error("Recovery overlay must remain within the scratch root.");
+  }
   mkdirSync(SCRATCH_ROOT, { recursive: true });
   mkdirSync(outputDirectory, { recursive: false });
 

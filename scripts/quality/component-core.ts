@@ -662,16 +662,25 @@ export function validateComponentBaseline(
 
 const coverageMetrics: CoverageMetric[] = ["statements", "branches", "functions", "lines"];
 
+function isNonnegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
 function coverageValueIsComplete(value: unknown): value is CoverageValue {
   if (!isRecord(value)) return false;
-  return ["total", "covered", "skipped", "pct"].every((field) =>
-    typeof value[field] === "number" && Number.isFinite(value[field]));
+  const fields = ["total", "covered", "skipped", "pct"] as const;
+  if (Object.keys(value).length !== fields.length || !fields.every((field) => field in value)) return false;
+  const { total, covered, skipped, pct } = value;
+  return isNonnegativeInteger(total) && isNonnegativeInteger(covered) && isNonnegativeInteger(skipped) &&
+    typeof pct === "number" && Number.isFinite(pct) && pct >= 0 && pct <= 100 &&
+    covered <= total && skipped <= total && covered + skipped <= total;
 }
 
 function coverageSummaryIsComplete(value: unknown): value is CoverageSummary {
   if (!isRecord(value) || !isRecord(value.total)) return false;
   return Object.values(value).every((metrics) =>
-    isRecord(metrics) && coverageMetrics.every((metric) => coverageValueIsComplete(metrics[metric])));
+    isRecord(metrics) && Object.keys(metrics).length === coverageMetrics.length &&
+    coverageMetrics.every((metric) => coverageValueIsComplete(metrics[metric])));
 }
 
 function validateCurrentCoverageShape(coverage: unknown): QualityFinding[] {

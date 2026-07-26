@@ -92,6 +92,10 @@ function quoteIdentifier(value: string) {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
+function dumpIdentifier(value: string) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/u.test(value) ? value : quoteIdentifier(value);
+}
+
 function sqlLiteral(value: SqliteValue) {
   if (value === null) return "NULL";
   if (typeof value === "number" || typeof value === "bigint") return String(value);
@@ -104,7 +108,7 @@ function dumpTableRows(database: SqliteDatabase, tableName: string) {
   return rows.map((row) => {
     const columns = Object.keys(row).map(quoteIdentifier).join(",");
     const values = Object.values(row).map(sqlLiteral).join(",");
-    return `INSERT INTO ${quoteIdentifier(tableName)}(${columns}) VALUES(${values});`;
+    return `INSERT INTO ${dumpIdentifier(tableName)}(${columns}) VALUES(${values});`;
   });
 }
 

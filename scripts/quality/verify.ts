@@ -520,6 +520,8 @@ const manifestData = {
     candidate_sha256: reviewData.candidate?.sha256 ?? candidateHash,
     requirements: finalReviewRequirements,
     decisions: reviewData.reviews ?? [],
+    input_paths: reviewsInput?.split(",") ?? [],
+    author_ids: authorIdsInput?.split(",") ?? [],
     artifact: reviewCommand?.artifact ?? null,
   },
   quality_domains: {

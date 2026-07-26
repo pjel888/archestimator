@@ -316,7 +316,14 @@
     "reviewSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["candidate_sha256", "requirements", "decisions", "artifact"],
+      "required": [
+        "candidate_sha256",
+        "requirements",
+        "decisions",
+        "input_paths",
+        "author_ids",
+        "artifact"
+      ],
       "properties": {
         "candidate_sha256": {
           "type": "string",
@@ -335,6 +342,22 @@
         "decisions": {
           "type": "array",
           "items": { "$ref": "#/$defs/review" }
+        },
+        "input_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9_./-]+$"
+          }
+        },
+        "author_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
         },
         "artifact": {
           "anyOf": [
