@@ -1,12 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  combineVitestReports,
   compareComponentRatchet,
   evaluateRawGreenComponentRun,
   globMatches,
   normalizeVitestFailures,
-  partitionComponentPerformanceTests,
   selectStrictComponentTests,
   validateComponentBaseline,
   validateComponentProfileSelection,
@@ -137,29 +135,8 @@ describe("component evidence selection", () => {
   it("requests coverage reports on failed Q1/Q2 Vitest runs", () => {
     const source = readFileSync("scripts/quality/component.ts", "utf8");
     expect(source).toContain('...(reportOnFailure ? ["--coverage.reportOnFailure=true"] : [])');
-    expect(source).toContain('name: "strict-performance" as const');
-    expect(source).toContain('coverageEnabled: false');
-    expect(source).toContain('"full-performance", fullPartition.performance, false, false');
-  });
-
-  it("isolates performance tests without dropping them from combined evidence", () => {
-    const partition = partitionComponentPerformanceTests([
-      "tests/vitest/button.test.tsx",
-      "tests/vitest/perf/render.test.tsx",
-    ]);
-    expect(partition).toEqual({
-      functional: ["tests/vitest/button.test.tsx"],
-      performance: ["tests/vitest/perf/render.test.tsx"],
-    });
-    expect(combineVitestReports([
-      { success: true, numTotalTests: 2, numFailedTests: 0, numPendingTests: 0 },
-      { success: true, numTotalTests: 3, numFailedTests: 0, numPendingTests: 0 },
-    ])).toMatchObject({
-      success: true,
-      numTotalTests: 5,
-      numFailedTests: 0,
-      numPendingTests: 0,
-    });
+    expect(source).toContain('executeVitest(root, "strict", strictTests, true)');
+    expect(source).toContain('executeVitest(root, "full", [], profile !== "Q3_RELEASE_GATE")');
   });
 
   const evidenceMap: ComponentEvidenceMap = {

@@ -26,6 +26,7 @@ class FakeR2Bucket implements CloudflareR2UploadBucket {
   }> = [];
 
   readonly deleteCalls: Array<string | string[]> = [];
+  readonly getCalls: Array<{ key: string; range?: { offset: number; length: number } }> = [];
 
   async put(
     key: string,
@@ -42,15 +43,21 @@ class FakeR2Bucket implements CloudflareR2UploadBucket {
     this.objects.set(key, { body, httpMetadata: options?.httpMetadata });
   }
 
-  async get(key: string) {
+  async get(key: string, options?: { range?: { offset: number; length: number } }) {
+    this.getCalls.push({ key, range: options?.range });
     const object = this.objects.get(key);
     if (!object) return null;
+    const range = options?.range;
+    const body = range
+      ? object.body.slice(range.offset, range.offset + range.length)
+      : object.body;
     return {
       size: object.body.byteLength,
+      range,
       httpMetadata: object.httpMetadata,
-      arrayBuffer: async () => object.body.buffer.slice(
-        object.body.byteOffset,
-        object.body.byteOffset + object.body.byteLength,
+      arrayBuffer: async () => body.buffer.slice(
+        body.byteOffset,
+        body.byteOffset + body.byteLength,
       ),
     };
   }
@@ -119,6 +126,32 @@ describe("Cloudflare R2 upload storage provider", () => {
     ]);
     await expect(provider.downloadObject("component-attachments", "workspace-1/user-1/spec.pdf"))
       .rejects.toThrow(SAFE_ERROR_MESSAGE);
+  });
+
+  it("reads a bounded byte range without buffering the full object", async () => {
+    const r2 = new FakeR2Bucket();
+    const provider = createCloudflareR2UploadStorageProvider(r2);
+    await provider.uploadObject({
+      bucket: "project-artifacts",
+      path: "workspace-1/project-1/project-artifacts/artifact-1/version-1/file.pdf",
+      body: new Uint8Array([0, 1, 2, 3, 4, 5]),
+      contentType: "application/pdf",
+    });
+
+    await expect(
+      provider.downloadObjectRange?.(
+        "project-artifacts",
+        "workspace-1/project-1/project-artifacts/artifact-1/version-1/file.pdf",
+        { offset: 2, length: 3 },
+      ),
+    ).resolves.toMatchObject({
+      body: new Uint8Array([2, 3, 4]).buffer,
+      contentType: "application/pdf",
+      offset: 2,
+      length: 3,
+      totalSizeBytes: 6,
+    });
+    expect(r2.getCalls.at(-1)?.range).toEqual({ offset: 2, length: 3 });
   });
 
   it("fails closed for unsafe object identifiers before calling R2", async () => {

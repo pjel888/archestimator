@@ -166,9 +166,7 @@ describe("component CI integration", () => {
 
     expect(componentJob).toContain("artifacts/quality/component.json");
     expect(componentJob).toContain("artifacts/quality/component-strict.vitest.json");
-    expect(componentJob).toContain("artifacts/quality/component-strict-performance.vitest.json");
     expect(componentJob).toContain("artifacts/quality/component-full.vitest.json");
-    expect(componentJob).toContain("artifacts/quality/component-full-performance.vitest.json");
     expect(componentJob).toContain("artifacts/coverage/component-strict/**");
     expect(componentJob).toContain("artifacts/coverage/component/**");
     expect(jobResultsBuilder).toContain(

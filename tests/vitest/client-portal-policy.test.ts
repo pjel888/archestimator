@@ -115,4 +115,60 @@ describe("client portal policy", () => {
 
     expect(decision).toMatchObject({ allowed: false, reasonCode: "capability_not_granted" });
   });
+
+  it("gates requester mutations by verification, ownership, and exposure", () => {
+    const requester: ClientPortalRecipientActor = {
+      ...recipient(),
+      role: "requester",
+      isRequiredApprover: false,
+    };
+    const target = {
+      kind: "change_request" as const,
+      portalId: portal.id,
+      exposureStatus: "visible" as const,
+      ownerRecipientId: requester.recipientId,
+      allowedRecipientIds: [requester.recipientId],
+    };
+
+    expect(evaluateClientPortalPolicy({ actor: requester, action: "request:create", portal })).toMatchObject({ allowed: true });
+    expect(
+      evaluateClientPortalPolicy({ actor: requester, action: "request:amend_own", portal, target }),
+    ).toMatchObject({ allowed: true });
+    expect(
+      evaluateClientPortalPolicy({
+        actor: { ...requester, verificationState: "unverified" },
+        action: "request:create",
+        portal,
+      }),
+    ).toMatchObject({ allowed: false, reasonCode: "recipient_unverified" });
+    expect(
+      evaluateClientPortalPolicy({
+        actor: requester,
+        action: "request:withdraw_own",
+        portal,
+        target: { ...target, ownerRecipientId: "recipient_other" },
+      }),
+    ).toMatchObject({ allowed: false, reasonCode: "request_not_owned" });
+    expect(
+      evaluateClientPortalPolicy({
+        actor: requester,
+        action: "timeline:view",
+        portal,
+        target: { ...target, kind: "timeline_event", exposureStatus: "withdrawn" },
+      }),
+    ).toMatchObject({ allowed: false, hideResource: true, reasonCode: "target_hidden" });
+    expect(evaluateClientPortalPolicy({ actor: requester, action: "timeline:view", portal })).toMatchObject({
+      allowed: false,
+      hideResource: true,
+      reasonCode: "target_hidden",
+    });
+    expect(
+      evaluateClientPortalPolicy({
+        actor: requester,
+        action: "request:view",
+        portal,
+        target: { ...target, kind: "artifact" },
+      }),
+    ).toMatchObject({ allowed: false, hideResource: true, reasonCode: "target_hidden" });
+  });
 });

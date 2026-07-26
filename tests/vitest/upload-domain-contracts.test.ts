@@ -118,6 +118,19 @@ describe("upload domain contracts", () => {
       bucket: "component-attachments",
       scanRequired: true,
     });
+    expect(getUploadPolicy("project-artifact")).toMatchObject({
+      bucket: "project-artifacts",
+      maxBytes: 25 * 1024 * 1024,
+      publicUrlAllowed: false,
+      scanRequired: true,
+      allowedMimeTypes: ["application/pdf"],
+    });
+    expect(getUploadPolicy("portal-request-evidence")).toMatchObject({
+      bucket: "project-artifacts",
+      maxBytes: 20 * 1024 * 1024,
+      publicUrlAllowed: false,
+      scanRequired: true,
+    });
     expect(
       buildUploadObjectKey({
         surface: "project-image",
@@ -338,6 +351,29 @@ describe("upload domain contracts", () => {
       "estimate-row",
       "row-1",
     ]);
+  });
+
+  it("records artifact and request-evidence assets against their owning project", async () => {
+    for (const surface of ["project-artifact", "portal-request-evidence"] as const) {
+      const database = new FakeD1Database();
+      await recordUploadAsset(database, {
+        workspaceId: "workspace-1",
+        actorUserId: "user-1",
+        surface,
+        targetEntityType: surface === "project-artifact" ? "artifact" : "change-request",
+        targetEntityId: surface === "project-artifact" ? "artifact-1" : "request-1",
+        bucket: "project-artifacts",
+        path: `workspace-1/project-1/${surface}/file.pdf`,
+        fileName: "file.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 10,
+        checksumBytes: new Uint8Array([1, 2, 3]),
+        scanStatus: "pending",
+        metadata: { projectId: "project-1" },
+      });
+
+      expect(d1SqlStatements(database, /INSERT INTO upload_assets/)[0]?.values[3]).toBe("project-1");
+    }
   });
 
   it("validates D1 estimate-row image assets using row target ids and separate project lookup ids", async () => {

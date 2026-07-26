@@ -10,9 +10,10 @@ function createDatabase(options: {
   activeRecipientIds?: string[];
   existingIssue?: { content_hash: string; id: string; issue_number: number; status: "issued"; version_label: string };
   issueInsertChanges?: number;
+  latestIssue?: { content_hash: string; id: string; issue_number: number; status: "accepted" | "changes_requested" | "declined" | "issued" | "superseded" | "under_review" | "withdrawn" | "archived"; version_label: string };
 } = {}) {
   const statements: CapturedStatement[] = [];
-  const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready", current_issue_id: options.existingIssue?.id ?? null };
+  const portal = { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "ready", current_issue_id: options.latestIssue?.id ?? options.existingIssue?.id ?? null };
   const draftRows = [{
     id: "section_draft_1",
     section_key: "estimate-browser",
@@ -42,7 +43,7 @@ function createDatabase(options: {
         async first<T>() {
           if (sql.includes("FROM client_portals")) return portal as T;
           if (sql.includes("content_hash = ?")) return (options.existingIssue ?? null) as T | null;
-          if (sql.includes("ORDER BY issue_number DESC")) return null;
+          if (sql.includes("ORDER BY issue_number DESC")) return (options.latestIssue ?? null) as T | null;
           return null;
         },
         async all<T>() {
@@ -152,6 +153,23 @@ describe("client portal issue builder", () => {
 
     expect(issue).toMatchObject({ issueId: "issue_existing", issueNumber: 4, reusedExistingIssue: true });
     expect(statements.some((statement) => statement.sql === "__batch__")).toBe(false);
+  });
+
+  it("preserves an accepted issue when a new proposal is published", async () => {
+    const { database, statements } = createDatabase({
+      latestIssue: { id: "issue_accepted", issue_number: 4, version_label: "Issue 4", content_hash: "accepted-content", status: "accepted" },
+    });
+
+    await publishClientPortalIssue({
+      actor,
+      database,
+      idempotencyKey: "publish_after_acceptance",
+      portalId: "portal_1",
+      source,
+      buildSectionPayload: async () => ({ description: "Floor finish", row_total: 1200 }),
+    });
+
+    expect(statements.some((statement) => statement.sql.includes("UPDATE client_portal_issues") && statement.values[0] === "issue_accepted")).toBe(false);
   });
 
   it("computes the issue content hash before random delivery identity", async () => {

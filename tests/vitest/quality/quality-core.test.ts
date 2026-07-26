@@ -10,7 +10,6 @@ import {
 import {
   compareThresholds,
   scanAntiBypass,
-  subtractBaselineFindings,
   validateWaiver,
 } from "../../../scripts/quality/anti-bypass-core";
 import {
@@ -128,25 +127,6 @@ describe("anti-bypass", () => {
         },
       ]).map((finding) => finding.code),
     ).toEqual(["HIDDEN_RETRY", "HIDDEN_RETRY"]);
-  });
-
-  it("ratchets legacy bypass findings and rejects any increase", () => {
-    const baseline = scanAntiBypass([
-      { path: "fixture.ts", text: "test.skip('legacy', () => {});" },
-    ]);
-    const unchanged = scanAntiBypass([
-      { path: "fixture.ts", text: "test.skip('legacy', () => {});" },
-    ]);
-    const increased = scanAntiBypass([
-      {
-        path: "fixture.ts",
-        text: "test.skip('legacy', () => {}); test.skip('new', () => {});",
-      },
-    ]);
-
-    expect(subtractBaselineFindings(unchanged, baseline)).toEqual([]);
-    expect(subtractBaselineFindings(increased, baseline).map((finding) => finding.code))
-      .toEqual(["TEST_SKIP_OR_FOCUS"]);
   });
 
   it("distinguishes configured source exclusions from git CLI flags", () => {

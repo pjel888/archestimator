@@ -12,6 +12,7 @@ vi.mock("@/lib/cloudflare/d1", () => ({
 type Query = { sql: string; values: unknown[] };
 
 class FakeD1Database {
+  direct = false;
   mapped = true;
   queries: Query[] = [];
 
@@ -24,7 +25,19 @@ class FakeD1Database {
         return statement;
       },
       first: async <T,>() => {
-        if (sql.includes("FROM client_portals WHERE stable_token_hash")) return null as T | null;
+        if (sql.includes("FROM client_portals WHERE stable_token_hash")) {
+          return this.direct ? {
+            access_credential_version: 1,
+            access_policy_json: '{"allowAnonymousView":true}',
+            current_issue_id: null,
+            id: "portal_direct",
+            name: "Direct Portal",
+            password_hash: null,
+            project_id: "project_1",
+            status: "live",
+            workspace_id: "workspace_1",
+          } as T : null as T | null;
+        }
         if (sql.includes("FROM project_publications AS legacy")) {
           return this.mapped
             ? {
@@ -43,6 +56,7 @@ class FakeD1Database {
             : null as T | null;
         }
         if (sql.includes("FROM client_portal_issues WHERE id = ?")) {
+          if (values[0] === "") return null as T | null;
           return {
             brand_snapshot_json: "{}",
             content_hash: "a".repeat(64),
@@ -67,7 +81,7 @@ class FakeD1Database {
   };
 }
 
-import { isClientPortalToken, resolveClientPortalPublicContext } from "@/lib/client-portal/public-repository";
+import { isClientPortalToken, resolveClientPortalBaseContext, resolveClientPortalPublicContext } from "@/lib/client-portal/public-repository";
 
 const token = "a".repeat(43);
 
@@ -91,5 +105,17 @@ describe("legacy Client Portal token resolution", () => {
 
     await expect(resolveClientPortalPublicContext(token)).resolves.toBeNull();
     await expect(isClientPortalToken(token)).resolves.toBe(false);
+  });
+
+  it("resolves a live portal base context before its first issue exists", async () => {
+    if (!mocks.database) throw new Error("D1 mock missing");
+    mocks.database.mapped = false;
+    mocks.database.direct = true;
+
+    await expect(resolveClientPortalBaseContext(token)).resolves.toMatchObject({
+      mappedIssueId: null,
+      portal: { current_issue_id: null, id: "portal_direct" },
+    });
+    await expect(resolveClientPortalPublicContext(token)).resolves.toBeNull();
   });
 });

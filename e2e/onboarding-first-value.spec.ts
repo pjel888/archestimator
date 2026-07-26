@@ -35,29 +35,33 @@ function executeLocalD1(sql: string) {
   );
   writeFileSync(sqlPath, sql, "utf8");
   try {
-    const result = spawnSync(
-      "bun",
-      [
-        "x",
-        "wrangler",
-        "d1",
-        "execute",
-        "ARCH_DB",
-        "--local",
-        ...(persistPath ? ["--persist-to", persistPath] : []),
-        "--file",
-        sqlPath,
-      ],
-      {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        timeout: 45_000,
-      },
-    );
-    if (result.status !== 0 || result.error || result.signal) {
-      throw new Error(
-        `Local onboarding first-value fixture command failed: ${result.error?.message ?? result.signal ?? result.stderr}`,
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const result = spawnSync(
+        "bun",
+        [
+          "x",
+          "wrangler",
+          "d1",
+          "execute",
+          "ARCH_DB",
+          "--local",
+          ...(persistPath ? ["--persist-to", persistPath] : []),
+          "--file",
+          sqlPath,
+        ],
+        {
+          cwd: process.cwd(),
+          encoding: "utf8",
+          timeout: 45_000,
+        },
       );
+      if (result.status === 0 && !result.error && !result.signal) return;
+      const failure = result.error?.message ?? String(result.signal ?? result.stderr);
+      const databaseBusy = /SQLITE_BUSY|database is locked/iu.test(failure);
+      if (!databaseBusy || attempt === 4) {
+        throw new Error(`Local onboarding first-value fixture command failed: ${failure}`);
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250 * (attempt + 1));
     }
   } finally {
     rmSync(sqlPath, { force: true });
@@ -66,6 +70,8 @@ function executeLocalD1(sql: string) {
 
 function clearOnboardingState() {
   executeLocalD1(`
+    DELETE FROM beta_starter_mutation_leases
+    WHERE workspace_id = '${FIXTURE_WORKSPACE_ID}';
     DELETE FROM beta_onboarding_flow_events
     WHERE user_id = '${FIXTURE_USER_ID}'
       AND workspace_id = '${FIXTURE_WORKSPACE_ID}';
@@ -375,12 +381,13 @@ test.describe("onboarding first-value journey", () => {
   });
 
   test.afterEach(async ({ page }) => {
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
     await page.close();
   });
 
   test("shows only two immediate start choices and keeps examples behind disclosure on desktop @a11y", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await openAuthenticatedRoute(page, "/workshop/getting-started");
 
@@ -408,14 +415,14 @@ test.describe("onboarding first-value journey", () => {
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
     await page.screenshot({
-      path: "artifacts/quality/onboarding-getting-started-desktop.png",
+      path: `artifacts/quality/onboarding-getting-started-desktop-${testInfo.project.name}.png`,
       fullPage: true,
     });
   });
 
   test("keeps the mobile getting-started page usable with reduced motion @a11y", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await openAuthenticatedRoute(page, "/workshop/getting-started");
@@ -438,14 +445,14 @@ test.describe("onboarding first-value journey", () => {
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
     await page.screenshot({
-      path: "artifacts/quality/onboarding-getting-started-mobile.png",
+      path: `artifacts/quality/onboarding-getting-started-mobile-${testInfo.project.name}.png`,
       fullPage: true,
     });
   });
 
   test("reflows without horizontal scrolling at the 640 CSS-pixel viewport equivalent of 200% zoom", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 640, height: 800 });
     await openAuthenticatedRoute(page, "/workshop/getting-started");
 
@@ -460,7 +467,7 @@ test.describe("onboarding first-value journey", () => {
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
-      path: "artifacts/quality/onboarding-getting-started-200-percent.png",
+      path: `artifacts/quality/onboarding-getting-started-200-percent-${testInfo.project.name}.png`,
       fullPage: true,
     });
   });
@@ -486,9 +493,9 @@ test.describe("onboarding first-value journey", () => {
     await expect(firstEstimate).not.toContainText("Viewed");
   });
 
-  test("hands keyboard focus to the real task target and restores the guide with Return or Escape", async ({
+  test("hands keyboard control to the real task target, with desktop pointer creation", async ({
     page,
-  }) => {
+  }, testInfo) => {
     seedFirstValueHandoffState();
     await page.waitForTimeout(1_000);
     await openAuthenticatedRoute(
@@ -500,8 +507,8 @@ test.describe("onboarding first-value journey", () => {
     const realTarget = page.locator(
       '[data-onboarding-target="estimate.add_row"]',
     );
+    await expect(realTarget).toBeVisible({ timeout: 30_000 });
     await expect(tryItNow).toBeVisible({ timeout: 15_000 });
-    await expect(realTarget).toBeVisible();
     await expect(realTarget).toHaveJSProperty("tagName", "BUTTON");
 
     await tryItNow.focus();
@@ -524,5 +531,14 @@ test.describe("onboarding first-value journey", () => {
     await page.keyboard.press("Escape");
     await expect(tryItNow).toBeVisible();
     await expect(returnToGuide).toHaveCount(0);
+
+    if (!["chromium", "firefox", "webkit"].includes(testInfo.project.name)) return;
+
+    await tryItNow.click();
+    await expect(realTarget).toBeFocused();
+    const rows = page.locator("tr[data-estimate-row-id]");
+    const rowCountBefore = await rows.count();
+    await realTarget.click();
+    await expect(rows).toHaveCount(rowCountBefore + 1, { timeout: 15_000 });
   });
 });

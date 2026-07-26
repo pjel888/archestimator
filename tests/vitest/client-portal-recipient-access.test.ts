@@ -13,7 +13,7 @@ import { readClientPortalRecipientSession, resolveClientPortalRecipientActor } f
 const stableToken = "s".repeat(43);
 const recipientToken = "r".repeat(43);
 
-function recipientDatabase() {
+function recipientDatabase(options: { currentIssueId?: string | null } = {}) {
   const statements: Array<{ sql: string; values: D1Value[] }> = [];
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -22,7 +22,7 @@ function recipientDatabase() {
         bind(...nextValues) { values = nextValues; statements.push({ sql, values }); return prepared; },
         async first<T>() {
           if (sql.includes("FROM project_publications AS legacy")) return null;
-          if (sql.includes("stable_token_hash")) return { access_credential_version: 9, access_policy_json: "{}", current_issue_id: "issue_1", id: "portal_1", name: "Client Review", password_hash: null, project_id: "project_1", status: "live", workspace_id: "workspace_1" } as T;
+          if (sql.includes("stable_token_hash")) return { access_credential_version: 9, access_policy_json: "{}", current_issue_id: options.currentIssueId === undefined ? "issue_1" : options.currentIssueId, id: "portal_1", name: "Client Review", password_hash: null, project_id: "project_1", status: "live", workspace_id: "workspace_1" } as T;
           if (sql.includes("SELECT status, valid_through FROM client_portal_issues")) return { status: "issued", valid_through: "2099-01-01T00:00:00.000Z" } as T;
           if (sql.includes("FROM client_portal_recipient_credentials c")) return { client_organization: null, credential_id: "credential_1", display_name: "Avery", id: "recipient_1", is_required_approver: 1, recipient_credential_version: 4, role_template: "approver", status: "active", verification_state: "unverified" } as T;
           return null;
@@ -71,6 +71,19 @@ describe("Client Portal recipient access", () => {
     expect(statements.some((entry) => entry.sql.includes("status = 'used'"))).toBe(true);
     expect(statements.some((entry) => entry.sql.includes("portal.recipient.verified"))).toBe(true);
     expect(JSON.stringify(statements)).not.toContain(recipientToken);
+  });
+
+  it("allows recipient redemption and sessions before the first issue exists", async () => {
+    const { database, statements } = recipientDatabase({ currentIssueId: null });
+    mocks.getDatabase.mockResolvedValue(database);
+
+    await expect(resolveClientPortalRecipientActor(stableToken, recipientToken)).resolves.toMatchObject({
+      actor: { recipientId: "recipient_1" },
+    });
+    expect(statements.some((entry) => entry.sql.includes("FROM client_portal_issues"))).toBe(false);
+
+    mocks.getDatabase.mockResolvedValue(sessionDatabase({ issue_status: null, valid_through: null }));
+    await expect(readClientPortalRecipientSession(stableToken, sessionCookie())).resolves.toMatchObject({ recipientId: "recipient_1" });
   });
 
   it("rejects sessions after recipient or portal version rotation", async () => {

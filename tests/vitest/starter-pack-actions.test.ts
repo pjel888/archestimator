@@ -31,6 +31,7 @@ const NOW = "2026-07-24T00:00:00.000Z";
 
 const mocks = vi.hoisted(() => ({
   database: null as D1DatabaseLike | null,
+  actorUserId: "user-1",
 }));
 
 vi.mock("@/lib/cloudflare/d1", async (importOriginal) => ({
@@ -44,7 +45,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/onboarding/flow-actions", () => ({
   resolveCurrentOnboardingActor: vi.fn(async () => ({
-    userId: USER_ID,
+    userId: mocks.actorUserId,
     workspaceId: WORKSPACE_ID,
     workspaceRole: "owner",
     accessSource: "workspace",
@@ -181,6 +182,7 @@ describe("starter pack actions", () => {
   beforeEach(() => {
     database = createDatabase();
     mocks.database = database;
+    mocks.actorUserId = USER_ID;
   });
 
   afterEach(() => {
@@ -392,6 +394,52 @@ describe("starter pack actions", () => {
     `).get(WORKSPACE_ID, STARTER_PACK_VERSION, OTHER_MEMBER_ID)).toEqual({ count: 0 });
   });
 
+  it("lets a member resume only their own scope without degrading shared completion", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    database.sqlite.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at)
+      VALUES (?, ?, 'member', ?, ?), (?, ?, 'member', ?, ?)
+    `).run(
+      WORKSPACE_ID,
+      MEMBER_ID,
+      NOW,
+      NOW,
+      WORKSPACE_ID,
+      OTHER_MEMBER_ID,
+      NOW,
+      NOW,
+    );
+    mocks.actorUserId = MEMBER_ID;
+
+    await expect(resumeStarterContent()).resolves.toEqual({
+      workspaceStatus: "complete",
+      userStatus: "complete",
+      ready: true,
+    });
+
+    expect(database.sqlite.prepare(`
+      SELECT status
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual({ status: "complete" });
+    expect(database.sqlite.prepare(`
+      SELECT scope_owner_id
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'user' AND scope_owner_id IN (?, ?)
+      ORDER BY scope_owner_id
+    `).all(
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+      MEMBER_ID,
+      OTHER_MEMBER_ID,
+    )).toEqual([{ scope_owner_id: MEMBER_ID }]);
+  });
+
   it("blocks resume while another starter mutation lease is active", async () => {
     await installStarterPackForNewWorkspace(database, {
       workspaceId: WORKSPACE_ID,
@@ -422,6 +470,76 @@ describe("starter pack actions", () => {
       WHERE workspace_id = ? AND pack_version = ?
         AND scope_kind = 'workspace' AND scope_owner_id = ?
     `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
+  });
+
+  it("does not steal an expired starter mutation lease", async () => {
+    await installStarterPackForNewWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    });
+    const stateBefore = database.sqlite.prepare(`
+      SELECT status, revision, shared_membership_revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID);
+    database.sqlite.prepare(`
+      INSERT INTO beta_starter_mutation_leases (
+        workspace_id, pack_version, lease_token, actor_user_id, operation,
+        expires_at, created_at
+      ) VALUES (?, ?, 'expired-worker', 'other-user', 'restore', ?, ?)
+    `).run(
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+      "2026-07-23T00:00:00.000Z",
+      "2026-07-22T00:00:00.000Z",
+    );
+
+    await expect(resumeStarterContent()).rejects.toThrow(/already being changed/i);
+    expect(database.sqlite.prepare(`
+      SELECT lease_token
+      FROM beta_starter_mutation_leases
+      WHERE workspace_id = ? AND pack_version = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({
+      lease_token: "expired-worker",
+    });
+    expect(database.sqlite.prepare(`
+      SELECT status, revision, shared_membership_revision
+      FROM beta_starter_pack_states
+      WHERE workspace_id = ? AND pack_version = ?
+        AND scope_kind = 'workspace' AND scope_owner_id = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION, WORKSPACE_ID)).toEqual(stateBefore);
+  });
+
+  it("keeps automatic workspace bootstrap read-only while another starter mutation lease is active", async () => {
+    database.sqlite.prepare(`
+      INSERT INTO beta_starter_mutation_leases (
+        workspace_id, pack_version, lease_token, actor_user_id, operation,
+        expires_at, created_at
+      ) VALUES (?, ?, 'other-lease', 'other-user', 'install', ?, ?)
+    `).run(
+      WORKSPACE_ID,
+      STARTER_PACK_VERSION,
+      "2026-07-27T00:00:00.000Z",
+      NOW,
+    );
+
+    await expect(installStarterPackForEligibleWorkspace(database, {
+      workspaceId: WORKSPACE_ID,
+      userId: USER_ID,
+    })).resolves.toEqual({
+      workspaceStatus: "partial",
+      userStatus: "not_eligible",
+      ready: false,
+    });
+    expect(database.sqlite.prepare(`
+      SELECT lease_token, operation
+      FROM beta_starter_mutation_leases
+      WHERE workspace_id = ? AND pack_version = ?
+    `).get(WORKSPACE_ID, STARTER_PACK_VERSION)).toEqual({
+      lease_token: "other-lease",
+      operation: "install",
+    });
   });
 
   it("restores from the latest inactive generation even when an older claim is active", async () => {
