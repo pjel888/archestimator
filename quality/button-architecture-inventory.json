@@ -24,6 +24,17 @@
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
+      "path": "src/app/admin/analytics/page.tsx",
+      "line": 47,
+      "tag": "Link",
+      "symbol": "AdminAnalyticsPage",
+      "fingerprint": "e8b05ba89106e527d4a93c6f6071ba1b1528dd0c6f51f95e4c1dc3c21a43c23a",
+      "ordinal": 1,
+      "key": "src/app/admin/analytics/page.tsx::Link::AdminAnalyticsPage::e8b05ba89106e527d4a93c6f6071ba1b1528dd0c6f51f95e4c1dc3c21a43c23a::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/app/admin/financials/page.tsx",
       "line": 56,
       "tag": "Link",
@@ -31,6 +42,17 @@
       "fingerprint": "447cb2ac082bb1cd67796a7cf350f49380120ae5dd34f3fb22ca731069424cd5",
       "ordinal": 1,
       "key": "src/app/admin/financials/page.tsx::Link::AdminFinancialsPage::447cb2ac082bb1cd67796a7cf350f49380120ae5dd34f3fb22ca731069424cd5::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/admin/observability/page.tsx",
+      "line": 89,
+      "tag": "Link",
+      "symbol": "AdminObservabilityPage",
+      "fingerprint": "e824b76abae384ae7b59907a7e5a339491ea023e32e093dd1eb35056afe36127",
+      "ordinal": 1,
+      "key": "src/app/admin/observability/page.tsx::Link::AdminObservabilityPage::e824b76abae384ae7b59907a7e5a339491ea023e32e093dd1eb35056afe36127::1",
       "disposition": "CONTENT_NAVIGATION_LINK",
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
@@ -57,6 +79,72 @@
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
+      "path": "src/app/admin/projects/[projectId]/page.tsx",
+      "line": 226,
+      "tag": "Link",
+      "symbol": "AdminProjectDetailPage",
+      "fingerprint": "a998f3061a7ab815e5e71809129159826ccd0181ee1d0818f1ac29dc0d495c55",
+      "ordinal": 1,
+      "key": "src/app/admin/projects/[projectId]/page.tsx::Link::AdminProjectDetailPage::a998f3061a7ab815e5e71809129159826ccd0181ee1d0818f1ac29dc0d495c55::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/admin/users/[userId]/page.tsx",
+      "line": 242,
+      "tag": "Link",
+      "symbol": "AdminUserDetailPage",
+      "fingerprint": "00ef218cfb6704ab8f7474ce06f1ba05dc2c33db457a155feb0d021958f048f6",
+      "ordinal": 1,
+      "key": "src/app/admin/users/[userId]/page.tsx::Link::AdminUserDetailPage::00ef218cfb6704ab8f7474ce06f1ba05dc2c33db457a155feb0d021958f048f6::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/admin/users/[userId]/page.tsx",
+      "line": 256,
+      "tag": "Link",
+      "symbol": "AdminUserDetailPage",
+      "fingerprint": "2ac2baaac8766efbf2833df2fd8c80dfca21533620e6f15e1e7cfa9521937097",
+      "ordinal": 1,
+      "key": "src/app/admin/users/[userId]/page.tsx::Link::AdminUserDetailPage::2ac2baaac8766efbf2833df2fd8c80dfca21533620e6f15e1e7cfa9521937097::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/admin/users/[userId]/page.tsx",
+      "line": 179,
+      "tag": "Link",
+      "symbol": "AdminUserDetailPage",
+      "fingerprint": "d3d1a5da08a48fc7fa7ac1a18b649c6eb26a1dc878f8cbd146c4706194c7b452",
+      "ordinal": 1,
+      "key": "src/app/admin/users/[userId]/page.tsx::Link::AdminUserDetailPage::d3d1a5da08a48fc7fa7ac1a18b649c6eb26a1dc878f8cbd146c4706194c7b452::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/contact/page.tsx",
+      "line": 77,
+      "tag": "a",
+      "symbol": "ContactPage",
+      "fingerprint": "beb89fe8e3b90aab3ab4407b071b576173ef23b42e07ba50e6410d80ac6f1f13",
+      "ordinal": 1,
+      "key": "src/app/contact/page.tsx::a::ContactPage::beb89fe8e3b90aab3ab4407b071b576173ef23b42e07ba50e6410d80ac6f1f13::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/kimi3d/_components/kimi-landing-page.tsx",
+      "line": 64,
+      "tag": "a",
+      "symbol": "KimiLandingPage",
+      "fingerprint": "4072763caf03846dce5c9ef1b7066cfa75e24775abb3788b01fcf9eee92256f9",
+      "ordinal": 1,
+      "key": "src/app/kimi3d/_components/kimi-landing-page.tsx::a::KimiLandingPage::4072763caf03846dce5c9ef1b7066cfa75e24775abb3788b01fcf9eee92256f9::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/app/kimi3d/_components/kimi-landing-page.tsx",
       "line": 157,
       "tag": "button",
@@ -68,6 +156,28 @@
       "reason": "Native KimiLandingPage control retains its reviewed local selection, disclosure, and focus-management semantics."
     },
     {
+      "path": "src/app/kimi3d/_components/kimi-site-header.tsx",
+      "line": 146,
+      "tag": "Link",
+      "symbol": "KimiSiteHeader",
+      "fingerprint": "a64d6a36fced7735ad0367ca408fb55e9f6088723a026aee32eb8e9f93ceb74a",
+      "ordinal": 1,
+      "key": "src/app/kimi3d/_components/kimi-site-header.tsx::Link::KimiSiteHeader::a64d6a36fced7735ad0367ca408fb55e9f6088723a026aee32eb8e9f93ceb74a::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/new/_components/new-landing-page.tsx",
+      "line": 81,
+      "tag": "a",
+      "symbol": "NewLandingPage",
+      "fingerprint": "1f1f914948c6fb0fc61a4c281503544ce12b0b84dc1aa6db4abcd1cf7bdae521",
+      "ordinal": 1,
+      "key": "src/app/new/_components/new-landing-page.tsx::a::NewLandingPage::1f1f914948c6fb0fc61a4c281503544ce12b0b84dc1aa6db4abcd1cf7bdae521::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/app/not-found.tsx",
       "line": 12,
       "tag": "Link",
@@ -75,6 +185,17 @@
       "fingerprint": "20840bc3fa08f1657386c254cbd469275d50f5f25859541c056519383f81259c",
       "ordinal": 1,
       "key": "src/app/not-found.tsx::Link::NotFound::20840bc3fa08f1657386c254cbd469275d50f5f25859541c056519383f81259c::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/app/security/page.tsx",
+      "line": 44,
+      "tag": "a",
+      "symbol": "SecurityPage",
+      "fingerprint": "a570b7337e950e633f0b1dac4397fa0b4c1913418d0e854a6a49ae3219cc63cf",
+      "ordinal": 1,
+      "key": "src/app/security/page.tsx::a::SecurityPage::a570b7337e950e633f0b1dac4397fa0b4c1913418d0e854a6a49ae3219cc63cf::1",
       "disposition": "CONTENT_NAVIGATION_LINK",
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
@@ -108,6 +229,28 @@
       "fingerprint": "d3d559e3ae2d2f02362890f8f60cd676514dc54c76785b632aba18262374ec5d",
       "ordinal": 1,
       "key": "src/app/workshop/projects/[projectId]/client-portals/page.tsx::Link::ClientPortalsPage::d3d559e3ae2d2f02362890f8f60cd676514dc54c76785b632aba18262374ec5d::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/admin/AdminAccountsList.tsx",
+      "line": 19,
+      "tag": "Link",
+      "symbol": "AccountMobileCard",
+      "fingerprint": "b16ee0f45ba6d31f1478355d46c373cfe8d12388b2d93143de802112c42872ff",
+      "ordinal": 1,
+      "key": "src/components/admin/AdminAccountsList.tsx::Link::AccountMobileCard::b16ee0f45ba6d31f1478355d46c373cfe8d12388b2d93143de802112c42872ff::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/admin/AdminAccountsList.tsx",
+      "line": 87,
+      "tag": "Link",
+      "symbol": "cell",
+      "fingerprint": "92c3a43bd6872a45d888ed84d3cfc03ae721faeb3a25706e9fe2c48e7eea885d",
+      "ordinal": 1,
+      "key": "src/components/admin/AdminAccountsList.tsx::Link::cell::92c3a43bd6872a45d888ed84d3cfc03ae721faeb3a25706e9fe2c48e7eea885d::1",
       "disposition": "CONTENT_NAVIGATION_LINK",
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
@@ -167,6 +310,28 @@
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
+      "path": "src/components/admin/AdminProjectsTable.tsx",
+      "line": 156,
+      "tag": "Link",
+      "symbol": "cell",
+      "fingerprint": "db0e76a0e1a37322bee094c25899bc367b483dca9ef8e215e4717ff6b9908d5e",
+      "ordinal": 1,
+      "key": "src/components/admin/AdminProjectsTable.tsx::Link::cell::db0e76a0e1a37322bee094c25899bc367b483dca9ef8e215e4717ff6b9908d5e::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/admin/AdminProjectsTable.tsx",
+      "line": 59,
+      "tag": "Link",
+      "symbol": "ProjectMobileCard",
+      "fingerprint": "9d0a781660eb618cb0b0229409defca9bab600b4f762a9cce26c53bc2c0f0746",
+      "ordinal": 1,
+      "key": "src/components/admin/AdminProjectsTable.tsx::Link::ProjectMobileCard::9d0a781660eb618cb0b0229409defca9bab600b4f762a9cce26c53bc2c0f0746::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/components/admin/AdminSidebar.tsx",
       "line": 59,
       "tag": "Link",
@@ -174,6 +339,17 @@
       "fingerprint": "ae201b9061707cf69695f0f2f8643b51ca791897372a59c2fca2e884f6e700aa",
       "ordinal": 1,
       "key": "src/components/admin/AdminSidebar.tsx::Link::AdminSidebar::ae201b9061707cf69695f0f2f8643b51ca791897372a59c2fca2e884f6e700aa::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/admin/AdminUsersTable.tsx",
+      "line": 287,
+      "tag": "Link",
+      "symbol": "cell",
+      "fingerprint": "99564d4f52c0f47399281e4f2501354cffbad1e1894a3ec0728f671bda1b0abf",
+      "ordinal": 1,
+      "key": "src/components/admin/AdminUsersTable.tsx::Link::cell::99564d4f52c0f47399281e4f2501354cffbad1e1894a3ec0728f671bda1b0abf::1",
       "disposition": "CONTENT_NAVIGATION_LINK",
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
@@ -220,50 +396,6 @@
       "key": "src/components/admin/support/SupportConversationList.tsx::button::SupportConversationList::c34581122aee7a6560c416155508d92b2580b4f0ddc2fc73ccb21e291f404acc::1",
       "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
       "reason": "Native SupportConversationList option retains domain selection and pressed-state semantics."
-    },
-    {
-      "path": "src/components/admin/support/SupportMailboxRail.tsx",
-      "line": 247,
-      "tag": "button",
-      "symbol": "SupportMailboxRail",
-      "fingerprint": "593e1a2a6429ddb964e818c792194181074743d66c93a932931c406a342e19cd",
-      "ordinal": 1,
-      "key": "src/components/admin/support/SupportMailboxRail.tsx::button::SupportMailboxRail::593e1a2a6429ddb964e818c792194181074743d66c93a932931c406a342e19cd::1",
-      "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native SupportMailboxRail hierarchy control retains selection, expansion, and roving-focus semantics."
-    },
-    {
-      "path": "src/components/admin/support/SupportMailboxRail.tsx",
-      "line": 194,
-      "tag": "button",
-      "symbol": "SupportMailboxRail",
-      "fingerprint": "8c2ae1be5747cf3045e5dfc748a7b11220fc1e398ef5d95344284b4884d82721",
-      "ordinal": 1,
-      "key": "src/components/admin/support/SupportMailboxRail.tsx::button::SupportMailboxRail::8c2ae1be5747cf3045e5dfc748a7b11220fc1e398ef5d95344284b4884d82721::1",
-      "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native SupportMailboxRail hierarchy control retains selection, expansion, and roving-focus semantics."
-    },
-    {
-      "path": "src/components/admin/support/SupportMailboxRail.tsx",
-      "line": 205,
-      "tag": "button",
-      "symbol": "SupportMailboxRail",
-      "fingerprint": "a35cb2cbb6aa4745e7aae9cb145148cbd12d393a96ee6acb4e449f61394d7795",
-      "ordinal": 1,
-      "key": "src/components/admin/support/SupportMailboxRail.tsx::button::SupportMailboxRail::a35cb2cbb6aa4745e7aae9cb145148cbd12d393a96ee6acb4e449f61394d7795::1",
-      "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native SupportMailboxRail hierarchy control retains selection, expansion, and roving-focus semantics."
-    },
-    {
-      "path": "src/components/admin/support/SupportMailboxRail.tsx",
-      "line": 149,
-      "tag": "button",
-      "symbol": "SupportMailboxRail",
-      "fingerprint": "efeffd449d09f278b2c84f0f4d49fcd29e5863bdd9be00823f94bb77107a401d",
-      "ordinal": 1,
-      "key": "src/components/admin/support/SupportMailboxRail.tsx::button::SupportMailboxRail::efeffd449d09f278b2c84f0f4d49fcd29e5863bdd9be00823f94bb77107a401d::1",
-      "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native SupportMailboxRail hierarchy control retains selection, expansion, and roving-focus semantics."
     },
     {
       "path": "src/components/admin/support/SupportMessageCard.tsx",
@@ -343,8 +475,184 @@
       "reason": "Native EstimateBrowserSection hierarchy control retains selection, expansion, and roving-focus semantics."
     },
     {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 57,
+      "tag": "a",
+      "symbol": "ArchestimatorNewLandingPage",
+      "fingerprint": "4c5b62c016e91d7b69172a43db72cf83821e6c36fee93226e3f0cd47f8fbe430",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::a::ArchestimatorNewLandingPage::4c5b62c016e91d7b69172a43db72cf83821e6c36fee93226e3f0cd47f8fbe430::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 86,
+      "tag": "a",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "811d6b09b9e09130c7cd155c996700299fc3a4c6527141f0600cc8bf95303b23",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::a::NewLandingHeader::811d6b09b9e09130c7cd155c996700299fc3a4c6527141f0600cc8bf95303b23::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 103,
+      "tag": "a",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "898f98895362083be2659bef2aa9fcc1d600675ccbd28f75a927997c4f2e7837",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::a::NewLandingHeader::898f98895362083be2659bef2aa9fcc1d600675ccbd28f75a927997c4f2e7837::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 289,
+      "tag": "Link",
+      "symbol": "NewLandingFooter",
+      "fingerprint": "1d5554ef00c3319ab938a5124a94c0293d62e8b25e3905254445d0b696e236a6",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::Link::NewLandingFooter::1d5554ef00c3319ab938a5124a94c0293d62e8b25e3905254445d0b696e236a6::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 296,
+      "tag": "Link",
+      "symbol": "NewLandingFooter",
+      "fingerprint": "22297f587453795319fe4357102609be53d7bfca1fc75b842332807f5df5d6d8",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::Link::NewLandingFooter::22297f587453795319fe4357102609be53d7bfca1fc75b842332807f5df5d6d8::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 92,
+      "tag": "Link",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "9707c7a8a6da82e25de83558c0535350578875dd476b5df8520b3e9a73081321",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::Link::NewLandingHeader::9707c7a8a6da82e25de83558c0535350578875dd476b5df8520b3e9a73081321::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/ArchestimatorNewLandingPage.tsx",
+      "line": 81,
+      "tag": "Link",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "9e476dfe129e6ab959030892afc53daf68d17114ebe380ec956e5fcd2010dfaa",
+      "ordinal": 1,
+      "key": "src/components/landing-new/ArchestimatorNewLandingPage.tsx::Link::NewLandingHeader::9e476dfe129e6ab959030892afc53daf68d17114ebe380ec956e5fcd2010dfaa::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-new/PreReleaseBetaBanner.tsx",
+      "line": 13,
+      "tag": "a",
+      "symbol": "PreReleaseBetaBanner",
+      "fingerprint": "ab43b368bee1ed974894c0cce0a0ea6c7ed8507e06754584f00a0f858e98f675",
+      "ordinal": 1,
+      "key": "src/components/landing-new/PreReleaseBetaBanner.tsx::a::PreReleaseBetaBanner::ab43b368bee1ed974894c0cce0a0ea6c7ed8507e06754584f00a0f858e98f675::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "line": 62,
+      "tag": "a",
+      "symbol": "ArchestimatorNewLandingPage",
+      "fingerprint": "4c5b62c016e91d7b69172a43db72cf83821e6c36fee93226e3f0cd47f8fbe430",
+      "ordinal": 1,
+      "key": "src/components/landing-production/ArchestimatorNewLandingPage.tsx::a::ArchestimatorNewLandingPage::4c5b62c016e91d7b69172a43db72cf83821e6c36fee93226e3f0cd47f8fbe430::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "line": 585,
+      "tag": "a",
+      "symbol": "NewLandingFooter",
+      "fingerprint": "e4376be6011846d1c9f90ddab79feac01db7988ec4e5d827551a3dd0bd312bc4",
+      "ordinal": 1,
+      "key": "src/components/landing-production/ArchestimatorNewLandingPage.tsx::a::NewLandingFooter::e4376be6011846d1c9f90ddab79feac01db7988ec4e5d827551a3dd0bd312bc4::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "line": 101,
+      "tag": "a",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "811d6b09b9e09130c7cd155c996700299fc3a4c6527141f0600cc8bf95303b23",
+      "ordinal": 1,
+      "key": "src/components/landing-production/ArchestimatorNewLandingPage.tsx::a::NewLandingHeader::811d6b09b9e09130c7cd155c996700299fc3a4c6527141f0600cc8bf95303b23::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "line": 117,
+      "tag": "a",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "898f98895362083be2659bef2aa9fcc1d600675ccbd28f75a927997c4f2e7837",
+      "ordinal": 1,
+      "key": "src/components/landing-production/ArchestimatorNewLandingPage.tsx::a::NewLandingHeader::898f98895362083be2659bef2aa9fcc1d600675ccbd28f75a927997c4f2e7837::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "line": 578,
+      "tag": "Link",
+      "symbol": "NewLandingFooter",
+      "fingerprint": "8ce74cb06f356dd976e18e26bffd296ebb698aa44cd3294aa09da1c16930ec06",
+      "ordinal": 1,
+      "key": "src/components/landing-production/ArchestimatorNewLandingPage.tsx::Link::NewLandingFooter::8ce74cb06f356dd976e18e26bffd296ebb698aa44cd3294aa09da1c16930ec06::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/ArchestimatorNewLandingPage.tsx",
+      "line": 96,
+      "tag": "Link",
+      "symbol": "NewLandingHeader",
+      "fingerprint": "8ce74cb06f356dd976e18e26bffd296ebb698aa44cd3294aa09da1c16930ec06",
+      "ordinal": 1,
+      "key": "src/components/landing-production/ArchestimatorNewLandingPage.tsx::Link::NewLandingHeader::8ce74cb06f356dd976e18e26bffd296ebb698aa44cd3294aa09da1c16930ec06::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-production/PreReleaseBetaBanner.tsx",
+      "line": 14,
+      "tag": "a",
+      "symbol": "PreReleaseBetaBanner",
+      "fingerprint": "ab43b368bee1ed974894c0cce0a0ea6c7ed8507e06754584f00a0f858e98f675",
+      "ordinal": 1,
+      "key": "src/components/landing-production/PreReleaseBetaBanner.tsx::a::PreReleaseBetaBanner::ab43b368bee1ed974894c0cce0a0ea6c7ed8507e06754584f00a0f858e98f675::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/components/landing-v3/ArchestimatorLandingPage.tsx",
-      "line": 232,
+      "line": 122,
+      "tag": "a",
+      "symbol": "LandingNav",
+      "fingerprint": "4c5b62c016e91d7b69172a43db72cf83821e6c36fee93226e3f0cd47f8fbe430",
+      "ordinal": 1,
+      "key": "src/components/landing-v3/ArchestimatorLandingPage.tsx::a::LandingNav::4c5b62c016e91d7b69172a43db72cf83821e6c36fee93226e3f0cd47f8fbe430::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/landing-v3/ArchestimatorLandingPage.tsx",
+      "line": 242,
       "tag": "button",
       "symbol": "HeroMetricCard",
       "fingerprint": "11958eb5402a68b8bd15f7c274cedfa4c80f38f7a71fede299c3225262f4a7be",
@@ -352,6 +660,17 @@
       "key": "src/components/landing-v3/ArchestimatorLandingPage.tsx::button::HeroMetricCard::11958eb5402a68b8bd15f7c274cedfa4c80f38f7a71fede299c3225262f4a7be::1",
       "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
       "reason": "Native HeroMetricCard control retains its reviewed local selection, disclosure, and focus-management semantics."
+    },
+    {
+      "path": "src/components/landing-v3/ArchestimatorLandingPage.tsx",
+      "line": 126,
+      "tag": "Link",
+      "symbol": "LandingNav",
+      "fingerprint": "476ee0279bd7a26c743301cc1cfdfa9aefc3d3c9db85ee07e2542e44e232b413",
+      "ordinal": 1,
+      "key": "src/components/landing-v3/ArchestimatorLandingPage.tsx::Link::LandingNav::476ee0279bd7a26c743301cc1cfdfa9aefc3d3c9db85ee07e2542e44e232b413::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
       "path": "src/components/landing/claims-ledger/ClaimFilter.tsx",
@@ -409,6 +728,17 @@
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
+      "path": "src/components/landing/LandingHeader.tsx",
+      "line": 95,
+      "tag": "Link",
+      "symbol": "LandingHeader",
+      "fingerprint": "702e6d7708593f248678f48b808b0f773e2e0e02851559967c3a63a770abb70c",
+      "ordinal": 1,
+      "key": "src/components/landing/LandingHeader.tsx::Link::LandingHeader::702e6d7708593f248678f48b808b0f773e2e0e02851559967c3a63a770abb70c::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/components/onboarding/OnboardingRecovery.tsx",
       "line": 57,
       "tag": "Link",
@@ -416,6 +746,28 @@
       "fingerprint": "b88b1a46cd5a3243e6ba67be506b3517b50f811bc7c1256314d70d81a86b01aa",
       "ordinal": 1,
       "key": "src/components/onboarding/OnboardingRecovery.tsx::Link::OnboardingRecovery::b88b1a46cd5a3243e6ba67be506b3517b50f811bc7c1256314d70d81a86b01aa::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/privacy/PrivacyRequestStatus.tsx",
+      "line": 50,
+      "tag": "a",
+      "symbol": "PrivacyRequestStatus",
+      "fingerprint": "3f18909dc3c9af12c6e29c72d4ee7f1d7e650745e3cbe6018870100ae305cf31",
+      "ordinal": 1,
+      "key": "src/components/privacy/PrivacyRequestStatus.tsx::a::PrivacyRequestStatus::3f18909dc3c9af12c6e29c72d4ee7f1d7e650745e3cbe6018870100ae305cf31::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/share/SharePageOverview.tsx",
+      "line": 49,
+      "tag": "a",
+      "symbol": "SharePageOverview",
+      "fingerprint": "792b713557e16bbd3778240bb55ca3fd0f1e6ec91cab694296010156d1b81ebf",
+      "ordinal": 1,
+      "key": "src/components/share/SharePageOverview.tsx::a::SharePageOverview::792b713557e16bbd3778240bb55ca3fd0f1e6ec91cab694296010156d1b81ebf::1",
       "disposition": "CONTENT_NAVIGATION_LINK",
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
@@ -473,6 +825,28 @@
       "key": "src/components/share/ShareReviewWorkspace.tsx::button::ShareReviewWorkspace::9c5eefa6a5f0e6fca22c1d601c49d9f65bc35a4c60b11ea6a7d4db6c0a9d7b15::1",
       "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
       "reason": "Native ShareReviewWorkspace control retains its reviewed local selection, disclosure, and focus-management semantics."
+    },
+    {
+      "path": "src/components/sidebar/MainSidebar.tsx",
+      "line": 386,
+      "tag": "Link",
+      "symbol": "MainSidebar",
+      "fingerprint": "69ed44e5679890566e792821f81a3eb95dbe65e7e7990c8bfa56f8c52aafc7ba",
+      "ordinal": 1,
+      "key": "src/components/sidebar/MainSidebar.tsx::Link::MainSidebar::69ed44e5679890566e792821f81a3eb95dbe65e7e7990c8bfa56f8c52aafc7ba::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/sidebar/MainSidebar.tsx",
+      "line": 417,
+      "tag": "Link",
+      "symbol": "MainSidebar",
+      "fingerprint": "9f86a389cdfff4ac9eaaa25d0bc9a67874536b67f6b7b3a7e14d055966fe9aac",
+      "ordinal": 1,
+      "key": "src/components/sidebar/MainSidebar.tsx::Link::MainSidebar::9f86a389cdfff4ac9eaaa25d0bc9a67874536b67f6b7b3a7e14d055966fe9aac::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
       "path": "src/components/sidebar/SidebarNavItemRow.tsx",
@@ -783,6 +1157,17 @@
       "reason": "Native TabStrip tab or segment trigger retains single-selection and roving-focus semantics."
     },
     {
+      "path": "src/components/ui/tab-strip.tsx",
+      "line": 118,
+      "tag": "Link",
+      "symbol": "TabStrip",
+      "fingerprint": "980a389957ec90ca6e000457bfa4c7aaa43a25af9db57b916750f8f6c35149ef",
+      "ordinal": 1,
+      "key": "src/components/ui/tab-strip.tsx::Link::TabStrip::980a389957ec90ca6e000457bfa4c7aaa43a25af9db57b916750f8f6c35149ef::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
       "path": "src/components/ui/tabs.tsx",
       "line": 176,
       "tag": "button",
@@ -924,6 +1309,61 @@
       "key": "src/components/workshop/dashboard/FavoritesTree.tsx::button::FavoritesTree::787850dd935508771de6c21b1faf13dd55c845cc9ed71f2e4dfb805da1a6ea9d::1",
       "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
       "reason": "Native FavoritesTree hierarchy control retains selection, expansion, and roving-focus semantics."
+    },
+    {
+      "path": "src/components/workshop/dashboard/FavoritesTree.tsx",
+      "line": 259,
+      "tag": "Link",
+      "symbol": "FavoritesTree",
+      "fingerprint": "9abf8df8d681f3edf49fafd830bd1a7f15c846419e76c246964cfc6a4f6de6d5",
+      "ordinal": 1,
+      "key": "src/components/workshop/dashboard/FavoritesTree.tsx::Link::FavoritesTree::9abf8df8d681f3edf49fafd830bd1a7f15c846419e76c246964cfc6a4f6de6d5::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/workshop/dashboard/FavoritesTree.tsx",
+      "line": 305,
+      "tag": "Link",
+      "symbol": "FavoritesTree",
+      "fingerprint": "a80a013e87c447876e0557f35ceec34b913c52a8cfacf294a810abc6ecb0fca7",
+      "ordinal": 1,
+      "key": "src/components/workshop/dashboard/FavoritesTree.tsx::Link::FavoritesTree::a80a013e87c447876e0557f35ceec34b913c52a8cfacf294a810abc6ecb0fca7::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/workshop/dashboard/RecentProjectsList.tsx",
+      "line": 71,
+      "tag": "Link",
+      "symbol": "RecentProjectsList",
+      "fingerprint": "2c50f2f06d3f4e7cf1d3844e39ac4370621630d9c6dc5d4202a3dffb069d2e7a",
+      "ordinal": 1,
+      "key": "src/components/workshop/dashboard/RecentProjectsList.tsx::Link::RecentProjectsList::2c50f2f06d3f4e7cf1d3844e39ac4370621630d9c6dc5d4202a3dffb069d2e7a::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/workshop/dashboard/RecentSheetsList.tsx",
+      "line": 90,
+      "tag": "Link",
+      "symbol": "RecentSheetsList",
+      "fingerprint": "ec165e33d08823e5943056896871c6dc3ccc57780b8713f71c9084ff3c6e6f24",
+      "ordinal": 1,
+      "key": "src/components/workshop/dashboard/RecentSheetsList.tsx::Link::RecentSheetsList::ec165e33d08823e5943056896871c6dc3ccc57780b8713f71c9084ff3c6e6f24::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/workshop/dashboard/WorkshopDashboard.tsx",
+      "line": 65,
+      "tag": "Link",
+      "symbol": "RecentComponentsList",
+      "fingerprint": "110db73e3bd1d0c127dcfd687098856b21127c02f128c7d723b421d2fbe9cd1c",
+      "ordinal": 1,
+      "key": "src/components/workshop/dashboard/WorkshopDashboard.tsx::Link::RecentComponentsList::110db73e3bd1d0c127dcfd687098856b21127c02f128c7d723b421d2fbe9cd1c::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
       "path": "src/components/workshop/estimate-sheet/rows/cells.tsx",
@@ -1103,6 +1543,17 @@
     },
     {
       "path": "src/components/workshop/LiveProjectCard.tsx",
+      "line": 648,
+      "tag": "Link",
+      "symbol": "LiveProjectCardImpl",
+      "fingerprint": "2f6d3a33e1a2939903521555b50c47ce1235b71698d3100977b0c016da43632d",
+      "ordinal": 1,
+      "key": "src/components/workshop/LiveProjectCard.tsx::Link::LiveProjectCardImpl::2f6d3a33e1a2939903521555b50c47ce1235b71698d3100977b0c016da43632d::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/workshop/LiveProjectCard.tsx",
       "line": 569,
       "tag": "Link",
       "symbol": "LiveProjectCardImpl",
@@ -1135,37 +1586,26 @@
       "reason": "Native ManageGroupsPopover control retains its reviewed local selection, disclosure, and focus-management semantics."
     },
     {
-      "path": "src/components/workshop/project-charts/ProjectComparisonTable.tsx",
-      "line": 70,
-      "tag": "button",
-      "symbol": "ProjectComparisonTable",
-      "fingerprint": "146daccd20f193a7a65e2560664baf5aa9a7e02c1f95b37b6f890dbca67d68ae",
-      "ordinal": 1,
-      "key": "src/components/workshop/project-charts/ProjectComparisonTable.tsx::button::ProjectComparisonTable::146daccd20f193a7a65e2560664baf5aa9a7e02c1f95b37b6f890dbca67d68ae::1",
-      "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native ProjectComparisonTable tab or segment trigger retains single-selection and roving-focus semantics."
-    },
-    {
       "path": "src/components/workshop/project-charts/ProjectCompositionBars.tsx",
-      "line": 62,
+      "line": 64,
       "tag": "button",
       "symbol": "ProjectCompositionBars",
-      "fingerprint": "d0dcbf099261b9a9f875d66c167d1fafcbc4d0ecc44aea0d20812addd02600fc",
+      "fingerprint": "e53e1e4604ecdff02b8b11b45ea988da3b32edb10734dc2ce16f5f99a03f2ac0",
       "ordinal": 1,
-      "key": "src/components/workshop/project-charts/ProjectCompositionBars.tsx::button::ProjectCompositionBars::d0dcbf099261b9a9f875d66c167d1fafcbc4d0ecc44aea0d20812addd02600fc::1",
+      "key": "src/components/workshop/project-charts/ProjectCompositionBars.tsx::button::ProjectCompositionBars::e53e1e4604ecdff02b8b11b45ea988da3b32edb10734dc2ce16f5f99a03f2ac0::1",
       "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native ProjectCompositionBars data-visualization control retains local selection and keyboard-focus semantics."
+      "reason": "Native chart segment preserves zero-padding proportional geometry while exposing actual pinned state and keyboard focus."
     },
     {
       "path": "src/components/workshop/project-charts/ProjectVarianceSpine.tsx",
-      "line": 94,
+      "line": 97,
       "tag": "button",
       "symbol": "ProjectVarianceSpine",
-      "fingerprint": "fb96d8dbeb36c3e1baf78bead3e8cdc891509a68979c696caea876b0c2c5959d",
+      "fingerprint": "21e55371c69fe0aec4e9bd7ded7db9a81abbea8f7ddd4d0524e6e25d439ee00c",
       "ordinal": 1,
-      "key": "src/components/workshop/project-charts/ProjectVarianceSpine.tsx::button::ProjectVarianceSpine::fb96d8dbeb36c3e1baf78bead3e8cdc891509a68979c696caea876b0c2c5959d::1",
+      "key": "src/components/workshop/project-charts/ProjectVarianceSpine.tsx::button::ProjectVarianceSpine::21e55371c69fe0aec4e9bd7ded7db9a81abbea8f7ddd4d0524e6e25d439ee00c::1",
       "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native ProjectVarianceSpine data-visualization control retains local selection and keyboard-focus semantics."
+      "reason": "Native chart row preserves the full-width visualization hit region while exposing actual pinned state and keyboard focus."
     },
     {
       "path": "src/components/workshop/ProjectAddressAutocomplete.tsx",
@@ -1278,17 +1718,6 @@
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },
     {
-      "path": "src/components/workshop/publisher/PublisherDiscussionInbox.tsx",
-      "line": 121,
-      "tag": "button",
-      "symbol": "PublisherDiscussionInbox",
-      "fingerprint": "0d78c1c18c856020556d95e2908e564e0dbe979ec44501df5eb74a6aa23ef598",
-      "ordinal": 1,
-      "key": "src/components/workshop/publisher/PublisherDiscussionInbox.tsx::button::PublisherDiscussionInbox::0d78c1c18c856020556d95e2908e564e0dbe979ec44501df5eb74a6aa23ef598::1",
-      "disposition": "SPECIALIZED_SEMANTIC_CONTROL",
-      "reason": "Native PublisherDiscussionInbox option retains domain selection and pressed-state semantics."
-    },
-    {
       "path": "src/components/workshop/publisher/PublisherProjectPicker.tsx",
       "line": 131,
       "tag": "button",
@@ -1340,6 +1769,17 @@
       "fingerprint": "9ccafdac8cca8f820ad489358d93a2888284e0ff0acffde3fcab92fff994ced0",
       "ordinal": 1,
       "key": "src/components/workshop/WorkshopBreadcrumbs.tsx::Link::WorkshopBreadcrumbs::9ccafdac8cca8f820ad489358d93a2888284e0ff0acffde3fcab92fff994ced0::1",
+      "disposition": "CONTENT_NAVIGATION_LINK",
+      "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
+    },
+    {
+      "path": "src/components/workshop/WorkshopHomebaseClient.tsx",
+      "line": 264,
+      "tag": "Link",
+      "symbol": "InviteResolutionBanner",
+      "fingerprint": "0a3aa71e0a8ce39ca82b6b5f2f365ad112b8aaffbdd1cc583b419d504997c463",
+      "ordinal": 1,
+      "key": "src/components/workshop/WorkshopHomebaseClient.tsx::Link::InviteResolutionBanner::0a3aa71e0a8ce39ca82b6b5f2f365ad112b8aaffbdd1cc583b419d504997c463::1",
       "disposition": "CONTENT_NAVIGATION_LINK",
       "reason": "Navigation or content link retains anchor semantics and is not an ordinary command action."
     },

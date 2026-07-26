@@ -13,6 +13,7 @@ import {
 import {
   compareThresholds,
   scanAntiBypass,
+  subtractBaselineFindings,
   validateWaiver,
   type ScannableFile,
 } from "./anti-bypass-core";
@@ -25,8 +26,10 @@ const { positionals, flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
 const files: ScannableFile[] = [];
+const baselineFiles: ScannableFile[] = [];
 let scanPaths = positionals;
 let comparisonBase: ComparisonBase | undefined;
+let compareWithBaseline = false;
 try {
   comparisonBase = await comparisonBaseFromFlags({ root, flags });
 } catch (error) {
@@ -37,7 +40,7 @@ if (scanPaths.length === 0 && !flagString(flags, "fixture") && comparisonBase) {
     const changed = spawnSync(
       "git",
       [
-        "diff", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB",
+        "diff", "--no-renames", "--name-only", "--diff-filter=ACMRTUXB",
         comparisonBase.resolved_sha,
       ],
       { cwd: root, encoding: "utf8" },
@@ -49,6 +52,7 @@ if (scanPaths.length === 0 && !flagString(flags, "fixture") && comparisonBase) {
     if (changed.status !== 0 || untracked.status !== 0) {
       findings.push({ code: "DIFF_SCOPE", message: "Cannot derive anti-bypass scan scope" });
     } else {
+      compareWithBaseline = true;
       scanPaths = `${changed.stdout}\n${untracked.stdout}`
         .split(/\r?\n/u)
         .filter((path) => /\.(?:[cm]?[jt]sx?|json|ya?ml|feature)$/u.test(path))
@@ -57,6 +61,7 @@ if (scanPaths.length === 0 && !flagString(flags, "fixture") && comparisonBase) {
             !path.startsWith("quality/fixtures/") &&
             !path.startsWith("tests/vitest/quality/"),
         );
+      scanPaths = [...new Set(scanPaths)];
     }
   } catch (error) {
     findings.push({ code: "DIFF_SCOPE", message: String(error) });
@@ -67,6 +72,14 @@ for (const path of scanPaths) {
     files.push({ path, text: await readFile(resolve(root, path), "utf8") });
   } catch {
     findings.push({ code: "SCAN_FILE_MISSING", message: `Cannot read ${path}`, path });
+  }
+  if (compareWithBaseline && comparisonBase) {
+    const baseline = spawnSync(
+      "git",
+      ["show", `${comparisonBase.resolved_sha}:${path}`],
+      { cwd: root, encoding: "utf8" },
+    );
+    if (baseline.status === 0) baselineFiles.push({ path, text: baseline.stdout });
   }
 }
 const fixturePath = flagString(flags, "fixture");
@@ -85,7 +98,12 @@ if (fixturePath) {
 if (files.length === 0) {
   findings.push({ code: "SCAN_SCOPE_EMPTY", message: "At least one scan file or fixture is required" });
 }
-findings.push(...scanAntiBypass(files));
+findings.push(
+  ...subtractBaselineFindings(
+    scanAntiBypass(files),
+    scanAntiBypass(baselineFiles),
+  ),
+);
 
 const beforePath = flagString(flags, "before-thresholds");
 const afterPath = flagString(flags, "after-thresholds");

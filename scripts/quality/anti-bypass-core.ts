@@ -20,7 +20,8 @@ export function scanAntiBypass(files: ScannableFile[]): QualityFinding[] {
   for (const file of files) {
     for (const [pattern, code, label] of TEST_BYPASS_PATTERNS) {
       pattern.lastIndex = 0;
-      if (pattern.test(file.text)) {
+      const occurrenceCount = Array.from(file.text.matchAll(pattern)).length;
+      for (let occurrence = 0; occurrence < occurrenceCount; occurrence += 1) {
         findings.push({ code, message: `${file.path} contains ${label}`, path: file.path });
       }
     }
@@ -39,6 +40,24 @@ export function scanAntiBypass(files: ScannableFile[]): QualityFinding[] {
     }
   }
   return findings;
+}
+
+export function subtractBaselineFindings(
+  current: QualityFinding[],
+  baseline: QualityFinding[],
+): QualityFinding[] {
+  const baselineCounts = new Map<string, number>();
+  for (const finding of baseline) {
+    const key = `${finding.code}\u0000${finding.path ?? ""}\u0000${finding.message}`;
+    baselineCounts.set(key, (baselineCounts.get(key) ?? 0) + 1);
+  }
+  return current.filter((finding) => {
+    const key = `${finding.code}\u0000${finding.path ?? ""}\u0000${finding.message}`;
+    const remaining = baselineCounts.get(key) ?? 0;
+    if (remaining === 0) return true;
+    baselineCounts.set(key, remaining - 1);
+    return false;
+  });
 }
 
 export function compareThresholds(

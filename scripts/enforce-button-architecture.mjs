@@ -7,6 +7,7 @@ import ts from "typescript";
 
 const repoRoot = process.cwd();
 const inventoryPath = resolve(repoRoot, "quality/button-architecture-inventory.json");
+const reviewedExceptionsPath = resolve(repoRoot, "quality/button-architecture-reviewed-exceptions.json");
 const sourceRoot = resolve(repoRoot, "src");
 const sourceExtensions = new Set([".tsx", ".jsx"]);
 const ignoredDirectories = new Set([".git", ".next", "node_modules"]);
@@ -75,13 +76,11 @@ function tagNameText(node, sourceFile) {
   return node.tagName.getText(sourceFile);
 }
 
-const genericSpecializedReason = "Reviewed specialized control with local selection, disclosure, focus, or keyboard semantics that must remain native.";
-
 function isButtonLikeLink(tagName, openingText, nextLinkTags) {
   if (tagName !== "a" && !nextLinkTags.has(tagName)) return false;
   if (!/\bclassName\s*=/.test(openingText)) return false;
   return /(?:inline-flex|\bbg-|\bborder(?:-|\b)|\brounded(?:-|\b)|\bpx-|\bpy-)/.test(openingText)
-    || /\b[A-Za-z_$][\w$]*\.[A-Za-z0-9_$]*(?:button|btn|cta|action|control|trigger)[A-Za-z0-9_$]*/i.test(openingText)
+    || /\b[A-Za-z_$][\w$]*\.[A-Za-z0-9_$]+/.test(openingText)
     || /\bbuttonVariants\s*\(/.test(openingText);
 }
 
@@ -161,10 +160,16 @@ export function createInventory(records) {
   };
 }
 
-export function validateInventory(records, inventory) {
+function isSharedButtonPrimitive(entry) {
+  return entry.path === "src/components/ui/button.tsx"
+    && ((entry.tag === "button" && entry.symbol === "Button") || (entry.tag === "Link" && entry.symbol === "ButtonLink"));
+}
+
+export function validateInventory(records, inventory, reviewedExceptions = { entries: [] }) {
   const violations = [];
   const currentByKey = new Map(records.map((record) => [record.key, record]));
   const inventoryByKey = new Map();
+  const reviewedByKey = new Map((reviewedExceptions.entries ?? []).map((entry) => [entry.key, entry]));
 
   for (const entry of inventory.entries ?? []) {
     if (inventoryByKey.has(entry.key)) {
@@ -172,14 +177,27 @@ export function validateInventory(records, inventory) {
       continue;
     }
     inventoryByKey.set(entry.key, entry);
-    if (!allowedDispositions.has(entry.disposition)) {
+    const hasAllowedDisposition = allowedDispositions.has(entry.disposition);
+    if (!hasAllowedDisposition) {
       violations.push(`${entry.path}:${entry.line} has invalid disposition ${entry.disposition}`);
     }
     if (!entry.reason?.trim()) {
       violations.push(`${entry.path}:${entry.line} is missing a disposition reason`);
     }
-    if (entry.reason === genericSpecializedReason) {
-      violations.push(`${entry.path}:${entry.line} uses the rejected generic specialized-control reason`);
+    if (!hasAllowedDisposition || !currentByKey.has(entry.key)) continue;
+    if (entry.disposition === "BUTTON_PRIMITIVE") {
+      if (!isSharedButtonPrimitive(entry)) {
+        violations.push(`${entry.path}:${entry.line} claims BUTTON_PRIMITIVE outside the shared primitives`);
+      }
+      continue;
+    }
+    const reviewed = reviewedByKey.get(entry.key);
+    if (!reviewed) {
+      violations.push(`${entry.path}:${entry.line} introduces an unreviewed ${entry.disposition} exception`);
+      continue;
+    }
+    if (reviewed.disposition !== entry.disposition || reviewed.reason !== entry.reason) {
+      violations.push(`${entry.path}:${entry.line} changes a reviewed exception without updating its baseline`);
     }
   }
 
@@ -195,6 +213,12 @@ export function validateInventory(records, inventory) {
     }
   }
 
+  for (const reviewed of reviewedExceptions.entries ?? []) {
+    if (!inventoryByKey.has(reviewed.key)) {
+      violations.push(`${reviewed.path}:${reviewed.line} reviewed exception is stale or was migrated`);
+    }
+  }
+
   return violations;
 }
 
@@ -206,7 +230,8 @@ function runCli() {
   }
 
   const inventory = JSON.parse(readFileSync(inventoryPath, "utf8"));
-  const violations = validateInventory(records, inventory);
+  const reviewedExceptions = JSON.parse(readFileSync(reviewedExceptionsPath, "utf8"));
+  const violations = validateInventory(records, inventory, reviewedExceptions);
   if (violations.length) {
     console.error("Button architecture enforcement failed.");
     console.error(violations.join("\n"));
