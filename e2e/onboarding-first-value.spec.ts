@@ -387,6 +387,10 @@ test.describe("onboarding first-value journey", () => {
 
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
+    await page.screenshot({
+      path: "artifacts/quality/onboarding-getting-started-desktop.png",
+      fullPage: true,
+    });
   });
 
   test("keeps the mobile getting-started page usable with reduced motion @a11y", async ({
@@ -413,6 +417,10 @@ test.describe("onboarding first-value journey", () => {
     ).toBe(0);
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
+    await page.screenshot({
+      path: "artifacts/quality/onboarding-getting-started-mobile.png",
+      fullPage: true,
+    });
   });
 
   test("reflows without horizontal scrolling at the 640 CSS-pixel viewport equivalent of 200% zoom", async ({
@@ -431,6 +439,10 @@ test.describe("onboarding first-value journey", () => {
       page.getByRole("button", { name: "Start from scratch", exact: true }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: "artifacts/quality/onboarding-getting-started-200-percent.png",
+      fullPage: true,
+    });
   });
 
   test("labels a completed passive guide Viewed and a completed domain-task guide Completed", async ({
