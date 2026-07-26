@@ -11,7 +11,13 @@ import { canApproveUploadScanOverride } from "@/lib/uploads/scan-override";
 
 import type { UploadSurface } from "./policy";
 
-const UPLOAD_SURFACES = ["project-image", "component-image", "component-attachment"] as const;
+const UPLOAD_SURFACES = [
+  "project-image",
+  "component-image",
+  "component-attachment",
+  "project-artifact",
+  "portal-request-evidence",
+] as const;
 const SCAN_QUEUE_STATUSES = ["pending", "failed_transient"] as const;
 const BLOCKED_SCAN_STATUSES = ["infected", "unsupported", "failed_permanent"] as const;
 const DEFAULT_WINDOW_HOURS = 24;
@@ -149,6 +155,8 @@ function emptySurfaceMap(): Record<UploadSurface, UploadSurfaceOperationsMetrics
     "project-image": createSurfaceMetrics(),
     "component-image": createSurfaceMetrics(),
     "component-attachment": createSurfaceMetrics(),
+    "project-artifact": createSurfaceMetrics(),
+    "portal-request-evidence": createSurfaceMetrics(),
   };
 }
 

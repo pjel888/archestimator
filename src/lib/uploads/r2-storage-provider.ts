@@ -4,6 +4,10 @@ type R2PutValue = ArrayBuffer | ArrayBufferView | Blob | ReadableStream | string
 
 type R2ObjectBody = {
   arrayBuffer: () => Promise<ArrayBuffer>;
+  range?: {
+    offset?: number;
+    length?: number;
+  };
 } & R2ObjectMetadata;
 
 type R2ObjectMetadata = {
@@ -31,7 +35,10 @@ export type CloudflareR2UploadBucket = {
     },
   ) => Promise<unknown>;
   head?: (key: string) => Promise<R2ObjectMetadata | null>;
-  get: (key: string) => Promise<R2ObjectBody | null>;
+  get: (
+    key: string,
+    options?: { range?: { offset: number; length: number } },
+  ) => Promise<R2ObjectBody | null>;
   delete: (keys: string | string[]) => Promise<unknown>;
 };
 
@@ -83,6 +90,23 @@ export function createCloudflareR2UploadStorageProvider(
         body,
         contentType: object.httpMetadata?.contentType ?? null,
         sizeBytes: object.size ?? body.byteLength,
+        etag: object.etag ?? null,
+        checksumSha256: object.checksums?.toJSON?.().sha256 ?? null,
+      };
+    },
+    async downloadObjectRange(bucket, path, range) {
+      if (!Number.isSafeInteger(range.offset) || range.offset < 0 || !Number.isSafeInteger(range.length) || range.length <= 0) {
+        throw new Error("Something went wrong. Try again in a moment.");
+      }
+      const object = await r2.get(buildCloudflareR2ObjectKey(bucket, path), { range });
+      if (!object) throw new Error("Something went wrong. Try again in a moment.");
+      const body = await object.arrayBuffer();
+      return {
+        body,
+        contentType: object.httpMetadata?.contentType ?? null,
+        offset: object.range?.offset ?? range.offset,
+        length: object.range?.length ?? body.byteLength,
+        totalSizeBytes: object.size ?? range.offset + body.byteLength,
         etag: object.etag ?? null,
         checksumSha256: object.checksums?.toJSON?.().sha256 ?? null,
       };

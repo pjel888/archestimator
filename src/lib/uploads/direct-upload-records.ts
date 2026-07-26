@@ -627,6 +627,8 @@ export async function finalizeUploadSessionAsset(
   const mergedMetadataJson = finalizedSessionMetadata(session, input.metadata, observedEtag);
   const finalChecksum = expectedChecksum ?? observedChecksum;
   const projectId = session.target_entity_type === "project-component"
+    || session.surface === "project-artifact"
+    || session.surface === "portal-request-evidence"
     ? metadataString(session.metadata, "projectId")
     : null;
   const updateStatement = db.prepare(

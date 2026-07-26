@@ -76,6 +76,16 @@ export type ClientPortalPolicyThread = {
   creatorActorId: string;
 };
 
+export type ClientPortalPolicyTarget = {
+  kind: "change_request" | "artifact" | "artifact_page" | "timeline_event" | "baseline";
+  portalId: string;
+  exposureStatus: "visible" | "withdrawn" | "redacted";
+  ownerRecipientId?: string | null;
+  allowedRecipientIds?: readonly string[];
+  allowedOrganizations?: readonly string[];
+  downloadable?: boolean;
+};
+
 export type ClientPortalPolicyReasonCode =
   | "allowed"
   | "anonymous_access_disabled"
@@ -92,6 +102,8 @@ export type ClientPortalPolicyReasonCode =
   | "field_hidden"
   | "field_never_public"
   | "thread_hidden"
+  | "target_hidden"
+  | "request_not_owned"
   | "decision_not_designated"
   | "decision_issue_not_current";
 
@@ -109,6 +121,7 @@ export type ClientPortalPolicyInput = {
   issue?: ClientPortalPolicyIssue | null;
   section?: ClientPortalPolicySection | null;
   thread?: ClientPortalPolicyThread | null;
+  target?: ClientPortalPolicyTarget | null;
   field?: string | null;
 };
 
@@ -129,7 +142,21 @@ const RECIPIENT_VERIFICATION_ACTIONS = new Set<ClientPortalCapability>([
   "thread:reopen",
   "decision:submit_review",
   "decision:submit_formal",
+  "request:create",
+  "request:amend_own",
+  "request:withdraw_own",
+  "artifact:upload_evidence",
+  "artifact:download",
 ]);
+const TARGET_KINDS_BY_ACTION: Partial<Record<ClientPortalCapability, readonly ClientPortalPolicyTarget["kind"][]>> = {
+  "timeline:view": ["timeline_event"],
+  "request:view": ["change_request"],
+  "request:amend_own": ["change_request"],
+  "request:withdraw_own": ["change_request"],
+  "artifact:view": ["artifact", "artifact_page"],
+  "artifact:download": ["artifact", "artifact_page"],
+  "artifact:upload_evidence": ["change_request"],
+};
 
 function denied(reasonCode: Exclude<ClientPortalPolicyReasonCode, "allowed">, hideResource: boolean, effectiveCapabilities: readonly ClientPortalCapability[] = []): ClientPortalPolicyDecision {
   return { allowed: false, reasonCode, hideResource, effectiveCapabilities };
@@ -200,7 +227,8 @@ function isIssueUnavailable(issue: ClientPortalPolicyIssue | null | undefined) {
 }
 
 export function evaluateClientPortalPolicy(input: ClientPortalPolicyInput): ClientPortalPolicyDecision {
-  const { action, actor, portal, issue, section, thread, field } = input;
+  const { action, actor, portal, issue, section, thread, target, field } = input;
+  const allowedTargetKinds = TARGET_KINDS_BY_ACTION[action];
 
   if (actor.kind === "anonymous") {
     if (!portal.allowAnonymousView || !VIEW_ACTIONS.has(action)) return denied("anonymous_access_disabled", true);
@@ -211,9 +239,14 @@ export function evaluateClientPortalPolicy(input: ClientPortalPolicyInput): Clie
     return allowed(ANONYMOUS_VIEW_CAPABILITIES.filter((capability) => VIEW_ACTIONS.has(capability)));
   }
 
+  if (allowedTargetKinds && (!target || !allowedTargetKinds.includes(target.kind))) {
+    return denied("target_hidden", true);
+  }
+
   if (actor.kind === "internal") {
     if (actor.workspaceId !== portal.workspaceId || actor.projectId !== portal.projectId) return denied("portal_relationship_required", true);
     if (thread && thread.portalId !== portal.id) return denied("thread_hidden", true);
+    if (target && target.portalId !== portal.id) return denied("target_hidden", true);
     const capabilities = internalCapabilities(actor);
     if (!capabilities.has(action)) return denied("capability_not_granted", false, toSortedCapabilities(capabilities));
     return allowed(toSortedCapabilities(capabilities));
@@ -225,6 +258,13 @@ export function evaluateClientPortalPolicy(input: ClientPortalPolicyInput): Clie
   if (issue && isIssueUnavailable(issue)) return denied("issue_unavailable", true);
   if (RECIPIENT_VERIFICATION_ACTIONS.has(action) && actor.verificationState !== "verified") return denied("recipient_unverified", false);
   if (thread && (thread.portalId !== portal.id || thread.audience !== "client")) return denied("thread_hidden", true);
+  if (target && (target.portalId !== portal.id || target.exposureStatus !== "visible")) return denied("target_hidden", true);
+  if (target?.allowedRecipientIds && !target.allowedRecipientIds.includes(actor.recipientId)) return denied("target_hidden", true);
+  if (target?.allowedOrganizations && (!actor.organization || !target.allowedOrganizations.includes(actor.organization))) return denied("target_hidden", true);
+  if ((action === "request:amend_own" || action === "request:withdraw_own") && target?.ownerRecipientId !== actor.recipientId) {
+    return denied("request_not_owned", false);
+  }
+  if (action === "artifact:download" && target?.downloadable !== true) return denied("capability_not_granted", false);
   if (section && !section.enabled) return denied("section_disabled", true);
   if (section && !sectionAllowsRecipient(section, actor)) return denied("section_hidden", true);
   if (field && NEVER_PUBLIC_FIELDS.has(field)) return denied("field_never_public", true);

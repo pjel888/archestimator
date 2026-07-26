@@ -26,6 +26,11 @@ export const CLIENT_PORTAL_DISCUSSION_TARGET_KINDS = [
   "comparison_row",
   "assumption_exclusion",
   "activity_event",
+  "change_request",
+  "artifact",
+  "artifact_page",
+  "timeline_event",
+  "baseline",
 ] as const;
 
 export type ClientPortalDiscussionTargetKind = (typeof CLIENT_PORTAL_DISCUSSION_TARGET_KINDS)[number];
@@ -69,17 +74,37 @@ export const CLIENT_PORTAL_CAPABILITIES = [
   "audit:view",
   "activity_client:view",
   "activity_client:configure",
+  "timeline:view",
+  "request:view",
+  "request:create",
+  "request:amend_own",
+  "request:withdraw_own",
+  "request:assess",
+  "artifact:view",
+  "artifact:download",
+  "artifact:upload",
+  "artifact:upload_evidence",
 ] as const;
 
 export type ClientPortalCapability = (typeof CLIENT_PORTAL_CAPABILITIES)[number];
 
-export const CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES = ["viewer", "commenter", "reviewer", "approver"] as const;
+export const CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES = ["viewer", "commenter", "reviewer", "approver", "requester"] as const;
 
 export type ClientPortalRecipientRoleTemplate = (typeof CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES)[number];
 
 export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
-  viewer: ["portal:view", "section:view", "field:view", "thread:view"],
-  commenter: ["portal:view", "section:view", "field:view", "thread:view", "thread:create", "thread:reply"],
+  viewer: ["portal:view", "section:view", "field:view", "thread:view", "timeline:view", "request:view", "artifact:view"],
+  commenter: [
+    "portal:view",
+    "section:view",
+    "field:view",
+    "thread:view",
+    "thread:create",
+    "thread:reply",
+    "timeline:view",
+    "request:view",
+    "artifact:view",
+  ],
   reviewer: [
     "portal:view",
     "section:view",
@@ -91,6 +116,9 @@ export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
     "thread:reopen",
     "decision:view",
     "decision:submit_review",
+    "timeline:view",
+    "request:view",
+    "artifact:view",
   ],
   approver: [
     "portal:view",
@@ -104,6 +132,24 @@ export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
     "decision:view",
     "decision:submit_review",
     "decision:submit_formal",
+    "timeline:view",
+    "request:view",
+    "artifact:view",
+  ],
+  requester: [
+    "portal:view",
+    "section:view",
+    "field:view",
+    "thread:view",
+    "thread:create",
+    "thread:reply",
+    "timeline:view",
+    "request:view",
+    "request:create",
+    "request:amend_own",
+    "request:withdraw_own",
+    "artifact:view",
+    "artifact:upload_evidence",
   ],
 } as const satisfies Record<ClientPortalRecipientRoleTemplate, readonly ClientPortalCapability[]>;
 
@@ -148,6 +194,10 @@ export const CLIENT_PORTAL_PUBLIC_ID_PREFIXES = {
   message: "message_",
   decision: "decision_",
   brandAsset: "asset_",
+  request: "request_",
+  artifact: "artifact_",
+  timelineEvent: "event_",
+  baseline: "baseline_",
 } as const;
 
 export type ClientPortalPublicIdKind = keyof typeof CLIENT_PORTAL_PUBLIC_ID_PREFIXES;

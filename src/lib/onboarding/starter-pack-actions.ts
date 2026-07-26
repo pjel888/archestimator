@@ -57,6 +57,7 @@ type InstallContext = {
   workspaceId: string;
   userId: string;
   mode: StarterInstallMode;
+  mutationLeaseToken?: string;
 };
 
 export type StarterInstallResult = {
@@ -67,6 +68,8 @@ export type StarterInstallResult = {
 
 const starterActivationCapability = issueStarterSeedActivationCapability();
 const STARTER_MUTATION_LEASE_MS = 10 * 60 * 1000;
+
+class StarterMutationLeaseConflictError extends Error {}
 const STARTER_WORKSPACE_ASSET_KEY_PLACEHOLDERS =
   STARTER_WORKSPACE_ASSET_KEYS.map(() => "?").join(", ");
 
@@ -98,22 +101,49 @@ async function all<T>(
   return result.results ?? [];
 }
 
+async function assertAndRenewStarterMutationLease(context: InstallContext) {
+  if (!context.mutationLeaseToken) {
+    throw new Error("Starter content mutation requires an active lease.");
+  }
+  const renewedAt = nowIso();
+  const expiresAt = new Date(
+    Date.parse(renewedAt) + STARTER_MUTATION_LEASE_MS,
+  ).toISOString();
+  const result = await context.database.prepare(`
+    UPDATE beta_starter_mutation_leases
+    SET expires_at = ?
+    WHERE workspace_id = ? AND pack_version = ? AND lease_token = ?
+  `).bind(
+    expiresAt,
+    context.workspaceId,
+    STARTER_PACK_VERSION,
+    context.mutationLeaseToken,
+  ).run();
+  if (result.success === false || (result.meta?.changes ?? 0) !== 1) {
+    throw new StarterMutationLeaseConflictError(
+      "Starter content lease changed before the mutation finished. Refresh and try again.",
+    );
+  }
+}
+
 async function run(
-  database: D1DatabaseLike,
+  context: InstallContext,
   sql: string,
   values: D1Value[] = [],
 ) {
-  const result = await database.prepare(sql).bind(...values).run();
+  await assertAndRenewStarterMutationLease(context);
+  const result = await context.database.prepare(sql).bind(...values).run();
   if (result.success === false) throw new Error("Starter content could not be persisted.");
   return result;
 }
 
 async function runCheckedBatch(
-  database: D1DatabaseLike,
+  context: InstallContext,
   statements: D1PreparedStatementLike[],
 ) {
-  if (!database.batch) throw new Error("Starter content requires D1 batch support.");
-  const results = await database.batch(statements);
+  await assertAndRenewStarterMutationLease(context);
+  if (!context.database.batch) throw new Error("Starter content requires D1 batch support.");
+  const results = await context.database.batch(statements);
   if (results.length !== statements.length || results.some((result) => result.success === false)) {
     throw new Error("A starter asset batch did not commit.");
   }
@@ -1859,10 +1889,6 @@ async function acquireStarterMutationLease(
   ).toISOString();
   const statements: D1PreparedStatementLike[] = [
     context.database.prepare(`
-      DELETE FROM beta_starter_mutation_leases
-      WHERE workspace_id = ? AND pack_version = ? AND expires_at <= ?
-    `).bind(context.workspaceId, STARTER_PACK_VERSION, acquiredAt),
-    context.database.prepare(`
       INSERT INTO beta_starter_mutation_leases (
         workspace_id, pack_version, lease_token, actor_user_id, operation,
         expires_at, created_at
@@ -1913,12 +1939,14 @@ async function acquireStarterMutationLease(
   if (results.some((result) => result.success === false)) {
     throw new Error("Starter content mutation lease could not be acquired.");
   }
-  if ((results[1]?.meta?.changes ?? 0) !== 1) {
-    throw new Error("Starter content is already being changed. Refresh and try again.");
+  if ((results[0]?.meta?.changes ?? 0) !== 1) {
+    throw new StarterMutationLeaseConflictError(
+      "Starter content is already being changed. Refresh and try again.",
+    );
   }
   if (
     expectedRevision !== undefined
-    && (results[2]?.meta?.changes ?? 0) !== 1
+    && (results[1]?.meta?.changes ?? 0) !== 1
   ) {
     await releaseStarterMutationLease(context, leaseToken);
     throw new Error("Starter content changed before recovery finished. Refresh and try again.");
@@ -1950,6 +1978,18 @@ async function withStarterMutationLease<T>(
     return await work();
   } finally {
     await releaseStarterMutationLease(context, leaseToken);
+  }
+}
+
+async function withAutomaticStarterMutationLease<T extends StarterInstallResult | null>(
+  context: InstallContext,
+  work: () => Promise<T>,
+): Promise<T | StarterInstallResult> {
+  try {
+    return await withStarterMutationLease(context, "install", work);
+  } catch (error) {
+    if (!(error instanceof StarterMutationLeaseConflictError)) throw error;
+    return readStarterInstallResult(context);
   }
 }
 
@@ -2073,7 +2113,7 @@ export async function installStarterPackForNewWorkspace(
     userId: input.userId,
     mode: "install",
   };
-  return withStarterMutationLease(context, "install", () =>
+  return withAutomaticStarterMutationLease(context, () =>
     installStarterPack(context));
 }
 
@@ -2089,7 +2129,7 @@ export async function installStarterPackForEligibleWorkspace(
   };
   const currentResult = await readStarterInstallResult(context);
   if (currentResult.ready) return currentResult;
-  return withStarterMutationLease(context, "install", async () => {
+  return withAutomaticStarterMutationLease(context, async () => {
   const [workspaceState, userState, claims] = await Promise.all([
     readState(context, "workspace", context.workspaceId),
     readState(context, "user", context.userId),
@@ -2151,11 +2191,28 @@ export async function resumeStarterContent(): Promise<StarterInstallResult> {
     userId: actor.userId,
     mode: "resume",
   };
-  if ((await readState(context, "workspace", context.workspaceId))?.status !== "complete") {
+  const [workspaceState, membership] = await Promise.all([
+    readState(context, "workspace", context.workspaceId),
+    first<{ role: string }>(
+      database,
+      "SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ? LIMIT 1",
+      [context.workspaceId, context.userId],
+    ),
+  ]);
+  const canManageShared = membership?.role === "owner" || membership?.role === "admin";
+  const canResumePersonal = canManageShared || membership?.role === "member";
+  if (!canResumePersonal) {
+    throw new Error("This workspace role cannot change starter content.");
+  }
+  if (workspaceState?.status !== "complete") {
     await assertOwnerOrManager(context);
   }
   return withStarterMutationLease(context, "resume", async () => {
-    await installStarterPack(context);
+    if (workspaceState?.status === "complete" && !canManageShared) {
+      await installUserScope(context);
+    } else {
+      await installStarterPack(context);
+    }
     return readStarterInstallResult(context);
   });
 }

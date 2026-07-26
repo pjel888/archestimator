@@ -33,7 +33,7 @@ export const STARTER_REFERENCE_SOURCES = {
   },
 } as const;
 
-type StarterReferenceId = keyof typeof STARTER_REFERENCE_SOURCES;
+export type StarterReferenceId = keyof typeof STARTER_REFERENCE_SOURCES;
 
 export type StarterRowDefinition = {
   key: string;

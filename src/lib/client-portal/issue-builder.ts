@@ -61,6 +61,11 @@ type JsonRecord = Record<string, unknown>;
 
 const CLIENT_PORTAL_ESTIMATE_PROJECTION_INSERT_CHUNK_SIZE = 40;
 const D1_MAX_BATCH_STATEMENTS = 1_000;
+const CLIENT_PORTAL_SUPERSEDABLE_ISSUE_STATUSES = new Set<IssueRow["status"]>([
+  "issued",
+  "under_review",
+  "changes_requested",
+]);
 
 export type ClientPortalIssueSource = {
   authoringSemanticHash: string;
@@ -546,7 +551,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     }
   }
 
-  if (latestIssue && latestIssue.status !== "superseded") {
+  if (latestIssue && CLIENT_PORTAL_SUPERSEDABLE_ISSUE_STATUSES.has(latestIssue.status)) {
     statements.push(statement(
       input.database,
       `UPDATE client_portal_issues

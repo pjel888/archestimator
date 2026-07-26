@@ -1,12 +1,17 @@
-export type UploadSurface = "project-image" | "component-image" | "component-attachment";
+export type UploadSurface =
+  | "project-image"
+  | "component-image"
+  | "component-attachment"
+  | "project-artifact"
+  | "portal-request-evidence";
 
 export type UploadPolicy = {
   surface: UploadSurface;
-  bucket: "project-images" | "component-images" | "component-attachments";
+  bucket: "project-images" | "component-images" | "component-attachments" | "project-artifacts";
   kind: "image" | "attachment";
   maxBytes: number;
   maxPixels?: number;
-  keyPrefix: "project-images" | null;
+  keyPrefix: "project-images" | "project-artifacts" | null;
   publicUrlAllowed: boolean;
   scanRequired: boolean;
   allowedMimeTypes: readonly string[];
@@ -48,6 +53,26 @@ export const UPLOAD_POLICIES = {
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ],
+  },
+  "project-artifact": {
+    surface: "project-artifact",
+    bucket: "project-artifacts",
+    kind: "attachment",
+    maxBytes: 25 * 1024 * 1024,
+    keyPrefix: "project-artifacts",
+    publicUrlAllowed: false,
+    scanRequired: true,
+    allowedMimeTypes: ["application/pdf"],
+  },
+  "portal-request-evidence": {
+    surface: "portal-request-evidence",
+    bucket: "project-artifacts",
+    kind: "attachment",
+    maxBytes: 20 * 1024 * 1024,
+    keyPrefix: "project-artifacts",
+    publicUrlAllowed: false,
+    scanRequired: true,
+    allowedMimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/avif"],
   },
 } as const satisfies Record<UploadSurface, UploadPolicy>;
 

@@ -14,6 +14,19 @@ export type UploadStorageProvider = {
     etag?: string | null;
     checksumSha256?: string | null;
   }>;
+  downloadObjectRange?: (
+    bucket: string,
+    path: string,
+    range: { offset: number; length: number },
+  ) => Promise<{
+    body: ArrayBuffer;
+    contentType: string | null;
+    offset: number;
+    length: number;
+    totalSizeBytes: number;
+    etag?: string | null;
+    checksumSha256?: string | null;
+  }>;
   headObject?: (bucket: string, path: string) => Promise<{
     contentType: string | null;
     sizeBytes: number;
