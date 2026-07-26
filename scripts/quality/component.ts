@@ -13,11 +13,9 @@ import {
 } from "./common";
 import {
   COMPONENT_PROFILES,
-  combineVitestReports,
   compareComponentRatchet,
   evaluateRawGreenComponentRun,
   normalizeVitestFailures,
-  partitionComponentPerformanceTests,
   selectStrictComponentTests,
   validateCanonicalBaselineArtifacts,
   validateComponentProfileSelection,
@@ -46,7 +44,7 @@ interface VitestRun {
   command: string;
   exitCode: number | null;
   reportPath: string;
-  coveragePath: string | null;
+  coveragePath: string;
   stdout: string;
   stderr: string;
   report?: VitestJsonReport;
@@ -91,10 +89,10 @@ function normalizeCoverage(
 async function loadVitestRun(
   root: string,
   reportPath: string,
-  coveragePath: string | null,
+  coveragePath: string,
   args: string[],
 ): Promise<VitestRun> {
-  for (const path of [reportPath, ...(coveragePath ? [coveragePath] : [])]) {
+  for (const path of [reportPath, coveragePath]) {
     try {
       await unlink(path);
     } catch (error) {
@@ -114,18 +112,16 @@ async function loadVitestRun(
   } catch {
     // The caller records this as a fail-closed report finding.
   }
-  if (coveragePath) {
-    try {
-      coverage = normalizeCoverage(await readJson<CoverageSummary>(coveragePath), root);
-    } catch {
-      // The caller records this as a fail-closed coverage finding.
-    }
+  try {
+    coverage = normalizeCoverage(await readJson<CoverageSummary>(coveragePath), root);
+  } catch {
+    // The caller records this as a fail-closed coverage finding.
   }
   return {
     command: ["bun", "x", "vitest", "run", ...args].join(" "),
     exitCode: run.status,
     reportPath: normalizedPath(relative(root, reportPath)),
-    coveragePath: coveragePath ? normalizedPath(relative(root, coveragePath)) : null,
+    coveragePath: normalizedPath(relative(root, coveragePath)),
     stdout: run.stdout,
     stderr: run.stderr,
     report,
@@ -135,41 +131,31 @@ async function loadVitestRun(
 
 async function executeVitest(
   root: string,
-  name: "strict" | "strict-performance" | "full" | "full-performance",
+  name: "strict" | "full",
   tests: string[],
   reportOnFailure: boolean,
-  coverageEnabled = true,
 ): Promise<VitestRun> {
   const reportPath = resolve(root, `artifacts/quality/component-${name}.vitest.json`);
-  const coverageDirectory = coverageEnabled
-    ? resolve(root, name === "full" ? "artifacts/coverage/component" : "artifacts/coverage/component-strict")
-    : null;
-  const coveragePath = coverageDirectory
-    ? resolve(coverageDirectory, "coverage-summary.json")
-    : null;
+  const coverageDirectory = resolve(
+    root,
+    name === "full" ? "artifacts/coverage/component" : "artifacts/coverage/component-strict",
+  );
+  const coveragePath = resolve(coverageDirectory, "coverage-summary.json");
   const args = [
     ...tests,
     "--maxWorkers=1",
-    ...(coverageDirectory
-      ? [
-          "--coverage",
-          ...(reportOnFailure ? ["--coverage.reportOnFailure=true"] : []),
-          "--coverage.reporter=json-summary",
-          "--coverage.reporter=lcov",
-          `--coverage.reportsDirectory=${coverageDirectory}`,
-        ]
-      : []),
+    "--coverage",
+    ...(reportOnFailure ? ["--coverage.reportOnFailure=true"] : []),
+    "--coverage.reporter=json-summary",
+    "--coverage.reporter=lcov",
+    `--coverage.reportsDirectory=${coverageDirectory}`,
     "--reporter=json",
     `--outputFile=${reportPath}`,
   ];
   return loadVitestRun(root, reportPath, coveragePath, args);
 }
 
-function requireRunArtifacts(
-  run: VitestRun,
-  findings: QualityFinding[],
-  coverageRequired = true,
-): void {
+function requireRunArtifacts(run: VitestRun, findings: QualityFinding[]): void {
   if (!run.report) {
     findings.push({
       code: "COMPONENT_REPORT_MISSING",
@@ -177,11 +163,11 @@ function requireRunArtifacts(
       path: run.reportPath,
     });
   }
-  if (coverageRequired && !run.coverage) {
+  if (!run.coverage) {
     findings.push({
       code: "COMPONENT_COVERAGE_MISSING",
-      message: `${String(run.coveragePath)} was not produced or is malformed`,
-      path: run.coveragePath ?? undefined,
+      message: `${run.coveragePath} was not produced or is malformed`,
+      path: run.coveragePath,
     });
   }
 }
@@ -293,68 +279,25 @@ if (profile !== "Q3_RELEASE_GATE" && evidenceMap) {
 
 const runs: VitestRun[] = [];
 if (findings.length === 0 && profile !== "Q3_RELEASE_GATE") {
-  const strictPartition = partitionComponentPerformanceTests(strictTests);
-  const strictSpecs = [
-    {
-      name: "strict-performance" as const,
-      tests: strictPartition.performance,
-      coverageEnabled: false,
-      failureCode: "COMPONENT_STRICT_PERFORMANCE_COMMAND_FAILED",
-    },
-    {
-      name: "strict" as const,
-      tests: strictPartition.functional,
-      coverageEnabled: true,
-      failureCode: "COMPONENT_STRICT_COMMAND_FAILED",
-    },
-  ];
-  for (const spec of strictSpecs) {
-    if (spec.tests.length === 0) continue;
-    const run = await executeVitest(root, spec.name, spec.tests, true, spec.coverageEnabled);
-    runs.push(run);
-    requireRunArtifacts(run, findings, spec.coverageEnabled);
-    if (run.report) findings.push(...evaluateRawGreenComponentRun(run.report, root));
-    if (run.exitCode !== 0) {
-      findings.push({
-        code: spec.failureCode,
-        message: `${spec.name} component command exited ${String(run.exitCode)}`,
-      });
-    }
+  const strict = await executeVitest(root, "strict", strictTests, true);
+  runs.push(strict);
+  requireRunArtifacts(strict, findings);
+  if (strict.report) findings.push(...evaluateRawGreenComponentRun(strict.report, root));
+  if (strict.exitCode !== 0) {
+    findings.push({
+      code: "COMPONENT_STRICT_COMMAND_FAILED",
+      message: `Strict component command exited ${String(strict.exitCode)}`,
+    });
   }
 }
 
 if (findings.length === 0) {
-  const fullPartition = partitionComponentPerformanceTests(availableTests);
-  const fullPerformance = fullPartition.performance.length > 0
-    ? await executeVitest(root, "full-performance", fullPartition.performance, false, false)
-    : null;
-  const full = await executeVitest(
-    root,
-    "full",
-    fullPartition.functional,
-    profile !== "Q3_RELEASE_GATE",
-  );
-  if (fullPerformance) {
-    runs.push(fullPerformance);
-    requireRunArtifacts(fullPerformance, findings, false);
-  }
+  const full = await executeVitest(root, "full", [], profile !== "Q3_RELEASE_GATE");
   runs.push(full);
   requireRunArtifacts(full, findings);
-  const fullReports = [fullPerformance?.report, full.report].filter(
-    (report): report is VitestJsonReport => Boolean(report),
-  );
-  const combinedFullReport = fullReports.length === (fullPerformance ? 2 : 1)
-    ? combineVitestReports(fullReports)
-    : undefined;
-  if (combinedFullReport && full.coverage) {
+  if (full.report && full.coverage) {
     if (profile === "Q3_RELEASE_GATE") {
-      findings.push(...evaluateRawGreenComponentRun(combinedFullReport, root));
-      if (fullPerformance && fullPerformance.exitCode !== 0) {
-        findings.push({
-          code: "COMPONENT_RELEASE_PERFORMANCE_COMMAND_FAILED",
-          message: `Release performance command exited ${String(fullPerformance.exitCode)}`,
-        });
-      }
+      findings.push(...evaluateRawGreenComponentRun(full.report, root));
       if (full.exitCode !== 0) {
         findings.push({
           code: "COMPONENT_RELEASE_COMMAND_FAILED",
@@ -374,7 +317,7 @@ if (findings.length === 0) {
       }
       if (baseline) {
         const ratchetFindings = compareComponentRatchet(
-          combinedFullReport,
+          full.report,
           full.coverage,
           baseline,
           root,
@@ -395,7 +338,7 @@ const runData = await Promise.all(
     report: run.reportPath,
     coverage: run.coveragePath,
     report_sha256: run.report ? sha256(await readFile(resolve(root, run.reportPath))) : null,
-    coverage_sha256: run.coverage && run.coveragePath
+    coverage_sha256: run.coverage
       ? sha256(await readFile(resolve(root, run.coveragePath)))
       : null,
     counts: run.report
@@ -418,8 +361,8 @@ const result = makeResult(
     profile: profile ?? null,
     lanes:
       profile === "Q3_RELEASE_GATE"
-        ? ["raw-full-suite", "isolated-performance"]
-        : ["strict-affected-and-critical", "full-suite-ratchet", "isolated-performance"],
+        ? ["raw-full-suite"]
+        : ["strict-affected-and-critical", "full-suite-ratchet"],
     component_files: componentFiles,
     strict_tests: strictTests,
     available_test_files: availableTests.length,

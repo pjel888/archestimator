@@ -233,9 +233,7 @@ jobs:
           path: |
             artifacts/quality/component.json
             artifacts/quality/component-strict.vitest.json
-            artifacts/quality/component-strict-performance.vitest.json
             artifacts/quality/component-full.vitest.json
-            artifacts/quality/component-full-performance.vitest.json
             artifacts/coverage/component-strict/**
             artifacts/coverage/component/**
 

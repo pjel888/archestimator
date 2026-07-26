@@ -11,6 +11,11 @@ type D1MigrationQueryResult = Array<{
 
 const database = "ARCH_DB";
 const local = Bun.argv.includes("--local");
+const persistToIndex = Bun.argv.indexOf("--persist-to");
+const persistTo = persistToIndex >= 0 ? Bun.argv[persistToIndex + 1]?.trim() : null;
+if (persistToIndex >= 0 && !persistTo) {
+  throw new Error("--persist-to requires a local persistence path.");
+}
 const environmentLabel = local ? "Local" : "Production";
 const locationFlag = local ? "--local" : "--remote";
 const blockedAction = local ? "startup" : "deployment";
@@ -23,18 +28,20 @@ if (localMigrations.length === 0) {
   throw new Error(`No D1 migrations were found; ${environmentLabel.toLowerCase()} ${blockedAction} is blocked.`);
 }
 
+const wranglerArgs = [
+  "wrangler",
+  "d1",
+  "execute",
+  database,
+  locationFlag,
+  ...(local && persistTo ? ["--persist-to", persistTo] : []),
+  "--json",
+  "--command",
+  "SELECT name FROM d1_migrations ORDER BY id;",
+];
 const result = spawnSync(
   "bunx",
-  [
-    "wrangler",
-    "d1",
-    "execute",
-    database,
-    locationFlag,
-    "--json",
-    "--command",
-    "SELECT name FROM d1_migrations ORDER BY id;",
-  ],
+  wranglerArgs,
   {
     encoding: "utf8",
     env: {

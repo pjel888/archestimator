@@ -52,31 +52,6 @@ export interface VitestJsonReport {
   unhandledErrors?: unknown[];
 }
 
-export interface ComponentTestPartition {
-  functional: string[];
-  performance: string[];
-}
-
-export function partitionComponentPerformanceTests(tests: string[]): ComponentTestPartition {
-  const performance = tests.filter((path) => path.startsWith("tests/vitest/perf/"));
-  const performanceSet = new Set(performance);
-  return {
-    functional: tests.filter((path) => !performanceSet.has(path)),
-    performance,
-  };
-}
-
-export function combineVitestReports(reports: VitestJsonReport[]): VitestJsonReport {
-  return {
-    success: reports.every((report) => report.success === true),
-    numTotalTests: reports.reduce((total, report) => total + (report.numTotalTests ?? 0), 0),
-    numFailedTests: reports.reduce((total, report) => total + (report.numFailedTests ?? 0), 0),
-    numPendingTests: reports.reduce((total, report) => total + (report.numPendingTests ?? 0), 0),
-    testResults: reports.flatMap((report) => report.testResults ?? []),
-    unhandledErrors: reports.flatMap((report) => report.unhandledErrors ?? []),
-  };
-}
-
 export interface LeafFailure {
   identity: string;
   file: string;

@@ -78,7 +78,7 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: `bun run predev && bun x wrangler d1 migrations apply ARCH_DB --local --persist-to ${isolatedWranglerPersistPath} && bun x next dev --webpack --port ${port}`,
+    command: `node scripts/check-node-version.mjs && bun x wrangler d1 migrations apply ARCH_DB --local --persist-to ${isolatedWranglerPersistPath} && bun run scripts/check-cloudflare-d1-migrations.ts --local --persist-to ${isolatedWranglerPersistPath} && bun x next dev --webpack --port ${port}`,
     env: {
       ARCHESTIMATOR_NEXT_DEV_DIST_DIR: isolatedDevelopmentDistDir,
       ARCHESTIMATOR_DEV_BINDINGS_PERSIST_PATH: isolatedDevelopmentBindingsPath,
