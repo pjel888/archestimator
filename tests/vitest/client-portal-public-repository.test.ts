@@ -180,6 +180,105 @@ describe("client portal public repository", () => {
     expect(JSON.stringify(manifest)).not.toContain("private/path.pdf");
   });
 
+  it("reconstructs public change sets and fails closed on private comparison identities", async () => {
+    const safeChangeSet = {
+      structured: {
+        schemaVersion: 1,
+        comparison: { capability: "full", limitationReason: null },
+        currencyCode: "PHP",
+        summary: {
+          previousTotalMinorUnits: 10_000,
+          currentTotalMinorUnits: 12_500,
+          totalDeltaMinorUnits: 2_500,
+          addedRows: 1,
+          removedRows: 0,
+          changedRows: 0,
+          movedRows: 0,
+          addedArtifacts: 0,
+          removedArtifacts: 0,
+          changedArtifacts: 0,
+          addressedRequests: ["CR-0001"],
+        },
+        estimateChanges: [{
+          publicId: `est_${"c".repeat(20)}`,
+          publicLabel: "Kitchen estimate",
+          type: "changed",
+          changeTypes: ["estimate_total_changed"],
+          previousTotalMinorUnits: 10_000,
+          currentTotalMinorUnits: 12_500,
+          totalDeltaMinorUnits: 2_500,
+          treeChanges: [],
+          rowChanges: [{
+            type: "added",
+            publicId: `row_${"d".repeat(32)}`,
+            publicLabel: "Sink relocation",
+            matchMethod: "none",
+            confidence: "none",
+            changeTypes: ["row_total_changed"],
+            before: null,
+            after: {
+              publicId: `row_${"d".repeat(32)}`,
+              publicLabel: "Sink relocation",
+              description: "Relocate sink",
+              designation: "",
+              discipline: "Plumbing",
+              material: "",
+              quantityScaled: 1_000_000,
+              quantityScale: 1_000_000,
+              unit: "item",
+              rowTotalMinorUnits: 2_500,
+              scopeStatus: "included",
+            },
+            deltaMinorUnits: 2_500,
+          }],
+        }],
+        artifactChanges: [],
+        requestChanges: [{
+          type: "added",
+          publicId: `request_${"e".repeat(32)}`,
+          publicCode: "CR-0001",
+          publicTitle: "Move sink",
+          changeTypes: ["request_added"],
+          beforeVersion: null,
+          afterVersion: 1,
+        }],
+        narrativeChanges: {
+          assumptionChanges: [],
+          exclusionChanges: [],
+          unresolvedItemChanges: [],
+          requestedDecisionChange: null,
+          validityChange: null,
+        },
+      },
+      deterministicSummary: "Issue 2 increases the issued total by PHP 25.00.",
+      finalNarrative: "Sink relocation and joinery revisions are ready for review.",
+      narrativeSource: "human",
+    };
+    issue.manifest_json = JSON.stringify({ project: { name: "Kitchen Remodel", code: "AE-100" }, changeSet: safeChangeSet });
+    mocks.database = new FakeD1Database({ sections: [] });
+
+    const manifest = await getClientPortalManifest(token, undefined, recipient);
+
+    expect(manifest?.changeSet).toEqual(safeChangeSet);
+    expect(JSON.stringify(manifest)).not.toContain("issue_private_1");
+    expect(JSON.stringify(manifest)).not.toContain("baseline_private_1");
+
+    issue.manifest_json = JSON.stringify({
+      project: { name: "Kitchen Remodel", code: "AE-100" },
+      changeSet: {
+        ...safeChangeSet,
+        structured: {
+          ...safeChangeSet.structured,
+          comparison: { ...safeChangeSet.structured.comparison, issueId: "issue_private_1", baselineId: "baseline_private_1" },
+        },
+      },
+    });
+
+    const rejected = await getClientPortalManifest(token, undefined, recipient);
+
+    expect(rejected?.changeSet).toBeNull();
+  });
+
   it("reads and re-sanitizes the immutable D1 payload without exposing controlled fields", async () => {
     const database = new FakeD1Database({ section: section() });
     mocks.database = database;

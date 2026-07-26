@@ -258,6 +258,10 @@ describe("client portal issue builder", () => {
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_estimates"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_artifacts"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_requests"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO project_commitment_events") && statement.values.includes("issue.issued"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_event_exposures"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO project_change_request_state_events") && statement.values.some((value) => typeof value === "string" && value.startsWith("issue:issue_")))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("UPDATE project_change_requests") && statement.sql.includes("status = 'proposal_issued'"))).toBe(true);
     const publishDraft = statements.find((statement) => statement.sql.includes("UPDATE client_portal_issue_drafts"));
     expect(publishDraft?.sql).toContain("status = 'ready' AND draft_revision = ?");
     expect(publishDraft?.sql).toContain("committed_issue");

@@ -66,9 +66,9 @@ function databaseForPublish(options: {
             const artifactHashes = options.artifactHashes ?? ["c".repeat(64)];
             const contentSha256 = artifactHashes[Math.min(artifactReadIndex, artifactHashes.length - 1)]!;
             artifactReadIndex += 1;
-            return { success: true, results: [{ artifact_id: "artifact_1", artifact_version_id: "artifact_version_1", title: "Kitchen drawing", file_name: "kitchen.pdf", content_type: "application/pdf", size_bytes: 1200, content_sha256: contentSha256, description: null }] as T[] } as D1Result<T>;
+            return { success: true, results: [{ artifact_id: "artifact_1", artifact_version_id: "artifact_version_1", title: "Kitchen drawing", file_name: "kitchen.pdf", content_type: "application/pdf", size_bytes: 1200, content_sha256: contentSha256, description: null, version_number: 2, revision_label: "Rev B" }] as T[] } as D1Result<T>;
           }
-          if (options.issueDraft && sql.includes("FROM project_change_request_versions")) return { success: true, results: [{ request_id: "request_1", request_code: "CR-0001", request_version_id: "request_version_1", title: "Move sink", content_hash: "d".repeat(64) }] as T[] } as D1Result<T>;
+          if (options.issueDraft && sql.includes("FROM project_change_request_versions")) return { success: true, results: [{ request_id: "request_1", request_code: "CR-0001", request_version_id: "request_version_1", status: "under_assessment", title: "Move sink", content_hash: "d".repeat(64), version_number: 3 }] as T[] } as D1Result<T>;
           if (sql.includes("FROM estimate_row_items")) {
             return { success: true, results: [{
               id: "row_1", estimate_id: "estimate_1", node_id: null, description: "Wall finish", designation: "W1", discipline: "Build", material: "Private material", supplier: "Internal supplier", quantity: 2, quantity_base: null, quantity_contingency_amount: null, unit: "m2", unit_cost: 50, misc_cost: 0, contingency_percentage: 0, adjustment_percentage: 0,

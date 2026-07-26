@@ -608,6 +608,6 @@ test.describe("onboarding first-value journey", () => {
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator('tr[data-estimate-row-id]').getByLabel("Unit cost", { exact: true }))
-      .toHaveValue("1250");
+      .toHaveValue(/₱\s?1,250\.00$/u);
   });
 });

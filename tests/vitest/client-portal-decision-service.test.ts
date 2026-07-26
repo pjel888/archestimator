@@ -60,6 +60,9 @@ describe("client portal decisions", () => {
     expect(serialized).toContain("recipient_id, event_type");
     expect(serialized).toContain("NULL");
     expect(serialized).toContain("outbox_");
+    expect(serialized).toContain("INSERT INTO project_commitment_events");
+    expect(serialized).toContain("decision.declined");
+    expect(serialized).toContain("ELSE 'rejected'");
   });
 
   it("atomically prepares baseline rollover and linked request resolution", async () => {
@@ -70,6 +73,17 @@ describe("client portal decisions", () => {
     expect(serialized).toContain("INSERT INTO client_portal_baselines");
     expect(serialized).toContain("INSERT INTO project_change_request_state_events");
     expect(serialized).toContain("resolved_by_issue_id");
+    expect(serialized).toContain("baseline.established");
+    expect(serialized).toContain("INSERT INTO client_portal_event_exposures");
+  });
+
+  it("returns linked proposal requests to assessment when changes are requested", async () => {
+    const { database, statements } = databaseFor("reviewer");
+    await submitClientPortalDecision({ actor: baseActor, database, portalId: "portal_1", issueId: "issue_1", decision: "changes_requested", expectedIssueContentHash: "a".repeat(64), idempotencyKey: "changes_requests" });
+    const serialized = JSON.stringify(statements);
+    expect(serialized).toContain("WHEN 'changes_requested' THEN 'under_assessment'");
+    expect(serialized).toContain("decision.changes_requested");
+    expect(serialized).toContain("decision:");
   });
 
   it("rejects reuse of an idempotency key for a different decision intent", async () => {
