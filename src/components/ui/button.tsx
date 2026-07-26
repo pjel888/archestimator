@@ -1,4 +1,6 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import Link from "next/link";
+import type { ComponentPropsWithRef } from "react";
+
 import { cn } from "@/lib/ui/cn";
 
 export type ButtonVariant =
@@ -16,11 +18,14 @@ export type ButtonVariant =
   | "scrim";
 export type ButtonSize = "xs" | "sm" | "md" | "lg" | "icon-xs" | "icon-sm" | "icon" | "icon-lg" | "scrim";
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type ButtonStyleOptions = {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  children?: ReactNode;
+  className?: string;
 };
+
+export type ButtonProps = Omit<ComponentPropsWithRef<"button">, "className"> & ButtonStyleOptions;
+export type ButtonLinkProps = Omit<ComponentPropsWithRef<typeof Link>, "className"> & ButtonStyleOptions;
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "bg-primary text-white hover:bg-accentDark focus-visible:ring-focus",
@@ -52,19 +57,40 @@ const sizeClasses: Record<ButtonSize, string> = {
   scrim: "fixed inset-0 p-0",
 };
 
-export function Button({ className, variant = "secondary", size = "md", type = "button", children, ...props }: ButtonProps) {
+const baseClasses =
+  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-surfaceMuted aria-pressed:text-ink [&_svg]:pointer-events-none";
+
+export function buttonVariants({ className, variant = "secondary", size = "md" }: ButtonStyleOptions = {}) {
+  return cn(baseClasses, variantClasses[variant], sizeClasses[size], className);
+}
+
+export function Button({ className, variant = "secondary", size = "md", type = "button", children, ref, ...props }: ButtonProps) {
   return (
     <button
-      type={type}
-      className={cn(
-        "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-surfaceMuted aria-pressed:text-ink [&_svg]:pointer-events-none",
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      )}
       {...props}
+      ref={ref}
+      type={type}
+      className={buttonVariants({ className, variant, size })}
+      data-slot="button"
+      data-size={size}
+      data-variant={variant}
     >
       {children}
     </button>
+  );
+}
+
+export function ButtonLink({ className, variant = "secondary", size = "md", children, ref, ...props }: ButtonLinkProps) {
+  return (
+    <Link
+      {...props}
+      ref={ref}
+      className={buttonVariants({ className, variant, size })}
+      data-slot="button-link"
+      data-size={size}
+      data-variant={variant}
+    >
+      {children}
+    </Link>
   );
 }

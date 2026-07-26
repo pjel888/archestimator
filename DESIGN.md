@@ -430,7 +430,8 @@ All app/workshop UI must be built from shared primitives and reusable product co
 
 Mandatory rules:
 
-- Do not create feature-local raw button class strings. Use and extend `src/components/ui/button.tsx` for buttons, icon buttons, toolbar buttons, ghost buttons, destructive buttons, and overlay/scrim buttons.
+- Do not create feature-local raw button class strings. Use `Button` for ordinary actions, `ButtonLink` for button-shaped navigation, `IconButton` for standalone icon-only actions, and `ToolbarIconButton` for tooltip-owning toolbar actions. They share `buttonVariants` from `src/components/ui/button.tsx`.
+- Keep tabs, switches, segmented controls, menu items, tree/grid selection rows, drag handles, and other specialized widgets on their semantic primitives. Every intentional raw control is fingerprinted in `quality/button-architecture-inventory.json`; `bun run lint:button-architecture` rejects unclassified or changed occurrences.
 - Do not create new one-off search inputs. Use and extend the shared search/input primitive, currently `src/components/ui/search-input.tsx` when present, or create it once under `src/components/ui/` and reuse it.
 - Do not create one-off icon-button patterns. Add a variant/size to the shared button primitive instead.
 - Do not create one-off dropdowns or native `<select>` controls in app/workshop surfaces. `src/components/ui/dropdown-select.tsx` (`DropdownSelect`) is the canonical value picker and `src/components/ui/dropdown-menu.tsx` (`DropdownMenu`) the canonical action menu — both ride the shared portal popup core (`dropdown-popup.tsx`). Tree right-click/kebab menus stay on `ActionMenu`.

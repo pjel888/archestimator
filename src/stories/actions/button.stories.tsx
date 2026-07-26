@@ -13,7 +13,7 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 
-import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
+import { Button, ButtonLink, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
 import { Note, StoryGrid, StoryHeader, StoryPanel, StorySection } from "../ui-library/story-canvas";
 
 const iconProps = { size: 12, weight: "regular" as const, "aria-hidden": true };
@@ -290,6 +290,20 @@ export const FullWidth: Story = {
         Review before sharing
         <ArrowRight {...iconProps} />
       </Button>
+    </StoryPanel>
+  ),
+};
+
+export const AsLink: Story = {
+  render: () => (
+    <StoryPanel className="flex flex-wrap items-center gap-1.5">
+      <ButtonLink href="/workshop/projects" variant="primary" size="md">
+        Open projects
+        <ArrowRight {...iconProps} />
+      </ButtonLink>
+      <ButtonLink href="/workshop/settings" variant="plain" size="sm" className="min-w-0">
+        Guidance settings
+      </ButtonLink>
     </StoryPanel>
   ),
 };
