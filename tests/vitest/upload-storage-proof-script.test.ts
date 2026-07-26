@@ -3,32 +3,24 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-describe("upload storage provider proof script", () => {
-  it("requires explicit provider proof mode and distinguishes skipped proof from denial proof", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-storage-denial-postgres.mjs"), "utf8");
+describe("Cloudflare private upload storage contract", () => {
+  it("binds uploads to private R2 operations and denies unsafe object keys", () => {
+    const wrangler = readFileSync(join(process.cwd(), "wrangler.jsonc"), "utf8");
+    const provider = readFileSync(join(process.cwd(), "src/lib/uploads/r2-storage-provider.ts"), "utf8");
+    const route = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
 
-    expect(script).toContain('readEnv("ARCH_UPLOAD_STORAGE_PROOF") !== "1"');
-    expect(script).toContain("ARCH_UPLOAD_STORAGE_PROOF_ENV_FILE");
-    expect(script).toContain("PROOF_ENV_FILE_NAMES");
-    expect(script).toContain('EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr"');
-    expect(script).toContain("provider-proof-skipped");
-    expect(script).toContain("provider-proof-refused");
-    expect(script).toContain("linked-provider");
-    expect(script).toContain("createUser");
-    expect(script).toContain("signInWithPassword");
-    expect(script).toContain("deleteUser");
-    expect(script).toContain("anon-direct-insert");
-    expect(script).toContain("authenticated-direct-insert");
-    expect(script).toContain("anon-direct-update");
-    expect(script).toContain("authenticated-direct-update");
-    expect(script).toContain("anon-direct-download");
-    expect(script).toContain("authenticated-direct-download");
-    expect(script).toContain("anon-direct-delete");
-    expect(script).toContain("authenticated-direct-delete");
-    expect(script).toContain("object-still-present-after-direct-delete-attempt");
-    expect(script).toContain("service-readback-missing-after-direct-delete-attempt");
-    expect(script).toContain("project-images");
-    expect(script).toContain("component-images");
-    expect(script).toContain("component-attachments");
+    expect(wrangler).toContain('"binding": "ARCH_UPLOADS_R2"');
+    expect(wrangler).toContain('"bucket_name": "archestimator-proof-uploads"');
+    expect(provider).toContain("assertSafeLogicalBucket(bucket)");
+    expect(provider).toContain("assertSafeStoragePath(path)");
+    expect(provider).toContain('path.startsWith("/")');
+    expect(provider).toContain('path.includes("//")');
+    expect(provider).toContain('segment === "." || segment === ".."');
+    expect(route).toContain("requireCurrentUserContext()");
+    expect(route).toContain("canManageAttachmentTarget");
+    expect(route).toContain("createRuntimeUploadStorageProvider");
+    expect(route).toContain('"Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL');
+    expect(route).not.toContain("getPublicUrl(");
+    expect(route).not.toContain("@supabase/supabase-js");
   });
 });

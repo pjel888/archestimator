@@ -402,11 +402,39 @@ describe("proposal xlsx export route", () => {
 
     expect(response.status).toBe(500);
     const body = await response.json();
-    expect(typeof body.error).toBe("string");
-    expect(body.error).not.toContain("ExcelJS exploded");
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ route: "proposal_export", outcome: "error" }),
-    );
+    expect(body).toEqual({ error: "Failed to generate the spreadsheet export. Please try again." });
+    expect(errorSpy).toHaveBeenCalledTimes(2);
+    const [routeLog, errorLog] = errorSpy.mock.calls.map(([line]) => JSON.parse(String(line)));
+    expect(routeLog).toMatchObject({
+      level: "error",
+      event: "proposal_export_route_event",
+      message: "ExcelJS exploded",
+      action: "export_proposal_workbook",
+      context: {
+        route: "/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+        estimate_id: "estimate-1",
+        outcome: "error",
+      },
+    });
+    expect(errorLog).toMatchObject({
+      level: "error",
+      event: "route_error",
+      message: "Something went wrong. Try again in a moment.",
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Something went wrong. Try again in a moment.",
+        cause: {
+          name: "Error",
+          message: "ExcelJS exploded",
+        },
+      },
+      context: {
+        estimate_id: "estimate-1",
+        invalid_identifier: false,
+        project_id: "project-1",
+        route_handler: "GET /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+      },
+    });
     errorSpy.mockRestore();
   });
 

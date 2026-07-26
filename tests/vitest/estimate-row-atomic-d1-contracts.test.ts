@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const rowIntents = readFileSync(join(process.cwd(), "src/lib/estimates/d1-intents/rows.ts"), "utf8");
 const estimateActions = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
-const rowMutationHook = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8");
+const rowMutationHook = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8").replace(/\r\n/g, "\n");
 
 function sourceBetween(source: string, start: string, end: string) {
   const startIndex = source.indexOf(start);

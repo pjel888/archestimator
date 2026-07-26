@@ -68,7 +68,9 @@ describe("Cloudflare support inbox Durable Object router", () => {
     expect(inboxSource).toContain("export class SupportInbox");
     expect(inboxSource).toContain('"/__cloudflare/support-inbox/"');
     expect(inboxSource).toContain("verifyRealtimeRoomToken");
-    expect(inboxSource).toContain('{ type: "message", message }');
+    expect(inboxSource).toContain("const invalidation = parsed ? parseInvalidation(parsed, conversationId) : null");
+    expect(inboxSource).toContain("this.broadcastMessage(invalidation)");
+    expect(inboxSource).toContain("sendJson(peer, message)");
     expect(inboxSource).toContain("fanout");
   });
 

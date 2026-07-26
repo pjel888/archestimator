@@ -6,7 +6,7 @@ const estimateSheetContent = readFileSync(join(process.cwd(), "src/components/wo
 const estimateRowHandlers = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts"), "utf8");
 const estimateRowMutations = readFileSync(join(process.cwd(), "src/hooks/use-estimate-row-mutations.ts"), "utf8");
 const proposalPreviewHook = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/use-estimate-proposal-preview.ts"), "utf8");
-const rowTable = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/row-table.tsx"), "utf8");
+const rowTable = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/row-table.tsx"), "utf8").replace(/\r\n/g, "\n");
 const rowCells = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/cells.tsx"), "utf8");
 const rowDropZones = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/drop-zones.tsx"), "utf8");
 const rowConstants = readFileSync(join(process.cwd(), "src/components/workshop/estimate-sheet/rows/constants.ts"), "utf8");
@@ -138,7 +138,7 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).not.toContain("flex min-w-0 flex-col items-center justify-center gap-0.5");
     expect(rowCells).toContain("const MATERIAL_UNIT_LABEL_CLASS =");
     expect(rowCells).toContain('data-estimate-material-unit-slot="true"');
-    expect(rowCells).toContain("grid-cols-[56px_minmax(0,1fr)_112px]");
+    expect(rowCells).toContain("grid-cols-[44px_minmax(0,1fr)] grid-rows-[minmax(44px,1fr)_16px]");
     expect(rowCells).toContain("!text-[10px] font-medium leading-3 text-tertiary");
     expect(rowCells).toContain("border-0 !bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink");
   });

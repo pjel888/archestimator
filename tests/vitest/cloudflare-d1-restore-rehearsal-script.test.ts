@@ -24,6 +24,7 @@ describe("Cloudflare D1 restore rehearsal", () => {
     expect(report.providerBacked).toBe(false);
     expect(report.commands.sqlExport).toContain("wrangler d1 export");
     expect(report.commands.sqlImport).toContain("wrangler d1 execute");
+    expect(report.commands.localSqliteRehearsal).toBe("bun run cf:d1-restore-rehearsal");
     expect(report.commands.timeTravelRestore).toContain("wrangler d1 time-travel restore");
     expect(report.localRehearsal.sourceRows).toBeGreaterThan(0);
     expect(report.localRehearsal.restoredRows).toBe(report.localRehearsal.sourceRows);
@@ -32,6 +33,28 @@ describe("Cloudflare D1 restore rehearsal", () => {
     expect(report.localRehearsal.tempArtifactsRemoved).toBe(true);
     expect(report.localRehearsal.checks.every((check) => check.ready)).toBe(true);
     expect(report.blockers).toEqual([]);
+  });
+
+  it("keeps local D1 proofs independent of a host sqlite3 executable", () => {
+    const helper = readFileSync("scripts/lib/local-sqlite-proof.ts", "utf8");
+    const proofScripts = [
+      "beta-feedback",
+      "closed-beta",
+      "collaboration-invitation",
+      "component-library",
+      "estimate-history",
+      "performance",
+      "restore-rehearsal",
+      "rpc-transaction-proof",
+    ];
+
+    expect(helper).toContain('requireRuntime("bun:sqlite")');
+    expect(helper).toContain('requireRuntime("node:sqlite")');
+    for (const name of proofScripts) {
+      const source = readFileSync(`scripts/generate-cloudflare-d1-${name}.ts`, "utf8");
+      expect(source, name).toContain("runLocalSqliteCli");
+      expect(source, name).not.toContain('spawnSync("sqlite3"');
+    }
   });
 
   it("writes markdown without leaking temp paths or secret-looking values", () => {

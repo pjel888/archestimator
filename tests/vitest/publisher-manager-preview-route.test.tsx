@@ -21,6 +21,8 @@ describe("publisher manager preview route", () => {
   it("renders recipient presentation in manager-read-only mode", () => {
     expect(route).toContain('previewMode="manager-read-only"');
     expect(workspace).toContain('previewMode?: "manager-read-only"');
-    expect(workspace).toContain("Recipient comments and response controls are disabled in manager preview.");
+    expect(workspace).toContain('Boolean(previewMode) && (view.id === "discussion" || view.id === "decision")');
+    expect(workspace).toContain("disabled={isDisabled}");
+    expect(workspace).toContain("{previewMode ? null : <StickyDecisionBar");
   });
 });

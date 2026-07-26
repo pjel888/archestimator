@@ -3,12 +3,13 @@ import { describe, expect, it } from "vitest";
 
 describe("shared link terminology", () => {
   it("uses Share language in publisher navigation and receiver view controls", () => {
-    const sidebar = readFileSync("src/components/sidebar/MainSidebar.tsx", "utf8");
+    const navigation = readFileSync("src/components/workshop/navigation/workshop-navigation.ts", "utf8");
     const publisherPage = readFileSync("src/app/workshop/publisher/page.tsx", "utf8");
     const tabs = readFileSync("src/components/share/SharePageTabs.tsx", "utf8");
 
-    expect(sidebar).toContain('label: "Share", icon: ShareNetwork');
-    expect(sidebar).not.toContain('label: "Publisher"');
+    expect(navigation).toContain('label: "Share"');
+    expect(navigation).toContain("icon: ShareNetwork");
+    expect(navigation).not.toContain('label: "Publisher"');
     expect(publisherPage).toContain('title="Client links"');
     expect(tabs).toContain('mode === "tree" ? "Summary" : "Details"');
     expect(tabs).not.toContain('"Scope outline"');

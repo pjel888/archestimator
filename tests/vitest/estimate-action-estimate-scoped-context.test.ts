@@ -63,7 +63,7 @@ describe("estimate actions use estimate-scoped project context", () => {
     expectEstimateScopedProjectContext(sourceBlock(
       estimateActions,
       "export async function insertEstimateTemplateIntoEstimate",
-      "/**\n * INS-1",
+      "export async function insertEstimateTemplateNodeIntoEstimate",
     ), [
       "requireCurrentUserContext()",
       "insertEstimateTemplateIntoEstimateWithHistory(database, currentUser, {",

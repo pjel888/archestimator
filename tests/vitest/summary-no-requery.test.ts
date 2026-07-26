@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(
   path.resolve(__dirname, "../../src/lib/repositories/workspace-repository.ts"),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 function summaryBody(fnSignature: string) {
   const start = source.indexOf(fnSignature);
@@ -27,7 +27,7 @@ describe("collaboration/publication summaries reuse the cached project (F7)", ()
   });
 
   it("publication summary uses the cached project lookup, not a raw projects re-query", () => {
-    const body = summaryBody("async function getProjectPublicationSummary(\n  projectId: string,");
+    const body = summaryBody("export const getProjectPublicationSummary = cache(async function getProjectPublicationSummary(\n  projectId: string,");
     expect(body).toContain("await getCurrentWorkspaceProject(projectId)");
     expect(body).not.toContain('.from("projects")');
   });

@@ -24,9 +24,10 @@ describe("AppError", () => {
       cause: new Error("duplicate key value violates unique constraint users_email_key"),
     });
 
+    expect(error).toMatchObject({ kind: "database", code: "DATABASE_ERROR" });
     expect(error.toClientJSON()).toEqual({
-      kind: "database",
-      code: "DATABASE_ERROR",
+      kind: "internal",
+      code: "INTERNAL_ERROR",
       message: "Could not load project data.",
     });
     expect(JSON.stringify(error.toClientJSON())).not.toMatch(/duplicate key|constraint|stack|cause/i);
@@ -98,8 +99,8 @@ describe("AppError", () => {
       "VALIDATION_FAILED",
       "NOT_FOUND",
       "CONFLICT",
-      "DATABASE_ERROR",
-      "UPSTREAM_ERROR",
+      "INTERNAL_ERROR",
+      "INTERNAL_ERROR",
       "RATE_LIMITED",
       "NETWORK_ERROR",
       "INTERNAL_ERROR",

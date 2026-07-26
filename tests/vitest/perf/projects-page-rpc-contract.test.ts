@@ -561,7 +561,7 @@ describe("workspace projects page data contract", () => {
     const { listCurrentWorkspaceProjects } = await import("@/lib/repositories/workspace-repository");
 
     await expect(listCurrentWorkspaceProjects()).rejects.toThrow(
-      "Cloudflare D1 binding ARCH_DB is required for workspace repository reads.",
+      "Something went wrong. Try again in a moment.",
     );
   });
 });

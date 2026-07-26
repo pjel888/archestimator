@@ -51,11 +51,21 @@ describe("MainSidebar proposals item", () => {
   });
 
   it("keeps the planned shortcut order in the source config", () => {
-    const source = readFileSync("src/components/sidebar/MainSidebar.tsx", "utf8");
+    const source = readFileSync("src/components/workshop/navigation/workshop-navigation.ts", "utf8");
+    const proposalsIndex = source.indexOf('id: "proposals"');
+    const publisherIndex = source.indexOf('id: "publisher"');
+    const proposalsBlock = source.slice(proposalsIndex, publisherIndex);
+    const publisherBlock = source.slice(publisherIndex, source.indexOf("\n  },", publisherIndex) + 5);
 
-    expect(source).toContain("Presentation");
-    expect(source).toContain("ShareNetwork");
-    expect(source).toContain('{ id: "proposals", href: "/workshop/proposals", label: "Proposals", icon: Presentation, shortcut: "⌘4" }');
-    expect(source).toContain('{ id: "publisher", href: "/workshop/publisher", label: "Share", icon: ShareNetwork, shortcut: "⌘5" }');
+    expect(proposalsIndex).toBeGreaterThanOrEqual(0);
+    expect(publisherIndex).toBeGreaterThan(proposalsIndex);
+    expect(proposalsBlock).toContain('href: "/workshop/proposals"');
+    expect(proposalsBlock).toContain('label: "Proposals"');
+    expect(proposalsBlock).toContain("icon: Presentation");
+    expect(proposalsBlock).toContain('shortcut: "⌘4"');
+    expect(publisherBlock).toContain('href: "/workshop/publisher"');
+    expect(publisherBlock).toContain('label: "Share"');
+    expect(publisherBlock).toContain("icon: ShareNetwork");
+    expect(publisherBlock).toContain('shortcut: "⌘5"');
   });
 });

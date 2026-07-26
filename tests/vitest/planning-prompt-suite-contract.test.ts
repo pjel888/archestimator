@@ -1,30 +1,34 @@
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { artifactSha256 } from "../../scripts/lib/plan-pack-validator.mjs";
+
 const root = process.cwd();
 const fixture = join(root, "tests/fixtures/planning-prompt-suite/valid-plan-pack");
 const promptSuite = join(root, ".ai/08_prompts/000_Planning Prompts");
 const tempRoots: string[] = [];
 const existingFocusedTestPath = "tests/vitest/account-membership-d1.test.ts";
-const existingFocusedTestHash = createHash("sha256")
-  .update(readFileSync(join(root, existingFocusedTestPath)))
-  .digest("hex");
+const existingFocusedTestHash = artifactSha256(
+  existingFocusedTestPath,
+  readFileSync(join(root, existingFocusedTestPath)),
+);
 const secondExistingFocusedTestPath = "tests/vitest/activity-composer.test.ts";
-const secondExistingFocusedTestHash = createHash("sha256")
-  .update(readFileSync(join(root, secondExistingFocusedTestPath)))
-  .digest("hex");
+const secondExistingFocusedTestHash = artifactSha256(
+  secondExistingFocusedTestPath,
+  readFileSync(join(root, secondExistingFocusedTestPath)),
+);
 const baselineHead = spawnSync("git", ["rev-parse", "HEAD"], {
   cwd: root,
   encoding: "utf8",
@@ -85,6 +89,17 @@ describe("frontier planning prompt contracts", () => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain("plan-pack validation passed");
+  });
+
+  it("treats portable text line endings as the same plan-pack artifact", () => {
+    const folder = copyFixture();
+    const readmePath = join(folder, "README.md");
+    const lfText = readFileSync(readmePath, "utf8").replace(/\r\n?/gu, "\n");
+    writeFileSync(readmePath, lfText.replace(/\n/gu, "\r\n"), "utf8");
+
+    const result = runValidator(folder);
+
+    expect(result.status, result.stderr).toBe(0);
   });
 
   it("requires every selected test to pass before its criterion passes", () => {
@@ -1129,11 +1144,12 @@ describe("frontier planning prompt contracts", () => {
 
   it("rejects artifact paths that escape through symlinks", () => {
     const folder = copyFixture();
-    const evidencePath = join(folder, "evidence/check.txt");
-    const outsidePath = join(dirname(folder), "outside.txt");
-    writeFileSync(outsidePath, "outside pack\n", "utf8");
-    rmSync(evidencePath);
-    symlinkSync(outsidePath, evidencePath);
+    const evidenceDir = join(folder, "evidence");
+    const outsideDir = join(dirname(folder), "outside");
+    mkdirSync(outsideDir);
+    writeFileSync(join(outsideDir, "check.txt"), "outside pack\n", "utf8");
+    rmSync(evidenceDir, { recursive: true });
+    symlinkSync(outsideDir, evidenceDir, process.platform === "win32" ? "junction" : "dir");
 
     const result = runValidator(folder);
 

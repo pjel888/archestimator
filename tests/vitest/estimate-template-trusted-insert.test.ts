@@ -396,7 +396,7 @@ describe("trusted estimate template insertion", () => {
     const database = new TemplateInsertDatabase("available");
     Object.defineProperty(database, "batch", { value: undefined });
 
-    await expect(insert(database)).rejects.toThrow("Estimate template insertion requires atomic D1 batch support.");
+    await expect(insert(database)).rejects.toThrow("Something went wrong. Try again in a moment.");
     expect(database.sourceReadCount).toBe(0);
     expect(database.batches).toEqual([]);
   });

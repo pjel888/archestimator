@@ -5,6 +5,7 @@ import { latestFunction, latestMigrationBySuffix, read } from "./security-findin
 describe("Codex component-library and tooling hardening contracts", () => {
   it("keeps library folder mutations limited to workspace editors", () => {
     const folderActions = read("src/lib/component-library/actions.ts");
+    const folderMutationD1 = read("src/lib/component-library/folder-mutation-d1.ts");
     const libraryFolderHardening = latestMigrationBySuffix("_harden_library_folder_editor_access.sql");
     const transactionalDeleteMigration = latestMigrationBySuffix("_transactional_library_folder_delete.sql");
     const latestReorderRpc = latestFunction("reorder_library_folders");
@@ -12,7 +13,8 @@ describe("Codex component-library and tooling hardening contracts", () => {
 
     expect(folderActions).toContain("assertCanManageLibraryFolders");
     expect(folderActions).toContain("isWorkspaceEditorInD1");
-    expect(folderActions).toContain("DELETE FROM library_folders");
+    expect(folderActions).toContain("deleteLibraryFolderInD1");
+    expect(folderMutationD1).toContain("DELETE FROM library_folders");
     expect(folderActions).not.toContain(".update({ parent_id: update.parentId, sort_order: update.sortOrder })");
     expect(folderActions).not.toContain('supabase.rpc("delete_library_folder"');
     expect(libraryFolderHardening).toContain('drop policy if exists "members can manage library folders" on public.library_folders');
@@ -89,21 +91,27 @@ describe("Codex component-library and tooling hardening contracts", () => {
     expect(serializedAgentConfig).not.toContain("code-review-graph update");
     expect(serializedAgentConfig).not.toContain("code-review-graph status");
     expect(serializedAgentConfig).not.toContain("impeccable/scripts/hook.mjs");
-    expect(claudeGuide).toContain("Hooks are disabled for speed");
-    expect(claudeGuide).toContain("bun run graph:reindex");
+    expect(codexHooks.description).toContain("hooks are disabled for speed");
+    expect(codexHooks.description).toContain("bun run lint:design");
+    expect(claudeGuide).toContain("Run `bun run supermemory:ensure`");
   });
 
   it("uses the repo-pinned Impeccable detector instead of mutable npx resolution", () => {
-    const packageJson = read("package.json");
-    const ciWorkflow = read(".github/workflows-disabled/ci.yml");
+    const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+    const activeQualityWorkflows = [
+      read(".github/workflows/quality.yml"),
+      read(".github/workflows/nightly-quality.yml"),
+      read(".github/workflows/release-evidence.yml"),
+    ].join("\n");
     const validationMatrix = read(".ai/00_system/VALIDATION_MATRIX.md");
     const floatingCommand = ["npx", "impeccable", "detect", "--strict"].join(" ");
 
-    expect(packageJson).toContain('"lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components"');
-    expect(packageJson).not.toContain(floatingCommand);
-    expect(ciWorkflow).toContain("run: bun run lint:design");
-    expect(ciWorkflow).not.toContain(floatingCommand);
-    expect(validationMatrix).toContain("bun run lint:design");
+    expect(packageJson.scripts["lint:design"]).toBe(
+      "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components/admin src/components/sidebar src/components/workshop",
+    );
+    expect(JSON.stringify(packageJson)).not.toContain(floatingCommand);
+    expect(activeQualityWorkflows).not.toContain(floatingCommand);
+    expect(validationMatrix).toContain("Type/static/lint");
     expect(validationMatrix).not.toContain(floatingCommand);
   });
 

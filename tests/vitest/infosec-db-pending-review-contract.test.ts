@@ -34,7 +34,7 @@ describe("InfoSec DB pending-review migration gate", () => {
     );
 
     for (const file of pendingSql) {
-      const repoRelative = relative(repoRoot, file);
+      const repoRelative = relative(repoRoot, file).replace(/\\/g, "/");
       expect(repoRelative).toMatch(/^supabase\/migrations-pending-review\//);
       expect(appliedMigrationNames.has(basename(file))).toBe(false);
     }

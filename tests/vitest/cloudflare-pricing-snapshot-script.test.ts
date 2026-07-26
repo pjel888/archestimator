@@ -9,6 +9,8 @@ import {
   writeMarkdown,
 } from "../../scripts/generate-cloudflare-pricing-snapshot";
 
+const archivedEvidenceRoot = ".ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence";
+
 const REQUIRED_PRODUCTS = [
   "workers",
   "workers-static-assets",
@@ -96,7 +98,7 @@ describe("Cloudflare official pricing snapshot generator", () => {
   it("keeps production decisions closed for the real source file", () => {
     const source = JSON.parse(
       readFileSync(
-        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-source.json",
+        `${archivedEvidenceRoot}/2026-06-30-cloudflare-official-pricing-source.json`,
         "utf8",
       ),
     );

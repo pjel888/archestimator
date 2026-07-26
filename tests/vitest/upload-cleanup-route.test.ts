@@ -108,6 +108,8 @@ beforeEach(() => {
 
 describe("internal upload cleanup route", () => {
   it("fails closed when the job secret is missing or incorrect", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "");
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
     const notConfigured = await GET(createRequest("cleanup-secret"));

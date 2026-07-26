@@ -34,7 +34,7 @@ describe("workshop dashboard query batching source contract", () => {
     expect(workspaceRepository).toContain(
       "const projects = mergeHomebaseRecords(recentProjects, sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt))",
     );
-    expect(workspaceRepository).toContain("const recentEstimates = sortByUpdatedAtDescThenIdDesc(recentEstimateRows)");
+    expect(workspaceRepository).toContain("const recentEstimates = sortByUpdatedAtDescThenIdDesc(accessibleRecentEstimateRows)");
     expect(workspaceRepository).toContain("const favoriteEstimates = sortByFavoriteCreatedAt(");
     expect(workspaceRepository).toContain("const estimates = mergeHomebaseRecords(recentEstimates, favoriteEstimates)");
     expect(workspaceRepository).not.toContain("const projects = mergeHomebaseRecords(favoriteProjects, recentProjects)");

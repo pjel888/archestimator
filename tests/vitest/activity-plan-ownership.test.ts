@@ -1,24 +1,38 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const activityPlan = path.join(root, ".ai/09_archive/store/2026-07-11-Activity-History-Mapping-complete/11_IMPLEMENTATION_PLAN.md");
-const migrationGeneration = path.join(root, ".ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json");
-const contributionReceipt = path.join(root, ".ai/99_scratch/release-integrity/activity-history-contribution.json");
+const activityArchive = path.join(root, ".ai/09_archive/store/2026-07-11-Activity-History-Mapping-complete");
+const activityPlan = path.join(activityArchive, "11_IMPLEMENTATION_PLAN.md");
+const activityPlanPack = path.join(activityArchive, "plan-pack.json");
+const integrationEvidence = path.join(activityArchive, "evidence/2026-07-11-unit-008-integration.md");
+const migrationGeneration = path.join(
+  root,
+  ".ai/09_archive/store/2026-07-10-plan-packs-user-closed-2026-07-12/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json",
+);
 
 type MigrationGeneration = {
-  migration_tail: { entries: Array<{ path: string }> };
-  allocations: Array<{ planned_path: string; status: string }>;
+  migration_tail: { entries: Array<{ path: string; sha256: string }> };
+  allocations: Array<{
+    planned_path: string;
+    status: string;
+    consumed_file_sha256?: string;
+  }>;
 };
 
-type ContributionReceipt = {
-  status: string;
-  ownership: { live_lease_overlap: boolean; consumed_migrations: string[] };
-  exact_changed_files: Record<string, string>;
-  verification: { integration_suite: { files: number; tests: number; failed: number } };
+type PlanPack = {
+  implementation_status: string;
+  release_status: string;
+  terminal_status: string;
+  artifacts: Array<{ path: string; sha256: string }>;
 };
+
+function sha256CanonicalText(content: string) {
+  return createHash("sha256").update(content.replace(/\r\n/g, "\n")).digest("hex");
+}
 
 describe("activity-history execution ownership", () => {
   it("preserves Activity's consumed migrations without an unclaimed allocation", async () => {
@@ -27,12 +41,18 @@ describe("activity-history execution ownership", () => {
       "migrations/0060_activity_history_indexes.sql",
       "migrations/0065_activity_history_lifecycle.sql",
     ];
-    const tailPaths = new Set(generation.migration_tail.entries.map((entry) => entry.path));
-    const allocationsByPath = new Map(generation.allocations.map((allocation) => [allocation.planned_path, allocation.status]));
+    const tailByPath = new Map(generation.migration_tail.entries.map((entry) => [entry.path, entry.sha256]));
+    const allocationsByPath = new Map(generation.allocations.map((allocation) => [allocation.planned_path, allocation]));
 
     for (const migration of activityMigrations) {
-      expect(tailPaths).toContain(migration);
-      expect(allocationsByPath.get(migration) ?? "CONSUMED").toBe("CONSUMED");
+      const migrationDigest = sha256CanonicalText(await readFile(path.join(root, migration), "utf8"));
+      expect(tailByPath.get(migration)).toBe(migrationDigest);
+
+      const allocation = allocationsByPath.get(migration);
+      if (allocation) {
+        expect(allocation.status).toBe("CONSUMED");
+        expect(allocation.consumed_file_sha256).toBe(migrationDigest);
+      }
     }
   });
 
@@ -44,17 +64,20 @@ describe("activity-history execution ownership", () => {
     expect(plan).toContain("rejects an undeclared path or overlapping live lease");
   });
 
-  it("records a collision-free scoped contribution with the complete integration result", async () => {
-    const receipt = JSON.parse(await readFile(contributionReceipt, "utf8")) as ContributionReceipt;
+  it("binds the archived integration result to the completed plan pack", async () => {
+    const evidence = await readFile(integrationEvidence, "utf8");
+    const planPack = JSON.parse(await readFile(activityPlanPack, "utf8")) as PlanPack;
+    const evidenceArtifact = planPack.artifacts.find(
+      (artifact) => artifact.path === "evidence/2026-07-11-unit-008-integration.md",
+    );
 
-    expect(receipt.status).toBe("PASS");
-    expect(receipt.ownership.live_lease_overlap).toBe(false);
-    expect(receipt.ownership.consumed_migrations).toEqual([
-      "migrations/0060_activity_history_indexes.sql",
-      "migrations/0065_activity_history_lifecycle.sql",
-    ]);
-    expect(receipt.exact_changed_files["migrations/0060_activity_history_indexes.sql"]).toMatch(/^[a-f0-9]{64}$/);
-    expect(receipt.exact_changed_files["migrations/0065_activity_history_lifecycle.sql"]).toMatch(/^[a-f0-9]{64}$/);
-    expect(receipt.verification.integration_suite).toEqual({ files: 33, tests: 402, failed: 0 });
+    expect(planPack.implementation_status).toBe("COMPLETE");
+    expect(planPack.release_status).toBe("READY");
+    expect(planPack.terminal_status).toBe("ACHIEVED");
+    expect(evidenceArtifact?.sha256).toBe(sha256CanonicalText(evidence));
+    expect(evidence).toContain("33 files / 402");
+    expect(evidence).toContain("tests / 0 failures");
+    expect(evidence).toContain("0060_activity_history_indexes.sql");
+    expect(evidence).toContain("0065_activity_history_lifecycle.sql");
   });
 });

@@ -15,7 +15,7 @@ const projectEstimatesTable = readFileSync("src/components/workshop/ProjectEstim
 const projectEstimatesTableUtils = readFileSync("src/components/workshop/project-estimates-table/utils.ts", "utf8");
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 const estimateTreeReadRepository = readFileSync("src/lib/estimates/estimate-tree-read-repository.ts", "utf8");
-const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
+const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8").replace(/\r\n/g, "\n");
 
 describe("live estimate node route", () => {
   it("loads project-scoped estimate tree data instead of sample project/tree data", () => {

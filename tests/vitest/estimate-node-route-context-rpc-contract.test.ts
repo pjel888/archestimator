@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+const estimateTreeReadSource = readFileSync("src/lib/estimates/estimate-tree-read-repository.ts", "utf8");
 const estimateActionsSource = readFileSync("src/lib/estimates/actions.ts", "utf8");
 const expressPromotionActionsSource = readFileSync("src/lib/estimates/express-promotion-actions.ts", "utf8");
 
@@ -70,11 +71,11 @@ describe("estimate_node_route_context repository fast path", () => {
   });
 
   it("preserves load-limit overfetch semantics for nodes and rows", () => {
-    expect(repositorySource).toContain("limit: maxNodeCount ? maxNodeCount + 1 : null");
-    expect(repositorySource).toContain("limit: maxRowItemCount ? maxRowItemCount + 1 : null");
-    expect(repositorySource).toContain("const limitedNodes = limitTreeRows(rawNodes, maxNodeCount)");
-    expect(repositorySource).toContain("const limitedRows = limitTreeRows(rawRows, maxRowItemCount)");
-    expect(repositorySource).toContain("didExceedNodeLimit: limitedNodes.didExceedLimit");
-    expect(repositorySource).toContain("didExceedRowItemLimit: limitedRows.didExceedLimit");
+    expect(estimateTreeReadSource).toContain("limit: maxNodeCount ? maxNodeCount + 1 : null");
+    expect(estimateTreeReadSource).toContain("limit: maxRowItemCount ? maxRowItemCount + 1 : null");
+    expect(estimateTreeReadSource).toContain("const limitedNodes = limitTreeRows(rawNodes, maxNodeCount)");
+    expect(estimateTreeReadSource).toContain("const limitedRows = limitTreeRows(rawRows, maxRowItemCount)");
+    expect(estimateTreeReadSource).toContain("didExceedNodeLimit: limitedNodes.didExceedLimit");
+    expect(estimateTreeReadSource).toContain("didExceedRowItemLimit: limitedRows.didExceedLimit");
   });
 });

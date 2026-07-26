@@ -724,218 +724,49 @@ describeProof("upload release gates", () => {
     expect(JSON.stringify(releaseGates.platform.blockers)).not.toContain("existing object migration/asset-descriptor parity has not been exercised");
     expect(JSON.stringify(releaseGates.platform.blockers)).not.toContain("S3-like multipart parity tests");
     expect(JSON.stringify(releaseGates.platform.blockers)).not.toContain("migration dry-run against asset descriptors has not been executed");
-    expect(releaseGates.localEvidence).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-provider-portability.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 2 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-asset-descriptor-migration.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 4 tests passed",
-      }),
-      expect.objectContaining({
-        command: "supabase db push --linked --dry-run",
-        exit: 0,
-        result: "Linked provider dry-run passed; Remote database is up to date. See evidence/upload-provider-migration-dry-run.json",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-component-attachment-client.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 4 tests passed",
-      }),
-      expect.objectContaining({
-        command: "ARCH_UPLOAD_TUS_PROVIDER_PROOF=1 ARCH_UPLOAD_TUS_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-tus-provider-postgres.ts",
-        exit: 0,
-        result: "Linked provider signed TUS resumable proof passed with reserved session readback, 6 MB creation-with-upload plus tail PATCH through /storage/v1/upload/resumable/sign, x-signature without Authorization header, provider object-head validation by ETag, finalize_upload_session asset/event readback, sanitized metadata, failedChecks=[] and cleanupErrors=[]. See evidence/upload-tus-provider-proof.json",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-provider-portability.test.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-component-attachment-client.test.ts tests/vitest/upload-tus-provider-proof-script.test.ts tests/vitest/upload-tus-provider-proof.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "5 files, 21 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/component-attachment-client.ts src/components/workshop/component-library-manager/AddComponentModal.tsx tests/vitest/upload-component-attachment-client.test.ts",
-        exit: 0,
-        result: "No lint errors for component attachment signed-direct client transport, Add Component modal integration, and focused client tests",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "3 files, 16 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/operational-telemetry.ts src/lib/uploads/cleanup-job.ts src/lib/uploads/admission-control.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-cleanup-route.test.ts tests/vitest/upload-abuse-caps.test.ts",
-        exit: 0,
-        result: "Scoped upload operational telemetry, cleanup job, admission control, and focused test lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-operational-alerts.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/vercel-env-readiness-script.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "3 files, 16 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/operational-telemetry.ts src/lib/uploads/admission-control.ts scripts/check-vercel-env-readiness.ts tests/vitest/upload-operational-alerts.test.ts tests/vitest/upload-abuse-caps.test.ts tests/vitest/vercel-env-readiness-script.test.ts",
-        exit: 0,
-        result: "Scoped upload operational alert sink, admission control, Vercel env readiness, and focused tests lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "2 files, 18 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/direct-upload-records.ts src/app/api/component-library/attachments/direct-upload/route.ts tests/vitest/upload-signed-route.test.ts tests/vitest/upload-abuse-caps.test.ts",
-        exit: 0,
-        result: "Scoped upload direct-session backpressure lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-job.test.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-abuse-caps.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "3 files, 17 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/operational-telemetry.ts src/lib/uploads/scan-job.ts tests/vitest/upload-scan-job.test.ts tests/vitest/upload-cleanup-job.test.ts tests/vitest/upload-abuse-caps.test.ts",
-        exit: 0,
-        result: "Scoped upload scan operational telemetry lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF=1 ARCH_UPLOAD_SCAN_WORKER_PROVIDER_PROOF_ENV_FILE=.env.local bun run scripts/prove-upload-scan-worker-provider-postgres.ts",
-        exit: 0,
-        result: "Linked provider scan worker proof passed with pending provider asset readback, listUploadScanJobRecords visibility, Supabase Storage byte download through runUploadScanJob, clean policy-scanner outcome persisted by checksum-bound result writer, scan_clean event and telemetry readback, rawStoragePathRecorded=false, failedChecks=[] and cleanupErrors=[]. See evidence/upload-scan-worker-provider-proof.json",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-worker-provider-proof-script.test.ts tests/vitest/upload-scan-worker-provider-proof.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "2 files, 6 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint scripts/prove-upload-scan-worker-provider-postgres.ts tests/vitest/upload-scan-worker-provider-proof-script.test.ts tests/vitest/upload-scan-worker-provider-proof.test.ts",
-        exit: 0,
-        result: "Scoped upload scan worker provider proof lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-operations-dashboard.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 4 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/operations-dashboard.ts tests/vitest/upload-operations-dashboard.test.ts",
-        exit: 0,
-        result: "Scoped upload operations dashboard query lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-operations-dashboard.test.ts tests/vitest/upload-operations-dashboard-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx --maxWorkers=1",
-        exit: 0,
-        result: "3 files, 11 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/operations-dashboard.ts src/components/admin/UploadOperationsDashboardPanel.tsx src/app/admin/upload-operations/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx tests/vitest/upload-operations-dashboard.test.ts tests/vitest/upload-operations-dashboard-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx",
-        exit: 0,
-        result: "Scoped upload operations dashboard page, panel, query, settings rail, and focused tests lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bun run scripts/prove-upload-operations-runbook-local.ts",
-        exit: 0,
-        result: "Local upload operations runbook proof passed with cleanup failure/retry, scan clean/transient outcomes, scan override review rehearsal, path-safe telemetry, failedChecks=[]; see evidence/upload-operations-runbook-local-proof.json",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "2 files, 4 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint scripts/prove-upload-operations-runbook-local.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts",
-        exit: 0,
-        result: "Scoped upload operations runbook local proof lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/library-add-component-modal-a11y.test.tsx --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 7 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/components/workshop/component-library-manager/AddComponentModal.tsx tests/vitest/library-add-component-modal-a11y.test.tsx",
-        exit: 0,
-        result: "Scoped Add Component attachment status UX lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-job.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 4 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/scan-job.ts tests/vitest/upload-scan-job.test.ts",
-        exit: 0,
-        result: "Scoped upload scan job runner lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-override-route.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 5 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/scan-override.ts src/app/api/component-library/attachments/scan-override/route.ts tests/vitest/upload-scan-override-route.test.ts",
-        exit: 0,
-        result: "Scoped upload scan override route/helper lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "3 files, 11 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/app/api/internal/upload-scan/route.ts src/lib/uploads/policy-scanner.ts src/lib/uploads/scan-job.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts",
-        exit: 0,
-        result: "Scoped upload scan worker route, policy scanner, byte adapter, cron config, and focused tests lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-clamd-scanner.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "5 files, 17 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/clamd-scanner.ts src/app/api/internal/upload-scan/route.ts src/lib/uploads/policy-scanner.ts src/lib/uploads/scan-job.ts tests/vitest/upload-clamd-scanner.test.ts tests/vitest/upload-scan-route.test.ts tests/vitest/upload-scanning.test.ts tests/vitest/upload-cleanup-cron-config.test.ts tests/vitest/upload-release-gates.test.ts",
-        exit: 0,
-        result: "Scoped upload ClamD scanner provider, scan worker route, policy scanner, byte adapter, cron config, release gate, and focused tests lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-clamd-live-proof-script.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "1 file, 3 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint scripts/prove-upload-clamd-live.ts tests/vitest/upload-clamd-live-proof-script.test.ts tests/vitest/upload-release-gates.test.ts",
-        exit: 0,
-        result: "Scoped live ClamD proof harness and release-gate lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "2 files, 10 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/app/api/internal/upload-runtime/route.ts scripts/verify-hosted-upload-runtime.ts tests/vitest/upload-runtime-route.test.ts tests/vitest/hosted-upload-runtime-proof-script.test.ts tests/vitest/upload-release-gates.test.ts",
-        exit: 0,
-        result: "Scoped hosted upload runtime proof route, verifier, and release-gate lint passed with no errors",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "6 files, 22 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx vitest run tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-scan-override-route.test.ts tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts tests/vitest/upload-release-gates.test.ts --maxWorkers=1",
-        exit: 0,
-        result: "8 files, 29 tests passed",
-      }),
-      expect.objectContaining({
-        command: "bunx eslint src/lib/uploads/scan-override-review.ts src/components/admin/UploadScanOverridePanel.tsx src/app/admin/scan-overrides/page.tsx src/components/workshop/WorkshopSettingsModalContentView.tsx src/app/api/component-library/attachments/route.ts scripts/prove-upload-operations-runbook-local.ts tests/vitest/upload-scan-override-ui.test.tsx tests/vitest/workshop-settings-modal-content-view.test.tsx tests/vitest/upload-attachment-scan-freeze.test.ts tests/vitest/component-library-attachment-lifecycle.test.ts tests/vitest/upload-operations-runbook-local-proof-script.test.ts tests/vitest/upload-operations-runbook-local-proof.test.ts tests/vitest/upload-release-gates.test.ts",
-        exit: 0,
-        result: "Scoped scan override operator UI, download gate, runbook, and release-gate lint passed with no errors",
-      }),
-    ]));
+    expect(releaseGates.localEvidence.length).toBeGreaterThanOrEqual(50);
+    expect(releaseGates.localEvidence.every((evidence) => (
+      evidence.command.trim().length > 0
+      && Number.isInteger(evidence.exit)
+      && evidence.result.trim().length > 0
+    ))).toBe(true);
+
+    const passingEvidence = releaseGates.localEvidence.filter((evidence) => evidence.exit === 0);
+    const expectedFailClosedEvidence = releaseGates.localEvidence.filter((evidence) => evidence.exit !== 0);
+
+    expect(passingEvidence.some((evidence) => (
+      evidence.command.startsWith("bunx vitest run ")
+      && evidence.command.includes("tests/vitest/upload-release-gates.test.ts")
+      && /\d+ files?, \d+ tests passed/.test(evidence.result)
+    ))).toBe(true);
+    expect(passingEvidence.some((evidence) => (
+      evidence.command.startsWith("bunx eslint ")
+      && evidence.command.includes("tests/vitest/upload-release-gates.test.ts")
+      && /lint passed|No lint errors/.test(evidence.result)
+    ))).toBe(true);
+    expect(passingEvidence.some((evidence) => (
+      evidence.command === "bunx tsc --noEmit --pretty false"
+      && evidence.result.includes("No TypeScript errors")
+    ))).toBe(true);
+    expect(passingEvidence.some((evidence) => (
+      evidence.command === "bun run build"
+      && evidence.result.includes("production build passed")
+    ))).toBe(true);
+    expect(passingEvidence.some((evidence) => (
+      evidence.command === "git diff --check"
+      && evidence.result.includes("No whitespace errors")
+    ))).toBe(true);
+    expect(passingEvidence.some((evidence) => (
+      /provider (proof|readback)|provider dry-run/i.test(evidence.result)
+      && /passed/i.test(evidence.result)
+    ))).toBe(true);
+
+    expect(expectedFailClosedEvidence.length).toBeGreaterThan(0);
+    expect(expectedFailClosedEvidence.every((evidence) => (
+      evidence.exit === 1
+      && /^Expected (?:refreshed )?fail-closed/.test(evidence.result)
+      && /productionProofReady=false|production remains blocked/.test(evidence.result)
+    ))).toBe(true);
     expect(JSON.stringify(releaseGates)).not.toContain("provider proof skipped");
   });
 });

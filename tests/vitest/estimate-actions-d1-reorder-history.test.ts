@@ -904,7 +904,7 @@ describe("typed estimate node and tab intents", () => {
       estimateId: ESTIMATE_ID,
       sourceTabId: "tab-a",
       correlationId: "no-atomic-tab-copy",
-    })).rejects.toThrow("Estimate tab duplication requires atomic D1 batch support.");
+    })).rejects.toThrow("Something went wrong. Try again in a moment.");
     expect(database.firstStatements).toEqual([]);
     expect(database.batchStatements).toEqual([]);
   });
@@ -2445,7 +2445,7 @@ describe("typed estimate node and tab intents", () => {
     ));
 
     expect(result.data).toBeNull();
-    expect(result.error?.message).toBe("Cloudflare D1 estimate action batch failed.");
+    expect(result.error?.message).toBe("Something went wrong. Try again in a moment.");
     expect(database.tabs.size).toBe(2);
     expect(database.nodes.size).toBe(5);
     expect(database.rowItems.size).toBe(3);

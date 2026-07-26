@@ -159,13 +159,15 @@ describe("durable rate-limit D1 operations", () => {
 
     expect(calls).toHaveLength(1);
     expect(calls[0].sql).toContain(
-      "INSERT INTO security_rate_limit_events (id, scope, key_hash, metadata_json, occurred_at, expires_at)",
+      "INSERT OR IGNORE INTO security_rate_limit_events (",
     );
-    expect(calls[0].sql).toContain("VALUES (?, ?, ?, ?, ?, ?)");
+    expect(calls[0].sql).toContain("id, scope, key_hash, dedupe_hash, metadata_json, occurred_at, expires_at");
+    expect(calls[0].sql).toContain("VALUES (?, ?, ?, ?, ?, ?, ?)");
     expect(calls[0].values).toEqual([
       expect.any(String),
       "project_publication_password",
       "key-hash",
+      null,
       JSON.stringify({ route: "password", success: false }),
       "2026-07-16T08:00:00.000Z",
       "2026-07-16T10:00:00.000Z",
@@ -209,10 +211,10 @@ describe("durable rate-limit D1 operations", () => {
     });
   });
 
-  it("fails with the frozen ARCH_DB binding error", async () => {
+  it("fails with the sanitized storage binding error", async () => {
     cloudflareMocks.getCloudflareD1Database.mockResolvedValue(null);
     await expect(deleteDurableRateLimitEvents("scope-a", "key-hash")).rejects.toThrow(
-      "Cloudflare D1 ARCH_DB binding is required for publication shared links.",
+      "Something went wrong. Try again in a moment.",
     );
   });
 });

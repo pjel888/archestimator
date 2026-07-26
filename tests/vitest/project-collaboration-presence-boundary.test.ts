@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const repository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+const repository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8").replace(/\r\n/g, "\n");
 
 describe("project collaboration presence boundary", () => {
   it("keeps the authorization summary offline until the realtime overlay reports presence", () => {

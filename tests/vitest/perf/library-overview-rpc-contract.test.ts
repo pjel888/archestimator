@@ -397,11 +397,42 @@ class FakeComponentLibraryD1Database {
     if (sql.includes("FROM estimate_templates")) {
       return this.filterBySelectedIds(this.payload.templates, values, "id", sql) as T[];
     }
+    if (sql.includes("FROM estimate_template_nodes") && sql.includes("group_count")) {
+      const selectedTemplateIds = new Set(values.map(String));
+      return this.payload.templates
+        .map((template) => String(template.id))
+        .filter((templateId) => selectedTemplateIds.has(templateId))
+        .map((templateId) => {
+          const nodes = this.payload.nodes.filter((node) => node.template_id === templateId);
+          return {
+            template_id: templateId,
+            group_count: nodes.filter((node) => node.kind === "group").length,
+            area_count: nodes.filter((node) => node.kind === "area").length,
+          };
+        }) as T[];
+    }
     if (sql.includes("FROM estimate_template_nodes")) {
       return this.filterBySelectedIds(this.payload.nodes, values, "template_id", sql) as T[];
     }
     if (sql.includes("FROM estimate_template_row_items") && sql.includes("source_library_item_id IN")) {
       return this.filterBySelectedIds(this.payload.templateRefRows, values, "source_library_item_id", sql) as T[];
+    }
+    if (sql.includes("FROM estimate_template_row_items") && sql.includes("row_count")) {
+      const selectedTemplateIds = new Set(values.map(String));
+      return this.payload.templates
+        .map((template) => String(template.id))
+        .filter((templateId) => selectedTemplateIds.has(templateId))
+        .map((templateId) => {
+          const rowItems = this.payload.rowItems.filter((row) => row.template_id === templateId);
+          const total = rowItems.reduce((sum, row) => {
+            const quantity = Number(row.quantity ?? 0);
+            const unitCost = Number(row.unit_cost ?? 0);
+            const baseCost = quantity * unitCost;
+            const adjustment = Number(row.adjustment_percentage ?? row.contingency_percentage ?? 0);
+            return sum + baseCost + Number(row.misc_cost ?? 0) + (baseCost * adjustment / 100);
+          }, 0);
+          return { template_id: templateId, row_count: rowItems.length, total };
+        }) as T[];
     }
     if (sql.includes("FROM estimate_template_row_items")) {
       return this.filterBySelectedIds(this.payload.rowItems, values, "template_id", sql) as T[];
@@ -542,7 +573,7 @@ describe("component library Cloudflare D1 app-path contract", () => {
     const { getLibraryOverview } = await import("@/lib/repositories/component-library-repository");
 
     await expect(getLibraryOverview()).rejects.toThrow(
-      "Cloudflare D1 binding ARCH_DB is required for component library reads.",
+      "Something went wrong. Try again in a moment.",
     );
   });
 
@@ -656,22 +687,13 @@ describe("component library browse and template D1 contract", () => {
     expect(seed.userId).toBe("user-1");
     expect(seed.templates[0]).toMatchObject({
       id: TEMPLATE_ID,
-      nodes: [
-        {
-          id: GROUP_NODE_ID,
-          children: [
-            {
-              id: AREA_NODE_ID,
-              estimateRowItems: [
-                {
-                  id: ROW_ID,
-                  totalItemCosts: 215,
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      nodes: [],
+      summary: {
+        groupCount: 1,
+        areaCount: 1,
+        rowCount: 1,
+        total: 215,
+      },
     });
   });
 

@@ -9,6 +9,8 @@ import {
   writeMarkdown,
 } from "../../scripts/check-cloudflare-provider-readiness";
 
+const archivedEvidenceRoot = ".ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence";
+
 const CURRENT_SANITIZED_EVIDENCE = {
   capturedAt: "2026-06-29T14:04:58.000Z",
   account: {
@@ -214,7 +216,7 @@ describe("Cloudflare provider readiness checker", () => {
   it("matches the checked-in sanitized provider evidence source", () => {
     const evidence = JSON.parse(
       readFileSync(
-        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
+        `${archivedEvidenceRoot}/2026-06-30-cloudflare-provider-readiness-source.json`,
         "utf8",
       ),
     );

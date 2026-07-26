@@ -3,16 +3,16 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const repositorySource = readFileSync(
-  join(process.cwd(), "src/lib/repositories/workspace-repository.ts"),
+const estimateTreeReadRepositorySource = readFileSync(
+  join(process.cwd(), "src/lib/estimates/estimate-tree-read-repository.ts"),
   "utf8",
 );
 
 function sourceForPrivateFunction(name: string) {
-  const start = repositorySource.indexOf(`async function ${name}`);
-  const next = repositorySource.indexOf("\nasync function ", start + 1);
-  if (start < 0 || next < 0) throw new Error(`Could not locate ${name} in workspace repository.`);
-  return repositorySource.slice(start, next);
+  const start = estimateTreeReadRepositorySource.indexOf(`async function ${name}`);
+  const next = estimateTreeReadRepositorySource.indexOf("\nasync function ", start + 1);
+  if (start < 0 || next < 0) throw new Error(`Could not locate ${name} in estimate tree read repository.`);
+  return estimateTreeReadRepositorySource.slice(start, next);
 }
 
 describe("estimate sheet D1 row-load bind budget", () => {
@@ -21,7 +21,7 @@ describe("estimate sheet D1 row-load bind budget", () => {
     const nodeIds = Array.from({ length: 1_500 }, (_, index) => `node-${index}`);
 
     expect(nodeIds).toHaveLength(1_500);
-    expect(repositorySource).toContain("const ESTIMATE_TREE_ROW_NODE_BATCH_SIZE = 64;");
+    expect(estimateTreeReadRepositorySource).toContain("const ESTIMATE_TREE_ROW_NODE_BATCH_SIZE = 64;");
     expect(source).toContain("options.nodeIds!.slice(index * ESTIMATE_TREE_ROW_NODE_BATCH_SIZE");
     expect(source).toContain("node_id IN (${placeholders(nodeIds)})");
     expect(source).toContain("values.push(...nodeIds)");

@@ -290,11 +290,13 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
   it("sanitizes estimate row source snapshot image URLs before persistence and legacy rendering", () => {
     const estimateActions = read("src/lib/estimates/actions.ts");
+    const estimateRowIntents = read("src/lib/estimates/d1-intents/rows.ts");
     const estimateTreeReadRepository = read("src/lib/estimates/estimate-tree-read-repository.ts");
     const estimateActivityHistory = read("src/components/workshop/estimate-sheet/activity-history.tsx");
 
     expect(estimateActions).toContain("return sanitizeEstimateRowSourceSnapshot({");
-    expect(estimateActions).toContain("source_snapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot)");
+    expect(estimateActions).toContain("sourceSnapshotPatch = sanitizeEstimateRowSourceSnapshotForPersistence(mergedSourceSnapshot)");
+    expect(estimateRowIntents).toContain("JSON.stringify(sanitizeEstimateRowSourceSnapshot(row.source_snapshot))");
     expect(estimateTreeReadRepository).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
     expect(estimateActivityHistory).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
   });

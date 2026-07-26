@@ -113,6 +113,8 @@ beforeEach(() => {
 
 describe("internal upload scan route", () => {
   it("fails closed when the job secret is missing or incorrect", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("UPLOAD_SCAN_JOB_SECRET", "");
     const { GET } = await import("@/app/api/internal/upload-scan/route");
 
     const notConfigured = await GET(createRequest("scan-secret"));

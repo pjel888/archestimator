@@ -135,7 +135,7 @@ describe("AI package-builder security contract", () => {
     expect(readContextSource).not.toContain("metadata, created_at");
     expect(readContextSource).toContain("WHERE workspace_id = ?");
     expect(readToolsSource).toContain("priceOptionRowsRead = priceOptionRows.length");
-    expect(readToolsSource).toContain("rowCount: itemRows.length + priceOptionRowsRead + categoryRowsRead + folderRowsRead");
+    expect(readToolsSource).toContain("rowCount: itemRows.length + priceOptionRowsRead + folderRowsRead");
     expect(readToolsSource).toContain("current_version_number");
     expect(readToolsSource).toContain("priceOptionUpdatedAt: priceOption?.updated_at ?? null");
     expect(readToolsSource).not.toContain("priceOptionId: priceOption?.id ?? item.active_price_option_id");

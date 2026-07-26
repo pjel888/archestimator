@@ -9,6 +9,8 @@ import {
   writeMarkdown,
 } from "../../scripts/generate-cloudflare-cost-performance-workbook";
 
+const archivedEvidenceRoot = ".ai/09_archive/2026-06-29-Cloudflare-Migration-Codex/evidence";
+
 const INVENTORY = {
   counts: {
     appRoutes: 70,
@@ -723,19 +725,19 @@ describe("Cloudflare cost/performance workbook generator", () => {
     const workbook = buildCloudflareCostPerformanceWorkbook({
       inventory: JSON.parse(
         readFileSync(
-          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
+          `${archivedEvidenceRoot}/2026-06-30-cloudflare-migration-inventory.json`,
           "utf8",
         ),
       ),
       workerPreviewRouteProbe: JSON.parse(
         readFileSync(
-          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+          `${archivedEvidenceRoot}/2026-06-29-cloudflare-worker-preview-route-probe.json`,
           "utf8",
         ),
       ),
       cloudflarePricingSnapshot: JSON.parse(
         readFileSync(
-          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json",
+          `${archivedEvidenceRoot}/2026-06-30-cloudflare-official-pricing-snapshot.json`,
           "utf8",
         ),
       ),
@@ -748,7 +750,7 @@ describe("Cloudflare cost/performance workbook generator", () => {
   });
 
   it("accepts the July 1 pre-launch cost decision once usage inputs are projection-grade and provider runtime proof passes", () => {
-    const evidenceRoot = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
+    const evidenceRoot = archivedEvidenceRoot;
     const hostedPerformance = JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-hosted-performance.json`, "utf8"));
     Object.assign(hostedPerformance, {
       p95BudgetReady: false,

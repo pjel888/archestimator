@@ -308,7 +308,7 @@ describe("AI audit event builder", () => {
       routeContext: {},
       status: "started",
       provider: "deepseek",
-    })).rejects.toThrow("AI Ask audit D1 database is not configured.");
+    })).rejects.toThrow("Something went wrong. Try again in a moment.");
   });
 
   it("records package Apply authorization rows through D1", async () => {
@@ -366,10 +366,10 @@ describe("AI audit event builder", () => {
     if (!actionRun) throw new Error("Expected authenticated package action run.");
 
     await expect(recordAiPackageApplyAuthorization(actionRun)).rejects.toThrow(
-      "AI package Apply authorization audit D1 database is not configured.",
+      "Something went wrong. Try again in a moment.",
     );
     await expect(recordAiPackageApplyAuthorization(null)).rejects.toThrow(
-      "Package Apply authorization requires a Cloudflare D1 workspace audit context.",
+      "Something went wrong. Try again in a moment.",
     );
   });
 

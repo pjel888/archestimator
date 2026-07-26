@@ -31,15 +31,11 @@ describe("problemDetailsResponse", () => {
     expect(response.headers.get("Content-Type")).toBe("application/problem+json");
     expect(await response.json()).toEqual({
       type: "urn:archestimator:problem:AUTH_PERMISSION_DENIED",
-      title: "AuthPermissionDeniedError",
+      title: "Permission denied",
       status: 403,
       detail: "You do not have permission to do that.",
       code: "AUTH_PERMISSION_DENIED",
-      instance: undefined,
       requestId: "req-test-1",
-      correlationId: undefined,
-      retryAfter: undefined,
-      fieldErrors: undefined,
     });
   });
 
@@ -105,8 +101,26 @@ describe("problemDetailsResponse", () => {
 
     expect(response.status).toBe(500);
     const body = (await response.json()) as { detail?: string; code?: string };
-    expect(body.code).toBe("INTERNAL_ERROR");
-    expect(body.detail).not.toContain("password");
+    expect(body).toEqual({
+      type: "urn:archestimator:problem:INTERNAL_ERROR",
+      title: "Request failed",
+      status: 500,
+      detail: "Something went wrong. Try again in a moment.",
+      code: "INTERNAL_ERROR",
+      requestId: expect.any(String),
+    });
+    expect(records[0]).toMatchObject({
+      event: "route_problem_details",
+      message: "Something went wrong. Try again in a moment.",
+      error: {
+        code: "INTERNAL_ERROR",
+        cause: {
+          name: "Error",
+          message: "database password [REDACTED]",
+        },
+      },
+      tainted_fields: ["error.cause.message"],
+    });
     expect(JSON.stringify(records[0])).not.toContain("password leaked");
   });
 

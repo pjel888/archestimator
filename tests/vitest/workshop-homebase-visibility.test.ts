@@ -20,7 +20,7 @@ describe("workshop homebase collaboration visibility contract", () => {
   });
 
   it("feeds received pending invites into the global projects sidebar badge", () => {
-    expect(workshopPage).toContain("sidebarStatus");
-    expect(workshopPage).toContain("projectsBadgeCount: homebase.receivedPendingInviteCount");
+    expect(workshopPage).toContain("WorkshopSidebarStatusSync");
+    expect(workshopPage).toContain("<WorkshopSidebarStatusSync status={{ projectsBadgeCount: homebase.receivedPendingInviteCount }} />");
   });
 });

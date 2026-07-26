@@ -112,7 +112,7 @@ describe("activity durable history writes", () => {
     await expect(runMutationWithHistory(database, [{
       sql: "UPDATE estimate_row_items SET material = ? WHERE id = ?",
       values: ["Updated", "row-a"],
-    }], input)).rejects.toThrow("batch failed");
+    }], input)).rejects.toThrow("Something went wrong. Try again in a moment.");
 
     expect(database.batchStatements).toHaveLength(3);
     expect(database.directRunCount).toBe(0);

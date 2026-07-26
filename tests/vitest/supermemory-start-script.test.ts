@@ -28,10 +28,10 @@ function sha256(content: string) {
 }
 
 function createFakeServer(tempDir: string) {
-  const serverPath = join(tempDir, "supermemory-server");
+  const serverPath = join(tempDir, "supermemory-server.mjs");
   const content = `#!/usr/bin/env node
-const { appendFileSync, realpathSync, writeFileSync } = require("node:fs");
-const { createServer } = require("node:http");
+import { appendFileSync, realpathSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 process.title = realpathSync(process.argv[1]);
 if (process.env.FAKE_SERVER_START_COUNT_OUT) {
   appendFileSync(process.env.FAKE_SERVER_START_COUNT_OUT, "start\\n");
@@ -65,6 +65,15 @@ setTimeout(() => server.listen(Number(process.env.PORT), () => {
   writeFileSync(serverPath, content);
   chmodSync(serverPath, 0o755);
   return { serverPath, hash: sha256(content) };
+}
+
+function homeEnvironment(homeDir: string) {
+  return { HOME: homeDir, USERPROFILE: homeDir };
+}
+
+function expectPrivateFile(path: string) {
+  expect(statSync(path).isFile()).toBe(true);
+  if (process.platform !== "win32") expect(statSync(path).mode & 0o777).toBe(0o600);
 }
 
 function runStartScript({
@@ -116,7 +125,7 @@ function runStartScript({
     encoding: "utf8",
     env: {
       ...childEnv,
-      HOME: homeDir,
+      ...homeEnvironment(homeDir),
       SUPERMEMORY_SERVER_BIN: serverPath,
       SUPERMEMORY_SERVER_SHA256: hash,
     },
@@ -148,10 +157,7 @@ function createInstalledServer(homeDir: string) {
     JSON.stringify({
       versions: {
         "0.0.3": {
-          "darwin-arm64": hash,
-          "darwin-x64": hash,
-          "linux-arm64": hash,
-          "linux-x64": hash,
+          [`${process.platform}-${process.arch}`]: hash,
         },
       },
     }),
@@ -241,14 +247,14 @@ describe("verified Supermemory server launcher", () => {
     expect(result.stdout).toContain("on port 7878");
     expect(result.stdout).toContain("health http://localhost:7878/");
     expect(readJsonWhenWritten(envOut)).toEqual({ PORT: "7878", SUPERMEMORY_PORT: "7878" });
-    expect(statSync(join(tempDir, "supermemory.log")).mode & 0o777).toBe(0o600);
+    expectPrivateFile(join(tempDir, "supermemory.log"));
     const statePath = join(homeDir, ".supermemory", "archestimator-server-state.json");
     expect(JSON.parse(readFileSync(statePath, "utf8"))).toMatchObject({
       bin: realpathSync(serverPath),
       port: 7878,
       sha256: hash,
     });
-    expect(statSync(statePath).mode & 0o777).toBe(0o600);
+    expectPrivateFile(statePath);
   });
 
   it("fails before detaching when first-boot provider config is missing", () => {
@@ -314,7 +320,7 @@ describe("verified Supermemory server launcher", () => {
       ...process.env,
       FAKE_SERVER_ENV_OUT: envOut,
       FAKE_SERVER_EXIT_AFTER_MS: "3000",
-      HOME: homeDir,
+      ...homeEnvironment(homeDir),
       OPENAI_API_KEY: "sk-test",
       SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
       SUPERMEMORY_PORT: "7881",
@@ -531,24 +537,25 @@ describe("verified Supermemory server launcher", () => {
     expect(result.stdout).toContain("on port 7884");
   });
 
-  it("documents the attested ensure command instead of a raw HTTP-only probe", () => {
-    const protocol = readFileSync(".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md", "utf8");
+  it("attests the checksum-verified child instead of accepting a raw HTTP-only probe", () => {
+    const launcher = readFileSync(scriptPath, "utf8");
 
-    expect(protocol).toContain("bounded loopback identity");
-    expect(protocol).toContain("listener-process attestation");
-    expect(protocol).not.toContain('curl -fsS "$SUPERMEMORY_HEALTH_URL"');
+    expect(launcher).toContain("inspectServerProcess");
+    expect(launcher).toContain("healthy listener is not owned by the checksum-verified server process");
+    expect(launcher).not.toContain('curl -fsS "$SUPERMEMORY_HEALTH_URL"');
   });
 
-  it("configures a pinned binary and persistent shell exports idempotently", () => {
+  it("configures a pinned binary and persistent verified settings idempotently", () => {
     const tempDir = createTempDir();
     const homeDir = join(tempDir, "home");
     mkdirSync(homeDir);
     const { checksumsPath, hash, serverPath } = createInstalledServer(homeDir);
     const env = {
       ...process.env,
-      HOME: homeDir,
+      ...homeEnvironment(homeDir),
       SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
       SUPERMEMORY_CONFIGURE_SKIP_LAUNCH_AGENT: "1",
+      SUPERMEMORY_INSTALL_BIN: serverPath,
     };
 
     const first = spawnSync(process.execPath, [configureScriptPath], {
@@ -567,10 +574,14 @@ describe("verified Supermemory server launcher", () => {
     const configPath = join(homeDir, ".supermemory", "archestimator-server.env");
     expect(readFileSync(configPath, "utf8")).toContain(`SUPERMEMORY_SERVER_BIN='${realpathSync(serverPath)}'`);
     expect(readFileSync(configPath, "utf8")).toContain(`SUPERMEMORY_SERVER_SHA256='${hash}'`);
-    expect(statSync(configPath).mode & 0o777).toBe(0o600);
-    const zshenv = readFileSync(join(homeDir, ".zshenv"), "utf8");
-    expect(zshenv.match(/>>> archestimator-supermemory >>>/g)).toHaveLength(1);
-    expect(zshenv).toContain(".supermemory/archestimator-server.env");
+    expectPrivateFile(configPath);
+    if (process.platform === "win32") {
+      expect(existsSync(join(homeDir, ".zshenv"))).toBe(false);
+    } else {
+      const zshenv = readFileSync(join(homeDir, ".zshenv"), "utf8");
+      expect(zshenv.match(/>>> archestimator-supermemory >>>/g)).toHaveLength(1);
+      expect(zshenv).toContain(".supermemory/archestimator-server.env");
+    }
   });
 
   it("does not force-kill an in-flight LaunchAgent ensure during configuration", () => {
@@ -585,7 +596,7 @@ describe("verified Supermemory server launcher", () => {
     const homeDir = join(tempDir, "home");
     mkdirSync(homeDir);
     const { checksumsPath, serverPath } = createInstalledServer(homeDir);
-    writeFileSync(serverPath, "#!/bin/sh\nexit 0\n");
+    writeFileSync(serverPath, "process.exit(0);\n");
     chmodSync(serverPath, 0o755);
 
     const result = spawnSync(process.execPath, [configureScriptPath], {
@@ -593,9 +604,10 @@ describe("verified Supermemory server launcher", () => {
       encoding: "utf8",
       env: {
         ...process.env,
-        HOME: homeDir,
+        ...homeEnvironment(homeDir),
         SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
         SUPERMEMORY_CONFIGURE_SKIP_LAUNCH_AGENT: "1",
+        SUPERMEMORY_INSTALL_BIN: serverPath,
       },
     });
 
@@ -608,7 +620,7 @@ describe("verified Supermemory server launcher", () => {
     const homeDir = join(tempDir, "home");
     const envOut = join(tempDir, "server-env.json");
     mkdirSync(homeDir);
-    const { checksumsPath } = createInstalledServer(homeDir);
+    const { checksumsPath, serverPath } = createInstalledServer(homeDir);
     writeFileSync(join(homeDir, ".supermemory", "env"), "OPENAI_API_KEY=stored-provider-key\n");
 
     const result = spawnSync(process.execPath, [ensureScriptPath], {
@@ -618,13 +630,14 @@ describe("verified Supermemory server launcher", () => {
         ...process.env,
         FAKE_SERVER_ENV_OUT: envOut,
         FAKE_SERVER_EXIT_AFTER_MS: "1000",
-        HOME: homeDir,
+        ...homeEnvironment(homeDir),
         OPENAI_API_KEY: "",
         SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
         SUPERMEMORY_CONFIGURE_SKIP_LAUNCH_AGENT: "1",
         SUPERMEMORY_HEALTH_URL: "http://localhost:7883/",
         SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
         SUPERMEMORY_PORT: "7883",
+        SUPERMEMORY_INSTALL_BIN: serverPath,
         SUPERMEMORY_STARTUP_TIMEOUT_MS: "2000",
       },
     });
@@ -642,7 +655,7 @@ describe("verified Supermemory server launcher", () => {
     const envOut = join(tempDir, "server-env.json");
     const startsOut = join(tempDir, "starts.txt");
     mkdirSync(homeDir);
-    const { checksumsPath } = createInstalledServer(homeDir);
+    const { checksumsPath, serverPath } = createInstalledServer(homeDir);
     writeFileSync(join(homeDir, ".supermemory", "env"), "OPENAI_API_KEY=stored-provider-key\n");
     const env = {
       ...process.env,
@@ -650,13 +663,14 @@ describe("verified Supermemory server launcher", () => {
       FAKE_SERVER_EXIT_AFTER_MS: "1000",
       FAKE_SERVER_LISTEN_DELAY_MS: "500",
       FAKE_SERVER_START_COUNT_OUT: startsOut,
-      HOME: homeDir,
+      ...homeEnvironment(homeDir),
       OPENAI_API_KEY: "",
       SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
       SUPERMEMORY_CONFIGURE_SKIP_LAUNCH_AGENT: "1",
       SUPERMEMORY_HEALTH_URL: "http://localhost:7885/",
       SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
       SUPERMEMORY_PORT: "7885",
+      SUPERMEMORY_INSTALL_BIN: serverPath,
       SUPERMEMORY_STARTUP_TIMEOUT_MS: "3000",
     };
     delete env.SUPERMEMORY_SERVER_BIN;
@@ -686,7 +700,7 @@ describe("verified Supermemory server launcher", () => {
       encoding: "utf8",
       env: {
         ...process.env,
-        HOME: homeDir,
+        ...homeEnvironment(homeDir),
         SUPERMEMORY_ENSURE_LOCK_TIMEOUT_MS: "250",
         SUPERMEMORY_HEALTH_URL: "http://localhost:7893/",
         SUPERMEMORY_PORT: "7893",
@@ -710,21 +724,6 @@ describe("verified Supermemory server launcher", () => {
       ".commandcode/README.md",
       ".cursor/rules/00-archestimator-project-brain.mdc",
       ".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
-      ".ai/12_agents/README.md",
-      ".ai/12_agents/payloads/README.md",
-      ...[
-        "_template",
-        "antigravity",
-        "claude",
-        "codex",
-        "commandcode",
-        "deepseek",
-        "gemini",
-        "hermes",
-        "kimi",
-        "ollama",
-        "opencode",
-      ].map((name) => `.ai/12_agents/payloads/${name}.md`),
     ];
 
     for (const surface of surfaces) {

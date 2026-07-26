@@ -8,9 +8,9 @@ const estimateRightSidebarSource = readFileSync("src/components/workshop/compone
 
 describe("estimate component-library lazy-load boundary", () => {
   it("keeps the workspace panes behind dynamic boundaries while preserving a stable route skeleton", () => {
-    expect(estimateWorkspaceClientSource).toContain('const EstimateSheetTree = dynamic(() =>');
+    expect(estimateWorkspaceClientSource).toContain("const EstimateSheetTree = dynamic(");
     expect(estimateWorkspaceClientSource).toContain('import("./EstimateSheetTree").then((module) => module.EstimateSheetTree)');
-    expect(estimateWorkspaceClientSource).toContain('const EstimateSheetContent = dynamic(() =>');
+    expect(estimateWorkspaceClientSource).toContain("const EstimateSheetContent = dynamic(");
     expect(estimateWorkspaceClientSource).toContain('import("./EstimateSheetContent").then((module) => module.EstimateSheetContent)');
     expect(estimateWorkspaceClientSource).not.toContain('import { EstimateSheetContent } from "./EstimateSheetContent"');
     expect(estimateWorkspaceClientSource).not.toContain('import { EstimateSheetTree } from "./EstimateSheetTree"');

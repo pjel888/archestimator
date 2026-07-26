@@ -3,31 +3,37 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-describe("upload signed provider proof script", () => {
-  it("requires explicit provider mode and refuses unexpected Supabase projects", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-signed-provider-postgres.ts"), "utf8");
+describe("Cloudflare R2 direct-upload provider contract", () => {
+  it("uses an authenticated same-origin PUT instead of exposing provider tokens", () => {
+    const route = readFileSync(
+      join(process.cwd(), "src/app/api/component-library/attachments/direct-upload/route.ts"),
+      "utf8",
+    );
 
-    expect(script).toContain("#!/usr/bin/env bun");
-    expect(script).toContain("ARCH_UPLOAD_SIGNED_PROVIDER_PROOF");
-    expect(script).toContain("ARCH_UPLOAD_SIGNED_PROVIDER_PROOF_ENV_FILE");
-    expect(script).toContain('EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr"');
-    expect(script).toContain("provider-proof-skipped");
-    expect(script).toContain("provider-proof-refused");
-    expect(script).toContain("linked-provider-signed-upload-readback");
+    expect(route).toContain('const CLOUDFLARE_R2_PROVIDER = "cloudflare-r2"');
+    expect(route).toContain("function cloudflareDirectUploadUrl(request: Request, uploadSessionId: string)");
+    expect(route).toContain("new URL(FINALIZE_ROUTE, request.url)");
+    expect(route).toContain('method: "PUT"');
+    expect(route).toContain("export async function PUT(request: Request)");
+    expect(route).toContain("requireCurrentUserContext()");
+    expect(route).toContain("storageProvider.uploadObject({");
+    expect(route).toContain("validateProviderObjectHead");
+    expect(route).toContain("finalizeUploadSessionAsset");
+    expect(route).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(route).not.toContain("signedToken");
   });
 
-  it("exercises real signed URL upload, finalization validation, and upload asset recording", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-signed-provider-postgres.ts"), "utf8");
+  it("keeps R2 object operations behind validated logical bucket and path keys", () => {
+    const provider = readFileSync(join(process.cwd(), "src/lib/uploads/r2-storage-provider.ts"), "utf8");
 
-    expect(script).toContain("createSupabaseDirectUploadProvider");
-    expect(script).toContain("validateProviderObjectHead");
-    expect(script).toContain("uploadWithoutAuthorizationHeader");
-    expect(script).toContain("authorizationHeaderSent: false");
-    expect(script).toContain('serviceClient.rpc("record_upload_asset"');
-    expect(script).toContain("signed-upload-accepts-token-without-authorization-header");
-    expect(script).toContain("provider-object-head-validates-finalization");
-    expect(script).toContain("signed-upload-finalization-records-upload-asset");
-    expect(script).toContain("signedUrlRecorded: false");
-    expect(script).toContain("tokenRecorded: false");
+    expect(provider).toContain("buildCloudflareR2ObjectKey(bucket, path)");
+    expect(provider).toContain("assertSafeLogicalBucket(bucket)");
+    expect(provider).toContain("assertSafeStoragePath(path)");
+    expect(provider).toContain("await r2.put");
+    expect(provider).toContain("await r2.head");
+    expect(provider).toContain("await r2.get");
+    expect(provider).toContain("r2.delete");
+    expect(provider).toContain('path.includes("\\\\")');
+    expect(provider).toContain('segment === ".."');
   });
 });

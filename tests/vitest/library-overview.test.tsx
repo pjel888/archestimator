@@ -34,7 +34,9 @@ describe("LibraryOverview", () => {
     expect(overview).toContain('data-library-overview="empty"');
     expect(overview).not.toContain("searchLibraryOverview");
     expect(layout).toContain("LibraryOverviewSearch");
-    expect(layout).toContain('label: "Add component"');
+    expect(layout).toContain('aria-label="Add component"');
+    expect(layout).toContain('title="Add component"');
+    expect(layout).toContain('navigationRouter.push("/workshop/library/components?add=component")');
     expect(layout).toContain("/workshop/library/components?add=component");
   });
 });

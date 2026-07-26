@@ -3,36 +3,40 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-describe("upload signed route provider proof script", () => {
-  it("requires explicit provider mode and refuses unexpected Supabase projects", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-signed-route-provider-postgres.ts"), "utf8");
+describe("Cloudflare direct-upload route lifecycle contract", () => {
+  it("records a reserved D1 session without persisting upload URLs or credentials", () => {
+    const route = readFileSync(
+      join(process.cwd(), "src/app/api/component-library/attachments/direct-upload/route.ts"),
+      "utf8",
+    );
+    const records = readFileSync(join(process.cwd(), "src/lib/uploads/direct-upload-records.ts"), "utf8");
 
-    expect(script).toContain("#!/usr/bin/env bun");
-    expect(script).toContain("ARCH_UPLOAD_SIGNED_ROUTE_PROOF");
-    expect(script).toContain("ARCH_UPLOAD_SIGNED_ROUTE_PROOF_ENV_FILE");
-    expect(script).toContain('EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr"');
-    expect(script).toContain("provider-proof-skipped");
-    expect(script).toContain("provider-proof-refused");
-    expect(script).toContain("linked-provider-signed-route-readback");
-    expect(script).toContain("component-attachment-direct-upload");
+    expect(route).toContain("recordPendingDirectUploadSession");
+    expect(route).toContain('provider: CLOUDFLARE_R2_PROVIDER');
+    expect(route).toContain('uploadMode: "signed_single_part"');
+    expect(route).toContain('route: "component-attachment-direct-upload"');
+    expect(route).toContain("uploadUrl: cloudflareDirectUploadUrl(request, pendingSession.uploadSessionId)");
+    expect(route).toContain("finalizeUrl: FINALIZE_ROUTE");
+    expect(records).toContain("INSERT INTO upload_sessions");
+    expect(records).toContain('"session_reserved"');
+    expect(records).not.toContain("uploadUrl");
+    expect(records).not.toContain("bearerToken");
   });
 
-  it("exercises signed route session reservation, token upload, head validation, and finalization", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-signed-route-provider-postgres.ts"), "utf8");
+  it("validates R2 object head before atomically finalizing the D1 asset and scan event", () => {
+    const route = readFileSync(
+      join(process.cwd(), "src/app/api/component-library/attachments/direct-upload/route.ts"),
+      "utf8",
+    );
+    const records = readFileSync(join(process.cwd(), "src/lib/uploads/direct-upload-records.ts"), "utf8");
 
-    expect(script).toContain("createSupabaseDirectUploadProvider");
-    expect(script).toContain("recordPendingUploadSession");
-    expect(script).toContain("readUploadSessionForFinalize");
-    expect(script).toContain("finalizeUploadSessionAsset");
-    expect(script).toContain("validateProviderObjectHead");
-    expect(script).toContain("uploadWithoutAuthorizationHeader");
-    expect(script).toContain("authorizationHeaderSent: false");
-    expect(script).toContain("create-upload-session-rpc-records-reserved-session");
-    expect(script).toContain("signed-route-upload-accepts-token-without-authorization-header");
-    expect(script).toContain("signed-route-provider-object-head-validates-finalization");
-    expect(script).toContain("finalize-upload-session-rpc-records-asset-and-events");
-    expect(script).toContain("signed-route-metadata-does-not-record-url-or-token");
-    expect(script).toContain("signedUrlRecorded: false");
-    expect(script).toContain("tokenRecorded: false");
+    expect(route).toContain("storageProvider.headObject?.(session.storage_bucket, session.storage_path)");
+    expect(route).toContain("validateProviderObjectHead({");
+    expect(route).toContain("providerFinalizeProof: validation.proof");
+    expect(records).toContain("UPDATE upload_sessions");
+    expect(records).toContain("INSERT INTO upload_assets");
+    expect(records).toContain("INSERT INTO upload_events");
+    expect(records).toContain('input.scanStatus === "pending" ? "scan_pending" : "asset_finalized"');
+    expect(records).toContain("runRequiredD1Batch");
   });
 });

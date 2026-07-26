@@ -354,7 +354,7 @@ describe("typed row restore history intent", () => {
     const result = await restore(database);
 
     expect(result.data).toBeNull();
-    expect(result.error?.message).toBe("Cloudflare D1 estimate action batch failed.");
+    expect(result.error?.message).toBe("Something went wrong. Try again in a moment.");
     expect(database.rows).toHaveLength(0);
     expect(database.events).toHaveLength(1);
   });

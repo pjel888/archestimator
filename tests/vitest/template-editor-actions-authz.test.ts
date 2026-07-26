@@ -500,7 +500,7 @@ describe("template editor server action authorization", () => {
       targetTemplateId: templateId,
       targetNodeId: null,
       sourceTemplateId,
-    })).rejects.toThrow("more than 1000 atomic D1 statements");
+    })).rejects.toThrow("Something went wrong. Try again in a moment.");
 
     expect(database.batchCalls).toHaveLength(0);
     expect(database.receipts.size).toBe(0);

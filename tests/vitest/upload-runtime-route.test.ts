@@ -46,6 +46,8 @@ beforeEach(() => {
 
 describe("internal upload runtime proof route", () => {
   it("fails closed when the proof secret is missing or incorrect", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+    vi.stubEnv("UPLOAD_RUNTIME_PROOF_SECRET", "");
     const { GET } = await import("@/app/api/internal/upload-runtime/route");
 
     const notConfigured = await GET(createRequest("runtime-secret"));

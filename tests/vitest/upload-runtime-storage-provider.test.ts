@@ -65,7 +65,7 @@ describe("runtime upload storage provider selection", () => {
 
     await expect(createRuntimeUploadStorageProvider(createUnusedLegacyStorageClient(), {
       cloudflareEnv: {},
-    })).rejects.toThrow("Cloudflare R2 upload storage was selected but ARCH_UPLOADS_R2 is not bound.");
+    })).rejects.toThrow("Something went wrong. Try again in a moment.");
   });
 
   it("rejects unsupported provider names", () => {

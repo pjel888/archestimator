@@ -3,17 +3,12 @@ import { join } from "node:path";
 
 import { describe } from "vitest";
 
-export const UPLOAD_PROVIDER_EVIDENCE_ROOT = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence";
+export const UPLOAD_PROVIDER_EVIDENCE_ROOT = ".ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement/evidence";
 
 export function optionalUploadProviderProof<T>(fileName: string) {
   const evidencePath = join(process.cwd(), UPLOAD_PROVIDER_EVIDENCE_ROOT, fileName);
   if (!existsSync(evidencePath)) {
-    return {
-      describeProof: describe.skip,
-      evidencePath,
-      missingReason: `Optional legacy upload provider proof artifact is absent: ${UPLOAD_PROVIDER_EVIDENCE_ROOT}/${fileName}`,
-      proof: {} as T,
-    };
+    throw new Error(`Required upload provider proof artifact is absent: ${UPLOAD_PROVIDER_EVIDENCE_ROOT}/${fileName}`);
   }
 
   return {

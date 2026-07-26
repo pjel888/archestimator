@@ -189,7 +189,7 @@ describe("template-surface revalidation (U11)", () => {
     await expect(createEstimateTemplate({
       intentId: "23232323-2323-4232-8232-232323232323",
       name: "Atomic template",
-    })).rejects.toThrow("Cloudflare D1 template mutation batch failed.");
+    })).rejects.toThrow("Something went wrong. Try again in a moment.");
 
     expect(database.batch).toHaveBeenCalledTimes(1);
     const batchStatements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string }>;
@@ -909,7 +909,7 @@ describe("library component instance reconciliation", () => {
         isActive: true,
         isDefault: true,
       }],
-    })).rejects.toThrow(/batch failed/);
+    })).rejects.toThrow("Something went wrong. Try again in a moment.");
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 

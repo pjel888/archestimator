@@ -31,19 +31,20 @@ describe("project header chrome streaming (F5 / P1-2)", () => {
     expect(chrome).not.toContain("listProjectEstimateSheets(projectId)");
   });
 
-  it("renders Publisher deep-link actions from the streamed chrome", () => {
+  it("renders Share and project-team actions from the streamed chrome", () => {
     expect(chrome).not.toContain("isPublisherEnabled()");
     expect(chrome).not.toContain("if (!publisherEnabled)");
     expect(chrome).toContain("getPublisherProjectHref(projectId)");
     expect(chrome).toContain("/workshop/publisher");
     expect(chrome).toContain("drawer: projectId");
     expect(chrome).toContain('params.set("tab", tab)');
-    expect(chrome).toContain('getPublisherProjectHref(projectId, "access")');
+    expect(chrome).toContain("getProjectTeamAccessHref(projectId)");
+    expect(chrome).toContain("/workshop/projects/${encodeURIComponent(projectId)}/team");
     expect(chrome).toContain("canOpenPublisherDrawer");
     expect(chrome).toContain("publicationSummary?.canReadPublisherRoster");
     expect(chrome).toContain('publicationSummary.status !== "unpublished"');
     expect(chrome).toContain('data-publisher-project-link="publication"');
-    expect(chrome).toContain('data-publisher-project-link="access"');
+    expect(chrome).toContain('data-project-team-access-link="true"');
     expect(chrome).toContain('data-workshop-layout="project-publication-header"');
     expect(chrome).toContain('data-workshop-layout="project-teamspace-header"');
     expect(chrome).not.toContain("<ProjectPublicationHeader");

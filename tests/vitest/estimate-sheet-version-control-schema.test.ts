@@ -35,7 +35,7 @@ function readMigrationBySuffix(suffix: string) {
     .sort()
     .at(-1);
   if (!migrationFile) throw new Error(`Missing migration ending in ${suffix}.`);
-  return readFileSync(join(process.cwd(), "supabase/migrations", migrationFile), "utf8");
+  return readFileSync(join(process.cwd(), "supabase/migrations", migrationFile), "utf8").replace(/\r\n/g, "\n");
 }
 
 const nodeDeleteUndoMigration = readMigrationBySuffix("_estimate_node_delete_undo_rpc.sql");

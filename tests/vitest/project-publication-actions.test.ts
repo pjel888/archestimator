@@ -886,9 +886,14 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     const banner = readFileSync("src/components/share/SharePageSessionBanner.tsx", "utf8");
     const comments = readFileSync("src/components/share/SharePageComments.tsx", "utf8");
     const decision = readFileSync("src/components/share/SharePageDecision.tsx", "utf8");
-    expect(banner).toContain("hasValidRecipientSession");
-    expect(banner).toContain("Use your personalized link to comment and respond.");
-    expect(banner).toContain("text-[12px]"); // client-portal type scale (T1: /share label floor is 12px)
+    expect(banner).toContain("You are reviewing as {recipientEmail}");
+    expect(banner).toContain('method: "DELETE"');
+    expect(comments).toContain("const { isValid } = useSharedLinkSession()");
+    expect(comments).toContain("enabled: isValid");
+    expect(comments).toContain("if (!body || !isValid || isPosting) return");
+    expect(decision).toContain("const { isValid } = useSharedLinkSession()");
+    expect(decision).toContain("enabled: isValid");
+    expect(decision).toContain("if (!isValid)");
     expect(comments).toContain("useSharedLinkSession");
     expect(decision).toContain("useSharedLinkSession");
   });

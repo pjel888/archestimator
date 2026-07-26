@@ -466,7 +466,7 @@ describe("AI package-builder route", () => {
     expect(readTools).not.toHaveBeenCalled();
     expect(provider.createDraftSuggestion).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
-      error: "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.",
+      error: "AI requires a signed-in account session.",
     });
   });
 
@@ -1651,10 +1651,26 @@ describe("AI package-builder route", () => {
     expect(response.status).toBe(400);
     expect(authorizeApply).toHaveBeenCalledTimes(1);
     expect(applyPackage).toHaveBeenCalledTimes(1);
-    expect(consoleError).toHaveBeenCalledWith(
-      "AI package Apply failed",
-      expect.objectContaining({ message: expect.stringContaining("workspace_members") }),
-    );
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    const logRecord = JSON.parse(String(consoleError.mock.calls[0]?.[0]));
+    expect(logRecord).toMatchObject({
+      level: "error",
+      event: "ai_package_apply_error",
+      message: "Something went wrong. Try again in a moment.",
+      action: "apply_ai_package",
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Something went wrong. Try again in a moment.",
+        cause: {
+          name: "Error",
+          message: expect.stringContaining("workspace_members"),
+        },
+      },
+      context: {
+        route: "/api/ai/package-builder",
+        route_handler: "POST /api/ai/package-builder",
+      },
+    });
     const body = await response.json();
     expect(body).toEqual({ error: "Package Apply failed." });
     expect(JSON.stringify(body)).not.toContain("workspace_members");

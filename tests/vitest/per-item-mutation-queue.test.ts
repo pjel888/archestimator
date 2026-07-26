@@ -267,7 +267,7 @@ describe("component folder move coordinator", () => {
     const managerSource = readFileSync(
       "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx",
       "utf8",
-    );
+    ).replace(/\r\n/g, "\n");
     const sidebarSource = readFileSync("src/components/workshop/component-library/index.tsx", "utf8");
     const folderTreeSource = readFileSync(
       "src/components/workshop/component-library-manager/LibraryFolderTree.tsx",

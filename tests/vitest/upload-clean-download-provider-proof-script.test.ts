@@ -3,37 +3,43 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-describe("upload clean download provider proof script", () => {
-  it("requires explicit provider mode and refuses unexpected Supabase projects", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-clean-download-provider-postgres.ts"), "utf8");
+describe("Cloudflare upload clean download proof contract", () => {
+  it("requires a secret-gated HTTPS Worker proof and fails closed on incomplete D1/R2 evidence", () => {
+    const verifier = readFileSync(
+      join(process.cwd(), "scripts/verify-cloudflare-hosted-upload-lifecycle-proof.ts"),
+      "utf8",
+    );
 
-    expect(script).toContain("#!/usr/bin/env bun");
-    expect(script).toContain("ARCH_UPLOAD_CLEAN_DOWNLOAD_PROOF");
-    expect(script).toContain("ARCH_UPLOAD_CLEAN_DOWNLOAD_PROOF_ENV_FILE");
-    expect(script).toContain('EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr"');
-    expect(script).toContain("provider-proof-skipped");
-    expect(script).toContain("provider-proof-refused");
-    expect(script).toContain("linked-provider-clean-download-readback");
-    expect(script).toContain("cleanupFixture");
-    expect(script).toContain("passed: originalPassed && cleanupErrors.length === 0");
+    expect(verifier).toContain('ENDPOINT_PATH = "/api/internal/upload-lifecycle-proof"');
+    expect(verifier).toContain('readEnv("CRON_SECRET")');
+    expect(verifier).toContain("Cloudflare upload lifecycle proof base URL must use HTTPS.");
+    expect(verifier).toContain("authorization: `Bearer ${input.secret}`");
+    expect(verifier).toContain("endpointReadiness.attachmentDownloadEligible === true");
+    expect(verifier).toContain("cleanupCountsAreZero(body.cleanupAfter)");
+    expect(verifier).toContain("productionCutoverReady: false");
+    expect(verifier).toContain("does not print secret values, raw R2 keys, uploaded bytes, session cookies, customer data, or provider credentials");
   });
 
-  it("exercises approved/current attachment, clean scan, audit, and private provider readback", () => {
-    const script = readFileSync(join(process.cwd(), "scripts/prove-upload-clean-download-provider-postgres.ts"), "utf8");
+  it("proves approved/current attachment, clean scan, audit, and private R2 readback", () => {
+    const proofRouter = readFileSync(
+      join(process.cwd(), "src/lib/cloudflare/upload-lifecycle-proof-router.ts"),
+      "utf8",
+    );
     const route = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
 
-    expect(script).toContain("cost_library_item_variant_attachments");
-    expect(script).toContain('review_status: "approved"');
-    expect(script).toContain("is_current_approved: true");
-    expect(script).toContain('serviceClient.rpc("record_upload_asset"');
-    expect(script).toContain('serviceClient.rpc("record_upload_scan_result"');
-    expect(script).toContain('scanner_status: "clean"');
-    expect(script).toContain('event_type: "download_url_issued"');
-    expect(script).toContain("downloadProviderObject");
-    expect(script).toContain("provider-readback-requires-approved-current-clean-finalized-attachment");
-    expect(script).toContain("download-response-header-contract-is-private-and-nosniff");
-    expect(script).toContain("rawStoragePathRecordedInProof: false");
-    expect(route).toContain('data.review_status !== "approved"');
-    expect(route).toContain("!readApprovedFlag(data.is_current_approved)");
+    expect(proofRouter).toContain("createRuntimeUploadStorageProvider");
+    expect(proofRouter).toContain("recordUploadAsset");
+    expect(proofRouter).toContain("runUploadScanJob");
+    expect(proofRouter).toContain('row?.review_status === "approved" && row?.is_current_approved === 1');
+    expect(proofRouter).toContain('row?.asset_status === "finalized" && row?.scan_status === "clean"');
+    expect(proofRouter).toContain('scanReadback.eventTypes.includes("scan_clean")');
+    expect(proofRouter).toContain("storageChecksumMatches");
+    expect(route).toContain("isAttachmentReviewStateReadable(attachment)");
+    expect(route).toContain("readCleanUploadAsset(metadataDb, attachment)");
+    expect(route).toContain("recordAttachmentDownloadIssued");
+    expect(route).toContain('"download_url_issued"');
+    expect(route).toContain('"Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL');
+    expect(route).toContain('"X-Content-Type-Options": "nosniff"');
+    expect(route).not.toContain("@supabase/supabase-js");
   });
 });
