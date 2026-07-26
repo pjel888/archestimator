@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { ArrowSquareOut, LinkBreak, LinkSimple, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { revokeProjectPublication, rotateProjectPublicationLink } from "@/lib/publication/actions";
@@ -116,15 +115,17 @@ export function PublishedProjectQuickActions({
           </Button>
         </Tooltip>
         <Tooltip label="Preview link" side="top">
-          <Link
+          <ButtonLink
             href={clientLinkPath}
+            variant="plain"
+            size="icon-xs"
             target="_blank"
             rel="noreferrer"
             className="dashboard-published-action"
             aria-label={`Preview ${projectName} shared link`}
           >
             <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
-          </Link>
+          </ButtonLink>
         </Tooltip>
         {canManagePublication ? (
           <>

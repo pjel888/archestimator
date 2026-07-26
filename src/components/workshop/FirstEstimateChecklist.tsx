@@ -1,10 +1,9 @@
 "use client";
 
 import { ArrowRight, Check, Compass, EyeSlash } from "@phosphor-icons/react";
-import Link from "next/link";
 import { useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -76,14 +75,16 @@ export function FirstEstimateChecklist({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <Link
+          <ButtonLink
             href="/workshop/getting-started"
-            className="inline-flex min-h-7 items-center gap-1.5 rounded-xs px-2 text-[9px] font-medium text-ink outline-none transition-colors hover:bg-white/60 hover:text-brand-orange-dark focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
+            variant="plain"
+            size="xs"
+            className="min-h-7 min-w-0 gap-1.5 px-2 !text-[9px] text-ink hover:bg-white/60 hover:text-brand-orange-dark focus-visible:ring-offset-0 motion-reduce:transition-none"
           >
             <Compass size={13} aria-hidden="true" />
             Open Getting Started
             <ArrowRight size={12} aria-hidden="true" />
-          </Link>
+          </ButtonLink>
           {checklist.isDismissed ? (
             <Button
               size="xs"
@@ -139,14 +140,16 @@ export function FirstEstimateChecklist({
           </p>
         ) : null}
         <div className="dashboard-first-estimate__summary-actions mt-auto flex items-center justify-between gap-2 pt-2">
-          <Link
+          <ButtonLink
             href="/workshop/getting-started"
-            className="inline-flex min-h-7 items-center gap-1.5 rounded-xs px-1.5 text-[9px] font-medium text-ink outline-none transition-colors hover:bg-white/55 hover:text-brand-orange-dark focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
+            variant="plain"
+            size="xs"
+            className="min-h-7 min-w-0 gap-1.5 px-1.5 !text-[9px] text-ink hover:bg-white/55 hover:text-brand-orange-dark focus-visible:ring-offset-0 motion-reduce:transition-none"
           >
             <Compass size={13} weight="regular" aria-hidden="true" />
             Open guide
             <ArrowRight size={12} weight="regular" aria-hidden="true" />
-          </Link>
+          </ButtonLink>
           <Button
             size="xs"
             variant="plain"
@@ -187,13 +190,15 @@ export function FirstEstimateChecklist({
                       ? "Next step"
                       : "Pending"}
                 </span>
-                <Link
-                  className="dashboard-first-estimate__action inline-flex min-h-6 shrink-0 items-center gap-1 rounded-xs px-1.5 text-[9px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                <ButtonLink
+                  className="dashboard-first-estimate__action min-h-6 min-w-0 shrink-0 gap-1 px-1.5 !text-[9px] focus-visible:ring-offset-0"
                   href={item.href}
+                  variant="plain"
+                  size="xs"
                 >
                   {item.status === "next" ? "Continue" : "Open"}
                   <ArrowRight size={11} weight="regular" aria-hidden="true" />
-                </Link>
+                </ButtonLink>
               </div>
               <p className="dashboard-first-estimate__task-title mt-1.5 text-[10px] font-medium leading-3.5 text-ink">
                 {item.label}

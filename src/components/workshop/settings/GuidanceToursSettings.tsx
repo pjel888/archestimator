@@ -97,9 +97,15 @@ function createMutationId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
-function statusLabel(status: OnboardingFlowStatus | undefined) {
+const PASSIVE_VIEW_FLOWS = new Set<OnboardingFlowKey>([
+  "core_orientation",
+  "collaborator_orientation",
+  "estimate_reader_orientation",
+]);
+
+function statusLabel(flowKey: OnboardingFlowKey, status: OnboardingFlowStatus | undefined) {
   if (status === "in_progress") return "In progress";
-  if (status === "completed") return "Complete";
+  if (status === "completed") return PASSIVE_VIEW_FLOWS.has(flowKey) ? "Viewed" : "Completed";
   if (status === "dismissed") return "Skipped";
   return "Not started";
 }
@@ -188,7 +194,7 @@ function FlowCard({
           <p className="mt-0.5 text-[9px] leading-4 text-tertiary">{presentation.description}</p>
         </div>
         <Badge tone={eligible ? statusTone(state?.status) : "neutral"} size="xs">
-          {eligible ? statusLabel(state?.status) : "Unavailable"}
+          {eligible ? statusLabel(definition.key, state?.status) : "Unavailable"}
         </Badge>
       </div>
       {lessonKeys.length > 0 ? (
@@ -203,7 +209,7 @@ function FlowCard({
               <li key={lessonKey} className="flex min-w-0 items-center gap-1 text-[9px] leading-4 text-secondary">
                 {completed ? <CheckCircle size={12} className="text-success" aria-hidden="true" /> : current ? <Play size={12} className="text-accent" aria-hidden="true" /> : <Eye size={12} className="text-tertiary" aria-hidden="true" />}
                 <span className="truncate">{LESSON_LABELS[lessonKey]}</span>
-                <span className="ml-auto shrink-0 text-tertiary">{completed ? "Complete" : current ? "Resume" : eligible ? "Available" : "Blocked"}</span>
+                <span className="ml-auto shrink-0 text-tertiary">{completed ? "Completed" : current ? "Resume" : eligible ? "Available" : "Blocked"}</span>
               </li>
             );
           })}

@@ -1,12 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
 import { useMemo, useReducer } from "react";
 
 import { Banner } from "@/components/ui/banner";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -407,12 +406,14 @@ function ControlField({ label, children }: { label: string; children: React.Reac
 
 function CreateEstimateLink({ projectId }: { projectId: string }) {
   return (
-    <Link
+    <ButtonLink
       href={`/workshop/projects/${projectId}/estimates`}
-      className="inline-flex min-h-7 items-center gap-1 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
+      variant="secondary"
+      size="xs"
+      className="min-h-7 min-w-0 gap-1 px-2 !text-[10px] motion-reduce:transition-none"
     >
       <Plus size={16} weight="regular" aria-hidden="true" />
       Create estimate
-    </Link>
+    </ButtonLink>
   );
 }

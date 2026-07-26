@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { FileText, Star } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { useToggleEstimateFavorite } from "@/hooks/use-toggle-estimate-favorite";
 import { cn } from "@/lib/ui/cn";
 
@@ -162,15 +163,17 @@ function FavoriteSheetButton({
 
   return (
     <>
-      <button
+      <IconButton
         type="button"
+        variant="plain"
+        size="icon-xs"
         className={cn(
           "grid size-6 cursor-pointer place-items-center rounded-xs transition hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-60",
           isFavorite
             ? "text-brand-orange hover:text-brand-orange-dark"
             : "text-tertiary hover:text-ink",
         )}
-        aria-label={
+        label={
           isFavorite
             ? `Remove ${estimate.name} from favorite estimate sheets`
             : `Add ${estimate.name} to favorite estimate sheets`
@@ -185,13 +188,8 @@ function FavoriteSheetButton({
             : "Add to favorite estimate sheets")
         }
         onClick={toggleFavorite}
-      >
-        <Star
-          size={16}
-          weight={isFavorite ? "fill" : "regular"}
-          aria-hidden="true"
-        />
-      </button>
+        icon={<Star size={16} weight={isFavorite ? "fill" : "regular"} aria-hidden="true" />}
+      />
       {errorMessage ? <span className="sr-only">{errorMessage}</span> : null}
     </>
   );

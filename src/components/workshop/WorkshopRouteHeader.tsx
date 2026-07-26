@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from "react";
-import Link from "next/link";
 import { Compass } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { WorkshopNotificationEntry } from "@/features/notifications/components/WorkshopNotificationEntry";
 import { cn } from "@/lib/ui/cn";
 import { getDisabledWorkshopNavIds } from "@/lib/feature-gates/enforce";
@@ -87,14 +87,16 @@ export async function WorkshopRouteHeader({
   const headerActions = (
     <div className="flex h-10 min-w-0 items-center justify-end gap-1">
       <WorkshopMobileNavigation disabledNavIds={disabledNavIds} />
-      <Link
+      <ButtonLink
         href="/workshop/getting-started"
+        variant="ghost"
+        size="icon-sm"
         aria-label="Getting started"
         className="grid size-8 shrink-0 place-items-center rounded-xs text-muted outline-none transition hover:bg-surfaceMuted hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
         {...onboardingTarget("header.getting_started")}
       >
         <Compass size={16} aria-hidden="true" />
-      </Link>
+      </ButtonLink>
       {actions}
       <WorkshopNotificationEntry />
       <Suspense fallback={<WorkshopSettingsEntryFallback location={settingsModalLocation} />}>

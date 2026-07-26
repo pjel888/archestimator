@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import type { ProjectEstimateSheet } from "@/lib/publication/types";
 import { cn } from "@/lib/ui/cn";
 
@@ -55,28 +56,32 @@ export function SheetPickerList({
   return (
     <div aria-label={ariaLabel} className={comfortable ? "text-[10px]" : "text-[10px]"}>
       <div className={cn("mb-1 flex items-center gap-1.5", comfortable ? "text-[9px]" : "text-[9px]")}>
-        <button
+        <Button
           type="button"
+          variant="plain"
+          size="xs"
           onClick={selectAll}
           disabled={disabled || allSelected}
           className={cn(
-            "rounded-xs text-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50",
-            comfortable ? "min-h-8 px-2 py-1 text-[9px]" : "px-1.5 py-0.5",
+            "min-w-0 !text-[inherit] text-secondary hover:text-ink focus-visible:ring-offset-0",
+            comfortable ? "min-h-8 px-2 py-1 !text-[9px]" : "min-h-0 px-1.5 py-0.5",
           )}
         >
           Select all
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="plain"
+          size="xs"
           onClick={clearAll}
           disabled={disabled || selectedIds.length === 0}
           className={cn(
-            "rounded-xs text-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50",
-            comfortable ? "min-h-8 px-2 py-1 text-[9px]" : "px-1.5 py-0.5",
+            "min-w-0 !text-[inherit] text-secondary hover:text-ink focus-visible:ring-offset-0",
+            comfortable ? "min-h-8 px-2 py-1 !text-[9px]" : "min-h-0 px-1.5 py-0.5",
           )}
         >
           Clear
-        </button>
+        </Button>
         <span className="ml-auto text-secondary tabular-nums">
           {selectedIds.length} / {estimates.length} selected
         </span>

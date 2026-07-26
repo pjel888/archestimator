@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useEffect,
   useState,
@@ -9,7 +8,7 @@ import {
 } from "react";
 import { Copy, Eye, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { useClientLinksLearning } from "./ClientLinksLearningRail";
 
@@ -129,15 +128,17 @@ export function ShareLinkDisplay({
           Copy
         </Button>
         {previewHref ? (
-          <Link
+          <ButtonLink
             {...onboardingTarget("publisher.preview")}
             href={previewHref}
-            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            variant="secondary"
+            size="sm"
+            className="min-h-8 min-w-0 gap-1.5 px-2.5 !text-[10px] focus-visible:ring-offset-0"
             aria-label={`Preview shared page for ${projectName}`}
             onClick={(event) => void openPreview(event)}
           >
             <Eye size={16} aria-hidden="true" /> Preview
-          </Link>
+          </ButtonLink>
         ) : null}
         {nativeShareAvailable ? (
           <Button type="button" variant="secondary" size="sm" className="min-h-8 px-2.5 !text-[10px]" aria-label={`Share link for ${projectName}`} onClick={() => void shareLink()}>

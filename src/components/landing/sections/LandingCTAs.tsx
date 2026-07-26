@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
 
@@ -44,35 +44,39 @@ export function LandingCTAs({
       )}
       data-landing-cta-group={location}
     >
-      <Link
+      <ButtonLink
         href={primaryHref}
         data-landing-cta="primary"
         data-landing-cta-location={location}
+        variant="plain"
+        size="lg"
         className={cn(
           "inline-flex min-h-11 items-center justify-center rounded-landing-pill",
           "bg-brand-orange px-[var(--landing-space-lg)]",
-          "text-[13px] font-semibold uppercase tracking-landing-label text-white",
+          "!text-[13px] !font-semibold uppercase tracking-landing-label text-white",
           "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-landing-canvas",
           "hover:bg-brand-orange-dark",
         )}
       >
         {primaryLabel}
-      </Link>
+      </ButtonLink>
       {secondary ? (
-        <Link
+        <ButtonLink
           href={BOOK_WALKTHROUGH_HREF}
           data-landing-cta="secondary"
           data-landing-cta-location={location}
+          variant="plain"
+          size="lg"
           className={cn(
             "inline-flex min-h-11 items-center justify-center rounded-landing-pill",
             "border border-landing-hairline-strong bg-surface px-[var(--landing-space-lg)]",
-            "text-[13px] font-semibold uppercase tracking-landing-label text-landing-ink",
+            "!text-[13px] !font-semibold uppercase tracking-landing-label text-landing-ink",
             "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-landing-canvas",
             "hover:bg-surfaceMuted",
           )}
         >
           Book a walkthrough
-        </Link>
+        </ButtonLink>
       ) : null}
     </div>
   );

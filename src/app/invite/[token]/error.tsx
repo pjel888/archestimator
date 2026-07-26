@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 export default function Error({
   error,
@@ -32,12 +31,14 @@ export default function Error({
             Try again
           </Button>
         ) : null}
-        <Link
+        <ButtonLink
           href="/login"
-          className="inline-flex min-h-8 items-center justify-center rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink"
+          variant="plain"
+          size="sm"
+          className="inline-flex min-h-8 min-w-0 items-center justify-center rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink"
         >
           Sign in
-        </Link>
+        </ButtonLink>
       </div>
     </main>
   );

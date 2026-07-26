@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { Button } from "@/components/ui/button";
 import { useLandingAuthHintState } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
 
@@ -170,10 +171,12 @@ export function KimiSiteHeader() {
             ) : null}
             <PrimaryCtaLink />
           </div>
-          <button
+          <Button
             ref={menuButtonRef}
             type="button"
-            className={styles.menuButton}
+            variant="plain"
+            size="lg"
+            className={cn(styles.menuButton, "min-w-0")}
             aria-expanded={menuOpen}
             aria-controls="kimi3d-menu"
             onClick={() => setMenuOpen((open) => !open)}
@@ -183,7 +186,7 @@ export function KimiSiteHeader() {
               <span />
             </span>
             {headerCopy.menuLabel}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -196,16 +199,18 @@ export function KimiSiteHeader() {
         aria-modal="true"
         aria-label={headerCopy.menuTitle}
       >
-        <button
+        <Button
           ref={menuCloseRef}
           type="button"
-          className={styles.menuCloseButton}
+          variant="plain"
+          size="lg"
+          className={cn(styles.menuCloseButton, "min-w-0")}
           aria-label={headerCopy.menuCloseLabel}
           onClick={() => closeMenu()}
         >
           <span aria-hidden="true">×</span>
           {headerCopy.menuCloseText}
-        </button>
+        </Button>
         <nav className={styles.menuOverlayNav} aria-label="Menu">
           {headerCopy.nav.map((item) => (
             <Link key={item.href} href={item.href} onClick={() => closeMenu()}>

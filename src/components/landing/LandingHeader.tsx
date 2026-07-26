@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
 
 import { loginHref, workshopHref } from "./constants";
@@ -99,51 +100,59 @@ export function LandingHeader({
 
         <nav aria-label="Account" className={`flex items-center gap-2 text-[12px] ${isOverFooter ? "text-white" : "text-[#111111]"}`}>
           {isLoggedIn ? (
-            <Link
+            <ButtonLink
               href={workshopHref}
               onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "workspace" })}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-[6px] px-4 text-[12px] font-semibold text-white transition ${
+              variant="plain"
+              size="lg"
+              className={`inline-flex min-h-10 min-w-0 items-center gap-2 rounded-[6px] px-4 !text-[12px] !font-semibold text-white transition ${
                 isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-brand-orange hover:bg-brand-orange-dark"
               }`}
             >
               Workspace
               <ArrowRight className="size-3.5 [animation:workspace-arrow-bounce_0.9s_ease-in-out_infinite]" weight="bold" />
-            </Link>
+            </ButtonLink>
           ) : (
             <>
-              <Link
+              <ButtonLink
                 href="/contact"
                 aria-label="Book a walkthrough"
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "book_walkthrough" })}
-                className={`inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition ${
+                variant="plain"
+                size="lg"
+                className={`inline-flex min-h-10 min-w-0 items-center justify-center rounded-[6px] px-4 !text-[12px] !font-semibold text-white transition ${
                   isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-brand-orange hover:bg-brand-orange-dark"
                 }`}
               >
                 <span className="hidden sm:inline">Book a walkthrough</span>
                 <span className="sm:hidden" aria-hidden="true">Book</span>
-              </Link>
-              <Link
+              </ButtonLink>
+              <ButtonLink
                 href={loginHref}
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "login" })}
-                className={`hidden min-h-10 items-center justify-center rounded-[6px] px-3 text-[12px] font-semibold transition sm:inline-flex ${
+                variant="plain"
+                size="lg"
+                className={`hidden min-h-10 min-w-0 items-center justify-center rounded-[6px] px-3 !text-[12px] !font-semibold transition sm:inline-flex ${
                   isOverFooter ? "hover:text-white/70" : "hover:text-brand-orange"
                 }`}
               >
                 Sign in
-              </Link>
+              </ButtonLink>
             </>
           )}
-          <button
+          <Button
             type="button"
             aria-expanded={isMenuOpen}
             aria-controls="landing-mobile-menu"
             onClick={() => setIsMenuOpen((current) => !current)}
-            className={`inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold transition lg:hidden ${
+            variant="plain"
+            size="lg"
+            className={`inline-flex min-h-10 min-w-0 items-center justify-center rounded-[6px] px-4 !text-[12px] !font-semibold transition lg:hidden ${
               isOverFooter ? "bg-white/12 text-white hover:bg-white/18" : "bg-white text-[#171514] hover:bg-white"
             }`}
           >
             Menu
-          </button>
+          </Button>
         </nav>
 
         <div

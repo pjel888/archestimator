@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useReducer, useRef } from "react";
 import { ChatCircleDots, PaperPlaneRight, Plus, X } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 import type { PackageBuilderApplyResult } from "@/lib/ai/package-builder/apply";
 import type { PackageBuilderDraft } from "@/lib/ai/package-builder/schemas";
@@ -625,12 +624,14 @@ function PackageDraftPreview({
                 ? `Created ${appliedComponentCreates} library ${appliedComponentCreates === 1 ? "component" : "components"}`
                 : `Applied project ${state.applyResult.projectId?.slice(0, 8) ?? ""} · ${formatAppliedRowChanges(appliedInsertedRows, appliedUpdatedRows, appliedReplacedRows, appliedDeletedRows, appliedTemplateRows, appliedRenamedNodes)}`}
             </p>
-            <Link
+            <ButtonLink
               href={appliedEstimateHref ?? "/workshop/library"}
-              className="shrink-0 rounded-xs border border-hairline bg-white px-2 py-1 text-[10px] font-medium leading-4 text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              variant="outline"
+              size="xs"
+              className="min-h-0 min-w-0 shrink-0 px-2 py-1 !text-[10px] leading-4 focus-visible:ring-offset-0"
             >
               {appliedEstimateHref ? "Open estimate" : "Open library"}
-            </Link>
+            </ButtonLink>
           </div>
         ) : null}
       </div>

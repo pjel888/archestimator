@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { LinkSimple, UsersThree } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { ProjectCursorLayer } from "@/components/workshop/ProjectCursorLayer";
 import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,8 +53,10 @@ function ProjectPublisherHeaderActions({ projectId, publicationSummary }: Projec
 
   return (
     <span className="contents" data-publisher-project-actions="true">
-      <Link
+      <ButtonLink
         href={publicationHref}
+        variant="ghost"
+        size="icon-sm"
         prefetch={false}
         className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
         aria-label="Open shared link"
@@ -70,15 +72,17 @@ function ProjectPublisherHeaderActions({ projectId, publicationSummary }: Projec
             className={PROJECT_HEADER_ACTION_DOT_CLASS}
           />
         ) : null}
-      </Link>
+      </ButtonLink>
     </span>
   );
 }
 
 function ProjectTeamAccessHeaderAction({ projectId }: { projectId: string }) {
   return (
-    <Link
+    <ButtonLink
       href={getProjectTeamAccessHref(projectId)}
+      variant="ghost"
+      size="icon-sm"
       prefetch={false}
       className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
       aria-label="Open project team access"
@@ -87,7 +91,7 @@ function ProjectTeamAccessHeaderAction({ projectId }: { projectId: string }) {
       data-project-team-access-link="true"
     >
       <UsersThree size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
-    </Link>
+    </ButtonLink>
   );
 }
 

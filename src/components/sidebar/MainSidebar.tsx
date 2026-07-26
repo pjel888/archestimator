@@ -8,6 +8,7 @@ import { FileText, Folder, SidebarSimple, Star } from "@phosphor-icons/react/dis
 
 import { cn } from "@/lib/ui/cn";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
@@ -304,21 +305,24 @@ export function MainSidebar({
           <SidebarSectionDivider />
 
           <div className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
-            <button
+            <IconButton
               type="button"
               onClick={toggleExpanded}
               aria-expanded={expanded}
-              aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+              label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+              variant="plain"
+              size="icon-sm"
               className={TOGGLE_ROW_CLASSNAME}
-            >
-              <span className="relative z-10 flex h-8 w-12 shrink-0 items-center justify-center">
-                <SidebarSimple
-                  size={16}
-                  weight="regular"
-                  className="relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none"
-                />
-              </span>
-            </button>
+              icon={(
+                <span className="relative z-10 flex h-8 w-12 shrink-0 items-center justify-center">
+                  <SidebarSimple
+                    size={16}
+                    weight="regular"
+                    className="relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none"
+                  />
+                </span>
+              )}
+            />
           </div>
 
           <SidebarSectionDivider />

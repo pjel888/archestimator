@@ -2861,6 +2861,25 @@ input[type="number"] {
   color: var(--brand-orange-dark);
 }
 
+.dashboard-first-estimate__summary-actions {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.dashboard-first-estimate__summary-actions > a,
+.dashboard-first-estimate__summary-actions > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.dashboard-first-estimate__summary-actions > a > svg,
+.dashboard-first-estimate__summary-actions > button > svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+}
+
 .dashboard-first-estimate--collapsed {
   min-height: 64px;
   align-self: start;

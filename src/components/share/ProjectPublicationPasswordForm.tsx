@@ -3,6 +3,9 @@
 import { FormEvent, useState } from "react";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+
 type ProjectPublicationPasswordFormProps = {
   token: string;
 };
@@ -73,16 +76,17 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
             aria-invalid={feedback ? "true" : undefined}
             aria-describedby={feedback ? feedbackId : undefined}
           />
-          <button
+          <IconButton
             type="button"
+            variant="plain"
+            size="icon"
             className="grid w-9 cursor-pointer place-items-center text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={isPasswordVisible ? "Hide entered value" : "Show entered value"}
+            label={isPasswordVisible ? "Hide entered value" : "Show entered value"}
             aria-pressed={isPasswordVisible}
             disabled={isSubmitting || isLocked}
             onClick={() => setIsPasswordVisible((visible) => !visible)}
-          >
-            {isPasswordVisible ? <EyeSlash size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-          </button>
+            icon={isPasswordVisible ? <EyeSlash size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          />
         </span>
       </label>
       <p className="text-[12px] leading-[16px] tracking-normal text-secondary">
@@ -93,13 +97,15 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
           {feedback}
         </p>
       ) : null}
-      <button
-        className="h-9 cursor-pointer bg-ink px-3 text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
+      <Button
+        variant="plain"
+        size="md"
+        className="h-9 cursor-pointer bg-ink px-3 !text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
         type="submit"
         disabled={isSubmitting || isLocked}
       >
         Unlock
-      </button>
+      </Button>
     </form>
   );
 }

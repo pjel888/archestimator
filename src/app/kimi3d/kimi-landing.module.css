@@ -322,8 +322,8 @@
   background: var(--k-signal-dark);
   color: var(--k-canvas);
   font-family: var(--k-font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
   line-height: 1;
   cursor: pointer;
   white-space: nowrap;
@@ -392,8 +392,8 @@
   background: var(--k-glass-strong);
   color: var(--k-ink);
   font-family: var(--k-font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
   cursor: pointer;
 }
 
@@ -460,8 +460,8 @@
   background: var(--k-glass-strong);
   color: var(--k-ink);
   font: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
   white-space: nowrap;
   cursor: pointer;
 }

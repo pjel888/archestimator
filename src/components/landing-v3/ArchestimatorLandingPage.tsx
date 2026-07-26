@@ -20,6 +20,7 @@ import {
   TreeStructureIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { ButtonLink } from "@/components/ui/button";
 import { stringifyJsonLd } from "@/lib/landing/json-ld";
 import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
@@ -91,25 +92,27 @@ const FEATURE_CHAPTER_MODES = ["library", "proposal", "revision"] as const;
 
 function PrimaryCta({ isLoggedIn, location }: { isLoggedIn: boolean; location: string }) {
   return (
-    <Link
+    <ButtonLink
       href={isLoggedIn ? WORKSPACE_HREF : WALKTHROUGH_HREF}
       data-landing-v3-cta="primary"
       data-landing-v3-location={location}
-      className={styles.primaryCta}
+      variant="plain"
+      size="lg"
+      className={cn(styles.primaryCta, "min-w-0")}
     >
       <span>{isLoggedIn ? "Open workspace" : "Book a walkthrough"}</span>
       <span aria-hidden="true">
         <ArrowRight weight="bold" />
       </span>
-    </Link>
+    </ButtonLink>
   );
 }
 
 function SecondaryCta({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className={styles.secondaryCta}>
+    <ButtonLink href={href} variant="plain" size="lg" className={cn(styles.secondaryCta, "min-w-0")}>
       {children}
-    </Link>
+    </ButtonLink>
   );
 }
 
@@ -132,9 +135,9 @@ function LandingNav({ isLoggedIn }: LandingPageProps) {
         </nav>
         <div className={styles.navActions}>
           {isLoggedIn ? null : (
-            <Link href={LOGIN_HREF} className={cn(styles.secondaryCta, styles.navSecondaryCta)}>
+            <ButtonLink href={LOGIN_HREF} variant="plain" size="lg" className={cn(styles.secondaryCta, styles.navSecondaryCta, "min-w-0")}>
               Sign in
-            </Link>
+            </ButtonLink>
           )}
           <PrimaryCta isLoggedIn={isLoggedIn} location="nav" />
         </div>
@@ -148,13 +151,23 @@ function LandingNav({ isLoggedIn }: LandingPageProps) {
             ))}
             <div className={styles.mobileMenuActions}>
               {isLoggedIn ? null : (
-                <Link href={LOGIN_HREF} className={cn(styles.secondaryCta, styles.mobileMenuSecondaryCta)}>
+                <ButtonLink
+                  href={LOGIN_HREF}
+                  variant="plain"
+                  size="lg"
+                  className={cn(styles.secondaryCta, styles.mobileMenuSecondaryCta, "min-w-0")}
+                >
                   Sign in
-                </Link>
+                </ButtonLink>
               )}
-              <Link href={isLoggedIn ? WORKSPACE_HREF : WALKTHROUGH_HREF} className={cn(styles.primaryCta, styles.mobileMenuPrimaryCta)}>
+              <ButtonLink
+                href={isLoggedIn ? WORKSPACE_HREF : WALKTHROUGH_HREF}
+                variant="plain"
+                size="lg"
+                className={cn(styles.primaryCta, styles.mobileMenuPrimaryCta, "min-w-0")}
+              >
                 {isLoggedIn ? "Open workspace" : "Book a walkthrough"}
-              </Link>
+              </ButtonLink>
             </div>
           </nav>
         </details>

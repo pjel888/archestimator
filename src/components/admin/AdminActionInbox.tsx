@@ -2,8 +2,8 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
+import { Button, ButtonLink } from "@/components/ui/button";
 import {
   dismissActionItem,
   resolveActionItem,
@@ -79,40 +79,48 @@ export function AdminActionInbox({ items }: { items: AdminActionItemRow[] }) {
           </div>
           <div className="flex flex-wrap items-center gap-1 sm:shrink-0 sm:justify-end">
             {actionHref(item) ? (
-              <Link
+              <ButtonLink
                 href={actionHref(item)!}
-                className="min-h-8 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-center text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                variant="plain"
+                size="sm"
+                className="min-h-8 min-w-0 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-center !text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
               >
                 Open
-              </Link>
+              </ButtonLink>
             ) : null}
             {item.source_kind !== "support" && item.source_kind !== "feedback" ? (
               <>
-                <button
+                <Button
                   type="button"
                   disabled={pending}
                   onClick={() => run(item.id, snoozeActionItem)}
-                  className="min-h-8 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                  variant="plain"
+                  size="sm"
+                  className="min-h-8 min-w-0 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 !text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
                 >
                   Snooze 1d
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   disabled={pending}
                   onClick={() => run(item.id, resolveActionItem)}
-                  className="min-h-8 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
+                  variant="plain"
+                  size="sm"
+                  className="min-h-8 min-w-0 flex-1 cursor-pointer rounded-xs border border-hairline px-2 py-1 !text-[9px] font-medium leading-3 text-ink transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5"
                 >
                   Resolve
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   disabled={pending}
                   onClick={() => run(item.id, dismissActionItem)}
-                  className="min-h-8 cursor-pointer rounded-xs px-2 py-1 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-0.5"
+                  variant="plain"
+                  size="sm"
+                  className="min-h-8 min-w-0 cursor-pointer rounded-xs px-2 py-1 !text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-0.5"
                   aria-label="Dismiss"
                 >
                   Dismiss
-                </button>
+                </Button>
               </>
             ) : null}
           </div>

@@ -5,6 +5,7 @@ import { X } from "@phosphor-icons/react/dist/ssr";
 import { CostDonutChart } from "@/components/charts/CostDonutChart";
 import { DeltaBadge } from "@/components/ui/delta-badge";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
+import { IconButton } from "@/components/ui/icon-button";
 import { formatChartMoney, formatChartShare } from "@/lib/project-charts/format";
 import type { ProjectChartBucket, ProjectChartGroupingMode } from "@/lib/project-charts/types";
 import type { ProjectDataEstimateSheet } from "@/lib/repositories/project-data-repository";
@@ -66,14 +67,16 @@ export function EstimateColumn({
           ) : null}
         </div>
         {!baseline && onRemove ? (
-          <button
+          <IconButton
             type="button"
             onClick={onRemove}
-            aria-label={`Remove ${estimate.name} from comparison`}
+            variant="plain"
+            size="icon-xs"
+            label={`Remove ${estimate.name} from comparison`}
+            title={undefined}
             className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          >
-            <X size={16} weight="regular" aria-hidden="true" />
-          </button>
+            icon={<X size={16} weight="regular" aria-hidden="true" />}
+          />
         ) : null}
       </header>
 

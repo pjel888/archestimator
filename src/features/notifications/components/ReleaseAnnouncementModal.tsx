@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { isAllowedNotificationActionHref } from "@/lib/notifications/release-announcements";
 import type { ReleaseAnnouncementView } from "@/lib/notifications/types";
@@ -69,16 +70,18 @@ export function ReleaseAnnouncementModal({ announcement, returnFocusRef }: Relea
         <p className="max-w-full break-words text-[10px] leading-4 text-secondary">{announcement.body}</p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
-        <button
+        <Button
           ref={(node) => {
             if (!hasAction) primaryButtonRef.current = node;
           }}
           type="button"
-          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs px-2 text-[10px] font-medium leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+          variant="plain"
+          size="xs"
+          className="inline-flex min-h-7 min-w-0 cursor-pointer items-center justify-center rounded-xs px-2 text-[10px] font-medium leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
           onClick={acknowledge}
         >
           Dismiss
-        </button>
+        </Button>
         {hasAction ? (
           <a
             ref={(node) => {

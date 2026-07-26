@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   ArrowSquareOut,
   LinkBreak,
@@ -12,7 +11,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { Drawer } from "@/components/ui/overlays/sheet-drawer";
 import { StatusBadge, type StatusBadgeStatus } from "@/components/ui/status-badge";
@@ -265,23 +264,27 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
               {copyLabel}
             </Button>
             {summary?.clientLinkPath ? (
-              <Link
+              <ButtonLink
                 {...onboardingTarget("publisher.preview")}
                 href={previewHref}
-                className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
+                variant="secondary"
+                size="sm"
+                className="min-h-8 min-w-0 gap-1.5 px-2 !text-[10px] focus-visible:ring-offset-1"
               >
                 <ArrowSquareOut size={16} aria-hidden="true" />
                 Preview
-              </Link>
+              </ButtonLink>
             ) : null}
             {row.clientPortalPath ? (
-              <Link
+              <ButtonLink
                 href={row.clientPortalPath}
-                className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
+                variant="secondary"
+                size="sm"
+                className="min-h-8 min-w-0 gap-1.5 px-2 !text-[10px] focus-visible:ring-offset-1"
               >
                 <ArrowSquareOut size={16} aria-hidden="true" />
                 Open Client Portal
-              </Link>
+              </ButtonLink>
             ) : null}
           </div>
         </div>
@@ -407,12 +410,14 @@ export function PublisherDrawer({ embedded = false, initialTab = "overview", ope
                     Roll back Portal migration
                   </Button>
                 ) : null}
-                <Link
+                <ButtonLink
                   href={`/workshop/projects/${encodeURIComponent(row.projectId)}/team`}
-                  className="inline-flex min-h-8 items-center justify-center rounded-xs border border-divider bg-white px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  variant="secondary"
+                  size="sm"
+                  className="min-h-8 min-w-0 bg-white px-2 !text-[10px] focus-visible:ring-offset-0"
                 >
                   Team access
-                </Link>
+                </ButtonLink>
                 {canManagePublication && hasLiveLink ? (
                   <>
                     <Button

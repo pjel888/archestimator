@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 /**
@@ -100,9 +101,11 @@ export function AuthGlassPanel({ variant = "full", className }: AuthGlassPanelPr
 
       {/* Signal-orange logo slab pinned to the top; links back to the site. */}
       <div className="relative z-10">
-        <Link
+        <ButtonLink
           href="/"
           aria-label="Archestimator home"
+          variant="plain"
+          size="lg"
           className="inline-flex items-center gap-2 rounded-landing-dense bg-brand-orange px-3 py-2 outline-none transition-colors duration-200 hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-orange"
         >
           <ArchestimatorLogo
@@ -111,7 +114,7 @@ export function AuthGlassPanel({ variant = "full", className }: AuthGlassPanelPr
             showWordmark={true}
             wordmarkClassName="text-[14px] font-medium text-white"
           />
-        </Link>
+        </ButtonLink>
       </div>
 
       {/* Honest product copy - real content, not decoration. */}

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ButtonLink } from "@/components/ui/button";
 import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import { cn } from "@/lib/ui/cn";
 import {
@@ -29,9 +29,11 @@ export function WorkshopMobileNavigation({
         const Icon = item.icon;
         const active = isWorkshopNavigationItemActive(pathname, item);
         return (
-          <Link
+          <ButtonLink
             key={item.id}
             href={item.href}
+            variant="plain"
+            size="icon-sm"
             aria-current={active ? "page" : undefined}
             aria-label={item.label}
             title={item.label}
@@ -46,7 +48,7 @@ export function WorkshopMobileNavigation({
               : {})}
           >
             <Icon size={16} aria-hidden="true" />
-          </Link>
+          </ButtonLink>
         );
       })}
     </nav>

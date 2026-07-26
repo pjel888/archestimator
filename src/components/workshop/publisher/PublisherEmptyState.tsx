@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { FileX, Monitor } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 
+import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type PublisherNoRowsEmptyStateProps = {
@@ -34,9 +34,9 @@ export function PublisherNoRowsEmptyState({ action, variant = "no-publications" 
       title={copy.title}
       description={copy.description}
       action={action ?? (variant === "no-publications" ? (
-        <Link href="/workshop/projects" className="inline-flex min-h-8 items-center justify-center rounded-xs border border-divider bg-surface px-2.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+        <ButtonLink href="/workshop/projects" variant="secondary" size="sm" className="min-h-8 min-w-0 px-2.5 !text-[10px] focus-visible:ring-offset-0">
           View projects
-        </Link>
+        </ButtonLink>
       ) : null)}
       className="h-full min-h-44 w-full rounded-xs [&>p:first-of-type]:!text-[12px] [&>p:nth-of-type(2)]:!max-w-xs [&>p:nth-of-type(2)]:!text-[10px]"
     />

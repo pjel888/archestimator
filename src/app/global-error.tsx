@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { Button } from "@/components/ui/button";
 import { buildClientErrorPayload, postClientErrorReport } from "@/lib/observability/client-error-report";
 
 type GlobalErrorProps = {
@@ -30,14 +31,16 @@ export default function GlobalError({ error, unstable_retry }: GlobalErrorProps)
             <p className="mt-3 text-[10px] leading-5 text-muted">
               The workspace could not finish loading. Try again, or return after a moment.
             </p>
-            <button
+            <Button
               ref={retryButtonRef}
               type="button"
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-xs border border-ink bg-ink px-4 text-[10px] font-medium text-white transition hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              variant="plain"
+              size="lg"
+              className="mt-6 inline-flex h-10 min-w-0 items-center justify-center rounded-xs border border-ink bg-ink px-4 text-[10px] font-medium text-white transition hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
               onClick={() => unstable_retry()}
             >
               Try again
-            </button>
+            </Button>
           </section>
         </main>
       </body>

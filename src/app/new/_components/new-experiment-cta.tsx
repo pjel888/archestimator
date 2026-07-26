@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { useLandingAuthHintState } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
 
@@ -28,9 +28,11 @@ export function NewExperimentCta({
   const isHero = placement === "hero";
 
   return (
-    <Link
+    <ButtonLink
       href={showSignedOutFallback ? BETA_ACCESS_MAILTO_HREF : WORKSPACE_HREF}
-      className={cn(isHero ? lockedStyles.ctaButton : styles.closingCta, className)}
+      variant="plain"
+      size="lg"
+      className={cn(isHero ? lockedStyles.ctaButton : styles.closingCta, "min-w-0", className)}
       data-new-experiment-cta={placement}
       data-new-cta-loading={isLoading ? "" : undefined}
     >
@@ -46,6 +48,6 @@ export function NewExperimentCta({
       ) : (
         <ArrowRight size={18} weight="bold" aria-hidden="true" />
       )}
-    </Link>
+    </ButtonLink>
   );
 }

@@ -3504,13 +3504,15 @@ export function EstimateSheetContent({
                   Has value (cost &gt; 0)
                 </label>
                 {facetsActive ? (
-                  <button
+                  <Button
                     type="button"
-                    className="self-start rounded-xs px-1 py-0.5 text-[9px] font-medium text-brand-orange hover:underline"
+                    variant="plain"
+                    size="xs"
+                    className="min-h-0 min-w-0 self-start px-1 py-0.5 !text-[9px] text-brand-orange hover:underline"
                     onClick={() => setSheetFacets(EMPTY_SHEET_FACETS)}
                   >
                     Clear filters
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </FilterPopover>

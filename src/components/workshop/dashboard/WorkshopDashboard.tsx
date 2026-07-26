@@ -2,6 +2,7 @@ import { ArrowUpRight, Package } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
+import { ButtonLink } from "@/components/ui/button";
 import { FirstEstimateChecklist } from "@/components/workshop/FirstEstimateChecklist";
 import { getComponentDetailsHref } from "@/components/workshop/library/component-route-state";
 import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
@@ -136,8 +137,10 @@ export function WorkshopDashboard({
               <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
                 01
               </span>
-              <Link
+              <ButtonLink
                 href={WORKSHOP_ROUTES.projects}
+                variant="plain"
+                size="icon-xs"
                 aria-label="Open Projects"
                 className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
@@ -147,7 +150,7 @@ export function WorkshopDashboard({
                   aria-hidden="true"
                   className="dashboard-destination-card-icon transition-colors duration-[200ms] ease-out motion-reduce:transition-none"
                 />
-              </Link>
+              </ButtonLink>
             </div>
 
             <div
@@ -196,8 +199,10 @@ export function WorkshopDashboard({
               <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
                 02
               </span>
-              <Link
+              <ButtonLink
                 href={estimateSheetsHref}
+                variant="plain"
+                size="icon-xs"
                 aria-label={estimateSheetsLinkLabel}
                 className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
@@ -207,7 +212,7 @@ export function WorkshopDashboard({
                   aria-hidden="true"
                   className="dashboard-destination-card-icon transition-colors duration-[200ms] ease-out motion-reduce:transition-none"
                 />
-              </Link>
+              </ButtonLink>
             </div>
 
             <div

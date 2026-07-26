@@ -220,8 +220,8 @@
   align-items: center;
   justify-content: center;
   font-family: var(--landing-cta-font-family);
-  font-size: var(--landing-cta-font-size);
-  font-weight: var(--landing-cta-font-weight);
+  font-size: var(--landing-cta-font-size) !important;
+  font-weight: var(--landing-cta-font-weight) !important;
   letter-spacing: var(--landing-cta-letter-spacing);
   line-height: 1;
   text-decoration: none;

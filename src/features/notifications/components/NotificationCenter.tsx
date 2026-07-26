@@ -3,6 +3,8 @@
 import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { NotificationBellButton } from "@/features/notifications/components/NotificationBellButton";
 import { NotificationListItem } from "@/features/notifications/components/NotificationListItem";
 import {
@@ -72,14 +74,15 @@ export function NotificationCenter() {
         >
           <div className="flex min-h-9 items-center justify-between border-b border-hairline px-2">
             <p className="text-[11px] font-medium leading-4 text-ink">Notifications</p>
-            <button
+            <IconButton
               type="button"
-              aria-label="Retry notifications"
+              label="Retry notifications"
+              variant="plain"
+              size="icon-xs"
               className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               onClick={() => void feedQuery.refetch()}
-            >
-              <ArrowClockwise size={16} weight="regular" aria-hidden="true" />
-            </button>
+              icon={<ArrowClockwise size={16} weight="regular" aria-hidden="true" />}
+            />
           </div>
 
           {feedQuery.isLoading ? (
@@ -91,13 +94,15 @@ export function NotificationCenter() {
           ) : feedQuery.isError ? (
             <div role="alert" className="space-y-2 p-2 text-[10px] leading-4 text-secondary">
               <p>Notifications could not load.</p>
-              <button
+              <Button
                 type="button"
-                className="inline-flex min-h-7 cursor-pointer items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                variant="plain"
+                size="xs"
+                className="inline-flex min-h-7 min-w-0 cursor-pointer items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 onClick={() => void feedQuery.refetch()}
               >
                 Retry
-              </button>
+              </Button>
             </div>
           ) : items.length === 0 ? (
             <p className="p-2 text-[10px] leading-4 text-tertiary">No notifications</p>

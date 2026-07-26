@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { PROJECT_HEADER_ACTION_BUTTON_CLASS, PROJECT_HEADER_ACTION_ICON_SIZE } from "./project-header-action-styles";
 
 const WORKSHOP_PRIMARY_ROUTES = new Set([
@@ -48,14 +48,16 @@ export function WorkshopHeaderBackButton() {
   if (!backHref) return <span className="size-8 shrink-0" aria-hidden="true" />;
 
   return (
-    <Link
+    <ButtonLink
       href={backHref}
+      variant="ghost"
+      size="icon-sm"
       className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
       aria-label="Go back"
       title="Go back"
       data-workshop-header-back-button
     >
       <ArrowLeft size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
-    </Link>
+    </ButtonLink>
   );
 }

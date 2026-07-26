@@ -17,10 +17,11 @@ import {
   X,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/control-input";
 import { CreatableCombobox, type CreatableComboboxChange, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { IconButton } from "@/components/ui/icon-button";
 import { Modal } from "@/components/ui/modal";
 import {
   COMPONENT_UNIT_COMBOBOX_OPTIONS,
@@ -1857,24 +1858,25 @@ function OpenAddComponentModal({
             ))}
           </div>
 
-          <button
+          <IconButton
             type="button"
-            aria-label="Open variants panel"
+            variant="plain"
+            size="icon-sm"
+            label="Open variants panel"
             aria-expanded={variantDrawerOpen}
             onClick={() => {
               setVariantDrawerOpen((current) => !current);
               setVariantDrawerView("manager");
             }}
             className={cn(
-              "absolute right-[-30px] top-[-1px] z-40 grid h-[34px] w-[30px] cursor-pointer place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition-colors transition-transform hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] before:absolute before:left-0 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-r-sm before:bg-transparent before:transition-colors",
+              "absolute right-[-30px] top-[-1px] z-40 h-[34px] min-h-0 w-[30px] min-w-0 rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition-colors transition-transform hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:ring-[rgba(242,68,5,0.32)] focus-visible:ring-offset-0 before:absolute before:left-0 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-r-sm before:bg-transparent before:transition-colors",
               "hover:before:bg-[#F24405]",
               OPENDESIGN_RAIL_SHADOW_CLASS,
               "max-[640px]:right-2 max-[640px]:top-[3px] max-[640px]:h-[26px] max-[640px]:w-[28px] max-[640px]:rounded-[6px] max-[640px]:border-l",
               variantDrawerOpen && "border-[#F24405]/30 bg-[color-mix(in_srgb,#F24405_14%,white)] text-[#c63804] before:bg-[#F24405] shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]",
             )}
-          >
-            <Dna size={15} weight="regular" aria-hidden="true" />
-          </button>
+            icon={<Dna size={15} weight="regular" aria-hidden="true" />}
+          />
 
           {activeTab === "component" ? (
             <div role="tabpanel" aria-label="Component" className="relative z-20 grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -2150,21 +2152,25 @@ function OpenAddComponentModal({
             <div className={cn("mr-auto min-w-0 truncate text-[9px] font-medium", error || showValidationErrors ? "text-danger" : "text-tertiary")} aria-live="polite">
               {componentStatus}
             </div>
-            <button
+            <Button
               type="button"
+              variant="plain"
+              size="sm"
               onClick={() => requestClose(false)}
-              className="h-8 px-2 text-[10px] font-medium text-tertiary transition hover:bg-[rgba(255,255,255,0.58)] hover:text-ink rounded-[3px] border border-transparent bg-transparent"
+              className="h-8 min-h-0 min-w-0 rounded-[3px] border border-transparent bg-transparent px-2 py-0 text-tertiary hover:bg-[rgba(255,255,255,0.58)] hover:text-ink focus-visible:ring-offset-0"
             >
               Discard
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="brand"
+              size="sm"
               onClick={submit}
               disabled={isPending || imageBusy || attachmentBusy}
-              className="h-8 px-2 text-[10px] font-medium text-white transition hover:brightness-[0.94] disabled:cursor-not-allowed disabled:opacity-55 rounded-[3px] border border-[#c63804] bg-[#F24405] shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_10px_18px_-14px_rgba(198,56,4,0.78)]"
+              className="h-8 min-h-0 min-w-0 rounded-[3px] border border-[#c63804] bg-[#F24405] px-2 py-0 text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_10px_18px_-14px_rgba(198,56,4,0.78)] hover:bg-[#F24405] hover:brightness-[0.94] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-55"
             >
               {isPending ? (isEditing ? "Saving..." : "Adding...") : imageBusy || attachmentBusy ? "Uploading..." : isEditing ? "Save Component" : "Add Component"}
-            </button>
+            </Button>
           </footer>
 
           <div
@@ -2196,14 +2202,15 @@ function OpenAddComponentModal({
                 <h3 className="truncate text-[11px] font-medium leading-[1.2] text-ink">Manage Variants</h3>
                 <p className="m-0 truncate text-[9px] font-medium leading-3 text-tertiary">{visibleVariants.length} variant{visibleVariants.length === 1 ? "" : "s"}</p>
               </div>
-              <button
+              <IconButton
                 type="button"
-                aria-label="Close variants panel"
+                variant="plain"
+                size="icon-xs"
+                label="Close variants panel"
                 onClick={() => setVariantDrawerOpen(false)}
-                className="grid size-7 cursor-pointer place-items-center rounded-[3px] border border-[rgba(61,61,61,0.10)] bg-transparent text-tertiary transition hover:border-[rgba(61,61,61,0.16)] hover:bg-[#f5f5f5] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
-              >
-                <X size={16} weight="regular" aria-hidden="true" />
-              </button>
+                className="min-h-0 min-w-0 rounded-[3px] border border-[rgba(61,61,61,0.10)] bg-transparent text-tertiary hover:border-[rgba(61,61,61,0.16)] hover:bg-[#f5f5f5] hover:text-ink focus-visible:ring-[rgba(242,68,5,0.32)] focus-visible:ring-offset-0"
+                icon={<X size={16} weight="regular" aria-hidden="true" />}
+              />
             </header>
 
             <div className="flex h-8 shrink-0 items-center justify-start gap-2 border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.58)] px-2 pb-[5px] pl-4 pt-1">
@@ -2245,18 +2252,19 @@ function OpenAddComponentModal({
                 >
                   <Dna size={16} weight="regular" aria-hidden="true" />
                 </button>
-                <button
+                <IconButton
                   type="button"
-                  aria-label="Add variant"
+                  variant="plain"
+                  size="icon-sm"
+                  label="Add variant"
                   onClick={addVariant}
                   className={cn(
-                    "-mt-px grid h-[34px] w-[30px] cursor-pointer place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary opacity-[0.82] transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                    "-mt-px h-[34px] min-h-0 w-[30px] min-w-0 border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary opacity-[0.82] hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:ring-[rgba(242,68,5,0.32)] focus-visible:ring-offset-0",
                     OPENDESIGN_RAIL_SHADOW_CLASS,
                     visibleVariants.length === 0 && "rounded-br-[3px]",
                   )}
-                >
-                  <Plus size={14} weight="regular" aria-hidden="true" />
-                </button>
+                  icon={<Plus size={14} weight="regular" aria-hidden="true" />}
+                />
                 {visibleVariants.map((variant, index) => {
                   const isActive = activeVariant?.id === variant.id && variantDrawerView === "variant";
                   const isLast = index === visibleVariants.length - 1;
@@ -2316,24 +2324,26 @@ function OpenAddComponentModal({
                           {variant.isDefault ? <span className="h-[18px] rounded-full bg-[color-mix(in_srgb,#F24405_10%,white)] px-[7px] text-[9px] font-medium leading-[18px] text-[#c63804]">Default</span> : null}
                         </button>
                         <span className="grid grid-cols-2 gap-px" aria-label={`Reorder ${label}`}>
-                          <button
+                          <IconButton
                             type="button"
-                            aria-label={`Move ${label} up`}
+                            variant="plain"
+                            size="icon-xs"
+                            label={`Move ${label} up`}
                             disabled={index === 0}
                             onClick={() => moveVariant(variant.id, -1)}
-                            className="grid size-6 cursor-pointer place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            <CaretUp size={10} weight="regular" aria-hidden="true" />
-                          </button>
-                          <button
+                            className="size-6 min-h-0 min-w-0 rounded-[3px] text-tertiary hover:bg-white hover:text-ink disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-30"
+                            icon={<CaretUp size={10} weight="regular" aria-hidden="true" />}
+                          />
+                          <IconButton
                             type="button"
-                            aria-label={`Move ${label} down`}
+                            variant="plain"
+                            size="icon-xs"
+                            label={`Move ${label} down`}
                             disabled={index === visibleVariants.length - 1}
                             onClick={() => moveVariant(variant.id, 1)}
-                            className="grid size-6 cursor-pointer place-items-center rounded-[3px] text-tertiary transition hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            <CaretDown size={10} weight="regular" aria-hidden="true" />
-                          </button>
+                            className="size-6 min-h-0 min-w-0 rounded-[3px] text-tertiary hover:bg-white hover:text-ink disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-30"
+                            icon={<CaretDown size={10} weight="regular" aria-hidden="true" />}
+                          />
                         </span>
                       </div>
                     );
@@ -2533,24 +2543,27 @@ function OpenAddComponentModal({
                           </div>
                           <div className="absolute right-[5px] top-[5px] flex items-center gap-1">
                             {persistedAttachmentIds.has(attachment.id) ? (
-                              <a
+                              <ButtonLink
                                 href={`/api/component-library/attachments?id=${encodeURIComponent(attachment.id)}`}
+                                variant="plain"
+                                size="icon-xs"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 aria-label={`Download attachment ${attachment.fileName}`}
-                                className="grid size-6 cursor-pointer place-items-center rounded-full bg-white/74 text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                                className="grid size-6 min-h-0 min-w-0 place-items-center rounded-full bg-white/74 text-tertiary hover:bg-white hover:text-ink focus-visible:ring-[rgba(242,68,5,0.32)] focus-visible:ring-offset-0"
                               >
                                 <DownloadSimple size={11} weight="bold" aria-hidden="true" />
-                              </a>
+                              </ButtonLink>
                             ) : null}
-                            <button
+                            <IconButton
                               type="button"
-                              aria-label={`Remove attachment ${attachment.fileName}`}
+                              variant="plain"
+                              size="icon-xs"
+                              label={`Remove attachment ${attachment.fileName}`}
                               onClick={() => removeAttachment(attachment.id)}
-                              className="grid size-6 cursor-pointer place-items-center rounded-full border-0 bg-white/74 p-0 text-tertiary opacity-0 transition hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger group-hover:opacity-100"
-                            >
-                              <X size={11} weight="bold" aria-hidden="true" />
-                            </button>
+                              className="size-6 min-h-0 min-w-0 rounded-full border-0 bg-white/74 text-tertiary opacity-0 hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:ring-danger focus-visible:ring-offset-0 group-hover:opacity-100"
+                              icon={<X size={11} weight="bold" aria-hidden="true" />}
+                            />
                           </div>
                         </li>
                       )) : (
@@ -2573,14 +2586,15 @@ function OpenAddComponentModal({
             </div>
             <footer className="flex h-[49px] min-h-[49px] shrink-0 items-center justify-start border-t border-[rgba(61,61,61,0.08)] px-4">
               {variantDrawerView === "variant" && activeVariant ? (
-                <button
+                <IconButton
                   type="button"
-                  aria-label="Delete variant"
+                  variant="plain"
+                  size="icon-xs"
+                  label="Delete variant"
                   onClick={removeActiveVariant}
-                  className="grid size-7 cursor-pointer place-items-center rounded-[6px] text-danger transition hover:bg-dangerSoft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
-                >
-                  <Trash size={16} weight="regular" aria-hidden="true" />
-                </button>
+                  className="min-h-0 min-w-0 rounded-[6px] text-danger hover:bg-dangerSoft/40 focus-visible:ring-danger focus-visible:ring-offset-0"
+                  icon={<Trash size={16} weight="regular" aria-hidden="true" />}
+                />
               ) : null}
             </footer>
           </aside>

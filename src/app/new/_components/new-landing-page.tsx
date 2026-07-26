@@ -3,6 +3,7 @@ import { Jersey_25 } from "next/font/google";
 import { preload } from "react-dom";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 import LandingPageHeroMobileAvif from "../../../../public/landing-hero-day-1280.avif";
@@ -115,9 +116,14 @@ export function NewLandingPage() {
               </p>
               <div className={experimentStyles.heroActions}>
                 <NewExperimentCta placement="hero" />
-                <a href="#workflow" className={experimentStyles.heroSecondaryCta}>
+                <ButtonLink
+                  href="#workflow"
+                  variant="plain"
+                  size="lg"
+                  className={cn(experimentStyles.heroSecondaryCta, "min-w-0")}
+                >
                   {newLandingCopy.hero.secondaryCtaLabel}
-                </a>
+                </ButtonLink>
               </div>
             </div>
             <div

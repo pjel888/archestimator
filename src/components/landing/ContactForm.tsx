@@ -4,6 +4,7 @@ import { useReducer, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { EnvelopeOpen } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
 import { buildSupportMailto, normalizeInquiryType, SUPPORT_EMAIL } from "./contact-mailto";
 
 export type ContactIntent = "started" | "walkthrough" | "general";
@@ -109,13 +110,15 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
           >
             Open email draft
           </a>
-          <button
+          <Button
             type="button"
             onClick={() => dispatchForm({ type: "reset", initialIntent })}
-            className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-[#cfcfca] bg-white px-5 text-[11px] font-bold uppercase tracking-normal text-[#17181c] transition hover:bg-[#eeeeec] active:scale-95"
+            variant="plain"
+            size="lg"
+            className="inline-flex min-h-10 min-w-0 items-center justify-center rounded-[5px] border border-[#cfcfca] bg-white px-5 !text-[11px] !font-bold uppercase tracking-normal text-[#17181c] transition hover:bg-[#eeeeec] active:scale-95"
           >
             Start another message
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -249,12 +252,14 @@ export function ContactForm({ initialIntent = "started" }: { initialIntent?: Con
           Opening an email draft keeps this request on your device until you send it.
         </p>
 
-        <button
+        <Button
           type="submit"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[5px] bg-brand-orange px-6 text-[12px] font-bold uppercase tracking-normal text-white transition hover:bg-brand-orange-dark disabled:bg-[#cfcfca] disabled:text-[#626260]"
+          variant="plain"
+          size="lg"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[5px] bg-brand-orange px-6 !text-[12px] !font-bold uppercase tracking-normal text-white transition hover:bg-brand-orange-dark disabled:bg-[#cfcfca] disabled:text-[#626260]"
         >
           Open Email Draft
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -850,9 +850,11 @@ function ComponentCatalogueCard({
             />
           </label>
         ) : null}
-        <button
+        <Button
           type="button"
-          className="absolute inset-0 cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+          variant="plain"
+          size="xs"
+          className="absolute inset-0 h-auto min-h-0 w-auto min-w-0 justify-start rounded-none bg-transparent p-0 text-left hover:bg-transparent focus-visible:ring-inset focus-visible:ring-offset-0"
           data-component-card-image-inspect={item.id}
           aria-label={`View details for ${name}`}
           onClick={(event) => {
@@ -885,16 +887,18 @@ function ComponentCatalogueCard({
               <ImageSquare size={24} weight="regular" />
             </span>
           )}
-        </button>
+        </Button>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-2">
         <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary" title={card.pathLabel}>
           {card.pathLabel}
         </p>
         <h3 className="line-clamp-2 text-[10px] font-medium leading-[1.25] text-ink" title={name}>
-          <button
+          <Button
             type="button"
-            className="cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            variant="plain"
+            size="xs"
+            className="h-auto min-h-0 min-w-0 justify-start whitespace-normal rounded-none bg-transparent p-0 text-left text-inherit hover:bg-transparent hover:text-inherit focus-visible:ring-offset-0"
             data-component-card-inspect={item.id}
             aria-label={`View details for ${name}`}
             onClick={(event) => {
@@ -906,7 +910,7 @@ function ComponentCatalogueCard({
             }}
           >
             {name}
-          </button>
+          </Button>
         </h3>
         <div className="flex flex-col gap-0.5">
           {brand ? (
@@ -932,10 +936,12 @@ function ComponentCatalogueCard({
             Cost / {item.unit}
           </p>
           {canPromote ? (
-            <button
+            <Button
               type="button"
+              variant="plain"
+              size="xs"
               className={cn(
-                "mt-1 inline-flex h-6 cursor-pointer items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
+                "mt-1 h-6 min-h-0 min-w-0 rounded-xs border px-2 py-0 !text-[9px] text-secondary hover:text-ink focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60",
                 surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
               )}
               aria-label={`Promote ${name} to library`}
@@ -947,7 +953,7 @@ function ComponentCatalogueCard({
               }}
             >
               {promotePending ? "Promoting…" : "Promote"}
-            </button>
+            </Button>
           ) : null}
           <div className={cn("mt-1 space-y-0.5 border-t pt-1", surfaceVariant === "glass" ? LIBRARY_GLASS_DIVIDER_CLASS : "border-hairline")}>
             <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={pricingSource}>
@@ -1022,15 +1028,17 @@ function DenseSortableHeader({
 }) {
   const active = sort.key === sortKey;
   return (
-    <button
+    <Button
       type="button"
-      className="inline-flex min-h-6 max-w-full cursor-pointer items-center gap-1 text-left text-[9px] font-medium leading-3 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      variant="plain"
+      size="xs"
+      className="min-h-6 max-w-full min-w-0 justify-start gap-1 rounded-none px-0 py-0 text-left !text-[9px] leading-3 text-tertiary hover:bg-transparent hover:text-ink focus-visible:ring-offset-0"
       aria-label={`Sort by ${label.toLowerCase()}`}
       onClick={() => onSort(sortKey)}
     >
       <span className="truncate">{label}</span>
       {active ? <span aria-hidden="true" className="shrink-0 text-[8px] uppercase">{sort.direction}</span> : null}
-    </button>
+    </Button>
   );
 }
 
@@ -1129,9 +1137,11 @@ function ComponentCatalogueDenseTable({
           const item = row.original.item;
           const name = getComponentName(item);
           return (
-            <button
+            <Button
               type="button"
-              className="block max-w-full cursor-pointer truncate text-left text-[10px] font-medium leading-4 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              variant="plain"
+              size="xs"
+              className="block h-auto min-h-0 max-w-full min-w-0 truncate rounded-none bg-transparent px-0 py-0 text-left leading-4 text-ink hover:bg-transparent hover:text-ink focus-visible:ring-offset-0"
               data-component-card-inspect={item.id}
               aria-label={`View details for ${name}`}
               title={name}
@@ -1144,7 +1154,7 @@ function ComponentCatalogueDenseTable({
               }}
             >
               {name}
-            </button>
+            </Button>
           );
         },
       },
@@ -1222,10 +1232,12 @@ function ComponentCatalogueDenseTable({
           const canPromote = Boolean(onPromote && isPromotableProjectProjectionItem(item));
           return (
             <div className="flex min-w-0 items-center gap-1">
-              <button
+              <Button
                 type="button"
+                variant="plain"
+                size="xs"
                 className={cn(
-                  "inline-flex h-6 cursor-pointer items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "h-6 min-h-0 min-w-0 rounded-xs border px-2 py-0 !text-[9px] text-secondary hover:text-ink focus-visible:ring-offset-0",
                   surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
                 )}
                 data-component-card-inspect={item.id}
@@ -1233,12 +1245,14 @@ function ComponentCatalogueDenseTable({
                 onClick={() => onInspect(item.id)}
               >
                 Details
-              </button>
+              </Button>
               {canPromote ? (
-                <button
+                <Button
                   type="button"
+                  variant="plain"
+                  size="xs"
                   className={cn(
-                    "inline-flex h-6 cursor-pointer items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
+                    "h-6 min-h-0 min-w-0 rounded-xs border px-2 py-0 !text-[9px] text-secondary hover:text-ink focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60",
                     surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
                   )}
                   aria-label={`Promote ${name} to library`}
@@ -1247,7 +1261,7 @@ function ComponentCatalogueDenseTable({
                   onClick={() => onPromote?.(item)}
                 >
                   {promotingItemId === item.id ? "Promoting" : "Promote"}
-                </button>
+                </Button>
               ) : null}
             </div>
           );
@@ -1974,17 +1988,19 @@ function ComponentLibrarySheet({
               <p className="text-[10px] font-medium leading-4 text-ink">
                 {String(visibleItems.length)} components match.
               </p>
-              <button
+              <Button
                 type="button"
+                variant="plain"
+                size="sm"
                 className={cn(
-                  "inline-flex h-8 cursor-pointer items-center gap-1 rounded-xs border px-3 text-[10px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "h-8 min-h-0 min-w-0 gap-1 rounded-xs border px-3 py-0 text-secondary hover:text-ink focus-visible:ring-offset-0",
                   surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
                 )}
                 onClick={() => changeDisplayMode("dense")}
               >
                 <Rows size={16} weight="regular" aria-hidden="true" />
                 Dense
-              </button>
+              </Button>
             </div>
           </div>
         ) : (

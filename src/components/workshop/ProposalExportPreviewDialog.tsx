@@ -4,6 +4,8 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 import { ArrowClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import type { ProposalExportModel } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
 import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
@@ -285,10 +287,13 @@ export function ProposalExportPreviewDialog({
             ) : (
               <span className={cn(previewStatusBadgeClass, "bg-emerald-50 text-emerald-700")}>Preview current</span>
             )}
-            <button
+            <Button
               type="button"
+              variant="plain"
+              size="xs"
               className={cn(
                 previewActionButtonClass,
+                "min-w-0",
                 "border border-primary/20 bg-accentSoft text-primary shadow-none hover:border-primary/35 hover:bg-primary hover:text-white",
               )}
               onClick={onRefresh}
@@ -297,12 +302,15 @@ export function ProposalExportPreviewDialog({
               <span className={previewActionTextClass} data-testid="proposal-preview-refresh-label">
                 Refresh preview
               </span>
-            </button>
+            </Button>
             {showDownloadButton ? (
-              <button
+              <Button
                 type="button"
+                variant="plain"
+                size="xs"
                 className={cn(
                   previewActionButtonClass,
+                  "min-w-0",
                   "bg-primary text-white hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60",
                 )}
                 onClick={onDownload}
@@ -317,16 +325,18 @@ export function ProposalExportPreviewDialog({
                 <span className={previewActionTextClass} data-testid="proposal-preview-download-label">
                   {downloadInProgress ? "Preparing…" : "Download editable XLSX"}
                 </span>
-              </button>
+              </Button>
             ) : null}
-            <button
+            <IconButton
               type="button"
-              aria-label="Close preview"
+              variant="outline"
+              size="icon-xs"
+              label="Close preview"
+              title={undefined}
               className="grid size-7 cursor-pointer place-items-center rounded-xs border border-hairline text-[9px] font-medium leading-none text-tertiary hover:bg-surfaceMuted hover:text-ink"
               onClick={onClose}
-            >
-              ×
-            </button>
+              icon="×"
+            />
           </div>
         </header>
 

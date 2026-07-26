@@ -149,18 +149,20 @@ export function ComponentAppliedFacetChips({
       <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-1" aria-label="Active component filter chips">
         {chips.map((chip) => (
           <li key={chip.id} className="min-w-0">
-            <button
-              type="button"
-              className={cn(
-                "inline-flex max-w-[min(220px,80vw)] items-center gap-1 rounded-xs border px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                chipClassName ?? "border-hairline bg-white/75 hover:bg-surfaceMuted",
+          <Button
+            type="button"
+            variant="plain"
+            size="xs"
+            className={cn(
+              "min-h-0 min-w-0 max-w-[min(220px,80vw)] gap-1 border px-1.5 py-0.5 !text-[9px] leading-3 text-secondary hover:text-ink focus-visible:ring-offset-0",
+              chipClassName ?? "border-hairline bg-white/75 hover:bg-surfaceMuted",
               )}
               onClick={() => onFiltersChange(removeAppliedFacetChip(filters, chip))}
               aria-label={`Remove ${chip.label} filter`}
             >
               <span className="truncate">{chip.label}</span>
-              <X size={10} weight="regular" aria-hidden="true" className="shrink-0" />
-            </button>
+            <X size={10} weight="regular" aria-hidden="true" className="shrink-0" />
+          </Button>
           </li>
         ))}
       </ul>

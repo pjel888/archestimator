@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Star } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { useToggleEstimateFavorite } from "@/hooks/use-toggle-estimate-favorite";
 import {
   announceSidebarFavoriteAssertive,
@@ -127,14 +128,16 @@ export function ProjectEstimateFavoriteButton({
 
   return (
     <>
-      <button
+      <IconButton
         type="button"
+        variant="plain"
+        size="icon-xs"
         className={cn(
           "grid size-6 cursor-pointer place-items-center rounded-xs transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40",
           isFavorite ? "text-brand-orange hover:text-brand-orange" : "text-tertiary hover:bg-surface-muted hover:text-ink",
           isPending || isToggling ? "cursor-wait opacity-70" : null,
         )}
-        aria-label={
+        label={
           isFavorite
             ? `Remove ${estimate.name} from favorite estimate sheets`
             : `Add ${estimate.name} to favorite estimate sheets`
@@ -145,14 +148,15 @@ export function ProjectEstimateFavoriteButton({
         disabled={disabled || isPending || isToggling}
         onClick={toggleFavorite}
         title={currentErrorMessage ?? (isFavorite ? "Remove from favorite estimate sheets" : "Add to favorite estimate sheets")}
-      >
-        <Star
-          size={16}
-          weight={isFavorite ? "fill" : "regular"}
-          data-favorite-icon-state={isFavorite ? "filled" : "outline"}
-          aria-hidden="true"
-        />
-      </button>
+        icon={
+          <Star
+            size={16}
+            weight={isFavorite ? "fill" : "regular"}
+            data-favorite-icon-state={isFavorite ? "filled" : "outline"}
+            aria-hidden="true"
+          />
+        }
+      />
       {currentErrorMessage ? <span className="sr-only">{currentErrorMessage}</span> : null}
     </>
   );

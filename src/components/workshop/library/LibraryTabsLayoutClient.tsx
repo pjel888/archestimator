@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSelectedLayoutSegments } from "next/navigati
 import { Blueprint, MagnifyingGlass, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { cn } from "@/lib/ui/cn";
 import { getLibraryActiveTab, LIBRARY_TABS_ID_BASE, type LibraryTabId } from "./library-tabs-model";
@@ -163,9 +164,11 @@ function LibraryTabsLayoutContent({
             className="flex h-[38px] min-h-[38px] items-center gap-1 bg-transparent px-2 py-0"
           >
             <div className="flex items-center gap-1" role="group" aria-label="Library search">
-              <button
+              <IconButton
                 type="button"
-                aria-label={searchOpen ? "Hide library search" : "Show library search"}
+                variant="plain"
+                size="icon-xs"
+                label={searchOpen ? "Hide library search" : "Show library search"}
                 aria-controls={searchPanelId}
                 aria-expanded={searchOpen}
                 aria-pressed={searchOpen}
@@ -180,20 +183,20 @@ function LibraryTabsLayoutContent({
                   if (searchOpen) closeSearchPanel();
                   else setSearchOpen(true);
                 }}
-              >
-                <MagnifyingGlass size={12} weight="regular" aria-hidden="true" />
-              </button>
+                icon={<MagnifyingGlass size={12} weight="regular" aria-hidden="true" />}
+              />
             </div>
             <div className="ml-auto flex items-center gap-1">
-              <button
+              <IconButton
                 type="button"
-                aria-label="Add component"
+                variant="plain"
+                size="icon-xs"
+                label="Add component"
                 title="Add component"
                 className="grid size-6 cursor-pointer place-items-center rounded-xs bg-orange-100 p-0 text-orange-700 transition hover:bg-orange-200 hover:text-orange-800 focus-visible:bg-orange-200 focus-visible:text-orange-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 onClick={() => navigationRouter.push("/workshop/library/components?add=component")}
-              >
-                <Package size={13} weight="regular" aria-hidden="true" />
-              </button>
+                icon={<Package size={13} weight="regular" aria-hidden="true" />}
+              />
             </div>
           </div>
           {searchOpen ? (

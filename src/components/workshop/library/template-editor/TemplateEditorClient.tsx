@@ -8,7 +8,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
@@ -59,9 +59,15 @@ function TemplateEditorDockFallback({ onActivate }: { onActivate?: () => void })
 
   if (onActivate) {
     return (
-      <button
+      <Button
         type="button"
-        className={cn(className, "cursor-default text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}
+        variant="plain"
+        size="xs"
+        className={cn(
+          "min-h-0 min-w-0 items-stretch justify-start whitespace-normal p-0 text-left focus-visible:ring-offset-0",
+          className,
+          "cursor-default",
+        )}
         aria-label="Load components dock"
         onPointerEnter={onActivate}
         onFocus={onActivate}
@@ -69,7 +75,7 @@ function TemplateEditorDockFallback({ onActivate }: { onActivate?: () => void })
       >
         {content}
         <span className="sr-only">Load components dock</span>
-      </button>
+      </Button>
     );
   }
 
@@ -553,17 +559,19 @@ function TemplateEditorSurface({
         widthOffset={104}
       >
         <div className={cn("flex h-full min-h-0 flex-col overflow-hidden", librarySurfaceClass(surfaceVariant, "treeRail"))}>
-          <Link
+          <ButtonLink
             href="/workshop/library/templates"
             prefetch={false}
+            variant="plain"
+            size="xs"
             className={cn(
-              "flex h-7 shrink-0 items-center gap-1 px-2 text-[10px] leading-4 text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "h-7 min-w-0 shrink-0 justify-start gap-1 px-2 !text-[10px] leading-4 text-tertiary hover:text-ink focus-visible:ring-offset-0",
               librarySurfaceClass(surfaceVariant, "railPanelHeader"),
             )}
           >
             <CaretLeft size={11} weight="regular" aria-hidden="true" />
             All templates
-          </Link>
+          </ButtonLink>
           <TreePanelHeader
             className={cn("bg-transparent", librarySurfaceClass(surfaceVariant, "railPanelHeader"))}
             toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
@@ -608,13 +616,15 @@ function TemplateEditorSurface({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {editor.outcomeUnknown ? (
           editor.outcomeUnknownCollapsed ? (
-            <button
+            <Button
               type="button"
-              className="mx-2 mt-2 shrink-0 rounded-xs border border-warningSoft bg-warningSoft/30 px-2 py-1 text-left text-[9px] font-medium text-ink"
+              variant="plain"
+              size="xs"
+              className="mx-2 mt-2 min-w-0 shrink-0 justify-start whitespace-normal border border-warningSoft bg-warningSoft/30 px-2 py-1 text-left !text-[9px] text-ink"
               onClick={editor.expandUnknownOutcome}
             >
               Outcome unknown · check retained Template update
-            </button>
+            </Button>
           ) : (
             <section
               className="mx-2 mt-2 shrink-0 rounded-xs border border-warningSoft bg-warningSoft/30 p-2 text-[9px] text-ink"

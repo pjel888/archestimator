@@ -215,21 +215,25 @@ function RelationshipList({
             <span className="text-[9px] font-medium tabular-nums text-tertiary">{String(index + 1).padStart(2, "0")}</span>
             <div className="min-w-0">
               <p className="text-[10px] font-medium leading-4 text-ink">
-                <button
+                <Button
                   type="button"
-                  className="cursor-pointer underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  variant="plain"
+                  size="xs"
+                  className="inline min-h-0 min-w-0 cursor-pointer p-0 underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   onClick={() => onSelectNode(from.id)}
                 >
                   {from.title}
-                </button>
+                </Button>
                 <span className="px-1.5 text-secondary">{relation.label}</span>
-                <button
+                <Button
                   type="button"
-                  className="cursor-pointer underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  variant="plain"
+                  size="xs"
+                  className="inline min-h-0 min-w-0 cursor-pointer p-0 underline decoration-divider underline-offset-2 hover:text-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   onClick={() => onSelectNode(to.id)}
                 >
                   {to.title}
-                </button>
+                </Button>
               </p>
               <p className="mt-1 text-[10px] leading-4 text-secondary">{relation.explanation}</p>
               <details className="mt-1.5">

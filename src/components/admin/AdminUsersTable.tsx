@@ -10,7 +10,7 @@ import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import { AdminDeleteUserButton } from "@/components/admin/AdminDeleteUserButton";
 import { AdminOverviewStrip } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { formatAdminDate } from "@/lib/admin/datetime";
 import { banUser, reactivateUser, suspendUser } from "@/lib/admin/user-actions";
@@ -55,19 +55,23 @@ function UserActions({
     return (
       <div className={cn("flex items-center gap-1", mobile && "grid grid-cols-2")}>
         {user.is_registered ? (
-          <Link
+          <ButtonLink
             href={`/admin/users/${user.id}`}
-            className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            variant="plain"
+            size="xs"
+            className="inline-flex min-h-7 min-w-0 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             View history
-          </Link>
+          </ButtonLink>
         ) : null}
-        <Link
+        <ButtonLink
           href="/admin/allowlist"
-          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          variant="plain"
+          size="xs"
+          className="inline-flex min-h-7 min-w-0 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           Manage access
-        </Link>
+        </ButtonLink>
       </div>
     );
   }
@@ -76,12 +80,14 @@ function UserActions({
     return (
       <div className={cn("flex items-center gap-2", mobile && "justify-between")}>
         <span className="text-[9px] leading-3 text-tertiary">Protected administrator</span>
-        <Link
+        <ButtonLink
           href={`/admin/users/${user.id}`}
-          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          variant="plain"
+          size="xs"
+          className="inline-flex min-h-7 min-w-0 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           View details
-        </Link>
+        </ButtonLink>
       </div>
     );
   }
@@ -103,12 +109,14 @@ function UserActions({
             <Check aria-hidden size={16} /> Reactivate
           </Button>
         )}
-        <Link
+        <ButtonLink
           href={`/admin/users/${user.id}`}
-          className="inline-flex min-h-7 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          variant="plain"
+          size="xs"
+          className="inline-flex min-h-7 min-w-0 cursor-pointer items-center justify-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           View details
-        </Link>
+        </ButtonLink>
         <AdminDeleteUserButton userId={user.id} email={user.email} compact={false} />
       </div>
     );
@@ -356,18 +364,19 @@ export function AdminUsersTable({
           />
           <div className="flex flex-wrap items-center gap-1" aria-label="Filter users by access state">
             {directoryFilters.map((item) => (
-              <button
+              <Button
                 key={item.id}
-                type="button"
+                variant="plain"
+                size="xs"
                 aria-pressed={filter === item.id}
                 onClick={() => setFilter(item.id)}
                 className={cn(
-                  "min-h-7 cursor-pointer rounded-xs border px-2 text-[10px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  "min-w-0 border px-2",
                   filter === item.id ? "border-ink bg-ink text-white" : "border-hairline bg-white text-secondary hover:bg-surfaceMuted hover:text-ink",
                 )}
               >
                 {item.label}
-              </button>
+              </Button>
             ))}
             <span className="ml-1 text-[9px] leading-3 text-tertiary">{visibleUsers.length} shown</span>
           </div>

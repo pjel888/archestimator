@@ -87,15 +87,17 @@ export function AdminSavedReplies({ initialReplies }: { initialReplies: AdminSav
             <li key={reply.id} className="rounded-xs border border-hairline p-1.5">
               <div className="flex items-start justify-between gap-2">
                 <p className="min-w-0 flex-1 text-[10px] font-medium leading-4 text-ink text-pretty">{reply.label}</p>
-                <button
+                <Button
                   type="button"
                   disabled={pending}
                   onClick={() => remove(reply.id)}
-                  className="min-h-8 shrink-0 cursor-pointer rounded-xs px-2 text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-7"
+                  variant="plain"
+                  size="sm"
+                  className="min-h-8 min-w-0 shrink-0 cursor-pointer rounded-xs px-2 !text-[9px] font-medium leading-3 text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-7"
                   aria-label={`Delete ${reply.label}`}
                 >
                   Delete
-                </button>
+                </Button>
               </div>
               <p className="mt-1 whitespace-pre-wrap break-words text-[9px] leading-3 text-secondary">
                 {reply.body}

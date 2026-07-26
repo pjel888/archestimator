@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ButtonLink } from "@/components/ui/button";
 import { ProjectMobileNavigation } from "./navigation/ProjectMobileNavigation";
 import {
   getProjectNavigationItems,
@@ -30,12 +30,14 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
             const active = isProjectNavigationItemActive(pathname, link);
 
             return (
-              <Link
+              <ButtonLink
                 key={link.href}
                 href={link.href}
+                variant="plain"
+                size="sm"
                 aria-current={active ? "page" : undefined}
                 className={[
-                  "flex h-8 items-center gap-1 rounded-xs border border-transparent p-1 text-[10px] font-medium leading-none transition-colors",
+                  "h-8 min-w-0 gap-1 border border-transparent p-1 !text-[10px]",
                   active
                     ? "workshop-project-card-control text-ink"
                     : "text-tertiary hover:border-[color:var(--glass-border)] hover:bg-white/45 hover:text-ink",
@@ -43,7 +45,7 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
               >
                 <Icon size={14} aria-hidden="true" />
                 <span className="truncate">{link.label}</span>
-              </Link>
+              </ButtonLink>
             );
           })}
         </nav>

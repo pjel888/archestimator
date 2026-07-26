@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { SidebarSimple, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
 import {
   clampSidePanelContentWidth,
@@ -404,23 +405,29 @@ export function ResizableSidePanel({
 
     return (
       <>
-        <button
+        <IconButton
           type="button"
           ref={drawerTriggerRef}
-          aria-label={`Open ${drawerLabel}`}
+          variant="secondary"
+          size="icon-lg"
+          label={`Open ${drawerLabel}`}
+          title={undefined}
           aria-controls={panelId}
           aria-expanded={drawerOpen}
           aria-haspopup="dialog"
           className={cn(
-            "inline-flex h-full min-h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xs border-hairline bg-surface px-2 text-[10px] font-medium text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+            "h-full min-h-10 w-auto min-w-0 shrink-0 gap-2 border-hairline px-2 !text-[10px] text-secondary",
             compactBreakpointConfig.compactClassName,
             triggerSideClass,
           )}
           onClick={openDrawer}
-        >
-          <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />
-          <span className="sr-only">{ariaLabel}</span>
-        </button>
+          icon={
+            <>
+              <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />
+              <span className="sr-only">{ariaLabel}</span>
+            </>
+          }
+        />
         {drawerOpen ? (
           <div
             className={cn("fixed inset-0 z-50 bg-black/30", compactBreakpointConfig.compactClassName)}

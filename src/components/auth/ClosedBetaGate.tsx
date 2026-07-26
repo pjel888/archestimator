@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+
 /**
  * ClosedBetaGate - the request-access variant of the signup surface. This is the
  * SAFE DEFAULT until L-FUN-2 enables self-serve signup: instead of a live
@@ -69,9 +71,11 @@ export function ClosedBetaGate({ next }: ClosedBetaGateProps) {
           />
         </label>
 
-        <button
+        <Button
           type="submit"
-          className="group inline-flex min-h-[52px] w-full cursor-pointer items-center justify-between gap-3 rounded-full bg-brand-orange pl-6 pr-2 text-left text-[15px] font-medium leading-none text-white shadow-[0_1px_2px_rgba(194,56,4,0.25),inset_0_1px_0_rgba(255,255,255,0.18)] outline-none transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
+          variant="plain"
+          size="lg"
+          className="group inline-flex min-h-[52px] w-full cursor-pointer items-center justify-between gap-3 rounded-full bg-brand-orange pl-6 pr-2 text-left !text-[15px] font-medium leading-none text-white shadow-[0_1px_2px_rgba(194,56,4,0.25),inset_0_1px_0_rgba(255,255,255,0.18)] outline-none transition-[background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
         >
           <span className="flex-1 text-center">Request access</span>
           <span
@@ -94,7 +98,7 @@ export function ClosedBetaGate({ next }: ClosedBetaGateProps) {
               />
             </svg>
           </span>
-        </button>
+        </Button>
       </form>
 
       <p className="text-[14px] text-landing-ink-secondary">

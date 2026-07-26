@@ -10,7 +10,7 @@ import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import { AdminOverviewStrip, AdminPage, AdminPageHeader } from "@/components/admin/AdminPage";
 import { AdminStatusSelect } from "@/components/admin/AdminStatusSelect";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import {
   CONTROL_INPUT_SURFACE_CLASS,
   ControlField,
@@ -643,12 +643,14 @@ export function AdminAllowlistManager({
                   }
                   action={
                     statusFilter ? (
-                      <Link
+                      <ButtonLink
                         href={ALLOWLIST_PATH}
-                        className="inline-flex min-h-7 cursor-pointer items-center rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        variant="plain"
+                        size="xs"
+                        className="inline-flex min-h-7 min-w-0 cursor-pointer items-center rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       >
                         Show all
-                      </Link>
+                      </ButtonLink>
                     ) : null
                   }
                 />

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Buildings } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import {
   LibraryComponentSourceShell,
@@ -159,12 +159,14 @@ function ProjectComponentsEmptyState({
             ? "Express and detached estimate components appear here automatically so they can be reviewed and promoted to the shared library."
             : "Create or join a project to browse its estimate-specific components from this catalogue."}
         </p>
-        <Link
+        <ButtonLink
           href={projectId ? `/workshop/projects/${projectId}` : "/workshop/projects"}
-          className="mt-1 inline-flex h-7 items-center rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          variant="outline"
+          size="xs"
+          className="mt-1 h-7 min-w-0 px-2 !text-[10px] text-secondary hover:border-accent focus-visible:ring-offset-0"
         >
           {projectId ? "Open project" : "View projects"}
-        </Link>
+        </ButtonLink>
       </section>
     </div>
   );

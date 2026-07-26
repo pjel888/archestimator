@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
 type ImageDestinationKind = "projects" | "components" | "templates";
@@ -61,8 +61,10 @@ export function ImageDestinationCard({
               className="dashboard-destination-card-icon transition-colors duration-[200ms] ease-out motion-reduce:transition-none"
             />
           ) : (
-            <Link
+            <ButtonLink
               href={href}
+              variant="plain"
+              size="icon-xs"
               aria-label={`Open ${label}`}
               className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
             >
@@ -72,7 +74,7 @@ export function ImageDestinationCard({
                 aria-hidden="true"
                 className="dashboard-destination-card-icon transition-colors duration-[200ms] ease-out motion-reduce:transition-none"
               />
-            </Link>
+            </ButtonLink>
           )}
         </span>
       )}

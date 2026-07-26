@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   createLandingConsentState,
   getLandingConsentFromCookieHeader,
@@ -62,18 +63,20 @@ export function CookieConsentBanner({ inlineTrigger = false }: CookieConsentBann
 
   if (consent && !isEditing) {
     return (
-      <button
+      <Button
         type="button"
         aria-label="Open cookie choices"
+        variant="plain"
+        size="md"
         className={
           inlineTrigger
-            ? "m-3 rounded-[5px] border border-[#d8d6cf] bg-white px-3 py-2 text-[11px] font-semibold text-[#34342f] transition hover:border-[#b9b5aa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
-            : "fixed bottom-3 left-3 z-[60] rounded-[5px] border border-[#d8d6cf] bg-white/95 px-3 py-2 text-[11px] font-semibold text-[#34342f] shadow-sm backdrop-blur-md transition hover:border-[#b9b5aa] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+            ? "m-3 min-w-0 rounded-[5px] border border-[#d8d6cf] bg-white px-3 py-2 !text-[11px] !font-semibold text-[#34342f] transition hover:border-[#b9b5aa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+            : "fixed bottom-3 left-3 z-[60] min-w-0 rounded-[5px] border border-[#d8d6cf] bg-white/95 px-3 py-2 !text-[11px] !font-semibold text-[#34342f] shadow-sm backdrop-blur-md transition hover:border-[#b9b5aa] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
         }
         onClick={() => setIsEditing(true)}
       >
         Cookie settings
-      </button>
+      </Button>
     );
   }
 
@@ -90,20 +93,24 @@ export function CookieConsentBanner({ inlineTrigger = false }: CookieConsentBann
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-          <button
+          <Button
             type="button"
-            className="min-h-9 rounded-[5px] border border-[#c9c6bd] px-3 text-[11px] font-semibold text-[#34342f] transition hover:border-[#aaa59a] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+            variant="plain"
+            size="md"
+            className="min-h-9 min-w-0 rounded-[5px] border border-[#c9c6bd] px-3 !text-[11px] !font-semibold text-[#34342f] transition hover:border-[#aaa59a] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
             onClick={() => saveConsent(false)}
           >
             Essential only
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="min-h-9 rounded-[5px] bg-[#17181c] px-3 text-[11px] font-semibold text-white transition hover:bg-[#2a2b30] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+            variant="plain"
+            size="md"
+            className="min-h-9 min-w-0 rounded-[5px] bg-[#17181c] px-3 !text-[11px] !font-semibold text-white transition hover:bg-[#2a2b30] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
             onClick={() => saveConsent(true)}
           >
             Accept analytics
-          </button>
+          </Button>
         </div>
       </div>
     </section>

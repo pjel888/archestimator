@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useReducer, useRef, useState, type CSSPr
 import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, DotsThree, ImageSquare, PencilSimple, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ControlInput } from "@/components/ui/control-input";
 import { CreatableCombobox, type CreatableComboboxChange, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
@@ -660,10 +661,12 @@ function ExpressMaterialImageEditor({
     <>
       <div className="relative size-11 shrink-0">
         <ActionTooltip label={imageModalBusy ? "Uploading reference image" : imageUrl ? "Change reference image" : "Add reference image"}>
-          <button
+          <Button
             type="button"
+            variant="plain"
+            size="icon-lg"
             className={cn(
-              "relative grid size-11 cursor-pointer place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
+              "relative grid size-11 cursor-pointer place-items-center overflow-hidden rounded-xs border border-transparent bg-neutral-100 bg-cover bg-center text-center !text-[8px] font-medium leading-3 text-tertiary transition hover:border-hairline hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50 disabled:cursor-progress disabled:opacity-90",
               (imageUrl || selectedImagePreview) && "shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
             )}
             style={thumbnailImageStyle}
@@ -680,7 +683,7 @@ function ExpressMaterialImageEditor({
             <span aria-hidden="true" className={cn("absolute inset-x-1 bottom-1 rounded-xs bg-white/86 px-1 py-0.5 opacity-0 transition group-hover:opacity-90 group-focus-within:opacity-90", !imageUrl && !selectedImagePreview && "static bg-transparent opacity-100")}>
               {imageUrl || selectedImagePreview ? "Change" : "Add image"}
             </span>
-          </button>
+          </Button>
         </ActionTooltip>
         {showThumbnailUploadState ? (
           <div
@@ -695,9 +698,11 @@ function ExpressMaterialImageEditor({
             ) : null}
             <span className={cn(imageModalBusy && "sr-only")}>{imageUploadState.message}</span>
             {imageUploadRetryable ? (
-              <button
+              <Button
                 type="button"
-                className="pointer-events-auto mt-0.5 cursor-pointer rounded-xs border border-hairline bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-ink shadow-sm hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus"
+                variant="outline"
+                size="xs"
+                className="pointer-events-auto mt-0.5 min-h-0 min-w-0 px-1.5 py-0.5 !text-[8px] leading-[10px] shadow-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 aria-label="Retry upload"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -705,7 +710,7 @@ function ExpressMaterialImageEditor({
                 }}
               >
                 Retry
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : null}
@@ -1311,15 +1316,17 @@ export function EstimateMaterialCell({
             side="bottom"
             className="min-w-48"
             trigger={(
-              <button
+              <IconButton
                 ref={componentActionTriggerRef}
                 type="button"
+                variant="plain"
+                size="icon-xs"
                 className="grid size-5 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
-                aria-label={`Open component actions for ${componentLabel}`}
+                label={`Open component actions for ${componentLabel}`}
+                title={undefined}
                 onClick={(event) => event.stopPropagation()}
-              >
-                <DotsThree size={14} weight="bold" aria-hidden="true" />
-              </button>
+                icon={<DotsThree size={14} weight="bold" aria-hidden="true" />}
+              />
             )}
           >
             {canOpenComponentEditor && onOpenComponentEditor ? (

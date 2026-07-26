@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
 import { ProposalsEmptyState } from "@/components/workshop/proposals-page/ProposalsEmptyState";
 import { ProposalsErrorState } from "@/components/workshop/proposals-page/ProposalsErrorState";
 import { ProposalsList } from "@/components/workshop/proposals-page/ProposalsList";
@@ -99,13 +100,15 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
         {/* The route header already renders the page <h1>Proposals</h1>; this toolbar only shows
             the inbox email + the single recovery control, to avoid a duplicate <h1> in the outline. */}
         <p className="min-w-0 truncate text-[12px] font-medium text-ink">{userEmail}</p>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           className="inline-flex min-h-8 min-w-[96px] items-center justify-center rounded-xs border border-hairline bg-white px-2 py-1.5 !text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
           onClick={handleRetry}
         >
           {query.isFetching ? "Refreshing" : "Refresh"}
-        </button>
+        </Button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto p-3">

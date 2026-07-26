@@ -11,6 +11,7 @@ import {
 } from "react";
 import { GearSix } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import {
   PROJECT_HEADER_ACTION_BUTTON_CLASS,
   PROJECT_HEADER_ACTION_ICON_SIZE,
@@ -78,16 +79,18 @@ export function WorkshopSettingsModal({
   return (
     <WorkshopSettingsModalContext.Provider value={modalContext}>
       {trigger === "button" ? (
-        <button
+        <IconButton
           type="button"
-          aria-label="Open settings"
+          variant="ghost"
+          size="icon-sm"
+          label="Open settings"
+          title={undefined}
           aria-haspopup="dialog"
           aria-expanded={open}
           className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
           onClick={() => setOpen(true)}
-        >
-          <GearSix size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
-        </button>
+          icon={<GearSix size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />}
+        />
       ) : null}
       <Modal
         open={open}

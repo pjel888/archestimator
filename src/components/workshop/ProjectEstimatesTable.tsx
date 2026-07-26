@@ -1129,9 +1129,11 @@ function ProjectEstimatesTableComponent({
       </div>
       <div className="flex h-6 shrink-0 items-center justify-between border-t border-hairline bg-white px-2 text-[9px] font-medium text-tertiary">
         <span>{formatCount(estimates.length, "estimate", "estimates")}</span>
-        <button
+        <Button
           type="button"
-          className="rounded-xs px-1.5 py-0.5 font-medium uppercase tracking-normal text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          variant="plain"
+          size="xs"
+          className="min-h-0 min-w-0 px-1.5 py-0.5 !text-[inherit] uppercase tracking-normal text-tertiary hover:bg-surface-muted hover:text-ink"
           onClick={() => {
             // Column sizing is purely client/localStorage state — resetting it
             // must not trigger a server round-trip or the overlay (P0-5).
@@ -1139,7 +1141,7 @@ function ProjectEstimatesTableComponent({
           }}
         >
           Reset Column Widths
-        </button>
+        </Button>
       </div>
       <BulkActionToolbar
         selectedCount={selectedEstimateCount}

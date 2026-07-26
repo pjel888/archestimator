@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import { useLandingAuthHintState } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
 
@@ -30,15 +31,17 @@ export function PrimaryCtaLink({ className }: { className?: string }) {
   }
 
   return (
-    <Link
+    <ButtonLink
       href={isLoggedIn ? WORKSPACE_HREF : BETA_ACCESS_MAILTO_HREF}
+      variant="plain"
+      size="lg"
       className={cn(styles.ctaButton, className)}
     >
       <span>{isLoggedIn ? SIGNED_IN_CTA_LABEL : PRIMARY_CTA_LABEL}</span>
       <span className={styles.ctaArrow} aria-hidden="true">
         <ArrowRight size={16} weight="bold" />
       </span>
-    </Link>
+    </ButtonLink>
   );
 }
 

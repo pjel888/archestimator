@@ -23,6 +23,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/ui/cn";
 
 export type SupportComposerDraft = {
@@ -128,20 +129,20 @@ function ToolbarButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
+    <IconButton
+      icon={<span className="pointer-events-none inline-flex items-center justify-center">{children}</span>}
+      label={label}
+      variant="plain"
+      size="icon"
+      aria-pressed={active ?? undefined}
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xs text-secondary transition md:h-6 md:w-6",
+        "h-9 w-9 md:h-6 md:w-6",
         active ? "bg-surfaceMuted text-ink" : "hover:bg-surfaceMuted hover:text-ink",
         disabled && "cursor-not-allowed opacity-40",
       )}
-    >
-      <span className="pointer-events-none inline-flex items-center justify-center">{children}</span>
-    </button>
+    />
   );
 }
 
@@ -447,7 +448,11 @@ export function SupportRichComposer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-hairline px-1.5 py-1.5 md:py-1">
+      <div
+        role="toolbar"
+        aria-label="Message formatting and attachments"
+        className="flex flex-wrap items-center gap-0.5 border-b border-hairline px-1.5 py-1.5 md:py-1"
+      >
         <ToolbarButton
           label="Bold"
           active={editor?.isActive("bold")}
@@ -604,14 +609,15 @@ export function SupportRichComposer({
                 {draft.filename}
                 <span className="text-tertiary"> · {formatBytes(draft.sizeBytes)}</span>
               </span>
-              <button
+              <IconButton
                 type="button"
+                variant="plain"
+                size="icon-xs"
                 className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                aria-label={`Remove ${draft.filename}`}
+                label={`Remove ${draft.filename}`}
                 onClick={() => removeDraft(draft.draftId)}
-              >
-                <X size={16} className="pointer-events-none" aria-hidden />
-              </button>
+                icon={<X size={16} className="pointer-events-none" aria-hidden />}
+              />
             </li>
           ))}
         </ul>

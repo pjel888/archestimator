@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 export type ProjectStartOptionsProps = {
   onBrowseTemplates: () => void;
@@ -58,12 +56,14 @@ export function ProjectStartOptions({
         <p className="mt-1 text-[10px] leading-4 text-secondary">
           Compare every available starting point in one place.
         </p>
-        <Link
+        <ButtonLink
           href="/workshop/getting-started"
-          className="mt-auto inline-flex min-h-8 w-full items-center justify-center rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+          variant="secondary"
+          size="sm"
+          className="mt-auto min-h-8 w-full px-2 !text-[10px]"
         >
           Open Getting Started
-        </Link>
+        </ButtonLink>
       </article>
     </div>
   );

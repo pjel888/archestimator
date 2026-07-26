@@ -6,6 +6,7 @@ import { useStore } from "zustand";
 import { ArrowsOutSimple, CopySimple, DotsSixVertical, DotsThree, Info, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { IconButton } from "@/components/ui/icon-button";
 import { ControlInput } from "@/components/ui/control-input";
 import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
@@ -996,15 +997,17 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           side="bottom"
           className="min-w-44"
           trigger={(
-            <button
+            <IconButton
               ref={rowActionTriggerRef}
               type="button"
+              variant="plain"
+              size="icon-xs"
               className="grid size-5 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 [@media(pointer:coarse)]:size-10"
-              aria-label={`Open row actions for ${computedItemLabel}`}
+              label={`Open row actions for ${computedItemLabel}`}
+              title={undefined}
               onClick={(event) => event.stopPropagation()}
-            >
-              <DotsThree size={14} weight="bold" aria-hidden="true" />
-            </button>
+              icon={<DotsThree size={14} weight="bold" aria-hidden="true" />}
+            />
           )}
         >
           <DropdownMenu.Item

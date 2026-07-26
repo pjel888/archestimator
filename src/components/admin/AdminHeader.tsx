@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AdminCommandPalette = dynamic(
@@ -41,14 +41,16 @@ export function AdminHeader({ displayName, email }: AdminHeaderProps) {
 
       <div className="flex shrink-0 items-center gap-1">
         <AdminCommandPalette />
-        <Link
+        <ButtonLink
           href="/workshop"
-          className="inline-flex min-h-8 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
+          variant="plain"
+          size="sm"
+          className="inline-flex min-h-8 min-w-0 cursor-pointer items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
         >
           <span className="sm:hidden">App</span>
           <span className="hidden sm:inline">Workshop</span>
           <ArrowSquareOut size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
-        </Link>
+        </ButtonLink>
       </div>
     </header>
   );

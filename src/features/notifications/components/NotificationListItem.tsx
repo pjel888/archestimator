@@ -2,6 +2,7 @@
 
 import { Check, X } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import type { NotificationDeliveryView } from "@/lib/notifications/types";
 import { cn } from "@/lib/ui/cn";
 
@@ -50,25 +51,27 @@ export function NotificationListItem({
       </div>
       <div className="flex shrink-0 items-start gap-1">
         {unread ? (
-          <button
+          <IconButton
             type="button"
-            aria-label={`Mark ${notification.title} read`}
+            label={`Mark ${notification.title} read`}
+            variant="plain"
+            size="icon-xs"
             className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed"
             disabled={isMarkingRead}
             onClick={() => onMarkRead(notification.id)}
-          >
-            <Check size={16} weight="regular" aria-hidden="true" />
-          </button>
+            icon={<Check size={16} weight="regular" aria-hidden="true" />}
+          />
         ) : null}
-        <button
+        <IconButton
           type="button"
-          aria-label={`Dismiss ${notification.title}`}
+          label={`Dismiss ${notification.title}`}
+          variant="plain"
+          size="icon-xs"
           className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed"
           disabled={isDismissing}
           onClick={() => onDismiss(notification.id)}
-        >
-          <X size={16} weight="regular" aria-hidden="true" />
-        </button>
+          icon={<X size={16} weight="regular" aria-hidden="true" />}
+        />
       </div>
     </li>
   );

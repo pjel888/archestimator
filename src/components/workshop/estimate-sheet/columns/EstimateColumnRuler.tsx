@@ -3,6 +3,7 @@
 import type { RefObject } from "react";
 import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import {
   DEFAULT_ESTIMATE_COLUMN_WIDTHS,
   ESTIMATE_COLUMN_DEFINITIONS,
@@ -85,15 +86,16 @@ export function EstimateColumnRuler({ surfaceRef, widths, onCommitWidths, onRese
           )}
         >
           {column.id === "actions" ? (
-            <button
+            <IconButton
               type="button"
+              variant="plain"
+              size="icon-xs"
               className="flex size-6 cursor-pointer items-center justify-center rounded-xs text-[9px] font-medium text-tertiary outline-none hover:bg-surface-muted hover:text-secondary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/40"
-              aria-label="Reset column widths"
+              label="Reset column widths"
               title="Reset column widths"
               onClick={resetAllWidths}
-            >
-              <ArrowCounterClockwise size={16} weight="regular" aria-hidden="true" />
-            </button>
+              icon={<ArrowCounterClockwise size={16} weight="regular" aria-hidden="true" />}
+            />
           ) : (
             <span aria-label={column.label} className="truncate">
               <span aria-hidden="true" data-estimate-column-label="full">{column.label}</span>

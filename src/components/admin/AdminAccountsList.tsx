@@ -8,6 +8,7 @@ import { AdminDataTable } from "@/components/admin/AdminDataTable";
 import { formatAdminDate } from "@/lib/admin/datetime";
 import type { CorporateAccountWithCountRow } from "@/lib/admin/corporate-account-repository";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 
 function AccountMobileCard({ account }: { account: CorporateAccountWithCountRow }) {
@@ -44,12 +45,14 @@ function AccountMobileCard({ account }: { account: CorporateAccountWithCountRow 
         </div>
       </dl>
       <div className="mt-2 flex justify-end">
-        <Link
+        <ButtonLink
           href={`/admin/accounts/${account.id}`}
-          className="inline-flex min-h-8 items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          variant="plain"
+          size="sm"
+          className="inline-flex min-h-8 min-w-0 items-center rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           Open account
-        </Link>
+        </ButtonLink>
       </div>
     </article>
   );

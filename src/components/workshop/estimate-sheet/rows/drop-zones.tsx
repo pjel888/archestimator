@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
@@ -48,8 +49,11 @@ function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
   onAddBlankRow: (targetNodeId: string) => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="plain"
+      size="md"
+      data-onboarding-target="estimate.add_row"
       onClick={() => onAddBlankRow(nodeId)}
       aria-label={`Add blank estimate row to ${nodeName}`}
       title={`Add row to ${nodeName}`}
@@ -62,7 +66,7 @@ function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
         <Plus className="shrink-0" size={16} weight="regular" aria-hidden="true" />
         <span className="min-w-0 truncate">Add row to {nodeName}</span>
       </span>
-    </button>
+    </Button>
   );
 }
 

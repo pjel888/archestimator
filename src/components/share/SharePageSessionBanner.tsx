@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SHARE_CONTAINER_WIDTH } from "@/components/share/ShareContainer";
+import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
 type SharePageSessionBannerProps = {
@@ -35,14 +36,16 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
             <span className="rounded-xs bg-surfaceMuted px-2 py-1 text-[9px] font-medium leading-[12px] text-secondary">
               Reviewer
             </span>
-            <button
+            <Button
               type="button"
               onClick={clearRecipientSession}
               disabled={isClearingRecipientSession}
-              className="min-h-11 cursor-pointer rounded-xs px-2.5 py-1 text-[10px] font-medium leading-[14px] text-secondary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
+              variant="plain"
+              size="lg"
+              className="min-h-11 min-w-0 rounded-xs px-2.5 py-1 text-[10px] font-medium leading-[14px] text-secondary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
             >
               Not you?
-            </button>
+            </Button>
           </div>
         </div>
       </div>

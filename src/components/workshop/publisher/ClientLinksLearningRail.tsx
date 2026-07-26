@@ -9,8 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import Link from "next/link";
 
+import { ButtonLink } from "@/components/ui/button";
 import {
   ONBOARDING_RUNTIME_BINDING_EVENT,
   type OnboardingRuntimeBindingEventDetail,
@@ -176,8 +176,9 @@ export function ClientLinksLearningRail({
                 Publish and verify a client link
               </h2>
             </div>
-            <Link
-              className="inline-flex min-h-8 min-w-[96px] items-center justify-center rounded-xs border border-divider bg-surface px-2 py-1.5 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+            <ButtonLink
+              variant="secondary"
+              size="sm"
               href={`/workshop/publisher?tour=client_link_publishing&mode=${completed ? "replay" : flowState?.status === "in_progress" ? "resume" : "start"}`}
             >
                 {completed
@@ -187,7 +188,7 @@ export function ClientLinksLearningRail({
                     : flowState?.status === "dismissed"
                       ? "Start guide again"
                       : "Start guide"}
-            </Link>
+            </ButtonLink>
           </div>
           <ol className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[9px] leading-3 text-secondary">
             {LESSONS.map((lesson, index) => (

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 /**
  * GoogleButton - the Google-OAuth submit leaf. A quiet white pill carrying
  * the official Google "G" mark (inline SVG, no external asset) plus the
@@ -48,12 +50,14 @@ const GOOGLE_G_MARK = (
 
 export function GoogleButton({ label, className }: GoogleButtonProps) {
   return (
-    <button
+    <Button
       type="submit"
-      className={`inline-flex min-h-[52px] w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-landing-hairline-strong bg-white px-5 text-[15px] font-medium leading-none text-landing-ink shadow-[0_1px_2px_rgba(23,23,23,0.05)] outline-none transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-px hover:border-landing-ink-muted hover:shadow-[0_4px_12px_-4px_rgba(23,23,23,0.12)] focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50 ${className ?? ""}`}
+      variant="plain"
+      size="lg"
+      className={`inline-flex min-h-[52px] w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-landing-hairline-strong bg-white px-5 !text-[15px] font-medium leading-none text-landing-ink shadow-[0_1px_2px_rgba(23,23,23,0.05)] outline-none transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-px hover:border-landing-ink-muted hover:shadow-[0_4px_12px_-4px_rgba(23,23,23,0.12)] focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50 ${className ?? ""}`}
     >
       {GOOGLE_G_MARK}
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }

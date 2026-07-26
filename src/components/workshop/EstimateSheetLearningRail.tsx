@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CaretDown } from "@phosphor-icons/react";
 
+import { ButtonLink } from "@/components/ui/button";
 import type {
   OnboardingEligibilitySnapshot,
   OnboardingFlowKey,
@@ -130,12 +131,14 @@ export function EstimateSheetLearningRail({
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {primaryAvailable ? (
-                <Link
+                <ButtonLink
                   href={`?tour=${primaryFlowKey}&mode=${launchMode(primaryState)}`}
-                  className="inline-flex min-h-6 items-center rounded-xs bg-ink px-2 text-[9px] font-medium text-white outline-none hover:bg-ink/85 focus-visible:ring-2 focus-visible:ring-focus"
+                  variant="primary"
+                  size="xs"
+                  className="min-h-6 min-w-0 bg-ink px-2 !text-[9px] hover:bg-ink/85 focus-visible:ring-offset-0"
                 >
                   {launchLabel(primaryState)}
-                </Link>
+                </ButtonLink>
               ) : (
                 <span className="text-[8px] leading-3 text-tertiary">
                   Estimate context is not ready.
@@ -167,28 +170,34 @@ export function EstimateSheetLearningRail({
               <div className="flex flex-wrap gap-1">
                 {guidedAvailable ? (
                   <>
-                    <Link
+                    <ButtonLink
                       href={`?tour=guided_estimate_practice&mode=${launchMode(guidedState)}`}
-                      className="inline-flex min-h-6 items-center rounded-xs border border-divider bg-white px-2 text-[8px] font-medium outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+                      variant="secondary"
+                      size="xs"
+                      className="min-h-6 min-w-0 px-2 !text-[8px] focus-visible:ring-offset-0"
                     >
                       {launchLabel(guidedState)}
-                    </Link>
+                    </ButtonLink>
                     {guidedState?.status === "in_progress" || guidedState?.status === "completed" ? (
-                      <Link
+                      <ButtonLink
                         href="?tour=guided_estimate_practice&mode=restart"
-                        className="inline-flex min-h-6 items-center rounded-xs px-2 text-[8px] font-medium text-secondary underline underline-offset-2"
+                        variant="plain"
+                        size="xs"
+                        className="min-h-6 min-w-0 px-2 !text-[8px] text-secondary underline underline-offset-2"
                       >
                         Restart guide
-                      </Link>
+                      </ButtonLink>
                     ) : null}
                   </>
                 ) : (
-                  <Link
+                  <ButtonLink
                     href="/workshop/getting-started"
-                    className="inline-flex min-h-6 items-center rounded-xs border border-divider bg-white px-2 text-[8px] font-medium outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+                    variant="secondary"
+                    size="xs"
+                    className="min-h-6 min-w-0 px-2 !text-[8px] focus-visible:ring-offset-0"
                   >
                     Prepare practice
-                  </Link>
+                  </ButtonLink>
                 )}
               </div>
             </div>

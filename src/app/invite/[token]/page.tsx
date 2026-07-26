@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 
+import { Button, ButtonLink } from "@/components/ui/button";
 import {
   checkInviteResolutionRateLimit,
   hashInviteToken,
@@ -150,9 +150,9 @@ function InvitePreview({
         <form action={`/invite/${encodeURIComponent(rawToken)}/accept`} method="post">
           <input type="hidden" name="projectName" value={row.project_name ?? "Archestimator project"} />
           <input type="hidden" name="roleLabel" value={roleLabel(row.role)} />
-          <button className={inviteActionClassName} type="submit">
+          <Button className={inviteActionClassName} variant="plain" size="sm" type="submit">
             Confirm acceptance
-          </button>
+          </Button>
         </form>
       ) : (
         <a className={inviteActionClassName} href={`/invite/${encodeURIComponent(rawToken)}/continue`}>
@@ -174,9 +174,9 @@ function TerminalInviteState({
     <InviteShell state={state}>
       <h1 className="text-[12px] font-medium leading-4">{title}</h1>
       <p className="text-[10px] leading-4 text-secondary">{TERMINAL_INVITE_RECOVERY_COPY}</p>
-      <Link className={inviteSecondaryActionClassName} href="/contact">
+      <ButtonLink className={inviteSecondaryActionClassName} variant="plain" size="sm" href="/contact">
         Contact Archestimator
-      </Link>
+      </ButtonLink>
     </InviteShell>
   );
 }
@@ -210,9 +210,9 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
           </div>
         </dl>
         <form method="post" action={`/invite/${encodeURIComponent(decodedToken)}/sign-out`}>
-          <button type="submit" className={inviteSecondaryActionClassName}>
+          <Button type="submit" variant="plain" size="sm" className={inviteSecondaryActionClassName}>
             Sign out and continue
-          </button>
+          </Button>
         </form>
       </InviteShell>
     );

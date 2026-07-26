@@ -1,5 +1,7 @@
 import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
+
 type ProposalsErrorStateProps = {
   error: "unauthorized" | "unknown";
   isRetrying?: boolean;
@@ -24,13 +26,15 @@ export function ProposalsErrorState({ error, isRetrying = false, onRetry }: Prop
       </span>
       <h2 className="text-[12px] font-medium text-ink">Unable to load proposals</h2>
       <p className="mt-2 max-w-[34rem] text-[10px] leading-5 text-secondary">{readErrorMessage(error)}</p>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         className="mt-4 inline-flex min-h-8 min-w-[96px] items-center justify-center rounded-xs border border-hairline bg-transparent px-2 py-1.5 !text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
         onClick={onRetry}
       >
         {isRetrying ? "Retrying" : "Retry"}
-      </button>
+      </Button>
     </div>
   );
 }

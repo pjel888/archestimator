@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowRight, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { acceptPendingInvitationById } from "@/lib/collaboration/pending-invite-actions";
 import type { WorkshopPendingInviteSummary } from "@/lib/repositories/workspace-repository";
 import { cn } from "@/lib/ui/cn";
@@ -92,8 +91,10 @@ export function ProjectCardFooterAction({
   }
 
   return (
-    <Link
+    <ButtonLink
       href={projectHref}
+      variant="plain"
+      size="icon-xs"
       prefetch={false}
       aria-label={openLabel}
       onBlur={handleBlur}
@@ -108,6 +109,6 @@ export function ProjectCardFooterAction({
         className="shrink-0"
         aria-hidden="true"
       />
-    </Link>
+    </ButtonLink>
   );
 }

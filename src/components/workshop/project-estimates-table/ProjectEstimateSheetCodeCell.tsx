@@ -1,6 +1,7 @@
 import { useState, useTransition } from "react";
 import { MagicWand } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { regenerateEstimateSheetCode } from "@/lib/estimates/actions";
 import type { ProjectEstimatesStore } from "@/stores/project-estimates-store";
@@ -72,16 +73,17 @@ export function ProjectEstimateSheetCodeCell({
         onEstimateEditSettlingChange={onEstimateEditSettlingChange}
       />
       {isPendingRow ? null : (
-        <button
+        <IconButton
           type="button"
-          aria-label={`Auto-generate estimate code for ${estimate.name}`}
+          variant="plain"
+          size="icon-xs"
+          label={`Auto-generate estimate code for ${estimate.name}`}
           className="absolute right-0 top-1/2 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-xs border border-hairline bg-white/90 text-tertiary opacity-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.64)] transition hover:border-accent hover:text-accent focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed group-hover/sheet-code:opacity-100 group-focus-within/sheet-code:opacity-100"
           disabled={!canEditEstimate || isPending || isEstimateSettling || isGenerating}
           onClick={handleAutoGenerate}
           title={errorMessage ?? (canEditEstimate ? "Auto-generate the next estimate code" : "View-only estimate.")}
-        >
-          <MagicWand size={16} weight="regular" aria-hidden="true" />
-        </button>
+          icon={<MagicWand size={16} weight="regular" aria-hidden="true" />}
+        />
       )}
       {errorMessage ? <span className="sr-only">{errorMessage}</span> : null}
     </div>

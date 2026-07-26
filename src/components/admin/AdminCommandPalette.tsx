@@ -4,6 +4,7 @@ import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { adminSearch, type AdminSearchActionOutcome } from "@/lib/admin/search-actions";
 import type { AdminSearchKind, AdminSearchResult } from "@/lib/admin/search-repository";
 import {
@@ -116,10 +117,12 @@ export function AdminCommandPalette() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-8 min-w-8 cursor-pointer items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
+        variant="plain"
+        size="sm"
+        className="inline-flex min-h-8 min-w-0 cursor-pointer items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:min-h-7"
         aria-label="Open admin search"
       >
         <MagnifyingGlass size={16} weight="regular" className="pointer-events-none" aria-hidden="true" />
@@ -127,7 +130,7 @@ export function AdminCommandPalette() {
         <kbd className="ml-1 hidden rounded-xs border border-hairline px-1 text-[8px] font-medium leading-3 text-tertiary md:inline">
           ⌘K
         </kbd>
-      </button>
+      </Button>
 
       <Dialog open={open} onOpenChange={setOpen} closeLabel="Close search" modal overlayCloseGraceMs={400}>
         <DialogPortal>

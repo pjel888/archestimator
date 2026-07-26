@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import type { ProjectEstimateTableRow } from "./types";
 import { getEstimateHref } from "./utils";
 
@@ -29,18 +29,20 @@ export function ProjectEstimateOpenActionCell({
           <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
         </span>
       ) : (
-        <Link
+        <ButtonLink
           href={estimateHref}
+          variant="plain"
+          size="icon-xs"
           prefetch={true}
           onBlur={() => onPrefetchCancel(estimateHref)}
           onFocus={() => onPrefetchStart(estimateHref)}
           onMouseEnter={() => onPrefetchStart(estimateHref)}
           onMouseLeave={() => onPrefetchCancel(estimateHref)}
-          className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="size-6 min-h-0 min-w-0 text-tertiary hover:bg-surface-muted hover:text-ink"
           aria-label={`Open ${estimate.name}`}
         >
           <ArrowSquareOut size={16} weight="regular" aria-hidden="true" />
-        </Link>
+        </ButtonLink>
       )}
     </div>
   );

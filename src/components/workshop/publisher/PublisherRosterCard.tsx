@@ -1,5 +1,6 @@
 import { ArrowRight, Copy, LinkBreak, LockKey, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   formatPublisherRecipientCount,
@@ -71,19 +72,20 @@ export function PublisherRosterCard({ copyState, onCopyLink, onSelect, row, sele
       </button>
 
       <div className="flex w-10 flex-col items-center justify-center gap-0.5 pr-1">
-        <button
+        <IconButton
           type="button"
           className={cn(
             "grid size-8 cursor-pointer place-items-center rounded-xs text-tertiary transition-colors hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed",
             copyState === "copied" && "text-success",
           )}
-          aria-label={`${copyLabel} for ${row.projectName}`}
+          label={`${copyLabel} for ${row.projectName}`}
           title={copyLabel}
+          variant="ghost"
+          size="icon-sm"
           disabled={copyUnavailable}
           onClick={() => onCopyLink(row)}
-        >
-          <Copy size={16} aria-hidden="true" />
-        </button>
+          icon={<Copy size={16} aria-hidden="true" />}
+        />
         <ArrowRight size={11} className={selected ? "text-ink" : "text-tertiary"} aria-hidden="true" />
       </div>
     </article>

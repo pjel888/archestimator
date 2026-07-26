@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
+import { ButtonLink } from "@/components/ui/button";
 import type {
   OnboardingEligibilitySnapshot,
   OnboardingFlowStateSnapshot,
@@ -77,12 +77,14 @@ export function LibraryReuseRail({
               Opening starter content or viewing a guide does not complete this task.
             </p>
             {canUseGuide && hasReusableComponents ? (
-              <Link
+              <ButtonLink
                 href={guideHref}
-                className="inline-flex min-h-6 items-center rounded-xs bg-ink px-2 text-[8px] font-medium text-white outline-none hover:bg-ink/85 focus-visible:ring-2 focus-visible:ring-focus"
+                variant="primary"
+                size="xs"
+                className="min-h-6 min-w-0 bg-ink px-2 !text-[8px] hover:bg-ink/85 focus-visible:ring-offset-0"
               >
                 {launchLabel(state)}
-              </Link>
+              </ButtonLink>
             ) : (
               <span className="text-[8px] leading-3 text-tertiary">
                 {!canUseGuide ? "This guide requires Component and Estimate edit access." : "Add a reusable Component first."}
