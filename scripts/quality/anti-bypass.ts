@@ -16,24 +16,30 @@ import {
   validateWaiver,
   type ScannableFile,
 } from "./anti-bypass-core";
+import {
+  comparisonBaseFromFlags,
+  type ComparisonBase,
+} from "./comparison-base-core";
 
 const { positionals, flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
 const files: ScannableFile[] = [];
 let scanPaths = positionals;
-if (scanPaths.length === 0 && !flagString(flags, "fixture")) {
-  const base = flagString(flags, "base", "main")!;
-  const mergeBase = spawnSync("git", ["merge-base", base, "HEAD"], {
-    cwd: root,
-    encoding: "utf8",
-  });
-  if (mergeBase.status !== 0 || !mergeBase.stdout.trim()) {
-    findings.push({ code: "MERGE_BASE", message: `Cannot resolve merge base for ${base}` });
-  } else {
+let comparisonBase: ComparisonBase | undefined;
+try {
+  comparisonBase = await comparisonBaseFromFlags({ root, flags });
+} catch (error) {
+  findings.push({ code: "COMPARISON_BASE", message: String(error) });
+}
+if (scanPaths.length === 0 && !flagString(flags, "fixture") && comparisonBase) {
+  try {
     const changed = spawnSync(
       "git",
-      ["diff", "--name-only", "--diff-filter=ACMR", mergeBase.stdout.trim()],
+      [
+        "diff", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB",
+        comparisonBase.resolved_sha,
+      ],
       { cwd: root, encoding: "utf8" },
     );
     const untracked = spawnSync("git", ["ls-files", "--others", "--exclude-standard"], {
@@ -52,6 +58,8 @@ if (scanPaths.length === 0 && !flagString(flags, "fixture")) {
             !path.startsWith("tests/vitest/quality/"),
         );
     }
+  } catch (error) {
+    findings.push({ code: "DIFF_SCOPE", message: String(error) });
   }
 }
 for (const path of scanPaths) {
@@ -114,7 +122,7 @@ for (const waiverPath of flags.has("waiver")
 const result = makeResult(
   "anti-bypass",
   findings,
-  { scanned_files: files.map((file) => file.path) },
+  { comparison_base: comparisonBase ?? null, scanned_files: files.map((file) => file.path) },
   findings.length === 0
     ? `Anti-bypass PASS for ${files.length} file(s)`
     : `Anti-bypass FAIL with ${findings.length} finding(s)`,

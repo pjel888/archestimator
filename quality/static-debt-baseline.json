@@ -5,7 +5,7 @@
   "measurement": {
     "scope": "legacy repository debt measured before static no-new-debt enforcement",
     "command": "knip --reporter json --include files,dependencies,unlisted,unresolved,exports,nsExports,types,nsTypes,enumMembers,namespaceMembers,duplicates,cycles",
-    "issue_count": 832
+    "issue_count": 828
   },
   "measured_legacy_issues": [
     {
@@ -4132,26 +4132,6 @@
       "type": "unlisted",
       "file": "tests/workers/local-bindings.integration.test.ts",
       "symbol": "cloudflare"
-    },
-    {
-      "type": "unresolved",
-      "file": "scripts/quality/verify.ts",
-      "symbol": "scripts/quality/classify.ts"
-    },
-    {
-      "type": "unresolved",
-      "file": "tests/vitest/quality/review-manifest.test.ts",
-      "symbol": "scripts/quality/build-manifest.ts"
-    },
-    {
-      "type": "unresolved",
-      "file": "tests/vitest/quality/review-manifest.test.ts",
-      "symbol": "scripts/quality/report.ts"
-    },
-    {
-      "type": "unresolved",
-      "file": "tests/vitest/quality/review-manifest.test.ts",
-      "symbol": "scripts/quality/review.ts"
     },
     {
       "type": "unresolved",

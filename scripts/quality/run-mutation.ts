@@ -22,6 +22,10 @@ import {
   type MutationRegistry,
   type MutationScope,
 } from "./mutation-core";
+import {
+  comparisonBaseFromFlags,
+  type ComparisonBase,
+} from "./comparison-base-core";
 
 const { flags } = parseArgs();
 const root = qualityRoot();
@@ -38,16 +42,13 @@ if (!scope) {
   });
 }
 
-const base = flagString(flags, "base", "main")!;
-const mergeBaseRun = spawnSync("git", ["merge-base", base, "HEAD"], {
-  cwd: root,
-  encoding: "utf8",
-  maxBuffer: 10 * 1024 * 1024,
-});
-const mergeBase = mergeBaseRun.status === 0 ? mergeBaseRun.stdout.trim() : "";
-if (!mergeBase) {
-  findings.push({ code: "MERGE_BASE", message: `Cannot resolve merge base for ${base}` });
+let comparisonBase: ComparisonBase | undefined;
+try {
+  comparisonBase = await comparisonBaseFromFlags({ root, flags });
+} catch (error) {
+  findings.push({ code: "COMPARISON_BASE", message: String(error) });
 }
+const mergeBase = comparisonBase?.resolved_sha ?? "";
 
 function gitPaths(args: string[], findingCode: string): string[] {
   const run = spawnSync("git", args, {
@@ -117,7 +118,9 @@ const requestedCommand = [
   "--scope",
   scope ?? requestedScope ?? "",
   "--base",
-  base,
+  comparisonBase?.input_ref ?? "",
+  "--base-sha",
+  comparisonBase?.resolved_sha ?? "",
 ];
 const command = {
   requested: requestedCommand.join(" "),
@@ -213,7 +216,7 @@ if (findings.length === 0 && !flags.has("plan")) {
       });
     }
 
-    const minimum = 80;
+    const minimum = 90;
     if (metrics.score !== null && metrics.score < minimum) {
       findings.push({
         code: "MUTATION_THRESHOLD",
@@ -228,13 +231,12 @@ if (findings.length === 0 && !flags.has("plan")) {
   }
 }
 
-const status = flags.has("plan") && findings.length === 0 ? "QUALITY_BLOCKED" : undefined;
 const result = makeResult(
   "mutation-gate",
   findings,
   {
     scope,
-    base,
+    comparison_base: comparisonBase ?? null,
     merge_base: mergeBase || null,
     change_inventory: inventory,
     selected_targets: candidates,
@@ -260,9 +262,17 @@ const result = makeResult(
     : findings.length === 0
       ? `Mutation PASS for ${candidates.length} target(s)`
       : `Mutation FAIL with ${findings.length} finding(s)`,
-  status,
 );
 await finishCli(
   result,
-  resolve(root, flagString(flags, "output", "artifacts/quality/mutation.json")!),
+  resolve(
+    root,
+    flagString(
+      flags,
+      "output",
+      flags.has("plan")
+        ? "artifacts/quality/mutation-plan.json"
+        : "artifacts/quality/mutation.json",
+    )!,
+  ),
 );

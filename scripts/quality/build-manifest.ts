@@ -1,7 +1,10 @@
-import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
+import {
+  buildCandidate,
+  type CandidateRecord,
+  type CanonicalCandidate,
+} from "./candidate-core";
 import {
   finishCli,
   flagString,
@@ -14,8 +17,9 @@ import {
 } from "./common";
 import type { JobResult, ProfilesFile } from "./aggregate-core";
 import type { QualityProfile } from "./classifier-core";
+import type { ComparisonBase } from "./comparison-base-core";
 import { validateManifest } from "./report-core";
-import { candidateSha256 } from "./review-core";
+import { validateReviews, type ReviewEvidence } from "./review-core";
 import {
   buildCapabilityEvidence,
   validateTraceability,
@@ -53,6 +57,7 @@ let classification: {
   profile: QualityProfile;
   files: string[];
   affected_capabilities: string[];
+  comparison_base: ComparisonBase;
   reasons?: string[];
   attribution?: Record<string, unknown>;
 } | undefined;
@@ -77,6 +82,7 @@ try {
     !profiles.profiles[classification.profile] ||
     !Array.isArray(classification.files) ||
     !Array.isArray(classification.affected_capabilities) ||
+    !classification.comparison_base ||
     !Array.isArray(jobs) ||
     aggregate?.kind !== "quality-aggregate"
   ) {
@@ -89,14 +95,23 @@ try {
   });
 }
 
-const commitSha =
-  flagString(flags, "commit-sha") ??
-  process.env.QUALITY_CANDIDATE_SHA ??
-  spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
-if (!/^[a-f0-9]{40}$/u.test(commitSha)) {
+let candidate: CanonicalCandidate | undefined;
+try {
+  if (!classification) throw new Error("classification is unavailable");
+  candidate = await buildCandidate({
+    root,
+    comparison_base: classification.comparison_base,
+    classification,
+    expected: flagString(flags, "expected"),
+  });
+  const declaredCommit = flagString(flags, "commit-sha") ?? process.env.QUALITY_CANDIDATE_SHA;
+  if (declaredCommit && declaredCommit !== candidate.record.commit_sha) {
+    throw new Error("declared candidate commit does not equal HEAD");
+  }
+} catch (error) {
   findings.push({
-    code: "CANDIDATE_SHA",
-    message: "Final manifest requires an exact 40-character candidate commit SHA",
+    code: "CANDIDATE_INVALID",
+    message: `Final manifest candidate is missing or malformed: ${String(error)}`,
   });
 }
 
@@ -129,31 +144,17 @@ for (const job of jobs) {
   }
 }
 
-const targetFiles = [];
-for (const path of [...(classification?.files ?? [])].sort()) {
-  const absolute = resolve(root, path);
-  targetFiles.push({
-    path,
-    sha256: existsSync(absolute) ? sha256(await readFile(absolute)) : sha256("DELETED"),
-  });
-}
-const computedCandidate =
-  classification && /^[a-f0-9]{40}$/u.test(commitSha)
-    ? candidateSha256({
-        commit_sha: commitSha,
-        profile: classification.profile,
-        changed_files: targetFiles,
-        affected_capabilities: classification.affected_capabilities,
-      })
-    : "0".repeat(64);
+const computedCandidate = candidate?.sha256 ?? "0".repeat(64);
+const commitSha = candidate?.record.commit_sha ?? "";
 
 const reviewJob = jobs.find((job) => job.name === "quality / review");
 const reviewReport = reportsByJob.get("quality / review");
 const reviewData = reviewReport?.data as
   | {
-      candidate?: { sha256?: string };
+      candidate?: CandidateRecord & { sha256: string };
       requirements?: { quality?: boolean; security?: boolean; release?: boolean };
-      reviews?: Record<string, unknown>[];
+      reviews?: ReviewEvidence[];
+      author_ids?: string[];
       source?: string;
     }
   | undefined;
@@ -165,15 +166,58 @@ const defaultReviewRequirements = {
   release: profileReviews?.required_review_types.includes("release") ?? false,
 };
 const reviewRequirements = {
-  quality: reviewData?.requirements?.quality ?? defaultReviewRequirements.quality,
-  security: reviewData?.requirements?.security ?? defaultReviewRequirements.security,
-  release: reviewData?.requirements?.release ?? defaultReviewRequirements.release,
+  quality:
+    typeof reviewData?.requirements?.quality === "boolean"
+      ? reviewData.requirements.quality
+      : defaultReviewRequirements.quality,
+  security:
+    typeof reviewData?.requirements?.security === "boolean"
+      ? reviewData.requirements.security
+      : defaultReviewRequirements.security,
+  release:
+    typeof reviewData?.requirements?.release === "boolean"
+      ? reviewData.requirements.release
+      : defaultReviewRequirements.release,
 };
-if (reviewData?.candidate?.sha256 && reviewData.candidate.sha256 !== computedCandidate) {
+const reviewAuthors = Array.isArray(reviewData?.author_ids) ? reviewData.author_ids : [];
+const reviewEvidence = Array.isArray(reviewData?.reviews) ? reviewData.reviews : [];
+if (
+  reviewReport &&
+  (!reviewData?.requirements ||
+    !Array.isArray(reviewData.author_ids) ||
+    !Array.isArray(reviewData.reviews) ||
+    !["local-agent", "github"].includes(String(reviewData.source)))
+) {
+  findings.push({
+    code: "REVIEW_MALFORMED",
+    message: "Independent review report data is missing or malformed",
+  });
+}
+let reviewCandidate: CanonicalCandidate | undefined;
+if (reviewData?.candidate) {
+  const { sha256: digest, ...record } = reviewData.candidate;
+  reviewCandidate = { record, sha256: digest };
+}
+if (reviewReport && !reviewCandidate) {
   findings.push({
     code: "REVIEW_TARGET_MISMATCH",
     message: "Independent review report does not bind the final manifest candidate",
   });
+} else if (reviewCandidate) {
+  findings.push(
+    ...validateReviews({
+      requirements: reviewRequirements,
+      candidate: reviewCandidate,
+      author_ids: reviewAuthors,
+      reviews: reviewEvidence,
+    }),
+  );
+  if (reviewCandidate.sha256 !== computedCandidate) {
+    findings.push({
+      code: "REVIEW_TARGET_MISMATCH",
+      message: "Independent review report does not bind the final manifest candidate",
+    });
+  }
 }
 
 const selected = profile ? profiles.profiles[profile] : undefined;
@@ -220,22 +264,23 @@ const traceabilityFindings = classification
   : [];
 findings.push(...traceabilityFindings);
 
-function numericMetric(report: QualityReport | undefined, names: string[]): number {
-  if (!report) return 0;
-  const queue: unknown[] = [report.data];
-  let total = 0;
-  while (queue.length > 0) {
-    const value = queue.shift();
-    if (!value || typeof value !== "object") continue;
-    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-      if (names.includes(key) && typeof child === "number" && Number.isFinite(child)) {
-        total += child;
-      } else if (child && typeof child === "object") {
-        queue.push(child);
-      }
-    }
+function numericObjectMetric(value: unknown, names: Set<string>): number {
+  if (!value || typeof value !== "object") return 0;
+  return Object.entries(value as Record<string, unknown>).reduce(
+    (total, [key, child]) => total + numericEntryMetric(key, child, names),
+    0,
+  );
+}
+
+function numericEntryMetric(key: string, child: unknown, names: Set<string>): number {
+  if (names.has(key) && typeof child === "number" && Number.isFinite(child)) {
+    return child;
   }
-  return total;
+  return numericObjectMetric(child, names);
+}
+
+function numericMetric(report: QualityReport | undefined, names: string[]): number {
+  return report ? numericObjectMetric(report.data, new Set(names)) : 0;
 }
 
 function domain(jobNames: string[], applicable: boolean) {

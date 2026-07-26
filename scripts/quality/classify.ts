@@ -16,18 +16,15 @@ import {
   type RiskMap,
 } from "./classifier-core";
 import { buildAttribution } from "./attribution";
+import {
+  comparisonBaseFromFlags,
+  type ComparisonBase,
+} from "./comparison-base-core";
 
-function gitChangedFiles(baseRef: string): { files: string[]; error?: string } {
-  const mergeBase = spawnSync("git", ["merge-base", baseRef, "HEAD"], {
-    encoding: "utf8",
-    cwd: qualityRoot(),
-  });
-  if (mergeBase.status !== 0 || !mergeBase.stdout.trim()) {
-    return { files: [], error: `Missing merge base for ${baseRef}` };
-  }
+function gitChangedFiles(baseSha: string): { files: string[]; error?: string } {
   const diff = spawnSync(
     "git",
-    ["diff", "--name-only", "--diff-filter=ACMR", mergeBase.stdout.trim()],
+    ["diff", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB", baseSha],
     { encoding: "utf8", cwd: qualityRoot() },
   );
   const untracked = spawnSync("git", ["ls-files", "--others", "--exclude-standard"], {
@@ -51,6 +48,12 @@ const output = resolve(
 );
 let files: string[] = [];
 let classifierError: string | undefined;
+let comparisonBase: ComparisonBase | undefined;
+try {
+  comparisonBase = await comparisonBaseFromFlags({ root, flags });
+} catch (error) {
+  classifierError = String(error);
+}
 
 const fixturePath = flagString(flags, "fixture");
 if (fixturePath) {
@@ -64,9 +67,11 @@ if (fixturePath) {
 } else if (positionals.length > 0) {
   files = positionals;
 } else {
-  const changed = gitChangedFiles(flagString(flags, "base", "main")!);
-  files = changed.files;
-  classifierError = changed.error;
+  if (comparisonBase) {
+    const changed = gitChangedFiles(comparisonBase.resolved_sha);
+    files = changed.files;
+    classifierError = classifierError ?? changed.error;
+  }
 }
 
 let gitNexusRisk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | undefined;
@@ -89,16 +94,21 @@ const { classification, findings } = classifyFiles(files, riskMap, {
   gitNexusRisk,
   classifierError,
 });
+let attribution: Record<string, unknown> = {};
+if (comparisonBase) {
+  attribution = {
+    ...await buildAttribution(root, classification.files, comparisonBase.resolved_sha),
+    merge_base_ref: comparisonBase.input_ref,
+    merge_base: comparisonBase.resolved_sha,
+  };
+}
 const result = makeResult(
   "quality-classification",
   findings,
   {
     ...classification,
-    attribution: await buildAttribution(
-      root,
-      classification.files,
-      flagString(flags, "base", "main")!,
-    ),
+    comparison_base: comparisonBase ?? null,
+    attribution,
   },
   `${classification.profile}: ${classification.files.length} changed path(s), ${classification.reasons.length} reason(s)`,
 );

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { candidateDigest, type CanonicalCandidate } from "./candidate-core";
 import type { QualityFinding } from "./common";
 import type { QualityProfile } from "./classifier-core";
 
@@ -16,17 +16,12 @@ export interface ReviewEvidence {
   reviewer_id: string;
   decision: ReviewDecision;
   candidate_sha256: string;
-  commit_sha?: string;
+  commit_sha: string;
   reviewed_at: string;
   read_only: boolean;
   source: "local-agent" | "github";
   review_id?: string;
   url?: string;
-}
-
-export interface ReviewTargetFile {
-  path: string;
-  sha256: string;
 }
 
 const SECURITY_CAPABILITIES = new Set([
@@ -67,23 +62,6 @@ export function reviewRequirements(
   };
 }
 
-export function candidateSha256(input: {
-  commit_sha: string;
-  profile: QualityProfile;
-  changed_files: ReviewTargetFile[];
-  affected_capabilities: string[];
-}): string {
-  const canonical = JSON.stringify({
-    commit_sha: input.commit_sha,
-    profile: input.profile,
-    changed_files: [...input.changed_files].sort((left, right) =>
-      left.path.localeCompare(right.path),
-    ),
-    affected_capabilities: [...input.affected_capabilities].sort(),
-  });
-  return createHash("sha256").update(canonical).digest("hex");
-}
-
 export function githubReviewTypes(body: string): ReviewType[] {
   const types: ReviewType[] = [];
   for (const type of ["quality", "security", "release"] as const) {
@@ -99,62 +77,86 @@ export function githubReviewTypes(body: string): ReviewType[] {
   return types;
 }
 
-export function validateReviews(input: {
-  requirements: ReviewRequirement;
-  candidate_sha256: string;
-  commit_sha: string;
-  author_ids: string[];
-  reviews: ReviewEvidence[];
-}): QualityFinding[] {
-  const findings: QualityFinding[] = [];
-  const requiredTypes = (
-    ["quality", "security", "release"] as const
-  ).filter((type) => input.requirements[type]);
-  const selected = new Map<ReviewType, ReviewEvidence>();
+const REVIEW_TYPES = ["quality", "security", "release"] as const;
+const REVIEW_DECISIONS = ["APPROVE", "REQUEST_CHANGES", "BLOCKED"] as const;
+const REVIEW_SOURCES = ["local-agent", "github"] as const;
 
-  for (const review of input.reviews) {
-    if (
-      !["quality", "security", "release"].includes(review.review_type) ||
-      !review.reviewer_id ||
-      !["APPROVE", "REQUEST_CHANGES", "BLOCKED"].includes(review.decision) ||
-      !/^[a-f0-9]{64}$/u.test(review.candidate_sha256) ||
-      !Number.isFinite(Date.parse(review.reviewed_at)) ||
-      review.read_only !== true ||
-      !["local-agent", "github"].includes(review.source)
-    ) {
-      findings.push({
-        code: "REVIEW_MALFORMED",
-        message: "Independent review evidence is malformed",
-      });
-      continue;
-    }
-    if (
-      review.candidate_sha256 !== input.candidate_sha256 ||
-      (review.commit_sha !== undefined && review.commit_sha !== input.commit_sha)
-    ) {
-      findings.push({
-        code: "REVIEW_TARGET_MISMATCH",
-        message: `${review.review_type} review by ${review.reviewer_id} does not bind the exact candidate`,
-      });
-      continue;
-    }
-    if (input.author_ids.includes(review.reviewer_id)) {
-      findings.push({
-        code: "REVIEW_NOT_INDEPENDENT",
-        message: `${review.review_type} reviewer ${review.reviewer_id} is an author of the candidate`,
-      });
-      continue;
-    }
-    const prior = selected.get(review.review_type);
-    if (
-      !prior ||
-      Date.parse(review.reviewed_at) > Date.parse(prior.reviewed_at)
-    ) {
-      selected.set(review.review_type, review);
-    }
+function isReviewEvidenceMalformed(review: ReviewEvidence): boolean {
+  return (
+    !REVIEW_TYPES.includes(review.review_type) ||
+    !review.reviewer_id ||
+    !REVIEW_DECISIONS.includes(review.decision) ||
+    !/^[a-f0-9]{64}$/u.test(review.candidate_sha256) ||
+    !/^[a-f0-9]{40}$/u.test(review.commit_sha) ||
+    !Number.isFinite(Date.parse(review.reviewed_at)) ||
+    review.read_only !== true ||
+    !REVIEW_SOURCES.includes(review.source)
+  );
+}
+
+function selectReview(
+  selected: Map<ReviewType, ReviewEvidence>,
+  review: ReviewEvidence,
+): void {
+  const prior = selected.get(review.review_type);
+  if (!prior || Date.parse(review.reviewed_at) > Date.parse(prior.reviewed_at)) {
+    selected.set(review.review_type, review);
   }
+}
 
-  for (const type of requiredTypes) {
+function inspectReview(
+  review: ReviewEvidence,
+  input: {
+    candidate: CanonicalCandidate;
+    author_ids: string[];
+  },
+  selected: Map<ReviewType, ReviewEvidence>,
+): QualityFinding | undefined {
+  if (isReviewEvidenceMalformed(review)) {
+    return {
+      code: "REVIEW_MALFORMED",
+      message: "Independent review evidence is malformed",
+    };
+  }
+  if (
+    review.candidate_sha256 !== input.candidate.sha256 ||
+    review.commit_sha !== input.candidate.record.commit_sha
+  ) {
+    return {
+      code: "REVIEW_TARGET_MISMATCH",
+      message: `${review.review_type} review by ${review.reviewer_id} does not bind the exact candidate`,
+    };
+  }
+  if (input.author_ids.includes(review.reviewer_id)) {
+    return {
+      code: "REVIEW_NOT_INDEPENDENT",
+      message: `${review.review_type} reviewer ${review.reviewer_id} is an author of the candidate`,
+    };
+  }
+  selectReview(selected, review);
+  return undefined;
+}
+
+function canonicalCandidateFinding(candidate: CanonicalCandidate): QualityFinding | undefined {
+  if (
+    /^[a-f0-9]{40}$/u.test(candidate.record.commit_sha) &&
+    /^[a-f0-9]{64}$/u.test(candidate.sha256) &&
+    candidateDigest(candidate.record) === candidate.sha256
+  ) {
+    return undefined;
+  }
+  return {
+    code: "REVIEW_TARGET_MISMATCH",
+    message: "Review target is not the canonical candidate record",
+  };
+}
+
+function requiredReviewFindings(
+  requirements: ReviewRequirement,
+  selected: Map<ReviewType, ReviewEvidence>,
+): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  for (const type of REVIEW_TYPES.filter((candidate) => requirements[candidate])) {
     const review = selected.get(type);
     if (!review) {
       findings.push({
@@ -168,19 +170,47 @@ export function validateReviews(input: {
       });
     }
   }
+  return findings;
+}
 
+function distinctSecurityReviewFinding(
+  requirements: ReviewRequirement,
+  selected: Map<ReviewType, ReviewEvidence>,
+): QualityFinding | undefined {
   const quality = selected.get("quality");
   const security = selected.get("security");
   if (
-    input.requirements.security &&
-    quality &&
-    security &&
-    quality.reviewer_id === security.reviewer_id
+    !requirements.security ||
+    !quality ||
+    !security ||
+    quality.reviewer_id !== security.reviewer_id
   ) {
-    findings.push({
-      code: "SECURITY_REVIEW_NOT_DISTINCT",
-      message: "Security review must use a reviewer distinct from the quality reviewer",
-    });
+    return undefined;
   }
+  return {
+    code: "SECURITY_REVIEW_NOT_DISTINCT",
+    message: "Security review must use a reviewer distinct from the quality reviewer",
+  };
+}
+
+export function validateReviews(input: {
+  requirements: ReviewRequirement;
+  candidate: CanonicalCandidate;
+  author_ids: string[];
+  reviews: ReviewEvidence[];
+}): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  const selected = new Map<ReviewType, ReviewEvidence>();
+  const candidateFinding = canonicalCandidateFinding(input.candidate);
+  if (candidateFinding) findings.push(candidateFinding);
+
+  for (const review of input.reviews) {
+    const finding = inspectReview(review, input, selected);
+    if (finding) findings.push(finding);
+  }
+
+  findings.push(...requiredReviewFindings(input.requirements, selected));
+  const distinctFinding = distinctSecurityReviewFinding(input.requirements, selected);
+  if (distinctFinding) findings.push(distinctFinding);
   return findings;
 }

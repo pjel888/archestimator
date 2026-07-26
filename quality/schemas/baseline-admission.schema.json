@@ -1,84 +1,52 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://archestimator.local/quality/baseline-admission.schema.json",
-  "title": "Beta quality baseline failure inventory",
+  "title": "Deterministic component baseline failure inventory",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "generated_at",
-    "source",
-    "counts",
-    "critical_capabilities",
-    "admission",
-    "identity_derivation",
-    "uncertainties",
-    "records"
-  ],
+  "required": ["schema_version", "generated_at", "source", "counts", "critical_capabilities", "admission", "identity_derivation", "uncertainties", "records"],
   "properties": {
     "schema_version": { "const": 1 },
     "generated_at": { "type": "string", "format": "date-time" },
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "runner",
-        "command",
-        "commit",
-        "artifact",
-        "artifact_sha256",
-        "observed_start",
-        "observed_duration_seconds"
-      ],
+      "required": ["runner", "command", "commit", "artifact", "artifact_sha256", "coverage_artifact", "coverage_sha256", "candidate_artifact", "candidate_sha256"],
       "properties": {
-        "runner": { "type": "string", "minLength": 1 },
+        "runner": { "const": "vitest" },
         "command": { "type": "string", "minLength": 1 },
         "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
         "artifact": { "type": "string", "minLength": 1 },
-        "artifact_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "observed_start": { "type": "string", "format": "date-time" },
-        "observed_duration_seconds": { "type": "number", "exclusiveMinimum": 0 }
+        "artifact_sha256": { "$ref": "#/$defs/sha256" },
+        "coverage_artifact": { "type": "string", "minLength": 1 },
+        "coverage_sha256": { "$ref": "#/$defs/sha256" },
+        "candidate_artifact": { "type": "string", "minLength": 1 },
+        "candidate_sha256": { "$ref": "#/$defs/sha256" }
       }
     },
     "counts": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "failed_files",
-        "failed_tests",
-        "skipped_tests",
-        "skipped_files",
-        "collection_failures",
-        "unhandled_errors",
-        "total_records",
-        "classifications"
-      ],
+      "required": ["failed_file", "failed_test", "skipped_file", "skipped_test", "collection_failure", "unhandled_error", "infrastructure_failure", "malformed_evidence", "must_fix_critical", "must_fix_infrastructure", "must_fix_noncritical", "ratchet_noncritical", "total_records"],
       "properties": {
-        "failed_files": { "type": "integer", "minimum": 0 },
-        "failed_tests": { "type": "integer", "minimum": 0 },
-        "skipped_tests": { "type": "integer", "minimum": 0 },
-        "skipped_files": { "type": "integer", "minimum": 0 },
-        "collection_failures": { "type": "integer", "minimum": 0 },
-        "unhandled_errors": { "type": "integer", "minimum": 0 },
-        "total_records": { "type": "integer", "minimum": 0 },
-        "classifications": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "must_fix_critical",
-            "must_fix_infrastructure",
-            "ratchet_noncritical"
-          ],
-          "properties": {
-            "must_fix_critical": { "type": "integer", "minimum": 0 },
-            "must_fix_infrastructure": { "type": "integer", "minimum": 0 },
-            "ratchet_noncritical": { "type": "integer", "minimum": 0 }
-          }
-        }
+        "failed_file": { "$ref": "#/$defs/count" },
+        "failed_test": { "$ref": "#/$defs/count" },
+        "skipped_file": { "$ref": "#/$defs/count" },
+        "skipped_test": { "$ref": "#/$defs/count" },
+        "collection_failure": { "$ref": "#/$defs/count" },
+        "unhandled_error": { "$ref": "#/$defs/count" },
+        "infrastructure_failure": { "$ref": "#/$defs/count" },
+        "malformed_evidence": { "$ref": "#/$defs/count" },
+        "must_fix_critical": { "$ref": "#/$defs/count" },
+        "must_fix_infrastructure": { "$ref": "#/$defs/count" },
+        "must_fix_noncritical": { "$ref": "#/$defs/count" },
+        "ratchet_noncritical": { "$ref": "#/$defs/count" },
+        "total_records": { "$ref": "#/$defs/count" }
       }
     },
     "critical_capabilities": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -88,148 +56,70 @@
           "name": { "type": "string", "minLength": 1 },
           "critical": { "const": true }
         }
-      },
-      "uniqueItems": true
+      }
     },
-    "admission": { "$ref": "#/$defs/admission" },
-    "identity_derivation": {
-      "type": "object",
-      "additionalProperties": { "type": "string", "minLength": 1 }
-    },
-    "uncertainties": {
-      "type": "array",
-      "items": { "type": "string", "minLength": 1 }
-    },
-    "records": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/record" }
-    }
-  },
-  "$defs": {
     "admission": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "phase",
-        "status",
-        "open_must_fix_records",
-        "proposed_ratchet_records",
-        "quality_review",
-        "security_review"
-      ],
+      "required": ["phase", "status", "open_must_fix_records", "proposed_ratchet_records", "quality_review", "security_review"],
       "properties": {
         "phase": { "enum": ["draft", "admission"] },
-        "status": { "type": "string", "minLength": 1 },
-        "open_must_fix_records": { "type": "integer", "minimum": 0 },
-        "proposed_ratchet_records": { "type": "integer", "minimum": 0 },
-        "quality_review": { "$ref": "#/$defs/admissionReview" },
-        "security_review": { "$ref": "#/$defs/admissionReview" }
+        "status": { "enum": ["draft", "review_pending"] },
+        "open_must_fix_records": { "$ref": "#/$defs/count" },
+        "proposed_ratchet_records": { "$ref": "#/$defs/count" },
+        "quality_review": { "$ref": "#/$defs/reviewPointer" },
+        "security_review": { "$ref": "#/$defs/reviewPointer" }
       }
     },
-    "admissionReview": {
+    "identity_derivation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "artifact", "inventory_sha256"],
+      "required": ["fields", "algorithm"],
       "properties": {
-        "status": { "enum": ["pending", "approved", "rejected"] },
-        "artifact": { "type": "string", "minLength": 1 },
-        "inventory_sha256": {
-          "anyOf": [
-            { "type": "null" },
-            { "type": "string", "pattern": "^[a-f0-9]{64}$" }
-          ]
-        }
+        "fields": { "const": "runner,file,test_or_scenario,failure_kind,normalized_signature" },
+        "algorithm": { "const": "sha256-prefix-20" }
+      }
+    },
+    "uncertainties": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "records": { "type": "array", "items": { "$ref": "#/$defs/record" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "count": { "type": "integer", "minimum": 0 },
+    "reviewPointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "artifact"],
+      "properties": {
+        "status": { "const": "pending" },
+        "artifact": { "type": "string", "pattern": "^quality/reviews/.+" }
       }
     },
     "record": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "runner",
-        "file",
-        "test_or_scenario",
-        "failure_kind",
-        "normalized_signature",
-        "critical_capability_ids",
-        "root_cause_cluster",
-        "classification",
-        "owner",
-        "rationale",
-        "acceptance",
-        "status",
-        "evidence_artifact",
-        "review"
-      ],
+      "required": ["id", "runner", "file", "test_or_scenario", "failure_kind", "normalized_signature", "critical_capability_ids", "root_cause_cluster", "classification", "owner", "rationale", "acceptance", "status", "evidence_artifact", "expires_at"],
       "properties": {
-        "id": { "type": "string", "pattern": "^dom-[a-z0-9-]+$" },
-        "runner": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "pattern": "^dom-[a-f0-9]{20}$" },
+        "runner": { "const": "vitest" },
         "file": { "type": "string", "minLength": 1 },
         "test_or_scenario": { "type": "string", "minLength": 1 },
-        "failure_kind": {
-          "enum": [
-            "failed_file",
-            "failed_test",
-            "skipped_file",
-            "skipped_test",
-            "collection_failure",
-            "unhandled_error"
-          ]
-        },
+        "failure_kind": { "enum": ["failed_file", "failed_test", "skipped_file", "skipped_test", "collection_failure", "unhandled_error", "infrastructure_failure", "malformed_evidence"] },
         "normalized_signature": { "type": "string", "minLength": 1 },
-        "critical_capability_ids": {
-          "type": "array",
-          "items": { "type": "string", "pattern": "^CAP-[A-Z0-9-]+$" },
-          "uniqueItems": true
-        },
+        "critical_capability_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^CAP-[A-Z0-9-]+$" } },
         "root_cause_cluster": { "type": "string", "minLength": 1 },
-        "classification": {
-          "enum": [
-            "must_fix_critical",
-            "must_fix_infrastructure",
-            "ratchet_noncritical"
-          ]
-        },
-        "owner": { "type": "string", "minLength": 1 },
-        "rationale": { "type": "string", "minLength": 1 },
+        "classification": { "enum": ["must_fix_critical", "must_fix_infrastructure", "must_fix_noncritical", "ratchet_noncritical"] },
+        "owner": { "type": "string" },
+        "rationale": { "type": "string" },
         "acceptance": {
           "type": "object",
           "additionalProperties": false,
           "required": ["command", "expected_artifact"],
-          "properties": {
-            "command": { "type": "string", "minLength": 1 },
-            "expected_artifact": { "type": "string", "minLength": 1 }
-          }
+          "properties": { "command": { "type": "string" }, "expected_artifact": { "type": "string" } }
         },
-        "status": { "enum": ["open", "proposed", "closed", "admitted"] },
-        "evidence_artifact": {
-          "anyOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }]
-        },
-        "review": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "status",
-            "required_by",
-            "expires_at",
-            "quality_reviewer",
-            "security_reviewer",
-            "reviewed_inventory_sha256"
-          ],
-          "properties": {
-            "status": { "enum": ["pending", "approved", "rejected"] },
-            "required_by": { "type": ["string", "null"], "format": "date-time" },
-            "expires_at": { "type": ["string", "null"], "format": "date-time" },
-            "quality_reviewer": { "type": ["string", "null"] },
-            "security_reviewer": { "type": ["string", "null"] },
-            "reviewed_inventory_sha256": {
-              "anyOf": [
-                { "type": "null" },
-                { "type": "string", "pattern": "^[a-f0-9]{64}$" }
-              ]
-            }
-          }
-        }
+        "status": { "enum": ["open", "proposed", "closed"] },
+        "evidence_artifact": { "type": ["string", "null"] },
+        "expires_at": { "type": ["string", "null"], "format": "date-time" }
       }
     }
   }

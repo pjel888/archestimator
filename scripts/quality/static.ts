@@ -33,6 +33,10 @@ import {
   type ChangedSource,
   type StaticThresholds,
 } from "./static-source-core";
+import {
+  comparisonBaseFromFlags,
+  type ComparisonBase,
+} from "./comparison-base-core";
 
 interface StaticThresholdFile {
   static: StaticThresholds & {
@@ -53,6 +57,12 @@ const { flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
 const commandResults: CommandResult[] = [];
+let comparisonBase: ComparisonBase | undefined;
+try {
+  comparisonBase = await comparisonBaseFromFlags({ root, flags });
+} catch (error) {
+  findings.push({ code: "STATIC_COMPARISON_BASE", message: String(error) });
+}
 const thresholds = await readJson<StaticThresholdFile>(
   resolve(root, flagString(flags, "thresholds", "quality/thresholds.json")!),
 );
@@ -94,23 +104,16 @@ function runCommand(
   return run;
 }
 
-async function deriveChangedScope(baseRef: string): Promise<{
+async function deriveChangedScope(baseSha: string): Promise<{
   files: ReturnType<typeof toChangedFiles>;
   mergeBase?: string;
 }> {
-  const mergeBaseRun = runCommand("git", ["merge-base", baseRef, "HEAD"]);
-  if (mergeBaseRun.status !== 0 || !mergeBaseRun.stdout?.trim()) {
-    findings.push({
-      code: "STATIC_MERGE_BASE",
-      message: `Cannot resolve merge base for ${baseRef}`,
-    });
-    return { files: [] };
-  }
-  const mergeBase = mergeBaseRun.stdout.trim();
+  const mergeBase = baseSha;
   const diffRun = runCommand("git", [
     "diff",
+    "--no-renames",
     "--unified=0",
-    "--diff-filter=ACMR",
+    "--diff-filter=ACDMRTUXB",
     mergeBase,
   ]);
   const untrackedRun = runCommand("git", [
@@ -201,7 +204,9 @@ function evaluateCommand(
   }
 }
 
-const changedScope = await deriveChangedScope(flagString(flags, "base", "main")!);
+const changedScope = comparisonBase
+  ? await deriveChangedScope(comparisonBase.resolved_sha)
+  : { files: [], mergeBase: undefined };
 const changedSources = await readChangedSources(changedScope.files);
 const executablePaths = changedScope.files
   .map((file) => file.path)
@@ -309,6 +314,7 @@ if (!flags.has("plan")) {
     findings,
     {
       mode: "execute",
+      comparison_base: comparisonBase ?? null,
       merge_base: changedScope.mergeBase,
       changed_files: changedScope.files.map((file) => file.path),
       eslint_files: executablePaths,
@@ -335,6 +341,7 @@ await finishCli(
     findings,
     {
       mode: "plan",
+      comparison_base: comparisonBase ?? null,
       merge_base: changedScope.mergeBase,
       changed_files: changedScope.files.map((file) => file.path),
       commands: plannedCommands,

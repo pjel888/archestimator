@@ -29,27 +29,37 @@ const SEVERITIES: SecuritySeverity[] = [
   "unknown",
 ];
 
+const STRING_SEVERITIES: Readonly<Record<string, SecuritySeverity>> = {
+  critical: "critical",
+  error: "high",
+  high: "high",
+  info: "info",
+  low: "low",
+  medium: "medium",
+  moderate: "medium",
+  none: "info",
+  note: "low",
+  warning: "medium",
+};
+
+function numericSeverity(value: number): SecuritySeverity {
+  if (value >= 9) return "critical";
+  if (value >= 7) return "high";
+  if (value >= 4) return "medium";
+  if (value > 0) return "low";
+  return "info";
+}
+
 export function normalizeSecuritySeverity(value: unknown): SecuritySeverity {
   if (typeof value === "number" && Number.isFinite(value)) {
-    if (value >= 9) return "critical";
-    if (value >= 7) return "high";
-    if (value >= 4) return "medium";
-    if (value > 0) return "low";
-    return "info";
+    return numericSeverity(value);
   }
   if (typeof value !== "string") return "unknown";
   const normalized = value.trim().toLowerCase();
   if (/^\d+(?:\.\d+)?$/u.test(normalized)) {
-    return normalizeSecuritySeverity(Number(normalized));
+    return numericSeverity(Number(normalized));
   }
-  if (normalized === "critical") return "critical";
-  if (normalized === "high" || normalized === "error") return "high";
-  if (normalized === "moderate" || normalized === "medium" || normalized === "warning") {
-    return "medium";
-  }
-  if (normalized === "low" || normalized === "note") return "low";
-  if (normalized === "info" || normalized === "none") return "info";
-  return "unknown";
+  return STRING_SEVERITIES[normalized] ?? "unknown";
 }
 
 function safeLabel(value: unknown, fallback: string): string {
@@ -76,6 +86,30 @@ function advisoryFrom(
   };
 }
 
+function objectItems(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
+  );
+}
+
+function npmVulnerabilityAdvisories(
+  value: unknown,
+  packageName: string,
+  startIndex: number,
+): SanitizedAdvisory[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const vulnerability = value as Record<string, unknown>;
+  const via = objectItems(vulnerability.via);
+  if (via.length > 0) {
+    return via.map((item, index) => advisoryFrom(item, packageName, startIndex + index));
+  }
+  return "severity" in vulnerability
+    ? [advisoryFrom(vulnerability, packageName, startIndex)]
+    : [];
+}
+
 function collectNpmAuditV2(report: Record<string, unknown>): SanitizedAdvisory[] | undefined {
   const vulnerabilities = report.vulnerabilities;
   if (!vulnerabilities || typeof vulnerabilities !== "object" || Array.isArray(vulnerabilities)) {
@@ -83,21 +117,7 @@ function collectNpmAuditV2(report: Record<string, unknown>): SanitizedAdvisory[]
   }
   const advisories: SanitizedAdvisory[] = [];
   for (const [packageName, raw] of Object.entries(vulnerabilities)) {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
-    const vulnerability = raw as Record<string, unknown>;
-    const via = Array.isArray(vulnerability.via)
-      ? vulnerability.via.filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item) && typeof item === "object" && !Array.isArray(item),
-        )
-      : [];
-    if (via.length > 0) {
-      for (const item of via) {
-        advisories.push(advisoryFrom(item, packageName, advisories.length));
-      }
-    } else if ("severity" in vulnerability) {
-      advisories.push(advisoryFrom(vulnerability, packageName, advisories.length));
-    }
+    advisories.push(...npmVulnerabilityAdvisories(raw, packageName, advisories.length));
   }
   return advisories;
 }
@@ -126,29 +146,28 @@ function collectGenericAudit(
   }
 }
 
-export function evaluateBunAudit(report: unknown): AuditEvaluation {
-  const findings: QualityFinding[] = [];
-  if (!report || typeof report !== "object" || Array.isArray(report)) {
-    return {
-      advisories: [],
-      counts: Object.fromEntries(SEVERITIES.map((severity) => [severity, 0])) as Record<
-        SecuritySeverity,
-        number
-      >,
-      findings: [
-        {
-          code: "AUDIT_REPORT_MALFORMED",
-          message: "Bun audit did not produce a JSON object",
-        },
-      ],
-    };
-  }
+function emptyCounts(): Record<SecuritySeverity, number> {
+  return Object.fromEntries(SEVERITIES.map((severity) => [severity, 0])) as Record<
+    SecuritySeverity,
+    number
+  >;
+}
 
-  const object = report as Record<string, unknown>;
-  const collected = collectNpmAuditV2(object);
-  const advisories: SanitizedAdvisory[] = collected ?? [];
-  if (collected === undefined) collectGenericAudit(object, advisories);
-  const deduplicated = [
+function malformedAuditEvaluation(): AuditEvaluation {
+  return {
+    advisories: [],
+    counts: emptyCounts(),
+    findings: [
+      {
+        code: "AUDIT_REPORT_MALFORMED",
+        message: "Bun audit did not produce a JSON object",
+      },
+    ],
+  };
+}
+
+function deduplicateAdvisories(advisories: SanitizedAdvisory[]): SanitizedAdvisory[] {
+  return [
     ...new Map(
       advisories.map((advisory) => [
         `${advisory.identity}\0${advisory.package}\0${advisory.severity}`,
@@ -156,36 +175,50 @@ export function evaluateBunAudit(report: unknown): AuditEvaluation {
       ]),
     ).values(),
   ];
-  const counts = Object.fromEntries(SEVERITIES.map((severity) => [severity, 0])) as Record<
-    SecuritySeverity,
-    number
-  >;
+}
 
-  for (const advisory of deduplicated) {
+function advisoryFinding(advisory: SanitizedAdvisory): QualityFinding | undefined {
+  const location = `${advisory.package} (${advisory.identity})`;
+  const findingBySeverity: Partial<Record<SecuritySeverity, QualityFinding>> = {
+    critical: {
+      code: "DEPENDENCY_CRITICAL",
+      message: `Critical dependency advisory: ${location}`,
+    },
+    high: {
+      code: "DEPENDENCY_HIGH",
+      message: `High dependency advisory: ${location}`,
+    },
+    medium: {
+      code: "DEPENDENCY_MEDIUM_UNWAIVED",
+      message: `Medium dependency advisory requires an approved expiring waiver: ${location}`,
+    },
+    unknown: {
+      code: "AUDIT_SEVERITY_UNKNOWN",
+      message: `Dependency advisory has unknown severity: ${location}`,
+    },
+  };
+  return findingBySeverity[advisory.severity];
+}
+
+function summarizeAdvisories(advisories: SanitizedAdvisory[]): AuditEvaluation {
+  const counts = emptyCounts();
+  const findings: QualityFinding[] = [];
+  for (const advisory of advisories) {
     counts[advisory.severity] += 1;
-    const location = `${advisory.package} (${advisory.identity})`;
-    if (advisory.severity === "critical") {
-      findings.push({
-        code: "DEPENDENCY_CRITICAL",
-        message: `Critical dependency advisory: ${location}`,
-      });
-    } else if (advisory.severity === "high") {
-      findings.push({
-        code: "DEPENDENCY_HIGH",
-        message: `High dependency advisory: ${location}`,
-      });
-    } else if (advisory.severity === "medium") {
-      findings.push({
-        code: "DEPENDENCY_MEDIUM_UNWAIVED",
-        message: `Medium dependency advisory requires an approved expiring waiver: ${location}`,
-      });
-    } else if (advisory.severity === "unknown") {
-      findings.push({
-        code: "AUDIT_SEVERITY_UNKNOWN",
-        message: `Dependency advisory has unknown severity: ${location}`,
-      });
-    }
+    const finding = advisoryFinding(advisory);
+    if (finding) findings.push(finding);
+  }
+  return { advisories, counts, findings };
+}
+
+export function evaluateBunAudit(report: unknown): AuditEvaluation {
+  if (!report || typeof report !== "object" || Array.isArray(report)) {
+    return malformedAuditEvaluation();
   }
 
-  return { advisories: deduplicated, counts, findings };
+  const object = report as Record<string, unknown>;
+  const collected = collectNpmAuditV2(object);
+  const advisories: SanitizedAdvisory[] = collected ?? [];
+  if (collected === undefined) collectGenericAudit(object, advisories);
+  return summarizeAdvisories(deduplicateAdvisories(advisories));
 }

@@ -94,6 +94,7 @@ export interface ComponentBaseline {
     classification: "ratchet_noncritical";
     owner: string;
     rationale: string;
+    acceptance: { command: string; expected_artifact: string };
     expires_at: string;
     quality_reviewer: string;
     security_reviewer: string;
@@ -397,11 +398,9 @@ function validateBaselineAdmissionDecision(baseline: ComponentBaseline): Quality
 function validateBaselineSource(baseline: ComponentBaseline): QualityFinding[] {
   if (
     baseline.source?.command &&
-    baseline.source?.report &&
-    !baseline.source.report.startsWith(".omx/") &&
+    baseline.source?.report === "quality/baselines/component/source.vitest.json" &&
     isSha256(baseline.source.report_sha256) &&
-    baseline.source?.coverage &&
-    !baseline.source.coverage.startsWith(".omx/") &&
+    baseline.source?.coverage === "quality/baselines/component/coverage-summary.json" &&
     isSha256(baseline.source.coverage_sha256)
   ) {
     return [];
@@ -438,36 +437,26 @@ function validateBaselineAdmissionFields(baseline: ComponentBaseline): QualityFi
 }
 
 function validateCanonicalAdmissionPaths(baseline: ComponentBaseline): QualityFinding[] {
-  const findings: QualityFinding[] = [];
-  for (const path of [
-    baseline.admission?.inventory,
-    baseline.admission?.validation_artifact,
-  ]) {
-    if (!path || path.startsWith(".omx/")) {
-      findings.push({
-        code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
-        message: "Canonical baseline admission artifacts must be available in CI",
-        path,
-      });
-    }
-  }
-  return findings;
+  if (
+    baseline.admission?.inventory === "quality/baselines/component/inventory.json" &&
+    baseline.admission?.validation_artifact === "quality/baselines/component/admission.json"
+  ) return [];
+  return [{
+    code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
+    message: "Canonical admission must use tracked immutable component baseline paths",
+  }];
 }
 
 function validateCanonicalReviewPaths(baseline: ComponentBaseline): QualityFinding[] {
   const findings: QualityFinding[] = [];
-  for (const path of [
-    baseline.admission?.quality_review_artifact,
-    baseline.admission?.security_review_artifact,
-  ]) {
-    if (!path || !/^(?:quality\/reviews\/|artifacts\/quality\/).+/u.test(path)) {
-      findings.push({
-        code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
-        message: "Canonical baseline review artifacts must be tracked or downloaded in CI",
-        path,
-      });
-    }
-  }
+  const expected = [
+    "quality/reviews/component-baseline-quality.md",
+    "quality/reviews/component-baseline-security.md",
+  ];
+  const actual = [baseline.admission?.quality_review_artifact, baseline.admission?.security_review_artifact];
+  actual.forEach((path, index) => {
+    if (path !== expected[index]) findings.push({ code: "COMPONENT_BASELINE_ADMISSION_MALFORMED", message: "Canonical baseline reviews must use their tracked immutable paths", path });
+  });
   return findings;
 }
 
@@ -494,17 +483,9 @@ function isIllegalBaselineFailure(
   failure: ComponentBaseline["allowed_failures"][number],
   now: number,
 ): boolean {
-  return (
-    failure.classification !== "ratchet_noncritical" ||
-    failure.kind !== "test_failure" ||
-    !failure.owner ||
-    !failure.rationale ||
-    !failure.quality_reviewer ||
-    !failure.security_reviewer ||
-    failure.quality_reviewer === failure.security_reviewer ||
-    Number.isNaN(Date.parse(failure.expires_at)) ||
-    Date.parse(failure.expires_at) <= now
-  );
+  const required = [failure.owner, failure.rationale, failure.acceptance?.command, failure.acceptance?.expected_artifact, failure.quality_reviewer, failure.security_reviewer];
+  const expiry = Date.parse(failure.expires_at);
+  return failure.classification !== "ratchet_noncritical" || failure.kind !== "test_failure" || required.some((value) => !value) || failure.quality_reviewer === failure.security_reviewer || Number.isNaN(expiry) || expiry <= now;
 }
 
 function validateAllowedBaselineFailures(
@@ -551,9 +532,8 @@ interface BaselineInventory {
   admission?: {
     phase?: string;
     status?: string;
-    quality_review?: { status?: string; inventory_sha256?: string | null };
-    security_review?: { status?: string; inventory_sha256?: string | null };
   };
+  source?: { candidate_sha256?: string };
   records?: Array<{
     file?: string;
     test_or_scenario?: string;
@@ -566,13 +546,15 @@ interface BaselineInventory {
 
 interface BaselineValidation {
   status?: string;
-  data?: { phase?: string; inventory_sha256?: string };
+  data?: { phase?: string; inventory_sha256?: string; candidate_sha256?: string; author_ids?: string[] };
 }
 
 interface ReviewDecision {
   decision?: string;
   inventorySha?: string;
+  candidateSha?: string;
   reviewer?: string;
+  role?: string;
 }
 
 type BaselineArtifact = readonly [label: string, path: string, expectedSha: string];
@@ -581,7 +563,9 @@ function reviewDecision(text: string): ReviewDecision {
   return {
     decision: text.match(/(?:Decision|Status)\s*:\s*`?(APPROVE|REJECT)`?/iu)?.[1],
     inventorySha: text.match(/Inventory SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
+    candidateSha: text.match(/Candidate SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
     reviewer: text.match(/Reviewer\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
+    role: text.match(/Reviewer Role\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
   };
 }
 
@@ -644,15 +628,11 @@ async function validateBaselineArtifactHashes(
 
 function inventoryIsAdmitted(
   inventory: BaselineInventory,
-  expectedSha: string,
 ): boolean {
   return (
     inventory.schema_version === 1 &&
     inventory.admission?.phase === "admission" &&
-    inventory.admission?.quality_review?.status === "approved" &&
-    inventory.admission?.security_review?.status === "approved" &&
-    inventory.admission.quality_review.inventory_sha256 === expectedSha &&
-    inventory.admission.security_review.inventory_sha256 === expectedSha
+    inventory.admission?.status === "review_pending"
   );
 }
 
@@ -662,7 +642,7 @@ function admittedInventoryIdentities(inventory: BaselineInventory): Set<string> 
       .filter(
         (record) =>
           record.classification === "ratchet_noncritical" &&
-          record.status === "admitted" &&
+          record.status === "proposed" &&
           record.failure_kind === "failed_test",
       )
       .map((record) =>
@@ -689,7 +669,7 @@ async function validateBaselineInventory(
     const inventory = await readJson<BaselineInventory>(
       resolve(root, baseline.admission.inventory),
     );
-    if (!inventoryIsAdmitted(inventory, baseline.admission.inventory_sha256)) {
+    if (!inventoryIsAdmitted(inventory)) {
       findings.push({
         code: "COMPONENT_BASELINE_INVENTORY_NOT_ADMITTED",
         message: "Canonical baseline inventory lacks two approved reviews bound to its hash",
@@ -718,11 +698,15 @@ async function validateBaselineInventory(
 function validationApprovesInventory(
   validation: BaselineValidation,
   expectedSha: string,
+  candidateSha: string | undefined,
 ): boolean {
   return (
     validation.status === "PASS" &&
     validation.data?.phase === "admission" &&
-    validation.data?.inventory_sha256 === expectedSha
+    validation.data?.inventory_sha256 === expectedSha &&
+    validation.data?.candidate_sha256 === candidateSha &&
+    Array.isArray(validation.data?.author_ids) &&
+    validation.data.author_ids.length > 0
   );
 }
 
@@ -735,7 +719,8 @@ async function validateBaselineValidationArtifact(
     const validation = await readJson<BaselineValidation>(
       resolve(root, baseline.admission.validation_artifact),
     );
-    if (!validationApprovesInventory(validation, baseline.admission.inventory_sha256)) {
+    const inventory = await readJson<BaselineInventory>(resolve(root, baseline.admission.inventory));
+    if (!validationApprovesInventory(validation, baseline.admission.inventory_sha256, inventory.source?.candidate_sha256)) {
       findings.push({
         code: "COMPONENT_BASELINE_ADMISSION_NOT_APPROVED",
         message: "Baseline validation artifact does not approve the bound inventory",
@@ -771,28 +756,32 @@ async function readBaselineReviews(
 
 function validateBaselineReviews(
   baseline: ComponentBaseline,
+  candidateSha: string | undefined,
+  authors: string[],
   reviews: ReviewDecision[],
 ): QualityFinding[] {
-  const findings: QualityFinding[] = [];
-  for (const [index, review] of reviews.entries()) {
-    if (
-      review.decision !== "APPROVE" ||
-      review.inventorySha !== baseline.admission.inventory_sha256 ||
-      !review.reviewer
-    ) {
-      findings.push({
-        code: "COMPONENT_BASELINE_REVIEW_INVALID",
-        message: `${index === 0 ? "Quality" : "Security"} review does not independently approve the bound inventory`,
-      });
-    }
-  }
+  const findings = reviews.flatMap((review, index) => validateOneBaselineReview(review, index, baseline.admission.inventory_sha256));
   if (reviews[0]?.reviewer && reviews[0].reviewer === reviews[1]?.reviewer) {
     findings.push({
       code: "COMPONENT_BASELINE_REVIEW_NOT_INDEPENDENT",
       message: "Quality and security baseline reviews must name different reviewers",
     });
   }
+  if (!candidateSha || reviews.some((review) => review.candidateSha !== candidateSha)) {
+    findings.push({ code: "COMPONENT_BASELINE_REVIEW_CANDIDATE_MISMATCH", message: "Baseline reviews do not bind the measurement candidate" });
+  }
+  if (reviews.some((review) => review.role?.toLowerCase() !== "read-only")) {
+    findings.push({ code: "COMPONENT_BASELINE_REVIEW_NOT_READ_ONLY", message: "Baseline reviewers must record a read-only role" });
+  }
+  if (reviews.some((review) => review.reviewer && authors.includes(review.reviewer))) {
+    findings.push({ code: "COMPONENT_BASELINE_REVIEW_IS_AUTHOR", message: "Baseline authors cannot approve their own inventory" });
+  }
   return findings;
+}
+
+function validateOneBaselineReview(review: ReviewDecision, index: number, inventorySha: string): QualityFinding[] {
+  if (review.decision === "APPROVE" && review.inventorySha === inventorySha && review.reviewer) return [];
+  return [{ code: "COMPONENT_BASELINE_REVIEW_INVALID", message: `${index === 0 ? "Quality" : "Security"} review does not independently approve the bound inventory` }];
 }
 
 export async function validateCanonicalBaselineArtifacts(
@@ -807,8 +796,20 @@ export async function validateCanonicalBaselineArtifacts(
   findings.push(...await validateBaselineArtifactHashes(root, baseline));
   findings.push(...await validateBaselineInventory(root, baseline));
   findings.push(...await validateBaselineValidationArtifact(root, baseline));
+  let inventory: BaselineInventory = {};
+  let validation: BaselineValidation = {};
+  try {
+    inventory = await readJson<BaselineInventory>(resolve(root, baseline.admission.inventory));
+  } catch {
+    // The inventory validator above already records the malformed artifact.
+  }
+  try {
+    validation = await readJson<BaselineValidation>(resolve(root, baseline.admission.validation_artifact));
+  } catch {
+    // The validation-artifact validator above already records the malformed artifact.
+  }
   const reviews = await readBaselineReviews(root, baseline);
-  findings.push(...validateBaselineReviews(baseline, reviews));
+  findings.push(...validateBaselineReviews(baseline, inventory.source?.candidate_sha256, validation.data?.author_ids ?? [], reviews));
   return findings;
 }
 

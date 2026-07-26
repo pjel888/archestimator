@@ -33,7 +33,10 @@ interface ReviewDecision {
   reviewer_id: string;
   decision: "APPROVE" | "REQUEST_CHANGES" | "BLOCKED";
   candidate_sha256: string;
+  commit_sha: string;
+  reviewed_at: string;
   read_only: boolean;
+  source: "local-agent" | "github";
 }
 
 function validArtifact(value: unknown): value is Artifact {
@@ -58,8 +61,10 @@ function validArrayProperty(
   }
 }
 
-export function validateManifest(manifest: Record<string, unknown>): QualityFinding[] {
-  const findings: QualityFinding[] = [];
+function validateManifestHeader(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): Record<string, unknown> | undefined {
   if (manifest.schema_version !== 1) {
     findings.push({ code: "MANIFEST_VERSION", message: "Manifest schema_version must be 1" });
   }
@@ -80,16 +85,26 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
     });
   }
   const candidate = manifest.candidate as Record<string, unknown> | undefined;
-  if (
-    !/^[a-f0-9]{40}$/u.test(String(candidate?.commit_sha ?? "")) ||
-    !/^[a-f0-9]{64}$/u.test(String(candidate?.sha256 ?? ""))
-  ) {
+  if (!validCandidateHeader(candidate)) {
     findings.push({
       code: "MANIFEST_CANDIDATE",
       message: "Manifest candidate must include exact commit and worktree hashes",
     });
   }
+  return candidate;
+}
 
+function validCandidateHeader(candidate: Record<string, unknown> | undefined): boolean {
+  return (
+    /^[a-f0-9]{40}$/u.test(String(candidate?.commit_sha ?? "")) &&
+    /^[a-f0-9]{64}$/u.test(String(candidate?.sha256 ?? ""))
+  );
+}
+
+function validateManifestArrays(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   const scope = manifest.scope as Record<string, unknown> | undefined;
   for (const key of [
     "changed_files",
@@ -102,16 +117,17 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
   for (const key of ["required_jobs", "commands", "command_results", "job_results", "evidence"]) {
     validArrayProperty(findings, manifest, key, "manifest");
   }
+}
 
+function validateCommandResults(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   const commandResults = Array.isArray(manifest.command_results)
     ? (manifest.command_results as CommandResult[])
     : [];
   for (const result of commandResults) {
-    if (
-      !result.command ||
-      !["local", "ci"].includes(result.source) ||
-      !validArtifact(result.artifact)
-    ) {
+    if (malformedCommandResult(result)) {
       findings.push({ code: "COMMAND_RESULT_MALFORMED", message: "Command result is malformed" });
     } else if (result.status !== "PASS") {
       findings.push({
@@ -129,7 +145,16 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
       });
     }
   }
+}
 
+function malformedCommandResult(result: CommandResult): boolean {
+  return !result.command || !["local", "ci"].includes(result.source) || !validArtifact(result.artifact);
+}
+
+function validateJobResults(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   const requiredJobs = Array.isArray(manifest.required_jobs)
     ? (manifest.required_jobs as string[])
     : [];
@@ -155,97 +180,186 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
       });
     }
   }
+}
 
+function validateEvidenceItems(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   const evidenceItems = Array.isArray(manifest.evidence)
     ? (manifest.evidence as Evidence[])
     : [];
   for (const evidence of evidenceItems) {
-    if (
-      !evidence.kind ||
-      !["local", "ci", "remote", "hosted", "external-manifest"].includes(evidence.source) ||
-      !validArtifact(evidence.artifact) ||
-      evidence.status !== "PASS"
-    ) {
+    if (malformedEvidence(evidence)) {
       findings.push({
         code: "EVIDENCE_FAILED",
         message: `${evidence.kind ?? "unknown"} evidence is malformed or not PASS`,
       });
     }
-    if (
-      (evidence.source === "hosted" || evidence.source === "remote") &&
-      evidence.authoritative_readback !== true
-    ) {
+    if (unprovenExternalEvidence(evidence)) {
       findings.push({
         code: "UNPROVEN_EXTERNAL_CLAIM",
         message: `${evidence.kind} claims ${evidence.source} proof without authoritative readback`,
       });
     }
   }
+}
 
+function malformedEvidence(evidence: Evidence): boolean {
+  return (
+    !evidence.kind ||
+    !["local", "ci", "remote", "hosted", "external-manifest"].includes(evidence.source) ||
+    !validArtifact(evidence.artifact) ||
+    evidence.status !== "PASS"
+  );
+}
+
+function unprovenExternalEvidence(evidence: Evidence): boolean {
+  const external = evidence.source === "hosted" || evidence.source === "remote";
+  return external && evidence.authoritative_readback !== true;
+}
+
+function validReviewBinding(
+  reviews: Record<string, unknown> | undefined,
+  candidate: Record<string, unknown> | undefined,
+): boolean {
+  return (
+    /^[a-f0-9]{64}$/u.test(String(reviews?.candidate_sha256 ?? "")) &&
+    reviews?.candidate_sha256 === candidate?.sha256
+  );
+}
+
+function validReviewRequirements(
+  requirements: Record<string, unknown> | undefined,
+): requirements is Record<string, unknown> {
+  return Boolean(
+    requirements &&
+      "quality" in requirements &&
+      "security" in requirements &&
+      "release" in requirements,
+  );
+}
+
+function validReviewSummary(
+  manifest: Record<string, unknown>,
+  candidate: Record<string, unknown> | undefined,
+  findings: QualityFinding[],
+): {
+  reviews: Record<string, unknown>;
+  requirements: Record<string, unknown>;
+  decisions: ReviewDecision[];
+} | undefined {
   const reviews = manifest.reviews as Record<string, unknown> | undefined;
   const requirements = reviews?.requirements as Record<string, unknown> | undefined;
   const decisions = Array.isArray(reviews?.decisions)
     ? (reviews.decisions as ReviewDecision[])
     : [];
-  if (
-    !/^[a-f0-9]{64}$/u.test(String(reviews?.candidate_sha256 ?? "")) ||
-    reviews?.candidate_sha256 !== candidate?.sha256 ||
-    !requirements ||
-    !("quality" in requirements) ||
-    !("security" in requirements) ||
-    !("release" in requirements)
-  ) {
+  if (!validReviewBinding(reviews, candidate) || !validReviewRequirements(requirements)) {
     findings.push({
       code: "REVIEW_SUMMARY_MALFORMED",
       message: "Manifest review summary is missing or does not bind the candidate",
     });
-  } else {
-    if (
-      (requirements.quality === true ||
-        requirements.security === true ||
-        requirements.release === true) &&
-      !validArtifact(reviews?.artifact)
-    ) {
+    return undefined;
+  }
+  return { reviews: reviews!, requirements, decisions };
+}
+
+function validateReviewArtifact(
+  reviews: Record<string, unknown>,
+  requirements: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
+  const required =
+    requirements.quality === true ||
+    requirements.security === true ||
+    requirements.release === true;
+  if (required && !validArtifact(reviews.artifact)) {
+    findings.push({
+      code: "REVIEW_ARTIFACT_MALFORMED",
+      message: "Required review decisions lack a hashed review artifact",
+    });
+  }
+}
+
+function validateRequiredApprovals(
+  candidate: Record<string, unknown> | undefined,
+  requirements: Record<string, unknown>,
+  decisions: ReviewDecision[],
+  findings: QualityFinding[],
+): void {
+  for (const type of ["quality", "security", "release"] as const) {
+    if (requirements[type] !== true) continue;
+    const approval = decisions.find((decision) => exactApproval(decision, type, candidate));
+    if (!approval) {
       findings.push({
-        code: "REVIEW_ARTIFACT_MALFORMED",
-        message: "Required review decisions lack a hashed review artifact",
-      });
-    }
-    for (const type of ["quality", "security", "release"] as const) {
-      if (requirements[type] !== true) continue;
-      const approval = decisions.find(
-        (decision) =>
-          decision.review_type === type &&
-          decision.decision === "APPROVE" &&
-          decision.read_only === true &&
-          decision.candidate_sha256 === candidate?.sha256 &&
-          Boolean(decision.reviewer_id),
-      );
-      if (!approval) {
-        findings.push({
-          code: "REVIEW_REQUIRED",
-          message: `Manifest lacks an exact-candidate independent ${type} approval`,
-        });
-      }
-    }
-    const qualityReviewer = decisions.find(
-      (decision) => decision.review_type === "quality" && decision.decision === "APPROVE",
-    )?.reviewer_id;
-    const securityReviewer = decisions.find(
-      (decision) => decision.review_type === "security" && decision.decision === "APPROVE",
-    )?.reviewer_id;
-    if (
-      requirements.security === true &&
-      qualityReviewer &&
-      qualityReviewer === securityReviewer
-    ) {
-      findings.push({
-        code: "SECURITY_REVIEW_NOT_DISTINCT",
-        message: "Security approval must be distinct from quality approval",
+        code: "REVIEW_REQUIRED",
+        message: `Manifest lacks an exact-candidate independent ${type} approval`,
       });
     }
   }
+}
 
+function exactApproval(
+  decision: ReviewDecision,
+  type: ReviewDecision["review_type"],
+  candidate: Record<string, unknown> | undefined,
+): boolean {
+  return (
+    decision.review_type === type &&
+    decision.decision === "APPROVE" &&
+    decision.read_only === true &&
+    decision.candidate_sha256 === candidate?.sha256 &&
+    decision.commit_sha === candidate?.commit_sha &&
+    validApprovalEvidence(decision)
+  );
+}
+
+function validApprovalEvidence(decision: ReviewDecision): boolean {
+  return (
+    Number.isFinite(Date.parse(decision.reviewed_at)) &&
+    ["local-agent", "github"].includes(decision.source) &&
+    Boolean(decision.reviewer_id)
+  );
+}
+
+function validateDistinctSecurityApproval(
+  candidate: Record<string, unknown> | undefined,
+  requirements: Record<string, unknown>,
+  decisions: ReviewDecision[],
+  findings: QualityFinding[],
+): void {
+  const approvedReviewer = (type: ReviewDecision["review_type"]) =>
+    decisions.find((decision) => exactApproval(decision, type, candidate))?.reviewer_id;
+  const qualityReviewer = approvedReviewer("quality");
+  const securityReviewer = approvedReviewer("security");
+  if (
+    requirements.security === true &&
+    qualityReviewer &&
+    qualityReviewer === securityReviewer
+  ) {
+    findings.push({
+      code: "SECURITY_REVIEW_NOT_DISTINCT",
+      message: "Security approval must be distinct from quality approval",
+    });
+  }
+}
+
+function validateReviewSummary(
+  manifest: Record<string, unknown>,
+  candidate: Record<string, unknown> | undefined,
+  findings: QualityFinding[],
+): void {
+  const summary = validReviewSummary(manifest, candidate, findings);
+  if (!summary) return;
+  validateReviewArtifact(summary.reviews, summary.requirements, findings);
+  validateRequiredApprovals(candidate, summary.requirements, summary.decisions, findings);
+  validateDistinctSecurityApproval(candidate, summary.requirements, summary.decisions, findings);
+}
+
+function validateQualityDomains(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): Record<string, unknown> | undefined {
   const domains = manifest.quality_domains as Record<string, unknown> | undefined;
   for (const name of [
     "coverage",
@@ -258,27 +372,42 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
     "waivers",
   ]) {
     const domain = domains?.[name] as Record<string, unknown> | undefined;
-    if (
-      typeof domain?.applicable !== "boolean" ||
-      !Array.isArray(domain.artifacts) ||
-      (domain.artifacts as unknown[]).some((artifact) => !validArtifact(artifact)) ||
-      typeof domain.metrics !== "object" ||
-      domain.metrics === null
-    ) {
+    if (malformedQualityDomain(domain)) {
       findings.push({
         code: "QUALITY_DOMAIN_MALFORMED",
         message: `quality_domains.${name} is malformed`,
       });
-    } else if (
-      (domain.applicable === true && domain.status !== "PASS") ||
-      (domain.applicable === false && domain.status !== "NOT_APPLICABLE")
-    ) {
+    } else if (failedQualityDomain(domain)) {
       findings.push({
         code: "QUALITY_DOMAIN_FAILED",
         message: `quality_domains.${name} is ${String(domain.status)}`,
       });
     }
   }
+  return domains;
+}
+
+function malformedQualityDomain(domain: Record<string, unknown> | undefined): boolean {
+  return (
+    typeof domain?.applicable !== "boolean" ||
+    !Array.isArray(domain.artifacts) ||
+    (domain.artifacts as unknown[]).some((artifact) => !validArtifact(artifact)) ||
+    typeof domain.metrics !== "object" ||
+    domain.metrics === null
+  );
+}
+
+function failedQualityDomain(domain: Record<string, unknown>): boolean {
+  const applicableFailure = domain.applicable === true && domain.status !== "PASS";
+  const inapplicableFailure =
+    domain.applicable === false && domain.status !== "NOT_APPLICABLE";
+  return applicableFailure || inapplicableFailure;
+}
+
+function validateTestHealth(
+  domains: Record<string, unknown> | undefined,
+  findings: QualityFinding[],
+): void {
   const testHealth = domains?.test_health as Record<string, unknown> | undefined;
   const testMetrics = testHealth?.metrics as Record<string, unknown> | undefined;
   for (const metric of ["failed", "skipped", "flaky"]) {
@@ -289,7 +418,12 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
       });
     }
   }
+}
 
+function validateWaivers(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   if (!Array.isArray(manifest.waivers)) {
     findings.push({
       code: "WAIVER_LIST_MALFORMED",
@@ -300,20 +434,29 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
     ? (manifest.waivers as Record<string, unknown>[])
     : [];
   for (const waiver of waivers) {
-    if (
-      waiver.status !== "ACTIVE" ||
-      !Array.isArray(waiver.approvals) ||
-      waiver.approvals.length < 2 ||
-      !Number.isFinite(Date.parse(String(waiver.expires_at))) ||
-      Date.parse(String(waiver.expires_at)) <= Date.now()
-    ) {
+    if (invalidWaiver(waiver)) {
       findings.push({
         code: "WAIVER_INVALID",
         message: `Waiver ${String(waiver.id ?? "unknown")} is expired, rejected, or malformed`,
       });
     }
   }
+}
 
+function invalidWaiver(waiver: Record<string, unknown>): boolean {
+  return (
+    waiver.status !== "ACTIVE" ||
+    !Array.isArray(waiver.approvals) ||
+    waiver.approvals.length < 2 ||
+    !Number.isFinite(Date.parse(String(waiver.expires_at))) ||
+    Date.parse(String(waiver.expires_at)) <= Date.now()
+  );
+}
+
+function validateTraceabilityAndAggregate(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   const traceability = manifest.traceability as Record<string, unknown> | undefined;
   if (
     traceability?.status !== "PASS" ||
@@ -333,6 +476,12 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
       message: "Aggregate evidence is missing, malformed, or not PASS",
     });
   }
+}
+
+function validateExternalEvidence(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   if (!Array.isArray(manifest.external_evidence)) {
     findings.push({
       code: "EXTERNAL_EVIDENCE_MALFORMED",
@@ -353,6 +502,12 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
       }
     }
   }
+}
+
+function validateCompletion(
+  manifest: Record<string, unknown>,
+  findings: QualityFinding[],
+): void {
   if (!Array.isArray(manifest.remaining_risk) || !String(manifest.stop_condition ?? "")) {
     findings.push({
       code: "COMPLETION_CONTRACT_MALFORMED",
@@ -367,6 +522,22 @@ export function validateManifest(manifest: Record<string, unknown>): QualityFind
       message: `Manifest status is ${String(manifest.status)}`,
     });
   }
+}
+
+export function validateManifest(manifest: Record<string, unknown>): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  const candidate = validateManifestHeader(manifest, findings);
+  validateManifestArrays(manifest, findings);
+  validateCommandResults(manifest, findings);
+  validateJobResults(manifest, findings);
+  validateEvidenceItems(manifest, findings);
+  validateReviewSummary(manifest, candidate, findings);
+  const domains = validateQualityDomains(manifest, findings);
+  validateTestHealth(domains, findings);
+  validateWaivers(manifest, findings);
+  validateTraceabilityAndAggregate(manifest, findings);
+  validateExternalEvidence(manifest, findings);
+  validateCompletion(manifest, findings);
   if (manifest.status === "PASS" && findings.length > 0) {
     findings.push({
       code: "FALSE_PASS",

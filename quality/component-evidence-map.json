@@ -6,10 +6,14 @@
     "tests/vitest/**/*.test.tsx",
     "scripts/quality/component.ts",
     "scripts/quality/component-core.ts",
+    "scripts/quality/component-baseline.ts",
+    "scripts/quality/component-baseline-core.ts",
+    "scripts/quality/validate-baseline-admission.ts",
     "quality/component-evidence-map.json",
     "quality/baseline.json",
     "quality/schemas/component-evidence-map.schema.json",
     "quality/schemas/baseline.schema.json",
+    "quality/schemas/baseline-admission.schema.json",
     "vitest.config.ts"
   ],
   "affected_rules": [
@@ -18,13 +22,20 @@
       "source_patterns": [
         "scripts/quality/component.ts",
         "scripts/quality/component-core.ts",
+        "scripts/quality/component-baseline.ts",
+        "scripts/quality/component-baseline-core.ts",
+        "scripts/quality/validate-baseline-admission.ts",
         "quality/component-evidence-map.json",
         "quality/baseline.json",
         "quality/schemas/component-evidence-map.schema.json",
         "quality/schemas/baseline.schema.json",
+        "quality/schemas/baseline-admission.schema.json",
         "vitest.config.ts"
       ],
-      "test_patterns": ["tests/vitest/quality/component-gate.test.ts"]
+      "test_patterns": [
+        "tests/vitest/quality/component-gate.test.ts",
+        "tests/vitest/quality/component-baseline.test.ts"
+      ]
     },
     {
       "id": "CHANGED-COMPONENT-TEST",

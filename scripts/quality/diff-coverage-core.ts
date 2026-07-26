@@ -9,6 +9,15 @@ export interface FileCoverage {
 
 const EXECUTABLE_PATH = /\.(?:[cm]?[jt]sx?)$/u;
 
+function createFileCoverage(): FileCoverage {
+  return {
+    lines: new Map(),
+    branches: new Map(),
+    functions: new Map(),
+    functionNames: new Map(),
+  };
+}
+
 function normalizeCoveragePath(path: string): string {
   return path
     .replace(/^file:\/\//u, "")
@@ -43,6 +52,55 @@ function mergeCoverage(
   }
 }
 
+function addLineCoverage(coverage: FileCoverage, line: string): void {
+  const [lineNumber, hits] = line.slice(3).split(",", 2).map(Number);
+  if (Number.isInteger(lineNumber) && Number.isFinite(hits)) {
+    coverage.lines.set(lineNumber, hits);
+  }
+}
+
+function addBranchCoverage(coverage: FileCoverage, line: string): void {
+  const [lineNumberText, , , takenText] = line.slice(5).split(",", 4);
+  const lineNumber = Number(lineNumberText);
+  const entry = coverage.branches.get(lineNumber) ?? { covered: 0, total: 0 };
+  entry.total += 1;
+  if (takenText !== "-" && Number(takenText) > 0) entry.covered += 1;
+  coverage.branches.set(lineNumber, entry);
+}
+
+function addFunctionHits(coverage: FileCoverage, line: string): void {
+  const [hitsText, name] = line.slice(5).split(",", 2);
+  const functionLine = coverage.functionNames.get(name);
+  if (functionLine !== undefined) coverage.functions.set(functionLine, Number(hitsText));
+}
+
+function addFunctionDefinition(coverage: FileCoverage, line: string): void {
+  const [lineNumberText, name] = line.slice(3).split(",", 2);
+  const lineNumber = Number(lineNumberText);
+  if (Number.isInteger(lineNumber) && name) {
+    coverage.functions.set(lineNumber, 0);
+    coverage.functionNames.set(name, lineNumber);
+  }
+}
+
+function addCoverageEntry(coverage: FileCoverage, line: string): void {
+  if (line.startsWith("DA:")) addLineCoverage(coverage, line);
+  else if (line.startsWith("BRDA:")) addBranchCoverage(coverage, line);
+  else if (line.startsWith("FNDA:")) addFunctionHits(coverage, line);
+  else if (line.startsWith("FN:")) addFunctionDefinition(coverage, line);
+}
+
+function finishCoverageRecord(
+  files: Map<string, FileCoverage>,
+  path: string | undefined,
+  coverage: FileCoverage | undefined,
+): void {
+  if (!path || !coverage) return;
+  const existing = files.get(path);
+  if (existing) mergeCoverage(existing, coverage);
+  else files.set(path, coverage);
+}
+
 export function parseLcov(text: string): Map<string, FileCoverage> {
   const files = new Map<string, FileCoverage>();
   let current: FileCoverage | undefined;
@@ -50,126 +108,134 @@ export function parseLcov(text: string): Map<string, FileCoverage> {
   for (const line of text.split(/\r?\n/u)) {
     if (line.startsWith("SF:")) {
       currentPath = normalizeCoveragePath(line.slice(3));
-      current = {
-        lines: new Map(),
-        branches: new Map(),
-        functions: new Map(),
-        functionNames: new Map(),
-      };
-    } else if (current && line.startsWith("DA:")) {
-      const [lineNumber, hits] = line.slice(3).split(",", 2).map(Number);
-      if (Number.isInteger(lineNumber) && Number.isFinite(hits)) {
-        current.lines.set(lineNumber, hits);
-      }
-    } else if (current && line.startsWith("BRDA:")) {
-      const [lineNumberText, , , takenText] = line.slice(5).split(",", 4);
-      const lineNumber = Number(lineNumberText);
-      const entry = current.branches.get(lineNumber) ?? { covered: 0, total: 0 };
-      entry.total += 1;
-      if (takenText !== "-" && Number(takenText) > 0) entry.covered += 1;
-      current.branches.set(lineNumber, entry);
-    } else if (current && line.startsWith("FNDA:")) {
-      const [hitsText, name] = line.slice(5).split(",", 2);
-      const hits = Number(hitsText);
-      const functionLine = current.functionNames.get(name);
-      if (functionLine !== undefined) current.functions.set(functionLine, hits);
-    } else if (current && line.startsWith("FN:")) {
-      const [lineNumberText, name] = line.slice(3).split(",", 2);
-      const lineNumber = Number(lineNumberText);
-      if (Number.isInteger(lineNumber) && name) {
-        current.functions.set(lineNumber, 0);
-        current.functionNames.set(name, lineNumber);
-      }
-    } else if (line === "end_of_record") {
-      if (current && currentPath) {
-        const existing = files.get(currentPath);
-        if (existing) mergeCoverage(existing, current);
-        else files.set(currentPath, current);
-      }
+      current = createFileCoverage();
+      continue;
+    }
+    if (line === "end_of_record") {
+      finishCoverageRecord(files, currentPath, current);
       current = undefined;
       currentPath = undefined;
+      continue;
     }
+    if (current) addCoverageEntry(current, line);
   }
   return files;
 }
 
-export function parseAddedLines(diff: string): Map<string, Set<number>> {
-  const changed = new Map<string, Set<number>>();
-  let file: string | undefined;
-  let lineNumber = 0;
-  let inBlockComment = false;
-  let quote: "'" | "\"" | "`" | undefined;
+type Quote = "'" | "\"" | "`";
 
-  const hasExecutableContent = (source: string): boolean => {
-    let index = 0;
-    let executable = false;
-    let escaped = false;
-    while (index < source.length) {
-      if (inBlockComment) {
-        const closing = source.indexOf("*/", index);
-        if (closing === -1) return executable;
-        inBlockComment = false;
-        index = closing + 2;
-        continue;
-      }
-      if (quote) {
-        executable = true;
-        const character = source[index]!;
-        if (escaped) {
-          escaped = false;
-        } else if (character === "\\") {
-          escaped = true;
-        } else if (character === quote) {
-          quote = undefined;
-        }
-        index += 1;
-        continue;
-      }
-      if (/\s/u.test(source[index]!)) {
-        index += 1;
-        continue;
-      }
-      if (source.startsWith("//", index)) return executable;
-      if (source.startsWith("/*", index)) {
-        inBlockComment = true;
-        index += 2;
-        continue;
-      }
-      const character = source[index]!;
+interface SourceScanState {
+  inBlockComment: boolean;
+  quote: Quote | undefined;
+}
+
+interface DiffParseState {
+  file: string | undefined;
+  lineNumber: number;
+  source: SourceScanState;
+}
+
+function resetSourceScan(state: SourceScanState): void {
+  state.inBlockComment = false;
+  state.quote = undefined;
+}
+
+function scanQuotedContent(source: string, index: number, state: SourceScanState): number {
+  let escaped = false;
+  while (index < source.length) {
+    const character = source[index]!;
+    if (escaped) escaped = false;
+    else if (character === "\\") escaped = true;
+    else if (character === state.quote) {
+      state.quote = undefined;
+      return index + 1;
+    }
+    index += 1;
+  }
+  return index;
+}
+
+function scanBlockComment(source: string, index: number, state: SourceScanState): number {
+  const closing = source.indexOf("*/", index);
+  if (closing === -1) return source.length;
+  state.inBlockComment = false;
+  return closing + 2;
+}
+
+function isQuote(character: string): character is Quote {
+  return character === "'" || character === "\"" || character === "`";
+}
+
+function hasExecutableContent(source: string, state: SourceScanState): boolean {
+  let index = 0;
+  let executable = false;
+  while (index < source.length) {
+    if (state.inBlockComment) index = scanBlockComment(source, index, state);
+    else if (state.quote) {
       executable = true;
-      if (character === "'" || character === "\"" || character === "`") {
-        quote = character;
-      }
+      index = scanQuotedContent(source, index, state);
+    } else if (/\s/u.test(source[index]!)) index += 1;
+    else if (source.startsWith("//", index)) return executable;
+    else if (source.startsWith("/*", index)) {
+      state.inBlockComment = true;
+      index += 2;
+    } else {
+      executable = true;
+      if (isQuote(source[index]!)) state.quote = source[index] as Quote;
       index += 1;
     }
-    return executable;
-  };
-
-  for (const line of diff.split(/\r?\n/u)) {
-    if (line.startsWith("+++ ")) {
-      const path = line.slice(4).trim();
-      file = path === "/dev/null" ? undefined : path.replace(/^b\//u, "");
-      inBlockComment = false;
-      quote = undefined;
-      if (file && !changed.has(file)) changed.set(file, new Set());
-      continue;
-    }
-    const hunk = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/u);
-    if (hunk) {
-      lineNumber = Number(hunk[1]);
-      inBlockComment = false;
-      quote = undefined;
-      continue;
-    }
-    if (!file || line.startsWith("--- ")) continue;
-    if (line.startsWith("+")) {
-      if (hasExecutableContent(line.slice(1))) changed.get(file)!.add(lineNumber);
-      lineNumber += 1;
-    } else if (!line.startsWith("-")) {
-      if (line.startsWith(" ")) hasExecutableContent(line.slice(1));
-      lineNumber += 1;
-    }
   }
+  return executable;
+}
+
+function beginChangedFile(
+  line: string,
+  state: DiffParseState,
+  changed: Map<string, Set<number>>,
+): boolean {
+  if (!line.startsWith("+++ ")) return false;
+  const path = line.slice(4).trim();
+  state.file = path === "/dev/null" ? undefined : path.replace(/^b\//u, "");
+  resetSourceScan(state.source);
+  if (state.file && !changed.has(state.file)) changed.set(state.file, new Set());
+  return true;
+}
+
+function beginHunk(line: string, state: DiffParseState): boolean {
+  const hunk = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/u);
+  if (!hunk) return false;
+  state.lineNumber = Number(hunk[1]);
+  resetSourceScan(state.source);
+  return true;
+}
+
+function parseDiffLine(
+  line: string,
+  state: DiffParseState,
+  changed: Map<string, Set<number>>,
+): void {
+  if (beginChangedFile(line, state, changed) || beginHunk(line, state)) return;
+  if (!state.file || line.startsWith("--- ")) return;
+  if (line.startsWith("+")) {
+    if (hasExecutableContent(line.slice(1), state.source)) {
+      changed.get(state.file)!.add(state.lineNumber);
+    }
+    state.lineNumber += 1;
+    return;
+  }
+  if (line.startsWith("-")) return;
+  if (line.startsWith(" ")) hasExecutableContent(line.slice(1), state.source);
+  state.lineNumber += 1;
+}
+
+export function parseAddedLines(diff: string): Map<string, Set<number>> {
+  const changed = new Map<string, Set<number>>();
+  const state: DiffParseState = {
+    file: undefined,
+    lineNumber: 0,
+    source: { inBlockComment: false, quote: undefined },
+  };
+  for (const line of diff.split(/\r?\n/u)) parseDiffLine(line, state, changed);
   return changed;
 }
 
@@ -186,12 +252,7 @@ function matchingCoverage(
     )
     .map(([, value]) => value);
   if (matches.length === 0) return undefined;
-  const merged: FileCoverage = {
-    lines: new Map(),
-    branches: new Map(),
-    functions: new Map(),
-    functionNames: new Map(),
-  };
+  const merged = createFileCoverage();
   matches.forEach((value) => mergeCoverage(merged, value));
   return merged;
 }
@@ -200,10 +261,118 @@ export function isExecutableCoveragePath(path: string): boolean {
   return EXECUTABLE_PATH.test(normalizeCoveragePath(path));
 }
 
+interface DiffCoverageCounts {
+  changedLines: number;
+  coveredLines: number;
+  changedBranches: number;
+  coveredBranches: number;
+  changedFunctions: number;
+  coveredFunctions: number;
+}
+
+type DiffCoverageThresholds = {
+  statements: number;
+  lines: number;
+  functions: number;
+  branches: number;
+};
+
+function findContainingFunction(coverage: FileCoverage | undefined, line: number): number | undefined {
+  return [...(coverage?.functions.keys() ?? [])]
+    .filter((functionLine) => functionLine <= line)
+    .sort((left, right) => right - left)[0];
+}
+
+function evaluateChangedLine(
+  line: number,
+  coverage: FileCoverage | undefined,
+  affectedFunctionLines: Set<number>,
+  missingLines: number[],
+  counts: DiffCoverageCounts,
+): void {
+  const hits = coverage?.lines.get(line);
+  counts.changedLines += 1;
+  if (hits === undefined) {
+    missingLines.push(line);
+    return;
+  }
+  if (hits > 0) counts.coveredLines += 1;
+  const branch = coverage?.branches.get(line);
+  if (branch) {
+    counts.changedBranches += branch.total;
+    counts.coveredBranches += branch.covered;
+  }
+  const containingFunction = findContainingFunction(coverage, line);
+  if (containingFunction !== undefined) affectedFunctionLines.add(containingFunction);
+}
+
+function addMissingFileFinding(findings: QualityFinding[], path: string): void {
+  findings.push({
+    code: "CHANGED_FILE_COVERAGE_MISSING",
+    message: `Changed executable file ${path} is absent from LCOV`,
+    path,
+  });
+}
+
+function addMissingLineFinding(
+  findings: QualityFinding[],
+  path: string,
+  missingLines: number[],
+): void {
+  findings.push({
+    code: "CHANGED_LINE_COVERAGE_MISSING",
+    message: `${path} has ${missingLines.length} changed line(s) absent from LCOV`,
+    path,
+    detail: { lines: missingLines },
+  });
+}
+
+function evaluateChangedFile(
+  path: string,
+  lines: Set<number>,
+  coverage: Map<string, FileCoverage>,
+  findings: QualityFinding[],
+  counts: DiffCoverageCounts,
+): void {
+  const fileCoverage = matchingCoverage(coverage, path);
+  if (!fileCoverage) addMissingFileFinding(findings, path);
+  const affectedFunctionLines = new Set<number>();
+  const missingLines: number[] = [];
+  for (const line of lines) {
+    evaluateChangedLine(line, fileCoverage, affectedFunctionLines, missingLines, counts);
+  }
+  if (fileCoverage && missingLines.length > 0) {
+    addMissingLineFinding(findings, path, missingLines);
+  }
+  for (const functionLine of affectedFunctionLines) {
+    counts.changedFunctions += 1;
+    if ((fileCoverage?.functions.get(functionLine) ?? 0) > 0) counts.coveredFunctions += 1;
+  }
+}
+
+function coveragePercent(covered: number, total: number, changedLines: number): number {
+  if (total > 0) return (covered / total) * 100;
+  return changedLines === 0 ? 100 : 0;
+}
+
+function addThresholdFinding(
+  findings: QualityFinding[],
+  code: string,
+  label: string,
+  percent: number,
+  threshold: number,
+): void {
+  if (percent >= threshold) return;
+  findings.push({
+    code,
+    message: `Changed ${label} coverage ${percent.toFixed(2)}% is below ${threshold}%`,
+  });
+}
+
 export function evaluateDiffCoverage(
   coverage: Map<string, FileCoverage>,
   changed: Map<string, Set<number>>,
-  thresholds: { statements: number; lines: number; functions: number; branches: number },
+  thresholds: DiffCoverageThresholds,
 ): {
   findings: QualityFinding[];
   metrics: {
@@ -220,96 +389,63 @@ export function evaluateDiffCoverage(
   };
 } {
   const findings: QualityFinding[] = [];
-  let changedLines = 0;
-  let coveredLines = 0;
-  let changedBranches = 0;
-  let coveredBranches = 0;
-  let changedFunctions = 0;
-  let coveredFunctions = 0;
+  const counts: DiffCoverageCounts = {
+    changedLines: 0,
+    coveredLines: 0,
+    changedBranches: 0,
+    coveredBranches: 0,
+    changedFunctions: 0,
+    coveredFunctions: 0,
+  };
   for (const [path, lines] of changed) {
     if (!isExecutableCoveragePath(path) || lines.size === 0) continue;
-    const fileCoverage = matchingCoverage(coverage, path);
-    if (!fileCoverage) {
-      findings.push({
-        code: "CHANGED_FILE_COVERAGE_MISSING",
-        message: `Changed executable file ${path} is absent from LCOV`,
-        path,
-      });
-    }
-    const affectedFunctionLines = new Set<number>();
-    const missingLines: number[] = [];
-    for (const line of lines) {
-      const hits = fileCoverage?.lines.get(line);
-      changedLines += 1;
-      if (hits === undefined) {
-        missingLines.push(line);
-        continue;
-      }
-      if (hits > 0) coveredLines += 1;
-      const branch = fileCoverage?.branches.get(line);
-      if (branch) {
-        changedBranches += branch.total;
-        coveredBranches += branch.covered;
-      }
-      const containingFunction = [...(fileCoverage?.functions.keys() ?? [])]
-        .filter((functionLine) => functionLine <= line)
-        .sort((left, right) => right - left)[0];
-      if (containingFunction !== undefined) affectedFunctionLines.add(containingFunction);
-    }
-    if (fileCoverage && missingLines.length > 0) {
-      findings.push({
-        code: "CHANGED_LINE_COVERAGE_MISSING",
-        message: `${path} has ${missingLines.length} changed line(s) absent from LCOV`,
-        path,
-        detail: { lines: missingLines },
-      });
-    }
-    for (const functionLine of affectedFunctionLines) {
-      changedFunctions += 1;
-      if ((fileCoverage?.functions.get(functionLine) ?? 0) > 0) coveredFunctions += 1;
-    }
+    evaluateChangedFile(path, lines, coverage, findings, counts);
   }
-  const linePercent = changedLines === 0 ? 100 : (coveredLines / changedLines) * 100;
-  const branchPercent =
-    changedBranches === 0 ? (changedLines === 0 ? 100 : 0) : (coveredBranches / changedBranches) * 100;
-  const functionPercent =
-    changedFunctions === 0 ? (changedLines === 0 ? 100 : 0) : (coveredFunctions / changedFunctions) * 100;
+  const linePercent = coveragePercent(counts.coveredLines, counts.changedLines, 0);
+  const branchPercent = coveragePercent(
+    counts.coveredBranches,
+    counts.changedBranches,
+    counts.changedLines,
+  );
+  const functionPercent = coveragePercent(
+    counts.coveredFunctions,
+    counts.changedFunctions,
+    counts.changedLines,
+  );
   const statementPercent = linePercent;
-  if (linePercent < thresholds.lines) {
-    findings.push({
-      code: "CHANGED_LINE_COVERAGE",
-      message: `Changed line coverage ${linePercent.toFixed(2)}% is below ${thresholds.lines}%`,
-    });
-  }
-  if (branchPercent < thresholds.branches) {
-    findings.push({
-      code: "CHANGED_BRANCH_COVERAGE",
-      message: `Changed branch coverage ${branchPercent.toFixed(2)}% is below ${thresholds.branches}%`,
-    });
-  }
-  if (statementPercent < thresholds.statements) {
-    findings.push({
-      code: "CHANGED_STATEMENT_COVERAGE",
-      message: `Changed statement coverage ${statementPercent.toFixed(2)}% is below ${thresholds.statements}%`,
-    });
-  }
-  if (functionPercent < thresholds.functions) {
-    findings.push({
-      code: "CHANGED_FUNCTION_COVERAGE",
-      message: `Changed function coverage ${functionPercent.toFixed(2)}% is below ${thresholds.functions}%`,
-    });
-  }
+  addThresholdFinding(findings, "CHANGED_LINE_COVERAGE", "line", linePercent, thresholds.lines);
+  addThresholdFinding(
+    findings,
+    "CHANGED_BRANCH_COVERAGE",
+    "branch",
+    branchPercent,
+    thresholds.branches,
+  );
+  addThresholdFinding(
+    findings,
+    "CHANGED_STATEMENT_COVERAGE",
+    "statement",
+    statementPercent,
+    thresholds.statements,
+  );
+  addThresholdFinding(
+    findings,
+    "CHANGED_FUNCTION_COVERAGE",
+    "function",
+    functionPercent,
+    thresholds.functions,
+  );
   return {
     findings,
     metrics: {
-      changed_lines: changedLines,
-      covered_lines: coveredLines,
+      changed_lines: counts.changedLines,
+      covered_lines: counts.coveredLines,
       line_percent: linePercent,
-      changed_branches: changedBranches,
-      covered_branches: coveredBranches,
+      changed_branches: counts.changedBranches,
+      covered_branches: counts.coveredBranches,
       branch_percent: branchPercent,
-      changed_functions: changedFunctions,
-      covered_functions: coveredFunctions,
+      changed_functions: counts.changedFunctions,
+      covered_functions: counts.coveredFunctions,
       function_percent: functionPercent,
       statement_percent: statementPercent,
     },

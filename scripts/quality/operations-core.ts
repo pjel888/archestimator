@@ -45,6 +45,23 @@ export const EXPECTED_OPERATIONS_CHECKS = {
   hosted_provider_readback: "external",
 } as const;
 
+export type LocalOperationCheckId = {
+  [Id in keyof typeof EXPECTED_OPERATIONS_CHECKS]:
+    (typeof EXPECTED_OPERATIONS_CHECKS)[Id] extends "local" ? Id : never;
+}[keyof typeof EXPECTED_OPERATIONS_CHECKS];
+
+export interface OperationDispatchPlan {
+  id: LocalOperationCheckId;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  artifacts: string[];
+  message: string;
+}
+
+const BUNDLE_EVIDENCE_MAX_AGE_MS = 2 * 60 * 60 * 1_000;
+const BUNDLE_EVIDENCE_FUTURE_TOLERANCE_MS = 5 * 60 * 1_000;
+
 function globMatches(path: string, pattern: string): boolean {
   const escaped = pattern
     .replace(/[.+^${}()|[\]\\]/gu, "\\$&")
@@ -54,37 +71,59 @@ function globMatches(path: string, pattern: string): boolean {
   return new RegExp(`^${escaped}$`, "u").test(path);
 }
 
-export function validateOperationsPolicy(policy: OperationsPolicy): string[] {
+function validateCheckIdentity(check: OperationsPolicyCheck, seenIds: Set<string>): string[] {
+  const invalid = !check.id || seenIds.has(check.id);
+  seenIds.add(check.id);
+  return invalid ? [`duplicate or empty check id: ${check.id}`] : [];
+}
+
+function validateCheckShape(check: OperationsPolicyCheck): string[] {
+  const requirements: Array<[boolean, string]> = [
+    [Boolean(check.label), `${check.id}: label is required`],
+    [["local", "external"].includes(check.kind), `${check.id}: invalid kind`],
+    [Array.isArray(check.path_patterns), `${check.id}: path_patterns must be an array`],
+    [Array.isArray(check.capabilities), `${check.id}: capabilities must be an array`],
+    [typeof check.required_for_q3 === "boolean", `${check.id}: required_for_q3 must be boolean`],
+    [Boolean(check.provenance), `${check.id}: provenance is required`],
+  ];
+  return requirements.filter(([valid]) => !valid).map(([, message]) => message);
+}
+
+function validateCanonicalCheck(check: OperationsPolicyCheck): string[] {
+  const expectedKind = EXPECTED_OPERATIONS_CHECKS[check.id as keyof typeof EXPECTED_OPERATIONS_CHECKS];
+  if (!expectedKind) return [`${check.id}: unknown canonical check`];
   const errors: string[] = [];
-  if (policy.schema_version !== 1) errors.push("schema_version must equal 1");
+  if (check.kind !== expectedKind) errors.push(`${check.id}: expected ${expectedKind} kind`);
+  if (check.required_for_q3 !== true) {
+    errors.push(`${check.id}: canonical checks must be required for Q3`);
+  }
+  return errors;
+}
+
+function validatePolicyCheck(check: OperationsPolicyCheck, seenIds: Set<string>): string[] {
+  return [
+    ...validateCheckIdentity(check, seenIds),
+    ...validateCheckShape(check),
+    ...validateCanonicalCheck(check),
+  ];
+}
+
+function validatePolicyCompleteness(seenIds: Set<string>): string[] {
+  return Object.keys(EXPECTED_OPERATIONS_CHECKS)
+    .filter((id) => !seenIds.has(id))
+    .map((id) => `${id}: canonical check is missing`);
+}
+
+export function validateOperationsPolicy(policy: OperationsPolicy): string[] {
+  const errors = policy.schema_version === 1 ? [] : ["schema_version must equal 1"];
   if (!Array.isArray(policy.checks) || policy.checks.length === 0) {
-    errors.push("checks must be a non-empty array");
-    return errors;
+    return [...errors, "checks must be a non-empty array"];
   }
   const ids = new Set<string>();
   for (const check of policy.checks) {
-    if (!check.id || ids.has(check.id)) errors.push(`duplicate or empty check id: ${check.id}`);
-    ids.add(check.id);
-    if (!check.label) errors.push(`${check.id}: label is required`);
-    if (!["local", "external"].includes(check.kind)) errors.push(`${check.id}: invalid kind`);
-    if (!Array.isArray(check.path_patterns)) errors.push(`${check.id}: path_patterns must be an array`);
-    if (!Array.isArray(check.capabilities)) errors.push(`${check.id}: capabilities must be an array`);
-    if (typeof check.required_for_q3 !== "boolean") errors.push(`${check.id}: required_for_q3 must be boolean`);
-    if (!check.provenance) errors.push(`${check.id}: provenance is required`);
-    const expectedKind =
-      EXPECTED_OPERATIONS_CHECKS[check.id as keyof typeof EXPECTED_OPERATIONS_CHECKS];
-    if (!expectedKind) errors.push(`${check.id}: unknown canonical check`);
-    if (expectedKind && check.kind !== expectedKind) {
-      errors.push(`${check.id}: expected ${expectedKind} kind`);
-    }
-    if (expectedKind && check.required_for_q3 !== true) {
-      errors.push(`${check.id}: canonical checks must be required for Q3`);
-    }
+    errors.push(...validatePolicyCheck(check, ids));
   }
-  for (const id of Object.keys(EXPECTED_OPERATIONS_CHECKS)) {
-    if (!ids.has(id)) errors.push(`${id}: canonical check is missing`);
-  }
-  return errors;
+  return [...errors, ...validatePolicyCompleteness(ids)];
 }
 
 export function validateOperationsProfileSelection(
@@ -99,21 +138,127 @@ export function validateOperationsProfileSelection(
 }
 
 export function validateBundleBudgetArtifact(artifact: {
+  schema_version?: number;
   kind?: string;
   status?: string;
+  generated_at?: string;
   data?: {
+    command?: string[];
     evidence_id?: string | null;
     command_text?: string;
+    started_at?: string;
+    finished_at?: string;
+    exit_code?: number;
     stdout_tail?: string;
   };
-}): boolean {
-  return (
-    artifact.kind === "command-evidence" &&
-    artifact.status === "PASS" &&
-    artifact.data?.evidence_id === "bundle-budget" &&
-    artifact.data.command_text?.includes("scripts/check-performance-budgets.mjs --strict") === true &&
-    artifact.data.stdout_tail?.includes("[perf-budget] PASS:") === true
-  );
+}, now = new Date()): boolean {
+  const generatedAt = Date.parse(artifact.generated_at ?? "");
+  const startedAt = Date.parse(artifact.data?.started_at ?? "");
+  const finishedAt = Date.parse(artifact.data?.finished_at ?? "");
+  const age = now.getTime() - finishedAt;
+  const exactCommand = "bun scripts/check-performance-budgets.mjs --strict";
+  return [
+    artifact.schema_version === 1,
+    artifact.kind === "command-evidence",
+    artifact.status === "PASS",
+    Number.isFinite(generatedAt),
+    Number.isFinite(startedAt),
+    Number.isFinite(finishedAt),
+    startedAt <= finishedAt,
+    startedAt <= generatedAt,
+    generatedAt <= finishedAt,
+    age >= -BUNDLE_EVIDENCE_FUTURE_TOLERANCE_MS,
+    age <= BUNDLE_EVIDENCE_MAX_AGE_MS,
+    artifact.data?.evidence_id === "bundle-budget",
+    artifact.data?.exit_code === 0,
+    artifact.data?.command?.join(" ") === exactCommand,
+    artifact.data?.command_text === exactCommand,
+    artifact.data?.stdout_tail?.includes("[perf-budget] PASS:") === true,
+  ].every(Boolean);
+}
+
+export function planLocalOperationCheck(
+  id: string,
+  paths: {
+    performanceDirectory: string;
+    observabilityDirectory: string;
+    migrationsDirectory: string;
+    bundleArtifactPath: string;
+  },
+): OperationDispatchPlan | null {
+  const childPath = (directory: string, name: string): string =>
+    `${directory}${directory.includes("\\") ? "\\" : "/"}${name}`;
+  const plans: Record<LocalOperationCheckId, OperationDispatchPlan> = {
+    route_readiness_contract: {
+      id: "route_readiness_contract",
+      command: "bun",
+      args: ["run", "scripts/check-route-transition-readiness.ts"],
+      env: {
+        ROUTE_TRANSITION_BENCHMARK_FILE: childPath(paths.performanceDirectory, "route-readiness.synthetic.json"),
+        OUTPUT_FILE: childPath(paths.performanceDirectory, "route-readiness.contract.json"),
+      },
+      artifacts: [
+        childPath(paths.performanceDirectory, "route-readiness.synthetic.json"),
+        childPath(paths.performanceDirectory, "route-readiness.contract.json"),
+      ],
+      message: "Existing route-readiness evaluator accepted the deterministic local fixture; this is evaluator wiring proof, not measured route performance",
+    },
+    bundle_budget: {
+      id: "bundle_budget",
+      command: "consume strict bundle-budget command evidence from build job",
+      args: [],
+      env: {},
+      artifacts: [paths.bundleArtifactPath],
+      message: "Strict bundle budget passed in the build job",
+    },
+    query_count_contract: {
+      id: "query_count_contract",
+      command: "bun",
+      args: ["run", "scripts/measure-workshop-dashboard-query-count.ts"],
+      env: {
+        PERF_TRACE_INPUT: childPath(paths.performanceDirectory, "dashboard-query-count.synthetic.log"),
+        OUTPUT_FILE: childPath(paths.performanceDirectory, "dashboard-query-count.contract.json"),
+      },
+      artifacts: [
+        childPath(paths.performanceDirectory, "dashboard-query-count.synthetic.log"),
+        childPath(paths.performanceDirectory, "dashboard-query-count.contract.json"),
+      ],
+      message: "Existing query-count collector accepted the deterministic local fixture; this is collector wiring proof, not a live query budget",
+    },
+    d1_migration_state: {
+      id: "d1_migration_state",
+      command: "bun",
+      args: ["run", "scripts/check-cloudflare-d1-migrations.ts", "--local"],
+      env: { OUTPUT_FILE: childPath(paths.migrationsDirectory, "d1-migration-state.json") },
+      artifacts: [],
+      message: "Local check passed",
+    },
+    platform_readiness: {
+      id: "platform_readiness",
+      command: "bun",
+      args: ["run", "cf:check-readiness"],
+      env: { OUTPUT_FILE: childPath(paths.observabilityDirectory, "cloudflare-worker-readiness.json") },
+      artifacts: [childPath(paths.observabilityDirectory, "cloudflare-worker-readiness.json")],
+      message: "Local source/config readiness passed; hosted resources and secrets remain outside this proof",
+    },
+    observability_contract: {
+      id: "observability_contract",
+      command: "bun",
+      args: ["run", "ops:check-alert-scenarios", "--", "--catalog-only", "--output", childPath(paths.observabilityDirectory, "alert-scenario-readiness.json")],
+      env: {},
+      artifacts: [childPath(paths.observabilityDirectory, "alert-scenario-readiness.json")],
+      message: "Local alert scenario catalog passed; alert delivery remains external",
+    },
+    redaction_contract: {
+      id: "redaction_contract",
+      command: "bun",
+      args: ["run", "ops:check-error-handling", "--", "--output", childPath(paths.observabilityDirectory, "error-handling-contract.json")],
+      env: {},
+      artifacts: [childPath(paths.observabilityDirectory, "error-handling-contract.json")],
+      message: "Local check passed",
+    },
+  };
+  return plans[id as LocalOperationCheckId] ?? null;
 }
 
 export function selectOperationsChecks(

@@ -18,10 +18,17 @@ import {
   type JobResult,
   type ProfilesFile,
 } from "./aggregate-core";
-import type { QualityProfile } from "./classifier-core";
+import { PROFILES, profileRank, type QualityProfile } from "./classifier-core";
+import { buildCandidate, type CanonicalCandidate } from "./candidate-core";
+import {
+  comparisonBaseFromFlags,
+  forwardedQualityArgs,
+  validateReviewForwarding,
+  type ComparisonBase,
+} from "./comparison-base-core";
 import { parseCommandCounts } from "./evidence-counts";
 import { validateManifest } from "./report-core";
-import { candidateSha256, reviewRequirements } from "./review-core";
+import { reviewRequirements } from "./review-core";
 import {
   buildCapabilityEvidence,
   validateTraceability,
@@ -32,6 +39,28 @@ import {
 const { flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
+const requestedProfile = flagString(flags, "profile") as QualityProfile | undefined;
+const reviewsInput = flagString(flags, "reviews");
+const authorIdsInput = flagString(flags, "author-ids");
+if (requestedProfile && !PROFILES.includes(requestedProfile)) {
+  findings.push({ code: "PROFILE_INVALID", message: `Unknown profile ${requestedProfile}` });
+}
+if (
+  requestedProfile === "Q2_CRITICAL_CHANGE_GATE" ||
+  requestedProfile === "Q3_RELEASE_GATE"
+) {
+  try {
+    validateReviewForwarding(reviewsInput, authorIdsInput);
+  } catch (error) {
+    findings.push({ code: "REVIEW_FORWARDING_INVALID", message: String(error) });
+  }
+}
+let comparisonBase: ComparisonBase | undefined;
+try {
+  comparisonBase = await comparisonBaseFromFlags({ root, flags });
+} catch (error) {
+  findings.push({ code: "COMPARISON_BASE", message: String(error) });
+}
 const classificationPath = resolve(
   root,
   flagString(flags, "classification", "artifacts/quality/classification.json")!,
@@ -53,8 +82,21 @@ const thresholds = await readJson<{
   };
 }>(resolve(root, flagString(flags, "thresholds", "quality/thresholds.json")!));
 
-if (!existsSync(classificationPath) && !flags.has("plan")) {
-  const classify = spawnSync("bun", ["scripts/quality/classify.ts"], {
+if (
+  !existsSync(classificationPath) &&
+  !flags.has("plan") &&
+  comparisonBase &&
+  findings.length === 0
+) {
+  const classifyArgs = [
+    "scripts/quality/classify.ts",
+    "--base",
+    comparisonBase.input_ref,
+    "--base-sha",
+    comparisonBase.resolved_sha,
+  ];
+  if (requestedProfile) classifyArgs.push("--profile", requestedProfile);
+  const classify = spawnSync("bun", classifyArgs, {
     cwd: root,
     encoding: "utf8",
   });
@@ -72,19 +114,75 @@ let classificationData: {
   reasons?: string[];
   files?: string[];
   affected_capabilities?: string[];
+  comparison_base?: ComparisonBase;
   attribution?: Record<string, unknown>;
 } | undefined;
 try {
-  const classification = await readJson<{ data: typeof classificationData }>(
+  const classification = await readJson<{
+    status?: string;
+    data: typeof classificationData;
+  }>(
     classificationPath,
   );
+  if (classification.status !== "PASS") {
+    throw new Error("classification status is not PASS");
+  }
   classificationData = classification.data;
   profile = classificationData?.profile;
+  if (
+    !comparisonBase ||
+    classificationData?.comparison_base?.input_ref !== comparisonBase.input_ref ||
+    classificationData?.comparison_base?.resolved_sha !== comparisonBase.resolved_sha
+  ) {
+    findings.push({
+      code: "CLASSIFICATION_BASE_MISMATCH",
+      message: "Classification does not bind the selected comparison base ref and SHA",
+    });
+  }
+  if (
+    requestedProfile &&
+    (!profile || profileRank(profile) < profileRank(requestedProfile))
+  ) {
+    findings.push({
+      code: "CLASSIFICATION_PROFILE_DOWNGRADE",
+      message: `Classification ${String(profile)} is below forced profile ${requestedProfile}`,
+    });
+  }
 } catch (error) {
   findings.push({
     code: "CLASSIFICATION_MISSING",
     message: `Selected profile is unavailable: ${String(error)}`,
   });
+}
+if (
+  (profile === "Q2_CRITICAL_CHANGE_GATE" || profile === "Q3_RELEASE_GATE") &&
+  requestedProfile !== "Q2_CRITICAL_CHANGE_GATE" &&
+  requestedProfile !== "Q3_RELEASE_GATE"
+) {
+  try {
+    validateReviewForwarding(reviewsInput, authorIdsInput);
+  } catch (error) {
+    findings.push({ code: "REVIEW_FORWARDING_INVALID", message: String(error) });
+  }
+}
+
+let canonicalCandidate: CanonicalCandidate | undefined;
+if (comparisonBase && classificationData && profile) {
+  try {
+    canonicalCandidate = await buildCandidate({
+      root,
+      comparison_base: comparisonBase,
+      classification: {
+        profile,
+        files: classificationData.files ?? [],
+        affected_capabilities: classificationData.affected_capabilities ?? [],
+        comparison_base: classificationData.comparison_base,
+      },
+      expected: flagString(flags, "expected"),
+    });
+  } catch (error) {
+    findings.push({ code: "CANDIDATE_INVALID", message: String(error) });
+  }
 }
 if (
   profile &&
@@ -104,14 +202,23 @@ if (
 
 const commandResults: {
   command: string;
+  executed_command: string;
   exit_code: number | null;
   duration_ms: number;
   stdout: string;
   stderr: string;
   artifact?: { path: string; sha256: string };
 }[] = [];
-if (profile && profiles.profiles[profile] && !flags.has("plan")) {
+if (
+  profile &&
+  profiles.profiles[profile] &&
+  !flags.has("plan") &&
+  findings.length === 0 &&
+  comparisonBase &&
+  canonicalCandidate
+) {
   for (const command of profiles.profiles[profile].commands) {
+    if (command === "bun run quality:classify") continue;
     const artifactPath = profiles.command_artifacts[command];
     if (artifactPath) {
       try {
@@ -120,10 +227,16 @@ if (profile && profiles.profiles[profile] && !flags.has("plan")) {
         // Absence is the required precondition; stale artifacts are never reused.
       }
     }
-    const [executable, ...args] = command.split(/\s+/u);
+    const [executable] = command.split(/\s+/u);
+    const forwardedArgs = forwardedQualityArgs(command, {
+      comparison_base: comparisonBase,
+      reviews: reviewsInput,
+      author_ids: authorIdsInput,
+      expected: canonicalCandidate.sha256,
+    });
     const startedAt = Date.now();
     const started = performance.now();
-    const run = spawnSync(executable, args, {
+    const run = spawnSync(executable, forwardedArgs, {
       cwd: root,
       encoding: "utf8",
       timeout: 30 * 60_000,
@@ -131,6 +244,7 @@ if (profile && profiles.profiles[profile] && !flags.has("plan")) {
     });
     const result = {
       command,
+      executed_command: [executable, ...forwardedArgs].join(" "),
       exit_code: run.status,
       duration_ms: Math.round(performance.now() - started),
       stdout: run.stdout?.slice(-20_000) ?? "",
@@ -151,7 +265,10 @@ if (profile && profiles.profiles[profile] && !flags.has("plan")) {
         if (artifactStat.mtimeMs < startedAt) throw new Error("artifact predates command");
         if (report.status !== "PASS") throw new Error("artifact status is not PASS");
         if (report.kind === "command-evidence") {
-          const expectedEvidenceId = command.replace(/^bun run /u, "");
+          const expectedEvidenceId =
+            command === "bun run quality:bundle-budget"
+              ? "bundle-budget"
+              : command.replace(/^bun run /u, "");
           if (report.data?.evidence_id !== expectedEvidenceId) {
             throw new Error(
               `artifact evidence_id ${String(report.data?.evidence_id)} does not match ${expectedEvidenceId}`,
@@ -174,6 +291,23 @@ if (profile && profiles.profiles[profile] && !flags.has("plan")) {
     }
   }
 }
+if (canonicalCandidate && comparisonBase && classificationData && profile) {
+  try {
+    canonicalCandidate = await buildCandidate({
+      root,
+      comparison_base: comparisonBase,
+      classification: {
+        profile,
+        files: classificationData.files ?? [],
+        affected_capabilities: classificationData.affected_capabilities ?? [],
+        comparison_base: classificationData.comparison_base,
+      },
+      expected: canonicalCandidate.sha256,
+    });
+  } catch (error) {
+    findings.push({ code: "CANDIDATE_CHANGED_DURING_VERIFY", message: String(error) });
+  }
+}
 
 const selected = profile ? profiles.profiles[profile] : undefined;
 const affectedCapabilities = classificationData?.affected_capabilities ?? [];
@@ -193,52 +327,41 @@ const traceabilityFindings = validateTraceability(
 );
 findings.push(...traceabilityFindings);
 
+const EXACT_JOB_NAMES = new Map<string, string>([
+  ["bun run quality:classify", "quality / classify"],
+  ["bun run quality:contracts", "quality / contracts"],
+  ["bun run quality:adapters", "quality / adapters"],
+  ["bun run quality:anti-bypass", "quality / anti-bypass"],
+  ["bun run quality:workflows", "quality / workflows"],
+  ["bun run quality:reviews", "quality / review"],
+  ["bun run quality:enforcement-contract", "quality / enforcement"],
+  ["bun run quality:static", "quality / static"],
+  ["bun run test:unit:coverage", "quality / unit"],
+  ["bun run quality:diff-coverage", "quality / coverage"],
+  ["bun run test:property", "quality / property"],
+  ["bun run test:workers:coverage", "quality / workers"],
+  ["bun run test:a11y", "quality / a11y"],
+  ["bun run build", "quality / build"],
+  ["bun run quality:security", "quality / security"],
+  ["bun run test:ai-evals", "quality / ai-eval"],
+  ["bun run quality:operations", "quality / operations"],
+]);
+const PREFIX_JOB_NAMES: Array<[string, string]> = [
+  ["bun run test:component:", "quality / component"],
+  ["bun run test:bdd", "quality / bdd-smoke"],
+  ["bun run test:e2e:", "quality / e2e-smoke"],
+  ["bun run test:mutation:", "quality / mutation"],
+];
+
 function jobNameForCommand(command: string): string | undefined {
-  if (command === "bun run quality:classify") return "quality / classify";
-  if (command === "bun run quality:contracts") return "quality / contracts";
-  if (command === "bun run quality:adapters") return "quality / adapters";
-  if (command === "bun run quality:anti-bypass") return "quality / anti-bypass";
-  if (command === "bun run quality:workflows") return "quality / workflows";
-  if (command === "bun run quality:reviews") return "quality / review";
-  if (command === "bun run quality:enforcement-contract") return "quality / enforcement";
-  if (command === "bun run quality:static") return "quality / static";
-  if (command === "bun run test:unit:coverage") return "quality / unit";
-  if (command.startsWith("bun run test:component:")) return "quality / component";
-  if (command === "bun run quality:diff-coverage") return "quality / coverage";
-  if (command === "bun run test:property") return "quality / property";
-  if (command === "bun run test:workers:coverage") return "quality / workers";
-  if (command.startsWith("bun run test:bdd")) return "quality / bdd-smoke";
-  if (command === "bun run test:a11y") return "quality / a11y";
-  if (command === "bun run build") return "quality / build";
-  if (command.startsWith("bun run test:e2e:")) return "quality / e2e-smoke";
-  if (command.startsWith("bun run test:mutation:")) return "quality / mutation";
-  if (command === "bun run quality:security") return "quality / security";
-  if (command === "bun run test:ai-evals") return "quality / ai-eval";
-  if (command === "bun run quality:operations") return "quality / operations";
-  return undefined;
+  return (
+    EXACT_JOB_NAMES.get(command) ??
+    PREFIX_JOB_NAMES.find(([prefix]) => command.startsWith(prefix))?.[1]
+  );
 }
 
-const commitSha = spawnSync("git", ["rev-parse", "HEAD"], {
-  cwd: root,
-  encoding: "utf8",
-}).stdout.trim();
-const candidateFiles = [];
-for (const path of [...(classificationData?.files ?? [])].sort()) {
-  const absolute = resolve(root, path);
-  candidateFiles.push({
-    path,
-    sha256: existsSync(absolute) ? sha256(await readFile(absolute)) : sha256("DELETED"),
-  });
-}
-const candidateHash =
-  profile && /^[a-f0-9]{40}$/u.test(commitSha)
-    ? candidateSha256({
-        commit_sha: commitSha,
-        profile,
-        changed_files: candidateFiles,
-        affected_capabilities: affectedCapabilities,
-      })
-    : "0".repeat(64);
+const commitSha = canonicalCandidate?.record.commit_sha ?? "0".repeat(40);
+const candidateHash = canonicalCandidate?.sha256 ?? "0".repeat(64);
 
 let classificationArtifact = {
   path: flagString(flags, "classification", "artifacts/quality/classification.json")!,
@@ -252,7 +375,7 @@ try {
 } catch {
   // The classification finding above already records the missing artifact.
 }
-const jobResults: JobResult[] = (selected?.required_jobs ?? []).map((name) => {
+function jobResult(name: string): JobResult {
   if (name === "quality / classify") {
     return {
       name,
@@ -265,14 +388,16 @@ const jobResults: JobResult[] = (selected?.required_jobs ?? []).map((name) => {
   const command = commandResults.find(
     (candidate) => jobNameForCommand(candidate.command) === name,
   );
+  const passed = command?.exit_code === 0 && Boolean(command.artifact);
   return {
     name,
-    status: command?.exit_code === 0 && command.artifact ? "success" : "failure",
-    conclusion: command?.exit_code === 0 && command.artifact ? "PASS" : "FAIL",
+    status: passed ? "success" : "failure",
+    conclusion: passed ? "PASS" : "FAIL",
     flaky: false,
     artifact: command?.artifact ?? { path: "UNAVAILABLE", sha256: "0".repeat(64) },
   };
-});
+}
+const jobResults: JobResult[] = (selected?.required_jobs ?? []).map(jobResult);
 const localAggregateFindings = aggregateJobs(selected?.required_jobs ?? [], jobResults);
 findings.push(...localAggregateFindings);
 const aggregatePath = resolve(root, "artifacts/quality/aggregate.local.json");
@@ -281,6 +406,8 @@ const aggregateResult = makeResult(
   localAggregateFindings,
   {
     profile: profile ?? null,
+    comparison_base: comparisonBase ?? null,
+    candidate_sha256: canonicalCandidate?.sha256 ?? null,
     required_jobs: selected?.required_jobs ?? [],
     jobs: jobResults,
   },
@@ -331,7 +458,7 @@ const finalReviewRequirements = {
 };
 
 const normalizedCommandResults = commandResults.map((command) => ({
-  command: command.command,
+  command: command.executed_command,
   status: command.exit_code === 0 && command.artifact ? "PASS" as const : "FAIL" as const,
   source: "local" as const,
   ...(jobNameForCommand(command.command)
@@ -404,10 +531,13 @@ const externalEvidence =
 const manifestData = {
   profile: profile ?? null,
   mode: flags.has("plan") ? "plan" as const : "execute" as const,
-  candidate: { commit_sha: commitSha, sha256: candidateHash },
+  candidate: canonicalCandidate
+    ? { ...canonicalCandidate.record, sha256: canonicalCandidate.sha256 }
+    : { commit_sha: commitSha, sha256: candidateHash },
   classification: classificationData ?? {},
   merge_base:
-    (classificationData?.attribution?.merge_base as string | undefined) ?? "UNKNOWN",
+    comparisonBase?.resolved_sha ?? "UNKNOWN",
+  comparison_base: comparisonBase ?? null,
   scope: {
     changed_files: classificationData?.files ?? [],
     inherited_dirty_files:

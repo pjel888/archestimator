@@ -53,6 +53,98 @@ function extensionOf(path: string): string {
   return match?.[1]?.toLowerCase() ?? "";
 }
 
+interface ClassificationState {
+  profile: QualityProfile;
+  reasons: string[];
+  capabilities: string[];
+  failClosed: boolean;
+}
+
+function raiseProfile(state: ClassificationState, candidate: QualityProfile): void {
+  if (profileRank(candidate) > profileRank(state.profile)) state.profile = candidate;
+}
+
+function applyMatchingRules(
+  file: string,
+  matchingRules: RiskRule[],
+  state: ClassificationState,
+): void {
+  for (const rule of matchingRules) {
+    raiseProfile(state, rule.profile);
+    state.reasons.push(`${rule.id}: ${file}: ${rule.reason}`);
+    state.capabilities.push(...(rule.capabilities ?? []));
+  }
+}
+
+function classifyFile(file: string, riskMap: RiskMap, state: ClassificationState): void {
+  const matchingRules = riskMap.rules.filter((rule) =>
+    rule.patterns.some((pattern) => globMatches(file, pattern))
+  );
+  if (matchingRules.length > 0) {
+    applyMatchingRules(file, matchingRules, state);
+    return;
+  }
+
+  const extension = extensionOf(file);
+  if (riskMap.prose_extensions.includes(extension)) {
+    state.reasons.push(`PROSE: ${file}: contract or prose-only change`);
+    return;
+  }
+  if (riskMap.executable_extensions.includes(extension)) {
+    raiseProfile(state, "Q1_CHANGE_GATE");
+    state.reasons.push(`EXECUTABLE: ${file}: ordinary executable change`);
+    return;
+  }
+  state.profile = "Q2_CRITICAL_CHANGE_GATE";
+  state.failClosed = true;
+  state.reasons.push(`UNKNOWN: ${file}: no deterministic risk rule; fail closed`);
+}
+
+function applyReleaseSelection(
+  files: string[],
+  riskMap: RiskMap,
+  release: boolean | undefined,
+  state: ClassificationState,
+): void {
+  const releasePathChanged = files.some((file) =>
+    riskMap.release_flags.some((pattern) => globMatches(file, pattern))
+  );
+  if (!release && !releasePathChanged) return;
+  state.profile = "Q3_RELEASE_GATE";
+  state.reasons.push("RELEASE: release flag or release workflow selected");
+}
+
+function applyImpactSelection(
+  risk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | undefined,
+  state: ClassificationState,
+): void {
+  if (risk !== "HIGH" && risk !== "CRITICAL") return;
+  raiseProfile(state, "Q2_CRITICAL_CHANGE_GATE");
+  state.reasons.push(`GITNEXUS: ${risk} upstream impact`);
+}
+
+function applyRequestedProfile(
+  requestedProfile: QualityProfile | undefined,
+  state: ClassificationState,
+  findings: QualityFinding[],
+): QualityProfile | undefined {
+  if (!requestedProfile) return undefined;
+  const requestedRank = profileRank(requestedProfile);
+  const selectedRank = profileRank(state.profile);
+  if (requestedRank < selectedRank) {
+    findings.push({
+      code: "PROFILE_DOWNGRADE_REJECTED",
+      message: `Requested ${requestedProfile} is weaker than selected ${state.profile}`,
+    });
+    return requestedProfile;
+  }
+  if (requestedRank > selectedRank) {
+    state.profile = requestedProfile;
+    state.reasons.push(`USER_ESCALATION: explicitly escalated to ${requestedProfile}`);
+  }
+  return undefined;
+}
+
 export function classifyFiles(
   inputFiles: string[],
   riskMap: RiskMap,
@@ -65,81 +157,33 @@ export function classifyFiles(
 ): { classification: Classification; findings: QualityFinding[] } {
   const findings: QualityFinding[] = [];
   const files = unique(inputFiles.map((file) => file.trim()).filter(Boolean)).sort();
-  const reasons: string[] = [];
-  const capabilities: string[] = [];
-  let profile: QualityProfile = "Q0_CONTRACT_ONLY";
-  let failClosed = false;
+  const state: ClassificationState = {
+    profile: "Q0_CONTRACT_ONLY",
+    reasons: [],
+    capabilities: [],
+    failClosed: false,
+  };
 
   if (options.classifierError || files.length === 0) {
-    profile = "Q2_CRITICAL_CHANGE_GATE";
-    failClosed = true;
-    reasons.push(options.classifierError ?? "No changed paths were available; fail closed.");
-  }
-
-  for (const file of files) {
-    const matchingRules = riskMap.rules.filter((rule) =>
-      rule.patterns.some((pattern) => globMatches(file, pattern))
+    state.profile = "Q2_CRITICAL_CHANGE_GATE";
+    state.failClosed = true;
+    state.reasons.push(
+      options.classifierError ?? "No changed paths were available; fail closed.",
     );
-    if (matchingRules.length > 0) {
-      for (const rule of matchingRules) {
-        if (profileRank(rule.profile) > profileRank(profile)) profile = rule.profile;
-        reasons.push(`${rule.id}: ${file}: ${rule.reason}`);
-        capabilities.push(...(rule.capabilities ?? []));
-      }
-      continue;
-    }
-
-    const extension = extensionOf(file);
-    if (riskMap.prose_extensions.includes(extension)) {
-      reasons.push(`PROSE: ${file}: contract or prose-only change`);
-    } else if (riskMap.executable_extensions.includes(extension)) {
-      if (profileRank(profile) < profileRank("Q1_CHANGE_GATE")) profile = "Q1_CHANGE_GATE";
-      reasons.push(`EXECUTABLE: ${file}: ordinary executable change`);
-    } else {
-      profile = "Q2_CRITICAL_CHANGE_GATE";
-      failClosed = true;
-      reasons.push(`UNKNOWN: ${file}: no deterministic risk rule; fail closed`);
-    }
   }
 
-  if (
-    options.release ||
-    files.some((file) => riskMap.release_flags.some((pattern) => globMatches(file, pattern)))
-  ) {
-    profile = "Q3_RELEASE_GATE";
-    reasons.push("RELEASE: release flag or release workflow selected");
-  }
-
-  if (options.gitNexusRisk === "HIGH" || options.gitNexusRisk === "CRITICAL") {
-    if (profileRank(profile) < profileRank("Q2_CRITICAL_CHANGE_GATE")) {
-      profile = "Q2_CRITICAL_CHANGE_GATE";
-    }
-    reasons.push(`GITNEXUS: ${options.gitNexusRisk} upstream impact`);
-  }
-
-  let rejectedDowngrade: QualityProfile | undefined;
-  if (options.requestedProfile) {
-    const requestedRank = profileRank(options.requestedProfile);
-    const selectedRank = profileRank(profile);
-    if (requestedRank < selectedRank) {
-      rejectedDowngrade = options.requestedProfile;
-      findings.push({
-        code: "PROFILE_DOWNGRADE_REJECTED",
-        message: `Requested ${options.requestedProfile} is weaker than selected ${profile}`,
-      });
-    } else if (requestedRank > selectedRank) {
-      profile = options.requestedProfile;
-      reasons.push(`USER_ESCALATION: explicitly escalated to ${options.requestedProfile}`);
-    }
-  }
+  for (const file of files) classifyFile(file, riskMap, state);
+  applyReleaseSelection(files, riskMap, options.release, state);
+  applyImpactSelection(options.gitNexusRisk, state);
+  const rejectedDowngrade = applyRequestedProfile(options.requestedProfile, state, findings);
 
   return {
     classification: {
-      profile,
-      reasons: unique(reasons),
+      profile: state.profile,
+      reasons: unique(state.reasons),
       files,
-      affected_capabilities: unique(capabilities).sort(),
-      fail_closed: failClosed,
+      affected_capabilities: unique(state.capabilities).sort(),
+      fail_closed: state.failClosed,
       ...(rejectedDowngrade ? { rejected_downgrade: rejectedDowngrade } : {}),
     },
     findings,

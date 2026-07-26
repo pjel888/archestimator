@@ -10,6 +10,9 @@ permissions:
   contents: read
   pull-requests: read
 
+env:
+  QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+
 concurrency:
   group: quality-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -26,11 +29,10 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Setup quality runtime
         uses: ./.github/actions/setup-quality
       - name: Classify the complete change
-        env:
-          QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           test -n "$QUALITY_BASE"
           bun scripts/quality/classify.ts \
@@ -349,12 +351,22 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: ./.github/actions/setup-quality
       - name: Install Chromium
-        run: bunx playwright install chromium --with-deps
+        env:
+          QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
+        run: |
+          if test "$QUALITY_PROFILE" = Q1_CHANGE_GATE; then
+            bunx playwright install chromium --with-deps
+          else
+            bunx playwright install --with-deps
+          fi
       - name: Run selected browser tier
         env:
           QUALITY_PROFILE: ${{ needs.classify.outputs.profile }}
         run: |
-          if test "$QUALITY_PROFILE" = Q3_RELEASE_GATE; then
+          if test "$QUALITY_PROFILE" = Q2_CRITICAL_CHANGE_GATE; then
+            bun run test:e2e:smoke
+            bun run test:e2e:matrix
+          elif test "$QUALITY_PROFILE" = Q3_RELEASE_GATE; then
             bun run test:e2e:matrix
           else
             bun run test:e2e:smoke

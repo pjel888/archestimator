@@ -17,6 +17,10 @@ import {
   parseAddedLines,
   parseLcov,
 } from "./diff-coverage-core";
+import {
+  comparisonBaseFromFlags,
+  type ComparisonBase,
+} from "./comparison-base-core";
 
 const { flags } = parseArgs();
 const root = qualityRoot();
@@ -49,6 +53,12 @@ const lcovPath = flagString(flags, "lcov");
 const diffPath = flagString(flags, "diff");
 let lcov = "";
 let diff = "";
+let comparisonBase: ComparisonBase | undefined;
+try {
+  comparisonBase = await comparisonBaseFromFlags({ root, flags });
+} catch (error) {
+  findings.push({ code: "COMPARISON_BASE", message: String(error) });
+}
 try {
   const lcovPaths = lcovPath
     ? lcovPath.split(",")
@@ -75,15 +85,10 @@ try {
   if (diffPath) {
     diff = await readFile(resolve(root, diffPath), "utf8");
   } else {
-    const base = flagString(flags, "base", "main")!;
-    const mergeBase = spawnSync("git", ["merge-base", base, "HEAD"], {
-      cwd: root,
-      encoding: "utf8",
-    });
-    if (mergeBase.status !== 0 || !mergeBase.stdout.trim()) {
-      throw new Error(`cannot resolve merge base for ${base}`);
-    }
-    const generated = spawnSync("git", ["diff", "--unified=0", mergeBase.stdout.trim()], {
+    if (!comparisonBase) throw new Error("comparison base is unavailable");
+    const generated = spawnSync("git", [
+      "diff", "--no-renames", "--unified=0", comparisonBase.resolved_sha,
+    ], {
       cwd: root,
       encoding: "utf8",
       maxBuffer: 30 * 1024 * 1024,
@@ -162,6 +167,7 @@ const result = makeResult(
   findings,
   {
     profile: profile ?? null,
+    comparison_base: comparisonBase ?? null,
     baseline: baselinePath ?? null,
     current_summary: currentPath ?? null,
     ...metrics,

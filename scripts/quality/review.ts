@@ -1,6 +1,3 @@
-import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   finishCli,
@@ -9,12 +6,15 @@ import {
   parseArgs,
   qualityRoot,
   readJson,
-  sha256,
   type QualityFinding,
 } from "./common";
-import type { QualityProfile } from "./classifier-core";
 import {
-  candidateSha256,
+  buildCandidate,
+  type CandidateClassification,
+  type CanonicalCandidate,
+} from "./candidate-core";
+import { comparisonBaseFromFlags } from "./comparison-base-core";
+import {
   githubReviewTypes,
   reviewRequirements,
   validateReviews,
@@ -38,16 +38,8 @@ const classificationPath = resolve(
   root,
   flagString(flags, "classification", "artifacts/quality/classification.json")!,
 );
-const commitSha =
-  flagString(flags, "commit-sha") ??
-  process.env.QUALITY_CANDIDATE_SHA ??
-  spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
-
-let classification: {
-  profile: QualityProfile;
-  files: string[];
-  affected_capabilities: string[];
-} | undefined;
+let classification: CandidateClassification | undefined;
+let candidate: CanonicalCandidate | undefined;
 try {
   classification = (
     await readJson<{ data: typeof classification }>(classificationPath)
@@ -59,36 +51,24 @@ try {
   ) {
     throw new Error("classification data is incomplete");
   }
+  const comparisonBase = await comparisonBaseFromFlags({ root, flags });
+  candidate = await buildCandidate({
+    root,
+    comparison_base: comparisonBase,
+    classification,
+    expected: flagString(flags, "expected"),
+  });
+  const requestedCommit = flagString(flags, "commit-sha") ?? process.env.QUALITY_CANDIDATE_SHA;
+  if (requestedCommit && requestedCommit !== candidate.record.commit_sha) {
+    throw new Error("Requested candidate commit SHA does not match canonical candidate HEAD");
+  }
 } catch (error) {
   findings.push({
     code: "CLASSIFICATION_MALFORMED",
     message: `Review classification is missing or malformed: ${String(error)}`,
   });
 }
-if (!/^[a-f0-9]{40}$/u.test(commitSha)) {
-  findings.push({
-    code: "REVIEW_COMMIT_SHA",
-    message: "Review candidate commit SHA must contain exactly 40 lowercase hexadecimal characters",
-  });
-}
-
-const targetFiles = [];
-for (const path of [...(classification?.files ?? [])].sort()) {
-  const absolute = resolve(root, path);
-  targetFiles.push({
-    path,
-    sha256: existsSync(absolute) ? sha256(await readFile(absolute)) : sha256("DELETED"),
-  });
-}
-const candidateHash =
-  classification && /^[a-f0-9]{40}$/u.test(commitSha)
-    ? candidateSha256({
-        commit_sha: commitSha,
-        profile: classification.profile,
-        changed_files: targetFiles,
-        affected_capabilities: classification.affected_capabilities,
-      })
-    : "0".repeat(64);
+const candidateHash = candidate?.sha256 ?? "0".repeat(64);
 const requirements = classification
   ? reviewRequirements(
       classification.profile,
@@ -167,7 +147,7 @@ if (localReviewPaths.length > 0) {
                 ? "REQUEST_CHANGES"
                 : "BLOCKED",
           candidate_sha256: candidateHash,
-          commit_sha: review.commit_id ?? undefined,
+          commit_sha: review.commit_id ?? "",
           reviewed_at: review.submitted_at ?? "",
           read_only: true,
           source: "github",
@@ -185,12 +165,11 @@ if (localReviewPaths.length > 0) {
   });
 }
 
-if (classification) {
+if (classification && candidate) {
   findings.push(
     ...validateReviews({
       requirements,
-      candidate_sha256: candidateHash,
-      commit_sha: commitSha,
+      candidate,
       author_ids: [...authorIds],
       reviews,
     }),
@@ -220,9 +199,8 @@ const result = makeResult(
   findings,
   {
     candidate: {
-      commit_sha: commitSha,
+      ...candidate?.record,
       sha256: candidateHash,
-      files: targetFiles,
     },
     requirements,
     source,

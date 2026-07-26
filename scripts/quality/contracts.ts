@@ -19,7 +19,7 @@ import {
 } from "./component-core";
 
 const { flags } = parseArgs();
-const root = qualityRoot();
+const root = resolve(flagString(flags, "root", qualityRoot())!);
 const findings: QualityFinding[] = [];
 const schemaDirectory = resolve(root, "quality/schemas");
 let schemas: string[] = [];

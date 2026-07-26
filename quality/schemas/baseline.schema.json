@@ -28,15 +28,9 @@
       ],
       "properties": {
         "command": { "type": "string", "minLength": 1 },
-        "report": {
-          "type": "string",
-          "pattern": "^(?!\\.omx/).+"
-        },
+        "report": { "const": "quality/baselines/component/source.vitest.json" },
         "report_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "coverage": {
-          "type": "string",
-          "pattern": "^(?!\\.omx/).+"
-        },
+        "coverage": { "const": "quality/baselines/component/coverage-summary.json" },
         "coverage_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     },
@@ -54,18 +48,18 @@
         "security_review_sha256"
       ],
       "properties": {
-        "inventory": { "type": "string", "pattern": "^(?!\\.omx/).+" },
+        "inventory": { "const": "quality/baselines/component/inventory.json" },
         "inventory_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "validation_artifact": { "type": "string", "pattern": "^(?!\\.omx/).+" },
+        "validation_artifact": { "const": "quality/baselines/component/admission.json" },
         "validation_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "quality_review_artifact": {
           "type": "string",
-          "pattern": "^(?:quality/reviews/|artifacts/quality/).+"
+          "const": "quality/reviews/component-baseline-quality.md"
         },
         "quality_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "security_review_artifact": {
           "type": "string",
-          "pattern": "^(?:quality/reviews/|artifacts/quality/).+"
+          "const": "quality/reviews/component-baseline-security.md"
         },
         "security_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
@@ -97,6 +91,7 @@
           "classification",
           "owner",
           "rationale",
+          "acceptance",
           "expires_at",
           "quality_reviewer",
           "security_reviewer"
@@ -110,6 +105,15 @@
           "classification": { "const": "ratchet_noncritical" },
           "owner": { "type": "string", "minLength": 1 },
           "rationale": { "type": "string", "minLength": 1 },
+          "acceptance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["command", "expected_artifact"],
+            "properties": {
+              "command": { "type": "string", "minLength": 1 },
+              "expected_artifact": { "type": "string", "minLength": 1 }
+            }
+          },
           "expires_at": { "type": "string", "format": "date-time" },
           "quality_reviewer": { "type": "string", "minLength": 1 },
           "security_reviewer": { "type": "string", "minLength": 1 }

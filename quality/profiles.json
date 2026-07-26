@@ -27,7 +27,8 @@
     "bun run test:mutation:full": "artifacts/quality/mutation.json",
     "bun run quality:security": "artifacts/quality/security.json",
     "bun run test:ai-evals": "artifacts/quality/ai-eval.json",
-    "bun run quality:operations": "artifacts/quality/operations.json"
+    "bun run quality:operations": "artifacts/quality/operations.json",
+    "bun run quality:bundle-budget": "artifacts/quality/bundle-budget.json"
   },
   "evidence_commands": {
     "classification": {
@@ -118,6 +119,7 @@
         "bun run test:a11y",
         "bun run build",
         "bun run test:e2e:smoke",
+        "bun run quality:bundle-budget",
         "bun run quality:security",
         "bun run quality:operations"
       ]
@@ -163,6 +165,8 @@
         "bun run test:a11y",
         "bun run build",
         "bun run test:e2e:smoke",
+        "bun run test:e2e:matrix",
+        "bun run quality:bundle-budget",
         "bun run test:mutation:critical",
         "bun run quality:security",
         "bun run test:ai-evals",
@@ -212,6 +216,7 @@
         "bun run test:bdd",
         "bun run test:a11y",
         "bun run build",
+        "bun run quality:bundle-budget",
         "bun run test:e2e:matrix",
         "bun run test:mutation:full",
         "bun run quality:security",

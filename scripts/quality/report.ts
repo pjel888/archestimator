@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { buildCandidate, type CandidateClassification } from "./candidate-core";
 import {
   finishCli,
   flagString,
@@ -26,6 +27,22 @@ try {
     };
   }
   findings.push(...validateManifest(manifest));
+  const classification = manifest.classification as CandidateClassification | undefined;
+  const candidate = manifest.candidate as
+    | { commit_sha?: string; sha256?: string }
+    | undefined;
+  if (!classification?.comparison_base || !candidate?.sha256) {
+    throw new Error("Manifest lacks canonical candidate construction inputs");
+  }
+  const canonical = await buildCandidate({
+    root,
+    comparison_base: classification.comparison_base,
+    classification,
+    expected: candidate.sha256,
+  });
+  if (candidate.commit_sha !== canonical.record.commit_sha) {
+    throw new Error("Manifest candidate commit does not equal HEAD");
+  }
 } catch (error) {
   findings.push({
     code: "MANIFEST_MALFORMED",

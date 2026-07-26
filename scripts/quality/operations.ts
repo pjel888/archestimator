@@ -13,12 +13,15 @@ import {
 import { PROFILES, type QualityProfile } from "./classifier-core";
 import {
   operationsVerdict,
+  planLocalOperationCheck,
   selectOperationsChecks,
   statusForUnexecutedCheck,
   validateBundleBudgetArtifact,
   validateOperationsPolicy,
   validateOperationsProfileSelection,
   type OperationCheckStatus,
+  type OperationDispatchPlan,
+  type LocalOperationCheckId,
   type OperationsPolicy,
   type OperationsPolicyCheck,
   type OperationsSelection,
@@ -34,11 +37,17 @@ interface ClassificationArtifact {
 }
 
 interface CommandEvidenceArtifact {
+  schema_version?: number;
   kind?: string;
   status?: string;
+  generated_at?: string;
   data?: {
+    command?: string[];
     evidence_id?: string | null;
     command_text?: string;
+    started_at?: string;
+    finished_at?: string;
+    exit_code?: number;
     stdout_tail?: string;
   };
 }
@@ -59,6 +68,13 @@ interface OperationCheckResult {
   artifacts: string[];
   message: string;
 }
+
+type ExecutionResult = Pick<
+  OperationCheckResult,
+  "command" | "exit_code" | "duration_ms" | "stdout_tail" | "stderr_tail"
+>;
+
+type LocalExecutor = (root: string, plan: OperationDispatchPlan) => Promise<ExecutionResult>;
 
 function normalizedRelative(root: string, path: string): string {
   return relative(root, path).split(sep).join("/");
@@ -130,7 +146,7 @@ function runCommand(
   command: string,
   args: string[],
   env: Record<string, string>,
-): Omit<OperationCheckResult, "id" | "label" | "kind" | "status" | "required" | "provenance" | "reasons" | "artifacts" | "message"> {
+): ExecutionResult {
   const started = performance.now();
   const run = spawnSync(command, args, {
     cwd: root,
@@ -148,135 +164,74 @@ function runCommand(
   };
 }
 
-async function executeLocalCheck(
+async function executeRouteReadiness(
+  root: string,
+  plan: OperationDispatchPlan,
+): Promise<ExecutionResult> {
+  await writeSyntheticRouteBenchmark(plan.artifacts[0]);
+  return runCommand(root, plan.command, plan.args, plan.env);
+}
+
+async function executeBundleBudget(
+  _root: string,
+  plan: OperationDispatchPlan,
+): Promise<ExecutionResult> {
+  let artifact: CommandEvidenceArtifact | undefined;
+  let error = "";
+  try {
+    artifact = await readJson<CommandEvidenceArtifact>(plan.artifacts[0]);
+  } catch (caught) {
+    error = String(caught);
+  }
+  const valid = artifact ? validateBundleBudgetArtifact(artifact) : false;
+  return {
+    command: plan.command,
+    exit_code: valid ? 0 : 1,
+    duration_ms: 0,
+    stdout_tail: artifact?.data?.stdout_tail?.slice(-20_000) ?? "",
+    stderr_tail: error,
+  };
+}
+
+async function executeQueryCount(root: string, plan: OperationDispatchPlan): Promise<ExecutionResult> {
+  await writeSyntheticQueryTrace(plan.artifacts[0]);
+  return runCommand(root, plan.command, plan.args, plan.env);
+}
+
+async function executeD1Migration(root: string, plan: OperationDispatchPlan): Promise<ExecutionResult> {
+  return runCommand(root, plan.command, plan.args, plan.env);
+}
+
+async function executePlatformReadiness(root: string, plan: OperationDispatchPlan): Promise<ExecutionResult> {
+  return runCommand(root, plan.command, plan.args, plan.env);
+}
+
+async function executeObservability(root: string, plan: OperationDispatchPlan): Promise<ExecutionResult> {
+  return runCommand(root, plan.command, plan.args, plan.env);
+}
+
+async function executeRedaction(root: string, plan: OperationDispatchPlan): Promise<ExecutionResult> {
+  return runCommand(root, plan.command, plan.args, plan.env);
+}
+
+const LOCAL_EXECUTORS: Record<LocalOperationCheckId, LocalExecutor> = {
+  route_readiness_contract: executeRouteReadiness,
+  bundle_budget: executeBundleBudget,
+  query_count_contract: executeQueryCount,
+  d1_migration_state: executeD1Migration,
+  platform_readiness: executePlatformReadiness,
+  observability_contract: executeObservability,
+  redaction_contract: executeRedaction,
+};
+
+function materializeOperationResult(
   root: string,
   check: OperationsPolicyCheck,
   selection: OperationsSelection,
-  bundleArtifactPath: string,
-): Promise<OperationCheckResult> {
-  const performanceDirectory = resolve(root, "artifacts/performance");
-  const observabilityDirectory = resolve(root, "artifacts/observability");
-  const migrationsDirectory = resolve(root, "artifacts/migrations");
-  await Promise.all([
-    mkdir(performanceDirectory, { recursive: true }),
-    mkdir(observabilityDirectory, { recursive: true }),
-    mkdir(migrationsDirectory, { recursive: true }),
-  ]);
-
-  let execution: ReturnType<typeof runCommand>;
-  let artifacts: string[] = [];
-  let message = "Local check passed";
-
-  switch (check.id) {
-    case "route_readiness_contract": {
-      const benchmark = resolve(performanceDirectory, "route-readiness.synthetic.json");
-      const report = resolve(performanceDirectory, "route-readiness.contract.json");
-      await writeSyntheticRouteBenchmark(benchmark);
-      execution = runCommand(
-        root,
-        "bun",
-        ["run", "scripts/check-route-transition-readiness.ts"],
-        {
-          ROUTE_TRANSITION_BENCHMARK_FILE: benchmark,
-          OUTPUT_FILE: report,
-        },
-      );
-      artifacts = [benchmark, report];
-      message = "Existing route-readiness evaluator accepted the deterministic local fixture; this is evaluator wiring proof, not measured route performance";
-      break;
-    }
-    case "bundle_budget": {
-      let artifact: CommandEvidenceArtifact | undefined;
-      let error: string | undefined;
-      try {
-        artifact = await readJson<CommandEvidenceArtifact>(bundleArtifactPath);
-      } catch (caught) {
-        error = String(caught);
-      }
-      const valid = artifact ? validateBundleBudgetArtifact(artifact) : false;
-      execution = {
-        command: "consume strict bundle-budget command evidence from build job",
-        exit_code: valid ? 0 : 1,
-        duration_ms: 0,
-        stdout_tail: artifact?.data?.stdout_tail?.slice(-20_000) ?? "",
-        stderr_tail: error ?? "",
-      };
-      artifacts = [bundleArtifactPath];
-      message = valid
-        ? "Strict bundle budget passed in the build job"
-        : "Applicable bundle evidence is missing, malformed, non-strict, or not a PASS; operations does not rebuild";
-      break;
-    }
-    case "query_count_contract": {
-      const trace = resolve(performanceDirectory, "dashboard-query-count.synthetic.log");
-      const report = resolve(performanceDirectory, "dashboard-query-count.contract.json");
-      await writeSyntheticQueryTrace(trace);
-      execution = runCommand(
-        root,
-        "bun",
-        ["run", "scripts/measure-workshop-dashboard-query-count.ts"],
-        { PERF_TRACE_INPUT: trace, OUTPUT_FILE: report },
-      );
-      artifacts = [trace, report];
-      message = "Existing query-count collector accepted the deterministic local fixture; this is collector wiring proof, not a live query budget";
-      break;
-    }
-    case "d1_migration_state": {
-      execution = runCommand(
-        root,
-        "bun",
-        ["run", "scripts/check-cloudflare-d1-migrations.ts", "--local"],
-        { OUTPUT_FILE: resolve(migrationsDirectory, "d1-migration-state.json") },
-      );
-      artifacts = [];
-      break;
-    }
-    case "platform_readiness": {
-      const report = resolve(observabilityDirectory, "cloudflare-worker-readiness.json");
-      execution = runCommand(
-        root,
-        "bun",
-        ["run", "cf:check-readiness"],
-        { OUTPUT_FILE: report },
-      );
-      artifacts = [report];
-      message = "Local source/config readiness passed; hosted resources and secrets remain outside this proof";
-      break;
-    }
-    case "observability_contract": {
-      const report = resolve(observabilityDirectory, "alert-scenario-readiness.json");
-      execution = runCommand(
-        root,
-        "bun",
-        ["run", "ops:check-alert-scenarios", "--", "--catalog-only", "--output", report],
-        {},
-      );
-      artifacts = [report];
-      message = "Local alert scenario catalog passed; alert delivery remains external";
-      break;
-    }
-    case "redaction_contract": {
-      const report = resolve(observabilityDirectory, "error-handling-contract.json");
-      execution = runCommand(
-        root,
-        "bun",
-        ["run", "ops:check-error-handling", "--", "--output", report],
-        {},
-      );
-      artifacts = [report];
-      break;
-    }
-    default:
-      execution = {
-        command: null,
-        exit_code: 1,
-        duration_ms: 0,
-        stdout_tail: "",
-        stderr_tail: `No local executor is registered for ${check.id}`,
-      };
-      message = `No local executor is registered for ${check.id}`;
-  }
-
+  plan: OperationDispatchPlan | null,
+  execution: ExecutionResult,
+): OperationCheckResult {
+  const unsupported = plan === null;
   return {
     id: check.id,
     label: check.label,
@@ -286,9 +241,42 @@ async function executeLocalCheck(
     provenance: check.provenance,
     reasons: selection.reasons,
     ...execution,
-    artifacts: artifacts.map((path) => normalizedRelative(root, path)),
-    message,
+    artifacts: (plan?.artifacts ?? []).map((path) => normalizedRelative(root, path)),
+    message: unsupported
+      ? `No local executor is registered for ${check.id}`
+      : execution.exit_code === 0
+        ? plan.message
+        : check.id === "bundle_budget"
+          ? "Applicable bundle evidence is missing, stale, malformed, non-strict, or not a PASS; operations does not rebuild"
+          : plan.message,
   };
+}
+
+async function executeLocalCheck(
+  root: string,
+  check: OperationsPolicyCheck,
+  selection: OperationsSelection,
+  bundleArtifactPath: string,
+): Promise<OperationCheckResult> {
+  const paths = {
+    performanceDirectory: resolve(root, "artifacts/performance"),
+    observabilityDirectory: resolve(root, "artifacts/observability"),
+    migrationsDirectory: resolve(root, "artifacts/migrations"),
+    bundleArtifactPath,
+  };
+  await Promise.all(Object.values(paths).slice(0, 3).map((path) => mkdir(path, { recursive: true })));
+  const plan = planLocalOperationCheck(check.id, paths);
+  const executor = plan ? LOCAL_EXECUTORS[plan.id] : null;
+  const execution = executor
+    ? await executor(root, plan!)
+    : {
+        command: null,
+        exit_code: 1,
+        duration_ms: 0,
+        stdout_tail: "",
+        stderr_tail: `No local executor is registered for ${check.id}`,
+      };
+  return materializeOperationResult(root, check, selection, plan, execution);
 }
 
 const { flags } = parseArgs();
