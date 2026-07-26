@@ -86,6 +86,8 @@ export function OnboardingTourClient({
     () => hasActiveApplicationModal(),
   );
   const [handoffStepKey, setHandoffStepKey] = useState<OnboardingStepKey | null>(null);
+  const resumeAfterHandoffStepRef = useRef<OnboardingStepKey | null>(null);
+  const stepsBeforeHandoffRefreshRef = useRef(flow.steps);
   const routeAbortRef = useRef<AbortController | null>(null);
   const pausedForModalRef = useRef(false);
   const programmaticStopRef = useRef(false);
@@ -515,7 +517,9 @@ export function OnboardingTourClient({
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.set("tour", flow.definition.key);
       nextUrl.searchParams.set("mode", "resume");
-      router.replace(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+      const nextPath = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+      const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (nextPath !== currentPath) router.replace(nextPath);
       programmaticStopRef.current = true;
       routeAbortRef.current?.abort();
       controls.stop();
@@ -530,11 +534,32 @@ export function OnboardingTourClient({
   }, [controls, flow.definition.key, flow.steps, reducedMotion, router]);
 
   const returnFromHandoff = useCallback(() => {
-    const stepIndex = flow.steps.findIndex((step) => step.key === handoffStepKey);
+    resumeAfterHandoffStepRef.current = handoffStepKey;
+    stepsBeforeHandoffRefreshRef.current = flow.steps;
     setHandoffStepKey(null);
     router.refresh();
-    controls.start(stepIndex >= 0 ? stepIndex : state.index);
-  }, [controls, flow.steps, handoffStepKey, router, state.index]);
+  }, [flow.steps, handoffStepKey, router]);
+
+  useEffect(() => {
+    const previousStepKey = resumeAfterHandoffStepRef.current;
+    if (!previousStepKey || flow.steps === stepsBeforeHandoffRefreshRef.current) return;
+    resumeAfterHandoffStepRef.current = null;
+    const previousDefinitionIndex = flow.definition.steps.findIndex(
+      (step) => step.key === previousStepKey,
+    );
+    const sameStepIndex = flow.steps.findIndex((step) => step.key === previousStepKey);
+    const nextStepIndex = flow.steps.findIndex((step) =>
+      flow.definition.steps.findIndex((definitionStep) => definitionStep.key === step.key)
+        > previousDefinitionIndex
+    );
+    controls.start(
+      sameStepIndex >= 0
+        ? sameStepIndex
+        : nextStepIndex >= 0
+          ? nextStepIndex
+          : Math.max(0, flow.steps.length - 1),
+    );
+  }, [controls, flow.definition.steps, flow.steps]);
 
   useEffect(() => {
     if (!handoffStepKey) return;

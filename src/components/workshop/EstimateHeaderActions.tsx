@@ -1,8 +1,10 @@
 "use client";
 
-import { ClockCounterClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
+import { ClockCounterClockwise, FileText, FileXls } from "@phosphor-icons/react/dist/ssr";
+import { useParams } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { projectClientPortalComposeHref } from "@/lib/client-portal/compose-entry";
 import {
   PROJECT_HEADER_ACTION_BUTTON_CLASS,
   PROJECT_HEADER_ACTION_ICON_SIZE,
@@ -25,6 +27,7 @@ import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-sto
  * hydration clean.
  */
 export function EstimateHeaderActions() {
+  const params = useParams<{ nodeId?: string; projectId?: string }>();
   const openActivity = useEstimateHeaderActionsStore((state) => state.openActivity);
   const openProposalPreview = useEstimateHeaderActionsStore((state) => state.openProposalPreview);
   const canPreviewExport = useEstimateHeaderActionsStore((state) => state.canPreviewExport);
@@ -33,6 +36,18 @@ export function EstimateHeaderActions() {
 
   return (
     <>
+      {params.projectId && params.nodeId ? (
+        <ButtonLink
+          href={projectClientPortalComposeHref(params.projectId, { nodeIds: [params.nodeId] })}
+          variant="ghost"
+          size="icon-sm"
+          className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
+          aria-label="Publish to Timeline"
+          title="Publish to Timeline"
+        >
+          <FileText size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+        </ButtonLink>
+      ) : null}
       <Button
         type="button"
         variant="ghost"

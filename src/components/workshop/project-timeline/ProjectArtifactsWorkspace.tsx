@@ -10,8 +10,9 @@ import {
   X,
 } from "@phosphor-icons/react";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { ArtifactViewer } from "@/components/client-portal/ArtifactViewer";
+import { projectClientPortalComposeHref } from "@/lib/client-portal/compose-entry";
 import {
   PROJECT_ARTIFACT_TYPES,
   type ProjectArtifact,
@@ -282,11 +283,14 @@ export function ProjectArtifactsWorkspace({ projectId }: { projectId: string }) 
                     <h3 className="text-[12px] font-medium text-ink">{selectedArtifact.title}</h3>
                     <p className="mt-1 text-[9px] text-tertiary">{selectedArtifact.currentVersion.fileName} · {formatBytes(selectedArtifact.currentVersion.sizeBytes)} · v{selectedArtifact.currentVersion.versionNumber}</p>
                   </div>
-                  {selectedArtifact.status === "active" ? (
-                    <Button disabled={submitting} onClick={() => void archiveSelected()} size="xs" variant="danger">
-                      <Archive size={13} aria-hidden="true" /> Archive
-                    </Button>
-                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {selectedArtifact.status === "active" ? <ButtonLink href={projectClientPortalComposeHref(projectId, { artifactVersionIds: [selectedArtifact.currentVersion.id] })} size="xs" variant="secondary">Publish to Timeline</ButtonLink> : null}
+                    {selectedArtifact.status === "active" ? (
+                      <Button disabled={submitting} onClick={() => void archiveSelected()} size="xs" variant="danger">
+                        <Archive size={13} aria-hidden="true" /> Archive
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 <ArtifactViewer
                   contentUrl={`/api/projects/${encodeURIComponent(projectId)}/artifacts/${encodeURIComponent(selectedArtifact.currentVersion.id)}/content`}

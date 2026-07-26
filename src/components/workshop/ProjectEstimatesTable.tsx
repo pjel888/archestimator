@@ -18,6 +18,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
+import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
+import { FileText } from "@phosphor-icons/react/dist/ssr";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import type { EstimateFavoriteParentProject, EstimateFavoriteScope } from "@/components/workshop/ProjectEstimateFavoriteButton";
@@ -37,6 +39,7 @@ import { getEstimateHref } from "@/components/workshop/project-estimates-table/u
 import { executeBulkDeleteEstimateSheets, previewBulkDeleteEstimateSheets } from "@/lib/estimates/actions";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
+import { projectClientPortalComposeHref } from "@/lib/client-portal/compose-entry";
 import type { ProjectEstimatesStore } from "@/stores/project-estimates-store";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
@@ -1155,6 +1158,15 @@ function ProjectEstimatesTableComponent({
             type: "selectedEstimatesChanged",
             estimateIds: new Set(selectableEstimateIds),
           })
+        }
+        secondaryActionSlot={
+          <ToolbarIconButton
+            label="Publish selected to Timeline"
+            className="size-8 rounded-xs border border-transparent text-secondary hover:-translate-y-0.5 hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-surfaceMuted focus-visible:text-ink"
+            onClick={() => router.push(projectClientPortalComposeHref(projectId, { estimateIds: selectedVisibleEstimateIds }))}
+          >
+            <FileText size={14} weight="regular" aria-hidden="true" />
+          </ToolbarIconButton>
         }
       />
       <BulkDestructivePreviewModal
