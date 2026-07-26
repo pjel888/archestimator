@@ -81,6 +81,9 @@ function clearOnboardingState() {
     DELETE FROM beta_activation_events
     WHERE user_id = '${FIXTURE_USER_ID}'
       AND workspace_id = '${FIXTURE_WORKSPACE_ID}';
+    DELETE FROM beta_activation_outbox
+    WHERE user_id = '${FIXTURE_USER_ID}'
+      AND workspace_id = '${FIXTURE_WORKSPACE_ID}';
     DELETE FROM beta_activation_progress
     WHERE user_id = '${FIXTURE_USER_ID}'
       AND workspace_id = '${FIXTURE_WORKSPACE_ID}';
@@ -357,25 +360,6 @@ async function expectNoAxeViolations(page: Page) {
   expect(accessibility.violations).toEqual([]);
 }
 
-async function waitForEstimateRowSaved(page: Page) {
-  const globalStatus = page.locator("[data-estimate-row-save-status]");
-  const pendingRows = page.locator('tr[data-estimate-row-mutation-status="pending"]');
-  const failedRows = page.locator('tr[data-estimate-row-mutation-status="failed"]');
-  let settledSince = 0;
-  await expect.poll(async () => {
-    if (await failedRows.count()) return -1;
-    const saving = (await globalStatus.textContent()) === "Saving row changes"
-      || await pendingRows.count() > 0;
-    if (saving) {
-      settledSince = 0;
-      return 0;
-    }
-    if (!settledSince) settledSince = Date.now();
-    return Date.now() - settledSince;
-  }, { intervals: [100], timeout: 15_000 }).toBeGreaterThanOrEqual(500);
-  await expect(failedRows).toHaveCount(0);
-}
-
 test.describe("onboarding first-value journey", () => {
   test.skip(
     !enabled,
@@ -512,7 +496,7 @@ test.describe("onboarding first-value journey", () => {
     await expect(firstEstimate).not.toContainText("Viewed");
   });
 
-  test("hands keyboard and pointer control to the real task target and resumes from persisted progress", async ({
+  test("hands keyboard control to the real task target and recovers with Return and Escape", async ({
     page,
   }) => {
     seedFirstValueHandoffState();
@@ -550,23 +534,77 @@ test.describe("onboarding first-value journey", () => {
     await page.keyboard.press("Escape");
     await expect(tryItNow).toBeVisible();
     await expect(returnToGuide).toHaveCount(0);
+  });
+
+  test("uses the real pointer target and resumes from persisted domain progress", async ({
+    page,
+  }) => {
+    seedFirstValueHandoffState();
+    await page.waitForTimeout(1_000);
+    await openAuthenticatedRoute(
+      page,
+      `/workshop/projects/${FIXTURE_PROJECT_ID}/estimates/${FIXTURE_NODE_ID}?tour=first_estimate_value&mode=resume`,
+    );
+
+    const tryItNow = page.getByRole("button", { name: "Try it now", exact: true });
+    const realTarget = page.locator(
+      '[data-onboarding-target="estimate.add_row"]',
+    );
+    await expect(realTarget).toBeVisible({ timeout: 30_000 });
+    await expect(tryItNow).toBeVisible({ timeout: 15_000 });
 
     await tryItNow.click();
     await expect(realTarget).toBeFocused();
+    const returnToGuide = page.getByRole("button", {
+      name: "Return to guide",
+      exact: true,
+    });
+    await expect(returnToGuide).toBeVisible();
     const rows = page.locator("tr[data-estimate-row-id]");
     const rowCountBefore = await rows.count();
     await realTarget.click();
     await expect(rows).toHaveCount(rowCountBefore + 1, { timeout: 15_000 });
     const createdRow = rows.nth(rowCountBefore);
+    await expect(createdRow).not.toHaveAttribute(
+      "data-estimate-row-mutation-status",
+      "pending",
+      { timeout: 60_000 },
+    );
+    await expect(createdRow).not.toHaveAttribute(
+      "data-estimate-row-mutation-status",
+      "failed",
+    );
+    const quantity = createdRow.locator('input[data-estimate-cell-index="0"]');
+    await quantity.fill("2");
+    const quantitySaveResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === "POST"
+      && Boolean(response.request().headers()["next-action"])
+    , { timeout: 30_000 });
+    await quantity.press("Enter");
+    const quantitySaveResponse = await quantitySaveResponsePromise;
+    expect(quantitySaveResponse.status()).toBeLessThan(400);
+    await expect(createdRow).not.toHaveAttribute(
+      "data-estimate-row-mutation-status",
+      "pending",
+      { timeout: 60_000 },
+    );
     const unitCost = createdRow.getByLabel("Unit cost", { exact: true });
     await unitCost.fill("1250");
+    const saveResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === "POST"
+      && Boolean(response.request().headers()["next-action"])
+    , { timeout: 30_000 });
     await unitCost.press("Enter");
-    await waitForEstimateRowSaved(page);
+    const saveResponse = await saveResponsePromise;
+    expect(saveResponse.status()).toBeLessThan(400);
+    await expect(createdRow).not.toHaveAttribute(
+      "data-estimate-row-mutation-status",
+      "pending",
+      { timeout: 60_000 },
+    );
 
     await returnToGuide.click();
-    await expect(
-      page.getByRole("heading", { name: "Price the work", exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(tryItNow).toHaveCount(0, { timeout: 15_000 });
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator('tr[data-estimate-row-id]').getByLabel("Unit cost", { exact: true }))

@@ -202,6 +202,23 @@ beforeEach(() => {
 });
 
 describe("onboarding starter readiness", () => {
+  it("treats trusted pending activation intents as immediate onboarding progress", async () => {
+    const database = new ActionDatabase();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    await loadCurrentOnboardingEligibilitySnapshot();
+
+    const activationFactsQuery = database.firstCalls.find(({ sql }) =>
+      sql.includes("AS project_started")
+    );
+    expect(activationFactsQuery?.sql).toContain("FROM beta_activation_outbox");
+    expect(activationFactsQuery?.sql).toContain("origin_class = 'user_domain'");
+    expect(activationFactsQuery?.sql).toContain(
+      "state IN ('pending', 'processing', 'delivered')",
+    );
+    expect(activationFactsQuery?.sql).not.toContain("state = 'dead'");
+  });
+
   it.each([
     [0, "not_started"],
     [1, "explicit_add"],

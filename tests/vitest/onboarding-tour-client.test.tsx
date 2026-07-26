@@ -252,6 +252,7 @@ function targetNotFoundEvent(stepId: string, index = 0): EventData {
 describe("OnboardingTourClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState({}, "", "/");
     mocks.prepareRoute.mockResolvedValue({
       href: "/workshop",
       ok: true,
@@ -323,6 +324,11 @@ describe("OnboardingTourClient", () => {
 
   it("hands focus to the real target and returns without completing the step", async () => {
     const eligibleFlow = firstValueFlow();
+    window.history.replaceState(
+      {},
+      "",
+      "/workshop/projects/project-1/estimates/estimate-1?tour=first_estimate_value&mode=resume",
+    );
     const stepIndex = eligibleFlow.steps.findIndex((step) => step.key === "add_priced_row");
     const target = document.createElement("button");
     target.dataset.onboardingTarget = "estimate.add_row";
@@ -331,7 +337,7 @@ describe("OnboardingTourClient", () => {
     });
     document.body.append(target);
 
-    render(
+    const { rerender } = render(
       <OnboardingTourClient
         flow={eligibleFlow}
         launchMode="resume"
@@ -351,13 +357,23 @@ describe("OnboardingTourClient", () => {
 
     expect(mocks.stop).toHaveBeenCalled();
     expect(target).toHaveFocus();
-    expect(mocks.replace).toHaveBeenCalledWith(
-      expect.stringContaining("tour=first_estimate_value&mode=resume"),
-    );
+    expect(mocks.replace).not.toHaveBeenCalled();
 
+    mocks.start.mockClear();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(mocks.refresh).toHaveBeenCalled();
-    expect(mocks.start).toHaveBeenCalledWith(stepIndex);
+    expect(mocks.start).not.toHaveBeenCalled();
+    rerender(
+      <OnboardingTourClient
+        flow={{ ...eligibleFlow, steps: [...eligibleFlow.steps] }}
+        launchMode="resume"
+        snapshot={snapshot()}
+        mutate={vi.fn()}
+        reducedMotion={false}
+        onLaunchIntentConsumed={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(mocks.start).toHaveBeenCalledWith(stepIndex));
     expect(screen.queryByRole("button", { name: "Return to guide" })).not.toBeInTheDocument();
     target.remove();
   });

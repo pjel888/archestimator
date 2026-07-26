@@ -202,6 +202,68 @@ describe("client portal issue builder", () => {
     expect(delivery?.values[3]).toBe("recipient_1");
   });
 
+  it("publishes a ready issue draft with normalized package relationships in the same guarded batch", async () => {
+    const { database, statements } = createDatabase();
+    await publishClientPortalIssue({
+      actor,
+      database,
+      idempotencyKey: "publish_package",
+      portalId: "portal_1",
+      source,
+      issuePackage: {
+        draftId: "draft_1",
+        draftRevision: 4,
+        issueKind: "change_order",
+        basedOnBaselineId: "baseline_1",
+        comparisonIssueId: "issue_previous",
+        revisionNote: "Kitchen scope revised after client request.",
+        requestedDecision: "formal",
+        unresolvedItems: ["Confirm appliance lead time"],
+        sectionOverrides: { includedSectionIds: ["section_draft_1"] },
+        estimates: [{ sourceEstimateId: "estimate_1", publicEstimateId: "est_public_1", sortOrder: 0, sourceRevision: 7, sourceHash: "c".repeat(64) }],
+        artifacts: [{
+          artifactId: "artifact_1",
+          artifactVersionId: "artifact_version_1",
+          publicArtifactId: "artifact_public_1",
+          purpose: "drawing",
+          displayTitle: "Revised kitchen drawing",
+          description: null,
+          fileName: "kitchen.pdf",
+          contentType: "application/pdf",
+          sizeBytes: 1200,
+          contentSha256: "d".repeat(64),
+          commentable: true,
+          downloadable: false,
+          decisionRelevant: true,
+          sortOrder: 0,
+        }],
+        requests: [{
+          requestId: "request_1",
+          requestVersionId: "request_version_1",
+          relationship: "origin",
+          requestCode: "CR-0001",
+          title: "Move sink",
+          contentHash: "e".repeat(64),
+          sortOrder: 0,
+        }],
+      },
+      buildSectionPayload: async () => ({ description: "Floor finish", row_total: 1200 }),
+    });
+
+    const issueInsert = statements.find((statement) => statement.sql.includes("INSERT INTO client_portal_issues"));
+    expect(issueInsert?.sql).toContain("source_draft.status = 'ready'");
+    expect(issueInsert?.sql).toContain("source_draft.draft_revision = ?");
+    expect(issueInsert?.values).toContain("draft_1");
+    expect(issueInsert?.values).toContain(4);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_estimates"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_artifacts"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_requests"))).toBe(true);
+    const publishDraft = statements.find((statement) => statement.sql.includes("UPDATE client_portal_issue_drafts"));
+    expect(publishDraft?.sql).toContain("status = 'ready' AND draft_revision = ?");
+    expect(publishDraft?.sql).toContain("committed_issue");
+    expect(JSON.stringify(statements)).not.toContain("storage_key");
+  });
+
   it("atomically materializes large estimate rows into packed D1 projection inserts", async () => {
     const rows = Array.from({ length: 251 }, (_, index) => ({
       id: `row_${index}`,

@@ -128,6 +128,7 @@ const recipient = {
 beforeEach(() => {
   mocks.r2 = null;
   mocks.database = null;
+  issue.manifest_json = JSON.stringify({ project: { name: "Kitchen Remodel", code: "AE-100" } });
 });
 
 describe("client portal public repository", () => {
@@ -143,6 +144,40 @@ describe("client portal public repository", () => {
     expect(issuedQueries).toHaveLength(1);
     expect(database.queries.map((query) => query.sql).join("\n")).not.toContain("client_portal_sections");
     expect(database.queries.map((query) => query.sql).join("\n")).not.toContain("FROM projects");
+  });
+
+  it("allowlists public issue-package fields without exposing source or storage identities", async () => {
+    issue.manifest_json = JSON.stringify({
+      project: { name: "Kitchen Remodel", code: "AE-100" },
+      package: {
+        issueKind: "change_order",
+        revisionNote: "Move sink and revise joinery.",
+        requestedDecision: "formal",
+        unresolvedItems: ["Confirm tapware"],
+        estimates: [{ id: `est_${"a".repeat(20)}`, sortOrder: 0, sourceEstimateId: "estimate_private_1" }],
+        artifacts: [{ id: `artifact_${"b".repeat(32)}`, purpose: "drawing", title: "Revised drawing", description: null, contentType: "application/pdf", sizeBytes: 1200, commentable: true, downloadable: false, decisionRelevant: true, sortOrder: 0, artifactVersionId: "artifact_version_private_1", storageKey: "private/path.pdf" }],
+        requests: [{ code: "CR-0001", title: "Move sink", relationship: "origin", sortOrder: 0, requestVersionId: "request_version_private_1" }],
+        sourceEstimateId: "estimate_private_1",
+      },
+    });
+    const database = new FakeD1Database({ sections: [] });
+    mocks.database = database;
+
+    const manifest = await getClientPortalManifest(token, undefined, recipient);
+
+    expect(manifest?.package).toEqual({
+      issueKind: "change_order",
+      revisionNote: "Move sink and revise joinery.",
+      requestedDecision: "formal",
+      unresolvedItems: ["Confirm tapware"],
+      estimates: [{ id: `est_${"a".repeat(20)}`, sortOrder: 0 }],
+      artifacts: [{ id: `artifact_${"b".repeat(32)}`, purpose: "drawing", title: "Revised drawing", description: null, contentType: "application/pdf", sizeBytes: 1200, commentable: true, downloadable: false, decisionRelevant: true, sortOrder: 0 }],
+      requests: [{ code: "CR-0001", title: "Move sink", relationship: "origin", sortOrder: 0 }],
+    });
+    expect(JSON.stringify(manifest)).not.toContain("estimate_private_1");
+    expect(JSON.stringify(manifest)).not.toContain("artifact_version_private_1");
+    expect(JSON.stringify(manifest)).not.toContain("request_version_private_1");
+    expect(JSON.stringify(manifest)).not.toContain("private/path.pdf");
   });
 
   it("reads and re-sanitizes the immutable D1 payload without exposing controlled fields", async () => {
