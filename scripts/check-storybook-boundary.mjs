@@ -1,8 +1,7 @@
-#!/usr/bin/env node
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const root = process.cwd();
 const storyRoots = [".storybook", "src/stories", "src"];
 const scannedExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mdx"]);
 const forbiddenImportPatterns = [
@@ -31,7 +30,19 @@ const forbiddenImportPatterns = [
   /\bfetch\s*\(/,
 ];
 
-function walk(dir, files = []) {
+export function normalizeStorybookBoundaryPath(path) {
+  return path.replaceAll("\\", "/").replace(/^\.\/+/, "");
+}
+
+export function isStorybookInfrastructurePath(projectRelativePath) {
+  const normalizedPath = normalizeStorybookBoundaryPath(projectRelativePath);
+  return normalizedPath === ".storybook"
+    || normalizedPath.startsWith(".storybook/")
+    || normalizedPath === "src/stories"
+    || normalizedPath.startsWith("src/stories/");
+}
+
+function walk(root, dir, files = []) {
   if (!existsSync(dir)) return files;
 
   for (const entry of readdirSync(dir)) {
@@ -39,13 +50,13 @@ function walk(dir, files = []) {
     const stat = statSync(absolute);
 
     if (stat.isDirectory()) {
-      walk(absolute, files);
+      walk(root, absolute, files);
       continue;
     }
 
     const extension = entry.slice(entry.lastIndexOf("."));
     const storyFile = /\.(stories|story)\.(ts|tsx|js|jsx|mdx)$/.test(entry);
-    const storyInfrastructure = absolute.includes(`${join(root, "src/stories")}/`) || absolute.includes(`${join(root, ".storybook")}/`);
+    const storyInfrastructure = isStorybookInfrastructurePath(relative(root, absolute));
     const previewHead = entry === "preview-head.html";
 
     if ((storyInfrastructure || storyFile || previewHead) && (scannedExtensions.has(extension) || previewHead)) {
@@ -56,23 +67,31 @@ function walk(dir, files = []) {
   return files;
 }
 
-const files = Array.from(new Set(storyRoots.flatMap((storyRoot) => walk(join(root, storyRoot)))));
-const violations = files.flatMap((file) => {
-  const source = readFileSync(file, "utf8");
-  return forbiddenImportPatterns
-    .filter((pattern) => pattern.test(source))
-    .map((pattern) => `${relative(root, file)} matches ${pattern}`);
-});
+export function runStorybookBoundaryCheck(root = process.cwd()) {
+  const files = Array.from(new Set(storyRoots.flatMap((storyRoot) => walk(root, join(root, storyRoot)))));
+  const violations = files.flatMap((file) => {
+    const source = readFileSync(file, "utf8");
+    return forbiddenImportPatterns
+      .filter((pattern) => pattern.test(source))
+      .map((pattern) => `${normalizeStorybookBoundaryPath(relative(root, file))} matches ${pattern}`);
+  });
 
-if (files.length === 0) {
-  console.error("No Storybook config, story, fixture, or decorator files were found.");
-  process.exit(1);
+  if (files.length === 0) {
+    console.error("No Storybook config, story, fixture, or decorator files were found.");
+    return 1;
+  }
+
+  if (violations.length > 0) {
+    console.error("Storybook provider boundary violations:");
+    for (const violation of violations) console.error(`- ${violation}`);
+    return 1;
+  }
+
+  console.log(`Storybook provider boundary OK: ${files.length} current files scanned.`);
+  return 0;
 }
 
-if (violations.length > 0) {
-  console.error("Storybook provider boundary violations:");
-  for (const violation of violations) console.error(`- ${violation}`);
-  process.exit(1);
+const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : null;
+if (invokedPath === import.meta.url) {
+  process.exitCode = runStorybookBoundaryCheck();
 }
-
-console.log(`Storybook provider boundary OK: ${files.length} current files scanned.`);

@@ -1526,6 +1526,7 @@ export function EstimateSheetContent({
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
   const libraryIntentActive = showCommandPalette || rowComponentPicker?.mode === "replace" || sourcesDrawerOpen;
+  const catalogueOptionsIntentActive = rowComponentPicker?.mode === "replace" || sourcesDrawerOpen;
   const libraryReleaseKey = shouldLoadLibraryLazily && renderSidebar && projectId && estimateId
     ? `${projectId}:${estimateId}`
     : null;
@@ -1586,10 +1587,10 @@ export function EstimateSheetContent({
   const isLazyLibraryLoading = shouldLoadLibraryLazily && !lazyLibrary && !isLazyLibraryError;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const sheetCatalogueInputs = useMemo(
-    () => libraryIntentActive
+    () => catalogueOptionsIntentActive
       ? collectEstimateTreeComponentCatalogueInputs(estimateTree)
       : EMPTY_COMPONENT_CATALOGUE_INPUTS,
-    [estimateTree, libraryIntentActive],
+    [catalogueOptionsIntentActive, estimateTree],
   );
   const resolvedSupplierOptions = useMemo(
     () => buildComponentCatalogueComboboxOptions("supplier", [
