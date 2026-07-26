@@ -4,6 +4,7 @@ import {
   ChartBarHorizontal,
   ClipboardText,
   ClockCounterClockwise,
+  FilePdf,
   ShareNetwork,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -41,6 +42,12 @@ export function getProjectNavigationItems(
       href: `${root}/activity`,
       label: "Activity",
       icon: ClockCounterClockwise,
+      exact: false,
+    },
+    {
+      href: `${root}/artifacts`,
+      label: "Files",
+      icon: FilePdf,
       exact: false,
     },
     {

@@ -8,6 +8,7 @@ import { ClientPortalActivitySection } from "@/components/client-portal/ClientPo
 import { ClientPortalDecisionSection } from "@/components/client-portal/ClientPortalDecisionSection";
 import { ClientPortalDiscussionSection } from "@/components/client-portal/ClientPortalDiscussionSection";
 import { ClientPortalFinancialSection } from "@/components/client-portal/ClientPortalFinancialSection";
+import { ClientPortalRequestSection } from "@/components/client-portal/ClientPortalRequestSection";
 import { EstimateBrowserSection } from "@/components/client-portal/EstimateBrowserSection";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
@@ -49,13 +50,14 @@ type ClientPortalSection = {
 };
 
 type AccessState = "loading" | "ready" | "password" | "unavailable";
-type PortalView = "overview" | "estimate" | "financials" | "discussion" | "decision";
+type PortalView = "overview" | "estimate" | "financials" | "requests" | "discussion" | "decision";
 type DiscussionTarget = { kind: "estimate" | "estimate_tab" | "area_group" | "row" | "component"; publicId: string; label: string; secondaryLabel: string | null; sectionId: string };
 
 const PORTAL_VIEW_LABELS: Record<PortalView, string> = {
   overview: "Overview",
   estimate: "Estimate",
   financials: "Financials",
+  requests: "Requests",
   discussion: "Discussion",
   decision: "Decision",
 };
@@ -162,6 +164,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   const [contextOpen, setContextOpen] = useState(false);
   const [discussionTarget, setDiscussionTarget] = useState<DiscussionTarget | null>(null);
   const [unlockVersion, setUnlockVersion] = useState(0);
+  const [selectedViewOverride, setSelectedViewOverride] = useState<PortalView | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -240,17 +243,24 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   const availableViews = useMemo(() => {
     if (!manifest) return [];
     const views = new Set(manifest.sections.map((item) => portalViewForSection(item.kind)));
-    return (["overview", "estimate", "financials", "discussion", "decision"] as const).filter((view) => views.has(view));
+    if (manifest.capabilities.includes("request:view") || manifest.capabilities.includes("request:create")) views.add("requests");
+    return (["overview", "estimate", "financials", "requests", "discussion", "decision"] as const).filter((view) => views.has(view));
   }, [manifest]);
-  const selectedView = selectedSection ? portalViewForSection(selectedSection.kind) : availableViews[0] ?? "overview";
+  const selectedView = selectedViewOverride ?? (selectedSection ? portalViewForSection(selectedSection.kind) : availableViews[0] ?? "overview");
   const sectionsInSelectedView = manifest?.sections.filter((item) => portalViewForSection(item.kind) === selectedView) ?? [];
 
   function selectSection(sectionId: string) {
+    setSelectedViewOverride(null);
     setSelectedSectionId(sectionId);
     window.history.replaceState(null, "", `#${encodeURIComponent(sectionId)}`);
   }
 
   function selectView(view: PortalView) {
+    if (view === "requests") {
+      setSelectedViewOverride("requests");
+      window.history.replaceState(null, "", "#requests");
+      return;
+    }
     const nextSection = manifest?.sections.find((item) => portalViewForSection(item.kind) === view);
     if (nextSection) selectSection(nextSection.id);
   }
@@ -342,7 +352,8 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
               <Button key={item.id} variant={item.id === selectedSectionId ? "soft" : "secondary"} size="sm" onClick={() => selectSection(item.id)}>{sectionLabel(item)}</Button>
             )) : null}
           </div>
-          <div id={selectedSection?.id} className="border border-hairline bg-white p-4 shadow-sm sm:p-6">
+          <div id={selectedView === "requests" ? "requests" : selectedSection?.id} className="border border-hairline bg-white p-4 shadow-sm sm:p-6">
+            {selectedView === "requests" ? <ClientPortalRequestSection capabilities={manifest.capabilities} token={token} /> : <>
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-hairline pb-4">
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Issued section</p>
@@ -363,6 +374,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
                     : section.section.kind === "decision"
                       ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} />
                       : <ClientPortalPayload payload={section.section.payload} /> : null}
+            </>}
           </div>
         </section>
 

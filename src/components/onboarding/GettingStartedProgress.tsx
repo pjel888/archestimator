@@ -217,9 +217,6 @@ export function GettingStartedProgress({
   const [starterActionPending, setStarterActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [starterActionError, setStarterActionError] = useState<string | null>(null);
-  const [secondaryPathsOpen, setSecondaryPathsOpen] = useState(
-    () => SECONDARY_PATHS.some((path) => path.key === snapshot.activation.selectedPath),
-  );
   const checklist = deriveFirstEstimateChecklist(snapshot);
   const isCreator = checklist.canShow;
   const showChecklist = checklist.canShow && !checklist.isDismissed;
@@ -449,8 +446,7 @@ export function GettingStartedProgress({
           </div>
           <details
             className="mt-3 rounded-xl border border-hairline bg-surface/40 p-3"
-            open={secondaryPathsOpen}
-            onToggle={(event) => setSecondaryPathsOpen(event.currentTarget.open)}
+            suppressHydrationWarning
           >
             <summary className="cursor-pointer text-[10px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus">
               Explore finished examples and templates
