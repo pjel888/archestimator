@@ -3,11 +3,13 @@ import {
   loadCurrentOnboardingEligibilitySnapshot,
   mutateCurrentOnboardingFlow,
 } from "@/lib/onboarding/flow-actions";
+import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { OnboardingClientBoundary } from "./OnboardingClientBoundary";
 
 export async function AuthenticatedOnboardingHost() {
   let snapshot;
   try {
+    await ensureDefaultWorkspace();
     snapshot = await loadCurrentOnboardingEligibilitySnapshot();
   } catch {
     return null;

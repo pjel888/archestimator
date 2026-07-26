@@ -34,12 +34,15 @@ import {
   hasActiveApplicationModal,
   subscribeToModalLifecycle,
 } from "@/components/ui/overlays/modal-lifecycle";
+import { Button } from "@/components/ui/button";
 import { OnboardingPortal } from "./OnboardingPortal";
 import { OnboardingRecovery } from "./OnboardingRecovery";
 import { OnboardingTooltip } from "./OnboardingTooltip";
 import {
   ONBOARDING_RUNTIME_BINDING_EVENT,
+  ONBOARDING_TARGET_HANDOFF_EVENT,
   type OnboardingRuntimeBindingEventDetail,
+  type OnboardingTargetHandoffEventDetail,
 } from "./onboarding-runtime-events";
 import { prepareOnboardingRoute } from "./onboarding-route-coordinator";
 import { resolveOnboardingTarget } from "./onboarding-target-resolver";
@@ -82,6 +85,7 @@ export function OnboardingTourClient({
   const [applicationModalActive, setApplicationModalActive] = useState(
     () => hasActiveApplicationModal(),
   );
+  const [handoffStepKey, setHandoffStepKey] = useState<OnboardingStepKey | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const pausedForModalRef = useRef(false);
   const programmaticStopRef = useRef(false);
@@ -143,6 +147,9 @@ export function OnboardingTourClient({
           || command === "replay"
           || command === "restart"
           || (command === "resume" && launchMode === "resume");
+        const currentStep = flow.steps.find((step) =>
+          step.key === expectedStepKey
+        );
         try {
           const result = await mutate({
             command,
@@ -154,7 +161,11 @@ export function OnboardingTourClient({
             expectedTutorialBinding: flow.state?.tutorialBinding ?? null,
             launchMode,
             reasonCode,
+            routeKey: currentStep?.route ?? null,
             runId: runIdRef.current,
+            viewportClass: window.matchMedia("(max-width: 767px)").matches
+              ? "mobile"
+              : "desktop",
           });
           if (result.status === "conflict") {
             if (
@@ -232,6 +243,7 @@ export function OnboardingTourClient({
       flow.definition.key,
       flow.definition.version,
       flow.state,
+      flow.steps,
       launchMode,
       mutate,
       recoveryContext,
@@ -256,6 +268,8 @@ export function OnboardingTourClient({
           content: definition.content,
           data: {
             contentKey: definition.content,
+            flowKey: flow.definition.key,
+            interaction: definition.interaction,
             stepKey: definition.key,
           },
           blockTargetInteraction: definition.interaction === "passive",
@@ -272,18 +286,9 @@ export function OnboardingTourClient({
                   snapshot,
                   signal: controller.signal,
                   navigate: (href) => {
-                    const currentParams = new URLSearchParams(
-                      window.location.search,
-                    );
-                    const flowKey = currentParams.get("tour");
-                    const mode = currentParams.get("mode");
-                    if (!flowKey || !mode) {
-                      router.push(href);
-                      return;
-                    }
                     const nextUrl = new URL(href, window.location.origin);
-                    nextUrl.searchParams.set("tour", flowKey);
-                    nextUrl.searchParams.set("mode", mode);
+                    nextUrl.searchParams.set("tour", flow.definition.key);
+                    nextUrl.searchParams.set("mode", "resume");
                     router.push(
                       `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
                     );
@@ -324,7 +329,7 @@ export function OnboardingTourClient({
             : undefined,
         };
       }),
-    [flow.steps, persist, recoveryContext, router, snapshot],
+    [flow.definition.key, flow.steps, persist, recoveryContext, router, snapshot],
   );
 
   const handleEvent = useCallback(
@@ -388,7 +393,9 @@ export function OnboardingTourClient({
       }
       if (event.type === "tour:end" && event.status === "finished") {
         const requiresDomainProof =
-          flow.definition.key === "client_link_publishing"
+          flow.definition.key === "first_estimate_value"
+          || flow.definition.key === "guided_estimate_practice"
+          || flow.definition.key === "client_link_publishing"
           || flow.definition.key === "library_reuse";
         if (launchMode !== "replay" && !requiresDomainProof) {
           void persist("complete", stepKey).finally(onLaunchIntentConsumed);
@@ -496,6 +503,51 @@ export function OnboardingTourClient({
   }, [controls]);
 
   useEffect(() => {
+    const handleHandoff = (event: Event) => {
+      const detail = (event as CustomEvent<OnboardingTargetHandoffEventDetail>).detail;
+      if (detail?.flowKey !== flow.definition.key) return;
+      const step = flow.steps.find((candidate) =>
+        candidate.key === detail.stepKey
+        && candidate.interaction === "handoff_to_target"
+      );
+      if (!step || step.target === "center") return;
+      const targetKey = step.target;
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("tour", flow.definition.key);
+      nextUrl.searchParams.set("mode", "resume");
+      router.replace(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+      programmaticStopRef.current = true;
+      routeAbortRef.current?.abort();
+      controls.stop();
+      setHandoffStepKey(step.key);
+      requestAnimationFrame(() => {
+        const target = resolveOnboardingTarget(targetKey);
+        if (target instanceof HTMLElement) target.focus({ preventScroll: reducedMotion });
+      });
+    };
+    window.addEventListener(ONBOARDING_TARGET_HANDOFF_EVENT, handleHandoff);
+    return () => window.removeEventListener(ONBOARDING_TARGET_HANDOFF_EVENT, handleHandoff);
+  }, [controls, flow.definition.key, flow.steps, reducedMotion, router]);
+
+  const returnFromHandoff = useCallback(() => {
+    const stepIndex = flow.steps.findIndex((step) => step.key === handoffStepKey);
+    setHandoffStepKey(null);
+    router.refresh();
+    controls.start(stepIndex >= 0 ? stepIndex : state.index);
+  }, [controls, flow.steps, handoffStepKey, router, state.index]);
+
+  useEffect(() => {
+    if (!handoffStepKey) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      returnFromHandoff();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handoffStepKey, returnFromHandoff]);
+
+  useEffect(() => {
     if (
       !portalElement ||
       startedRef.current ||
@@ -556,6 +608,17 @@ export function OnboardingTourClient({
     <>
       <OnboardingPortal portalRef={setPortalElement} />
       {Tour}
+      {handoffStepKey ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="fixed bottom-4 right-4 z-[901] rounded-full shadow-lg"
+          onClick={returnFromHandoff}
+        >
+          Return to guide
+        </Button>
+      ) : null}
       {recovery ? (
         <OnboardingRecovery
           message={recovery.message}

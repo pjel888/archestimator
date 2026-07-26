@@ -9,12 +9,11 @@ import {
   SpinnerGap,
   Warning,
 } from "@phosphor-icons/react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { OnboardingBrandVisual } from "./OnboardingBrandVisual";
 import {
@@ -85,6 +84,13 @@ const PATHS: readonly PathCard[] = [
     href: PROJECT_START_BLANK_HREF,
   },
 ] as const;
+
+const PRIMARY_PATHS = PATHS.filter(
+  (path) => path.key === "guided_sample" || path.key === "blank",
+);
+const SECONDARY_PATHS = PATHS.filter(
+  (path) => path.key !== "guided_sample" && path.key !== "blank",
+);
 
 const STARTER_STATE_CONTENT: Record<
   StarterReadinessState,
@@ -175,9 +181,10 @@ function FlowStatusCard({
         {unavailableReason ? (
           <p className="text-[9px] leading-4 text-tertiary">{unavailableReason}</p>
         ) : (
-          <Link
+          <ButtonLink
             href={`/workshop/getting-started?tour=${flowKey}&mode=${mode}`}
-            className="inline-flex min-h-7 items-center gap-1 rounded-full border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+            size="xs"
+            className="min-w-0 gap-1 rounded-full px-3"
           >
             {mode === "resume"
               ? "Resume guide"
@@ -187,7 +194,7 @@ function FlowStatusCard({
                   ? "Start guide again"
                   : "Start guide"}
             <ArrowRight size={12} aria-hidden="true" />
-          </Link>
+          </ButtonLink>
         )}
       </div>
     </article>
@@ -338,7 +345,7 @@ export function GettingStartedProgress({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 id="first-estimate-heading" className="text-[12px] font-medium text-ink">First estimate checklist</h2>
-              <p className="mt-1 text-[9px] leading-4 text-tertiary">
+              <p className="mt-1 text-[10px] leading-4 text-tertiary">
                 Only work you save yourself counts toward this checklist. Opening a guide or example does not.
               </p>
             </div>
@@ -356,11 +363,11 @@ export function GettingStartedProgress({
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-medium text-ink">{item.label}</p>
-                  <p className="mt-0.5 text-[9px] leading-4 text-tertiary">{item.description}</p>
+                  <p className="mt-0.5 text-[10px] leading-4 text-tertiary">{item.description}</p>
                 </div>
-                <Link href={item.href} className="shrink-0 text-[9px] font-medium text-accent hover:underline">
+                <ButtonLink href={item.href} size="xs" variant="plain" className="min-w-0 shrink-0 px-2 text-accent hover:underline">
                   Open
-                </Link>
+                </ButtonLink>
               </li>
             ))}
           </ol>
@@ -373,12 +380,13 @@ export function GettingStartedProgress({
               Your saved progress is unchanged. Reopen the checklist whenever you want it back.
             </p>
           </div>
-          <Link
+          <ButtonLink
             href="/workshop/settings?page=guidance-tours"
-            className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+            size="sm"
+            className="min-w-0 shrink-0 rounded-full px-3"
           >
             Open Guidance settings
-          </Link>
+          </ButtonLink>
         </section>
       ) : null}
 
@@ -387,8 +395,8 @@ export function GettingStartedProgress({
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
               <h2 id="start-path-heading" className="text-[12px] font-medium text-ink">Choose how to start</h2>
-              <p className="mt-1 text-[9px] leading-4 text-tertiary">
-                Your choice is saved and can be changed later. Choosing a path does not complete checklist work by itself.
+              <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                Choose between hands-on practice and your own project. Examples and templates remain available below.
               </p>
             </div>
             {selectedPath ? (
@@ -397,29 +405,24 @@ export function GettingStartedProgress({
               </Badge>
             ) : null}
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            {PATHS.map((path) => {
-              const unavailable = path.requiresStarter && !starterReady;
+          <div className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Recommended start paths">
+            {PRIMARY_PATHS.map((path) => {
               const pending = isPending && pendingPath === path.key;
               return (
                 <article
                   key={path.key}
-                  className="flex min-h-48 flex-col rounded-2xl border border-hairline bg-surface/60 p-3"
+                  className="flex min-h-40 flex-col rounded-2xl border border-hairline bg-surface/60 p-3"
                   data-start-path={path.key}
-                  data-path-availability={unavailable ? "unavailable" : "available"}
+                  data-primary-start-path="true"
+                  data-path-availability="available"
                 >
                   <h3 className="text-[11px] font-medium text-ink">{path.title}</h3>
-                  <p className="mt-2 text-[9px] leading-4 text-tertiary">{path.description}</p>
-                  {unavailable ? (
-                    <p className="mt-2 text-[9px] leading-4 text-warning">
-                      Available after starter content is ready.
-                    </p>
-                  ) : null}
+                  <p className="mt-2 text-[10px] leading-4 text-tertiary">{path.description}</p>
                   <Button
                     className="mt-auto w-full rounded-full"
                     size="sm"
                     variant={path.key === "guided_sample" ? "brand" : "secondary"}
-                    disabled={isPending || unavailable}
+                    disabled={isPending}
                     aria-busy={pending}
                     onClick={() => choosePath(path)}
                   >
@@ -434,8 +437,55 @@ export function GettingStartedProgress({
               );
             })}
           </div>
+          <details
+            className="mt-3 rounded-xl border border-hairline bg-surface/40 p-3"
+          >
+            <summary className="cursor-pointer text-[10px] font-medium text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus">
+              Explore finished examples and templates
+            </summary>
+            <p className="mt-1 text-[10px] leading-4 text-tertiary">
+              Review prepared work or begin from reusable content without making it your primary first step.
+            </p>
+            <div className="mt-3 grid gap-2 lg:grid-cols-3">
+              {SECONDARY_PATHS.map((path) => {
+                const unavailable = path.requiresStarter && !starterReady;
+                const pending = isPending && pendingPath === path.key;
+                return (
+                  <article
+                    key={path.key}
+                    className="flex flex-col rounded-xl border border-hairline bg-white p-3"
+                    data-start-path={path.key}
+                    data-path-availability={unavailable ? "unavailable" : "available"}
+                  >
+                    <h3 className="text-[11px] font-medium text-ink">{path.title}</h3>
+                    <p className="mt-1 text-[10px] leading-4 text-tertiary">{path.description}</p>
+                    {unavailable ? (
+                      <p className="mt-2 text-[10px] leading-4 text-warning">
+                        Available after starter content is ready.
+                      </p>
+                    ) : null}
+                    <Button
+                      className="mt-3 w-full rounded-full"
+                      size="sm"
+                      variant="secondary"
+                      disabled={isPending || unavailable}
+                      aria-busy={pending}
+                      onClick={() => choosePath(path)}
+                    >
+                      {pending ? (
+                        <>
+                          <SpinnerGap size={12} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                          Preparing
+                        </>
+                      ) : path.action}
+                    </Button>
+                  </article>
+                );
+              })}
+            </div>
+          </details>
           {actionError ? (
-            <div role="alert" className="mt-3 flex items-start gap-2 rounded-xs border border-dangerSoft bg-dangerSoft p-2 text-[9px] leading-4 text-danger">
+            <div role="alert" className="mt-3 flex items-start gap-2 rounded-xs border border-dangerSoft bg-dangerSoft p-2 text-[10px] leading-4 text-danger">
               <Warning size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
               <span>{actionError}</span>
             </div>
@@ -550,13 +600,14 @@ export function GettingStartedProgress({
             Contact Support if a guide or starter example cannot recover after you try again.
           </p>
         </div>
-        <Link
+        <ButtonLink
           href="/workshop/feedback"
-          className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-xs border border-divider bg-surface px-3 text-[10px] font-medium text-ink outline-none hover:bg-surfaceMuted focus-visible:ring-2 focus-visible:ring-focus"
+          size="sm"
+          className="min-w-0 shrink-0 gap-1 px-3"
         >
           <Lifebuoy size={13} aria-hidden="true" />
           Open Support
-        </Link>
+        </ButtonLink>
       </section>
     </div>
   );

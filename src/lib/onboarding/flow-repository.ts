@@ -1005,7 +1005,9 @@ export async function mutateOnboardingFlow(
   if (
     command.command === "complete"
     && (
-      command.flowKey === "client_link_publishing"
+      command.flowKey === "first_estimate_value"
+      || command.flowKey === "guided_estimate_practice"
+      || command.flowKey === "client_link_publishing"
       || command.flowKey === "library_reuse"
     )
   ) {
@@ -1330,11 +1332,15 @@ export async function completeOnboardingFlowFromDomainProof(
   input: {
     userId: string;
     workspaceId: string;
-    flowKey: "client_link_publishing" | "library_reuse";
+    flowKey:
+      | "client_link_publishing"
+      | "first_estimate_value"
+      | "guided_estimate_practice"
+      | "library_reuse";
     expectedRevision: number;
     runId: string;
     mutationId: string;
-    source: "publication_domain" | "non_starter_domain";
+    source: "publication_domain" | "non_starter_domain" | "tutorial_practice";
     stepKey: OnboardingStepKey;
     routeKey: OnboardingRouteIntent;
     proofSatisfied?: boolean;
@@ -1349,20 +1355,28 @@ export async function completeOnboardingFlowFromDomainProof(
   validateIdentity(input);
   requireText(input.runId, "a run id");
   requireText(input.mutationId, "a mutation id");
+  const validDomainContract = input.flowKey === "client_link_publishing"
+    ? input.source === "publication_domain"
+      && input.stepKey === "client_links_verify"
+      && input.routeKey === "client_links"
+    : input.flowKey === "library_reuse"
+      ? input.source === "non_starter_domain" && input.proofSatisfied === true
+      : input.flowKey === "first_estimate_value"
+        ? input.source === "non_starter_domain"
+          && input.stepKey === "total_and_save"
+          && input.routeKey === "estimate_sheet"
+          && input.proofSatisfied === true
+        : input.source === "tutorial_practice"
+          && (
+            input.stepKey === "practice_price_and_save"
+            || input.stepKey === "practice_add_and_source"
+          )
+          && input.routeKey === "estimate_sheet"
+          && input.proofSatisfied === true;
   if (
     !isClosedValue(ONBOARDING_STEP_KEYS, input.stepKey)
     || !isClosedValue(ONBOARDING_ROUTE_INTENTS, input.routeKey)
-    || (
-      input.flowKey === "client_link_publishing"
-        ? input.source !== "publication_domain"
-        : input.source !== "non_starter_domain"
-    )
-    || (
-      input.flowKey === "client_link_publishing"
-        ? input.stepKey !== "client_links_verify"
-          || input.routeKey !== "client_links"
-        : input.proofSatisfied !== true
-    )
+    || !validDomainContract
   ) {
     throw new OnboardingFlowRepositoryError(
       "onboarding_invalid_input",
@@ -1866,7 +1880,14 @@ export async function importExistingOnboardingState(
           current_step_key, revision, reset_count, started_at, completed_at,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, 1, ?, ?, 0, 0, ?, ?, ?, ?)
-        ON CONFLICT(user_id, workspace_id, flow_key, flow_version) DO NOTHING
+        ON CONFLICT(user_id, workspace_id, flow_key, flow_version) DO UPDATE SET
+          status = 'completed',
+          current_step_key = NULL,
+          revision = beta_onboarding_flow_states.revision + 1,
+          completed_at = COALESCE(beta_onboarding_flow_states.completed_at, excluded.completed_at),
+          updated_at = excluded.updated_at
+        WHERE excluded.status = 'completed'
+          AND beta_onboarding_flow_states.status <> 'completed'
       `).bind(
         input.userId,
         input.workspaceId,
@@ -1902,6 +1923,40 @@ export async function importExistingOnboardingState(
         valueFlow.key,
         valueFlow.version,
       ),
+      ...(completed ? [database.prepare(`
+        INSERT INTO beta_onboarding_flow_events (
+          id, user_id, workspace_id, flow_key, flow_version, generation, run_id,
+          launch_mode, step_key, event_type, source, route_key, idempotency_key,
+          state_revision, occurred_at, ingested_at
+        )
+        SELECT ?, state.user_id, state.workspace_id, state.flow_key,
+               state.flow_version, state.generation, ?, 'task', 'total_and_save',
+               'flow_completed', 'non_starter_domain', 'estimate_sheet', ?,
+               state.revision, ?, ?
+        FROM beta_onboarding_flow_states state
+        WHERE state.user_id = ? AND state.workspace_id = ?
+          AND state.flow_key = ? AND state.flow_version = ?
+          AND state.status = 'completed'
+          AND EXISTS (
+            SELECT 1
+            FROM beta_activation_events activation
+            WHERE activation.user_id = state.user_id
+              AND activation.workspace_id = state.workspace_id
+              AND activation.origin_class = 'user_domain'
+              AND activation.milestone = 'first_valid_total'
+          )
+        ON CONFLICT(user_id, workspace_id, idempotency_key) DO NOTHING
+      `).bind(
+        randomUUID(),
+        randomUUID(),
+        `domain:first-valid-total:${valueFlow.version}`,
+        now,
+        now,
+        input.userId,
+        input.workspaceId,
+        valueFlow.key,
+        valueFlow.version,
+      )] : []),
     );
   }
   const results = await database.batch(statements);

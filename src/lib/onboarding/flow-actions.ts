@@ -32,6 +32,7 @@ import { readLibraryLearningPredicates } from "./library-learning";
 import { readGuidedPracticePredicates } from "./estimate-practice";
 import { getEligibleOnboardingFlows } from "./flow-eligibility";
 import { ONBOARDING_FLOW_CATALOG } from "./flow-catalog";
+import { STARTER_PACK_VERSION } from "./starter-pack";
 
 type AccessibleWorkspaceRow = {
   workspace_id: string;
@@ -330,18 +331,55 @@ async function readStarterReadiness(
     listStarterAssetClaims(database, { workspaceId: actor.workspaceId }),
   ]);
   const workspace = states.find((state) =>
-    state.packVersion === 1
+    state.packVersion === STARTER_PACK_VERSION
     && state.scopeKind === "workspace"
     && state.scopeOwnerId === actor.workspaceId
   );
   const user = states.find((state) =>
-    state.packVersion === 1
+    state.packVersion === STARTER_PACK_VERSION
     && state.scopeKind === "user"
     && state.scopeOwnerId === actor.userId
   );
-  const inactiveAssetKeys = claims
-    .filter((claim) => claim.lifecycleState !== "active")
+  const latestWorkspaceClaims = new Map<string, (typeof claims)[number]>();
+  for (const claim of claims) {
+    if (
+      claim.packVersion !== STARTER_PACK_VERSION
+      || claim.scopeKind !== "workspace"
+      || claim.scopeOwnerId !== actor.workspaceId
+    ) {
+      continue;
+    }
+    const latest = latestWorkspaceClaims.get(claim.assetKey);
+    if (!latest || claim.starterGeneration > latest.starterGeneration) {
+      latestWorkspaceClaims.set(claim.assetKey, claim);
+    }
+  }
+  const currentWorkspaceClaims = [...latestWorkspaceClaims.values()];
+  const resourceActivity = await Promise.all(
+    currentWorkspaceClaims.map(async (claim) => {
+      if (claim.lifecycleState !== "active") return false;
+      const tableCheck = claim.assetKind === "project"
+        ? "SELECT 1 AS present FROM projects WHERE id = ? AND workspace_id = ? AND status <> 'archived' LIMIT 1"
+        : claim.assetKind === "component_folder"
+          ? "SELECT 1 AS present FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1"
+          : claim.assetKind === "component"
+            ? "SELECT 1 AS present FROM cost_library_items WHERE id = ? AND workspace_id = ? AND lifecycle_state <> 'archived' LIMIT 1"
+            : claim.assetKind === "template"
+              ? "SELECT 1 AS present FROM estimate_templates WHERE id = ? AND workspace_id = ? AND archived_at IS NULL LIMIT 1"
+              : null;
+      if (!tableCheck) return false;
+      const resource = await database.prepare<{ present: number }>(tableCheck)
+        .bind(claim.resourceId, actor.workspaceId)
+        .first<{ present: number }>();
+      return resource?.present === 1;
+    }),
+  );
+  const inactiveAssetKeys = currentWorkspaceClaims
+    .filter((_, index) => !resourceActivity[index])
     .map((claim) => claim.assetKey);
+  const requiresUserScope = actor.workspaceRole === "owner"
+    || actor.workspaceRole === "admin"
+    || actor.workspaceRole === "member";
   const existingWorkspaceData = !workspace
     ? await database.prepare<{
         has_existing_data: number;
@@ -381,15 +419,17 @@ async function readStarterReadiness(
       ? "inactive_key_restore"
       : workspace.status !== "complete"
         ? workspace.status
-        : !user || user.status !== "complete"
+        : !requiresUserScope
+          ? "complete"
+          : !user || user.status !== "complete"
           ? "partial"
           : workspace.sharedMembershipRevision === user.sharedMembershipRevision
             ? "complete"
             : "partial";
   return {
     state,
-    packVersion: 1,
-    workspaceRevision: workspace?.sharedMembershipRevision ?? null,
+    packVersion: STARTER_PACK_VERSION,
+    workspaceRevision: workspace?.revision ?? null,
     userRevision: user?.sharedMembershipRevision ?? null,
     inactiveAssetKeys: [...new Set(inactiveAssetKeys)].sort(),
   };

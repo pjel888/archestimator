@@ -39,6 +39,10 @@ type PracticeIdentityRow = {
   tutorial_generation: number;
 };
 
+type PracticeProjectRow = {
+  project_id: string;
+};
+
 type PracticeEditableRow = {
   id: string;
   node_id: string;
@@ -171,6 +175,32 @@ async function readActivePractice(
       LIMIT 1
     `,
     [context.workspaceId, context.userId, GUIDED_SAMPLE_KIND, GUIDED_SAMPLE_VERSION],
+  );
+}
+
+async function readActivePracticeProject(
+  context: PracticeContext,
+  input: { tutorialVersion: number; tutorialGeneration: number },
+): Promise<PracticeProjectRow | null> {
+  return first<PracticeProjectRow>(
+    context.database,
+    `
+      SELECT id AS project_id
+      FROM projects
+      WHERE workspace_id = ? AND created_by = ? AND status <> 'archived'
+        AND json_extract(metadata, '$.tutorial_kind') = ?
+        AND CAST(json_extract(metadata, '$.tutorial_version') AS INTEGER) = ?
+        AND CAST(json_extract(metadata, '$.tutorial_generation') AS INTEGER) = ?
+      ORDER BY updated_at DESC, id ASC
+      LIMIT 1
+    `,
+    [
+      context.workspaceId,
+      context.userId,
+      GUIDED_SAMPLE_KIND,
+      input.tutorialVersion,
+      input.tutorialGeneration,
+    ],
   );
 }
 
@@ -588,6 +618,161 @@ async function createInitialPractice(context: PracticeContext) {
   return assertPracticeGraph(context, tutorialGeneration);
 }
 
+async function createNextGuidedPracticeCopy(
+  context: PracticeContext,
+  input: {
+    expectedRevision: number;
+    expectedTutorialVersion: number;
+    expectedTutorialGeneration: number;
+  },
+) {
+  const state = await getOnboardingFlowState(context.database, {
+    userId: context.userId,
+    workspaceId: context.workspaceId,
+    flowKey: "guided_estimate_practice",
+  });
+  const bindingChanged = state?.tutorialBinding?.version !== input.expectedTutorialVersion
+    || state?.tutorialBinding?.generation !== input.expectedTutorialGeneration;
+  if (
+    !state
+    || state.revision !== input.expectedRevision
+    || bindingChanged
+  ) {
+    const winner = await readActivePractice(context);
+    if (
+      winner
+      && bindingChanged
+      && state?.tutorialBinding?.version === GUIDED_SAMPLE_VERSION
+      && state.tutorialBinding.generation === winner.tutorial_generation
+    ) {
+      return winner;
+    }
+    throw new Error("Guided-practice recovery state changed. Reload and try again.");
+  }
+  const currentProject = await readActivePracticeProject(context, {
+    tutorialVersion: input.expectedTutorialVersion,
+    tutorialGeneration: input.expectedTutorialGeneration,
+  });
+  const tutorialGeneration = input.expectedTutorialVersion === GUIDED_SAMPLE_VERSION
+    ? input.expectedTutorialGeneration + 1
+    : 1;
+  const projectId = randomUUID();
+  const timestamp = nowIso();
+  const projectName = await resolvePracticeProjectName(context);
+  const graph = preparePracticeGraph(context, {
+    tutorialGeneration,
+    projectId,
+    projectName,
+    timestamp,
+    requirePreviousChange: true,
+  });
+  const statements: D1PreparedStatementLike[] = [
+    context.database.prepare(`
+      UPDATE beta_onboarding_flow_states
+      SET tutorial_version = ?,
+          tutorial_generation = ?,
+          status = 'in_progress',
+          current_step_key = ?,
+          generation = generation + 1,
+          revision = revision + 1,
+          completed_at = NULL,
+          dismissed_at = NULL,
+          updated_at = ?
+      WHERE user_id = ? AND workspace_id = ?
+        AND flow_key = 'guided_estimate_practice' AND flow_version = ?
+        AND revision = ? AND tutorial_version = ? AND tutorial_generation = ?
+        AND (
+          SELECT COUNT(*)
+          FROM projects project
+          WHERE project.workspace_id = ?
+            AND project.created_by = ?
+            AND project.status <> 'archived'
+            AND json_extract(project.metadata, '$.tutorial_kind') = ?
+            AND CAST(json_extract(project.metadata, '$.tutorial_version') AS INTEGER) = ?
+            AND CAST(json_extract(project.metadata, '$.tutorial_generation') AS INTEGER) = ?
+        ) <= 1
+    `).bind(
+      GUIDED_SAMPLE_VERSION,
+      tutorialGeneration,
+      GUIDED_FIRST_STEP,
+      timestamp,
+      context.userId,
+      context.workspaceId,
+      GUIDED_FLOW_VERSION,
+      input.expectedRevision,
+      input.expectedTutorialVersion,
+      input.expectedTutorialGeneration,
+      context.workspaceId,
+      context.userId,
+      GUIDED_SAMPLE_KIND,
+      input.expectedTutorialVersion,
+      input.expectedTutorialGeneration,
+    ),
+    ...(currentProject ? [context.database.prepare(`
+      UPDATE projects
+      SET status = 'archived', updated_at = ?
+      WHERE id = ? AND workspace_id = ? AND created_by = ?
+        AND status <> 'archived'
+        AND json_extract(metadata, '$.tutorial_kind') = ?
+        AND CAST(json_extract(metadata, '$.tutorial_version') AS INTEGER) = ?
+        AND CAST(json_extract(metadata, '$.tutorial_generation') AS INTEGER) = ?
+        AND changes() = 1
+    `).bind(
+      timestamp,
+      currentProject.project_id,
+      context.workspaceId,
+      context.userId,
+      GUIDED_SAMPLE_KIND,
+      input.expectedTutorialVersion,
+      input.expectedTutorialGeneration,
+    )] : []),
+    ...graph.statements,
+    ...preparePracticeActivationStatements(context, {
+      projectId,
+      estimateId: graph.estimateId,
+      timestamp,
+    }),
+    ...(currentProject ? [preparePracticeEvent(context, {
+      eventType: "sample_archived",
+      tutorialGeneration,
+      stateRevision: input.expectedRevision + 1,
+      idempotencyKey: `guided-sample:${GUIDED_SAMPLE_VERSION}:${tutorialGeneration}:archived`,
+      timestamp,
+    })] : []),
+    preparePracticeEvent(context, {
+      eventType: "sample_fresh_copy_created",
+      tutorialGeneration,
+      stateRevision: input.expectedRevision + 1,
+      idempotencyKey: `guided-sample:${GUIDED_SAMPLE_VERSION}:${tutorialGeneration}:fresh`,
+      timestamp,
+    }),
+    context.database.prepare(`
+      SELECT CASE WHEN EXISTS (
+        SELECT 1
+        FROM projects
+        WHERE id = ? AND workspace_id = ? AND status <> 'archived'
+          AND CAST(json_extract(metadata, '$.tutorial_generation') AS INTEGER) = ?
+      ) THEN 1 ELSE json('') END AS guided_practice_fresh_copy_guard
+    `).bind(projectId, context.workspaceId, tutorialGeneration),
+  ];
+  try {
+    await runCheckedBatch(context.database, statements);
+  } catch (error) {
+    const winner = await readActivePractice(context);
+    if (
+      winner
+      && (
+        input.expectedTutorialVersion !== GUIDED_SAMPLE_VERSION
+        || winner.tutorial_generation !== input.expectedTutorialGeneration
+      )
+    ) {
+      return winner;
+    }
+    throw error;
+  }
+  return assertPracticeGraph(context, tutorialGeneration);
+}
+
 export async function startGuidedPractice() {
   "use server";
   const database = await getCloudflareD1Database();
@@ -617,9 +802,22 @@ export async function startGuidedPractice() {
       resumed: true,
     };
   }
-  if (state) {
-    throw new Error("The current guided practice is unavailable. Create a fresh copy to continue.");
+  if (state?.tutorialBinding) {
+    const recovered = await createNextGuidedPracticeCopy(context, {
+      expectedRevision: state.revision,
+      expectedTutorialVersion: state.tutorialBinding.version,
+      expectedTutorialGeneration: state.tutorialBinding.generation,
+    });
+    return {
+      projectId: recovered.project_id,
+      estimateId: recovered.estimate_id,
+      areaId: recovered.area_id,
+      tutorialVersion: GUIDED_SAMPLE_VERSION,
+      tutorialGeneration: recovered.tutorial_generation,
+      resumed: false,
+    };
   }
+  if (state) throw new Error("The saved guided-practice state is invalid. Reset guidance and try again.");
   const created = await createInitialPractice(context);
   return {
     projectId: created.project_id,
@@ -647,118 +845,14 @@ export async function createFreshGuidedPracticeCopy(input: {
   const database = await getCloudflareD1Database();
   if (!database) throw new Error("Guided practice requires the workspace database.");
   const context = await requirePracticeContext(database);
-  const current = await readActivePractice(context);
-  if (!current || current.tutorial_generation !== input.expectedTutorialGeneration) {
-    const winner = await readActivePractice(context);
-    if (winner) return winner;
-    throw new Error("The current guided-practice Project is unavailable.");
-  }
-  const tutorialGeneration = input.expectedTutorialGeneration + 1;
-  const projectId = randomUUID();
-  const timestamp = nowIso();
-  const projectName = await resolvePracticeProjectName(context);
-  const graph = preparePracticeGraph(context, {
-    tutorialGeneration,
-    projectId,
-    projectName,
-    timestamp,
-    requirePreviousChange: true,
+  const state = await getOnboardingFlowState(database, {
+    userId: context.userId,
+    workspaceId: context.workspaceId,
+    flowKey: "guided_estimate_practice",
   });
-  const statements: D1PreparedStatementLike[] = [
-    context.database.prepare(`
-      UPDATE beta_onboarding_flow_states
-      SET tutorial_generation = ?,
-          status = 'in_progress',
-          current_step_key = ?,
-          generation = generation + 1,
-          revision = revision + 1,
-          completed_at = NULL,
-          dismissed_at = NULL,
-          updated_at = ?
-      WHERE user_id = ? AND workspace_id = ?
-        AND flow_key = 'guided_estimate_practice' AND flow_version = ?
-        AND revision = ? AND tutorial_version = ? AND tutorial_generation = ?
-        AND (
-          SELECT COUNT(*)
-          FROM projects project
-          WHERE project.workspace_id = ?
-            AND project.created_by = ?
-            AND project.status <> 'archived'
-            AND json_extract(project.metadata, '$.tutorial_kind') = ?
-            AND CAST(json_extract(project.metadata, '$.tutorial_version') AS INTEGER) = ?
-            AND CAST(json_extract(project.metadata, '$.tutorial_generation') AS INTEGER) = ?
-        ) = 1
-    `).bind(
-      tutorialGeneration,
-      GUIDED_FIRST_STEP,
-      timestamp,
-      context.userId,
-      context.workspaceId,
-      GUIDED_FLOW_VERSION,
-      input.expectedRevision,
-      GUIDED_SAMPLE_VERSION,
-      input.expectedTutorialGeneration,
-      context.workspaceId,
-      context.userId,
-      GUIDED_SAMPLE_KIND,
-      GUIDED_SAMPLE_VERSION,
-      input.expectedTutorialGeneration,
-    ),
-    context.database.prepare(`
-      UPDATE projects
-      SET status = 'archived', updated_at = ?
-      WHERE id = ? AND workspace_id = ? AND created_by = ?
-        AND status <> 'archived'
-        AND json_extract(metadata, '$.tutorial_kind') = ?
-        AND CAST(json_extract(metadata, '$.tutorial_version') AS INTEGER) = ?
-        AND CAST(json_extract(metadata, '$.tutorial_generation') AS INTEGER) = ?
-        AND changes() = 1
-    `).bind(
-      timestamp,
-      current.project_id,
-      context.workspaceId,
-      context.userId,
-      GUIDED_SAMPLE_KIND,
-      GUIDED_SAMPLE_VERSION,
-      input.expectedTutorialGeneration,
-    ),
-    ...graph.statements,
-    ...preparePracticeActivationStatements(context, {
-      projectId,
-      estimateId: graph.estimateId,
-      timestamp,
-    }),
-    preparePracticeEvent(context, {
-      eventType: "sample_archived",
-      tutorialGeneration,
-      stateRevision: input.expectedRevision + 1,
-      idempotencyKey: `guided-sample:${GUIDED_SAMPLE_VERSION}:${tutorialGeneration}:archived`,
-      timestamp,
-    }),
-    preparePracticeEvent(context, {
-      eventType: "sample_fresh_copy_created",
-      tutorialGeneration,
-      stateRevision: input.expectedRevision + 1,
-      idempotencyKey: `guided-sample:${GUIDED_SAMPLE_VERSION}:${tutorialGeneration}:fresh`,
-      timestamp,
-    }),
-    context.database.prepare(`
-      SELECT CASE WHEN EXISTS (
-        SELECT 1
-        FROM projects
-        WHERE id = ? AND workspace_id = ? AND status <> 'archived'
-          AND CAST(json_extract(metadata, '$.tutorial_generation') AS INTEGER) = ?
-      ) THEN 1 ELSE json('') END AS guided_practice_fresh_copy_guard
-    `).bind(projectId, context.workspaceId, tutorialGeneration),
-  ];
-  try {
-    await runCheckedBatch(database, statements);
-  } catch (error) {
-    const winner = await readActivePractice(context);
-    if (winner && winner.tutorial_generation !== input.expectedTutorialGeneration) {
-      return winner;
-    }
-    throw error;
-  }
-  return assertPracticeGraph(context, tutorialGeneration);
+  return createNextGuidedPracticeCopy(context, {
+    expectedRevision: input.expectedRevision,
+    expectedTutorialVersion: state?.tutorialBinding?.version ?? GUIDED_SAMPLE_VERSION,
+    expectedTutorialGeneration: input.expectedTutorialGeneration,
+  });
 }

@@ -20,6 +20,7 @@ import {
   STARTER_EXAMPLES_GROUP_NAME,
   STARTER_PACK_MANIFEST,
   STARTER_PACK_VERSION,
+  STARTER_REFERENCE_SOURCES,
   STARTER_USER_ASSET_KEYS,
   STARTER_WORKSPACE_ASSET_KEYS,
   type StarterComponentDefinition,
@@ -70,6 +71,13 @@ const STARTER_WORKSPACE_ASSET_KEY_PLACEHOLDERS =
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function resolveStarterReferences(referenceIds: readonly (keyof typeof STARTER_REFERENCE_SOURCES)[]) {
+  return referenceIds.map((referenceId) => ({
+    id: referenceId,
+    ...STARTER_REFERENCE_SOURCES[referenceId],
+  }));
 }
 
 async function first<T>(
@@ -180,9 +188,13 @@ async function readClaims(
 }
 
 function hasExactActiveClaims(claims: StarterClaimRow[], expectedKeys: readonly string[]) {
-  const activeKeys = new Set(
-    claims.filter((claim) => claim.lifecycle_state === "active").map((claim) => claim.asset_key),
-  );
+  const latestClaims = new Map<string, StarterClaimRow>();
+  for (const claim of claims) {
+    if (!latestClaims.has(claim.asset_key)) latestClaims.set(claim.asset_key, claim);
+  }
+  const activeKeys = new Set([...latestClaims.values()]
+    .filter((claim) => claim.lifecycle_state === "active")
+    .map((claim) => claim.asset_key));
   return expectedKeys.every((key) => activeKeys.has(key)) && activeKeys.size === expectedKeys.length;
 }
 
@@ -659,11 +671,34 @@ async function resolveAssetGeneration(
 ) {
   const claims = (await readClaims(context, scopeKind, scopeOwnerId))
     .filter((claim) => claim.asset_key === assetKey);
-  const active = claims.find((claim) => claim.lifecycle_state === "active");
-  if (active) return { status: "active" as const, claim: active };
   const latest = claims[0] ?? null;
+  if (latest?.lifecycle_state === "active") {
+    return { status: "active" as const, claim: latest };
+  }
   if (latest && context.mode !== "restore") {
     return { status: "restore_required" as const, claim: latest };
+  }
+  if (latest) {
+    await run(
+      context.database,
+      `
+        UPDATE beta_starter_asset_claims
+        SET lifecycle_state = 'archived', updated_at = ?
+        WHERE workspace_id = ? AND pack_version = ?
+          AND scope_kind = ? AND scope_owner_id = ?
+          AND asset_key = ? AND starter_generation < ?
+          AND lifecycle_state = 'active'
+      `,
+      [
+        nowIso(),
+        context.workspaceId,
+        STARTER_PACK_VERSION,
+        scopeKind,
+        scopeOwnerId,
+        assetKey,
+        latest.starter_generation,
+      ],
+    );
   }
   return {
     status: "create" as const,
@@ -685,6 +720,7 @@ async function readActiveClaim(
       WHERE workspace_id = ? AND pack_version = ?
         AND scope_kind = ? AND scope_owner_id = ?
         AND asset_key = ? AND lifecycle_state = 'active'
+      ORDER BY starter_generation DESC
       LIMIT 1
     `,
     [context.workspaceId, STARTER_PACK_VERSION, scopeKind, scopeOwnerId, assetKey],
@@ -744,15 +780,32 @@ function prepareProjectGraphStatements(
         id, workspace_id, name, project_code, created_by, client_name, location,
         currency_code, metadata, status, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 'ongoing', ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?)
     `).bind(
       projectId,
       context.workspaceId,
       projectName,
       project.projectCode,
       context.userId,
+      project.clientName,
+      project.location,
       project.currencyCode,
-      JSON.stringify({ starterLabel: project.label }),
+      JSON.stringify({
+        fictional: true,
+        floorAreaSqm: project.floorAreaSqm,
+        pricingAsOf: project.pricingAsOf,
+        pricingBasis: "DEMO_ILLUSTRATIVE",
+        projectType: project.projectType,
+        referenceSources: resolveStarterReferences(project.referenceIds),
+        region: project.region,
+        sourceDisclaimer: project.sourceDisclaimer,
+        starterLabel: project.label,
+        taxTreatment: {
+          basis: project.taxBasis,
+          vatIncluded: false,
+          vatRate: project.vatRate,
+        },
+      }),
       timestamp,
       timestamp,
     ),
@@ -786,7 +839,7 @@ function prepareProjectGraphStatements(
           id, project_id, name, created_by, created_at, updated_at,
           sheet_code, notes, currency_code, metadata
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, '{}')
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
       `).bind(
         estimateId,
         projectId,
@@ -796,6 +849,18 @@ function prepareProjectGraphStatements(
         timestamp,
         estimate.sheetCode,
         project.currencyCode,
+        JSON.stringify({
+          fictional: true,
+          pricingAsOf: project.pricingAsOf,
+          pricingBasis: "DEMO_ILLUSTRATIVE",
+          referenceSources: resolveStarterReferences(project.referenceIds),
+          region: project.region,
+          taxTreatment: {
+            basis: project.taxBasis,
+            vatIncluded: false,
+            vatRate: project.vatRate,
+          },
+        }),
       ),
       context.database.prepare(`
         INSERT INTO estimate_tabs (
@@ -854,7 +919,7 @@ function prepareProjectGraphStatements(
             link_state, metadata_json, supplier, pricing_provenance_origin
           )
           VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, 0, 0, '{}', ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, 0, 0, ?, ?,
             ?, ?, 1, NULL, 'unlinked', ?, '', 'recorded'
           )
         `).bind(
@@ -869,6 +934,19 @@ function prepareProjectGraphStatements(
           row.unit,
           row.unitCost,
           row.miscCost ?? 0,
+          JSON.stringify({
+            fictional: true,
+            pricingAsOf: project.pricingAsOf,
+            pricingBasis: "DEMO_ILLUSTRATIVE",
+            referenceSources: resolveStarterReferences(project.referenceIds),
+            region: project.region,
+            requiresQuote: true,
+            taxTreatment: {
+              basis: project.taxBasis,
+              vatIncluded: false,
+              vatRate: project.vatRate,
+            },
+          }),
           rowIndex,
           timestamp,
           timestamp,
@@ -1080,8 +1158,8 @@ async function installComponent(
         metadata_json, created_by, created_at, updated_at
       )
       VALUES (
-        ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL, NULL, ?, ?, 0,
-        'available', 1, ?, 'Starter example', ?, NULL, '{}', ?, ?, ?
+        ?, ?, ?, ?, ?, NULL, ?, 'Fictional demo supplier', NULL, ?, NULL, ?, ?, 0,
+        'available', 1, ?, 'DEMO_ILLUSTRATIVE', ?, NULL, ?, ?, ?, ?
       )
     `).bind(
       itemId,
@@ -1090,10 +1168,24 @@ async function installComponent(
       component.description,
       folder.name,
       folderId,
+      component.brand,
       component.variants[defaultIndex].unit,
       component.variants[defaultIndex].unitCost,
       optionIds[defaultIndex],
-      timestamp.slice(0, 10),
+      component.pricingAsOf,
+      JSON.stringify({
+        expiresOn: component.expiresOn,
+        fictional: true,
+        pricingBasis: "DEMO_ILLUSTRATIVE",
+        referenceSources: resolveStarterReferences(component.referenceIds),
+        region: component.region,
+        requiresQuote: true,
+        taxTreatment: {
+          basis: component.taxBasis,
+          vatIncluded: false,
+          vatRate: component.vatRate,
+        },
+      }),
       context.userId,
       timestamp,
       timestamp,
@@ -1107,7 +1199,7 @@ async function installComponent(
           currency, is_active, is_default, updated_at, supplier_id,
           pricing_source, metadata_json, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, 0, 'PHP', 1, ?, ?, NULL, 'Starter example', '{}', ?)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 'PHP', 1, ?, ?, NULL, 'DEMO_ILLUSTRATIVE', ?, ?)
       `).bind(
         optionIds[index],
         context.workspaceId,
@@ -1117,6 +1209,19 @@ async function installComponent(
         variant.unitCost,
         variant.isDefault ? 1 : 0,
         timestamp,
+        JSON.stringify({
+          expiresOn: component.expiresOn,
+          fictional: true,
+          pricingAsOf: component.pricingAsOf,
+          referenceSources: resolveStarterReferences(component.referenceIds),
+          region: component.region,
+          requiresQuote: true,
+          taxTreatment: {
+            basis: component.taxBasis,
+            vatIncluded: false,
+            vatRate: component.vatRate,
+          },
+        }),
         timestamp,
       ),
       context.database.prepare(`
@@ -1125,14 +1230,27 @@ async function installComponent(
           currency, pricing_source, pricing_date, source_url, notes,
           is_current, deleted_at, metadata_json, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, 0, 'PHP', 'Starter example', ?, NULL, '', 1, NULL, '{}', ?, ?)
+        VALUES (?, ?, ?, ?, ?, 0, 'PHP', 'DEMO_ILLUSTRATIVE', ?, ?, ?, 1, NULL, ?, ?, ?)
       `).bind(
         randomUUID(),
         context.workspaceId,
         itemId,
         optionIds[index],
         variant.unitCost,
-        timestamp.slice(0, 10),
+        component.pricingAsOf,
+        STARTER_REFERENCE_SOURCES[component.referenceIds[0]].url,
+        `Illustrative ${component.region} teaching rate; obtain a current quotation.`,
+        JSON.stringify({
+          expiresOn: component.expiresOn,
+          fictional: true,
+          referenceSources: resolveStarterReferences(component.referenceIds),
+          requiresQuote: true,
+          taxTreatment: {
+            basis: component.taxBasis,
+            vatIncluded: false,
+            vatRate: component.vatRate,
+          },
+        }),
         timestamp,
         timestamp,
       ),
@@ -1191,55 +1309,71 @@ async function installTemplate(
     template.key,
   );
   if (generation.status !== "create") return;
-  const componentClaim = await readActiveClaim(
-    context,
-    "workspace",
-    context.workspaceId,
-    template.sourceComponentKey,
-  );
-  if (!componentClaim) throw new Error(`Starter Component ${template.sourceComponentKey} is unavailable.`);
-  const component = await first<{
+  const templateRows: Array<{
+    claim: StarterClaimRow;
+    component: {
+      name: string;
+      description: string;
+      unit: string;
+      unit_cost: number;
+      active_price_option_id: string | null;
+    };
+    rowId: string;
+  }> = [];
+  for (const componentKey of template.sourceComponentKeys) {
+    const claim = await readActiveClaim(
+      context,
+      "workspace",
+      context.workspaceId,
+      componentKey,
+    );
+    if (!claim) throw new Error(`Starter Component ${componentKey} is unavailable.`);
+    const component = await first<{
     name: string;
     description: string;
     unit: string;
     unit_cost: number;
     active_price_option_id: string | null;
-  }>(
-    context.database,
-    `
-      SELECT name, description, unit, unit_cost, active_price_option_id
-      FROM cost_library_items
-      WHERE id = ? AND workspace_id = ? AND lifecycle_state <> 'archived'
-      LIMIT 1
-    `,
-    [componentClaim.resource_id, context.workspaceId],
-  );
-  if (!component) throw new Error("A starter Template dependency is unavailable.");
+    }>(
+      context.database,
+      `
+        SELECT name, description, unit, unit_cost, active_price_option_id
+        FROM cost_library_items
+        WHERE id = ? AND workspace_id = ? AND lifecycle_state <> 'archived'
+        LIMIT 1
+      `,
+      [claim.resource_id, context.workspaceId],
+    );
+    if (!component) throw new Error("A starter Template dependency is unavailable.");
+    templateRows.push({ claim, component, rowId: randomUUID() });
+  }
   const templateId = randomUUID();
   const groupId = randomUUID();
   const areaId = randomUUID();
-  const rowId = randomUUID();
   const timestamp = nowIso();
   const name = await resolveUniqueName(context, {
     table: "estimate_templates",
     canonicalName: template.name,
   });
-  const sourceSnapshot = JSON.stringify({
-    material: component.name,
-    description: component.description,
-    sourceLibraryItemId: componentClaim.resource_id,
-    priceOptionId: component.active_price_option_id,
-    unit: component.unit,
-    unitCost: component.unit_cost,
-  });
   const snapshot = JSON.stringify({
     schemaVersion: 1,
-    template: { id: templateId, name, description: template.description, category: template.category },
+    template: {
+      id: templateId,
+      name,
+      description: template.description,
+      category: template.category,
+      metadata: {
+        fictional: true,
+        pricingBasis: "DEMO_ILLUSTRATIVE",
+        referenceSources: resolveStarterReferences(["psa_cmrpi", "bir_vat"]),
+        taxTreatment: { basis: "EX_VAT", vatIncluded: false, vatRate: 0.12 },
+      },
+    },
     nodes: [
       { id: groupId, parentId: null, kind: "group", name: template.groupName, sortOrder: 0, metadata: {} },
       { id: areaId, parentId: groupId, kind: "area", name: template.areaName, sortOrder: 1, metadata: {} },
     ],
-    rows: [{
+    rows: templateRows.map(({ claim, component, rowId }) => ({
       id: rowId,
       templateNodeId: areaId,
       material: component.name,
@@ -1247,8 +1381,8 @@ async function installTemplate(
       unit: component.unit,
       quantity: 1,
       unitCost: component.unit_cost,
-      sourceLibraryItemId: componentClaim.resource_id,
-    }],
+      sourceLibraryItemId: claim.resource_id,
+    })),
   });
   await runCheckedBatch(context.database, [
     context.database.prepare(`
@@ -1257,7 +1391,7 @@ async function installTemplate(
         created_by, created_at, updated_at, current_version_number,
         archived_at, archived_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, '{}', ?, ?, ?, 1, NULL, NULL)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, NULL)
     `).bind(
       templateId,
       context.workspaceId,
@@ -1265,6 +1399,13 @@ async function installTemplate(
       template.description,
       template.category,
       sortOrder,
+      JSON.stringify({
+        fictional: true,
+        pricingBasis: "DEMO_ILLUSTRATIVE",
+        referenceSources: resolveStarterReferences(["psa_cmrpi", "bir_vat"]),
+        sourceComponentKeys: template.sourceComponentKeys,
+        taxTreatment: { basis: "EX_VAT", vatIncluded: false, vatRate: 0.12 },
+      }),
       context.userId,
       timestamp,
       timestamp,
@@ -1283,30 +1424,43 @@ async function installTemplate(
       )
       VALUES (?, ?, ?, 'area', ?, 1, '{}', ?, ?)
     `).bind(areaId, templateId, groupId, template.areaName, timestamp, timestamp),
-    context.database.prepare(`
-      INSERT INTO estimate_template_row_items (
-        id, template_id, template_node_id, sort_order, source_library_item_id,
-        source_snapshot, pricing_provenance_origin, category_node_id, supplier_id,
-        material, description, supplier, unit, quantity, unit_cost, misc_cost,
-        contingency_percentage, adjustment_percentage, discipline, designation,
-        link_state, metadata, created_at, updated_at
+    ...templateRows.map(({ claim, component, rowId }, rowIndex) =>
+      context.database.prepare(`
+        INSERT INTO estimate_template_row_items (
+          id, template_id, template_node_id, sort_order, source_library_item_id,
+          source_snapshot, pricing_provenance_origin, category_node_id, supplier_id,
+          material, description, supplier, unit, quantity, unit_cost, misc_cost,
+          contingency_percentage, adjustment_percentage, discipline, designation,
+          link_state, metadata, created_at, updated_at
+        )
+        VALUES (
+          ?, ?, ?, ?, ?, ?, 'recorded', NULL, NULL, ?, ?, '', ?, 1, ?, 0,
+          0, 0, '', '', 'linked-clean', '{}', ?, ?
+        )
+      `).bind(
+        rowId,
+        templateId,
+        areaId,
+        rowIndex,
+        claim.resource_id,
+        JSON.stringify({
+          material: component.name,
+          description: component.description,
+          sourceLibraryItemId: claim.resource_id,
+          priceOptionId: component.active_price_option_id,
+          pricingBasis: "DEMO_ILLUSTRATIVE",
+          referenceSources: resolveStarterReferences(["psa_cmrpi", "bir_vat"]),
+          taxTreatment: { basis: "EX_VAT", vatIncluded: false, vatRate: 0.12 },
+          unit: component.unit,
+          unitCost: component.unit_cost,
+        }),
+        component.name,
+        component.description,
+        component.unit,
+        component.unit_cost,
+        timestamp,
+        timestamp,
       )
-      VALUES (
-        ?, ?, ?, 0, ?, ?, 'recorded', NULL, NULL, ?, ?, '', ?, 1, ?, 0,
-        0, 0, '', '', 'linked-clean', '{}', ?, ?
-      )
-    `).bind(
-      rowId,
-      templateId,
-      areaId,
-      componentClaim.resource_id,
-      sourceSnapshot,
-      component.name,
-      component.description,
-      component.unit,
-      component.unit_cost,
-      timestamp,
-      timestamp,
     ),
     context.database.prepare(`
       INSERT INTO estimate_template_versions (
@@ -1892,35 +2046,20 @@ export async function restoreStarterContent(input: {
     mode: "restore",
   };
   await assertOwnerOrManager(context);
-  await ensureState(context, "workspace", context.workspaceId);
-  await reconcileClaimLifecycle(context, "workspace", context.workspaceId);
-  const claims = await readClaims(context, "workspace", context.workspaceId);
-  const activeKeys = new Set(
-    claims
-      .filter((claim) => claim.lifecycle_state === "active")
-      .map((claim) => claim.asset_key),
-  );
-  const inactiveAssetKeys = STARTER_WORKSPACE_ASSET_KEYS.filter(
-    (assetKey) => !activeKeys.has(assetKey),
-  );
-  if (inactiveAssetKeys.length === 0) {
-    return readStarterInstallResult(context);
+  const existingState = await readState(context, "workspace", context.workspaceId);
+  if (!existingState || existingState.revision !== input.expectedRevision) {
+    throw new Error("Starter content changed before recovery finished. Refresh and try again.");
   }
-  const requiresMembershipRebind = inactiveAssetKeys.includes("project.tutorial")
-    || inactiveAssetKeys.includes("project.reference");
-  const result = await run(
+  const acquisition = await run(
     database,
     `
       UPDATE beta_starter_pack_states
-      SET status = 'partial', revision = revision + 1,
-          shared_membership_revision = shared_membership_revision + ?,
-          updated_at = ?
+      SET status = 'partial', revision = revision + 1, updated_at = ?
       WHERE workspace_id = ? AND pack_version = ?
         AND scope_kind = 'workspace' AND scope_owner_id = ?
         AND revision = ?
     `,
     [
-      requiresMembershipRebind ? 1 : 0,
       nowIso(),
       context.workspaceId,
       STARTER_PACK_VERSION,
@@ -1928,20 +2067,51 @@ export async function restoreStarterContent(input: {
       input.expectedRevision,
     ],
   );
-  if ((result.meta?.changes ?? 0) !== 1) {
+  if ((acquisition.meta?.changes ?? 0) !== 1) {
     throw new Error("Starter content changed before recovery finished. Refresh and try again.");
   }
+  await reconcileClaimLifecycle(context, "workspace", context.workspaceId);
+  const claims = await readClaims(context, "workspace", context.workspaceId);
+  const latestClaims = new Map<string, StarterClaimRow>();
+  for (const claim of claims) {
+    if (!latestClaims.has(claim.asset_key)) latestClaims.set(claim.asset_key, claim);
+  }
+  const activeKeys = new Set(
+    [...latestClaims.values()]
+      .filter((claim) => claim.lifecycle_state === "active")
+      .map((claim) => claim.asset_key),
+  );
+  const inactiveAssetKeys = STARTER_WORKSPACE_ASSET_KEYS.filter(
+    (assetKey) => !activeKeys.has(assetKey),
+  );
+  if (inactiveAssetKeys.length === 0) {
+    await installStarterPack(context);
+    return readStarterInstallResult(context);
+  }
+  const requiresMembershipRebind = inactiveAssetKeys.includes("project.tutorial")
+    || inactiveAssetKeys.includes("project.reference");
   if (requiresMembershipRebind) {
-    await run(
-      database,
-      `
+    const timestamp = nowIso();
+    await runCheckedBatch(database, [
+      database.prepare(`
+        UPDATE beta_starter_pack_states
+        SET shared_membership_revision = shared_membership_revision + 1,
+            updated_at = ?
+        WHERE workspace_id = ? AND pack_version = ?
+          AND scope_kind = 'workspace' AND scope_owner_id = ?
+      `).bind(
+        timestamp,
+        context.workspaceId,
+        STARTER_PACK_VERSION,
+        context.workspaceId,
+      ),
+      database.prepare(`
         UPDATE beta_starter_pack_states
         SET status = 'partial', updated_at = ?
         WHERE workspace_id = ? AND pack_version = ?
           AND scope_kind = 'user'
-      `,
-      [nowIso(), context.workspaceId, STARTER_PACK_VERSION],
-    );
+      `).bind(timestamp, context.workspaceId, STARTER_PACK_VERSION),
+    ]);
   }
   await installStarterPack(context);
   return readStarterInstallResult(context);

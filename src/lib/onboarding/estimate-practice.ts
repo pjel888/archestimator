@@ -6,6 +6,7 @@ import { computeEstimateRowCostParts } from "@/lib/estimates/estimate-row-total"
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 import {
+  completeOnboardingFlowFromDomainProof,
   getOnboardingFlowState,
   getOnboardingFlowRunBinding,
   hasCurrentTutorialPracticeCompletion,
@@ -428,13 +429,32 @@ export async function recordEstimatePracticeMutation(
       stepKey = "practice_add_and_source";
     }
 
-    return recordCurrentPracticeEvent(database, {
+    const eventStatus = await recordCurrentPracticeEvent(database, {
       binding,
       eventType: "practice_action_completed",
       idempotencyKey: `practice:${project.tutorial_version}:${project.tutorial_generation}:${onboardingMutationKey("mutation", input.mutationId)}:${stepKey}`,
       source: "tutorial_practice",
       stepKey,
     });
+    if (await hasCurrentTutorialPracticeCompletion(database, input)) {
+      try {
+        await completeOnboardingFlowFromDomainProof(database, {
+          userId: input.userId,
+          workspaceId: input.workspaceId,
+          flowKey: "guided_estimate_practice",
+          expectedRevision: binding.state.revision,
+          runId: binding.runId,
+          mutationId: `guided-complete:${project.tutorial_version}:${project.tutorial_generation}`,
+          source: "tutorial_practice",
+          stepKey,
+          routeKey: "estimate_sheet",
+          proofSatisfied: true,
+        });
+      } catch {
+        return eventStatus;
+      }
+    }
+    return eventStatus;
   } catch {
     return "ignored";
   }

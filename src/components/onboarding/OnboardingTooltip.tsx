@@ -4,8 +4,13 @@ import type { TooltipRenderProps } from "react-joyride";
 import { ArrowRight, Compass, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import type { OnboardingContentKey } from "@/lib/onboarding/flow-types";
 import { OnboardingBrandVisual } from "./OnboardingBrandVisual";
+import {
+  ONBOARDING_TARGET_HANDOFF_EVENT,
+  type OnboardingTargetHandoffEventDetail,
+} from "./onboarding-runtime-events";
 
 const CONTENT: Record<
   OnboardingContentKey,
@@ -165,6 +170,7 @@ export function OnboardingTooltip({
       ? (step.data.contentKey as OnboardingContentKey)
       : null;
   const content = contentKey ? CONTENT[contentKey] : null;
+  const isTargetHandoff = step.data?.interaction === "handoff_to_target";
 
   return (
     <section
@@ -179,15 +185,15 @@ export function OnboardingTooltip({
             </span>
             Archestimator guide
           </div>
-          <button
-            type="button"
-            aria-label={closeProps["aria-label"]}
+          <IconButton
+            icon={<X size={15} aria-hidden="true" />}
+            label={closeProps["aria-label"] ?? "Close guide"}
             title={closeProps.title}
-            className="grid size-7 shrink-0 place-items-center rounded-full bg-white/12 text-white ring-1 ring-white/20 transition hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            size="icon-xs"
+            variant="overlay"
+            className="size-7 shrink-0 rounded-full bg-white/12 text-white ring-1 ring-white/20 transition hover:bg-white/22 focus-visible:ring-white"
             onClick={closeProps.onClick}
-          >
-            <X size={15} aria-hidden="true" />
-          </button>
+          />
         </div>
       </OnboardingBrandVisual>
       <div className="p-4">
@@ -229,18 +235,41 @@ export function OnboardingTooltip({
           >
             Skip guide
           </Button>
-          <Button
-            type="button"
-            variant="brand"
-            size="sm"
-            className="ml-auto min-w-0 rounded-full px-3"
-            aria-label={primaryProps["aria-label"]}
-            title={primaryProps.title}
-            onClick={primaryProps.onClick}
-          >
-            {isLastStep ? "Finish" : "Next"}
-            {!isLastStep ? <ArrowRight size={13} weight="bold" aria-hidden="true" /> : null}
-          </Button>
+          {isTargetHandoff ? (
+            <Button
+              type="button"
+              variant="brand"
+              size="sm"
+              className="ml-auto min-w-0 rounded-full px-3"
+              onClick={() => {
+                const flowKey = step.data?.flowKey;
+                const stepKey = step.data?.stepKey;
+                if (typeof flowKey !== "string" || typeof stepKey !== "string") return;
+                window.dispatchEvent(
+                  new CustomEvent<OnboardingTargetHandoffEventDetail>(
+                    ONBOARDING_TARGET_HANDOFF_EVENT,
+                    { detail: { flowKey, stepKey } as OnboardingTargetHandoffEventDetail },
+                  ),
+                );
+              }}
+            >
+              Try it now
+              <ArrowRight size={13} weight="bold" aria-hidden="true" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="brand"
+              size="sm"
+              className="ml-auto min-w-0 rounded-full px-3"
+              aria-label={primaryProps["aria-label"]}
+              title={primaryProps.title}
+              onClick={primaryProps.onClick}
+            >
+              {isLastStep ? "Finish" : "Next"}
+              {!isLastStep ? <ArrowRight size={13} weight="bold" aria-hidden="true" /> : null}
+            </Button>
+          )}
         </div>
       </div>
     </section>
