@@ -24,17 +24,17 @@ const snapshot: ProjectPublicationSnapshot = {
 };
 
 describe("SharePageSummaryCard (AC-UX-12 trust card)", () => {
-  it("renders the formatted grand total at the 24px anchor size", () => {
+  it("renders the formatted grand total at the compact 18px anchor size", () => {
     const { container } = render(<SharePageSummaryCard snapshot={snapshot} />);
 
     const total = screen.getByText("PHP 1,234,567.50");
     expect(total).toBeInTheDocument();
-    // The grand total is the visual anchor: 24px tabular-nums.
-    expect(total.className).toMatch(/text-\[24px\]/);
+    // The grand total remains the card's largest, tabular-number anchor.
+    expect(total.className).toMatch(/text-\[18px\]/);
     expect(total.className).toMatch(/tabular-nums/);
 
-    // No element in the card renders client-facing text below the 11px floor.
-    expect(container.innerHTML).not.toMatch(/text-\[(?:8|9|10)px\]/);
+    // Compact metadata labels use 9px, with no smaller client-facing text.
+    expect(container.innerHTML).not.toMatch(/text-\[(?:[0-8](?:\.\d+)?)px\]/);
   });
 
   it("renders sheet count, line-item (row) count, currency, client name, and prepared-on from the snapshot", () => {

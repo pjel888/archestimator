@@ -15,7 +15,7 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(tabsSource).toContain("id={tabId}");
   });
 
-  it("keeps Library and Project source rows visibly scoped with trust chips", () => {
+  it("keeps Library and Project source rows visibly scoped with source labels and distinct icons", () => {
     const sidebarSource = source("src/components/workshop/component-library/index.tsx");
     const treeSource = source("src/components/workshop/component-library/tree/LibraryTree.tsx");
 
@@ -23,7 +23,9 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(sidebarSource).toContain('activeSourceScopeLabel = isProjectTab || projectId === "hero-sanitized-project" ? "" : "Library"');
     expect(sidebarSource).toContain("treeAriaLabel={activeLibraryTreeAriaLabel}");
     expect(sidebarSource).toContain("sourceScopeLabel={activeSourceScopeLabel}");
-    expect(treeSource).toContain("SourceTrustChips");
+    expect(treeSource).toContain("function getComponentIconColorClass");
+    expect(treeSource).toContain("isProjectComponentProjectionItem(item)");
+    expect(treeSource).toContain('"text-[#AAB6E8]" : "text-[#E8B99D]"');
     expect(treeSource).toContain("const sourceLabel = sourceScope ? `${sourceScope} · ${supplierLabel}` : supplierLabel;");
   });
 
@@ -33,8 +35,8 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     const drawerSource = source("src/components/ui/overlays/sheet-drawer.tsx");
 
     expect(sheetSource).toContain('label: "Open Sources drawer"');
-    expect(sheetSource).toContain('visibleLabel: "Sources"');
-    expect(sheetSource).toContain("ariaHasPopup: \"dialog\"");
+    expect(sheetSource).toContain('visibleLabel="Sources"');
+    expect(sheetSource).toContain('aria-haspopup="dialog"');
     expect(sheetSource).toContain("mobileDrawerId={ESTIMATE_SOURCES_DRAWER_ID}");
     expect(sidebarSource).toContain('import { Drawer } from "@/components/ui/overlays/sheet-drawer"');
     expect(sidebarSource).toContain('ariaLabel="Sources"');

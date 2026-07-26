@@ -571,7 +571,7 @@ describe("project estimates table inline editing", () => {
 
   it("loads column widths from the current project storage key during rerender", () => {
     window.localStorage.setItem(
-      "archestimator:project-estimates-column-widths:project-2",
+      "archestimator:project-estimates-column-widths:v2:project-2",
       JSON.stringify({ name: 420 }),
     );
     const queryClient = new QueryClient({
@@ -588,7 +588,7 @@ describe("project estimates table inline editing", () => {
     );
 
     const getEstimateNameHeader = () => screen.getByRole("separator", { name: "Resize Estimate Name" }).closest("th");
-    expect(getEstimateNameHeader()).toHaveStyle({ width: "340px" });
+    expect(getEstimateNameHeader()).toHaveStyle({ width: "200px" });
 
     rerender(
       <QueryClientProvider client={queryClient}>
@@ -615,8 +615,8 @@ describe("project estimates table inline editing", () => {
     fireEvent.keyDown(screen.getByRole("separator", { name: "Resize Estimate Name" }), { key: "ArrowRight" });
     unmount();
 
-    expect(JSON.parse(window.localStorage.getItem("archestimator:project-estimates-column-widths:project-1") ?? "{}")).toMatchObject({
-      name: 356,
+    expect(JSON.parse(window.localStorage.getItem("archestimator:project-estimates-column-widths:v2:project-1") ?? "{}")).toMatchObject({
+      name: 216,
     });
   });
 

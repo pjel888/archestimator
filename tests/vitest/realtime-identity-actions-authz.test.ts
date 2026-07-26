@@ -17,7 +17,7 @@ const authzMocks = vi.hoisted(() => ({
 }));
 
 const supportConversationMocks = vi.hoisted(() => ({
-  canAccessSupportConversationInD1: vi.fn(),
+  canAccessVisibleSupportConversationInD1: vi.fn(),
 }));
 
 const realtimeServerMocks = vi.hoisted(() => ({
@@ -70,7 +70,7 @@ beforeEach(() => {
   termsAcceptanceMocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({ requiresAcceptance: false });
   d1Mocks.getCloudflareD1Database.mockResolvedValue(fakeDatabase);
   authzMocks.readCollaborationTopicAccessInD1.mockResolvedValue({ role: "editor" });
-  supportConversationMocks.canAccessSupportConversationInD1.mockResolvedValue(true);
+  supportConversationMocks.canAccessVisibleSupportConversationInD1.mockResolvedValue(true);
   realtimeServerMocks.issueRealtimeIdentityEnvelope.mockResolvedValue({
     envelope: signedEnvelope,
     publicKey: "public-key",
@@ -178,7 +178,7 @@ describe("issueRealtimeIdentity object authorization", () => {
       sub: userContext.userId,
       topic: "global-presence",
     });
-    expect(supportConversationMocks.canAccessSupportConversationInD1).not.toHaveBeenCalled();
+    expect(supportConversationMocks.canAccessVisibleSupportConversationInD1).not.toHaveBeenCalled();
   });
 
   it("does not sign a global presence token for non-admin callers", async () => {
@@ -196,7 +196,7 @@ describe("issueRealtimeIdentity object authorization", () => {
     const result = await issueSupportInboxRealtimeToken({ conversationId: "conversation-123" });
 
     expect(result?.roomToken).toEqual(expect.any(String));
-    expect(supportConversationMocks.canAccessSupportConversationInD1).toHaveBeenCalledWith({
+    expect(supportConversationMocks.canAccessVisibleSupportConversationInD1).toHaveBeenCalledWith({
       conversationId: "conversation-123",
       database: fakeDatabase,
       userId: userContext.userId,
@@ -212,7 +212,7 @@ describe("issueRealtimeIdentity object authorization", () => {
   });
 
   it("does not sign a support inbox token when conversation access is denied", async () => {
-    supportConversationMocks.canAccessSupportConversationInD1.mockResolvedValueOnce(false);
+    supportConversationMocks.canAccessVisibleSupportConversationInD1.mockResolvedValueOnce(false);
     const { issueSupportInboxRealtimeToken } = await import("@/lib/collaboration/realtime-identity-actions");
 
     const result = await issueSupportInboxRealtimeToken({ conversationId: "conversation-123" });

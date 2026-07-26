@@ -25,23 +25,18 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/dynamic", () => ({
-  default: (loader: () => Promise<unknown>) => {
-    const source = String(loader);
-    if (source.includes("AddComponentModal")) {
-      return function MockAddComponentModal({ open }: { open: boolean }) {
-        return open ? (
+  default: () => {
+    return function MockDynamicComponent(props: Record<string, unknown>) {
+      if ("open" in props) {
+        return props.open ? (
           <div data-archestimator-modal-root role="dialog" aria-label="Add Component">
             Add Component
           </div>
         ) : null;
-      };
-    }
-    if (source.includes("LibraryFolderTree")) {
-      return function MockLibraryFolderTreeSurface() {
+      }
+      if ("folders" in props) {
         return <div aria-label="Component library tree" />;
-      };
-    }
-    return function MockDynamicComponent() {
+      }
       return null;
     };
   },

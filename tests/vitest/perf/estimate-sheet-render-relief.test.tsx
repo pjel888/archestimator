@@ -145,12 +145,17 @@ describe("estimate sheet render relief (U1)", () => {
     window.localStorage.clear();
   });
 
-  it("typing in one row's quantity does not re-render other area tables", () => {
+  it("typing in one row's quantity re-renders the edited row without re-rendering area tables", () => {
+    const rowRenderCounts = new Map<string, number>();
+    setEstimateRowItemRenderProbe((rowItemId) => {
+      rowRenderCounts.set(rowItemId, (rowRenderCounts.get(rowItemId) ?? 0) + 1);
+    });
     const { view, renderCounts } = renderSheet();
     const input = quantityInput(view, "relief-row-1-1");
     act(() => input.focus());
 
     renderCounts.clear();
+    rowRenderCounts.clear();
     for (const value of ["3", "34", "345"]) {
       act(() => {
         fireEvent.change(input, { target: { value } });
@@ -159,7 +164,8 @@ describe("estimate sheet render relief (U1)", () => {
 
     expect(input.value).toBe("345");
     expect(document.activeElement).toBe(input);
-    expect(renderCounts.get("relief-area-1") ?? 0).toBeGreaterThan(0);
+    expect(rowRenderCounts.get("relief-row-1-1") ?? 0).toBeGreaterThan(0);
+    expect(renderCounts.get("relief-area-1") ?? 0).toBe(0);
     expect(rendersOutside(renderCounts, "relief-area-1")).toBe(0);
   });
 
@@ -184,7 +190,7 @@ describe("estimate sheet render relief (U1)", () => {
     expect(rowRenderCounts.get("relief-row-1-3") ?? 0).toBe(0);
   });
 
-  it("typing in one express text field re-renders only that row and area table", () => {
+  it("typing in one express text field re-renders only that row without re-rendering area tables", () => {
     const rowRenderCounts = new Map<string, number>();
     setEstimateRowItemRenderProbe((rowItemId) => {
       rowRenderCounts.set(rowItemId, (rowRenderCounts.get(rowItemId) ?? 0) + 1);
@@ -203,7 +209,7 @@ describe("estimate sheet render relief (U1)", () => {
 
     expect(input.value).toBe("Custom vanity long run");
     expect(document.activeElement).toBe(input);
-    expect(renderCounts.get("relief-area-1") ?? 0).toBeGreaterThan(0);
+    expect(renderCounts.get("relief-area-1") ?? 0).toBe(0);
     expect(rendersOutside(renderCounts, "relief-area-1")).toBe(0);
     expect(rowRenderCounts.get("relief-row-1-1") ?? 0).toBeGreaterThan(0);
     expect(rowRenderCounts.get("relief-row-1-2") ?? 0).toBe(0);

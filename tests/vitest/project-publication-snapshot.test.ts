@@ -27,7 +27,7 @@ describe("project publication revision staleness", () => {
 });
 
 describe("project publication snapshot builder (Shared Link V2)", () => {
-  it("returns a client-safe immutable DTO with computed totals and no internal supplier/library metadata", () => {
+  it("omits absent/default optional row metadata while retaining computed client-safe totals", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-05-27T00:00:00.000Z",
       project: {
@@ -80,17 +80,9 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     });
     expect(snapshot.estimates[0]?.rows[0]).toEqual({
       id: "row-1",
-      componentAnchor: null,
-      variantAnchor: null,
-      componentVersionNumber: null,
-      variantLabel: null,
-      rowRevision: 0,
-      linkState: "unlinked",
       description: "Concrete works",
       designation: "CW-01",
       discipline: "Structural",
-      category: null,
-      supplier: null,
       material: "Concrete",
       quantity: 2,
       unit: "cu.m",
@@ -100,7 +92,6 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       calculationBasis: "proposal_included_direct",
       currencyCode: "PHP",
       scopeStatus: "included",
-      imageUrl: null,
       nodeId: null,
     });
     expect(snapshot.totalCost).toBe(2300);
@@ -165,7 +156,6 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       quantity: 2,
       unit: "cu.m",
       rowTotal: 2300,
-      imageUrl: null,
       nodeId: null,
     });
     expect(JSON.stringify(sanitized)).not.toContain("unitCost");

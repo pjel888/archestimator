@@ -52,12 +52,13 @@ describe("new landing experiment contract", () => {
 
     expect(componentSource).toContain("KimiSiteHeader");
     expect(componentSource).toContain("HeroVoxelRippleImage");
-    expect(componentSource).toContain("PrimaryCtaLink");
+    expect(componentSource).toContain('<NewExperimentCta placement="hero" />');
     expect(componentSource).toContain("LandingMotionLoader");
     expect(componentSource).not.toContain("HeroAmbitionText");
     expect(componentSource).not.toContain("HeroAudienceRoles");
     expect(componentSource).not.toContain("heroCopy");
     expect(componentSource).not.toContain("KimiLandingPage");
+    expect(componentSource).not.toContain("PrimaryCtaLink");
     expect(experimentSource.split(approvedOneLiner)).toHaveLength(2);
     expect(experimentSource).not.toContain("—");
   });

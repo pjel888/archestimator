@@ -629,7 +629,7 @@ describe("verified Supermemory server launcher", () => {
       env: {
         ...process.env,
         FAKE_SERVER_ENV_OUT: envOut,
-        FAKE_SERVER_EXIT_AFTER_MS: "1000",
+        FAKE_SERVER_EXIT_AFTER_MS: "15000",
         ...homeEnvironment(homeDir),
         OPENAI_API_KEY: "",
         SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
@@ -660,7 +660,7 @@ describe("verified Supermemory server launcher", () => {
     const env = {
       ...process.env,
       FAKE_SERVER_ENV_OUT: envOut,
-      FAKE_SERVER_EXIT_AFTER_MS: "1000",
+      FAKE_SERVER_EXIT_AFTER_MS: "15000",
       FAKE_SERVER_LISTEN_DELAY_MS: "500",
       FAKE_SERVER_START_COUNT_OUT: startsOut,
       ...homeEnvironment(homeDir),

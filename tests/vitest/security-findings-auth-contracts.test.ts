@@ -157,9 +157,9 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(hardeningMigration).toContain("create or replace function public.ensure_current_user_profile");
     expect(hardeningMigration).toContain("grant execute on function public.ensure_current_user_profile(text, text) to authenticated");
     expect(profileD1Migration).toContain("role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('ceo', 'admin', 'member'))");
-    expect(profileD1Store).toContain('import {\n  isAppPlatformRole,\n  normalizeAppPlatformRole,\n  type AppPlatformRole,\n} from "@/lib/auth/roles";');
+    expect(profileD1Store).toMatch(/import\s*\{\s*isAppPlatformRole,\s*normalizeAppPlatformRole,\s*type AppPlatformRole,\s*\}\s*from "@\/lib\/auth\/roles";/);
     expect(profileD1Store).toContain("role: normalizeAppPlatformRole(row.role)");
-    expect(accountActions).toContain("UPDATE profiles\n       SET display_name = ?, updated_at = ?\n       WHERE id = ?");
+    expect(accountActions).toMatch(/UPDATE profiles\s+SET display_name = \?, updated_at = \?\s+WHERE id = \?/);
     expect(accountActions).not.toMatch(/UPDATE profiles[\s\S]{0,240}\brole\s*=/);
   });
 

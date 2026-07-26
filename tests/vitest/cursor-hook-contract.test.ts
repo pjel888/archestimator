@@ -427,7 +427,7 @@ describe("Cursor hook contracts", () => {
     }
   });
 
-  it("blocks foreground dev servers outside tmux and permits tmux launches", () => {
+  it("blocks foreground dev servers on tmux-capable hosts and permits Windows, tmux, and background launches", () => {
     for (const command of [
       "bun dev",
       "bun run dev",
@@ -497,8 +497,13 @@ describe("Cursor hook contracts", () => {
       "cat <<EOF\n$(bun dev)\nEOF",
     ]) {
       const foreground = runShellHook(command);
-      expect(foreground.status, command).toBe(2);
-      expect(foreground.stderr, command).toContain("run dev servers in tmux");
+      if (process.platform === "win32") {
+        expect(foreground.status, command).toBe(0);
+        expect(foreground.stderr, command).not.toContain("run dev servers in tmux");
+      } else {
+        expect(foreground.status, command).toBe(2);
+        expect(foreground.stderr, command).toContain("run dev servers in tmux");
+      }
     }
 
     const launcher = runShellHook('tmux new-session -d -s arch-dev "bun dev"');

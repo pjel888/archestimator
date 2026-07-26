@@ -7,8 +7,12 @@ const workspaces = readFileSync("src/components/admin/AdminAccountWorkspaces.tsx
 
 describe("corporate account workspace link state", () => {
   it("loads the current corporate-account state for every link candidate", () => {
-    const listCandidates = repository.match(/export async function listAllWorkspacesForLinking[\s\S]*?\n}\n\nexport async function listAllUsersForAssignment/)?.[0];
+    const start = repository.indexOf("export async function listAllWorkspacesForLinking");
+    const end = repository.indexOf("export async function listAllUsersForAssignment", start);
+    const listCandidates = repository.slice(start, end);
 
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
     expect(listCandidates).toContain("w.corporate_account_id");
     expect(listCandidates).toContain("a.name AS corporate_account_name");
     expect(listCandidates).toContain("LEFT JOIN corporate_accounts AS a");

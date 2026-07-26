@@ -152,13 +152,16 @@ describe("Cloudflare D1 estimate sheet user preferences store", () => {
       subTotal: 160,
     });
 
-    await expect(loadEstimateSheetUserPreferencesFromD1(database, context)).resolves.toMatchObject({
+    const loaded = await loadEstimateSheetUserPreferencesFromD1(database, context);
+
+    expect(loaded).toMatchObject({
       columnWidths: {
-        material: 280,
         quantity: 96,
         subTotal: 160,
       },
     });
+    expect(JSON.parse(database.preferences.get("user-1:workspace-1:estimate-1")?.column_widths_json ?? "{}"))
+      .toEqual({ quantity: 96, subTotal: 160 });
   });
 
   it("allows platform admins through the same D1 guard", async () => {

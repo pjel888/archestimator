@@ -59,14 +59,20 @@ describe("mass deletion server action contract", () => {
 
   it("adds estimate-sheet preview, execute, and single delete wrappers with cache revalidation", () => {
     const actions = readFileSync("src/lib/estimates/actions.ts", "utf8");
+    const intents = readFileSync("src/lib/estimates/d1-intents/bulk-sheets.ts", "utf8");
 
     expect(actions).toContain("previewBulkDeleteEstimateSheets");
     expect(actions).toContain("executeBulkDeleteEstimateSheets");
     expect(actions).toContain("deleteEstimateSheet");
-    expect(actions).toContain("preview_bulk_delete_estimate_sheets");
-    expect(actions).toContain("execute_bulk_delete_estimate_sheets");
+    expect(actions).toContain("previewBulkDeleteEstimateSheetsIntent(database, currentUser");
+    expect(actions).toContain("executeBulkDeleteEstimateSheetsIntent(database, currentUser");
     expect(actions).toContain("expectedPreviewHash");
     expect(actions).toContain("revalidateProjectEstimatePaths(project.id)");
+    expect(intents).toContain("preview.previewHash !== input.expectedPreviewHash");
+    expect(intents).toContain("Atomic estimate sheet bulk deletion is unavailable.");
+    expect(intents).toContain("INSERT INTO mass_deletion_events");
+    expect(intents).toContain("await runD1Batch(database, statements)");
+    expect(actions).not.toMatch(/preview_bulk_delete_estimate_sheets|execute_bulk_delete_estimate_sheets|supabase\.rpc/);
   });
 
   it("adds component library archive preview/execute actions and hides archived rows from library reads", () => {

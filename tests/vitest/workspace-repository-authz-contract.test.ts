@@ -88,7 +88,7 @@ describe("workspace repository D1 authorization contract", () => {
     expect(homebaseRepository).toContain("const accessibleRecentEstimateRows = recentEstimateRows.filter");
     expect(homebaseRepository).toContain("const accessibleFavoriteEstimateRows = favoriteEstimateResultRows.filter");
     expect(homebaseRepository).toContain("readOptionalProjectPublications(database, allProjectIds)");
-    expect(homebaseRepository).toContain("filterMapBy(\n    rawFavoriteProjectIds,");
+    expect(homebaseRepository).toMatch(/filterMapBy\(\s*rawFavoriteProjectIds,/);
   });
 
   it("filters sidebar favorite projects through the current D1 access gate via a single batched SQL query", () => {

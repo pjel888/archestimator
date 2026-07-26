@@ -55,7 +55,7 @@ describe("estimate node route server concurrency", () => {
     expectBefore(estimateNodePageSource, "<Suspense fallback={<EstimateSheetRouteSkeleton />}>", 'withPerfTraceRequest("workshop.estimate-sheet"');
   });
 
-  it("keeps only the critical route context load in the async route content block", () => {
+  it("validates the critical route context before parallelizing noncritical capability loads", () => {
     const routeContentBody = readFunctionBody(estimateNodePageSource, "async function EstimateRouteContent");
 
     expect(routeContentBody).toContain("const { projectId, nodeId } = await params;");
@@ -63,9 +63,11 @@ describe("estimate node route server concurrency", () => {
     expect(routeContentBody).toContain('withPerfTraceRequest("workshop.estimate-sheet"');
     expect(routeContentBody).toContain('traced("estimate-sheet.route-context"');
     expect(routeContentBody).toContain("resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
-    expect(routeContentBody).not.toContain("Promise.all([");
+    expect(routeContentBody).toContain("const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([");
+    expectBefore(routeContentBody, "if (!project || !estimate) notFound()", "const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([");
     expect(estimateNodePageSource).not.toContain('traced("estimate-sheet.current-user"');
-    expect(estimateNodePageSource).not.toContain("requireCurrentUserContext");
+    expect(routeContentBody).toContain('traced("estimate-sheet.library-management-capability"');
+    expect(routeContentBody).toContain('traced("estimate-sheet.onboarding-snapshot"');
   });
 
   it("keeps tab fallback out of the route tail while tracing edit capability separately", () => {
@@ -95,18 +97,21 @@ describe("estimate node route server concurrency", () => {
 
   it("relies on the workshop layout for auth before protected route children render", () => {
     const layoutBody = readFunctionBody(workshopLayoutSource, "export default async function WorkshopLayout");
-    const finalShellReturnIndex = layoutBody.lastIndexOf("return <WorkshopShell>{children}</WorkshopShell>;");
-    const loginRedirectIndex = layoutBody.indexOf('if (!currentUser) redirect("/login")');
+    const protectedGateIndex = layoutBody.indexOf("if (isProtectedRouteGateSatisfied(headerList");
+    const finalShellReturnIndex = layoutBody.lastIndexOf("return withWorkshopChrome(children);");
+    const loginRedirectIndex = layoutBody.indexOf("if (!currentUser) redirect(buildWorkshopLoginRedirectPath(requestPath));");
     const termsGateIndex = layoutBody.indexOf("getCurrentUserTermsAcceptanceStatus(currentUser.userId)");
     const bypassBranchIndex = layoutBody.indexOf("if (termsGateBypassed)");
 
     expect(workshopLayoutSource).toContain('import { getCurrentUserContext } from "@/lib/auth/session"');
     expect(layoutBody).toContain("shouldBypassTermsAcceptanceGate(requestPath)");
     expect(layoutBody).toContain("const currentUser = await getCurrentUserContext();");
+    expect(protectedGateIndex).toBeGreaterThanOrEqual(0);
     expect(finalShellReturnIndex).toBeGreaterThanOrEqual(0);
     expect(loginRedirectIndex).toBeGreaterThanOrEqual(0);
     expect(termsGateIndex).toBeGreaterThanOrEqual(0);
     expect(bypassBranchIndex).toBeGreaterThanOrEqual(0);
+    expect(protectedGateIndex).toBeLessThan(bypassBranchIndex);
     expect(bypassBranchIndex).toBeLessThan(loginRedirectIndex);
     expect(loginRedirectIndex).toBeLessThan(termsGateIndex);
     expect(termsGateIndex).toBeLessThan(finalShellReturnIndex);

@@ -6,9 +6,10 @@ const userDetailPage = readFileSync("src/app/admin/users/[userId]/page.tsx", "ut
 
 describe("corporate account user membership detail", () => {
   it("shows a user's corporate memberships with roles and account links", () => {
-    expect(userDetailPage).toContain("listUserCorporateAccounts(userId)");
+    expect(userDetailPage).toContain("listUserCorporateAccounts(user.profile_id)");
     expect(userDetailPage).toContain("Corporate membership");
-    expect(userDetailPage).toContain("href={`/admin/accounts/${acct.id}`}");
-    expect(userDetailPage).toContain("{acct.role}");
+    expect(userDetailPage).toContain("corporateAccounts.map((account) =>");
+    expect(userDetailPage).toContain("href={`/admin/accounts/${account.id}`}");
+    expect(userDetailPage).toContain("{account.role}");
   });
 });

@@ -186,7 +186,7 @@ describe("library estimate insert-target authorization", () => {
         templateId: TEMPLATE_ID,
         intentId: "77777777-7777-4777-8777-777777777777",
       }),
-    ).rejects.toThrow("Estimate edit access denied.");
+    ).rejects.toThrow("Could not insert estimate template.");
 
     expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(
       expect.anything(),
@@ -211,7 +211,7 @@ describe("library estimate insert-target authorization", () => {
         templateNodeId: TEMPLATE_NODE_ID,
         intentId: "88888888-8888-4888-8888-888888888888",
       }),
-    ).rejects.toThrow("Estimate edit access denied.");
+    ).rejects.toThrow("Could not insert the template node.");
 
     expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(
       expect.anything(),

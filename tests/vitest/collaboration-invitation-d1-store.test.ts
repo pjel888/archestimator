@@ -314,7 +314,7 @@ describe("Cloudflare D1 collaboration invitation store", () => {
   });
 
   it("batches membership, token consumption, invitation transition, and audit on acceptance", () => {
-    const source = readFileSync("src/lib/collaboration/invitation-d1-store.ts", "utf8");
+    const source = readFileSync("src/lib/collaboration/invitation-d1-store.ts", "utf8").replace(/\r\n?/g, "\n");
     const acceptance = source.match(/async function acceptInvitationInD1[\s\S]*?\n}\n\nexport function acceptCollaborationInvitationTokenInD1/)?.[0];
 
     expect(acceptance).toContain("if (!db.batch)");

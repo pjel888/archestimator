@@ -26,29 +26,45 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("AdminShell", () => {
-  it("renders admin navigation landmarks and links", () => {
-    render(
-      <AdminShell displayName="Admin User" email="admin@example.com">
-        <p>Admin content</p>
-      </AdminShell>,
-    );
+  it("renders admin navigation landmarks and links", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
 
-    expect(screen.getByRole("main", { name: "Admin dashboard" })).toBeInTheDocument();
-    const navigation = screen.getByRole("navigation", { name: "Admin sections" });
+    try {
+      render(
+        <AdminShell displayName="Admin User" email="admin@example.com">
+          <p>Admin content</p>
+        </AdminShell>,
+      );
 
-    for (const [label, href] of [
-      ["Overview", "/admin"],
-      ["Users", "/admin/users"],
-      ["Support", "/admin/support"],
-      ["Flags", "/admin/flags"],
-      ["Audit", "/admin/audit"],
-      ["Observability", "/admin/observability"],
-      ["Analytics", "/admin/analytics"],
-    ]) {
-      expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute("href", href);
+      expect(screen.getByRole("main", { name: "Admin dashboard" })).toBeInTheDocument();
+      const navigation = await screen.findByRole("navigation", { name: "Admin sections" });
+
+      for (const [label, href] of [
+        ["Overview", "/admin"],
+        ["Users", "/admin/users"],
+        ["Support", "/admin/support"],
+        ["Flags", "/admin/flags"],
+        ["Audit", "/admin/audit"],
+        ["Observability", "/admin/observability"],
+        ["Analytics", "/admin/analytics"],
+      ]) {
+        expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute("href", href);
+      }
+
+      expect(within(navigation).getByRole("link", { name: "Users" })).toHaveAttribute("aria-current", "page");
+    } finally {
+      window.matchMedia = originalMatchMedia;
     }
-
-    expect(within(navigation).getByRole("link", { name: "Users" })).toHaveAttribute("aria-current", "page");
   });
 });
 

@@ -292,6 +292,10 @@ describe("component failure normalization and ratchet", () => {
     ["null metric", { total: { statements: null, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
     ["nonnumeric pct", { total: { statements: { ...coverageValue(100), pct: "100" }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
     ["nonfinite pct", { total: { statements: { ...coverageValue(100), pct: Number.NaN }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+    ["negative counter", { total: { statements: { ...coverageValue(100), covered: -1 }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+    ["pct over 100", { total: { statements: { ...coverageValue(100), pct: 101 }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+    ["covered exceeds total", { total: { statements: { ...coverageValue(100), total: 50, covered: 51 }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
+    ["covered plus skipped exceeds total", { total: { statements: { ...coverageValue(100), covered: 80, skipped: 21 }, branches: coverageValue(100), functions: coverageValue(100), lines: coverageValue(100) } }],
   ])("returns a structured finding for malformed current coverage: %s", (_label, malformed) => {
     const baseline = admittedBaseline();
     expect(() => compareComponentRatchet(report("failed"), malformed as CoverageSummary, baseline, root)).not.toThrow();

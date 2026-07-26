@@ -29,9 +29,9 @@ describe("LibraryComponentSourceShell", () => {
     );
 
     expect(screen.getByRole("tablist", { name: "Component sources" })).toBeInTheDocument();
-    const libraryTab = screen.getByRole("tab", { name: "Library Components" });
-    const projectTab = screen.getByRole("tab", { name: "Project Components" });
-    const supplierTab = screen.getByRole("tab", { name: /Supplier Components.*Soon/ });
+    const libraryTab = screen.getByRole("tab", { name: "Library" });
+    const projectTab = screen.getByRole("tab", { name: "Project" });
+    const supplierTab = screen.getByRole("tab", { name: /Supplier.*Soon/ });
 
     expect(libraryTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel")).toHaveTextContent("Library catalogue");
@@ -44,7 +44,7 @@ describe("LibraryComponentSourceShell", () => {
     navigationMocks.push.mockClear();
     expect(supplierTab).toHaveAttribute("aria-disabled", "true");
     expect(supplierTab).not.toBeDisabled();
-    expect(supplierTab).toHaveAccessibleDescription("Supplier Components is planned and is not available yet.");
+    expect(supplierTab).toHaveAccessibleDescription("Supplier content is planned and is not available yet.");
 
     fireEvent.keyDown(libraryTab, { key: "End" });
     expect(supplierTab).toHaveFocus();
@@ -64,7 +64,7 @@ describe("LibraryComponentSourceShell", () => {
       </LibraryComponentSourceShell>,
     );
 
-    expect(screen.getByRole("tab", { name: "Project Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Project" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel")).toHaveTextContent("Project catalogue");
 
     const projectSource = screen.getByRole("combobox", { name: "Project component source" });
@@ -76,7 +76,7 @@ describe("LibraryComponentSourceShell", () => {
       "/workshop/library/components?source=project&projectId=project-b",
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Library Components" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Library" }));
     expect(navigationMocks.push).toHaveBeenLastCalledWith("/workshop/library/components");
   });
 });

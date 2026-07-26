@@ -14,7 +14,6 @@ describe("estimate row canonical calculation", () => {
     const result = computeEstimateRowCostParts({
       quantity: 1.000001,
       unit_cost: 10.005,
-      labor_rate: 1.005,
       adjustment_percentage: -10,
       misc_cost: 0.005,
       currency_code: "php",
@@ -26,10 +25,9 @@ describe("estimate row canonical calculation", () => {
         currencyCode: "PHP",
         quantity: 1.000001,
         materialMinorUnits: 1001,
-        laborMinorUnits: 101,
-        adjustmentMinorUnits: -110,
+        adjustmentMinorUnits: -100,
         miscMinorUnits: 1,
-        totalMinorUnits: 993,
+        totalMinorUnits: 902,
       },
     });
   });

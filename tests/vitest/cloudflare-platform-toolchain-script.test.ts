@@ -207,21 +207,24 @@ describe("Cloudflare platform toolchain checker", () => {
     expect(report.wranglerConfig.observability).toMatchObject({
       configured: true,
       enabled: true,
-      headSamplingRate: 0.1,
+      headSamplingRate: 1,
       logsEnabled: true,
-      logsHeadSamplingRate: 0.1,
+      logsHeadSamplingRate: 1,
       logsInvocationLogs: true,
       logsPersist: true,
-      tracesEnabled: true,
-      tracesHeadSamplingRate: 0.05,
-      tracesPersist: true,
+      tracesEnabled: false,
+      tracesHeadSamplingRate: 0,
+      tracesPersist: false,
     });
     expect(report.generatedTypes.bindingRows.map((row) => row.binding)).toEqual([
       "ARCH_DB",
       "ARCH_UPLOADS_R2",
       "ASSETS",
+      "CLIENT_PORTAL_NOTIFICATIONS_QUEUE",
       "COLLAB_ROOMS",
+      "GLOBAL_PRESENCE",
       "IMAGES",
+      "SUPPORT_INBOX",
       "UPLOAD_JOBS_QUEUE",
     ]);
   });

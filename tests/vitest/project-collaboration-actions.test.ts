@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const actions = readFileSync("src/lib/collaboration/actions.ts", "utf8");
+const actions = readFileSync("src/lib/collaboration/actions.ts", "utf8").replace(/\r\n?/g, "\n");
 const teamworkMembersPanel = readFileSync("src/components/workshop/teamwork/ProjectMembersAccessPanel.tsx", "utf8");
 const publisherMembersPanel = readFileSync("src/components/workshop/publisher/PublisherProjectMembersPanel.tsx", "utf8");
 

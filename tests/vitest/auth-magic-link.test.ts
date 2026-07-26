@@ -31,7 +31,7 @@ describe("magic-link auth callback", () => {
     expect(authActions).toContain('path: "/api/auth/sign-in/magic-link"');
     expect(authActions).toContain("callbackURL");
     expect(authActions).toContain("better_auth_magic_link");
-    expect(authActions).toContain("sanitizeNextPath");
+    expect(authActions).toContain("sanitizeProtectedReturnPath");
     expect(authActions).not.toContain("signInWithOtp");
   });
 
@@ -67,7 +67,7 @@ describe("magic-link auth callback", () => {
     expect(devAuth).not.toContain("@supabase/supabase-js");
     expect(devAuth).toContain("getProfileByEmailFromCloudflareD1");
     expect(devAuth).toContain("getDevCurrentUserContext");
-    expect(proxy).toContain("getDevAuthBypassCredentialFromRequestParts(request.headers, request.cookies)");
+    expect(proxy).toMatch(/getDevAuthBypassCredentialFromRequestParts\(\s*request\.headers,\s*request\.cookies,?\s*\)/);
     expect(proxy).toContain("isDevAuthBypassRequest(request.nextUrl.hostname, devAuthBypassCredential)");
     expect(session).toContain("getDevCurrentUserContext()");
     expect(devAuth).toContain("headers");

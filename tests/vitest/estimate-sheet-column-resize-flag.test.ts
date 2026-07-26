@@ -24,12 +24,15 @@ describe("estimate column resize feature flag", () => {
     expect(WORKSHOP_VIRTUALIZATION_FLAGS.estimateColumnResize).toBe(true);
   });
 
-  it("keeps library dense mode off by default and exposes a live public flag reader", async () => {
+  it("keeps library dense mode on by default and exposes a live public flag reader", async () => {
     vi.stubEnv("NEXT_PUBLIC_LIBRARY_DENSE_MODE", "");
     vi.resetModules();
 
     const { isLibraryDenseModeEnabled } = await import("@/lib/workshop/virtualization-flags");
 
+    expect(isLibraryDenseModeEnabled()).toBe(true);
+
+    vi.stubEnv("NEXT_PUBLIC_LIBRARY_DENSE_MODE", "0");
     expect(isLibraryDenseModeEnabled()).toBe(false);
 
     vi.stubEnv("NEXT_PUBLIC_LIBRARY_DENSE_MODE", "1");

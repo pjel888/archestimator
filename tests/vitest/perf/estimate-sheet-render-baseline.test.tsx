@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { setEstimateSheetRenderProbe } from "@/components/workshop/estimate-sheet-render-probe";
+import { setEstimateRowItemRenderProbe, setEstimateSheetRenderProbe } from "@/components/workshop/estimate-sheet-render-probe";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
@@ -46,6 +46,7 @@ type KeystrokeProfile = {
   keystrokes: number;
   keystrokeMsAvg: number;
   keystrokeMsWorst: number;
+  editedRowRenders: number;
   editedTableRenders: number;
   otherTableRendersTotal: number;
   otherTableCount: number;
@@ -68,6 +69,7 @@ function writeProfileOutput() {
         budgets: {
           keystrokeMsAvgMax: KEYSTROKE_AVG_BUDGET_MS,
           keystrokeMsWorstMax: KEYSTROKE_WORST_BUDGET_MS,
+          editedTableRendersTotalMax: 0,
           otherTableRendersTotalMax: 0,
         },
         profiles,
@@ -130,8 +132,12 @@ function makeSheetTree(areaCount: number, rowsPerArea: number): EstimateTreeNode
 function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: number) {
   const tree = makeSheetTree(areaCount, rowsPerArea);
   const renderCounts = new Map<string, number>();
+  const rowRenderCounts = new Map<string, number>();
   setEstimateSheetRenderProbe((tableNodeId) => {
     renderCounts.set(tableNodeId, (renderCounts.get(tableNodeId) ?? 0) + 1);
+  });
+  setEstimateRowItemRenderProbe((rowItemId) => {
+    rowRenderCounts.set(rowItemId, (rowRenderCounts.get(rowItemId) ?? 0) + 1);
   });
 
   const startedAt = performance.now();
@@ -159,6 +165,7 @@ function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: num
   });
 
   renderCounts.clear();
+  rowRenderCounts.clear();
   const characters = "1234567890";
   const keystrokeDurations: number[] = [];
   for (let index = 0; index < characters.length; index += 1) {
@@ -175,6 +182,7 @@ function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: num
   expect(document.activeElement).toBe(quantityInput);
 
   const editedTableRenders = renderCounts.get("perf-area-01") ?? 0;
+  const editedRowRenders = rowRenderCounts.get(editedRowId) ?? 0;
   let otherTableRendersTotal = 0;
   for (const [tableNodeId, count] of renderCounts) {
     if (tableNodeId !== "perf-area-01") otherTableRendersTotal += count;
@@ -188,6 +196,7 @@ function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: num
     keystrokes: characters.length,
     keystrokeMsAvg: Math.round((keystrokeDurations.reduce((total, value) => total + value, 0) / keystrokeDurations.length) * 100) / 100,
     keystrokeMsWorst: Math.round(Math.max(...keystrokeDurations) * 100) / 100,
+    editedRowRenders,
     editedTableRenders,
     otherTableRendersTotal,
     otherTableCount: areaCount - 1,
@@ -200,6 +209,8 @@ function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: num
 function expectProfileWithinLocalBudget(profile: KeystrokeProfile) {
   expect(profile.keystrokeMsAvg).toBeLessThanOrEqual(KEYSTROKE_AVG_BUDGET_MS);
   expect(profile.keystrokeMsWorst).toBeLessThanOrEqual(KEYSTROKE_WORST_BUDGET_MS);
+  expect(profile.editedRowRenders).toBeGreaterThan(0);
+  expect(profile.editedTableRenders).toBe(0);
   expect(profile.otherTableRendersTotal).toBe(0);
 }
 
@@ -207,6 +218,7 @@ describe("estimate sheet render/keystroke baseline", () => {
   afterEach(() => {
     writeProfileOutput();
     setEstimateSheetRenderProbe(null);
+    setEstimateRowItemRenderProbe(null);
     cleanup();
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
@@ -215,19 +227,16 @@ describe("estimate sheet render/keystroke baseline", () => {
 
   it("profiles a 50-row sheet (5 areas x 10 rows)", () => {
     const profile = profileKeystrokes("sheet-50", 5, 10);
-    expect(profile.editedTableRenders).toBeGreaterThan(0);
     expectProfileWithinLocalBudget(profile);
   }, 60_000);
 
   it("profiles a 200-row sheet (10 areas x 20 rows)", () => {
     const profile = profileKeystrokes("sheet-200", 10, 20);
-    expect(profile.editedTableRenders).toBeGreaterThan(0);
     expectProfileWithinLocalBudget(profile);
   }, 60_000);
 
   it("profiles a 500-row sheet (10 areas x 50 rows)", () => {
     const profile = profileKeystrokes("sheet-500", 10, 50);
-    expect(profile.editedTableRenders).toBeGreaterThan(0);
     expectProfileWithinLocalBudget(profile);
   }, 120_000);
 });

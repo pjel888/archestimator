@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminAccountMembers } from "@/components/admin/AdminAccountMembers";
 import { AdminAccountStatusControls } from "@/components/admin/AdminAccountStatusControls";
 import { AdminAccountWorkspaces } from "@/components/admin/AdminAccountWorkspaces";
 import { AdminCreateAccountForm } from "@/components/admin/AdminCreateAccountForm";
+import { ToastProvider } from "@/components/ui/toast";
 
 const routerMocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -31,11 +32,6 @@ const WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal(
-    "confirm",
-    vi.fn(() => true),
-  );
-  vi.stubGlobal("alert", vi.fn());
   actionMocks.createCorporateAccountAction.mockResolvedValue({
     ok: true,
     accountId: ACCOUNT_ID,
@@ -136,7 +132,7 @@ describe("corporate account client mutations", () => {
     );
     await waitFor(() => expect(routerMocks.refresh).toHaveBeenCalledTimes(1));
 
-    fireEvent.change(screen.getByLabelText("Role for member@example.com"), {
+    fireEvent.change(screen.getAllByLabelText("Role for member@example.com")[0], {
       target: { value: "viewer" },
     });
     await waitFor(() =>
@@ -148,9 +144,14 @@ describe("corporate account client mutations", () => {
     );
     await waitFor(() => expect(routerMocks.refresh).toHaveBeenCalledTimes(2));
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Remove member@example.com" }),
-    );
+    const removeMemberButtons = screen.getAllByRole("button", {
+      name: "Remove member@example.com",
+    });
+    expect(removeMemberButtons).toHaveLength(2);
+    for (const removeMemberButton of removeMemberButtons) {
+      expect(removeMemberButton).toBeEnabled();
+    }
+    fireEvent.click(removeMemberButtons[0]);
     await waitFor(() =>
       expect(
         actionMocks.removeUserFromCorporateAccountAction,
@@ -207,7 +208,7 @@ describe("corporate account client mutations", () => {
     await waitFor(() => expect(routerMocks.refresh).toHaveBeenCalledTimes(1));
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Unlink Linked workspace" }),
+      screen.getAllByRole("button", { name: "Unlink Linked workspace" })[0],
     );
     await waitFor(() =>
       expect(actionMocks.unlinkWorkspaceAction).toHaveBeenCalledWith({
@@ -218,15 +219,30 @@ describe("corporate account client mutations", () => {
   });
 
   it("requires confirmation before status changes and refreshes only after success", async () => {
+    let resolveStatusUpdate: ((value: { ok: true }) => void) | undefined;
+    actionMocks.updateCorporateAccountStatusAction.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStatusUpdate = resolve;
+      }),
+    );
+
     render(
-      <AdminAccountStatusControls
-        accountId={ACCOUNT_ID}
-        status="active"
-        accountName="Acme Construction"
-      />,
+      <ToastProvider>
+        <AdminAccountStatusControls
+          accountId={ACCOUNT_ID}
+          status="active"
+          accountName="Acme Construction"
+        />
+      </ToastProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
+    expect(actionMocks.updateCorporateAccountStatusAction).not.toHaveBeenCalled();
+
+    const suspendDialog = screen.getByRole("dialog", {
+      name: 'Suspend "Acme Construction"?',
+    });
+    fireEvent.click(within(suspendDialog).getByRole("button", { name: "Suspend account" }));
     await waitFor(() =>
       expect(
         actionMocks.updateCorporateAccountStatusAction,
@@ -235,12 +251,47 @@ describe("corporate account client mutations", () => {
         status: "suspended",
       }),
     );
-    expect(routerMocks.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Suspend" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeDisabled();
 
-    vi.mocked(window.confirm).mockReturnValue(false);
+    resolveStatusUpdate?.({ ok: true });
+    await waitFor(() => expect(routerMocks.refresh).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Acme Construction suspended.")).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    const archiveDialog = screen.getByRole("alertdialog", {
+      name: 'Archive "Acme Construction"?',
+    });
+    fireEvent.click(within(archiveDialog).getByRole("button", { name: "Keep current status" }));
     expect(
       actionMocks.updateCorporateAccountStatusAction,
     ).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows sanitized feedback when an account status update fails", async () => {
+    actionMocks.updateCorporateAccountStatusAction.mockResolvedValue({
+      ok: false,
+      error: "database host=db.internal password=secret",
+    });
+
+    render(
+      <ToastProvider>
+        <AdminAccountStatusControls
+          accountId={ACCOUNT_ID}
+          status="active"
+          accountName="Acme Construction"
+        />
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    const archiveDialog = screen.getByRole("alertdialog", {
+      name: 'Archive "Acme Construction"?',
+    });
+    fireEvent.click(within(archiveDialog).getByRole("button", { name: "Archive account" }));
+
+    expect(await screen.findByText("Account status could not be updated. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText(/db\.internal|password=secret/u)).not.toBeInTheDocument();
+    expect(routerMocks.refresh).not.toHaveBeenCalled();
   });
 });

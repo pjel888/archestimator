@@ -63,7 +63,7 @@ describe("estimate component edit-surface ownership", () => {
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
     fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "New Door Stop" } });
-    fireEvent.change(within(form).getByRole("combobox", { name: "Category" }), { target: { value: "Hardware" } });
+    expect(within(form).getByLabelText("Direct category")).toHaveValue("Hardware");
     fireEvent.change(within(form).getByRole("combobox", { name: "Supplier" }), { target: { value: "Acme" } });
     fireEvent.change(within(form).getByLabelText("Unit cost"), { target: { value: "125" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));

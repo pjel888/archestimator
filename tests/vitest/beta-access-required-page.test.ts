@@ -9,7 +9,8 @@ describe("/access-required page contract", () => {
   it("gives denied beta users a clear non-looping path", () => {
     const source = readFileSync(join(process.cwd(), "src/app/access-required/page.tsx"), "utf8");
 
-    expect(source).toMatch(/invite-only access/i);
+    expect(source).toMatch(/Access unavailable/i);
+    expect(source).toMatch(/Access is granted manually/i);
     expect(source).toMatch(/support@archestimator\.com/);
     expect(source).not.toMatch(/philipjonlewis@gmail\.com/);
     expect(source).toMatch(/href=["']\/login["']/);

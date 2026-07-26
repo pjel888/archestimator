@@ -124,6 +124,11 @@ async function selectRowsInOrder(rowNames: string[]) {
   return user;
 }
 
+async function deleteRowThroughActions(user: ReturnType<typeof userEvent.setup>, rowName: string) {
+  await user.click(screen.getByRole("button", { name: `Open row actions for ${rowName}` }));
+  await user.click(screen.getByRole("menuitem", { name: "Delete row" }));
+}
+
 describe("estimate sheet bulk row delete partial failures", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
@@ -219,8 +224,7 @@ describe("estimate sheet bulk row delete partial failures", () => {
     renderSheet([cabinetRow]);
     const user = userEvent.setup();
 
-    const deleteRowButton = screen.getByRole("button", { name: "Delete row Kitchen Cabinet" });
-    await user.click(deleteRowButton);
+    await deleteRowThroughActions(user, "Kitchen Cabinet");
 
     await waitFor(() => {
       expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
@@ -248,7 +252,7 @@ describe("estimate sheet bulk row delete partial failures", () => {
     renderSheet([cabinetRow]);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Delete row Kitchen Cabinet" }));
+    await deleteRowThroughActions(user, "Kitchen Cabinet");
 
     await screen.findByText("Couldn't delete the row. Try again.");
     expect(screen.getByText("Kitchen Cabinet")).toBeInTheDocument();

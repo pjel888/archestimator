@@ -216,7 +216,7 @@ describe("corporate account workspace move audit", () => {
       }),
     ).resolves.toEqual({
       data: { ok: false, previousAccountId: "account-old" },
-      error: "Transactional D1 batch support is required to link a workspace.",
+      error: "Something went wrong. Try again in a moment.",
     });
 
     expect(database.batches).toHaveLength(0);

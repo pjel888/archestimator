@@ -80,7 +80,6 @@ describe("share snapshot redaction", () => {
       calculationBasis: "proposal_included_direct",
       currencyCode: "PHP",
       scopeStatus: "included",
-      imageUrl: null,
       nodeId: null,
     });
     expect(serialized).not.toContain("pricing_source");
@@ -165,7 +164,6 @@ describe("share snapshot redaction", () => {
       quantity: 1,
       unit: "lot",
       rowTotal: 28_000,
-      imageUrl: null,
       nodeId: null,
     });
     expect(serialized).not.toContain("unitCost");

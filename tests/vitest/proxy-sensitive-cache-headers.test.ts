@@ -4,8 +4,8 @@ describe("proxy sensitive-route cache headers", () => {
   const proxySource = readFileSync("src/lib/auth/request-proxy.ts", "utf8");
 
   it("keeps protected/auth redirect responses private and no-store", () => {
-    expect(proxySource).toContain(
-      'const SENSITIVE_ROUTE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";',
+    expect(proxySource).toMatch(
+      /const SENSITIVE_ROUTE_CACHE_CONTROL\s*=\s*"private, no-cache, no-store, max-age=0, must-revalidate";/,
     );
     expect(proxySource).toContain('response.headers.set("Cache-Control", SENSITIVE_ROUTE_CACHE_CONTROL);');
     expect(proxySource).toContain("function redirectWithSensitiveRouteCacheControl(url: URL)");

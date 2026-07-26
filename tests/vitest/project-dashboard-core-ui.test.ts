@@ -12,7 +12,9 @@ describe("project dashboard core UI governance", () => {
   it("keeps the project page focused on project data visualization instead of estimate creation", () => {
     expect(projectDashboardPage).toContain("ProjectDashboardClient");
     expect(projectDashboardPage).not.toContain("ButtonLink");
-    expect(projectDashboardPage).not.toContain("/estimates");
+    expect(projectDashboardPage).not.toContain("createEstimate");
+    expect(projectDashboardPage).toContain("listRecentProjectEstimateSheets(projectId, 1)");
+    expect(projectDashboardPage).toContain('redirect(`/workshop/projects/${projectId}/estimates/${directEstimateSheet.id}`)');
     expect(projectDashboardClient).not.toContain("Supabase");
     expect(projectDashboardClient).not.toContain("Source");
   });
@@ -34,7 +36,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectChromeAsync).toContain("<ProjectPublisherHeaderActions");
     expect(projectChromeAsync).toContain("getPublisherProjectHref(projectId)");
     expect(projectChromeAsync).toContain('data-publisher-project-link="publication"');
-    expect(projectChromeAsync).toContain('data-publisher-project-link="access"');
+    expect(projectChromeAsync).toContain("getProjectTeamAccessHref(projectId)");
+    expect(projectChromeAsync).toContain('data-project-team-access-link="true"');
     expect(projectChromeAsync).toContain("publicationSummary={publicationSummary}");
     expect(projectChromeAsync).toContain("canOpenPublisherDrawer");
     expect(projectChromeAsync).not.toContain("isPublisherEnabled()");

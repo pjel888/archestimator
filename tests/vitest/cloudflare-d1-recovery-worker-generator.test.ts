@@ -1,11 +1,12 @@
 import { existsSync, readFileSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { generateCloudflareD1RecoveryWorker } from "../../scripts/generate-cloudflare-d1-recovery-worker";
 
 const runId = "recovery-20260712-z9y8x7w6";
-const outputDirectory = `.ai/99_scratch/cloudflare-d1-recovery/${runId}`;
+const outputDirectory = resolve(".ai/99_scratch/cloudflare-d1-recovery", runId);
 
 describe("Cloudflare D1 recovery worker generator", () => {
   it("writes only a no-route disposable overlay under scratch", () => {
@@ -19,7 +20,7 @@ describe("Cloudflare D1 recovery worker generator", () => {
       const worker = readFileSync(output.workerFile, "utf8");
       const config = JSON.parse(readFileSync(output.wranglerFile, "utf8")) as Record<string, unknown>;
 
-      expect(output.outputDirectory).toContain(outputDirectory);
+      expect(output.outputDirectory).toBe(outputDirectory);
       expect(existsSync(output.workerFile)).toBe(true);
       expect(config.workers_dev).toBe(true);
       expect(config.routes).toEqual([]);
@@ -42,11 +43,13 @@ describe("Cloudflare D1 recovery worker generator", () => {
   });
 
   it("rejects unsafe runs and non-disposable targets before writing", () => {
-    expect(() => generateCloudflareD1RecoveryWorker({
-      runId: "../unsafe",
-      disposableDatabaseName: "archestimator-recovery-unsafe",
-      disposableDatabaseId: "id",
-    })).toThrow("run ID");
+    for (const unsafeRunId of ["../unsafe", "..\\unsafe", "C:\\unsafe\\recovery-run"]) {
+      expect(() => generateCloudflareD1RecoveryWorker({
+        runId: unsafeRunId,
+        disposableDatabaseName: "archestimator-recovery-unsafe",
+        disposableDatabaseId: "id",
+      }), unsafeRunId).toThrow("run ID");
+    }
     expect(() => generateCloudflareD1RecoveryWorker({
       runId: "recovery-20260712-a1b2c3d4",
       disposableDatabaseName: "ARCH_DB",

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -17,12 +18,16 @@ import {
   estimateSheetContent,
 } from "./project-dashboard-ui-fixtures";
 
+const projectNavigation = readFileSync("src/components/workshop/navigation/project-navigation.ts", "utf8");
+
 describe("project charts UI governance", () => {
   it("reframes the project nav from 'Charts'/pie to a Data label and icon (`13` R-7)", () => {
-    expect(projectMiniSidebar).toContain("`/workshop/projects/${projectId}/data`");
-    expect(projectMiniSidebar).not.toContain('label: "Charts"');
-    expect(projectMiniSidebar).not.toContain("ChartPieSlice");
-    expect(projectMiniSidebar).toContain('label: "Data"');
+    expect(projectMiniSidebar).toContain("getProjectNavigationItems(projectId)");
+    expect(projectNavigation).toContain('href: `${root}/data`');
+    expect(projectNavigation).not.toContain('label: "Charts"');
+    expect(projectNavigation).not.toContain("ChartPieSlice");
+    expect(projectNavigation).toContain('label: "Data"');
+    expect(projectNavigation).toContain("icon: ChartBarHorizontal");
     expect(projectChartsPage).toContain("getProjectDataRouteSummary");
     expect(projectChartsPage).toContain("ProjectDataClient");
     expect(projectChartsPage).not.toContain("ProjectChartsClient");

@@ -10,6 +10,10 @@ const AREA_NODE_ID = "55555555-5555-4555-8555-555555555555";
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const getCloudflareD1Database = vi.hoisted(() => vi.fn());
 const preparedSql = vi.hoisted(() => [] as string[]);
+const starterPackMocks = vi.hoisted(() => ({
+  installStarterPackForEligibleWorkspace: vi.fn(async () => undefined),
+  installStarterPackForNewWorkspace: vi.fn(async () => undefined),
+}));
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext,
@@ -18,6 +22,7 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("@/lib/cloudflare/d1", () => ({
   getCloudflareD1Database,
 }));
+vi.mock("@/lib/onboarding/starter-pack-actions", () => starterPackMocks);
 
 import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
 
@@ -59,6 +64,9 @@ function createD1Fixture() {
                   created_at: "2026-01-01T00:00:00Z",
                   updated_at: "2026-01-01T00:00:00Z",
                 };
+              }
+              if (sql.includes("SELECT role") && sql.includes("FROM workspace_members")) {
+                return { role: "member" };
               }
               return null;
             },
@@ -105,7 +113,7 @@ function createD1Fixture() {
               if (sql.includes("FROM estimates estimate") && sql.includes("node_count")) {
                 expect(values).toEqual([ESTIMATE_ID]);
                 return {
-                  results: [{ estimate_id: ESTIMATE_ID, node_count: 7, row_count: 3, total_cost: 1234.5 }],
+                  results: [{ estimate_id: ESTIMATE_ID, node_count: 7, row_count: 3 }],
                 };
               }
               if (sql.includes("FROM estimate_nodes") && sql.includes("WHERE estimate_id IN")) {
@@ -114,6 +122,21 @@ function createD1Fixture() {
                     { id: GROUP_NODE_ID, estimate_id: ESTIMATE_ID, kind: "group", parent_id: null, sort_order: 0 },
                     { id: AREA_NODE_ID, estimate_id: ESTIMATE_ID, kind: "area", parent_id: GROUP_NODE_ID, sort_order: 0 },
                   ],
+                };
+              }
+              if (sql.includes("FROM estimate_row_items") && sql.includes("quantity_base")) {
+                expect(values).toEqual([ESTIMATE_ID]);
+                return {
+                  results: [{
+                    estimate_id: ESTIMATE_ID,
+                    quantity: 1,
+                    quantity_base: null,
+                    quantity_contingency_amount: null,
+                    unit_cost: 1234.5,
+                    contingency_percentage: 0,
+                    adjustment_percentage: 0,
+                    misc_cost: 0,
+                  }],
                 };
               }
               return { results: [] };
@@ -131,6 +154,8 @@ function createD1Fixture() {
 describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
   beforeEach(() => {
     preparedSql.length = 0;
+    starterPackMocks.installStarterPackForEligibleWorkspace.mockClear();
+    starterPackMocks.installStarterPackForNewWorkspace.mockClear();
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
       email: "owner@example.com",
@@ -163,6 +188,7 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     const result = await listProjectEstimates(PROJECT_ID);
 
     expect(preparedSql.some((sql) => sql.includes("FROM estimates estimate") && sql.includes("node_count") && sql.includes("WHERE estimate.id IN"))).toBe(true);
+    expect(preparedSql.some((sql) => sql.includes("FROM estimate_row_items") && sql.includes("quantity_base"))).toBe(true);
     expect(preparedSql.some((sql) => sql.includes("SELECT id, estimate_id, kind, parent_id, sort_order"))).toBe(true);
     expect(readFileSync("src/lib/repositories/workspace-repository.ts", "utf8")).not.toContain("project_estimate_list_summaries");
     expect(result.estimates.map((estimate) => estimate.id)).toEqual([ESTIMATE_ID]);

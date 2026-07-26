@@ -9,6 +9,7 @@ const CREATED_PROJECT_ID = "66666666-6666-4666-8666-666666666666";
 const getCurrentWorkspaceProject = vi.hoisted(() => vi.fn());
 const getCurrentWorkspaceProjectForEstimate = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
+const requireWorkshopWriteContext = vi.hoisted(() => vi.fn());
 const requireEstimateD1Database = vi.hoisted(() => vi.fn());
 const canEditProject = vi.hoisted(() => vi.fn());
 const createEstimateRecordWithDefaultTab = vi.hoisted(() => vi.fn());
@@ -28,6 +29,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext,
+  requireWorkshopWriteContext,
 }));
 
 vi.mock("@/lib/estimates/d1-intents/database", () => ({
@@ -92,6 +94,7 @@ describe("estimate sheet empty-tree creation", () => {
   beforeEach(() => {
     getCurrentWorkspaceProject.mockReset();
     requireCurrentUserContext.mockReset();
+    requireWorkshopWriteContext.mockReset();
     requireEstimateD1Database.mockReset();
     canEditProject.mockReset();
     createEstimateRecordWithDefaultTab.mockReset();
@@ -101,6 +104,7 @@ describe("estimate sheet empty-tree creation", () => {
 
     getCurrentWorkspaceProject.mockResolvedValue({ workspace: { id: "workspace-1" }, project });
     requireCurrentUserContext.mockResolvedValue({ userId: USER_ID, role: "member" });
+    requireWorkshopWriteContext.mockResolvedValue({ userId: USER_ID, role: "member" });
     requireEstimateD1Database.mockResolvedValue(database);
     canEditProject.mockResolvedValue(true);
     getNextEstimateSheetCode.mockResolvedValue("ES-001");

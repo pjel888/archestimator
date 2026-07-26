@@ -44,7 +44,8 @@ describe("mass deletion UI contract", () => {
     expect(manager).toContain("executeBulkArchiveLibraryComponents");
     expect(manager).toContain("BulkDestructivePreviewModal");
     expect(manager).toContain("ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS");
-    expect(manager).toContain("Select ${item.name ?? item.material} for archive");
+    expect(manager).toContain("Select ${item.name ?? item.material}");
+    expect(manager).toContain('actionLabel="Archive selected"');
     expect(manager).not.toContain("executeHardDeleteLibraryComponents");
   });
 });

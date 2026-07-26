@@ -274,7 +274,8 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
       expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
     expect(within(sheet).getByText("Discontinued Plank")).toBeInTheDocument();
-    expect(screen.getByText(/1 of 3 loaded after filters/)).toBeInTheDocument();
+    expect(within(sheet).getByRole("list")).toHaveAccessibleName(/component catalogue grid/);
+    expect(within(sheet).getAllByRole("listitem")).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
     await waitFor(() => {
@@ -469,7 +470,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     )).toBeInTheDocument();
   });
 
-  it("announces search result counts in the context strip", async () => {
+  it("exposes search results through the accessible catalogue list", async () => {
     renderManager();
     await waitForSheet();
 
@@ -477,7 +478,11 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     const input = await screen.findByLabelText("Search components");
     fireEvent.change(input, { target: { value: "Stale" } });
 
-    expect(await screen.findByText('1 of 3 loaded match "Stale"')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(screen.getByLabelText("Component table")).getAllByRole("listitem")).toHaveLength(1);
+    });
+    expect(within(screen.getByLabelText("Component table")).getByRole("list")).toHaveAccessibleName(/component catalogue grid/);
+    expect(within(screen.getByLabelText("Component table")).getByText("Stale Paint")).toBeInTheDocument();
   });
   it("promotes project express components from the Project catalogue card", async () => {
     promotionMocks.promoteEstimateRowToLibraryComponent.mockResolvedValue({

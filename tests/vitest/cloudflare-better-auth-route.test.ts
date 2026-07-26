@@ -34,7 +34,7 @@ describe("Cloudflare Better Auth route", () => {
     const response = await GET(createRequest());
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    await expect(response.json()).resolves.toEqual({ error: "Better Auth route is not configured." });
+    await expect(response.json()).resolves.toEqual({ error: "Sign-in is temporarily unavailable." });
     expect(cloudflareMocks.createCloudflareBetterAuthNextHandlersForRequest).toHaveBeenCalledWith(
       expect.objectContaining({ method: "GET" }),
     );

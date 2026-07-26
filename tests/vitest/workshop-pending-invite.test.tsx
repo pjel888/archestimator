@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
+import { sanitizeProtectedReturnPath } from "@/lib/auth/redirects";
 import type { WorkshopHomebaseData } from "@/lib/repositories/workspace-repository";
 
 const FAVORITES_SCOPE = { workspaceId: "workspace-1", userId: "user-1" } as const;
@@ -59,7 +60,9 @@ describe("workshop pending invite bridge", () => {
   it("successful auth lands on a confirmation page that defers invite acceptance to POST", () => {
     const authSetup = readFileSync("src/lib/auth/account-setup.ts", "utf8");
 
-    expect(authSetup).toContain('PENDING_INVITE_AUTH_DESTINATION = "/workshop/pending-invite"');
+    expect(authSetup).toContain('import { sanitizeProtectedReturnPath } from "@/lib/auth/redirects"');
+    expect(authSetup).toContain("return sanitizeProtectedReturnPath(requestedNext);");
+    expect(sanitizeProtectedReturnPath("/workshop/pending-invite")).toBe("/workshop/pending-invite");
     expect(workshopPage).toContain('redirect("/workshop/pending-invite")');
     const getRoute = pendingInviteRoute.match(/export async function GET[\s\S]*?\n}\n\nexport async function POST/)?.[0];
     const postRoute = pendingInviteRoute.match(/export async function POST[\s\S]*/)?.[0];

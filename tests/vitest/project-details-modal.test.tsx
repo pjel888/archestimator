@@ -137,7 +137,10 @@ describe("ProjectDetailsModal", () => {
 
     render(<ProjectDetailsModal project={PROJECT} onClose={onClose} onSaved={onSaved} />);
 
-    fireEvent.change(screen.getByLabelText("Client"), { target: { value: "Updated Client" } });
+    const clientInput = screen.getByRole("combobox", { name: "Client" });
+    await user.clear(clientInput);
+    await user.type(clientInput, "Updated Client");
+    await user.click(screen.getByRole("option", { name: 'Create "Updated Client"' }));
     fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Manual Site Address" } });
     fireEvent.change(screen.getByLabelText("Project code"), { target: { value: "AE-MANUAL-1" } });
     await user.click(screen.getByRole("button", { name: "Save details" }));
@@ -198,7 +201,7 @@ describe("ProjectDetailsModal", () => {
     const nextClientInput = screen.getByRole("combobox", { name: "Client" });
     await user.clear(nextClientInput);
     await user.type(nextClientInput, "New Client LLC");
-    expect(screen.getByRole("option", { name: 'Create "New Client LLC"' })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: 'Create "New Client LLC"' }));
     await user.click(screen.getByRole("button", { name: "Save details" }));
 
     await waitFor(() => {

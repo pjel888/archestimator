@@ -117,7 +117,7 @@ describe("EstimateTabStrip", () => {
     expect(container.querySelector("[data-estimate-tab-strip]")).toHaveClass("bg-white");
     expect(container.querySelector("[data-estimate-tab-strip-row]")).toHaveClass("min-h-10");
     expect(screen.getByRole("tab", { name: "Page 001" })).toHaveClass("min-h-10", "border-brand-orange", "text-ink");
-    expect(screen.getByRole("tab", { name: "Alternate" })).toHaveClass("min-h-10", "border-transparent", "text-tertiary/60");
+    expect(screen.getByRole("tab", { name: "Alternate" })).toHaveClass("min-h-10", "border-transparent", "text-secondary");
     expect(screen.getByRole("tab", { name: "Alternate" })).not.toHaveClass("text-ink");
   });
 

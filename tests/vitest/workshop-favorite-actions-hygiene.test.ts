@@ -110,7 +110,7 @@ describe("favorite actions D1 writes", () => {
     expect(database.prepared[0]?.sql).toContain("FROM projects");
     expect(database.prepared[0]?.values).toEqual([PROJECT_ID]);
     expect(database.prepared[1]?.sql).toContain("FROM projects project");
-    expect(database.prepared[1]?.values).toEqual([PROJECT_ID, USER_ID, USER_ID, USER_ID, USER_ID]);
+    expect(database.prepared[1]?.values).toEqual([PROJECT_ID, USER_ID, USER_ID, USER_ID]);
     expect(database.runStatements[0]?.sql).toContain("INSERT INTO project_favorites");
     expect(database.runStatements[0]?.sql).toContain("ON CONFLICT(user_id, project_id) DO NOTHING");
     expect(database.runStatements[0]?.values).toEqual([
@@ -137,7 +137,7 @@ describe("favorite actions D1 writes", () => {
     expect(database.prepared[0]?.sql).toContain("JOIN projects project");
     expect(database.prepared[0]?.values).toEqual([ESTIMATE_ID]);
     expect(database.prepared[1]?.sql).toContain("FROM estimates estimate");
-    expect(database.prepared[1]?.values).toEqual([ESTIMATE_ID, USER_ID, USER_ID, USER_ID, USER_ID, USER_ID]);
+    expect(database.prepared[1]?.values).toEqual([ESTIMATE_ID, USER_ID, USER_ID, USER_ID]);
     expect(database.runStatements[0]?.sql).toContain("INSERT INTO estimate_favorites");
     expect(database.runStatements[0]?.sql).toContain("ON CONFLICT(user_id, estimate_id) DO NOTHING");
     expect(database.runStatements[0]?.values).toEqual([

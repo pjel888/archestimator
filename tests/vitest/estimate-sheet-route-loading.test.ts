@@ -67,7 +67,8 @@ describe("estimate sheet route loading shell", () => {
     expect(estimateSheetRouteSkeleton).toContain("w-[376px]");
     expect(estimateSheetRouteSkeleton).toContain('"hidden h-full min-h-0 flex-col p-2 lg:flex"');
     expect(estimateSheetRouteSkeleton).toContain('ESTIMATE_LIBRARY_DEFAULT_WIDTH_CLASS = "w-[560px]"');
-    expect(estimateWorkspaceClient).toContain('aria-label="Desktop workspace notice"');
+    expect(estimateWorkspaceClient).toContain("data-estimate-workspace");
+    expect(estimateWorkspaceClient).not.toContain('aria-label="Desktop workspace notice"');
     expect(estimateSheetRouteSkeleton).toContain('aria-label="Desktop workspace notice"');
     expect(estimateSheetRouteSkeleton).toContain("Estimate editing works best on a desktop-width screen.");
     expect(estimateSheetRouteSkeleton).not.toContain("xl:flex");

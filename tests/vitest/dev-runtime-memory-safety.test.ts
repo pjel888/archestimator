@@ -28,8 +28,9 @@ describe("development runtime memory safety", () => {
   it("enforces supported Node LTS release lines before development", () => {
     expect(packageJson.engines?.node).toBe("^22.12.0 || ^24.0.0 || ^26.0.0");
     expect(readFileSync(".nvmrc", "utf8").trim()).toBe("24");
-    expect(packageJson.scripts?.predev).toBe("node scripts/check-node-version.mjs");
-    expect(packageJson.scripts?.["predev:turbo"]).toBe("node scripts/check-node-version.mjs");
+    expect(packageJson.scripts?.predev).toBe("node scripts/check-node-version.mjs && bun run dev:check-d1-migrations");
+    expect(packageJson.scripts?.["predev:turbo"]).toBe("node scripts/check-node-version.mjs && bun run dev:check-d1-migrations");
+    expect(packageJson.scripts?.["dev:check-d1-migrations"]).toBe("bun run scripts/check-cloudflare-d1-migrations.ts --local");
     expect(packageJson.scripts?.["pretype-check"]).toBe("node scripts/check-node-version.mjs");
     expect(packageJson.scripts?.["type-check"]).toContain("--max-old-space-size=4096");
     expect(isSupportedNodeVersion("22.11.0")).toBe(false);

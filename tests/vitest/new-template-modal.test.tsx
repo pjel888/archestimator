@@ -65,6 +65,7 @@ describe("NewTemplateModal", () => {
   it("requires a template name before calling the server", async () => {
     renderModal();
 
+    fireEvent.change(screen.getByLabelText("Template name"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save template" }));
 
     expect(await screen.findByText("Template name is required.")).toBeInTheDocument();

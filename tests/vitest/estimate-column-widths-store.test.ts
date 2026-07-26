@@ -39,11 +39,11 @@ describe("estimate column widths store", () => {
   });
 
   it("falls back to the last-used widths when an estimate has no stored override", () => {
-    window.localStorage.setItem(lastUsedKey, JSON.stringify({ version: 1, widths: { material: 280 } }));
+    window.localStorage.setItem(lastUsedKey, JSON.stringify({ version: 1, widths: { material: 320 } }));
 
     useEstimateColumnWidthsStore.getState().hydrateEstimateColumnWidths("estimate-1");
 
-    expect(useEstimateColumnWidthsStore.getState().widthsByEstimateId["estimate-1"]).toEqual({ material: 280 });
+    expect(useEstimateColumnWidthsStore.getState().widthsByEstimateId["estimate-1"]).toEqual({ material: 320 });
   });
 
   it("writes once per commit and resets both scoped and last-used keys", () => {

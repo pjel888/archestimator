@@ -2,21 +2,21 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+function readSource(path: string) {
+  return readFileSync(path, "utf8").replace(/\r\n?/g, "\n");
+}
+
 const migrationText = readdirSync("supabase/migrations")
   .filter((file) => file.endsWith(".sql"))
   .sort()
-  .map((file) => readFileSync(join("supabase/migrations", file), "utf8"))
+  .map((file) => readSource(join("supabase/migrations", file)))
   .join("\n");
-const inviteEntryMigration = readFileSync(
-  "supabase/migrations/20260527115342_project_invite_entry_tokens.sql",
-  "utf8",
-);
-const betterAuthInviteAcceptActorBridgeMigration = readFileSync(
+const inviteEntryMigration = readSource("supabase/migrations/20260527115342_project_invite_entry_tokens.sql");
+const betterAuthInviteAcceptActorBridgeMigration = readSource(
   "supabase/migrations/20260701013000_better_auth_invite_accept_actor_bridge.sql",
-  "utf8",
 );
-const d1CollaborationMigration = readFileSync("migrations/0007_collaboration_invitations.sql", "utf8");
-const invitationD1Store = readFileSync("src/lib/collaboration/invitation-d1-store.ts", "utf8");
+const d1CollaborationMigration = readSource("migrations/0007_collaboration_invitations.sql");
+const invitationD1Store = readSource("src/lib/collaboration/invitation-d1-store.ts");
 
 function extractApplyPendingOverride() {
   return inviteEntryMigration.match(

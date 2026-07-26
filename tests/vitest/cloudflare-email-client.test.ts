@@ -100,7 +100,7 @@ describe("Cloudflare Email Service client", () => {
       level: "error",
       event: "cloudflare_email_send_error",
       action: "send_cloudflare_email",
-      message: "Cloudflare Email Service send failed.",
+      message: "Email send failed.",
       context: {
         route: "email/cloudflare-email-client",
         error_code: "CLOUDFLARE_EMAIL_SEND_ERROR",

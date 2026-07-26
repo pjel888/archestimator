@@ -21,7 +21,8 @@ describe("project dashboard side-panel UI governance", () => {
     expect(resizableSidePanel).toContain("widthOffset = 0");
     expect(resizableSidePanel).toContain("const actualWidth = collapsed ? collapsedWidth : width + widthOffset;");
     expect(resizableSidePanel).toContain("const responsiveWidth = compactViewport ? 0 : actualWidth;");
-    expect(resizableSidePanel).toContain('useMediaQuery("(max-width: 1023px)")');
+    expect(resizableSidePanel).toContain('query: "(max-width: 1023px)"');
+    expect(resizableSidePanel).toContain("useMediaQuery(compactBreakpointConfig.query)");
     expect(resizableSidePanel).toContain('document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]")');
     expect(resizableSidePanel).toContain("target.style.removeProperty(panelWidthCssVariable);");
     expect(projectEstimateMetadataStrip).toContain("PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE");

@@ -1,12 +1,16 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+function readSource(path: string) {
+  return readFileSync(path, "utf8").replace(/\r\n?/g, "\n");
+}
+
 describe("/invite/[token] route contract", () => {
-  const route = readFileSync("src/app/invite/[token]/page.tsx", "utf8");
-  const continueRoute = readFileSync("src/app/invite/[token]/continue/route.ts", "utf8");
-  const acceptRoute = readFileSync("src/app/invite/[token]/accept/route.ts", "utf8");
-  const inviteEntry = readFileSync("src/lib/collaboration/invite-entry.ts", "utf8");
-  const signOutRoute = readFileSync("src/app/invite/[token]/sign-out/route.ts", "utf8");
+  const route = readSource("src/app/invite/[token]/page.tsx");
+  const continueRoute = readSource("src/app/invite/[token]/continue/route.ts");
+  const acceptRoute = readSource("src/app/invite/[token]/accept/route.ts");
+  const inviteEntry = readSource("src/lib/collaboration/invite-entry.ts");
+  const signOutRoute = readSource("src/app/invite/[token]/sign-out/route.ts");
 
   it("keeps the route public, app-owned, and backed by peppered token resolution", () => {
     expect(route).toContain("resolveCollaborationInvitationFromCloudflareD1");

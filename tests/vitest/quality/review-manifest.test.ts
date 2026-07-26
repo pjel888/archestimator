@@ -157,6 +157,7 @@ function passingManifest(
       profile,
       files: ["quality/profiles.json"],
       affected_capabilities: [],
+      comparison_base: { input_ref: "main", resolved_sha: "c".repeat(40) },
     },
     merge_base: "c".repeat(40),
     scope: {
@@ -169,6 +170,11 @@ function passingManifest(
     reviews: {
       candidate_sha256: hash,
       requirements,
+      input_paths: [
+        "artifacts/quality/review-quality.json",
+        "artifacts/quality/review-security.json",
+      ],
+      author_ids: ["reviewer-quality", "reviewer-security"],
       decisions: [
         approval("quality", "reviewer-quality"),
         approval("security", "reviewer-security"),
@@ -585,6 +591,54 @@ describe("final manifest and workflow contract", () => {
       result.executed_command = executed_command;
     }
     expect(validateManifest(manifest, profilesPolicy)).toEqual([]);
+  });
+
+  it("rejects local argv values that do not match the final manifest", () => {
+    const mismatches = [
+      ["bun run quality:static", `bun run quality:static --base topic --base-sha ${"c".repeat(40)}`],
+      ["bun run quality:static", `bun run quality:static --base main --base-sha ${"d".repeat(40)}`],
+      [
+        "bun run quality:classify",
+        `bun run quality:classify --base main --base-sha ${"c".repeat(40)} --profile Q3_RELEASE_GATE --output artifacts/quality/classification.json`,
+      ],
+      [
+        "bun run quality:reviews",
+        `bun run quality:reviews --base main --base-sha ${"c".repeat(40)} --expected ${"d".repeat(64)} --reviews artifacts/quality/review-quality.json,artifacts/quality/review-security.json --author-ids reviewer-quality,reviewer-security`,
+      ],
+      [
+        "bun run quality:reviews",
+        `bun run quality:reviews --base main --base-sha ${"c".repeat(40)} --expected ${hash} --reviews artifacts/quality/review-security.json,artifacts/quality/review-quality.json --author-ids reviewer-quality,reviewer-security`,
+      ],
+      [
+        "bun run quality:reviews",
+        `bun run quality:reviews --base main --base-sha ${"c".repeat(40)} --expected ${hash} --reviews artifacts/quality/review-quality.json,artifacts/quality/review-security.json --author-ids reviewer-security,reviewer-quality`,
+      ],
+    ];
+    for (const [command, executed_command] of mismatches) {
+      const manifest = passingManifest();
+      const result = (manifest.command_results as Array<Record<string, unknown>>).find(
+        (candidate) => candidate.command === command,
+      )!;
+      result.source = "local";
+      result.executed_command = executed_command;
+      expect(validateManifest(manifest, profilesPolicy).map((finding) => finding.code)).toEqual(
+        expect.arrayContaining(["COMMAND_RESULT_MALFORMED", "FALSE_PASS"]),
+      );
+    }
+  });
+
+  it("requires canonical structured review inputs in the manifest", () => {
+    for (const mutate of [
+      (reviews: Record<string, unknown>) => delete reviews.input_paths,
+      (reviews: Record<string, unknown>) => { reviews.input_paths = ["../quality.json"]; },
+      (reviews: Record<string, unknown>) => { reviews.author_ids = ["reviewer quality"]; },
+    ]) {
+      const manifest = passingManifest();
+      mutate(manifest.reviews as Record<string, unknown>);
+      expect(validateManifest(manifest, profilesPolicy).map((finding) => finding.code)).toEqual(
+        expect.arrayContaining(["REVIEW_SUMMARY_MALFORMED", "FALSE_PASS"]),
+      );
+    }
   });
 
   it.each(["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"] as const)(

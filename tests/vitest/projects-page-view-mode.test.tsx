@@ -299,10 +299,11 @@ describe("ProjectsPageClient view modes", () => {
 
     const liveProjects = screen.getByLabelText("Live projects");
     expect(liveProjects).toHaveAttribute("data-project-view-mode");
-    expect(within(liveProjects).queryAllByRole("article")).toHaveLength(0);
+    expect(liveProjects.querySelectorAll("[data-project-card-view]")).toHaveLength(0);
+    expect(screen.getByTestId("first-project-zero-state")).toHaveAttribute("data-first-project-zero-state", "creator");
+    expect(screen.getByRole("heading", { name: "Create your first project" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start guided practice" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Sample project references")).not.toBeInTheDocument();
-    expect(screen.queryByText("Create the first live project")).not.toBeInTheDocument();
-    expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Add projects" }));
 

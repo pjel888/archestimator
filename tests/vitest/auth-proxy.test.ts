@@ -560,19 +560,19 @@ describe("auth proxy", () => {
   );
 
   it.each([
-    ["landing", "http://localhost:3000/"],
-    ["features", "http://localhost:3000/features"],
-    ["trust", "http://localhost:3000/trust"],
-    ["signup", "http://localhost:3000/signup"],
+    ["landing", "http://localhost:3000/", "s-maxage=31536000, no-transform"],
+    ["features", "http://localhost:3000/features", "s-maxage=31536000"],
+    ["trust", "http://localhost:3000/trust", "s-maxage=31536000"],
+    ["signup", "http://localhost:3000/signup", "s-maxage=31536000"],
   ])(
     "marks public static %s responses cacheable at the edge",
-    async (_label, url) => {
+    async (_label, url, expectedCacheControl) => {
       mockUser({ id: "user-1" });
       const { middleware: proxy } = await import("@/middleware");
 
       const response = await proxy(request(url));
 
-      expect(response.headers.get("Cache-Control")).toBe("s-maxage=31536000");
+      expect(response.headers.get("Cache-Control")).toBe(expectedCacheControl);
     },
   );
 

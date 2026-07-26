@@ -924,7 +924,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
     await within(dialog).findByText("Connection interrupted.");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+    fireEvent.click(await within(dialog).findByRole("button", { name: "Save Component" }));
 
     await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
     expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(2);

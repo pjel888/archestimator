@@ -409,7 +409,8 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByRole("combobox", { name: "Group by" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.getByTestId("first-project-zero-state")).toHaveAttribute("data-first-project-zero-state", "creator");
+    expect(screen.getByLabelText("Live projects").querySelectorAll("[data-project-card-view]")).toHaveLength(0);
 
     rerender(<ProjectsPageClient projects={[item({ id: "p1", name: "Live Project" })]} />);
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
@@ -419,8 +420,8 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByRole("combobox", { name: "Group by" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
-    expect(screen.queryByText("No projects match your search")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Live projects").querySelectorAll("[data-project-card-view]")).toHaveLength(0);
+    expect(screen.getByLabelText("No search results for no-match")).toHaveTextContent("Try a project name, client, location, or project code.");
   });
 
   it("shows created date metadata only on large live cards", async () => {

@@ -76,12 +76,13 @@ describe("/login auth entry UI contract", () => {
     expect(loginSource).toContain("LoginFormFromSearchParams");
     expect(loginSource).toContain('<LoginForm next="/workshop" />');
     expect(authSearchParamsStateSource).toContain("useSearchParams");
-    expect(authSearchParamsStateSource).toContain("sanitizeNextPath");
+    expect(authSearchParamsStateSource).toContain("sanitizeProtectedReturnPath");
   });
 
   it("keeps a root-shell fallback for stale client-side state mismatch URLs", () => {
     expect(rootLayoutSource).toContain("AuthStateMismatchRecoveryScript");
-    expect(stateMismatchRecoverySource).toContain('data-auth-state-mismatch-recovery');
+    expect(stateMismatchRecoverySource).toContain("sanitizeProtectedReturnPath");
+    expect(stateMismatchRecoverySource).toContain("const hasStateMismatch");
     expect(stateMismatchRecoverySource).toContain('"error") === "state_mismatch"');
     expect(stateMismatchRecoverySource).toContain('"oauth_state_reset", "1"');
     expect(stateMismatchRecoverySource).toContain("window.location.replace");

@@ -103,9 +103,12 @@ describe("admin flag actions", () => {
       },
     });
     expect(auditMocks.writeAdminAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+      actorUserId: "admin-1",
+      actorEmail: "admin@example.com",
       action: "feature_flag.updated",
+      targetType: "feature_flag",
       targetId: "admin_maintenance_mode",
-      summary: { enabled: true },
+      summary: { enabled: true, previousEnabled: null },
     }));
   });
 

@@ -38,22 +38,22 @@ describe("Cloudflare D1 restore rehearsal", () => {
   it("keeps local D1 proofs independent of a host sqlite3 executable", () => {
     const helper = readFileSync("scripts/lib/local-sqlite-proof.ts", "utf8");
     const proofScripts = [
-      "beta-feedback",
-      "closed-beta",
-      "collaboration-invitation",
-      "component-library",
-      "estimate-history",
-      "performance",
-      "restore-rehearsal",
-      "rpc-transaction-proof",
+      "scripts/generate-cloudflare-d1-beta-feedback-proof.ts",
+      "scripts/generate-cloudflare-d1-closed-beta-proof.ts",
+      "scripts/generate-cloudflare-d1-collaboration-invitation-proof.ts",
+      "scripts/generate-cloudflare-d1-component-library-proof.ts",
+      "scripts/generate-cloudflare-d1-estimate-history-proof.ts",
+      "scripts/generate-cloudflare-d1-performance-proof.ts",
+      "scripts/generate-cloudflare-d1-restore-rehearsal.ts",
+      "scripts/generate-cloudflare-d1-rpc-transaction-proof.ts",
     ];
 
     expect(helper).toContain('requireRuntime("bun:sqlite")');
     expect(helper).toContain('requireRuntime("node:sqlite")');
-    for (const name of proofScripts) {
-      const source = readFileSync(`scripts/generate-cloudflare-d1-${name}.ts`, "utf8");
-      expect(source, name).toContain("runLocalSqliteCli");
-      expect(source, name).not.toContain('spawnSync("sqlite3"');
+    for (const path of proofScripts) {
+      const source = readFileSync(path, "utf8");
+      expect(source, path).toContain("runLocalSqliteCli");
+      expect(source, path).not.toContain('spawnSync("sqlite3"');
     }
   });
 

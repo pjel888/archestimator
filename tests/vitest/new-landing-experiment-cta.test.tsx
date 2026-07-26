@@ -22,16 +22,18 @@ describe("new landing experiment CTA", () => {
     cleanup();
   });
 
-  it("stays noninteractive while the auth hint loads", () => {
+  it("keeps a signed-out fallback interactive while the auth hint loads", () => {
     authHintMocks.useLandingAuthHintState.mockReturnValue({
       isLoggedIn: false,
       isLoading: true,
     });
 
-    const { container } = render(<NewExperimentCta />);
+    render(<NewExperimentCta />);
 
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    expect(container.querySelector("[data-new-closing-cta-loading]")).toBeInTheDocument();
+    const fallback = screen.getByRole("link", { name: "Request early access" });
+    expect(fallback).toHaveAttribute("href", BETA_ACCESS_MAILTO_HREF);
+    expect(fallback).not.toHaveAttribute("aria-busy");
+    expect(fallback).toHaveAttribute("data-new-cta-loading");
   });
 
   it("requests access for a signed-out visitor", () => {
