@@ -268,7 +268,7 @@ function addGeneralNotes(worksheet: Worksheet) {
   notesTitle.font = { bold: true, size: 10, color: { argb: "FF111827" } };
   [
     "1. Do not leave LINE TOTAL blank; formulas or zero values must be visible for every item.",
-    "2. Indicate INCLUDED, EXCLUDED, BY OTHERS, OWNER SUPPLIED, OSM, OFCI, OSCI, OMITTED, or NOT APPLICABLE in the SCOPE column.",
+    "2. Indicate INCLUDED, EXCLUDED, BY OTHERS, BY OWNER, OWNER SUPPLIED, OSM, OFCI, OSCI, OMITTED, ALTERNATE, or NOT APPLICABLE in the SCOPE column.",
     "3. Double-check formulas, section subtotals, and grand totals before issuing.",
     "4. Add non-standard work under OTHERS / MISCELLANEOUS.",
     "5. Use Notes / Remarks for specifications, exclusions, assumptions, or supplier considerations.",
@@ -343,7 +343,7 @@ function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, 
       // fractional quantity makes the recalculated value (and the SUM subtotals / Grand Total
       // / amount-in-words derived from it) drift a centavo from the pinned figures on open.
       const lineCostFormula = `ROUND(${col.quantity}${rowNumber}*${col.material}${rowNumber},2)${directCostAdjustments}`;
-      const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE"),0,${lineCostFormula})`;
+      const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="BY OWNER",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE",${scopeRef}="ALTERNATE"),0,${lineCostFormula})`;
       const remarks = [
         proposalRow.contingencySubtotal ? `Contingency: ${formatCurrency(proposalRow.contingencySubtotal, model.metadata.currency)}` : null,
         proposalRow.miscSubtotal ? `Misc / other: ${formatCurrency(proposalRow.miscSubtotal, model.metadata.currency)}` : null,

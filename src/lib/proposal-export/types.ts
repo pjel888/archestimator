@@ -102,6 +102,8 @@ export type ProposalNormalizedSourceRow = {
   remarks: string;
   scopeStatus: ProposalScopeStatus;
   includedInTotal: boolean;
+  /** Stable merge identity (library item / variant / supplier / optional area). */
+  identityKey: string;
 };
 
 export type ProposalExportSourceReference = {
@@ -164,6 +166,8 @@ export type ProposalSourceBreakdownRow = {
   areaPathLabel: string;
   particulars: string;
   quantity: number;
+  quantityBase?: number | null;
+  quantityContingencyAmount?: number | null;
   unit: string;
   materialUnitCost: number;
   materialSubtotal: number;

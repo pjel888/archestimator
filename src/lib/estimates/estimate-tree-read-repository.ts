@@ -534,6 +534,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     discipline: row.discipline ?? undefined,
     designation: row.designation ?? undefined,
     tags,
+    sku: typeof sourceSnapshot.sku === "string" ? sourceSnapshot.sku : undefined,
     imageUrl: normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl) ?? undefined,
     sourceUrl: typeof sourceSnapshot.sourceUrl === "string" ? sourceSnapshot.sourceUrl : undefined,
     sourceLibraryItemId: row.source_library_item_id,
@@ -545,6 +546,11 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     priceOptionLabel: typeof sourceSnapshot.priceOptionLabel === "string" ? sourceSnapshot.priceOptionLabel : undefined,
     priceOptions,
     lifecycleState: typeof sourceSnapshot.lifecycleState === "string" ? sourceSnapshot.lifecycleState as EstimateRowItem["lifecycleState"] : undefined,
+    notes: typeof sourceSnapshot.notes === "string"
+      ? sourceSnapshot.notes
+      : typeof metadata.notes === "string"
+        ? metadata.notes
+        : undefined,
     updatedAt: typeof sourceSnapshot.sourceUpdatedAt === "string" ? sourceSnapshot.sourceUpdatedAt : undefined,
     pricingSource: typeof sourceSnapshot.pricingSource === "string" ? sourceSnapshot.pricingSource : "Estimate row snapshot",
     pricingDate: typeof sourceSnapshot.pricingDate === "string" ? sourceSnapshot.pricingDate : "",
