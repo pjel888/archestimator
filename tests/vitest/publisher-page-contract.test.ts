@@ -2,12 +2,15 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("Publisher page contract", () => {
-  it("renders the direct Publisher route through the bounded roster helper", () => {
+  it("renders the direct Publisher route as the modern Commitment Center", () => {
     const source = readFileSync("src/app/workshop/publisher/page.tsx", "utf8");
 
-    expect(source).toContain("parseRosterFilters");
-    expect(source).toContain("readWorkspacePublicationsRoster");
-    expect(source).toContain("PublisherRosterClient");
+    expect(source).toContain("readWorkspaceCommitmentCenter");
+    expect(source).toContain("CommitmentCenterClient");
+    expect(source).toContain('title="Commitment Center"');
+    expect(source).not.toContain("readWorkspacePublicationsRoster");
+    expect(source).not.toContain("PublisherRosterClient");
+    expect(source).not.toContain("ClientLinksLearningRail");
     expect(source).not.toContain("isPublisherEnabled()");
     expect(source).not.toContain("PublisherDisabledEmptyState");
     expect(source).not.toContain("createSupabaseServiceRoleClient");
@@ -112,10 +115,11 @@ describe("Publisher page contract", () => {
     const source = readFileSync("src/components/workshop/ProjectChromeAsync.tsx", "utf8");
 
     expect(source).toContain("getPublisherProjectHref(projectId)");
-    expect(source).toContain("new URLSearchParams({ project: projectId, drawer: projectId })");
+    expect(source).toContain("/timeline");
+    expect(source).not.toContain("drawer: projectId");
     expect(source).toContain("getProjectTeamAccessHref(projectId)");
     expect(source).toContain('data-project-team-access-link="true"');
-    expect(source).toContain('params.set("tab", tab)');
+    expect(source).not.toContain('params.set("tab", tab)');
     expect(source).toContain('data-publisher-project-link="publication"');
     expect(source).not.toContain('data-publisher-project-link="access"');
     expect(source).toContain('data-workshop-layout="project-publication-header"');
