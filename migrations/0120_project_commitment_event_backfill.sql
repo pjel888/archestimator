@@ -1091,7 +1091,19 @@ SELECT
   'discussion_backfill_' || substr(event.id, -40),
   'visible',
   'backfill',
-  json_object('capability', 'timeline:view', 'issueNumber', issue.issue_number),
+  CASE
+    WHEN thread.section_key IS NULL THEN json_object(
+      'capability', 'timeline:view',
+      'issueNumber', issue.issue_number
+    )
+    ELSE json_object(
+      'allowedOrganizations', json(json_extract(section.policy_snapshot_json, '$.allowedOrganizations')),
+      'allowedRecipientIds', json(json_extract(section.policy_snapshot_json, '$.allowedRecipientIds')),
+      'capability', 'timeline:view',
+      'issueNumber', issue.issue_number,
+      'sectionId', section.id
+    )
+  END,
   'system',
   'migration:0120',
   event.occurred_at,
@@ -1100,9 +1112,32 @@ SELECT
 FROM project_commitment_events event
 JOIN client_portal_issues issue ON issue.id = event.issue_id
 JOIN client_portal_threads thread ON thread.id = json_extract(event.internal_metadata_json, '$.threadId')
+LEFT JOIN client_portal_issue_sections section
+  ON section.id = thread.section_key
+ AND section.issue_id = thread.issue_id
 WHERE event.event_type IN ('discussion.started', 'discussion.updated', 'discussion.resolved', 'discussion.reopened')
   AND event.origin_portal_id IS NOT NULL
   AND thread.status <> 'requires_revalidation'
+  AND (
+    thread.section_key IS NULL
+    OR (
+      section.id IS NOT NULL
+      AND json_extract(section.policy_snapshot_json, '$.enabled') = 1
+      AND json_type(section.policy_snapshot_json, '$.allowedOrganizations') = 'array'
+      AND json_type(section.policy_snapshot_json, '$.allowedRecipientIds') = 'array'
+      AND json_extract(section.policy_snapshot_json, '$.minimumCapability') IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM json_each(section.policy_snapshot_json, '$.allowedOrganizations') organization
+        WHERE organization.type <> 'text' OR length(trim(organization.value)) = 0
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM json_each(section.policy_snapshot_json, '$.allowedRecipientIds') recipient
+        WHERE recipient.type <> 'text' OR length(trim(recipient.value)) = 0
+      )
+    )
+  )
   AND NOT EXISTS (
     SELECT 1 FROM client_portal_event_exposures exposure
     WHERE exposure.event_id = event.id AND exposure.portal_id = event.origin_portal_id
