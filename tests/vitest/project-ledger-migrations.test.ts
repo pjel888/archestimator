@@ -40,7 +40,7 @@ function createDatabaseThrough(maximumMigration: string) {
 function applyMigrationRange(
   database: LocalSqliteDatabase,
   firstMigration: string,
-  lastMigration = "0120_project_commitment_event_backfill.sql",
+  lastMigration = "0123_client_portal_ai_narrative_provenance.sql",
 ) {
   for (const file of migrationFiles) {
     if (file < firstMigration) continue;
@@ -290,6 +290,17 @@ function createBackfillHistoryFixture() {
       '{"capability":"timeline:view"}', 'recipient', 'recipient-history', '${timestamp}'
     );
 
+    INSERT INTO client_portal_issue_sections (
+      id, issue_id, section_key, kind, title, sort_order, payload_storage,
+      payload_json, payload_hash, payload_bytes, schema_version,
+      policy_snapshot_json, created_at
+    ) VALUES (
+      'section-history-restricted', 'issue-history', 'restricted-discussion',
+      'discussion', 'Restricted discussion', 0, 'd1_json', '{}', '${hashB}', 2, 1,
+      '{"allowedOrganizations":[],"allowedRecipientIds":["recipient-private"],"commentable":true,"downloadable":false,"enabled":true,"layoutMode":"standard","minimumCapability":null,"visibleFields":[]}',
+      '${timestamp}'
+    );
+
     INSERT INTO client_portal_threads (
       id, portal_id, issue_id, target_kind, target_public_id, target_label, subject,
       audience, status, waiting_state, created_by_actor_type, created_by_actor_id,
@@ -299,13 +310,32 @@ function createBackfillHistoryFixture() {
       'Confirm scope', 'client', 'resolved', 'no_response_required', 'recipient',
       'recipient-history', '2026-07-26T03:00:00.000Z', 'owner-history', '${timestamp}', '2026-07-26T03:00:00.000Z'
     );
+    INSERT INTO client_portal_threads (
+      id, portal_id, issue_id, section_key, target_kind, target_public_id,
+      target_label, subject, audience, status, waiting_state,
+      created_by_actor_type, created_by_actor_id, created_at, updated_at
+    ) VALUES
+      (
+        'thread-history-restricted', 'portal-history', 'issue-history',
+        'section-history-restricted', 'section', 'restricted-discussion',
+        'Restricted discussion', 'Private scope', 'client', 'open',
+        'no_response_required', 'internal_user', 'owner-history', '${timestamp}', '${timestamp}'
+      ),
+      (
+        'thread-history-missing-policy', 'portal-history', 'issue-history',
+        'section-history-missing', 'section', 'missing-discussion',
+        'Missing policy discussion', 'Unknown scope', 'client', 'open',
+        'no_response_required', 'internal_user', 'owner-history', '${timestamp}', '${timestamp}'
+      );
     INSERT INTO client_portal_messages (
       id, thread_id, actor_type, actor_id, author_snapshot_json, body,
       idempotency_key, visibility, created_at
     ) VALUES
       ('message-history-1', 'thread-history', 'recipient', 'recipient-history', '{"displayName":"History Client","role":"reviewer"}', 'Initial question', 'message-history-1', 'client', '${timestamp}'),
       ('message-history-2', 'thread-history', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Owner answer', 'message-history-2', 'client', '2026-07-26T02:30:00.000Z'),
-      ('message-history-note', 'thread-history', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Private note', 'message-history-note', 'internal', '2026-07-26T02:45:00.000Z');
+      ('message-history-note', 'thread-history', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Private note', 'message-history-note', 'internal', '2026-07-26T02:45:00.000Z'),
+      ('message-history-restricted', 'thread-history-restricted', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Restricted answer', 'message-history-restricted', 'client', '${timestamp}'),
+      ('message-history-missing-policy', 'thread-history-missing-policy', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Unscoped answer', 'message-history-missing-policy', 'client', '${timestamp}');
     INSERT INTO client_portal_audit_events (
       id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type,
       visibility, metadata_json, occurred_at, created_at
@@ -330,12 +360,34 @@ describe("project ledger migrations", () => {
       { event_type: "request.amended" },
       { event_type: "request.acknowledged" },
     ]);
-    expect(database.prepare("SELECT event_type FROM project_commitment_events WHERE event_type LIKE 'discussion.%' ORDER BY occurred_at, event_type").all()).toEqual([
+    expect(database.prepare("SELECT event_type FROM project_commitment_events WHERE event_type LIKE 'discussion.%' AND json_extract(internal_metadata_json, '$.threadId') = 'thread-history' ORDER BY occurred_at, event_type").all()).toEqual([
       { event_type: "discussion.started" },
       { event_type: "discussion.updated" },
       { event_type: "discussion.resolved" },
     ]);
     expect(database.prepare("SELECT COUNT(*) AS count FROM project_commitment_events WHERE json_extract(internal_metadata_json, '$.messageId') = 'message-history-note'").get()).toEqual({ count: 0 });
+    expect(database.prepare(`
+      SELECT
+        json_extract(exposure.policy_snapshot_json, '$.allowedRecipientIds[0]') AS allowed_recipient_id,
+        json_extract(exposure.policy_snapshot_json, '$.sectionId') AS section_id
+      FROM client_portal_event_exposures exposure
+      JOIN project_commitment_events event ON event.id = exposure.event_id
+      WHERE json_extract(event.internal_metadata_json, '$.threadId') = 'thread-history-restricted'
+    `).get()).toEqual({ allowed_recipient_id: "recipient-private", section_id: "section-history-restricted" });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM client_portal_event_exposures exposure
+      JOIN project_commitment_events event ON event.id = exposure.event_id
+      WHERE json_extract(event.internal_metadata_json, '$.threadId') = 'thread-history-restricted'
+        AND json_array_length(json_extract(exposure.policy_snapshot_json, '$.allowedRecipientIds')) = 0
+        AND json_array_length(json_extract(exposure.policy_snapshot_json, '$.allowedOrganizations')) = 0
+    `).get()).toEqual({ count: 0 });
+    expect(database.prepare(`
+      SELECT COUNT(*) AS count
+      FROM client_portal_event_exposures exposure
+      JOIN project_commitment_events event ON event.id = exposure.event_id
+      WHERE json_extract(event.internal_metadata_json, '$.threadId') = 'thread-history-missing-policy'
+    `).get()).toEqual({ count: 0 });
     expect(database.prepare("SELECT status, capability FROM project_commitment_backfill_markers WHERE source_type = 'change_request' AND source_id = 'request-history'").get()).toEqual({ capability: "full", status: "backfilled" });
     expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
     database.close();
@@ -373,6 +425,113 @@ describe("project ledger migrations", () => {
         .prepare("SELECT name FROM sqlite_master WHERE name GLOB '*__01[0-9][0-9]*'")
         .all(),
     ).toEqual([]);
+    database.close();
+  });
+
+  it("persists draft and immutable issue change-set AI provenance", () => {
+    const database = createMigratedFixture();
+    const narrativeProvenance = JSON.stringify({
+      aiDraft: "AI-assisted project summary",
+      approvedAt: timestamp,
+      approvedBy: "owner-1",
+      generatedAt: timestamp,
+      inputFingerprint: "input-fingerprint",
+      inputHash: hashA,
+      model: "narrative-model-v1",
+      outputHash: hashB,
+      provider: "provider-example",
+      runId: "run-1",
+      schemaVersion: 1,
+      selection: { factIds: ["fact-1"] },
+    });
+
+    expect(
+      database
+        .prepare("PRAGMA table_info(client_portal_issue_drafts)")
+        .all()
+        .some((column) => column.name === "narrative_provenance_json"),
+    ).toBe(true);
+    expect(
+      database
+        .prepare("PRAGMA table_info(client_portal_issue_change_sets)")
+        .all()
+        .filter((column) =>
+          ["ai_provider_snapshot", "ai_input_hash", "ai_output_hash", "ai_generated_at"].includes(
+            String(column.name),
+          ),
+        )
+        .map((column) => column.name)
+        .sort(),
+    ).toEqual(["ai_generated_at", "ai_input_hash", "ai_output_hash", "ai_provider_snapshot"]);
+
+    database.prepare(`
+      INSERT INTO client_portal_issue_drafts (
+        id, workspace_id, project_id, portal_id, issue_kind,
+        narrative_provenance_json, created_by, updated_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      "draft-ai-1",
+      "workspace-1",
+      "project-1",
+      "portal-1",
+      "revision",
+      narrativeProvenance,
+      "owner-1",
+      "owner-1",
+      timestamp,
+      timestamp,
+    );
+
+    database.prepare("UPDATE client_portal_issues SET change_set_hash = ? WHERE id = ?").run(hashA, "issue-1");
+    database.prepare(`
+      INSERT INTO client_portal_issue_change_sets (
+        issue_id, schema_version, structured_diff_json, structured_diff_hash,
+        deterministic_summary, ai_draft, ai_run_id, ai_model_snapshot,
+        ai_prompt_schema_version, ai_provider_snapshot, ai_input_hash,
+        ai_output_hash, ai_generated_at, final_narrative, narrative_source,
+        narrative_approved_by, narrative_approved_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      "issue-1",
+      1,
+      "{}",
+      hashA,
+      "Deterministic project summary",
+      "AI-assisted project summary",
+      "run-1",
+      "narrative-model-v1",
+      1,
+      "provider-example",
+      hashA,
+      hashB,
+      timestamp,
+      "Reviewed project summary",
+      "ai_reviewed",
+      "owner-1",
+      timestamp,
+      timestamp,
+    );
+
+    expect(
+      database
+        .prepare("SELECT narrative_provenance_json FROM client_portal_issue_drafts WHERE id = ?")
+        .get("draft-ai-1"),
+    ).toEqual({ narrative_provenance_json: narrativeProvenance });
+    expect(
+      database
+        .prepare(`
+          SELECT ai_provider_snapshot, ai_input_hash, ai_output_hash, ai_generated_at
+          FROM client_portal_issue_change_sets
+          WHERE issue_id = ?
+        `)
+        .get("issue-1"),
+    ).toEqual({
+      ai_generated_at: timestamp,
+      ai_input_hash: hashA,
+      ai_output_hash: hashB,
+      ai_provider_snapshot: "provider-example",
+    });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
     database.close();
   });
 

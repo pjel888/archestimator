@@ -13,6 +13,7 @@ function databaseForPublish(options: {
   baselineId?: string;
   dataScope?: Record<string, unknown>;
   issueDraft?: boolean;
+  narrativeProvenance?: boolean;
   revisionPairs?: Array<readonly [number, number]>;
   sectionConfig?: Record<string, unknown>;
   sectionKind?: string;
@@ -31,6 +32,7 @@ function databaseForPublish(options: {
     id: "draft_1", workspace_id: "workspace_1", project_id: "project_1", portal_id: "portal_1", status: "ready", draft_revision: 3,
     issue_kind: "change_order", version_label: "CO-1", based_on_issue_id: null, based_on_baseline_id: options.baselineId ?? null, comparison_issue_id: null,
     revision_note: "Move sink and revise joinery.", assumptions_json: JSON.stringify(["Existing services remain usable"]), exclusions_json: JSON.stringify(["Appliances"]),
+    narrative_provenance_json: options.narrativeProvenance ? JSON.stringify({ aiDraft: "AI source draft.", approvedAt: "2026-07-26T00:02:00.000Z", approvedBy: "owner_1", generatedAt: "2026-07-26T00:01:00.000Z", inputFingerprint: "narrative-v1-12345678", inputHash: "a".repeat(64), model: "deepseek-chat", outputHash: "b".repeat(64), provider: "deepseek", runId: "run_ai_1", schemaVersion: 1, selection: { summary: ["summary-1"], included: [], excluded: [], unresolved: [], warnings: [] } }) : null,
     unresolved_items_json: JSON.stringify(["Confirm tapware"]), requested_decision: "formal", decision_policy_json: JSON.stringify({ requiredApprovals: 1 }),
     section_overrides_json: JSON.stringify({ includedSectionIds: ["section_1"] }), created_by: "owner_1", updated_by: "owner_1",
     created_at: "2026-07-26T00:00:00.000Z", updated_at: "2026-07-26T00:00:00.000Z", published_issue_id: null, published_at: null, abandoned_at: null,
@@ -140,6 +142,22 @@ describe("client portal publish service", () => {
     expect(publicManifest).not.toContain("estimate_1");
     expect(publicManifest).not.toContain("artifact_version_1");
     expect(publicManifest).not.toContain("request_version_1");
+  });
+
+  it("publishes reviewed AI narrative provenance with the immutable change set", async () => {
+    const { database, statements } = databaseForPublish({ issueDraft: true, narrativeProvenance: true });
+
+    await publishClientPortalDraft({ actor, database, draftId: "draft_1", idempotencyKey: "publish_ai_reviewed", portalId: "portal_1" });
+
+    const changeSetInsert = statements.find((statement) => statement.sql.includes("INSERT INTO client_portal_issue_change_sets"));
+    expect(changeSetInsert?.sql).toContain("ai_input_hash");
+    expect(changeSetInsert?.sql).toContain("narrative_approved_by");
+    expect(changeSetInsert?.values).toContain("ai_reviewed");
+    expect(changeSetInsert?.values).toContain("run_ai_1");
+    expect(changeSetInsert?.values).toContain("deepseek-chat");
+    expect(changeSetInsert?.values).toContain("a".repeat(64));
+    expect(changeSetInsert?.values).toContain("b".repeat(64));
+    expect(changeSetInsert?.values).toContain("owner_1");
   });
 
   it("returns typed stale failures when package evidence or baseline changes during publish", async () => {

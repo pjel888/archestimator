@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CLIENT_PORTAL_CAPABILITIES,
+  CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES,
+} from "@/lib/client-portal/contracts";
+import {
   createClientPortalRolePreview,
   evaluateClientPortalPolicy,
   filterClientPortalSections,
@@ -31,6 +35,28 @@ function recipient(overrides: ClientPortalRecipientActor["overrides"] = []): Cli
 }
 
 describe("client portal policy", () => {
+  it("enforces the complete recipient role and capability matrix", () => {
+    const expected = {
+      viewer: ["portal:view", "section:view", "field:view", "thread:view", "timeline:view", "request:view", "artifact:view"],
+      commenter: ["portal:view", "section:view", "field:view", "thread:view", "thread:create", "thread:reply", "timeline:view", "request:view", "artifact:view"],
+      requester: ["portal:view", "section:view", "field:view", "thread:view", "thread:create", "thread:reply", "timeline:view", "request:view", "request:create", "request:amend_own", "request:withdraw_own", "artifact:view", "artifact:upload_evidence"],
+      reviewer: ["portal:view", "section:view", "field:view", "thread:view", "thread:create", "thread:reply", "timeline:view", "request:view", "request:create", "request:amend_own", "request:withdraw_own", "artifact:view", "artifact:upload_evidence", "thread:resolve", "thread:reopen", "decision:view", "decision:submit_review"],
+      approver: ["portal:view", "section:view", "field:view", "thread:view", "thread:create", "thread:reply", "timeline:view", "request:view", "request:create", "request:amend_own", "request:withdraw_own", "artifact:view", "artifact:upload_evidence", "thread:resolve", "thread:reopen", "decision:view", "decision:submit_review", "decision:submit_formal"],
+    } as const;
+
+    for (const role of CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES) {
+      const roleActor = { ...recipient(), role, isRequiredApprover: role === "approver" };
+      const effectiveCapabilities = evaluateClientPortalPolicy({
+        actor: roleActor,
+        action: "portal:view",
+        portal,
+      }).effectiveCapabilities;
+      for (const action of CLIENT_PORTAL_CAPABILITIES) {
+        expect(effectiveCapabilities.includes(action), `${role} ${action}`).toBe(expected[role].includes(action as never));
+      }
+    }
+  });
+
   it("denies anonymous writes even when anonymous viewing is enabled", () => {
     const decision = evaluateClientPortalPolicy({
       actor: { kind: "anonymous" },

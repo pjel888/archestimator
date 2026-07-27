@@ -64,6 +64,8 @@ class FakeDatabase {
             ? { current_issue_id: "issue_internal_1" }
             : null,
           all: async () => {
+            if (sql.includes("FROM client_portal_issues")) return { results: [{ id: "issue_internal_1" }, { id: "issue_historical_1" }] };
+            if (sql.includes("FROM client_portal_decisions")) return { results: [{ id: "decision_internal_1" }] };
             if (sql.includes("client_portal_issue_sections")) return { results: [{ id: "section_internal_1" }] };
             if (sql.includes("FROM client_portal_threads")) {
               return { results: values.includes("2026-07-27T00:00:00.000Z") ? [{ id: "thread_internal_1" }] : [{ id: "thread_internal_1" }] };
@@ -81,7 +83,7 @@ vi.mock("@/lib/cloudflare/d1", () => ({
   getCloudflareD1Database: vi.fn(async () => new FakeDatabase()),
 }));
 
-import { submitClientPortalDecisionResponse } from "@/lib/client-portal/public-decision-handlers";
+import { clientPortalDecisionSummaryResponse, submitClientPortalDecisionResponse } from "@/lib/client-portal/public-decision-handlers";
 import { createClientPortalPublicIdentifier } from "@/lib/client-portal/public-identifiers";
 import {
   createClientPortalThreadResponse,
@@ -111,6 +113,25 @@ beforeEach(() => {
     submittedAt: "2026-07-27T00:00:00.000Z",
     decision: "approved",
     replayed: false,
+  });
+  mocks.summarizeDecisions.mockResolvedValue({
+    counts: { approved: 1 },
+    focusDecision: {
+      id: "decision_internal_1",
+      issueId: "issue_internal_1",
+      issueNumber: 1,
+      versionLabel: "Issue 1",
+      total: 1200,
+      currencyCode: "USD",
+      signerName: "Alex",
+      submittedAt: "2026-07-27T00:00:00.000Z",
+      decision: "approved",
+    },
+    issueId: "issue_internal_1",
+    issueStatus: "accepted",
+    ownReceipt: null,
+    requiredApprovals: 1,
+    requiredCounts: { approved: 1 },
   });
   mocks.createThread.mockResolvedValue({
     id: "thread_internal_1",
@@ -174,6 +195,20 @@ describe("client portal public ID handlers", () => {
 
     expect(rejected.status).toBe(404);
     expect(mocks.submitDecision).not.toHaveBeenCalled();
+  });
+
+  it("resolves an exact historical decision without exposing internal identities", async () => {
+    const publicDecisionId = createClientPortalPublicIdentifier(token, "decision", "decision_internal_1");
+    const response = await clientPortalDecisionSummaryResponse(new Request(`https://example.com/api/share/token/decision?issueId=${encodeURIComponent(publicIssueId)}&decisionId=${encodeURIComponent(publicDecisionId)}`), token);
+    const payload = await response.json();
+
+    expect(mocks.summarizeDecisions).toHaveBeenCalledWith(expect.objectContaining({
+      focusDecisionId: "decision_internal_1",
+      issueId: "issue_internal_1",
+    }));
+    expect(payload.summary.focusDecision.id).toBe(publicDecisionId);
+    expect(JSON.stringify(payload)).not.toContain("decision_internal_1");
+    expect(JSON.stringify(payload)).not.toContain("issue_internal_1");
   });
 
   it("translates issue and section IDs for thread creation without returning internal identities", async () => {

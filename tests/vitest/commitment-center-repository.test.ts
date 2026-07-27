@@ -13,7 +13,7 @@ import {
 
 type QueryRecord = { sql: string; values: D1Value[] };
 
-function fixtureDatabase(options: { emptyPortals?: boolean } = {}) {
+function fixtureDatabase(options: { emptyPortals?: boolean; portalOverrides?: Record<string, unknown> } = {}) {
   const queries: QueryRecord[] = [];
   const database: D1DatabaseLike = {
     prepare<T>(sql: string): D1PreparedStatementLike<T> {
@@ -65,10 +65,12 @@ function fixtureDatabase(options: { emptyPortals?: boolean } = {}) {
               project_code: "A-100",
               project_id: "project-1",
               project_name: "Civic Center",
+              required_approval_count: 1,
               required_approver_count: 1,
               total_recipient_count: 3,
               unverified_recipient_count: 1,
               waiting_discussion_count: 1,
+              ...options.portalOverrides,
             }] as R[] };
           }
           if (sql.includes("commitment-center:requests")) {
@@ -173,5 +175,46 @@ describe("workspace Commitment Center repository", () => {
 
     expect(result.portals).toEqual([]);
     expect(queries).toHaveLength(1);
+  });
+
+  it("routes pending required approvals as action-required", async () => {
+    const { database } = fixtureDatabase({ portalOverrides: {
+      baseline_number: null,
+      decision_approved_count: 1,
+      issue_status: "under_review",
+      open_request_count: 0,
+      required_approval_count: 2,
+      required_approver_count: 2,
+      unverified_recipient_count: 0,
+      waiting_discussion_count: 0,
+    } });
+
+    const result = await readWorkspaceCommitmentCenter({ database, userId: "user-1", workspaceId: "workspace-1" });
+
+    expect(result.portals[0]?.nextAction).toEqual({
+      href: "/workshop/projects/project-1/client-portals/portal-1?tab=decisions",
+      kind: "portal_control",
+      label: "Await 1 required approval",
+      priority: "attention",
+    });
+  });
+
+  it("escalates an accepted issue without an active baseline", async () => {
+    const { database } = fixtureDatabase({ portalOverrides: {
+      baseline_number: null,
+      issue_status: "accepted",
+      open_request_count: 0,
+      unverified_recipient_count: 0,
+      waiting_discussion_count: 0,
+    } });
+
+    const result = await readWorkspaceCommitmentCenter({ database, userId: "user-1", workspaceId: "workspace-1" });
+
+    expect(result.portals[0]?.nextAction).toEqual({
+      href: "/workshop/projects/project-1/timeline?portal=portal-1",
+      kind: "timeline",
+      label: "Restore the accepted baseline",
+      priority: "urgent",
+    });
   });
 });

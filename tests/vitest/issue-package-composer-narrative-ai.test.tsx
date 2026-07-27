@@ -8,6 +8,7 @@ import {
 } from "@/lib/client-portal/narrative-ai";
 
 const mocks = vi.hoisted(() => ({
+  acceptNarrative: vi.fn(),
   abandon: vi.fn(),
   carryForward: vi.fn(),
   markReady: vi.fn(),
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/client-portal/issue-draft-actions", () => ({
+  acceptClientPortalNarrativeAction: mocks.acceptNarrative,
   abandonClientPortalIssueDraftAction: mocks.abandon,
   markClientPortalIssueDraftReadyAction: mocks.markReady,
   openClientPortalIssueDraftAction: mocks.open,
@@ -94,6 +96,12 @@ describe("issue package composer AI narrative review", () => {
     vi.clearAllMocks();
     mocks.open.mockResolvedValue({ draft, sources });
     mocks.save.mockImplementation(async ({ draft: nextDraft }: { draft: ClientPortalIssueDraft }) => ({ ...nextDraft, draftRevision: nextDraft.draftRevision + 1, status: "draft" }));
+    mocks.acceptNarrative.mockImplementation(async ({ finalText }: { finalText: string }) => ({
+      ...draft,
+      draftRevision: draft.draftRevision + 1,
+      narrativeProvenance: { aiDraft: narrativeResponse().narrative, approvedAt: "2026-07-27T00:01:00.000Z", approvedBy: "owner_1", generatedAt: narrativeResponse().generatedAt, inputFingerprint: narrativeResponse().inputFingerprint, inputHash: narrativeResponse().inputHash, model: narrativeResponse().model, outputHash: narrativeResponse().outputHash, provider: narrativeResponse().provider, runId: narrativeResponse().runId, schemaVersion: narrativeResponse().schemaVersion, selection: narrativeResponse().selection },
+      revisionNote: finalText,
+    }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(narrativeResponse()), { status: 200, headers: { "Content-Type": "application/json" } })));
   });
 
@@ -109,10 +117,11 @@ describe("issue package composer AI narrative review", () => {
     fireEvent.click(screen.getByText(/I reviewed this text/));
     fireEvent.click(screen.getByRole("button", { name: "Use reviewed narrative" }));
 
-    expect(screen.getByLabelText("Final revision narrative")).toHaveValue("Reviewed source-backed wording.");
+    await waitFor(() => expect(screen.getByLabelText("Final revision narrative")).toHaveValue("Reviewed source-backed wording."));
     expect(await screen.findByText("Accepted into the final revision narrative.")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith("/api/ai/client-portal-narrative", expect.objectContaining({ method: "POST" }));
-    await waitFor(() => expect(mocks.save).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.acceptNarrative).toHaveBeenCalled());
+    expect(mocks.acceptNarrative).toHaveBeenCalledWith(expect.objectContaining({ finalText: "Reviewed source-backed wording.", response: expect.objectContaining({ runId: "run_1" }) }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -134,7 +143,7 @@ describe("issue package composer AI narrative review", () => {
     await screen.findByLabelText("AI-assisted narrative draft");
     fireEvent.click(screen.getByText(/I reviewed this text/));
     fireEvent.click(screen.getByRole("button", { name: "Use reviewed narrative" }));
-    expect(screen.getByLabelText("Final revision narrative")).not.toHaveValue("");
+    await waitFor(() => expect(screen.getByLabelText("Final revision narrative")).not.toHaveValue(""));
 
     fireEvent.change(screen.getByLabelText("Unresolved items"), { target: { value: "Confirm appliance model" } });
 

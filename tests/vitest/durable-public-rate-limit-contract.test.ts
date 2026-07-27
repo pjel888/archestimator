@@ -421,7 +421,7 @@ describe("durable rate-limit engine and publication policy", () => {
     expect(operations.cleanupExpiredDurableRateLimitEvents).toHaveBeenCalledTimes(cleanupCallsBeforeClear);
   });
 
-  it("preserves the exact 18-scope policy matrix across domain-owned wrappers", async () => {
+  it("preserves the exact durable policy matrix across domain-owned wrappers", async () => {
     const { clientPortal, engine, publication } = await importPoliciesWithEngineMocks();
     const request = publicationRequest();
     const publicRequestKey = ["token:client-token", "hmac:203.0.113.10"];
@@ -455,6 +455,18 @@ describe("durable rate-limit engine and publication policy", () => {
     await clientPortal.checkClientPortalThreadReadRateLimit({ portalId: "portal-1", recipientId: "recipient-1" });
     await clientPortal.checkClientPortalDecisionRateLimit({ portalId: "portal-1", recipientId: "recipient-1" });
     await clientPortal.checkClientPortalDecisionReadRateLimit({ portalId: "portal-1", recipientId: "recipient-1" });
+    await clientPortal.checkClientPortalEvidenceUploadRateLimits({
+      portalId: "portal-1",
+      recipientId: "recipient-1",
+      workspaceId: "workspace-1",
+      request,
+    });
+    await clientPortal.checkClientPortalArtifactRangeRateLimit({
+      portalId: "portal-1",
+      publicArtifactId: "artifact-1",
+      recipientId: "recipient-1",
+      request,
+    });
 
     const genericWindow = (seconds: number, limit: number) => ({
       limit,
@@ -485,6 +497,23 @@ describe("durable rate-limit engine and publication policy", () => {
       { scope: "client_portal_thread_read", keyParts: ["portal-1", "recipient-1"], metadata: { route: "client_portal_thread_read" }, windows: [genericWindow(60, 60)] },
       { scope: "client_portal_decision", keyParts: ["portal-1", "recipient-1"], metadata: { route: "client_portal_decision" }, windows: [genericWindow(60, 5)] },
       { scope: "client_portal_decision_read", keyParts: ["portal-1", "recipient-1"], metadata: { route: "client_portal_decision_read" }, windows: [genericWindow(60, 60)] },
+      { scope: "client_portal_evidence_upload_recipient", keyParts: ["recipient-1"], metadata: { route: "client_portal_evidence_upload" }, windows: [
+        { ...genericWindow(60, 5), message: "Too many evidence uploads. Please wait 60 seconds." },
+        { ...genericWindow(3600, 20), message: "Too many evidence uploads. Please wait 3600 seconds." },
+      ] },
+      { scope: "client_portal_evidence_upload_portal", keyParts: ["portal-1"], metadata: { route: "client_portal_evidence_upload" }, windows: [
+        { ...genericWindow(60, 20), message: "Too many evidence uploads. Please wait 60 seconds." },
+        { ...genericWindow(3600, 100), message: "Too many evidence uploads. Please wait 3600 seconds." },
+      ] },
+      { scope: "client_portal_evidence_upload_workspace", keyParts: ["workspace-1"], metadata: { route: "client_portal_evidence_upload" }, windows: [
+        { ...genericWindow(60, 40), message: "Too many evidence uploads. Please wait 60 seconds." },
+        { ...genericWindow(3600, 200), message: "Too many evidence uploads. Please wait 3600 seconds." },
+      ] },
+      { scope: "client_portal_evidence_upload_ip", keyParts: ["hmac:203.0.113.10"], metadata: { route: "client_portal_evidence_upload" }, windows: [
+        { ...genericWindow(60, 10), message: "Too many evidence uploads. Please wait 60 seconds." },
+        { ...genericWindow(3600, 50), message: "Too many evidence uploads. Please wait 3600 seconds." },
+      ] },
+      { scope: "client_portal_artifact_range", keyParts: ["portal-1", "artifact-1", "recipient-1"], metadata: { route: "client_portal_artifact_range" }, windows: [genericWindow(60, 60), genericWindow(3600, 600)] },
     ]);
 
     expect(engine.checkExistingDurableRateLimit.mock.calls.map(([input]) => summarizeExistingInput(input))).toEqual([

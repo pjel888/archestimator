@@ -45,10 +45,10 @@ const sources = {
 
 const userContext = { userId: "owner_1", email: "owner@example.com", workspaceId: "workspace_1", authMode: "better-auth" as const };
 
-function request(body: unknown) {
+function request(body: unknown, headers: Record<string, string> = {}) {
   return new Request("http://localhost/api/ai/client-portal-narrative", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
@@ -69,6 +69,7 @@ function provider(output: unknown): ClientPortalNarrativeProvider {
 function dependencies(aiProvider: ClientPortalNarrativeProvider, overrides: Record<string, unknown> = {}) {
   return {
     getUserContext: vi.fn().mockResolvedValue(userContext),
+    checkQuota: vi.fn().mockResolvedValue({ allowed: true }),
     readDraftContext: vi.fn().mockResolvedValue({ draft, sources }),
     provider: aiProvider,
     recordAudit: vi.fn().mockResolvedValue(undefined),
@@ -144,6 +145,33 @@ describe("client-portal narrative AI handler", () => {
     expect(await stale.json()).toMatchObject({ code: "stale_draft" });
     expect(unauthorized.status).toBe(401);
     expect(overPosted.status).toBe(400);
+    expect(aiProvider.generate).not.toHaveBeenCalled();
+  });
+
+  it("blocks cross-origin, oversized, and quota-exhausted requests before provider use", async () => {
+    const aiProvider = provider({});
+    const crossOrigin = await handleClientPortalNarrativeRequest(
+      request(body(), { Origin: "https://evil.example" }),
+      { aiEnabled: true, dependencies: dependencies(aiProvider) },
+    );
+    const oversized = await handleClientPortalNarrativeRequest(
+      request(body(), { "Content-Length": "4096" }),
+      { aiEnabled: true, dependencies: dependencies(aiProvider) },
+    );
+    const quota = await handleClientPortalNarrativeRequest(
+      request(body()),
+      {
+        aiEnabled: true,
+        dependencies: dependencies(aiProvider, {
+          checkQuota: vi.fn().mockResolvedValue({ allowed: false, message: "AI narrative quota exceeded.", retryAfter: 60 }),
+        }),
+      },
+    );
+
+    expect(crossOrigin.status).toBe(403);
+    expect(oversized.status).toBe(413);
+    expect(quota.status).toBe(429);
+    expect(quota.headers.get("Retry-After")).toBe("60");
     expect(aiProvider.generate).not.toHaveBeenCalled();
   });
 });

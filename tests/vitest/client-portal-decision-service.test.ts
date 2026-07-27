@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
 import type { ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
-import { ClientPortalDecisionError, submitClientPortalDecision } from "@/lib/client-portal/decision-service";
+import { ClientPortalDecisionError, submitClientPortalDecision, summarizeClientPortalDecisions } from "@/lib/client-portal/decision-service";
 
 function databaseFor(role: ClientPortalRecipientRoleTemplate, replay: Record<string, unknown> | null = null) {
   const statements: Array<{ sql: string; values: D1Value[] }> = [];
@@ -120,5 +120,36 @@ describe("client portal decisions", () => {
     const savedIntent = createHash("sha256").update(JSON.stringify({ decision: "approved", issueContentHash, note: null, signerName: null })).digest("hex");
     const { database } = databaseFor("approver", { id: "decision_1", issue_id: "issue_1", decision: "approved", note: null, signer_name: null, issue_content_hash: issueContentHash, intent_hash: savedIntent, submitted_at: "2026-07-14T00:00:00.000Z" });
     await expect(submitClientPortalDecision({ actor: baseActor, database, portalId: "portal_1", issueId: "issue_1", decision: "approved", expectedIssueContentHash: issueContentHash, idempotencyKey: "approve_1", note: "Different intent" })).rejects.toMatchObject({ code: "client_portal_decision_invalid" } satisfies Partial<ClientPortalDecisionError>);
+  });
+
+  it("projects an exact decision from a visible historical issue", async () => {
+    const database: D1DatabaseLike = {
+      prepare(sql: string): D1PreparedStatementLike {
+        let values: D1Value[] = [];
+        const prepared: D1PreparedStatementLike = {
+          bind(...next) { values = next; return prepared; },
+          async first<T>() {
+            if (sql.includes("FROM client_portals")) return { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "live", current_issue_id: "issue_2" } as T;
+            if (sql.includes("FROM client_portal_issues")) return { id: "issue_1", issue_number: 1, version_label: "Accepted issue", status: "superseded", content_hash: "a".repeat(64), total_cost: 125000, currency_code: "USD", valid_through: null, decision_policy_snapshot_json: JSON.stringify({ requiredApprovals: 1 }) } as T;
+            if (sql.includes("FROM client_portal_recipients")) return { client_organization: "Northstar", domain_role: "quantity_surveyor", domain_role_label: "Commercial lead", email_normalized: "reviewer@example.com", display_name: "Reviewer", role_template: "reviewer", is_required_approver: 0 } as T;
+            if (sql.includes("WHERE id = ? AND issue_id = ?")) return { id: values[0], issue_id: "issue_1", decision: "approved", note: "private note", signer_name: "Historical approver", issue_content_hash: "a".repeat(64), intent_hash: "b".repeat(64), submitted_at: "2026-07-20T00:00:00.000Z" } as T;
+            return null;
+          },
+          async all<T>() { return { success: true, results: [] } as D1Result<T>; },
+          async run<T>() { return { success: true } as D1Result<T>; },
+        };
+        return prepared;
+      },
+    };
+
+    const summary = await summarizeClientPortalDecisions({ actor: baseActor, database, focusDecisionId: "decision_historical", issueId: "issue_1", portalId: "portal_1" });
+
+    expect(summary.focusDecision).toEqual(expect.objectContaining({
+      id: "decision_historical",
+      issueNumber: 1,
+      signerName: "Historical approver",
+      versionLabel: "Accepted issue",
+    }));
+    expect(summary.focusDecision).not.toHaveProperty("note");
   });
 });

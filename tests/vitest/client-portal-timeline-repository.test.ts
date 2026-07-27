@@ -45,10 +45,40 @@ function database() {
             occurred_at: "2026-07-27T03:00:00.000Z",
             policy_snapshot_json: "{}",
             public_event_id: "decision_event_public_1",
+            internal_metadata_json: JSON.stringify({ decisionId: "decision_internal_1", issueContentHash: "private_hash" }),
+            source_id: "decision_internal_1",
             source_type: "decision",
             status: "visible",
             summary: "Approved for construction.",
             title: "Issue 4 was approved",
+          }, {
+            actor_name_snapshot: "Client reviewer",
+            actor_type: "recipient",
+            client_safe_snapshot_json: JSON.stringify({ issueNumber: 4, status: "under_review", versionLabel: "Issue 4" }),
+            event_type: "discussion.updated",
+            occurred_at: "2026-07-27T02:59:30.000Z",
+            internal_metadata_json: JSON.stringify({ messageId: "message_internal_1", threadId: "thread_internal_1" }),
+            policy_snapshot_json: "{}",
+            public_event_id: "discussion_event_public_1",
+            source_id: "issue_internal_4",
+            source_type: "issue",
+            status: "visible",
+            summary: "Budget clarification",
+            title: "Discussion updated",
+          }, {
+            actor_name_snapshot: null,
+            actor_type: "system",
+            client_safe_snapshot_json: JSON.stringify({ publicRequestId: "request_public_1", status: "submitted", title: "Revise millwork", versionNumber: 2, producerTrace: "private" }),
+            event_type: "request.amended",
+            occurred_at: "2026-07-27T02:59:15.000Z",
+            internal_metadata_json: JSON.stringify({ requestId: "request_internal_1", requestVersionId: "request_version_internal_2" }),
+            policy_snapshot_json: "{}",
+            public_event_id: "request_event_public_1",
+            source_id: "request_internal_1",
+            source_type: "change_request",
+            status: "visible",
+            summary: null,
+            title: "Request amended",
           }, {
             actor_name_snapshot: null,
             actor_type: "system",
@@ -57,6 +87,8 @@ function database() {
             occurred_at: "2026-07-27T02:59:00.000Z",
             policy_snapshot_json: "{}",
             public_event_id: "baseline_event_public_1",
+            internal_metadata_json: JSON.stringify({ decisionId: "decision_internal_1", issueId: "issue_private_1" }),
+            source_id: "baseline_internal_1",
             source_type: "baseline",
             status: "visible",
             summary: null,
@@ -95,12 +127,25 @@ describe("client portal timeline repository", () => {
       portal: { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", name: "Owner Portal", status: "live", current_issue_id: "issue_4" },
     };
 
-    const result = await getClientPortalTimeline({ actor, token: "token" });
+    const result = await getClientPortalTimeline({ actor, token: "a".repeat(43) });
+    const repeatedResult = await getClientPortalTimeline({ actor, token: "a".repeat(43) });
+    const otherTokenResult = await getClientPortalTimeline({ actor, token: "b".repeat(43) });
 
     expect(result?.summary).toMatchObject({ activeBaseline: { baselineNumber: 2, issueNumber: 3 }, currentIssue: { issueNumber: 4, status: "under_review" }, openRequestCount: 2 });
-    expect(result?.events[0]).toMatchObject({ id: "decision_event_public_1", snapshot: { decision: "approved", issueNumber: 4, signerName: "Client reviewer" }, target: { kind: "issue", issueNumber: 4 } });
-    expect(result?.events[1]?.snapshot).toEqual({});
+    expect(result?.events[0]).toMatchObject({ id: "decision_event_public_1", snapshot: { decision: "approved", issueNumber: 4, signerName: "Client reviewer" }, target: { kind: "decision", issueNumber: 4 } });
+    expect(result?.events[0]?.target).toHaveProperty("publicDecisionId", expect.stringMatching(/^cpd_[A-Za-z0-9_-]{43}$/));
+    expect(result?.events[1]).toMatchObject({ id: "discussion_event_public_1", snapshot: { issueNumber: 4, status: "under_review", versionLabel: "Issue 4" }, target: { kind: "thread", issueNumber: 4 } });
+    expect(result?.events[1]?.target).toHaveProperty("publicThreadId", expect.stringMatching(/^cpt_[A-Za-z0-9_-]{43}$/));
+    expect(result?.events[2]).toMatchObject({ snapshot: { publicRequestId: "request_public_1", status: "submitted", title: "Revise millwork", versionNumber: 2 }, target: { kind: "request", publicRequestId: "request_public_1" } });
+    expect(result?.events[3]?.snapshot).toEqual({ issueNumber: 4 });
+    expect(result?.events[0]?.target).toEqual(repeatedResult?.events[0]?.target);
+    expect(result?.events[1]?.target).toEqual(repeatedResult?.events[1]?.target);
+    expect(result?.events[0]?.target).not.toEqual(otherTokenResult?.events[0]?.target);
+    expect(result?.events[1]?.target).not.toEqual(otherTokenResult?.events[1]?.target);
     expect(JSON.stringify(result)).not.toContain("issue_private_1");
+    expect(JSON.stringify(result)).not.toContain("decision_internal_1");
+    expect(JSON.stringify(result)).not.toContain("thread_internal_1");
+    expect(JSON.stringify(result)).not.toContain("producerTrace");
     expect(queries.find((query) => query.sql.includes("client_portal_event_exposures"))?.values[0]).toBe("portal_1");
   });
 

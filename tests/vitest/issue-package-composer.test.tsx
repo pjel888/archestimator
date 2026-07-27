@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  acceptNarrative: vi.fn(),
   abandon: vi.fn(),
   carryForward: vi.fn(),
   markReady: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/client-portal/issue-draft-actions", () => ({
+  acceptClientPortalNarrativeAction: mocks.acceptNarrative,
   abandonClientPortalIssueDraftAction: mocks.abandon,
   markClientPortalIssueDraftReadyAction: mocks.markReady,
   openClientPortalIssueDraftAction: mocks.open,

@@ -231,4 +231,64 @@ describe("ClientPortalShell", () => {
     expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute("href", `/api/share/${token}/artifacts/${publicArtifactId}?issue=4&download=1`);
     expect(screen.getByRole("tab", { name: "Documents" })).toHaveAttribute("aria-selected", "true");
   });
+
+  it("routes a timeline thread deep link to the exact secure discussion object and focuses it", async () => {
+    const publicThreadId = "cpt_thread_target";
+    window.history.replaceState(null, "", `/share/${token}?issue=4#thread/${publicThreadId}`);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.endsWith("/summary")) return new Response(JSON.stringify(portalSummary(["portal:view", "section:view", "thread:view", "thread:reply"])), { status: 200 });
+      if (url.endsWith("/manifest?issue=4")) return new Response(JSON.stringify({
+        schemaVersion: 2,
+        portal: { id: "cpp_portal", name: "Client Review", status: "live" },
+        issue: { id: "cpi_issue", number: 4, versionLabel: "Issue 4", status: "under_review", validThrough: null, contentHash: "x" },
+        project: { name: "Kitchen Remodel", code: null, currencyCode: "PHP" },
+        recipient: { displayName: "Client", role: "reviewer", verified: true },
+        brand: {}, capabilities: ["portal:view", "section:view", "thread:view", "thread:reply"],
+        sections: [{ id: "cps_discussion", kind: "discussion", title: "Discussion", layoutMode: "wide", payloadHash: "x" }],
+      }), { status: 200 });
+      if (url.endsWith("/sections/cps_discussion?issue=4")) return new Response(JSON.stringify({ section: { id: "cps_discussion", kind: "discussion", title: "Discussion", layoutMode: "wide", payloadHash: "x", payload: {} } }), { status: 200 });
+      if (url.endsWith("/threads")) return new Response(JSON.stringify({ threads: [
+        { id: "cpt_other_thread", subject: "Earlier question", status: "open", waitingState: "waiting_on_client", unreadCount: 0, updatedAt: "2026-07-27T01:00:00.000Z", target: { label: "Scope" } },
+        { id: publicThreadId, subject: "Budget clarification", status: "open", waitingState: "waiting_on_owner", unreadCount: 1, updatedAt: "2026-07-27T00:00:00.000Z", target: { label: "Cost plan" } },
+      ], hasMore: false, nextCursor: null }), { status: 200 });
+      if (url.endsWith(`/threads/${publicThreadId}/messages`)) return new Response(JSON.stringify({ messages: [], hasMore: false, nextCursor: null }), { status: 200 });
+      if (url.endsWith(`/threads/${publicThreadId}/read`)) return new Response(null, { status: 204 });
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ClientPortalShell initialIssueNumber={4} token={token} />);
+
+    const target = await screen.findByRole("button", { name: /Budget clarification/ });
+    await waitFor(() => expect(target).toHaveFocus());
+    expect(screen.getByRole("tab", { name: "Discussion" })).toHaveAttribute("aria-selected", "true");
+    expect(fetchMock).toHaveBeenCalledWith(`/api/share/${token}/threads/${publicThreadId}/messages`, { cache: "no-store" });
+  });
+
+  it("routes a timeline decision deep link to the exact secure receipt and focuses it", async () => {
+    const publicDecisionId = "cpd_decision_target";
+    window.history.replaceState(null, "", `/share/${token}?issue=4#decision/${publicDecisionId}`);
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.endsWith("/summary")) return new Response(JSON.stringify(portalSummary(["portal:view", "section:view", "decision:view", "decision:submit_formal"])), { status: 200 });
+      if (url.endsWith("/manifest?issue=4")) return new Response(JSON.stringify({
+        schemaVersion: 2,
+        portal: { id: "cpp_portal", name: "Client Review", status: "live" },
+        issue: { id: "cpi_issue", number: 4, versionLabel: "Issue 4", status: "under_review", validThrough: null, contentHash: "x" },
+        project: { name: "Kitchen Remodel", code: null, currencyCode: "PHP" },
+        recipient: { displayName: "Client", role: "approver", verified: true },
+        brand: {}, capabilities: ["portal:view", "section:view", "decision:view", "decision:submit_formal"],
+        sections: [{ id: "cps_decision", kind: "decision", title: "Decision", layoutMode: "standard", payloadHash: "x" }],
+      }), { status: 200 });
+      if (url.endsWith("/sections/cps_decision?issue=4")) return new Response(JSON.stringify({ section: { id: "cps_decision", kind: "decision", title: "Decision", layoutMode: "standard", payloadHash: "x", payload: {} } }), { status: 200 });
+      if (url.endsWith("/decision?issueId=cpi_issue")) return new Response(JSON.stringify({ summary: { ownReceipt: { id: publicDecisionId, currencyCode: "PHP", decision: "approved", submittedAt: "2026-07-27T00:00:00.000Z", total: 1400, versionLabel: "Issue 4" } } }), { status: 200 });
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ClientPortalShell initialIssueNumber={4} token={token} />);
+
+    const receipt = (await screen.findByText("Your decision: approved")).parentElement;
+    await waitFor(() => expect(receipt).toHaveFocus());
+    expect(screen.getByRole("tab", { name: "Decision" })).toHaveAttribute("aria-selected", "true");
+  });
 });

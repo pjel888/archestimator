@@ -126,7 +126,7 @@ function createDatabase() {
   databases.push(sqlite);
   sqlite.exec("PRAGMA foreign_keys = ON;");
   for (const migration of readdirSync("migrations").filter((file) => /^\d{4}_.+\.sql$/.test(file)).sort()) {
-    if (migration > "0116_project_change_request_notification_outbox.sql") break;
+    if (migration > "0123_client_portal_ai_narrative_provenance.sql") break;
     sqlite.exec(readFileSync(`migrations/${migration}`, "utf8"));
   }
   seedFixture(sqlite);
