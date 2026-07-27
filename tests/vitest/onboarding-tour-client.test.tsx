@@ -337,7 +337,7 @@ describe("OnboardingTourClient", () => {
     });
     document.body.append(target);
 
-    const { rerender } = render(
+    render(
       <OnboardingTourClient
         flow={eligibleFlow}
         launchMode="resume"
@@ -361,18 +361,6 @@ describe("OnboardingTourClient", () => {
 
     mocks.start.mockClear();
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(mocks.refresh).toHaveBeenCalled();
-    expect(mocks.start).not.toHaveBeenCalled();
-    rerender(
-      <OnboardingTourClient
-        flow={{ ...eligibleFlow, steps: [...eligibleFlow.steps] }}
-        launchMode="resume"
-        snapshot={snapshot()}
-        mutate={vi.fn()}
-        reducedMotion={false}
-        onLaunchIntentConsumed={vi.fn()}
-      />,
-    );
     await waitFor(() => expect(mocks.start).toHaveBeenCalledWith(stepIndex));
     expect(screen.queryByRole("button", { name: "Return to guide" })).not.toBeInTheDocument();
     target.remove();

@@ -17,7 +17,6 @@ import {
 } from "@/lib/repositories/workspace-repository";
 import { traced } from "@/lib/perf/server-timing";
 import { isProjectPageCursorsEnabled } from "@/lib/collaboration/feature-flags";
-import type { PublisherDrawerTabId } from "@/components/workshop/publisher/PublisherDrawer";
 import type { ProjectPublicationSummary } from "@/lib/publication/types";
 import type { ProjectRow } from "@/lib/types/database";
 
@@ -31,10 +30,8 @@ type ProjectPublisherHeaderActionsProps = {
   publicationSummary: ProjectPublicationSummary | null;
 };
 
-function getPublisherProjectHref(projectId: string, tab?: PublisherDrawerTabId) {
-  const params = new URLSearchParams({ project: projectId, drawer: projectId });
-  if (tab && tab !== "overview") params.set("tab", tab);
-  return `/workshop/publisher?${params.toString()}`;
+function getPublisherProjectHref(projectId: string) {
+  return `/workshop/projects/${encodeURIComponent(projectId)}/timeline`;
 }
 
 function getProjectTeamAccessHref(projectId: string) {
@@ -44,12 +41,12 @@ function getProjectTeamAccessHref(projectId: string) {
 function ProjectPublisherHeaderActions({ projectId, publicationSummary }: ProjectPublisherHeaderActionsProps) {
   const publicationHref = getPublisherProjectHref(projectId);
   const hasPublishedLink = publicationSummary?.status === "published";
-  const canOpenPublisherDrawer = Boolean(
+  const canOpenCommitmentTimeline = Boolean(
     publicationSummary?.canManagePublication ||
     (publicationSummary?.canReadPublisherRoster && publicationSummary.status !== "unpublished"),
   );
 
-  if (!canOpenPublisherDrawer) return null;
+  if (!canOpenCommitmentTimeline) return null;
 
   return (
     <span className="contents" data-publisher-project-actions="true">
@@ -59,8 +56,8 @@ function ProjectPublisherHeaderActions({ projectId, publicationSummary }: Projec
         size="icon-sm"
         prefetch={false}
         className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
-        aria-label="Open shared link"
-        title="Open shared link"
+        aria-label="Open commitment timeline"
+        title="Open commitment timeline"
         data-workshop-layout="project-publication-header"
         data-publisher-project-link="publication"
       >

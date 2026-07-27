@@ -511,6 +511,7 @@ test.describe("onboarding first-value journey", () => {
       '[data-onboarding-target="estimate.add_row"]',
     );
     await expect(realTarget).toBeVisible({ timeout: 30_000 });
+    expect(page.url()).toContain("tour=first_estimate_value");
     await expect(tryItNow).toBeVisible({ timeout: 15_000 });
     await expect(realTarget).toHaveJSProperty("tagName", "BUTTON");
 

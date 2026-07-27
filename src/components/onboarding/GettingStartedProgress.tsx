@@ -589,10 +589,10 @@ export function GettingStartedProgress({
             <FlowStatusCard
               snapshot={snapshot}
               flowKey="client_link_publishing"
-              title="Client links"
-              description="Choose scope, publish, verify the current link, and understand optional recipients and activity."
+              title="Commitment Center"
+              description="Review portal commitments, open requests and decisions, then continue authoring from the project timeline or issue composer."
               unavailableReason={snapshot.dataPredicates.client_link_project_available === false
-                ? "A manageable Project is required before this guide can launch."
+                ? "A manageable Project is required before the Commitment Center guide can launch."
                 : !launchableFlowKeys.has("client_link_publishing")
                   ? "This guide is not available with the current access or saved state."
                 : undefined}

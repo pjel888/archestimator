@@ -125,16 +125,16 @@ const CONTENT: Record<
     body: "Preview and deliberately use a Template when its structure matches your work.",
   },
   client_links_roster: {
-    title: "Client links",
-    body: "This page shows each client link’s publication status and who can access it.",
+    title: "Commitment Center",
+    body: "This workspace view shows portal agreements, pending issues, requests, decisions, and access state.",
   },
   client_links_publish: {
-    title: "Scope and publish",
-    body: "Review the exact estimate scope and access before performing the normal publish action.",
+    title: "Compose an issue",
+    body: "Open the owning project to review the exact issue package, audience, and decision policy before publishing.",
   },
   client_links_verify: {
-    title: "Verify and share",
-    body: "Verify the current publication before copying its link or opening authenticated Preview.",
+    title: "Verify the portal",
+    body: "Review the current agreement and portal state before copying a stable link or opening recipient preview.",
   },
   client_links_optional: {
     title: "Recipients and activity",
@@ -145,8 +145,8 @@ const CONTENT: Record<
     body: "Recipient delivery and authenticated activity remain optional. Guidance never sends an email.",
   },
   client_links_maintenance: {
-    title: "Keep links current",
-    body: "Live, Needs update, Expired, Off, and Not shared statuses tell you whether the current link needs attention.",
+    title: "Act on commitment state",
+    body: "Requests, waiting discussions, delivery failures, and pending issues identify the next action without creating legacy links.",
   },
   client_links_safety: {
     title: "Replace or turn off safely",

@@ -86,8 +86,6 @@ export function OnboardingTourClient({
     () => hasActiveApplicationModal(),
   );
   const [handoffStepKey, setHandoffStepKey] = useState<OnboardingStepKey | null>(null);
-  const resumeAfterHandoffStepRef = useRef<OnboardingStepKey | null>(null);
-  const stepsBeforeHandoffRefreshRef = useRef(flow.steps);
   const routeAbortRef = useRef<AbortController | null>(null);
   const pausedForModalRef = useRef(false);
   const programmaticStopRef = useRef(false);
@@ -534,32 +532,12 @@ export function OnboardingTourClient({
   }, [controls, flow.definition.key, flow.steps, reducedMotion, router]);
 
   const returnFromHandoff = useCallback(() => {
-    resumeAfterHandoffStepRef.current = handoffStepKey;
-    stepsBeforeHandoffRefreshRef.current = flow.steps;
+    const resumeIndex = flow.steps.findIndex((step) => step.key === handoffStepKey);
     setHandoffStepKey(null);
-    router.refresh();
-  }, [flow.steps, handoffStepKey, router]);
-
-  useEffect(() => {
-    const previousStepKey = resumeAfterHandoffStepRef.current;
-    if (!previousStepKey || flow.steps === stepsBeforeHandoffRefreshRef.current) return;
-    resumeAfterHandoffStepRef.current = null;
-    const previousDefinitionIndex = flow.definition.steps.findIndex(
-      (step) => step.key === previousStepKey,
-    );
-    const sameStepIndex = flow.steps.findIndex((step) => step.key === previousStepKey);
-    const nextStepIndex = flow.steps.findIndex((step) =>
-      flow.definition.steps.findIndex((definitionStep) => definitionStep.key === step.key)
-        > previousDefinitionIndex
-    );
-    controls.start(
-      sameStepIndex >= 0
-        ? sameStepIndex
-        : nextStepIndex >= 0
-          ? nextStepIndex
-          : Math.max(0, flow.steps.length - 1),
-    );
-  }, [controls, flow.definition.steps, flow.steps]);
+    requestAnimationFrame(() => {
+      controls.start(resumeIndex >= 0 ? resumeIndex : state.index);
+    });
+  }, [controls, flow.steps, handoffStepKey, state.index]);
 
   useEffect(() => {
     if (!handoffStepKey) return;

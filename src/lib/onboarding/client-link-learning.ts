@@ -268,7 +268,7 @@ export async function publishClientLinkForLearning(
     return {
       ok: false,
       code: "publication_verification_failed",
-      message: "The publication was not confirmed. Refresh Client links before sharing it.",
+      message: "The publication was not confirmed. Refresh the Commitment Center before sharing it.",
     };
   }
 

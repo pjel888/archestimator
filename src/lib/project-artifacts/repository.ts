@@ -98,6 +98,7 @@ export type CreateProjectArtifactRecordInput = {
   versionDescription: string | null;
   versionId: string;
   workspaceId: string;
+  extraStatements?: D1PreparedStatementLike[];
 };
 
 export type AddProjectArtifactVersionRecordInput = Omit<
@@ -343,6 +344,7 @@ export async function createProjectArtifactRecords(input: CreateProjectArtifactR
       WHERE id = ? AND workspace_id = ? AND project_id = ?
         AND status = 'initializing' AND current_version_id IS NULL
     `, [input.versionId, input.now, input.artifactId, input.workspaceId, input.projectId]),
+    ...(input.extraStatements ?? []),
   ]);
 }
 
@@ -380,21 +382,27 @@ export async function addProjectArtifactVersionRecords(input: AddProjectArtifact
       input.expectedCurrentVersionId,
       input.versionId,
     ]),
+    ...(input.extraStatements ?? []),
   ]);
 }
 
 export async function archiveProjectArtifactRecord(input: {
   artifactId: string;
   database: D1DatabaseLike;
+  extraStatements?: D1PreparedStatementLike[];
   now: string;
   projectId: string;
   workspaceId: string;
 }) {
-  return input.database.prepare(`
-    UPDATE project_artifacts
-    SET status = 'archived', archived_at = ?, updated_at = ?
-    WHERE id = ? AND workspace_id = ? AND project_id = ? AND status = 'active'
-  `).bind(input.now, input.now, input.artifactId, input.workspaceId, input.projectId).run();
+  if (!input.database.batch) throw new Error("Project artifact archive requires D1 batch support.");
+  return input.database.batch([
+    statement(input.database, `
+      UPDATE project_artifacts
+      SET status = 'archived', archived_at = ?, updated_at = ?
+      WHERE id = ? AND workspace_id = ? AND project_id = ? AND status = 'active'
+    `, [input.now, input.now, input.artifactId, input.workspaceId, input.projectId]),
+    ...(input.extraStatements ?? []),
+  ]);
 }
 
 export function batchChanged(result: D1Result[] | null, expectedStatements: number) {

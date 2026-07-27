@@ -35,12 +35,12 @@ describe("project header chrome streaming (F5 / P1-2)", () => {
     expect(chrome).not.toContain("isPublisherEnabled()");
     expect(chrome).not.toContain("if (!publisherEnabled)");
     expect(chrome).toContain("getPublisherProjectHref(projectId)");
-    expect(chrome).toContain("/workshop/publisher");
-    expect(chrome).toContain("drawer: projectId");
-    expect(chrome).toContain('params.set("tab", tab)');
+    expect(chrome).toContain("/timeline");
+    expect(chrome).not.toContain("drawer: projectId");
+    expect(chrome).toContain("Open commitment timeline");
     expect(chrome).toContain("getProjectTeamAccessHref(projectId)");
     expect(chrome).toContain("/workshop/projects/${encodeURIComponent(projectId)}/team");
-    expect(chrome).toContain("canOpenPublisherDrawer");
+    expect(chrome).toContain("canOpenCommitmentTimeline");
     expect(chrome).toContain("publicationSummary?.canReadPublisherRoster");
     expect(chrome).toContain('publicationSummary.status !== "unpublished"');
     expect(chrome).toContain('data-publisher-project-link="publication"');

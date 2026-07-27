@@ -23,7 +23,7 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "6d8a4b261a873eb300d219e71cbbf5f49582a844bd923bc9355f859d02e5aea7"
+      "sha256": "12b8964a4a03e87afcb4296d2f7a5cbc243b318d08cf9dee2c2c5d4549064ab7"
     },
     {
       "id": "ART-002",
@@ -35,7 +35,7 @@
       "id": "ART-003",
       "role": "evidence",
       "path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42"
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2"
     }
   ],
   "sources": [
@@ -593,7 +593,7 @@
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42",
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -610,7 +610,7 @@
       "id": "EVID-002",
       "status": "PASS",
       "artifact_path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42",
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2",
       "claim_ids": [
         "REQ-001",
         "UNIT-002",
@@ -625,7 +625,7 @@
       "id": "EVID-003",
       "status": "FAIL",
       "artifact_path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42",
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2",
       "claim_ids": [
         "UNIT-003",
         "AC-003",
@@ -639,7 +639,7 @@
       "id": "EVID-004",
       "status": "FAIL",
       "artifact_path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42",
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2",
       "claim_ids": [
         "UNIT-004",
         "AC-004",
@@ -653,7 +653,7 @@
       "id": "EVID-005",
       "status": "PASS",
       "artifact_path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42",
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2",
       "claim_ids": [
         "REQ-004",
         "UNIT-005",
@@ -668,7 +668,7 @@
       "id": "EVID-006",
       "status": "FAIL",
       "artifact_path": "evidence/q2-evidence-summary.json",
-      "sha256": "615706a68872ca2b449764700d49552e1c00abdd9c5da2cb26a9a960f8cb0f42",
+      "sha256": "7e8a4ab7252368dd162d55b12d5c4a063f88c462cf83f5e104100c1a4dd206b2",
       "claim_ids": [
         "UNIT-006",
         "AC-003",
@@ -686,5 +686,5 @@
     "auth-or-role-contract-change",
     "quality-policy-change"
   ],
-  "manifest_sha256": "8c8d4578a8c5b4de82e13b309dc576b9b9e3a787fdcb33ace9b59698afc5641f"
+  "manifest_sha256": "19716a9421efd102fedfe4a18ad44a52899b7adf865444a98448b1ac9e221fd3"
 }

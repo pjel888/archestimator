@@ -48,7 +48,7 @@ function createDatabase() {
   sqlite.exec("PRAGMA foreign_keys = ON;");
 
   for (const migration of readdirSync("migrations").filter((file) => /^\d{4}_.+\.sql$/.test(file)).sort()) {
-    if (migration > "0107_project_artifact_upload_surfaces.sql") break;
+    if (migration > "0111_project_commitment_events_and_exposures.sql") break;
     sqlite.exec(readFileSync(`migrations/${migration}`, "utf8"));
   }
 
@@ -193,6 +193,7 @@ describe("project artifact service", () => {
       status: "active",
     });
     expect(sqlite.prepare("SELECT COUNT(*) AS count FROM project_artifact_versions").get()).toEqual({ count: 1 });
+    expect(sqlite.prepare("SELECT event_type, source_type FROM project_commitment_events").get()).toEqual({ event_type: "artifact.created", source_type: "artifact" });
   });
 
   it("adds versions optimistically, deduplicates content, and preserves prior bytes", async () => {
@@ -239,6 +240,7 @@ describe("project artifact service", () => {
       versionNumber: 1,
     });
     expect(sqlite.prepare("SELECT COUNT(*) AS count FROM project_artifact_versions").get()).toEqual({ count: 2 });
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM project_commitment_events WHERE source_type = 'artifact'").get()).toEqual({ count: 2 });
   });
 
   it("lists and reads only within the requested workspace and project, then archives without deleting versions", async () => {
@@ -248,10 +250,11 @@ describe("project artifact service", () => {
 
     expect(await listProjectArtifacts({ database, projectId: "project-1", workspaceId: "workspace-1" })).toHaveLength(1);
     expect(await readArtifact({ artifactId: "artifact-1", database, projectId: "wrong-project", workspaceId: "workspace-1" })).toBeNull();
-    expect((await archiveArtifact({ artifactId: "artifact-1", database, projectId: "project-1", workspaceId: "workspace-1", now: laterTimestamp })).status).toBe("archived");
+    expect((await archiveArtifact({ actor: { id: "owner-1", type: "internal_user" }, artifactId: "artifact-1", database, projectId: "project-1", workspaceId: "workspace-1", now: laterTimestamp })).status).toBe("archived");
     expect(await listProjectArtifacts({ database, projectId: "project-1", workspaceId: "workspace-1" })).toEqual([]);
     expect(await listProjectArtifacts({ database, includeArchived: true, projectId: "project-1", workspaceId: "workspace-1" })).toHaveLength(1);
     expect(sqlite.prepare("SELECT COUNT(*) AS count FROM project_artifact_versions").get()).toEqual({ count: 1 });
+    expect(sqlite.prepare("SELECT event_type, actor_id FROM project_commitment_events WHERE event_type = 'artifact.archived'").get()).toEqual({ actor_id: "owner-1", event_type: "artifact.archived" });
   });
 
   it("requires finalized clean uploads or checksum-bound unexpired overrides", async () => {

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { prepareProjectCommitmentEventWrites } from "@/lib/project-ledger/event-service";
 
 import {
   PROJECT_ARTIFACT_TYPES,
@@ -231,8 +232,31 @@ export async function createArtifact(input: CreateArtifactInput) {
   }
 
   try {
-    const results = await createProjectArtifactRecords({ ...normalized, upload });
-    if (!batchChanged(results, 3)) {
+    const event = prepareProjectCommitmentEventWrites({
+      actor: {
+        actorId: normalized.actor.id,
+        actorType: normalized.actor.type,
+        domainRoleSnapshot: normalized.actor.domainRole ?? null,
+      },
+      clientSafeSnapshot: {
+        artifactCode: normalized.artifactCode,
+        artifactType: normalized.artifactType,
+        title: normalized.title,
+        versionLabel: normalized.revisionLabel ?? "Version 1",
+      },
+      correlationId: `artifact:${normalized.artifactId}:version:${normalized.versionId}`,
+      database: input.database,
+      eventType: "artifact.created",
+      internalMetadata: { contentSha256: normalized.contentSha256, uploadAssetId: normalized.uploadAssetId },
+      occurredAt: normalized.now,
+      projectId: normalized.projectId,
+      source: { artifactId: normalized.artifactId, artifactVersionId: normalized.versionId, sourceType: "artifact" },
+      summary: "The first immutable artifact version was recorded.",
+      title: `${normalized.title} was added`,
+      workspaceId: normalized.workspaceId,
+    });
+    const results = await createProjectArtifactRecords({ ...normalized, upload, extraStatements: event.statements });
+    if (!batchChanged(results, 3 + event.statements.length)) {
       throw new ProjectArtifactError("project_artifact_write_failed", "Project artifact creation did not commit completely.");
     }
   } catch (error) {
@@ -328,8 +352,30 @@ export async function addArtifactVersion(input: AddArtifactVersionInput) {
   }
 
   try {
-    const results = await addProjectArtifactVersionRecords(versionRecord);
-    if (!batchChanged(results, 2)) {
+    const event = prepareProjectCommitmentEventWrites({
+      actor: {
+        actorId: normalizedActor.id,
+        actorType: normalizedActor.type,
+        domainRoleSnapshot: normalizedActor.domainRole ?? null,
+      },
+      clientSafeSnapshot: {
+        title: artifact.title,
+        versionLabel: versionRecord.revisionLabel ?? `Version ${versionRecord.nextVersionNumber}`,
+        versionNumber: versionRecord.nextVersionNumber,
+      },
+      correlationId: `artifact:${artifact.id}:version:${versionId}`,
+      database: input.database,
+      eventType: "artifact.version_added",
+      internalMetadata: { contentSha256: normalizedHash, supersedesVersionId: artifact.currentVersion.id, uploadAssetId: input.uploadAssetId },
+      occurredAt: now,
+      projectId: artifact.projectId,
+      source: { artifactId: artifact.id, artifactVersionId: versionId, sourceType: "artifact" },
+      summary: "A new immutable artifact version became current.",
+      title: `${artifact.title} was revised`,
+      workspaceId: artifact.workspaceId,
+    });
+    const results = await addProjectArtifactVersionRecords({ ...versionRecord, extraStatements: event.statements });
+    if (!batchChanged(results, 2 + event.statements.length)) {
       throw new ProjectArtifactError("project_artifact_conflict", "Project artifact changed before the new version was saved.");
     }
   } catch (error) {
@@ -384,7 +430,7 @@ export function readArtifactVersion(input: ArtifactScope & { versionId: string }
   return readProjectArtifactVersionRecord(input);
 }
 
-export async function archiveArtifact(input: ArtifactScope & { artifactId: string; now?: string }) {
+export async function archiveArtifact(input: ArtifactScope & { actor?: ProjectArtifactActor; artifactId: string; now?: string }) {
   const artifactId = requiredIdentifier(input.artifactId, "Project artifact");
   const existing = await readProjectArtifactRecord({ ...input, artifactId });
   if (!existing) throw new ProjectArtifactError("project_artifact_not_found", "Project artifact was not found.");
@@ -392,8 +438,35 @@ export async function archiveArtifact(input: ArtifactScope & { artifactId: strin
   if (existing.status !== "active") {
     throw new ProjectArtifactError("project_artifact_conflict", "Project artifact cannot be archived from its current state.");
   }
-  const result = await archiveProjectArtifactRecord({ ...input, artifactId, now: isoTimestamp(input.now) });
-  if (Number(result.meta?.changes) !== 1) {
+  if (!existing.currentVersion) {
+    throw new ProjectArtifactError("project_artifact_write_failed", "Project artifact has no current version to archive.");
+  }
+  const now = isoTimestamp(input.now);
+  const archiveActor = input.actor ? actor(input.actor) : { id: "project-artifact-service", type: "system" as const, domainRole: null };
+  const event = prepareProjectCommitmentEventWrites({
+    actor: {
+      actorId: archiveActor.id,
+      actorType: archiveActor.type,
+      domainRoleSnapshot: archiveActor.domainRole ?? null,
+    },
+    clientSafeSnapshot: {
+      artifactCode: existing.artifactCode,
+      title: existing.title,
+      versionLabel: existing.currentVersion.revisionLabel ?? `Version ${existing.currentVersion.versionNumber}`,
+    },
+    correlationId: `artifact:${artifactId}:archived:${now}`,
+    database: input.database,
+    eventType: "artifact.archived",
+    internalMetadata: { artifactVersionId: existing.currentVersion.id },
+    occurredAt: now,
+    projectId: existing.projectId,
+    source: { artifactId, artifactVersionId: existing.currentVersion.id, sourceType: "artifact" },
+    summary: "The artifact was archived without removing its immutable versions.",
+    title: `${existing.title} was archived`,
+    workspaceId: existing.workspaceId,
+  });
+  const results = await archiveProjectArtifactRecord({ ...input, artifactId, extraStatements: event.statements, now });
+  if (!batchChanged(results, 1 + event.statements.length)) {
     throw new ProjectArtifactError("project_artifact_conflict", "Project artifact changed before it could be archived.");
   }
   const archived = await readProjectArtifactRecord({ ...input, artifactId });

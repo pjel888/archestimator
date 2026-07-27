@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { isClientPortalLegacyWriteFreezeEnabled } from "@/lib/client-portal/rollout";
 import { isUuid } from "@/lib/ids";
 import {
   createPublicationToken,
@@ -63,6 +64,15 @@ type PublicationActionResult = {
   message: string;
   clientLinkPath?: string | null;
 };
+
+const LEGACY_PUBLICATION_AUTHORING_REMOVED_MESSAGE =
+  "Legacy Client Links are read-only after Client Portal cutover. Open the project Client Portal to publish or manage recipients.";
+
+async function assertLegacyPublicationAuthoringAvailable() {
+  if (await isClientPortalLegacyWriteFreezeEnabled()) {
+    throw new Error(LEGACY_PUBLICATION_AUTHORING_REMOVED_MESSAGE);
+  }
+}
 
 type Json = PublicationAdminJson;
 type WorkspaceMemberRole = "owner" | "admin" | "member" | "viewer";
@@ -887,6 +897,7 @@ export async function createProjectPublication({
   locationVisibility?: ProjectPublicationLocationVisibility | null;
 }): Promise<PublicationActionResult> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15/22 (MOD-PW-05): reject any supplied invalid password before any DB write —
   // never hash or persist an invalid password, and never revoke the existing link for one.
@@ -962,6 +973,7 @@ export async function republishProjectPublication({
   locationVisibility?: ProjectPublicationLocationVisibility | null;
 }): Promise<PublicationActionResult> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15 (MOD-PW-05): a NEW password being set (provided and not clearing) must pass the
   // minimum-length check before any DB write. Clearing has no password; the verify path is elsewhere.
@@ -1045,6 +1057,7 @@ export async function rotateProjectPublicationLink({
   clearPassword?: boolean;
 }): Promise<PublicationActionResult> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   const context = await assertProjectPublicationManager(projectId);
   // AC-MOD-15 (MOD-PW-05): the live UI rotates with only { projectId } (the existing password_hash
   // is carried forward), but the action still accepts a password for internal callers. Guard the SET
@@ -1112,6 +1125,7 @@ export async function rotateProjectPublicationLink({
 
 export async function revokeProjectPublication({ projectId }: { projectId: string }): Promise<PublicationActionResult> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   const context = await assertProjectPublicationManager(projectId);
   const latest = await readLatestProjectPublication(context);
   const previousClientLinkPath = latest ? readClientLinkPath(latest) : null;
@@ -1460,6 +1474,7 @@ export async function addSharedLinkRecipients({
   baseClientLink?: string | null;
 }): Promise<AddSharedLinkRecipientsResult> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   if (!publicationId || !Array.isArray(inputs) || inputs.length === 0) {
     return { ok: false, message: "No recipients provided.", added: 0, failedEmails: [], emailResults: [] };
   }
@@ -1662,6 +1677,7 @@ export async function resendSharedLinkRecipientEmail({
   baseClientLink?: string | null;
 }): Promise<{ ok: boolean; message: string }> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   assertUuid(publicationId, "Publication");
   assertUuid(recipientId, "Recipient");
 
@@ -1761,6 +1777,7 @@ export async function removeSharedLinkRecipient({
   email?: string;
 }): Promise<{ ok: boolean; message: string }> {
   await requireAuth();
+  await assertLegacyPublicationAuthoringAvailable();
   if (!publicationId || (!recipientId && !email)) {
     return { ok: false, message: "Missing recipient identifier." };
   }

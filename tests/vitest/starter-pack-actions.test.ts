@@ -477,7 +477,7 @@ describe("starter pack actions", () => {
     `).run(
       WORKSPACE_ID,
       STARTER_PACK_VERSION,
-      "2026-07-27T00:00:00.000Z",
+      new Date(Date.now() + 60_000).toISOString(),
       NOW,
     );
 
@@ -582,7 +582,7 @@ describe("starter pack actions", () => {
     `).run(
       WORKSPACE_ID,
       STARTER_PACK_VERSION,
-      "2026-07-27T00:00:00.000Z",
+      new Date(Date.now() + 60_000).toISOString(),
       NOW,
     );
 

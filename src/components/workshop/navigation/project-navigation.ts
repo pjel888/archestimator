@@ -39,8 +39,8 @@ export function getProjectNavigationItems(
       exact: false,
     },
     {
-      href: `${root}/activity`,
-      label: "Activity",
+      href: `${root}/timeline`,
+      label: "Timeline",
       icon: ClockCounterClockwise,
       exact: false,
     },

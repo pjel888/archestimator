@@ -40,7 +40,7 @@ function createDatabaseThrough(maximumMigration: string) {
 function applyMigrationRange(
   database: LocalSqliteDatabase,
   firstMigration: string,
-  lastMigration = "0116_project_change_request_notification_outbox.sql",
+  lastMigration = "0120_project_commitment_event_backfill.sql",
 ) {
   for (const file of migrationFiles) {
     if (file < firstMigration) continue;
@@ -205,13 +205,142 @@ function seedPreLedgerGraph(database: LocalSqliteDatabase) {
 }
 
 function createMigratedFixture() {
-  const database = createDatabaseThrough("0105");
+  const database = createDatabaseThrough("0105_onboarding_resource_bindings_and_starter_leases.sql");
   seedPreLedgerGraph(database);
   applyMigrationRange(database, "0106");
   return database;
 }
 
+function createBackfillHistoryFixture() {
+  const database = createDatabaseThrough("0119_project_change_request_decline_transition.sql");
+  database.exec(`
+    INSERT INTO workspaces (id, name, created_at, updated_at)
+    VALUES ('workspace-history', 'History Workspace', '${timestamp}', '${timestamp}');
+
+    INSERT INTO projects (id, workspace_id, name, created_at, updated_at, currency_code)
+    VALUES ('project-history', 'workspace-history', 'History Project', '${timestamp}', '${timestamp}', 'USD');
+
+    INSERT INTO client_portals (
+      id, workspace_id, project_id, name, stable_token_hash, encrypted_stable_token,
+      created_by, created_at, updated_at
+    ) VALUES (
+      'portal-history', 'workspace-history', 'project-history', 'History Portal',
+      'history-token-hash', 'history-encrypted-token', 'owner-history', '${timestamp}', '${timestamp}'
+    );
+
+    INSERT INTO client_portal_issues (
+      id, portal_id, issue_number, version_label, status, issued_at, issued_by,
+      idempotency_key, manifest_json, content_hash, total_cost, currency_code,
+      brand_snapshot_json, decision_policy_snapshot_json, created_at
+    ) VALUES (
+      'issue-history', 'portal-history', 1, 'Issue 1', 'issued', '${timestamp}', 'owner-history',
+      'history-issue', '{}', '${hashA}', 100, 'USD', '{}', '{}', '${timestamp}'
+    );
+    UPDATE client_portals
+    SET current_issue_id = 'issue-history', status = 'live'
+    WHERE id = 'portal-history';
+
+    INSERT INTO client_portal_recipients (
+      id, portal_id, email_normalized, role_template, status, verification_state,
+      created_at, updated_at
+    ) VALUES (
+      'recipient-history', 'portal-history', 'history@example.test', 'reviewer',
+      'active', 'verified', '${timestamp}', '${timestamp}'
+    );
+
+    INSERT INTO project_change_requests (
+      id, workspace_id, project_id, origin_portal_id, request_number, request_code,
+      requested_by_actor_type, requested_by_actor_id, requested_by_name_snapshot,
+      requested_at, created_at, updated_at
+    ) VALUES (
+      'request-history', 'workspace-history', 'project-history', 'portal-history', 1, 'CR-0001',
+      'recipient', 'recipient-history', 'History Client', '${timestamp}', '${timestamp}', '${timestamp}'
+    );
+    INSERT INTO project_change_request_versions (
+      id, request_id, version_number, title, description, content_hash,
+      created_by_actor_type, created_by_actor_id, created_at
+    ) VALUES
+      ('request-history-v1', 'request-history', 1, 'Move wall', 'Move the east wall', '${hashA}', 'recipient', 'recipient-history', '${timestamp}'),
+      ('request-history-v2', 'request-history', 2, 'Move wall and door', 'Move both items', '${hashB}', 'recipient', 'recipient-history', '2026-07-26T01:00:00.000Z');
+    INSERT INTO project_change_request_state_events (
+      id, request_id, from_status, to_status, actor_type, actor_id,
+      idempotency_key, occurred_at
+    ) VALUES (
+      'request-history-state-1', 'request-history', 'initializing', 'submitted',
+      'recipient', 'recipient-history', 'submit-history', '${timestamp}'
+    );
+    UPDATE project_change_requests
+    SET current_version_id = 'request-history-v2', status = 'submitted', updated_at = '2026-07-26T01:00:00.000Z'
+    WHERE id = 'request-history';
+    INSERT INTO project_change_request_state_events (
+      id, request_id, from_status, to_status, actor_type, actor_id,
+      idempotency_key, occurred_at
+    ) VALUES (
+      'request-history-state-2', 'request-history', 'submitted', 'acknowledged',
+      'internal_user', 'owner-history', 'ack-history', '2026-07-26T02:00:00.000Z'
+    );
+    UPDATE project_change_requests
+    SET status = 'acknowledged', updated_at = '2026-07-26T02:00:00.000Z'
+    WHERE id = 'request-history';
+    INSERT INTO client_portal_request_exposures (
+      request_id, portal_id, public_request_id, exposure_kind, policy_snapshot_json,
+      exposed_by_actor_type, exposed_by_actor_id, exposed_at
+    ) VALUES (
+      'request-history', 'portal-history', 'request-public-history', 'automatic',
+      '{"capability":"timeline:view"}', 'recipient', 'recipient-history', '${timestamp}'
+    );
+
+    INSERT INTO client_portal_threads (
+      id, portal_id, issue_id, target_kind, target_public_id, target_label, subject,
+      audience, status, waiting_state, created_by_actor_type, created_by_actor_id,
+      resolved_at, resolved_by_actor_id, created_at, updated_at
+    ) VALUES (
+      'thread-history', 'portal-history', 'issue-history', 'issue', 'issue-history', 'Issue 1',
+      'Confirm scope', 'client', 'resolved', 'no_response_required', 'recipient',
+      'recipient-history', '2026-07-26T03:00:00.000Z', 'owner-history', '${timestamp}', '2026-07-26T03:00:00.000Z'
+    );
+    INSERT INTO client_portal_messages (
+      id, thread_id, actor_type, actor_id, author_snapshot_json, body,
+      idempotency_key, visibility, created_at
+    ) VALUES
+      ('message-history-1', 'thread-history', 'recipient', 'recipient-history', '{"displayName":"History Client","role":"reviewer"}', 'Initial question', 'message-history-1', 'client', '${timestamp}'),
+      ('message-history-2', 'thread-history', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Owner answer', 'message-history-2', 'client', '2026-07-26T02:30:00.000Z'),
+      ('message-history-note', 'thread-history', 'internal_user', 'owner-history', '{"role":"owner","side":"owner"}', 'Private note', 'message-history-note', 'internal', '2026-07-26T02:45:00.000Z');
+    INSERT INTO client_portal_audit_events (
+      id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type,
+      visibility, metadata_json, occurred_at, created_at
+    ) VALUES (
+      'audit-history-resolved', 'workspace-history', 'portal-history', 'issue-history',
+      'internal_user', 'owner-history', 'thread_resolved', 'client_safe',
+      '{"threadId":"thread-history"}', '2026-07-26T03:00:00.000Z', '2026-07-26T03:00:00.000Z'
+    );
+  `);
+  const backfill = readFileSync("migrations/0120_project_commitment_event_backfill.sql", "utf8");
+  database.exec(`BEGIN;\n${backfill}\nCOMMIT;`);
+  database.exec(`BEGIN;\n${backfill}\nCOMMIT;`);
+  return database;
+}
+
 describe("project ledger migrations", () => {
+  it("replays semantic version and client-visible discussion history idempotently", () => {
+    const database = createBackfillHistoryFixture();
+
+    expect(database.prepare("SELECT event_type FROM project_commitment_events WHERE source_type = 'change_request' ORDER BY occurred_at, event_type").all()).toEqual([
+      { event_type: "request.submitted" },
+      { event_type: "request.amended" },
+      { event_type: "request.acknowledged" },
+    ]);
+    expect(database.prepare("SELECT event_type FROM project_commitment_events WHERE event_type LIKE 'discussion.%' ORDER BY occurred_at, event_type").all()).toEqual([
+      { event_type: "discussion.started" },
+      { event_type: "discussion.updated" },
+      { event_type: "discussion.resolved" },
+    ]);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM project_commitment_events WHERE json_extract(internal_metadata_json, '$.messageId') = 'message-history-note'").get()).toEqual({ count: 0 });
+    expect(database.prepare("SELECT status, capability FROM project_commitment_backfill_markers WHERE source_type = 'change_request' AND source_id = 'request-history'").get()).toEqual({ capability: "full", status: "backfilled" });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    database.close();
+  });
+
   it("preserves constrained portal, upload, and discussion child rows", () => {
     const database = createMigratedFixture();
 
@@ -238,6 +367,7 @@ describe("project ledger migrations", () => {
     }
 
     expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM project_commitment_backfill_markers").get()).toEqual({ count: 2 });
     expect(
       database
         .prepare("SELECT name FROM sqlite_master WHERE name GLOB '*__01[0-9][0-9]*'")

@@ -229,6 +229,22 @@ describe("onboarding flow catalog", () => {
     });
   });
 
+  it("targets the modern Commitment Center without legacy Publisher controls", () => {
+    const publishing = getOnboardingFlowDefinition("client_link_publishing");
+    const targets = publishing.steps.map((step) => step.target);
+
+    expect(publishing.version).toBe(2);
+    expect(targets).toEqual([
+      "commitment_center.overview",
+      "commitment_center.compose",
+      "commitment_center.portals",
+      "commitment_center.access_delivery",
+      "commitment_center.action_required",
+      "commitment_center.views",
+    ]);
+    expect(targets.some((target) => target.startsWith("publisher."))).toBe(false);
+  });
+
   it("caps activation-session guides and keeps advanced lessons contextual", () => {
     const orientation = getOnboardingFlowDefinition("core_orientation");
     const practice = getOnboardingFlowDefinition("guided_estimate_practice");

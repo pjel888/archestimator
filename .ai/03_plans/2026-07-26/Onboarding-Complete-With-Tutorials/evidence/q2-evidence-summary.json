@@ -20,27 +20,34 @@
     { "path": "artifacts/quality/onboarding-typecheck.json", "result": "repository TypeScript passed" },
     { "path": "artifacts/quality/onboarding-build.json", "result": "production build passed" },
     { "path": "artifacts/quality/onboarding-settings-playwright.json", "result": "3/3 expected tests passed" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-chromium.json", "result": "1/1 authenticated Chromium journey passed: real pointer target, keyboard handoff, persisted row mutation, and post-reload peso value" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-firefox.json", "result": "1/1 authenticated Firefox journey passed: real pointer target, keyboard handoff, persisted row mutation, and post-reload peso value" },
+    { "path": "artifacts/quality/onboarding-first-value-webkit-launch-diagnostic.json", "result": "1/1 authenticated WebKit keyboard handoff and Return/Escape recovery journey passed" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-webkit.json", "result": "1/1 authenticated WebKit journey passed: real pointer target, persisted row mutation, and post-reload peso value" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-mobile-safari.json", "result": "1/1 authenticated Mobile Safari journey passed: real pointer target, persisted row mutation, and post-reload peso value" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-iphone-se.json", "result": "1/1 authenticated iPhone SE journey passed: real pointer target, persisted row mutation, and post-reload peso value" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-ipad.json", "result": "1/1 authenticated iPad journey passed: real pointer target, persisted row mutation, and post-reload peso value" },
+    { "path": "artifacts/quality/onboarding-first-value-persisted-progress-pixel-8-chrome.json", "result": "1/1 authenticated Pixel journey passed: real pointer target, persisted row mutation, and post-reload peso value" },
     { "path": "evidence/reviews/architecture-review.md", "result": "PASS/CLEAR with zero unresolved findings" },
     { "path": "evidence/reviews/security-review.md", "result": "APPROVE with zero findings" }
   ],
   "failing_evidence": [
-    { "path": "artifacts/quality/onboarding-diff-coverage.json", "result": "FAIL: 10.20% changed lines/statements, 44.44% changed branches, canonical baseline pending" },
-    { "path": "artifacts/quality/mutation.json", "result": "NOT APPLICABLE: 100% score selected only src/lib/ab-testing/results-calculator.ts" },
-    { "path": "evidence/gitnexus-detect-changes.json", "result": "FAIL: index is 31 commits behind the reviewed worktree" }
+    { "path": "artifacts/quality/onboarding-diff-coverage.json", "result": "FAIL: current shared-worktree diff coverage is 14.60% changed lines/statements, 51.37% changed branches, 85.00% functions, with the canonical baseline pending; concurrent portal changes dominate the uncovered scope." },
+    { "path": "artifacts/quality/mutation.json", "result": "INCOMPLETE: critical selection includes Joyride runtime, onboarding progress, and starter preservation; the harness now initializes and its focused starter baseline passes, but the serialized 3,219-mutant run was stopped before a score or survivor report was produced." },
+    { "path": "evidence/gitnexus-detect-changes.json", "result": "FAIL: fresh indexing is unavailable because the safe reindex command refuses the unpinned gitnexus@latest fallback runner; prior index evidence remains stale." }
     ,
-    { "path": "artifacts/quality/onboarding-first-value-playwright-matrix.json", "result": "FAIL: the latest authenticated browser run exposed incomplete persisted domain-progress resume; the earlier 35/35 receipt is superseded" }
+    { "path": "artifacts/quality/onboarding-first-value-playwright-matrix.json", "result": "INCOMPLETE: the serial full matrix was interrupted before it emitted a current receipt. The critical persisted-progress journey has current focused receipts for every configured browser project, but the complete onboarding suite has not been rerun serially." }
   ],
   "acceptance_gaps": [
-    "Mobile browser projects do not yet activate the real product target and prove persisted domain progress.",
     "Critical changed onboarding code lacks 100% changed line, statement, and branch coverage.",
-    "Critical mutation has not selected the onboarding authorization, lease, CAS, proof, preservation, or handoff paths.",
-    "GitNexus detect_changes is not fresh against the current worktree."
+    "Critical mutation correctly selects the onboarding runtime, progress, and starter-preservation paths, but a complete serialized run has not produced a score or survivor report.",
+    "GitNexus detect_changes is not fresh because the safe reindex command refuses its unpinned fallback runner."
   ],
   "independent_review": {
     "architecture": "PASS",
     "security": "PASS",
     "quality": "FAIL"
   },
-  "wrap_up": "Stopped at the user's request after seven hours. Implementation is retained; release remains fail-closed and no deployment claim is made.",
-  "stop_condition": "A future continuation must first repair and pass persisted domain-progress browser resume, then close diff coverage, targeted mutation, and fresh GitNexus evidence."
+  "wrap_up": "Stopped at the user's request after seven hours. The critical persisted-progress journey is green on every configured browser project, but the complete serial onboarding suite remains unrun; implementation is retained, release remains fail-closed, and no deployment claim is made.",
+  "stop_condition": "A future continuation must first close diff coverage, complete targeted mutation and review survivors, add or approve a pinned GitNexus runner and refresh graph evidence, and produce a complete serial onboarding-suite receipt before any release claim."
 }

@@ -444,7 +444,7 @@ export const ONBOARDING_FLOW_CATALOG = [
   },
   {
     key: "client_link_publishing",
-    version: 1,
+    version: 2,
     autoStart: "never",
     reenrollment: "incomplete_only",
     audience: [
@@ -460,7 +460,7 @@ export const ONBOARDING_FLOW_CATALOG = [
       step({
         key: "client_links_roster",
         lesson: "read_client_links",
-        target: "publisher.roster",
+        target: "commitment_center.overview",
         route: "client_links",
         viewports: DESKTOP_AND_MOBILE,
         requires: ["manage_client_links"],
@@ -473,7 +473,7 @@ export const ONBOARDING_FLOW_CATALOG = [
       step({
         key: "client_links_publish",
         lesson: "scope_and_publish",
-        target: "publisher.create",
+        target: "commitment_center.compose",
         route: "client_links",
         viewports: DESKTOP_AND_MOBILE,
         requires: ["manage_client_links"],
@@ -486,7 +486,7 @@ export const ONBOARDING_FLOW_CATALOG = [
       step({
         key: "client_links_verify",
         lesson: "verify_and_share",
-        target: "publisher.link",
+        target: "commitment_center.portals",
         route: "client_links",
         viewports: DESKTOP_AND_MOBILE,
         requires: ["manage_client_links"],
@@ -499,7 +499,7 @@ export const ONBOARDING_FLOW_CATALOG = [
       step({
         key: "client_links_recipients",
         lesson: "recipients_and_activity",
-        target: "publisher.recipients",
+        target: "commitment_center.access_delivery",
         route: "client_links",
         viewports: DESKTOP_AND_MOBILE,
         requires: ["manage_client_links"],
@@ -512,7 +512,7 @@ export const ONBOARDING_FLOW_CATALOG = [
       step({
         key: "client_links_maintenance",
         lesson: "keep_it_current",
-        target: "publisher.status",
+        target: "commitment_center.action_required",
         route: "client_links",
         viewports: DESKTOP_AND_MOBILE,
         requires: ["manage_client_links"],
@@ -525,7 +525,7 @@ export const ONBOARDING_FLOW_CATALOG = [
       step({
         key: "client_links_safety",
         lesson: "replace_or_turn_off_safely",
-        target: "publisher.drawer",
+        target: "commitment_center.views",
         route: "client_links",
         viewports: DESKTOP_AND_MOBILE,
         requires: ["manage_client_links"],
