@@ -12,6 +12,10 @@ import { runtime } from "@/app/api/share/[token]/requests/[publicRequestId]/evid
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]);
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+const JPEG_WITH_EXIF_BYTES = new Uint8Array([
+  0xff, 0xd8, 0xff, 0xe1,
+  ...new TextEncoder().encode("Exif\0\0private-camera-metadata"),
+]);
 const WEBP_BYTES = new TextEncoder().encode("RIFFsizeWEBP");
 const AVIF_BYTES = new Uint8Array([
   0x00, 0x00, 0x00, 0x18,
@@ -133,14 +137,30 @@ function dependencies(
       ],
     })),
     reserveAdmission: vi.fn(() => ({ allowed: true as const, release: vi.fn() })),
+    checkDurableQuota: vi.fn(async () => ({ allowed: true as const })),
+    processImage: vi.fn(async () => ({
+      status: "ok" as const,
+      image: {
+        data: Buffer.from("normalized-webp"),
+        info: { width: 800, height: 600 },
+      },
+    })),
     buildObjectKey: vi.fn(() => "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf"),
     createStorageProvider: vi.fn(async () => storageProvider as never),
-    recordUpload: vi.fn(async () => ({
+    reserveUpload: vi.fn(async () => ({
+      uploadSessionId: "upload-session-1",
+      assetId: "upload-asset-1",
+      scanStatus: "pending",
+      bucket: "project-artifacts",
+      path: "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
+    }) as never),
+    finalizeUpload: vi.fn(async () => ({
       uploadSessionId: "upload-session-1",
       assetId: "upload-asset-1",
       scanStatus: "pending" as const,
     })),
-    insertPendingEvidenceUpload: vi.fn(async () => undefined),
+    failUpload: vi.fn(async () => undefined),
+    buildPendingEvidenceUploadStatement: vi.fn(() => ({}) as never),
     createId: vi.fn(() => "evidence-upload-1"),
     now: vi.fn(() => "2026-07-27T00:00:00.000Z"),
     ...overrides,
@@ -228,7 +248,7 @@ describe("recipient change-request evidence byte upload route", () => {
       createdAt: "2026-07-27T00:00:00.000Z",
     });
 
-    expect(preparedSql).toContain("INSERT INTO project_change_request_evidence_uploads");
+    expect(preparedSql).toContain("INSERT OR IGNORE INTO project_change_request_evidence_uploads");
     expect(preparedSql).toContain("'evidence', 'pending_scan'");
     expect(boundValues).toEqual([
       "evidence-upload-1",
@@ -362,6 +382,47 @@ describe("recipient change-request evidence byte upload route", () => {
     expect(deps.createStorageProvider).not.toHaveBeenCalled();
   });
 
+  it("denies before parsing or storage when the durable recipient quota is exhausted", async () => {
+    const deps = dependencies({
+      checkDurableQuota: vi.fn(async () => ({
+        allowed: false as const,
+        message: "Too many evidence uploads. Please wait 60 seconds.",
+        retryAfter: 60,
+      })),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    expect(deps.readFormData).not.toHaveBeenCalled();
+    expect(deps.reserveAdmission).not.toHaveBeenCalled();
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before parsing or storage when durable quota storage is unavailable", async () => {
+    const deps = dependencies({
+      checkDurableQuota: vi.fn(async () => { throw new Error("D1 unavailable"); }),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(503);
+    expect(deps.readFormData).not.toHaveBeenCalled();
+    expect(deps.reserveAdmission).not.toHaveBeenCalled();
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+  });
+
   it("stores project-scoped metadata and inserts a retained pending-scan evidence record", async () => {
     const deps = dependencies();
     const response = await handleRecipientEvidenceByteUpload(
@@ -372,13 +433,19 @@ describe("recipient change-request evidence byte upload route", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(deps.checkDurableQuota).toHaveBeenCalledWith({
+      portalId: "portal-1",
+      recipientId: "recipient-1",
+      request: expect.any(Request),
+      workspaceId: "workspace-1",
+    });
     expect(deps.buildObjectKey).toHaveBeenCalledWith(expect.objectContaining({
       surface: "portal-request-evidence",
       targetEntityId: "project-1",
       userId: "recipient-1",
       workspaceId: "workspace-1",
     }));
-    expect(deps.recordUpload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+    expect(deps.reserveUpload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       actorUserId: "recipient-1",
       bucket: "project-artifacts",
       scanStatus: "pending",
@@ -395,29 +462,200 @@ describe("recipient change-request evidence byte upload route", () => {
       },
       workspaceId: "workspace-1",
     }));
-    expect(deps.insertPendingEvidenceUpload).toHaveBeenCalledWith(expect.anything(), {
+    expect(deps.buildPendingEvidenceUploadStatement).toHaveBeenCalledWith(expect.anything(), {
       id: "evidence-upload-1",
       recipientId: "recipient-1",
       requestVersionId: "request-version-1",
       uploadAssetId: "upload-asset-1",
       createdAt: "2026-07-27T00:00:00.000Z",
     });
+    expect(deps.finalizeUpload).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ uploadSessionId: "upload-session-1" }),
+      [expect.anything()],
+    );
     await expect(response.json()).resolves.toEqual({ status: "pending_scan" });
   });
 
-  it.each(["record", "evidence"])("removes the uploaded object when %s persistence fails", async (failure) => {
+  it("strips image metadata through WebP normalization and checksums normalized bytes", async () => {
+    const normalizedBytes = Buffer.from("normalized-webp-without-exif");
+    const uploadObject = vi.fn(async () => undefined);
+    const deps = dependencies({
+      createStorageProvider: vi.fn(async () => ({
+        uploadObject,
+        removeObjects: vi.fn(async () => undefined),
+      }) as never),
+      processImage: vi.fn(async () => ({
+        status: "ok" as const,
+        image: {
+          data: normalizedBytes,
+          info: { width: 1200, height: 900 },
+        },
+      })),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(JPEG_WITH_EXIF_BYTES, "image/jpeg", "site-photo.jpg"),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(201);
+    expect(deps.processImage).toHaveBeenCalledWith({
+      sourceBuffer: Buffer.from(JPEG_WITH_EXIF_BYTES),
+      magicMime: "image/jpeg",
+      maxImagePixels: 24_000_000,
+      maxImageEdge: 1600,
+    });
+    expect(deps.buildObjectKey).toHaveBeenCalledWith(expect.objectContaining({
+      extension: "webp",
+      fileName: "site-photo.webp",
+    }));
+    expect(deps.reserveUpload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      checksumBytes: normalizedBytes,
+      contentType: "image/webp",
+      fileName: "site-photo.webp",
+      sizeBytes: normalizedBytes.byteLength,
+      metadata: expect.objectContaining({
+        normalizedContentType: "image/webp",
+        normalizedHeight: 900,
+        normalizedWidth: 1200,
+        sourceContentType: "image/jpeg",
+        sourceSizeBytes: JPEG_WITH_EXIF_BYTES.byteLength,
+      }),
+    }));
+    expect(uploadObject).toHaveBeenCalledWith(expect.objectContaining({
+      body: normalizedBytes,
+      contentType: "image/webp",
+    }));
+    expect(normalizedBytes.includes(Buffer.from("Exif"))).toBe(false);
+  });
+
+  it("reserves in D1 before writing R2 and atomically finalizes the evidence relation", async () => {
+    const order: string[] = [];
+    const deps = dependencies({
+      reserveUpload: vi.fn(async () => {
+        order.push("reserve");
+        return {
+          uploadSessionId: "upload-session-1",
+          assetId: "upload-asset-1",
+          scanStatus: "pending",
+          bucket: "project-artifacts",
+          path: "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
+        } as never;
+      }),
+      createStorageProvider: vi.fn(async () => {
+        order.push("storage");
+        return {
+          uploadObject: vi.fn(async () => { order.push("upload"); }),
+          removeObjects: vi.fn(async () => undefined),
+        } as never;
+      }),
+      buildPendingEvidenceUploadStatement: vi.fn(() => {
+        order.push("relationship");
+        return {} as never;
+      }),
+      finalizeUpload: vi.fn(async () => {
+        order.push("finalize");
+        return {
+          uploadSessionId: "upload-session-1",
+          assetId: "upload-asset-1",
+          scanStatus: "pending",
+        };
+      }),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(201);
+    expect(order).toEqual(["reserve", "storage", "upload", "relationship", "finalize"]);
+  });
+
+  it("does not open R2 when durable reservation fails", async () => {
+    const deps = dependencies({
+      reserveUpload: vi.fn(async () => { throw new Error("reserve failed"); }),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(503);
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+    expect(deps.finalizeUpload).not.toHaveBeenCalled();
+  });
+
+  it("retries transient D1 finalization without rewriting or deleting R2", async () => {
     const removeObjects = vi.fn(async () => undefined);
     const deps = dependencies({
       createStorageProvider: vi.fn(async () => ({
         uploadObject: vi.fn(async () => undefined),
         removeObjects,
       }) as never),
-      recordUpload: failure === "record"
-        ? vi.fn(async () => { throw new Error("record failed"); })
-        : dependencies().recordUpload,
-      insertPendingEvidenceUpload: failure === "evidence"
-        ? vi.fn(async () => { throw new Error("evidence failed"); })
-        : vi.fn(async () => undefined),
+      finalizeUpload: vi.fn()
+        .mockRejectedValueOnce(new Error("D1 unavailable"))
+        .mockResolvedValueOnce({
+          uploadSessionId: "upload-session-1",
+          assetId: "upload-asset-1",
+          scanStatus: "pending",
+        }),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(201);
+    expect(deps.finalizeUpload).toHaveBeenCalledTimes(2);
+    expect(deps.buildPendingEvidenceUploadStatement).toHaveBeenCalledTimes(2);
+    expect(removeObjects).not.toHaveBeenCalled();
+    expect(deps.failUpload).not.toHaveBeenCalled();
+  });
+
+  it("preserves R2 bytes and reserved state when D1 finalization stays unavailable", async () => {
+    const removeObjects = vi.fn(async () => undefined);
+    const deps = dependencies({
+      createStorageProvider: vi.fn(async () => ({
+        uploadObject: vi.fn(async () => undefined),
+        removeObjects,
+      }) as never),
+      finalizeUpload: vi.fn(async () => { throw new Error("finalization failed"); }),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(503);
+    expect(deps.finalizeUpload).toHaveBeenCalledTimes(2);
+    expect(removeObjects).not.toHaveBeenCalled();
+    expect(deps.failUpload).not.toHaveBeenCalled();
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("removes possible partial bytes and fails reserved state when R2 storage fails", async () => {
+    const removeObjects = vi.fn(async () => undefined);
+    const deps = dependencies({
+      createStorageProvider: vi.fn(async () => ({
+        uploadObject: vi.fn(async () => { throw new Error("R2 unavailable"); }),
+        removeObjects,
+      }) as never),
     });
 
     const response = await handleRecipientEvidenceByteUpload(
@@ -431,7 +669,10 @@ describe("recipient change-request evidence byte upload route", () => {
     expect(removeObjects).toHaveBeenCalledWith("project-artifacts", [
       "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
     ]);
-    expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(deps.failUpload).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ uploadSessionId: "upload-session-1" }),
+      "storage",
+    );
   });
 });

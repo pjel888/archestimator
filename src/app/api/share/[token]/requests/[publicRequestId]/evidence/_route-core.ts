@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import type {
+  D1DatabaseLike,
+  D1PreparedStatementLike,
+} from "@/lib/cloudflare/d1";
 import {
   readClientPortalRecipientSession,
   requiresClientPortalPassword,
@@ -9,16 +12,27 @@ import {
 import {
   evaluateClientPortalPolicy,
 } from "@/lib/client-portal/policy";
+import { checkClientPortalEvidenceUploadRateLimits } from "@/lib/client-portal/public-rate-limits";
 import { readBoundedFormData } from "@/lib/http/read-bounded-body";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
 import { getUploadPolicy } from "@/lib/uploads/policy";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
-import { recordUploadAsset } from "@/lib/uploads/upload-records";
+import {
+  CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
+  processSupportImageToWebp,
+} from "@/lib/uploads/server-image-processing";
+import {
+  failReservedUploadAsset,
+  finalizeReservedUploadAsset,
+  reserveUploadAsset,
+} from "@/lib/uploads/upload-records";
 
 const UPLOAD_SURFACE = "portal-request-evidence" as const;
 const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
+const MAX_EVIDENCE_IMAGE_PIXELS = 24_000_000;
+const MAX_EVIDENCE_IMAGE_EDGE = 1600;
 const MIME_EXTENSIONS = {
   "application/pdf": "pdf",
   "image/jpeg": "jpg",
@@ -57,8 +71,12 @@ export type RecipientEvidenceByteUploadDependencies = {
   reserveAdmission: typeof reserveUploadAdmission;
   buildObjectKey: typeof buildUploadObjectKey;
   createStorageProvider: typeof createRuntimeUploadStorageProvider;
-  recordUpload: typeof recordUploadAsset;
-  insertPendingEvidenceUpload: typeof insertPendingEvidenceUpload;
+  checkDurableQuota: typeof checkClientPortalEvidenceUploadRateLimits;
+  processImage: typeof processSupportImageToWebp;
+  reserveUpload: typeof reserveUploadAsset;
+  finalizeUpload: typeof finalizeReservedUploadAsset;
+  failUpload: typeof failReservedUploadAsset;
+  buildPendingEvidenceUploadStatement: typeof buildPendingEvidenceUploadStatement;
   createId: () => string;
   now: () => string;
 };
@@ -182,8 +200,16 @@ export async function insertPendingEvidenceUpload(
   database: D1DatabaseLike,
   input: PendingEvidenceUploadInput,
 ) {
-  const result = await database.prepare(`
-    INSERT INTO project_change_request_evidence_uploads (
+  const result = await buildPendingEvidenceUploadStatement(database, input).run();
+  if (result.success === false) throw new Error("Could not retain request evidence upload.");
+}
+
+export function buildPendingEvidenceUploadStatement(
+  database: D1DatabaseLike,
+  input: PendingEvidenceUploadInput,
+): D1PreparedStatementLike {
+  return database.prepare(`
+    INSERT OR IGNORE INTO project_change_request_evidence_uploads (
       id,
       request_version_id,
       upload_asset_id,
@@ -202,8 +228,7 @@ export async function insertPendingEvidenceUpload(
     input.recipientId,
     input.createdAt,
     input.createdAt,
-  ).run();
-  if (result.success === false) throw new Error("Could not retain request evidence upload.");
+  );
 }
 
 const dependencies: RecipientEvidenceByteUploadDependencies = {
@@ -218,8 +243,12 @@ const dependencies: RecipientEvidenceByteUploadDependencies = {
   reserveAdmission: reserveUploadAdmission,
   buildObjectKey: buildUploadObjectKey,
   createStorageProvider: createRuntimeUploadStorageProvider,
-  recordUpload: recordUploadAsset,
-  insertPendingEvidenceUpload,
+  checkDurableQuota: checkClientPortalEvidenceUploadRateLimits,
+  processImage: processSupportImageToWebp,
+  reserveUpload: reserveUploadAsset,
+  finalizeUpload: finalizeReservedUploadAsset,
+  failUpload: failReservedUploadAsset,
+  buildPendingEvidenceUploadStatement,
   createId: randomUUID,
   now: () => new Date().toISOString(),
 };
@@ -315,6 +344,23 @@ export async function handleRecipientEvidenceByteUpload(
   if (!authorization) return unavailable();
 
   const { actor, context, exposure } = authorization;
+  let durableQuota: Awaited<ReturnType<typeof checkClientPortalEvidenceUploadRateLimits>>;
+  try {
+    durableQuota = await routeDependencies.checkDurableQuota({
+      portalId: context.portal.id,
+      recipientId: actor.recipientId,
+      workspaceId: context.portal.workspace_id,
+      request,
+    });
+  } catch {
+    return json({ error: "Evidence upload is temporarily unavailable." }, 503);
+  }
+  if (!durableQuota.allowed) {
+    return json({ error: durableQuota.message }, 429, {
+      "Retry-After": String(durableQuota.retryAfter),
+    });
+  }
+
   let admission: ReturnType<typeof reserveUploadAdmission>;
   try {
     admission = routeDependencies.reserveAdmission({
@@ -350,37 +396,70 @@ export async function handleRecipientEvidenceByteUpload(
     if (file.size <= 0) return json({ error: "Evidence file is empty." }, 400);
     if (file.size > policy.maxBytes) return json({ error: "Evidence file is too large." }, 413);
 
-    const bytes = Buffer.from(await file.arrayBuffer());
-    const magicMime = readEvidenceMagicMime(bytes.subarray(0, 64));
+    const sourceBytes = Buffer.from(await file.arrayBuffer());
+    const magicMime = readEvidenceMagicMime(sourceBytes.subarray(0, 64));
     if (!magicMime || magicMime !== declaredMime) {
       return json({ error: "Evidence file content does not match its type." }, 400);
+    }
+
+    const isImage = declaredMime.startsWith("image/");
+    let uploadBytes = sourceBytes;
+    let uploadContentType: string = declaredMime;
+    let uploadFileName = file.name;
+    let normalizedImageMetadata: Record<string, string | number> = {};
+    if (isImage) {
+      const processed = await routeDependencies.processImage({
+        sourceBuffer: sourceBytes,
+        magicMime,
+        maxImagePixels: MAX_EVIDENCE_IMAGE_PIXELS,
+        maxImageEdge: MAX_EVIDENCE_IMAGE_EDGE,
+      });
+      if (processed.status === "cloudflare-image-processing-unavailable") {
+        return json({ error: CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE }, 503);
+      }
+      if (processed.status === "dimensions-too-large") {
+        return json({ error: "Evidence image dimensions exceed the 24 megapixel limit." }, 413);
+      }
+      if (processed.status === "animated-image") {
+        return json({ error: "Animated evidence images are not supported." }, 400);
+      }
+      if (
+        processed.status === "unsupported-encoding"
+        || processed.status === "missing-dimensions"
+        || processed.status === "decode-error"
+      ) {
+        return json({ error: "Evidence image could not be decoded safely." }, 400);
+      }
+      uploadBytes = processed.image.data;
+      uploadContentType = "image/webp";
+      uploadFileName = `${file.name.replace(/\.[^.]+$/, "") || "evidence"}.webp`;
+      normalizedImageMetadata = {
+        normalizedContentType: uploadContentType,
+        normalizedHeight: processed.image.info.height,
+        normalizedWidth: processed.image.info.width,
+        sourceContentType: declaredMime,
+        sourceSizeBytes: sourceBytes.byteLength,
+      };
+      if (uploadBytes.byteLength > policy.maxBytes) {
+        return json({ error: "Normalized evidence image is too large." }, 413);
+      }
     }
 
     const objectPath = routeDependencies.buildObjectKey({
       surface: UPLOAD_SURFACE,
       workspaceId: context.portal.workspace_id,
       userId: actor.recipientId,
-      fileName: file.name,
-      extension: MIME_EXTENSIONS[declaredMime],
+      fileName: uploadFileName,
+      extension: isImage ? "webp" : MIME_EXTENSIONS[declaredMime],
       targetEntityId: context.portal.project_id,
     });
 
-    let storageProvider: Awaited<ReturnType<typeof createRuntimeUploadStorageProvider>>;
+    let reservation: Awaited<ReturnType<typeof reserveUploadAsset>> | null = null;
+    let storageProvider: Awaited<ReturnType<typeof createRuntimeUploadStorageProvider>> | null = null;
+    let storageAttempted = false;
+    let objectStored = false;
     try {
-      storageProvider = await routeDependencies.createStorageProvider();
-      await storageProvider.uploadObject({
-        bucket: policy.bucket,
-        path: objectPath,
-        body: bytes,
-        contentType: declaredMime,
-        cacheControl: "private, no-store",
-      });
-    } catch {
-      return json({ error: "Evidence upload could not be stored." }, 503);
-    }
-
-    try {
-      const upload = await routeDependencies.recordUpload(context.database, {
+      reservation = await routeDependencies.reserveUpload(context.database, {
         workspaceId: context.portal.workspace_id,
         actorUserId: actor.recipientId,
         surface: UPLOAD_SURFACE,
@@ -388,10 +467,10 @@ export async function handleRecipientEvidenceByteUpload(
         targetEntityId: exposure.requestId,
         bucket: policy.bucket,
         path: objectPath,
-        fileName: file.name,
-        contentType: declaredMime,
-        sizeBytes: bytes.byteLength,
-        checksumBytes: bytes,
+        fileName: uploadFileName,
+        contentType: uploadContentType,
+        sizeBytes: uploadBytes.byteLength,
+        checksumBytes: uploadBytes,
         scanStatus: "pending",
         metadata: {
           portalId: context.portal.id,
@@ -400,17 +479,48 @@ export async function handleRecipientEvidenceByteUpload(
           recipientId: actor.recipientId,
           requestId: exposure.requestId,
           requestVersionId: exposure.requestVersionId,
+          ...normalizedImageMetadata,
         },
       });
-      await routeDependencies.insertPendingEvidenceUpload(context.database, {
-        id: routeDependencies.createId(),
-        requestVersionId: exposure.requestVersionId,
-        uploadAssetId: upload.assetId,
-        recipientId: actor.recipientId,
-        createdAt: routeDependencies.now(),
+      storageProvider = await routeDependencies.createStorageProvider();
+      storageAttempted = true;
+      await storageProvider.uploadObject({
+        bucket: policy.bucket,
+        path: objectPath,
+        body: uploadBytes,
+        contentType: uploadContentType,
+        cacheControl: "private, no-store",
       });
+      objectStored = true;
+      let finalized = false;
+      let finalizationError: unknown;
+      for (let attempt = 0; attempt < 2 && !finalized; attempt += 1) {
+        const evidenceStatement = routeDependencies.buildPendingEvidenceUploadStatement(context.database, {
+          id: routeDependencies.createId(),
+          requestVersionId: exposure.requestVersionId,
+          uploadAssetId: reservation.assetId,
+          recipientId: actor.recipientId,
+          createdAt: routeDependencies.now(),
+        });
+        try {
+          await routeDependencies.finalizeUpload(context.database, reservation, [evidenceStatement]);
+          finalized = true;
+        } catch (error) {
+          finalizationError = error;
+        }
+      }
+      if (!finalized) throw finalizationError;
     } catch {
-      await storageProvider.removeObjects(policy.bucket, [objectPath]).catch(() => undefined);
+      if (reservation && !objectStored) {
+        if (storageAttempted && storageProvider) {
+          await storageProvider.removeObjects(policy.bucket, [objectPath]).catch(() => undefined);
+        }
+        await routeDependencies.failUpload(
+          context.database,
+          reservation,
+          "storage",
+        ).catch(() => undefined);
+      }
       return json({ error: "Evidence upload could not be finalized." }, 503);
     }
 

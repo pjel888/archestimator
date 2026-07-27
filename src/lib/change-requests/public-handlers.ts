@@ -31,9 +31,20 @@ type RecipientActor = Extract<ClientPortalActor, { kind: "recipient" }>;
 type PublicContext = NonNullable<Awaited<ReturnType<typeof resolveClientPortalBaseContext>>>;
 
 type ExposureRow = {
+  policy_snapshot_json: string;
   public_request_id: string;
   request_id: string;
   status: ProjectChangeRequestExposure["status"];
+};
+
+type ExposureRecipientRow = {
+  id: string;
+};
+
+type RequestExposurePolicySnapshot = {
+  capability: "request:view";
+  allowedRecipientIds: readonly string[];
+  allowedOrganizations?: readonly string[];
 };
 
 type RecipientIdentityRow = {
@@ -42,7 +53,7 @@ type RecipientIdentityRow = {
 };
 
 type ExposedRequest = {
-  exposure: Pick<ProjectChangeRequestExposure, "publicRequestId" | "status">;
+  exposure: Pick<ProjectChangeRequestExposure, "policySnapshot" | "publicRequestId" | "status">;
   request: ProjectChangeRequest;
 };
 
@@ -51,6 +62,7 @@ export type PublicChangeRequestDependencies = {
   createRequest: typeof createChangeRequest;
   evaluatePolicy: typeof evaluateClientPortalPolicy;
   listExposedRequests: typeof listExposedRequests;
+  readAutomaticExposurePolicy: typeof readAutomaticRequestExposurePolicy;
   readExposedRequest: typeof readExposedRequest;
   readRecipientIdentity: typeof readRecipientIdentity;
   readRecipientSession: typeof readClientPortalRecipientSession;
@@ -66,6 +78,7 @@ const dependencies: PublicChangeRequestDependencies = {
   createRequest: createChangeRequest,
   evaluatePolicy: evaluateClientPortalPolicy,
   listExposedRequests,
+  readAutomaticExposurePolicy: readAutomaticRequestExposurePolicy,
   readExposedRequest,
   readRecipientIdentity,
   readRecipientSession: readClientPortalRecipientSession,
@@ -146,20 +159,55 @@ function externalReference(value: unknown) {
   }
 }
 
-function publicProjection(
-  exposed: ExposedRequest,
-  actor: RecipientActor,
-  context: PublicContext,
-  evaluatePolicy: typeof evaluateClientPortalPolicy,
-) {
-  const target = {
+function strictStringArray(value: unknown, required: boolean) {
+  if (value === undefined && !required) return undefined;
+  if (!Array.isArray(value) || (required && value.length === 0)) return null;
+  const normalized = value.filter((entry): entry is string =>
+    typeof entry === "string" && entry.length > 0 && entry.length <= 200 && entry.trim() === entry
+  );
+  if (normalized.length !== value.length || new Set(normalized).size !== normalized.length) return null;
+  return normalized;
+}
+
+function requestExposurePolicySnapshot(value: unknown): RequestExposurePolicySnapshot | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).some((key) => !["allowedOrganizations", "allowedRecipientIds", "capability"].includes(key))) {
+    return null;
+  }
+  const allowedRecipientIds = strictStringArray(record.allowedRecipientIds, true);
+  const allowedOrganizations = strictStringArray(record.allowedOrganizations, false);
+  if (record.capability !== "request:view" || !allowedRecipientIds || allowedOrganizations === null) return null;
+  return {
+    capability: "request:view",
+    allowedRecipientIds,
+    ...(allowedOrganizations ? { allowedOrganizations } : {}),
+  };
+}
+
+function requestTarget(exposed: ExposedRequest, context: PublicContext) {
+  const policy = requestExposurePolicySnapshot(exposed.exposure.policySnapshot);
+  if (!policy) return null;
+  return {
     kind: "change_request" as const,
     portalId: context.portal.id,
     exposureStatus: exposed.exposure.status,
     ownerRecipientId: exposed.request.requestedByActorType === "recipient"
       ? exposed.request.requestedByActorId
       : null,
+    allowedRecipientIds: policy.allowedRecipientIds,
+    allowedOrganizations: policy.allowedOrganizations,
   };
+}
+
+function publicProjection(
+  exposed: ExposedRequest,
+  actor: RecipientActor,
+  context: PublicContext,
+  evaluatePolicy: typeof evaluateClientPortalPolicy,
+) {
+  const target = requestTarget(exposed, context);
+  if (!target) return null;
   const view = evaluatePolicy({
     actor,
     action: "request:view",
@@ -266,15 +314,44 @@ export async function readRecipientIdentity(
   `).bind(recipientId, portalId).first<RecipientIdentityRow>();
 }
 
+export async function readAutomaticRequestExposurePolicy(
+  database: D1DatabaseLike,
+  portalId: string,
+  requesterRecipientId: string,
+): Promise<RequestExposurePolicySnapshot> {
+  const rows = await database.prepare<ExposureRecipientRow>(`
+    SELECT id
+    FROM client_portal_recipients
+    WHERE portal_id = ?
+      AND status = 'active'
+      AND verification_state = 'verified'
+      AND permission_role IN ('requester', 'reviewer', 'approver')
+    ORDER BY id ASC
+  `).bind(portalId).all<ExposureRecipientRow>();
+  const allowedRecipientIds = [...new Set([
+    requesterRecipientId,
+    ...(rows.results ?? []).map((row) => row.id),
+  ])].sort();
+  return { capability: "request:view", allowedRecipientIds };
+}
+
 export async function listExposedRequests(database: D1DatabaseLike, context: PublicContext) {
   const rows = await database.prepare<ExposureRow>(`
-    SELECT request_id, public_request_id, status
+    SELECT request_id, public_request_id, status, policy_snapshot_json
     FROM client_portal_request_exposures
     WHERE portal_id = ? AND status IN ('visible', 'withdrawn')
     ORDER BY exposed_at DESC, public_request_id DESC
     LIMIT 100
   `).bind(context.portal.id).all<ExposureRow>();
-  const exposed = await Promise.all((rows.results ?? []).map(async (row) => {
+  const exposed: Array<ExposedRequest | null> = await Promise.all((rows.results ?? []).map(async (row) => {
+    let rawPolicy: unknown;
+    try {
+      rawPolicy = JSON.parse(row.policy_snapshot_json);
+    } catch {
+      return null;
+    }
+    const policySnapshot = requestExposurePolicySnapshot(rawPolicy);
+    if (!policySnapshot) return null;
     const request = await readChangeRequest({
       database,
       projectId: context.portal.project_id,
@@ -282,7 +359,7 @@ export async function listExposedRequests(database: D1DatabaseLike, context: Pub
       workspaceId: context.portal.workspace_id,
     });
     return request ? {
-      exposure: { publicRequestId: row.public_request_id, status: row.status },
+      exposure: { policySnapshot, publicRequestId: row.public_request_id, status: row.status },
       request,
     } : null;
   }));
@@ -295,12 +372,20 @@ export async function readExposedRequest(
   publicRequestId: string,
 ) {
   const row = await database.prepare<ExposureRow>(`
-    SELECT request_id, public_request_id, status
+    SELECT request_id, public_request_id, status, policy_snapshot_json
     FROM client_portal_request_exposures
     WHERE portal_id = ? AND public_request_id = ?
     LIMIT 1
   `).bind(context.portal.id, publicRequestId).first<ExposureRow>();
   if (!row) return null;
+  let rawPolicy: unknown;
+  try {
+    rawPolicy = JSON.parse(row.policy_snapshot_json);
+  } catch {
+    return null;
+  }
+  const policySnapshot = requestExposurePolicySnapshot(rawPolicy);
+  if (!policySnapshot) return null;
   const request = await readChangeRequest({
     database,
     projectId: context.portal.project_id,
@@ -308,7 +393,7 @@ export async function readExposedRequest(
     workspaceId: context.portal.workspace_id,
   });
   return request ? {
-    exposure: { publicRequestId: row.public_request_id, status: row.status },
+    exposure: { policySnapshot, publicRequestId: row.public_request_id, status: row.status },
     request,
   } satisfies ExposedRequest : null;
 }
@@ -394,12 +479,17 @@ export async function createPublicChangeRequestResponse(
   if (!requestActor) return unavailable();
   const identity = `${result.context.portal.id}:${result.actor.recipientId}:${key}`;
   try {
+    const exposurePolicySnapshot = await routeDependencies.readAutomaticExposurePolicy(
+      result.context.database,
+      result.context.portal.id,
+      result.actor.recipientId,
+    );
     const created = await routeDependencies.createRequest({
       actor: requestActor,
       database: result.context.database,
       description: body.value.description,
       eventId: stableId("request_state", identity, "submitted"),
-      exposurePolicySnapshot: { capability: "request:view" },
+      exposurePolicySnapshot,
       idempotencyKey: key,
       metadata: reference ? { externalReferenceUrl: reference } : {},
       originPortalId: result.context.portal.id,
@@ -437,12 +527,8 @@ export async function amendPublicChangeRequestResponse(
   if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
   const exposed = await routeDependencies.readExposedRequest(result.context.database, result.context, publicRequestId);
   if (!exposed) return unavailable();
-  const target = {
-    kind: "change_request" as const,
-    portalId: result.context.portal.id,
-    exposureStatus: exposed.exposure.status,
-    ownerRecipientId: exposed.request.requestedByActorType === "recipient" ? exposed.request.requestedByActorId : null,
-  };
+  const target = requestTarget(exposed, result.context);
+  if (!target) return unavailable();
   if (!routeDependencies.evaluatePolicy({ actor: result.actor, action: "request:amend_own", portal: result.context.policyPortal, target }).allowed) {
     return unavailable();
   }
@@ -511,12 +597,8 @@ export async function withdrawPublicChangeRequestResponse(
   if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
   const exposed = await routeDependencies.readExposedRequest(result.context.database, result.context, publicRequestId);
   if (!exposed) return unavailable();
-  const target = {
-    kind: "change_request" as const,
-    portalId: result.context.portal.id,
-    exposureStatus: exposed.exposure.status,
-    ownerRecipientId: exposed.request.requestedByActorType === "recipient" ? exposed.request.requestedByActorId : null,
-  };
+  const target = requestTarget(exposed, result.context);
+  if (!target) return unavailable();
   if (!routeDependencies.evaluatePolicy({ actor: result.actor, action: "request:withdraw_own", portal: result.context.policyPortal, target }).allowed) {
     return unavailable();
   }

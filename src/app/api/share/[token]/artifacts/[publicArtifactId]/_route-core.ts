@@ -4,6 +4,7 @@ import {
   readClientPortalRecipientSession,
   resolveClientPortalPublicContext,
 } from "@/lib/client-portal/public-repository";
+import { checkClientPortalArtifactRangeRateLimit } from "@/lib/client-portal/public-rate-limits";
 import {
   evaluateClientPortalPolicy,
   type ClientPortalActor,
@@ -49,6 +50,7 @@ export type PublicIssuedArtifact = {
 type PublicContext = NonNullable<Awaited<ReturnType<typeof resolveClientPortalPublicContext>>>;
 
 export type PublicArtifactRouteDependencies = {
+  checkRangeRateLimit: typeof checkClientPortalArtifactRangeRateLimit;
   readRecipientSession: typeof readClientPortalRecipientSession;
   hasPasswordSession: typeof hasClientPortalPasswordSession;
   resolvePublicContext: typeof resolveClientPortalPublicContext;
@@ -125,6 +127,7 @@ export async function readPublicIssuedArtifact(input: {
 }
 
 const dependencies: PublicArtifactRouteDependencies = {
+  checkRangeRateLimit: checkClientPortalArtifactRangeRateLimit,
   readRecipientSession: readClientPortalRecipientSession,
   hasPasswordSession: hasClientPortalPasswordSession,
   resolvePublicContext: resolveClientPortalPublicContext,
@@ -142,6 +145,33 @@ function unavailable() {
     { error: "Shared artifact is unavailable." },
     {
       status: 404,
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+function rateLimited(message: string, retryAfter: number) {
+  return Response.json(
+    { error: message },
+    {
+      status: 429,
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        "Retry-After": String(retryAfter),
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+function serviceUnavailable() {
+  return Response.json(
+    { error: "Shared artifact is temporarily unavailable." },
+    {
+      status: 503,
       headers: {
         "Cache-Control": "private, no-store, max-age=0, must-revalidate",
         "X-Content-Type-Options": "nosniff",
@@ -209,6 +239,21 @@ export async function handlePublicArtifactContent(
       },
     });
     if (!authorization.allowed) return unavailable();
+
+    if (request.headers.has("range")) {
+      let rateLimit;
+      try {
+        rateLimit = await routeDependencies.checkRangeRateLimit({
+          portalId: context.portal.id,
+          publicArtifactId: normalizedPublicId,
+          recipientId: actor.kind === "recipient" ? actor.recipientId : null,
+          request,
+        });
+      } catch {
+        return serviceUnavailable();
+      }
+      if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
+    }
 
     const [artifact, version] = await Promise.all([
       routeDependencies.readArtifact({

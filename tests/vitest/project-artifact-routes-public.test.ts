@@ -8,6 +8,7 @@ import {
 function dependencies(overrides: Partial<PublicArtifactRouteDependencies> = {}): PublicArtifactRouteDependencies {
   const database = {} as never;
   return {
+    checkRangeRateLimit: vi.fn(async () => ({ allowed: true as const })),
     readRecipientSession: vi.fn(async () => ({
       kind: "recipient" as const,
       recipientId: "recipient-1",
@@ -75,6 +76,7 @@ describe("public project artifact route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(deps.checkRangeRateLimit).not.toHaveBeenCalled();
     expect(deps.readIssuedArtifact).toHaveBeenCalledWith(expect.objectContaining({
       issueId: "issue-1",
       publicArtifactId: "public-artifact-1",
@@ -85,6 +87,94 @@ describe("public project artifact route", () => {
     }));
     expect(deps.assertPublishable).toHaveBeenCalledWith(expect.objectContaining({ uploadAssetId: "upload-1" }));
     expect(deps.readUploadLocator).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ uploadAssetId: "upload-1" }));
+  });
+
+  it("rate limits ranged artifact reads while preserving partial-content semantics when allowed", async () => {
+    const downloadObjectRange = vi.fn(async () => ({
+      body: new Uint8Array([2, 3]).buffer,
+      contentType: "application/pdf",
+      length: 2,
+      offset: 1,
+      sizeBytes: 2,
+      totalSizeBytes: 4,
+    }));
+    const deps = dependencies({
+      createStorageProvider: vi.fn(async () => ({
+        downloadObject: vi.fn(),
+        downloadObjectRange,
+        uploadObject: vi.fn(),
+        removeObjects: vi.fn(),
+        createSignedReadUrl: vi.fn(),
+        getPublicUrl: vi.fn(),
+      })),
+    });
+    const response = await handlePublicArtifactContent(
+      new Request("https://archestimator.test/api/share/share-token/artifacts/public-artifact-1", {
+        headers: { range: "bytes=1-2" },
+      }),
+      "share-token",
+      "public-artifact-1",
+      deps,
+    );
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe("bytes 1-2/4");
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(deps.checkRangeRateLimit).toHaveBeenCalledWith({
+      portalId: "portal-1",
+      publicArtifactId: "public-artifact-1",
+      recipientId: "recipient-1",
+      request: expect.any(Request),
+    });
+    expect(vi.mocked(deps.evaluatePolicy).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deps.checkRangeRateLimit).mock.invocationCallOrder[0],
+    );
+    expect(downloadObjectRange).toHaveBeenCalledWith("project-artifacts", "private/version-1.pdf", { offset: 1, length: 2 });
+  });
+
+  it("denies ranged reads after authorization and before artifact storage work", async () => {
+    const deps = dependencies({
+      checkRangeRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 30 })),
+    });
+    const response = await handlePublicArtifactContent(
+      new Request("https://archestimator.test/api/share/share-token/artifacts/public-artifact-1", {
+        headers: { range: "bytes=0-1" },
+      }),
+      "share-token",
+      "public-artifact-1",
+      deps,
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("retry-after")).toBe("30");
+    expect(deps.resolvePublicContext).toHaveBeenCalled();
+    expect(deps.evaluatePolicy).toHaveBeenCalled();
+    expect(deps.readArtifact).not.toHaveBeenCalled();
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it("fails closed after authorization when durable range storage is unavailable", async () => {
+    const deps = dependencies({
+      checkRangeRateLimit: vi.fn(async () => {
+        throw new Error("quota storage unavailable");
+      }),
+    });
+    const response = await handlePublicArtifactContent(
+      new Request("https://archestimator.test/api/share/share-token/artifacts/public-artifact-1", {
+        headers: { range: "bytes=0-1" },
+      }),
+      "share-token",
+      "public-artifact-1",
+      deps,
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(deps.resolvePublicContext).toHaveBeenCalled();
+    expect(deps.evaluatePolicy).toHaveBeenCalled();
+    expect(deps.readArtifact).not.toHaveBeenCalled();
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
   });
 
   it("fails closed before storage when the issued relationship is absent", async () => {

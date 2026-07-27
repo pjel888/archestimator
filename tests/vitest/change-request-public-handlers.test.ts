@@ -4,10 +4,14 @@ import type { ProjectChangeRequest, ProjectChangeRequestExposure } from "@/lib/c
 import {
   amendPublicChangeRequestResponse,
   createPublicChangeRequestResponse,
+  listExposedRequests,
   listPublicChangeRequestsResponse,
+  readAutomaticRequestExposurePolicy,
+  readExposedRequest,
   withdrawPublicChangeRequestResponse,
   type PublicChangeRequestDependencies,
 } from "@/lib/change-requests/public-handlers";
+import { evaluateClientPortalPolicy } from "@/lib/client-portal/policy";
 
 vi.mock("server-only", () => ({}));
 
@@ -97,7 +101,7 @@ function exposure(overrides: Partial<ProjectChangeRequestExposure> = {}): Projec
     publicRequestId: "public-request-1",
     status: "visible",
     exposureKind: "automatic",
-    policySnapshot: {},
+    policySnapshot: { capability: "request:view", allowedRecipientIds: ["recipient-1"] },
     exposedByActorType: "recipient",
     exposedByActorId: "recipient-1",
     exposedAt: "2026-07-26T00:00:00.000Z",
@@ -120,6 +124,10 @@ function dependencies(overrides: Partial<PublicChangeRequestDependencies> = {}) 
     evaluatePolicy: vi.fn(() => allowedDecision()),
     listExposedRequests: vi.fn(async () => [{ exposure: visible, request: current }]),
     readExposedRequest: vi.fn(async () => ({ exposure: visible, request: current })),
+    readAutomaticExposurePolicy: vi.fn(async () => ({
+      capability: "request:view" as const,
+      allowedRecipientIds: ["recipient-1", "recipient-reviewer"],
+    })),
     readRecipientIdentity: vi.fn(async () => ({ email_normalized: "avery@example.test", domain_role: "client" })),
     readRecipientSession: vi.fn(async () => actor),
     readRateLimit: vi.fn(async () => ({ allowed: true as const })),
@@ -192,12 +200,107 @@ describe("public change request handlers", () => {
     expect(response.status).toBe(201);
     expect(input).toMatchObject({
       actor: { id: "recipient-1", type: "recipient" },
+      exposurePolicySnapshot: {
+        capability: "request:view",
+        allowedRecipientIds: ["recipient-1", "recipient-reviewer"],
+      },
       originPortalId: "portal-1",
       sourceKind: "client_portal",
     });
     expect(input?.requestId).toMatch(/^request_[a-f0-9]{32}$/);
     expect(input?.publicRequestId).toMatch(/^public_request_[a-f0-9]{32}$/);
     expect(JSON.stringify(payload)).not.toContain("request-internal-1");
+  });
+
+  it("uses immutable exposure allowlists with the production evaluator", async () => {
+    const reviewer = {
+      ...actor,
+      recipientId: "recipient-reviewer",
+      role: "reviewer" as const,
+      overrides: [],
+    };
+    const allowedExposure = exposure({
+      policySnapshot: {
+        capability: "request:view",
+        allowedRecipientIds: ["recipient-1", reviewer.recipientId],
+        allowedOrganizations: ["Client Co"],
+      },
+    });
+    const samePortal = dependencies({
+      evaluatePolicy: evaluateClientPortalPolicy,
+      listExposedRequests: vi.fn(async () => [{ exposure: allowedExposure, request: changeRequest() }]) as never,
+      readRecipientSession: vi.fn(async () => reviewer) as never,
+    });
+
+    const allowedResponse = await listPublicChangeRequestsResponse(
+      new Request("https://portal.example.test/api/share/token/requests"),
+      "share-token",
+      samePortal,
+    );
+    expect(await allowedResponse.json()).toMatchObject({
+      requests: [{ publicRequestId: "public-request-1" }],
+    });
+
+    const wrongOrganization = dependencies({
+      evaluatePolicy: evaluateClientPortalPolicy,
+      listExposedRequests: vi.fn(async () => [{ exposure: allowedExposure, request: changeRequest() }]) as never,
+      readRecipientSession: vi.fn(async () => ({ ...reviewer, organization: "Other Co" })) as never,
+    });
+    const organizationDeniedResponse = await listPublicChangeRequestsResponse(
+      new Request("https://portal.example.test/api/share/token/requests"),
+      "share-token",
+      wrongOrganization,
+    );
+    expect(await organizationDeniedResponse.json()).toEqual({ requests: [] });
+
+    const crossToken = dependencies({
+      evaluatePolicy: evaluateClientPortalPolicy,
+      listExposedRequests: vi.fn(async () => [{ exposure: allowedExposure, request: changeRequest() }]) as never,
+      readRecipientSession: vi.fn(async () => ({ ...reviewer, portalId: "portal-other" })) as never,
+    });
+    const deniedResponse = await listPublicChangeRequestsResponse(
+      new Request("https://portal.example.test/api/share/other-token/requests"),
+      "other-token",
+      crossToken,
+    );
+    expect(await deniedResponse.json()).toEqual({ requests: [] });
+  });
+
+  it("builds automatic exposure for active verified requester, reviewer, and approver roles", async () => {
+    const all = vi.fn(async () => ({
+      results: [
+        { id: "recipient-1" },
+        { id: "recipient-reviewer" },
+        { id: "recipient-approver" },
+      ],
+    }));
+    const prepare = vi.fn(() => ({ bind: vi.fn(() => ({ all })) }));
+
+    await expect(readAutomaticRequestExposurePolicy({ prepare } as never, "portal-1", "recipient-1")).resolves.toEqual({
+      capability: "request:view",
+      allowedRecipientIds: ["recipient-1", "recipient-approver", "recipient-reviewer"],
+    });
+    expect(prepare.mock.calls[0]?.[0]).toContain("permission_role IN ('requester', 'reviewer', 'approver')");
+    expect(prepare.mock.calls[0]?.[0]).not.toContain("request:view");
+  });
+
+  it("selects and strictly parses immutable policy snapshots before loading requests", async () => {
+    const malformedRows = [{
+      policy_snapshot_json: JSON.stringify({ capability: "request:view" }),
+      public_request_id: "public-request-1",
+      request_id: "request-internal-1",
+      status: "visible",
+    }];
+    const all = vi.fn(async () => ({ results: malformedRows }));
+    const first = vi.fn(async () => malformedRows[0]);
+    const prepare = vi.fn((sql: string) => ({
+      bind: vi.fn(() => sql.includes("public_request_id = ?") ? { first } : { all }),
+    }));
+    const malformedDatabase = { prepare } as never;
+
+    await expect(listExposedRequests(malformedDatabase, context)).resolves.toEqual([]);
+    await expect(readExposedRequest(malformedDatabase, context, "public-request-1")).resolves.toBeNull();
+    expect(prepare.mock.calls.every(([sql]) => String(sql).includes("policy_snapshot_json"))).toBe(true);
   });
 
   it("enforces content-hash CAS and exact owner policy before amendments", async () => {
