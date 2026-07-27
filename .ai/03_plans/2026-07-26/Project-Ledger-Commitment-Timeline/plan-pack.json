@@ -107,7 +107,7 @@
       "id": "ART-015",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "819411e97a0f84ea26912ecc383592554a62fb5a864875d816c8502b8a5ce97c"
+      "sha256": "27ca33377096c7d0599b853e04804f0fb1b7e05612c019199a0886eb75afc599"
     }
   ],
   "sources": [
@@ -2028,5 +2028,5 @@
     "role-or-exposure-policy-change",
     "legacy-cutover-state-change"
   ],
-  "manifest_sha256": "4dc2eb31b5db7b370eca226dc4fc15c5ef6211f4bc215bd32dd51ea136ecd4e6"
+  "manifest_sha256": "58f2ba84cd869f4cef8a82f11ecd33d9d36562a69c40ff42c0b52eb546586b58"
 }
