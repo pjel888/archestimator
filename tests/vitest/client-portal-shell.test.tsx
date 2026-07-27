@@ -280,7 +280,7 @@ describe("ClientPortalShell", () => {
         sections: [{ id: "cps_decision", kind: "decision", title: "Decision", layoutMode: "standard", payloadHash: "x" }],
       }), { status: 200 });
       if (url.endsWith("/sections/cps_decision?issue=4")) return new Response(JSON.stringify({ section: { id: "cps_decision", kind: "decision", title: "Decision", layoutMode: "standard", payloadHash: "x", payload: {} } }), { status: 200 });
-      if (url.endsWith("/decision?issueId=cpi_issue")) return new Response(JSON.stringify({ summary: { ownReceipt: { id: publicDecisionId, currencyCode: "PHP", decision: "approved", submittedAt: "2026-07-27T00:00:00.000Z", total: 1400, versionLabel: "Issue 4" } } }), { status: 200 });
+      if (url.endsWith(`/decision?issueId=cpi_issue&decisionId=${publicDecisionId}`)) return new Response(JSON.stringify({ summary: { focusDecision: { id: publicDecisionId, currencyCode: "PHP", decision: "approved", signerName: "Client", submittedAt: "2026-07-27T00:00:00.000Z", total: 1400, versionLabel: "Issue 4" }, ownReceipt: { id: publicDecisionId, currencyCode: "PHP", decision: "approved", submittedAt: "2026-07-27T00:00:00.000Z", total: 1400, versionLabel: "Issue 4" } } }), { status: 200 });
       return new Response(null, { status: 404 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -290,5 +290,6 @@ describe("ClientPortalShell", () => {
     const receipt = (await screen.findByText("Your decision: approved")).parentElement;
     await waitFor(() => expect(receipt).toHaveFocus());
     expect(screen.getByRole("tab", { name: "Decision" })).toHaveAttribute("aria-selected", "true");
+    expect(fetchMock).toHaveBeenCalledWith(`/api/share/${token}/decision?issueId=cpi_issue&decisionId=${publicDecisionId}`, { cache: "no-store" });
   });
 });
