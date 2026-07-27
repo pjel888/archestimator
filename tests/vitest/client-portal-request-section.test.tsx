@@ -6,6 +6,18 @@ import { ClientPortalRequestSection } from "@/components/client-portal/ClientPor
 afterEach(() => vi.restoreAllMocks());
 
 describe("ClientPortalRequestSection", () => {
+  it("focuses the request selected by an opaque deep link", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ requests: [
+      { canAmend: false, canWithdraw: false, currentVersion: { contentHash: "one", description: "First request", requestedEffectiveDate: null, title: "First", versionNumber: 1 }, publicRequestId: "request_public_1", requestCode: "CR-001", requestedAt: "2026-07-26T00:00:00.000Z", status: "submitted" },
+      { canAmend: false, canWithdraw: false, currentVersion: { contentHash: "two", description: "Focused request", requestedEffectiveDate: null, title: "Second", versionNumber: 1 }, publicRequestId: "request_public_2", requestCode: "CR-002", requestedAt: "2026-07-27T00:00:00.000Z", status: "under_assessment" },
+    ] }), { status: 200 }));
+
+    render(<ClientPortalRequestSection capabilities={["request:view"]} initialRequestId="request_public_2" token="portal-token" />);
+
+    expect(await screen.findByRole("heading", { name: "Second" })).toBeInTheDocument();
+    expect(screen.getByText("Focused request")).toBeInTheDocument();
+  });
+
   it("shows the non-authorization notice and submits a request with CSRF and idempotency", async () => {
     Object.defineProperty(globalThis, "crypto", {
       configurable: true,

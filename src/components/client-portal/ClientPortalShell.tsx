@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
+import { ArtifactViewer } from "@/components/client-portal/ArtifactViewer";
 import { ClientPortalActivitySection } from "@/components/client-portal/ClientPortalActivitySection";
 import { ClientPortalDecisionSection } from "@/components/client-portal/ClientPortalDecisionSection";
 import { ClientPortalDiscussionSection } from "@/components/client-portal/ClientPortalDiscussionSection";
 import { ClientPortalFinancialSection } from "@/components/client-portal/ClientPortalFinancialSection";
 import { ClientPortalRequestSection } from "@/components/client-portal/ClientPortalRequestSection";
+import { ClientPortalTimeline } from "@/components/client-portal/ClientPortalTimeline";
 import { EstimateBrowserSection } from "@/components/client-portal/EstimateBrowserSection";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
@@ -32,6 +34,16 @@ type ClientPortalManifest = {
     versionLabel: string;
   };
   portal: { id: string; name: string; status: string };
+  package?: {
+    artifacts: Array<{
+      contentType: string;
+      description: string | null;
+      downloadable: boolean;
+      id: string;
+      sizeBytes: number;
+      title: string;
+    }>;
+  };
   project: { code: string | null; currencyCode: string; name: string };
   recipient: { displayName: string | null; role: string; verified: boolean } | null;
   schemaVersion: number;
@@ -49,21 +61,91 @@ type ClientPortalSection = {
   };
 };
 
+type ClientPortalSummary = {
+  activeBaseline: {
+    baselineNumber: number;
+    currencyCode: string;
+    establishedAt: string;
+    issueNumber: number;
+    totalMinorUnits: number;
+    versionLabel: string;
+  } | null;
+  capabilities: string[];
+  pendingIssue: {
+    currencyCode: string;
+    issueNumber: number;
+    issuedAt: string;
+    status: string;
+    total: number;
+    versionLabel: string;
+  } | null;
+  portal: { name: string; status: string };
+  project: { code: string | null; currencyCode: string; name: string };
+  recipient: { displayName: string | null; role: string } | null;
+  schemaVersion: number;
+  visibleCounts: { artifacts: number; issues: number; openRequests: number; timelineEvents: number };
+};
+
 type AccessState = "loading" | "ready" | "password" | "unavailable";
-type PortalView = "overview" | "estimate" | "financials" | "requests" | "discussion" | "decision";
+type PortalView = "timeline" | "overview" | "estimate" | "financials" | "documents" | "requests" | "discussion" | "decision";
 type DiscussionTarget = { kind: "estimate" | "estimate_tab" | "area_group" | "row" | "component"; publicId: string; label: string; secondaryLabel: string | null; sectionId: string };
 
 const PORTAL_VIEW_LABELS: Record<PortalView, string> = {
+  timeline: "Timeline",
   overview: "Overview",
   estimate: "Estimate",
   financials: "Financials",
+  documents: "Documents",
   requests: "Requests",
   discussion: "Discussion",
   decision: "Decision",
 };
 
+type PortalHashTarget =
+  | { id: string; kind: "artifact" | "request" | "section" }
+  | { kind: "view"; view: PortalView }
+  | null;
+
+function portalHashTarget(hash: string): PortalHashTarget {
+  const value = hash.replace(/^#/, "");
+  if (!value) return null;
+  const [prefix, ...rest] = value.split("/");
+  if ((prefix === "artifact" || prefix === "request") && rest.length > 0) {
+    try {
+      const id = decodeURIComponent(rest.join("/")).trim();
+      return id ? { id, kind: prefix } : null;
+    } catch {
+      return null;
+    }
+  }
+  if (Object.hasOwn(PORTAL_VIEW_LABELS, value)) return { kind: "view", view: value as PortalView };
+  try {
+    const id = decodeURIComponent(value).trim();
+    return id ? { id, kind: "section" } : null;
+  } catch {
+    return null;
+  }
+}
+
 function routePath(token: string, suffix = "") {
   return `/api/share/${encodeURIComponent(token)}${suffix}`;
+}
+
+function issuedRoutePath(token: string, suffix: string, issueNumber?: number) {
+  const path = routePath(token, suffix);
+  return issueNumber ? `${path}${path.includes("?") ? "&" : "?"}issue=${issueNumber}` : path;
+}
+
+function artifactContentPath(token: string, publicArtifactId: string, issueNumber?: number, download = false) {
+  const path = issuedRoutePath(token, `/artifacts/${encodeURIComponent(publicArtifactId)}`, issueNumber);
+  return download ? `${path}${path.includes("?") ? "&" : "?"}download=1` : path;
+}
+
+function fileSizeLabel(sizeBytes: number) {
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return null;
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function sectionLabel(section: ManifestSection) {
@@ -155,9 +237,10 @@ function ClientPortalPasswordForm({ onUnlocked, token }: { onUnlocked: () => voi
   );
 }
 
-export function ClientPortalShell({ token, recipientToken }: { token: string; recipientToken?: string }) {
+export function ClientPortalShell({ initialIssueNumber, token, recipientToken }: { initialIssueNumber?: number; token: string; recipientToken?: string }) {
   const [access, setAccess] = useState<AccessState>("loading");
   const [manifest, setManifest] = useState<ClientPortalManifest | null>(null);
+  const [summary, setSummary] = useState<ClientPortalSummary | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [section, setSection] = useState<ClientPortalSection | null>(null);
   const [sectionState, setSectionState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
@@ -165,6 +248,8 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   const [discussionTarget, setDiscussionTarget] = useState<DiscussionTarget | null>(null);
   const [unlockVersion, setUnlockVersion] = useState(0);
   const [selectedViewOverride, setSelectedViewOverride] = useState<PortalView | null>(null);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -185,39 +270,95 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
           setAccess("unavailable");
           return;
         }
-        window.history.replaceState(null, "", `/share/${encodeURIComponent(token)}`);
+        window.history.replaceState(null, "", `/share/${encodeURIComponent(token)}${initialIssueNumber ? `?issue=${initialIssueNumber}` : ""}${window.location.hash}`);
       }
 
-      const response = await fetch(routePath(token, "/manifest"), { cache: "no-store" }).catch(() => null);
+      const [summaryResponse, manifestResponse] = await Promise.all([
+        fetch(routePath(token, "/summary"), { cache: "no-store" }).catch(() => null),
+        fetch(issuedRoutePath(token, "/manifest", initialIssueNumber), { cache: "no-store" }).catch(() => null),
+      ]);
       if (!active) return;
-      if (response?.status === 423) {
+      if (summaryResponse?.status === 423 || manifestResponse?.status === 423) {
         setAccess("password");
         return;
       }
-      if (!response?.ok) {
+      if (!summaryResponse?.ok) {
         setAccess("unavailable");
         return;
       }
-      const nextManifest = await response.json() as ClientPortalManifest;
+      const nextSummary = await summaryResponse.json() as ClientPortalSummary;
+      const nextManifest = manifestResponse?.ok ? await manifestResponse.json() as ClientPortalManifest : null;
       if (!active) return;
+      setSummary(nextSummary);
       setManifest(nextManifest);
-      const requestedSectionId = window.location.hash.slice(1);
-      setSelectedSectionId(nextManifest.sections.some((item) => item.id === requestedSectionId) ? requestedSectionId : nextManifest.sections[0]?.id ?? null);
+      const requestedTarget = portalHashTarget(window.location.hash);
+      const requestedView = requestedTarget?.kind === "view" ? requestedTarget.view : null;
+      const requestedArtifactId = requestedTarget?.kind === "artifact" && nextManifest?.package?.artifacts.some((artifact) => artifact.id === requestedTarget.id) ? requestedTarget.id : null;
+      const requestedRequestId = requestedTarget?.kind === "request" ? requestedTarget.id : null;
+      setSelectedArtifactId(requestedArtifactId);
+      setSelectedRequestId(requestedRequestId);
+      setSelectedViewOverride(requestedArtifactId
+        ? "documents"
+        : requestedRequestId
+          ? "requests"
+          : requestedView === "timeline" || requestedView === "requests" || requestedView === "documents" || (!requestedTarget && nextSummary.capabilities.includes("timeline:view"))
+            ? requestedView ?? "timeline"
+            : null);
+      setSelectedSectionId(
+        nextManifest?.sections.find((item) => requestedTarget?.kind === "section" && item.id === requestedTarget.id)?.id
+        ?? nextManifest?.sections.find((item) => requestedView && portalViewForSection(item.kind) === requestedView)?.id
+        ?? nextManifest?.sections[0]?.id
+        ?? null,
+      );
       setAccess("ready");
     }
 
     void load();
     return () => { active = false; };
-  }, [recipientToken, token, unlockVersion]);
+  }, [initialIssueNumber, recipientToken, token, unlockVersion]);
 
   useEffect(() => {
     function syncHash() {
-      const nextSectionId = window.location.hash.slice(1);
-      if (manifest?.sections.some((item) => item.id === nextSectionId)) setSelectedSectionId(nextSectionId);
+      const target = portalHashTarget(window.location.hash);
+      if (target?.kind === "artifact" && manifest?.package?.artifacts.some((artifact) => artifact.id === target.id)) {
+        setSelectedArtifactId(target.id);
+        setSelectedViewOverride("documents");
+        return;
+      }
+      if (target?.kind === "request" && (summary?.capabilities.includes("request:view") || summary?.capabilities.includes("request:create"))) {
+        setSelectedRequestId(target.id);
+        setSelectedViewOverride("requests");
+        return;
+      }
+      if (target?.kind === "view" && target.view === "timeline" && summary?.capabilities.includes("timeline:view")) {
+        setSelectedViewOverride("timeline");
+        return;
+      }
+      if (target?.kind === "view" && target.view === "requests" && (summary?.capabilities.includes("request:view") || summary?.capabilities.includes("request:create"))) {
+        setSelectedRequestId(null);
+        setSelectedViewOverride("requests");
+        return;
+      }
+      if (target?.kind === "view" && target.view === "documents" && manifest?.package?.artifacts.length) {
+        setSelectedArtifactId((current) => current ?? manifest.package!.artifacts[0]?.id ?? null);
+        setSelectedViewOverride("documents");
+        return;
+      }
+      const requestedView = target?.kind === "view" ? target.view : null;
+      const requestedViewSection = requestedView ? manifest?.sections.find((item) => portalViewForSection(item.kind) === requestedView) : null;
+      if (requestedViewSection) {
+        setSelectedViewOverride(null);
+        setSelectedSectionId(requestedViewSection.id);
+        return;
+      }
+      if (target?.kind === "section" && manifest?.sections.some((item) => item.id === target.id)) {
+        setSelectedViewOverride(null);
+        setSelectedSectionId(target.id);
+      }
     }
     window.addEventListener("hashchange", syncHash);
     return () => window.removeEventListener("hashchange", syncHash);
-  }, [manifest]);
+  }, [manifest, summary]);
 
   useEffect(() => {
     if (!selectedSectionId || access !== "ready") return;
@@ -225,7 +366,7 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
     void Promise.resolve()
       .then(() => {
         if (active) setSectionState("loading");
-        return fetch(routePath(token, `/sections/${encodeURIComponent(selectedSectionId)}`), { cache: "no-store" });
+        return fetch(issuedRoutePath(token, `/sections/${encodeURIComponent(selectedSectionId)}`, initialIssueNumber), { cache: "no-store" });
       })
       .then(async (response) => response.ok ? response.json() as Promise<ClientPortalSection> : null)
       .then((nextSection) => {
@@ -237,17 +378,20 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
         if (active) setSectionState("unavailable");
       });
     return () => { active = false; };
-  }, [access, selectedSectionId, token]);
+  }, [access, initialIssueNumber, selectedSectionId, token]);
 
   const selectedSection = useMemo(() => manifest?.sections.find((item) => item.id === selectedSectionId) ?? null, [manifest, selectedSectionId]);
   const availableViews = useMemo(() => {
-    if (!manifest) return [];
-    const views = new Set(manifest.sections.map((item) => portalViewForSection(item.kind)));
-    if (manifest.capabilities.includes("request:view") || manifest.capabilities.includes("request:create")) views.add("requests");
-    return (["overview", "estimate", "financials", "requests", "discussion", "decision"] as const).filter((view) => views.has(view));
-  }, [manifest]);
+    if (!summary) return [];
+    const views = new Set<PortalView>(manifest?.sections.map((item) => portalViewForSection(item.kind)) ?? []);
+    if (manifest?.package?.artifacts.length) views.add("documents");
+    if (summary.capabilities.includes("request:view") || summary.capabilities.includes("request:create")) views.add("requests");
+    if (summary.capabilities.includes("timeline:view")) views.add("timeline");
+    return (["timeline", "overview", "estimate", "financials", "documents", "requests", "discussion", "decision"] as const).filter((view) => views.has(view));
+  }, [manifest, summary]);
   const selectedView = selectedViewOverride ?? (selectedSection ? portalViewForSection(selectedSection.kind) : availableViews[0] ?? "overview");
   const sectionsInSelectedView = manifest?.sections.filter((item) => portalViewForSection(item.kind) === selectedView) ?? [];
+  const selectedArtifact = manifest?.package?.artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? manifest?.package?.artifacts[0] ?? null;
 
   function selectSection(sectionId: string) {
     setSelectedViewOverride(null);
@@ -256,9 +400,22 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
   }
 
   function selectView(view: PortalView) {
+    if (view === "timeline") {
+      setSelectedViewOverride("timeline");
+      window.history.replaceState(null, "", "#timeline");
+      return;
+    }
     if (view === "requests") {
+      setSelectedRequestId(null);
       setSelectedViewOverride("requests");
       window.history.replaceState(null, "", "#requests");
+      return;
+    }
+    if (view === "documents") {
+      const artifact = selectedArtifact ?? manifest?.package?.artifacts[0] ?? null;
+      setSelectedArtifactId(artifact?.id ?? null);
+      setSelectedViewOverride("documents");
+      window.history.replaceState(null, "", artifact ? `#artifact/${encodeURIComponent(artifact.id)}` : "#documents");
       return;
     }
     const nextSection = manifest?.sections.find((item) => portalViewForSection(item.kind) === view);
@@ -287,20 +444,21 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
     );
   }
 
-  if (access === "unavailable" || !manifest) {
+  if (access === "unavailable" || !summary) {
     return <main aria-label="Client Portal unavailable" className="grid min-h-dvh place-items-center bg-canvas px-4 text-secondary">This Client Portal is unavailable.</main>;
   }
 
-  const validThrough = formattedDate(manifest.issue.validThrough);
-  const brandTheme = manifest.brand.theme && typeof manifest.brand.theme === "object" && !Array.isArray(manifest.brand.theme) ? manifest.brand.theme as Record<string, unknown> : null;
+  const validThrough = formattedDate(manifest?.issue.validThrough ?? null);
+  const brand = manifest?.brand ?? {};
+  const brandTheme = brand.theme && typeof brand.theme === "object" && !Array.isArray(brand.theme) ? brand.theme as Record<string, unknown> : null;
   const accentColor = typeof brandTheme?.accentColor === "string" ? brandTheme.accentColor : "#1E40AF";
   const backgroundColor = typeof brandTheme?.backgroundColor === "string" ? brandTheme.backgroundColor : "#FFFFFF";
   const textColor = typeof brandTheme?.textColor === "string" ? brandTheme.textColor : "#111827";
-  const owner = manifest.brand.owner && typeof manifest.brand.owner === "object" && !Array.isArray(manifest.brand.owner) ? manifest.brand.owner as Record<string, unknown> : null;
-  const client = manifest.brand.client && typeof manifest.brand.client === "object" && !Array.isArray(manifest.brand.client) ? manifest.brand.client as Record<string, unknown> : null;
+  const owner = brand.owner && typeof brand.owner === "object" && !Array.isArray(brand.owner) ? brand.owner as Record<string, unknown> : null;
+  const client = brand.client && typeof brand.client === "object" && !Array.isArray(brand.client) ? brand.client as Record<string, unknown> : null;
   const ownerLogoId = issuedBrandAssetId(owner?.logo);
   const clientLogoId = issuedBrandAssetId(client?.logo);
-  const coBrandingMode = manifest.brand.coBrandingMode === "client_only" || manifest.brand.coBrandingMode === "co_branded" || manifest.brand.coBrandingMode === "owner_only" || manifest.brand.coBrandingMode === "prepared_by_for" ? manifest.brand.coBrandingMode : "prepared_by_for";
+  const coBrandingMode = brand.coBrandingMode === "client_only" || brand.coBrandingMode === "co_branded" || brand.coBrandingMode === "owner_only" || brand.coBrandingMode === "prepared_by_for" ? brand.coBrandingMode : "prepared_by_for";
   const logos = coBrandingMode === "client_only" ? [{ asset: clientLogoId, label: "Client logo" }, { asset: ownerLogoId, label: "Prepared by logo" }] : [{ asset: ownerLogoId, label: "Owner logo" }, { asset: clientLogoId, label: "Client logo" }];
 
   return (
@@ -314,14 +472,14 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
               </div>
             ))}
             <div className="min-w-0">
-            <p className="truncate text-[10px] font-medium uppercase tracking-wide text-tertiary">{manifest.portal.name}</p>
-            <h1 className="truncate text-[16px] font-medium tracking-tight">{manifest.project.name}</h1>
+            <p className="truncate text-[10px] font-medium uppercase tracking-wide text-tertiary">{summary.portal.name}</p>
+            <h1 className="truncate text-[16px] font-medium tracking-tight">{summary.project.name}</h1>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 text-right">
             <div className="hidden text-[11px] leading-4 text-secondary sm:block">
-              <p>{manifest.issue.versionLabel}</p>
-              <p className="capitalize text-tertiary">{manifest.issue.status.replace(/_/g, " ")}</p>
+              <p>{summary.pendingIssue?.versionLabel ?? summary.activeBaseline?.versionLabel ?? "Commitment timeline"}</p>
+              <p className="capitalize text-tertiary">{summary.pendingIssue?.status.replace(/_/g, " ") ?? "Current agreement"}</p>
             </div>
             <Button size="sm" variant="secondary" onClick={() => window.print()}>Print</Button>
           </div>
@@ -338,7 +496,11 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
         <nav aria-label={`${PORTAL_VIEW_LABELS[selectedView]} sections`} className="hidden border-r border-hairline bg-white p-3 lg:sticky lg:top-[7.1rem] lg:block lg:h-[calc(100dvh-7.1rem)]">
           <p className="px-2 pb-2 text-[10px] font-medium uppercase tracking-wide text-tertiary">{PORTAL_VIEW_LABELS[selectedView]} views</p>
           <div className="grid gap-1">
-            {sectionsInSelectedView.map((item) => (
+            {selectedView === "documents" ? manifest?.package?.artifacts.map((artifact) => (
+              <Button key={artifact.id} variant={artifact.id === selectedArtifact?.id ? "soft" : "ghost"} size="sm" className="justify-start !min-w-0" onClick={() => { setSelectedArtifactId(artifact.id); window.history.replaceState(null, "", `#artifact/${encodeURIComponent(artifact.id)}`); }}>
+                {artifact.title}
+              </Button>
+            )) : sectionsInSelectedView.map((item) => (
               <Button key={item.id} variant={item.id === selectedSectionId ? "soft" : "ghost"} size="sm" className="justify-start !min-w-0" onClick={() => selectSection(item.id)}>
                 {sectionLabel(item)}
               </Button>
@@ -348,31 +510,33 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
 
         <section className="min-w-0 p-4 pb-20 sm:p-6 sm:pb-20 lg:p-8">
           <div className="mb-4 flex gap-2 overflow-x-auto pb-1" aria-label={`${PORTAL_VIEW_LABELS[selectedView]} sections`}>
-            {sectionsInSelectedView.length > 1 ? sectionsInSelectedView.map((item) => (
+            {selectedView === "documents" && (manifest?.package?.artifacts.length ?? 0) > 1 ? manifest?.package?.artifacts.map((artifact) => (
+              <Button key={artifact.id} variant={artifact.id === selectedArtifact?.id ? "soft" : "secondary"} size="sm" onClick={() => { setSelectedArtifactId(artifact.id); window.history.replaceState(null, "", `#artifact/${encodeURIComponent(artifact.id)}`); }}>{artifact.title}</Button>
+            )) : sectionsInSelectedView.length > 1 ? sectionsInSelectedView.map((item) => (
               <Button key={item.id} variant={item.id === selectedSectionId ? "soft" : "secondary"} size="sm" onClick={() => selectSection(item.id)}>{sectionLabel(item)}</Button>
             )) : null}
           </div>
-          <div id={selectedView === "requests" ? "requests" : selectedSection?.id} className="border border-hairline bg-white p-4 shadow-sm sm:p-6">
-            {selectedView === "requests" ? <ClientPortalRequestSection capabilities={manifest.capabilities} token={token} /> : <>
+          <div id={selectedView === "requests" || selectedView === "timeline" || selectedView === "documents" ? selectedView : selectedSection?.id} className="border border-hairline bg-white p-4 shadow-sm sm:p-6">
+            {selectedView === "timeline" ? <ClientPortalTimeline issueNumber={manifest?.issue.number ?? initialIssueNumber ?? summary.pendingIssue?.issueNumber} token={token} /> : selectedView === "requests" ? <ClientPortalRequestSection capabilities={summary.capabilities} initialRequestId={selectedRequestId} token={token} /> : selectedView === "documents" ? selectedArtifact ? <ArtifactViewer contentUrl={artifactContentPath(token, selectedArtifact.id, manifest?.issue.number ?? initialIssueNumber)} downloadUrl={selectedArtifact.downloadable ? artifactContentPath(token, selectedArtifact.id, manifest?.issue.number ?? initialIssueNumber, true) : null} fileName={`${selectedArtifact.title}.pdf`} sizeLabel={fileSizeLabel(selectedArtifact.sizeBytes)} title={selectedArtifact.title} /> : <p className="text-[13px] text-secondary">No issued documents are available.</p> : <>
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-hairline pb-4">
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Issued section</p>
                 <h2 className="mt-1 text-[20px] font-medium tracking-tight">{selectedSection ? sectionLabel(selectedSection) : "No section selected"}</h2>
               </div>
-              <p className="text-[11px] text-tertiary">Issue {manifest.issue.number}</p>
+              {manifest ? <p className="text-[11px] text-tertiary">Issue {manifest.issue.number}</p> : null}
             </div>
             {sectionState === "loading" ? <p aria-live="polite" className="text-[13px] text-secondary">Loading issued section…</p> : null}
             {sectionState === "unavailable" ? <p role="alert" className="text-[13px] text-secondary">This issued section is unavailable.</p> : null}
-            {sectionState === "ready" && section ? section.section.kind === "estimate_browser"
-              ? <EstimateBrowserSection payload={section.section.payload} sectionId={section.section.id} token={token} onDiscussTarget={manifest.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? (target) => discussEstimateTarget(target, section.section.id) : undefined} />
+            {sectionState === "ready" && section && manifest ? section.section.kind === "estimate_browser"
+              ? <EstimateBrowserSection payload={section.section.payload} sectionId={section.section.id} token={token} onDiscussTarget={summary.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? (target) => discussEstimateTarget(target, section.section.id) : undefined} />
               : isFinancialSection(section.section.kind)
                 ? <ClientPortalFinancialSection kind={section.section.kind} payload={section.section.payload} />
                 : section.section.kind === "discussion"
-                  ? <ClientPortalDiscussionSection capabilities={manifest.capabilities} composeTarget={discussionTarget} issueId={manifest.issue.id} projectName={manifest.project.name} sectionId={section.section.id} token={token} />
+                  ? <ClientPortalDiscussionSection capabilities={summary.capabilities} composeTarget={discussionTarget} issueId={manifest.issue.id} projectName={summary.project.name} sectionId={section.section.id} token={token} />
                   : section.section.kind === "activity"
                     ? <ClientPortalActivitySection payload={section.section.payload} sectionId={section.section.id} token={token} />
                     : section.section.kind === "decision"
-                      ? <ClientPortalDecisionSection capabilities={manifest.capabilities} issue={manifest.issue} token={token} />
+                      ? <ClientPortalDecisionSection capabilities={summary.capabilities} issue={manifest.issue} token={token} />
                       : <ClientPortalPayload payload={section.section.payload} /> : null}
             </>}
           </div>
@@ -381,17 +545,18 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
         <aside className="hidden border-l border-hairline bg-white p-4 xl:block">
           <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Review context</p>
           <dl className="mt-3 grid gap-3 text-[12px]">
-            <div><dt className="text-tertiary">Issue</dt><dd className="mt-1 text-ink">{manifest.issue.versionLabel}</dd></div>
-            <div><dt className="text-tertiary">Currency</dt><dd className="mt-1 text-ink">{manifest.project.currencyCode}</dd></div>
+            <div><dt className="text-tertiary">Current agreement</dt><dd className="mt-1 text-ink">{summary.activeBaseline?.versionLabel ?? "Not established"}</dd></div>
+            {summary.pendingIssue ? <div><dt className="text-tertiary">Pending issue</dt><dd className="mt-1 text-ink">{summary.pendingIssue.versionLabel}</dd></div> : null}
+            <div><dt className="text-tertiary">Currency</dt><dd className="mt-1 text-ink">{summary.project.currencyCode}</dd></div>
             {validThrough ? <div><dt className="text-tertiary">Valid through</dt><dd className="mt-1 text-ink">{validThrough}</dd></div> : null}
-            {manifest.recipient ? <div><dt className="text-tertiary">Viewing as</dt><dd className="mt-1 text-ink">{manifest.recipient.displayName ?? manifest.recipient.role}</dd></div> : null}
+            {summary.recipient ? <div><dt className="text-tertiary">Viewing as</dt><dd className="mt-1 text-ink">{summary.recipient.displayName ?? summary.recipient.role}</dd></div> : null}
           </dl>
         </aside>
       </div>
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-hairline bg-white/95 px-4 py-2 backdrop-blur lg:hidden">
         <Button size="sm" variant="ghost" className="!min-w-0" onClick={() => setContextOpen(true)}>Review context</Button>
-        {manifest.capabilities.includes("thread:create") && manifest.sections.some((item) => item.kind === "discussion") ? <Button size="sm" variant="secondary" onClick={() => selectView("discussion")}>Discuss</Button> : null}
-        {(manifest.capabilities.includes("decision:submit_review") || manifest.capabilities.includes("decision:submit_formal")) && manifest.sections.some((item) => item.kind === "decision") ? <Button size="sm" variant="secondary" onClick={() => selectView("decision")}>Decision</Button> : null}
+        {summary.capabilities.includes("thread:create") && manifest?.sections.some((item) => item.kind === "discussion") ? <Button size="sm" variant="secondary" onClick={() => selectView("discussion")}>Discuss</Button> : null}
+        {(summary.capabilities.includes("decision:submit_review") || summary.capabilities.includes("decision:submit_formal")) && manifest?.sections.some((item) => item.kind === "decision") ? <Button size="sm" variant="secondary" onClick={() => selectView("decision")}>Decision</Button> : null}
         <Button size="sm" variant="secondary" onClick={() => window.print()}>Print issue</Button>
       </div>
       {contextOpen ? (
@@ -402,11 +567,11 @@ export function ClientPortalShell({ token, recipientToken }: { token: string; re
               <Button size="sm" variant="ghost" onClick={() => setContextOpen(false)}>Close</Button>
             </div>
             <dl className="mt-5 grid gap-4 text-[13px]">
-              <div><dt className="text-tertiary">Issue</dt><dd className="mt-1 text-ink">{manifest.issue.versionLabel}</dd></div>
-              <div><dt className="text-tertiary">Status</dt><dd className="mt-1 capitalize text-ink">{manifest.issue.status.replace(/_/g, " ")}</dd></div>
-              <div><dt className="text-tertiary">Currency</dt><dd className="mt-1 text-ink">{manifest.project.currencyCode}</dd></div>
+              <div><dt className="text-tertiary">Current agreement</dt><dd className="mt-1 text-ink">{summary.activeBaseline?.versionLabel ?? "Not established"}</dd></div>
+              {summary.pendingIssue ? <div><dt className="text-tertiary">Pending issue</dt><dd className="mt-1 text-ink">{summary.pendingIssue.versionLabel}</dd></div> : null}
+              <div><dt className="text-tertiary">Currency</dt><dd className="mt-1 text-ink">{summary.project.currencyCode}</dd></div>
               {validThrough ? <div><dt className="text-tertiary">Valid through</dt><dd className="mt-1 text-ink">{validThrough}</dd></div> : null}
-              {manifest.recipient ? <div><dt className="text-tertiary">Viewing as</dt><dd className="mt-1 text-ink">{manifest.recipient.displayName ?? manifest.recipient.role}</dd></div> : null}
+              {summary.recipient ? <div><dt className="text-tertiary">Viewing as</dt><dd className="mt-1 text-ink">{summary.recipient.displayName ?? summary.recipient.role}</dd></div> : null}
             </dl>
           </aside>
         </div>

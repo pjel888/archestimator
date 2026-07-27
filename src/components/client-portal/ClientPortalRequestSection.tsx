@@ -40,7 +40,7 @@ async function errorMessage(response: Response, fallback: string) {
   return typeof payload?.error === "string" ? payload.error : fallback;
 }
 
-export function ClientPortalRequestSection({ capabilities, token }: { capabilities: readonly string[]; token: string }) {
+export function ClientPortalRequestSection({ capabilities, initialRequestId, token }: { capabilities: readonly string[]; initialRequestId?: string | null; token: string }) {
   const [requests, setRequests] = useState<PublicRequest[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,11 +67,13 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
     const payload = await response.json() as RequestPage;
     const next = Array.isArray(payload.requests) ? payload.requests : [];
     setRequests(next);
-    setSelectedId((current) => current && next.some((request) => request.publicRequestId === current)
-      ? current
-      : next[0]?.publicRequestId ?? null);
+    setSelectedId((current) => {
+      if (current && next.some((request) => request.publicRequestId === current)) return current;
+      if (initialRequestId && next.some((request) => request.publicRequestId === initialRequestId)) return initialRequestId;
+      return next[0]?.publicRequestId ?? null;
+    });
     setLoading(false);
-  }, [token]);
+  }, [initialRequestId, token]);
 
   useEffect(() => {
     let active = true;
@@ -81,7 +83,9 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
         if (!active) return;
         const next = Array.isArray(payload?.requests) ? payload.requests : [];
         setRequests(next);
-        setSelectedId(next[0]?.publicRequestId ?? null);
+        setSelectedId(initialRequestId && next.some((request) => request.publicRequestId === initialRequestId)
+          ? initialRequestId
+          : next[0]?.publicRequestId ?? null);
         if (!payload) setNotice("Requests could not be loaded.");
         setLoading(false);
       })
@@ -93,7 +97,7 @@ export function ClientPortalRequestSection({ capabilities, token }: { capabiliti
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [initialRequestId, token]);
 
   async function submitRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
