@@ -11,7 +11,15 @@ import {
 } from "@/lib/client-portal/public-repository";
 import { listClientPortalClientSafeActivity, recordClientPortalAnalyticsEvent } from "@/lib/client-portal/activity-service";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import {
+  createClientPortalPublicCursor,
+  createClientPortalPublicIdentifier,
+  parseClientPortalPublicCursor,
+  readClientPortalInternalIdentifiers,
+  resolveClientPortalPublicIdentifier,
+} from "@/lib/client-portal/public-identifiers";
 import { checkClientPortalPublicReadRateLimit } from "@/lib/client-portal/public-rate-limits";
+import { getClientPortalSummary, getClientPortalTimeline } from "@/lib/client-portal/timeline-repository";
 
 function issueNumber(request: Request) {
   const value = new URL(request.url).searchParams.get("issue");
@@ -70,8 +78,43 @@ export async function clientPortalManifestResponse(request: Request, token: stri
     await hasClientPortalPasswordSession(token, cookie),
   );
   if (!manifest) return unavailable();
-  await recordVerifiedView(request, actor, manifest.issue.id, manifest.portal.id);
+  const internalIds = readClientPortalInternalIdentifiers(manifest);
+  if (internalIds?.issueId && internalIds.portalId) {
+    await recordVerifiedView(request, actor, internalIds.issueId, internalIds.portalId);
+  }
   return Response.json(manifest, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+}
+
+export async function clientPortalTimelineResponse(request: Request, token: string) {
+  const rateLimit = await checkClientPortalPublicReadRateLimit({ token, request, route: "timeline" });
+  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
+  const cookie = request.headers.get("cookie") ?? "";
+  const actor = await publicActor(token, cookie);
+  if (await requiresClientPortalPassword(token, cookie)) return passwordRequired();
+  const url = new URL(request.url);
+  const rawLimit = Number(url.searchParams.get("limit"));
+  const timeline = await getClientPortalTimeline({
+    actor,
+    cursor: url.searchParams.get("cursor"),
+    limit: Number.isInteger(rawLimit) && rawLimit > 0 ? rawLimit : undefined,
+    passwordAuthenticated: await hasClientPortalPasswordSession(token, cookie),
+    token,
+  });
+  return timeline ? Response.json(timeline, { headers: CLIENT_PORTAL_NO_STORE_HEADERS }) : unavailable();
+}
+
+export async function clientPortalSummaryResponse(request: Request, token: string) {
+  const rateLimit = await checkClientPortalPublicReadRateLimit({ token, request, route: "summary" });
+  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
+  const cookie = request.headers.get("cookie") ?? "";
+  const actor = await publicActor(token, cookie);
+  if (await requiresClientPortalPassword(token, cookie)) return passwordRequired();
+  const summary = await getClientPortalSummary({
+    actor,
+    passwordAuthenticated: await hasClientPortalPasswordSession(token, cookie),
+    token,
+  });
+  return summary ? Response.json(summary, { headers: CLIENT_PORTAL_NO_STORE_HEADERS }) : unavailable();
 }
 
 export async function clientPortalSectionResponse(request: Request, token: string, sectionId: string) {
@@ -89,9 +132,10 @@ export async function clientPortalSectionResponse(request: Request, token: strin
     await hasClientPortalPasswordSession(token, cookie),
   );
   if (!section) return unavailable();
+  const internalIds = readClientPortalInternalIdentifiers(section);
   const database = await getCloudflareD1Database();
-  if (database && actor.kind === "recipient") {
-    await recordClientPortalAnalyticsEvent({ actor, database, eventType: "section_viewed", issueId: section.issueId, metadata: { sectionId }, portalId: section.portalId, userAgentClass: userAgentClass(request) }).catch(() => undefined);
+  if (database && actor.kind === "recipient" && internalIds?.issueId && internalIds.portalId && internalIds.sectionId) {
+    await recordClientPortalAnalyticsEvent({ actor, database, eventType: "section_viewed", issueId: internalIds.issueId, metadata: { sectionId: internalIds.sectionId }, portalId: internalIds.portalId, userAgentClass: userAgentClass(request) }).catch(() => undefined);
   }
   return Response.json(section, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
 }
@@ -128,18 +172,39 @@ export async function clientPortalActivityResponse(request: Request, token: stri
   const passwordAuthenticated = await hasClientPortalPasswordSession(token, cookie);
   const section = await getClientPortalSection(token, sectionId, issueNumber(request), actor, passwordAuthenticated);
   if (!section || section.section.kind !== "activity") return unavailable();
+  const internalIds = readClientPortalInternalIdentifiers(section);
+  if (!internalIds?.issueId || !internalIds.portalId || !internalIds.sectionId) return unavailable();
   const database = await getCloudflareD1Database();
   if (!database) return unavailable();
   const url = new URL(request.url);
   const rawLimit = url.searchParams.get("limit");
   const limitValue = rawLimit === null ? undefined : Number(rawLimit);
+  const publicCursor = parseClientPortalPublicCursor(url.searchParams.get("cursor"));
+  let internalCursor: string | null = null;
+  if (url.searchParams.has("cursor")) {
+    if (!publicCursor) return unavailable();
+    const result = await database.prepare<{ id: string }>("SELECT id FROM client_portal_audit_events WHERE portal_id = ? AND issue_id = ? AND occurred_at = ? AND visibility = 'client_safe'")
+      .bind(internalIds.portalId, internalIds.issueId, publicCursor.timestamp)
+      .all<{ id: string }>();
+    const internalId = resolveClientPortalPublicIdentifier(token, "activity", publicCursor.publicId, (result.results ?? []).map((row) => row.id));
+    if (!internalId) return unavailable();
+    internalCursor = `${publicCursor.timestamp}|${internalId}`;
+  }
   const activity = await listClientPortalClientSafeActivity({
     actor,
-    cursor: url.searchParams.get("cursor"),
+    cursor: internalCursor,
     database,
-    issueId: section.issueId,
+    issueId: internalIds.issueId,
     limit: Number.isInteger(limitValue) && limitValue! > 0 ? limitValue : undefined,
-    portalId: section.portalId,
+    portalId: internalIds.portalId,
   });
-  return Response.json(activity, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
+  return Response.json({
+    ...activity,
+    activities: activity.activities.map((entry) => ({
+      ...entry,
+      id: createClientPortalPublicIdentifier(token, "activity", entry.id),
+      issueId: entry.issueId ? createClientPortalPublicIdentifier(token, "issue", entry.issueId) : null,
+    })),
+    nextCursor: createClientPortalPublicCursor(token, "activity", activity.nextCursor),
+  }, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
 }

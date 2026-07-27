@@ -8,9 +8,10 @@ import { resolveClientPortalIssuedTarget } from "@/lib/client-portal/issued-targ
 import { clientPortalOwnerNotificationStatement } from "@/lib/client-portal/owner-notification";
 import { evaluateClientPortalPolicy, type ClientPortalPolicyPortal, type ClientPortalPolicySection, type ClientPortalRecipientActor } from "@/lib/client-portal/policy";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
+import { prepareProjectCommitmentEventWrites } from "@/lib/project-ledger/event-service";
 
 type PortalRow = { id: string; workspace_id: string; project_id: string; status: "draft" | "ready" | "live" | "access_off" | "archived"; current_issue_id: string | null };
-type IssueRow = { id: string; status: "issued" | "under_review" | "changes_requested" | "accepted" | "declined" | "superseded" | "withdrawn" | "archived"; valid_through: string | null };
+type IssueRow = { id: string; issue_number: number; status: "issued" | "under_review" | "changes_requested" | "accepted" | "declined" | "superseded" | "withdrawn" | "archived"; valid_through: string | null; version_label: string };
 type SectionRow = { id: string; policy_snapshot_json: string };
 type ThreadRow = { id: string; issue_id: string | null; section_key: string | null; target_kind: ClientPortalDiscussionTargetKind; target_public_id: string | null; target_label: string; target_secondary_label: string | null; subject: string; status: "open" | "resolved" | "archived" | "closed_by_supersession" | "requires_revalidation"; waiting_state: "waiting_on_owner" | "waiting_on_client" | "no_response_required"; created_by_actor_id: string; created_at: string; updated_at: string };
 type ExistingMessage = { body: string; thread_id: string };
@@ -183,7 +184,7 @@ function recipientMentionStatements(database: D1DatabaseLike, messageId: string,
 
 async function context(database: D1DatabaseLike, portalId: string, issueId: string, sectionId?: string | null, requireCurrent = true) {
   const portal = await first<PortalRow>(database, "SELECT id, workspace_id, project_id, status, current_issue_id FROM client_portals WHERE id = ? LIMIT 1", [portalId]);
-  const issue = await first<IssueRow>(database, "SELECT id, status, valid_through FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1", [issueId, portalId]);
+  const issue = await first<IssueRow>(database, "SELECT id, issue_number, version_label, status, valid_through FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1", [issueId, portalId]);
   if (!portal || !issue || (requireCurrent && portal.current_issue_id !== issue.id) || issue.status === "withdrawn" || issue.status === "archived") {
     throw new ClientPortalThreadError("client_portal_thread_stale", "Client Portal issue is unavailable.");
   }
@@ -233,6 +234,15 @@ function authorSnapshot(actor: ClientPortalRecipientActor) {
   return JSON.stringify({ displayName: actor.displayName ?? null, role: actor.role, side: "client" });
 }
 
+function timelineExposurePolicy(issueNumber: number, section: ClientPortalPolicySection | null) {
+  return {
+    capability: "timeline:view",
+    issueNumber,
+    ...(section?.allowedOrganizations ? { allowedOrganizations: section.allowedOrganizations } : {}),
+    ...(section?.allowedRecipientIds ? { allowedRecipientIds: section.allowedRecipientIds } : {}),
+  };
+}
+
 async function replayMessage(database: D1DatabaseLike, actor: ClientPortalRecipientActor, idempotencyKey: string) {
   return first<ExistingMessage>(database, "SELECT body, thread_id FROM client_portal_messages WHERE actor_type = 'recipient' AND actor_id = ? AND idempotency_key = ? LIMIT 1", [actor.recipientId, idempotencyKey]);
 }
@@ -265,6 +275,36 @@ export async function createClientPortalRecipientThread(input: ClientPortalRecip
     subject, status: "open", waiting_state: "waiting_on_owner", created_by_actor_id: input.actor.recipientId, created_at: timestamp, updated_at: timestamp,
   };
   const messageId = `message_${randomUUID()}`;
+  const commitmentEvent = prepareProjectCommitmentEventWrites({
+    actor: {
+      actorId: input.actor.recipientId,
+      actorType: "recipient",
+      domainRoleSnapshot: input.actor.role,
+      nameSnapshot: input.actor.displayName ?? null,
+    },
+    clientSafeSnapshot: {
+      issueNumber: current.issue.issue_number,
+      status: current.issue.status,
+      versionLabel: current.issue.version_label,
+    },
+    correlationId: `discussion:${thread.id}:started`,
+    database: input.database,
+    eventType: "discussion.started",
+    exposure: {
+      exposureKind: "automatic",
+      policySnapshot: timelineExposurePolicy(current.issue.issue_number, current.section),
+      portalId: input.portalId,
+      publicEventId: `discussion_event_${randomUUID()}`,
+    },
+    internalMetadata: { messageId, targetKind: thread.target_kind, targetPublicId: thread.target_public_id, threadId: thread.id },
+    occurredAt: timestamp,
+    originPortalId: input.portalId,
+    projectId: current.portal.project_id,
+    source: { issueId: input.issueId, sourceType: "issue" },
+    summary: thread.target_label,
+    title: `Discussion opened: ${thread.subject}`,
+    workspaceId: current.portal.workspace_id,
+  });
   try {
     await runBatch(input.database, [
       statement(input.database, `INSERT INTO client_portal_threads (id, portal_id, issue_id, section_key, target_kind, target_public_id, target_label, target_secondary_label, subject, audience, status, waiting_state, assignee_user_id, created_by_actor_type, created_by_actor_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'client', 'open', 'waiting_on_owner', NULL, 'recipient', ?, ?, ?)`, [thread.id, input.portalId, thread.issue_id, thread.section_key, thread.target_kind, thread.target_public_id, thread.target_label, thread.target_secondary_label, thread.subject, input.actor.recipientId, timestamp, timestamp]),
@@ -275,6 +315,7 @@ export async function createClientPortalRecipientThread(input: ClientPortalRecip
       statement(input.database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) VALUES (?, ?, ?, ?, 'recipient', ?, 'thread_created', 'client_safe', ?, ?, ?)", [randomUUID(), current.portal.workspace_id, input.portalId, input.issueId, input.actor.recipientId, JSON.stringify({ threadId: thread.id }), timestamp, timestamp]),
       statement(input.database, "INSERT INTO client_portal_analytics_events (id, portal_id, issue_id, recipient_id, event_type, verified_human, occurred_at, metadata_json, created_at) VALUES (?, ?, ?, ?, 'thread_created', 1, ?, ?, ?)", [`analytics_${randomUUID()}`, input.portalId, input.issueId, input.actor.recipientId, timestamp, JSON.stringify({ threadId: thread.id }), timestamp]),
       clientPortalOwnerNotificationStatement(input.database, { eventType: "thread_created", idempotencyKey: `thread:${thread.id}:created`, issueId: input.issueId, payload: { messageId, threadId: thread.id }, portalId: input.portalId, timestamp }),
+      ...commitmentEvent.statements,
     ]);
   } catch (error) {
     const raced = await replayMessage(input.database, input.actor, idempotencyKey);
@@ -298,6 +339,27 @@ export async function replyToClientPortalThread({ actor, body: rawBody, database
   const current = await threadAccessContext(database, actor, portalId, thread, true, "thread:reply");
   const mentionIds = await activeRecipientMentionIds(database, portalId, recipientMentionIds(mentionedRecipientIds, actor.recipientId));
   const timestamp = new Date().toISOString(); const messageId = `message_${randomUUID()}`;
+  const commitmentEvent = prepareProjectCommitmentEventWrites({
+    actor: { actorId: actor.recipientId, actorType: "recipient", domainRoleSnapshot: actor.role, nameSnapshot: actor.displayName ?? null },
+    clientSafeSnapshot: { issueNumber: current.issue.issue_number, status: current.issue.status, versionLabel: current.issue.version_label },
+    correlationId: `discussion:${thread.id}:message:${messageId}`,
+    database,
+    eventType: "discussion.updated",
+    exposure: {
+      exposureKind: "automatic",
+      policySnapshot: timelineExposurePolicy(current.issue.issue_number, current.section),
+      portalId,
+      publicEventId: `discussion_event_${randomUUID()}`,
+    },
+    internalMetadata: { messageId, threadId: thread.id },
+    occurredAt: timestamp,
+    originPortalId: portalId,
+    projectId: current.portal.project_id,
+    source: { issueId: thread.issue_id, sourceType: "issue" },
+    summary: thread.target_label,
+    title: `Discussion updated: ${thread.subject}`,
+    workspaceId: current.portal.workspace_id,
+  });
   try {
     await runBatch(database, [
       statement(database, "INSERT INTO client_portal_messages (id, thread_id, actor_type, actor_id, author_snapshot_json, body, reply_to_message_id, idempotency_key, visibility, created_at) VALUES (?, ?, 'recipient', ?, ?, ?, NULL, ?, 'client', ?)", [messageId, thread.id, actor.recipientId, authorSnapshot(actor), body, idempotencyKey, timestamp]),
@@ -306,6 +368,7 @@ export async function replyToClientPortalThread({ actor, body: rawBody, database
       statement(database, "INSERT INTO client_portal_thread_reads (thread_id, actor_type, actor_id, last_read_message_id, read_at) VALUES (?, 'recipient', ?, ?, ?) ON CONFLICT(thread_id, actor_type, actor_id) DO UPDATE SET last_read_message_id = excluded.last_read_message_id, read_at = excluded.read_at", [thread.id, actor.recipientId, messageId, timestamp]),
       statement(database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) VALUES (?, ?, ?, ?, 'recipient', ?, 'message_created', 'client_safe', ?, ?, ?)", [randomUUID(), current.portal.workspace_id, portalId, thread.issue_id, actor.recipientId, JSON.stringify({ messageId, threadId: thread.id }), timestamp, timestamp]),
       clientPortalOwnerNotificationStatement(database, { eventType: "message_created", idempotencyKey: `message:${messageId}:created`, issueId: thread.issue_id, payload: { messageId, threadId: thread.id }, portalId, timestamp }),
+      ...commitmentEvent.statements,
     ]);
   } catch (error) {
     const raced = await replayMessage(database, actor, idempotencyKey);
@@ -321,6 +384,27 @@ export async function setClientPortalRecipientThreadStatus({ actor, database, po
   if (thread.status !== "open" && thread.status !== "resolved") throw new ClientPortalThreadError("client_portal_thread_stale", "Client Portal thread cannot be updated.");
   const current = await threadAccessContext(database, actor, portalId, thread, true, status === "resolved" ? "thread:resolve" : "thread:reopen");
   const timestamp = new Date().toISOString();
+  const commitmentEvent = prepareProjectCommitmentEventWrites({
+    actor: { actorId: actor.recipientId, actorType: "recipient", domainRoleSnapshot: actor.role, nameSnapshot: actor.displayName ?? null },
+    clientSafeSnapshot: { issueNumber: current.issue.issue_number, status: current.issue.status, versionLabel: current.issue.version_label },
+    correlationId: `discussion:${thread.id}:status:${status}:${timestamp}`,
+    database,
+    eventType: status === "resolved" ? "discussion.resolved" : "discussion.reopened",
+    exposure: {
+      exposureKind: "automatic",
+      policySnapshot: timelineExposurePolicy(current.issue.issue_number, current.section),
+      portalId,
+      publicEventId: `discussion_event_${randomUUID()}`,
+    },
+    internalMetadata: { threadId: thread.id },
+    occurredAt: timestamp,
+    originPortalId: portalId,
+    projectId: current.portal.project_id,
+    source: { issueId: thread.issue_id, sourceType: "issue" },
+    summary: thread.target_label,
+    title: status === "resolved" ? `Discussion resolved: ${thread.subject}` : `Discussion reopened: ${thread.subject}`,
+    workspaceId: current.portal.workspace_id,
+  });
   await runBatch(database, [
     statement(
       database,
@@ -328,6 +412,7 @@ export async function setClientPortalRecipientThreadStatus({ actor, database, po
       [status, status === "resolved" ? timestamp : null, status === "resolved" ? actor.recipientId : null, timestamp, thread.id],
     ),
     statement(database, "INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) VALUES (?, ?, ?, ?, 'recipient', ?, ?, 'client_safe', ?, ?, ?)", [randomUUID(), current.portal.workspace_id, portalId, thread.issue_id, actor.recipientId, status === "resolved" ? "thread_resolved" : "thread_reopened", JSON.stringify({ threadId: thread.id }), timestamp, timestamp]),
+    ...commitmentEvent.statements,
   ]);
   return { id: thread.id, status };
 }

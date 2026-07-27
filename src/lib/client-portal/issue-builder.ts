@@ -665,6 +665,44 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
     title: replacesPendingIssue ? `${versionLabel} replaced the pending proposal` : `${versionLabel} was issued`,
     workspaceId: portal.workspace_id,
   });
+  const artifactExposureEvents = input.issuePackage?.artifacts.map((artifact) => {
+    const publicEventSuffix = sha256(`${issueId}:${artifact.artifactVersionId}:${artifact.publicArtifactId}`).slice(0, 20);
+    return prepareProjectCommitmentEventWrites({
+      actor: { actorId: input.actor.userId, actorType: "internal_user", domainRoleSnapshot: "publisher" },
+      clientSafeSnapshot: {
+        issueNumber,
+        publicArtifactId: artifact.publicArtifactId,
+        title: artifact.displayTitle,
+        versionLabel: artifact.versionLabel,
+      },
+      correlationId: `artifact:${artifact.artifactId}:version:${artifact.artifactVersionId}:issue:${issueId}:exposed`,
+      database: input.database,
+      eventType: "artifact.exposed",
+      exposure: {
+        exposureKind: "automatic",
+        policySnapshot: { capability: "timeline:view", issueNumber, publicArtifactId: artifact.publicArtifactId },
+        portalId: portal.id,
+        publicEventId: `artifact_event_${publicEventSuffix}`,
+      },
+      internalMetadata: {
+        issueId,
+        publicArtifactId: artifact.publicArtifactId,
+        purpose: artifact.purpose,
+      },
+      occurredAt: issuedAt,
+      originPortalId: portal.id,
+      projectId: portal.project_id,
+      rootRequestId,
+      source: {
+        artifactId: artifact.artifactId,
+        artifactVersionId: artifact.artifactVersionId,
+        sourceType: "artifact",
+      },
+      summary: `${artifact.versionLabel} was included in ${versionLabel}.`,
+      title: `${artifact.displayTitle} was shared for review`,
+      workspaceId: portal.workspace_id,
+    });
+  }) ?? [];
   const statements: D1PreparedStatementLike[] = [
     statement(
       input.database,
@@ -703,6 +741,7 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       ],
     ),
     ...issueEvent.statements,
+    ...artifactExposureEvents.flatMap((event) => event.statements),
   ];
 
   if (input.issuePackage) {

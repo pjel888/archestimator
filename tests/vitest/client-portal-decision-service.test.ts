@@ -3,9 +3,10 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
+import type { ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
 import { ClientPortalDecisionError, submitClientPortalDecision } from "@/lib/client-portal/decision-service";
 
-function databaseFor(role: "reviewer" | "approver", replay: Record<string, unknown> | null = null) {
+function databaseFor(role: ClientPortalRecipientRoleTemplate, replay: Record<string, unknown> | null = null) {
   const statements: Array<{ sql: string; values: D1Value[] }> = [];
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -16,7 +17,7 @@ function databaseFor(role: "reviewer" | "approver", replay: Record<string, unkno
           if (sql.includes("idempotency_key = ?")) return replay as T | null;
           if (sql.includes("FROM client_portals")) return { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "live", current_issue_id: "issue_1" } as T;
           if (sql.includes("FROM client_portal_issues")) return { id: "issue_1", issue_number: 4, version_label: "Issue 4", status: "issued", content_hash: "a".repeat(64), total_cost: 125000, currency_code: "USD", valid_through: null, decision_policy_snapshot_json: JSON.stringify({ requiredApprovals: 1, rule: "any_approver" }) } as T;
-          if (sql.includes("FROM client_portal_recipients")) return { email_normalized: "reviewer@example.com", display_name: "Reviewer", role_template: role, is_required_approver: role === "approver" ? 1 : 0 } as T;
+          if (sql.includes("FROM client_portal_recipients")) return { client_organization: "Northstar", domain_role: "quantity_surveyor", domain_role_label: "Commercial lead", email_normalized: "reviewer@example.com", display_name: "Reviewer", role_template: role, is_required_approver: role === "approver" ? 1 : 0 } as T;
           return null;
         },
         async all<T>() { return { success: true, results: [] } as D1Result<T>; },
@@ -37,6 +38,11 @@ describe("client portal decisions", () => {
     const receipt = await submitClientPortalDecision({ actor: baseActor, database, portalId: "portal_1", issueId: "issue_1", decision: "approved", expectedIssueContentHash: "a".repeat(64), idempotencyKey: "approve_1", signerName: "A. Approver" });
     expect(receipt).toMatchObject({ decision: "approved", issueNumber: 4, total: 125000, currencyCode: "USD", replayed: false });
     expect(JSON.stringify(statements)).toContain("'issue', 'issue'");
+    const decisionInsert = statements.find((entry) => entry.sql.includes("INSERT INTO client_portal_decisions"));
+    expect(decisionInsert?.sql).toContain("signer_domain_role_snapshot");
+    expect(decisionInsert?.sql).toContain("signer_organization_snapshot");
+    expect(decisionInsert?.values).toEqual(expect.arrayContaining(["approver", "Commercial lead", "Northstar"]));
+    expect(statements.some((entry) => entry.sql.includes("INSERT INTO project_commitment_events") && entry.values.includes("Commercial lead") && entry.values.includes("approver"))).toBe(true);
   });
 
   it("does not let a reviewer approve or submit a stale issue hash", async () => {
@@ -63,6 +69,29 @@ describe("client portal decisions", () => {
     expect(serialized).toContain("INSERT INTO project_commitment_events");
     expect(serialized).toContain("decision.declined");
     expect(serialized).toContain("ELSE 'rejected'");
+  });
+
+  it.each([
+    ["viewer", false, false],
+    ["commenter", false, false],
+    ["reviewer", true, false],
+    ["approver", true, true],
+    ["requester", false, false],
+  ] satisfies Array<[ClientPortalRecipientRoleTemplate, boolean, boolean]>) ("enforces the %s permission-role decision matrix", async (role, canReview, canApprove) => {
+    const review = databaseFor(role);
+    const reviewResult = submitClientPortalDecision({ actor: baseActor, database: review.database, portalId: "portal_1", issueId: "issue_1", decision: "changes_requested", expectedIssueContentHash: "a".repeat(64), idempotencyKey: `review_${role}` });
+    if (canReview) await expect(reviewResult).resolves.toMatchObject({ decision: "changes_requested" });
+    else await expect(reviewResult).rejects.toMatchObject({ code: "client_portal_decision_denied" });
+
+    const approval = databaseFor(role);
+    const approvalResult = submitClientPortalDecision({ actor: baseActor, database: approval.database, portalId: "portal_1", issueId: "issue_1", decision: "approved", expectedIssueContentHash: "a".repeat(64), idempotencyKey: `approve_${role}` });
+    if (canApprove) await expect(approvalResult).resolves.toMatchObject({ decision: "approved" });
+    else await expect(approvalResult).rejects.toMatchObject({ code: "client_portal_decision_denied" });
+  });
+
+  it.each(["viewer", "commenter", "reviewer", "approver", "requester"] satisfies ClientPortalRecipientRoleTemplate[])("denies %s decision access across portals", async (role) => {
+    const { database } = databaseFor(role);
+    await expect(submitClientPortalDecision({ actor: { ...baseActor, portalId: "portal_2" }, database, portalId: "portal_1", issueId: "issue_1", decision: role === "approver" ? "approved" : "changes_requested", expectedIssueContentHash: "a".repeat(64), idempotencyKey: `cross_portal_${role}` })).rejects.toMatchObject({ code: "client_portal_decision_denied" });
   });
 
   it("atomically prepares baseline rollover and linked request resolution", async () => {

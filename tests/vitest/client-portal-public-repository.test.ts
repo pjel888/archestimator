@@ -14,6 +14,7 @@ vi.mock("@opennextjs/cloudflare", () => ({
 }));
 
 import { buildClientPortalEstimateBrowserPayload, summarizeClientPortalEstimateBrowserPayload } from "@/lib/client-portal/estimate-browser";
+import { createClientPortalPublicIdentifier } from "@/lib/client-portal/public-identifiers";
 import { getClientPortalIssuedEstimateRowsPage, getClientPortalManifest, getClientPortalSection } from "@/lib/client-portal/public-repository";
 
 type QueryRecord = { sql: string; values: unknown[] };
@@ -45,6 +46,9 @@ const issue = {
   brand_snapshot_json: JSON.stringify({ mode: "prepared_by" }),
   decision_policy_snapshot_json: JSON.stringify({}),
 };
+const publicPortalId = createClientPortalPublicIdentifier(token, "portal", portal.id);
+const publicIssueId = createClientPortalPublicIdentifier(token, "issue", issue.id);
+const publicSectionId = createClientPortalPublicIdentifier(token, "section", "section_public_1");
 
 function section(overrides: Record<string, unknown> = {}) {
   return {
@@ -105,7 +109,7 @@ class FakeD1Database {
             success: true,
             results: sql.includes("FROM client_portal_issue_estimate_rows")
               ? this.options.projectionRows ?? []
-              : sql.includes("FROM client_portal_issue_sections") ? this.options.sections ?? [] : [],
+              : sql.includes("FROM client_portal_issue_sections") ? this.options.sections ?? (this.options.section ? [this.options.section] : []) : [],
           }),
         };
       },
@@ -140,6 +144,10 @@ describe("client portal public repository", () => {
     const manifest = await getClientPortalManifest(token, undefined, recipient);
 
     expect(manifest?.sections).toEqual([]);
+    expect(manifest?.portal.id).toBe(publicPortalId);
+    expect(manifest?.issue.id).toBe(publicIssueId);
+    expect(JSON.stringify(manifest)).not.toContain(portal.id);
+    expect(JSON.stringify(manifest)).not.toContain(issue.id);
     const issuedQueries = database.queries.filter((query) => query.sql.includes("client_portal_issue_sections"));
     expect(issuedQueries).toHaveLength(1);
     expect(database.queries.map((query) => query.sql).join("\n")).not.toContain("client_portal_sections");
@@ -283,9 +291,11 @@ describe("client portal public repository", () => {
     const database = new FakeD1Database({ section: section() });
     mocks.database = database;
 
-    const result = await getClientPortalSection(token, "section_public_1", undefined, recipient);
+    const result = await getClientPortalSection(token, publicSectionId, undefined, recipient);
 
     expect(result?.section.payload).toEqual({ amount: 1200 });
+    expect(result).toMatchObject({ portalId: publicPortalId, issueId: publicIssueId, section: { id: publicSectionId } });
+    expect(JSON.stringify(result)).not.toContain("section_public_1");
     expect(database.queries.map((query) => query.sql).join("\n")).not.toContain("client_portal_sections");
   });
 
@@ -297,7 +307,7 @@ describe("client portal public repository", () => {
     const get = vi.fn(async () => ({ arrayBuffer: async () => new TextEncoder().encode(JSON.stringify({ amount: 1200, margin: 300 })).buffer }));
     mocks.r2 = { get };
 
-    const result = await getClientPortalSection(token, "section_public_1", undefined, recipient);
+    const result = await getClientPortalSection(token, publicSectionId, undefined, recipient);
 
     expect(result?.section.payload).toEqual({ amount: 1200 });
     expect(get).toHaveBeenCalledWith("client-portals/issue_public_1/costs.json");
@@ -328,12 +338,26 @@ describe("client portal public repository", () => {
     });
     mocks.database = database;
 
-    const sectionResult = await getClientPortalSection(token, "section_public_1", undefined, recipient);
-    const page = await getClientPortalIssuedEstimateRowsPage(token, "section_public_1", { estimateId: "estimate_1", tabId: "estimate_1", limit: 1 }, undefined, recipient);
+    const sectionResult = await getClientPortalSection(token, publicSectionId, undefined, recipient);
+    const page = await getClientPortalIssuedEstimateRowsPage(token, publicSectionId, { estimateId: "estimate_1", tabId: "estimate_1", limit: 1 }, undefined, recipient);
 
     expect(sectionResult?.section.payload).toMatchObject({ paging: { mode: "server" }, estimates: [{ tabs: [{ rows: [] }] }] });
     expect(page).toMatchObject({ hasMore: true, rows: [{ id: "row_1" }], totalRows: 2 });
+    expect(page).toMatchObject({ portalId: publicPortalId, issueId: publicIssueId, sectionId: publicSectionId });
     expect(database.queries.some((query) => query.sql.startsWith("SELECT payload_json FROM"))).toBe(false);
     expect(database.queries.some((query) => query.sql.includes("client_portal_issue_estimate_rows") && query.sql.includes("LIMIT ?"))).toBe(true);
+  });
+
+  it("rejects section identifiers minted for another token", async () => {
+    mocks.database = new FakeD1Database({ section: section() });
+
+    const result = await getClientPortalSection(
+      token,
+      createClientPortalPublicIdentifier("z".repeat(43), "section", "section_public_1"),
+      undefined,
+      recipient,
+    );
+
+    expect(result).toBeNull();
   });
 });

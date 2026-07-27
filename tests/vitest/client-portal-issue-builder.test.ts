@@ -236,6 +236,7 @@ describe("client portal issue builder", () => {
           downloadable: false,
           decisionRelevant: true,
           sortOrder: 0,
+          versionLabel: "Revision A",
         }],
         requests: [{
           requestId: "request_1",
@@ -245,6 +246,7 @@ describe("client portal issue builder", () => {
           title: "Move sink",
           contentHash: "e".repeat(64),
           sortOrder: 0,
+          versionNumber: 1,
         }],
       },
       buildSectionPayload: async () => ({ description: "Floor finish", row_total: 1200 }),
@@ -259,6 +261,8 @@ describe("client portal issue builder", () => {
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_artifacts"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_issue_requests"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO project_commitment_events") && statement.values.includes("issue.issued"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO project_commitment_events") && statement.values.includes("artifact.exposed"))).toBe(true);
+    expect(statements.some((statement) => statement.values.includes("artifact.exposed") && JSON.stringify(statement.values).includes("artifact_public_1"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO client_portal_event_exposures"))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("INSERT INTO project_change_request_state_events") && statement.values.some((value) => typeof value === "string" && value.startsWith("issue:issue_")))).toBe(true);
     expect(statements.some((statement) => statement.sql.includes("UPDATE project_change_requests") && statement.sql.includes("status = 'proposal_issued'"))).toBe(true);

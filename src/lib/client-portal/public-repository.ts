@@ -3,7 +3,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
-import { CLIENT_PORTAL_CAPABILITIES, type ClientPortalCapability } from "@/lib/client-portal/contracts";
+import { CLIENT_PORTAL_CAPABILITIES, type ClientPortalCapability, type ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
 import {
   CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_BYTE_LIMIT,
   getClientPortalEstimateBrowserRowsPage,
@@ -16,6 +16,11 @@ import {
   CLIENT_PORTAL_ISSUE_KINDS,
   CLIENT_PORTAL_ISSUE_REQUEST_RELATIONSHIPS,
 } from "@/lib/client-portal/issue-draft-contracts";
+import {
+  attachClientPortalInternalIdentifiers,
+  createClientPortalPublicIdentifier,
+  resolveClientPortalPublicIdentifier,
+} from "@/lib/client-portal/public-identifiers";
 import { type ClientPortalActor, type ClientPortalCapabilityOverride, type ClientPortalPolicySection, evaluateClientPortalPolicy, filterClientPortalSections } from "@/lib/client-portal/policy";
 import { sanitizeClientPortalIssuedPayload, type ClientPortalPublicValue } from "@/lib/client-portal/section-registry";
 import { createSharedLinkSessionCookieName, hasPublicationAccessCookie, hashPublicationToken, isPublicationTokenShape, readPublicationTokenHashSecret, readSharedLinkSessionCookieRecipientId, verifyPublicationPassword, verifySharedLinkSessionCookieValue } from "@/lib/publication/security";
@@ -108,6 +113,11 @@ function policySection(row:SectionRow):ClientPortalPolicySection {
 async function db() { const value=await getCloudflareD1Database(); if (!value) throw new Error("Something went wrong. Try again in a moment."); return value; }
 async function first<T>(database:D1DatabaseLike, sql:string, values:string[]) { return database.prepare<T>(sql).bind(...values).first<T>(); }
 async function all<T>(database:D1DatabaseLike, sql:string, values:string[]) { const result=await database.prepare<T>(sql).bind(...values).all<T>(); return result.results ?? []; }
+async function issuedSectionRow(context: Awaited<ReturnType<typeof resolveClientPortalPublicContext>> & {}, token:string, publicSectionId:string, kind?:string) {
+  const rows=await all<SectionRow>(context.database,`SELECT id, section_key, kind, title, sort_order, payload_storage, NULL AS payload_json, r2_object_key, payload_hash, payload_bytes, schema_version, policy_snapshot_json, json_extract(policy_snapshot_json, '$.layoutMode') AS layout_mode FROM client_portal_issue_sections WHERE issue_id = ? ${kind ? "AND kind = ? " : ""}ORDER BY sort_order ASC, id ASC`,kind ? [context.issue.id,kind] : [context.issue.id]);
+  const internalId=resolveClientPortalPublicIdentifier(token,"section",publicSectionId,rows.map(row=>row.id));
+  return internalId ? rows.find(row=>row.id === internalId) ?? null : null;
+}
 async function resolvePortalToken(database:D1DatabaseLike, token:string):Promise<ResolvedPortalToken|null> {
   const tokenHash=hashPublicationToken(token,readPublicationTokenHashSecret());
   const mapped=await first<PortalRow & { legacy_password_hash:string|null; mapped_issue_id:string }>(database,`SELECT portal.id, portal.workspace_id, portal.project_id, portal.name, portal.status, portal.password_hash, portal.access_credential_version, portal.access_policy_json, portal.current_issue_id, mapping.issue_id AS mapped_issue_id, legacy.password_hash AS legacy_password_hash
@@ -263,7 +273,7 @@ export async function resolveClientPortalRecipientActor(token:string, recipientT
   if (issueId && (!issue || !issueAllowed(issue))) return null;
   const timestamp=new Date().toISOString();
   const tokenHash=hashPublicationToken(recipientToken,readPublicationTokenHashSecret());
-  const recipient=await first<{credential_id:string;id:string;display_name:string|null;role_template:"viewer"|"commenter"|"reviewer"|"approver";status:"invited"|"active"|"revoked"|"expired";verification_state:"unverified"|"verified"|"failed";client_organization:string|null;is_required_approver:number;recipient_credential_version:number}>(database,"SELECT c.id AS credential_id, r.id, r.display_name, r.role_template, r.status, r.verification_state, r.client_organization, r.is_required_approver, r.recipient_credential_version FROM client_portal_recipient_credentials c JOIN client_portal_recipients r ON r.id = c.recipient_id WHERE c.token_hash = ? AND c.status = 'active' AND (c.expires_at IS NULL OR c.expires_at > ?) AND r.portal_id = ? AND r.status = 'active' LIMIT 1",[tokenHash,timestamp,portal.id]);
+  const recipient=await first<{credential_id:string;id:string;display_name:string|null;role_template:ClientPortalRecipientRoleTemplate;status:"invited"|"active"|"revoked"|"expired";verification_state:"unverified"|"verified"|"failed";client_organization:string|null;is_required_approver:number;recipient_credential_version:number}>(database,"SELECT c.id AS credential_id, r.id, r.display_name, r.role_template, r.status, r.verification_state, r.client_organization, r.is_required_approver, r.recipient_credential_version FROM client_portal_recipient_credentials c JOIN client_portal_recipients r ON r.id = c.recipient_id WHERE c.token_hash = ? AND c.status = 'active' AND (c.expires_at IS NULL OR c.expires_at > ?) AND r.portal_id = ? AND r.status = 'active' LIMIT 1",[tokenHash,timestamp,portal.id]);
   if (!recipient) return null;
   if (!database.batch) return null;
   const verificationResults=await database.batch([
@@ -281,7 +291,7 @@ export async function readClientPortalRecipientSession(token:string,cookieHeader
   const cookie=cookieValue(cookieHeader,createSharedLinkSessionCookieName(token));
   const recipientId=readSharedLinkSessionCookieRecipientId(cookie);
   if (!recipientId) return null;
-  const database=await db(); const row=await first<{id:string;portal_id:string;display_name:string|null;role_template:"viewer"|"commenter"|"reviewer"|"approver";status:"invited"|"active"|"revoked"|"expired";verification_state:"unverified"|"verified"|"failed";client_organization:string|null;is_required_approver:number;recipient_credential_version:number;access_credential_version:number;portal_status:"draft"|"ready"|"live"|"access_off"|"archived";issue_status:IssueRow["status"]|null;valid_through:string|null}>(database,"SELECT r.id, r.portal_id, r.display_name, r.role_template, r.status, r.verification_state, r.client_organization, r.is_required_approver, r.recipient_credential_version, p.access_credential_version, p.status AS portal_status, i.status AS issue_status, i.valid_through FROM client_portal_recipients r JOIN client_portals p ON p.id = r.portal_id LEFT JOIN client_portal_issues i ON i.id = p.current_issue_id WHERE r.id = ? LIMIT 1",[recipientId]);
+  const database=await db(); const row=await first<{id:string;portal_id:string;display_name:string|null;role_template:ClientPortalRecipientRoleTemplate;status:"invited"|"active"|"revoked"|"expired";verification_state:"unverified"|"verified"|"failed";client_organization:string|null;is_required_approver:number;recipient_credential_version:number;access_credential_version:number;portal_status:"draft"|"ready"|"live"|"access_off"|"archived";issue_status:IssueRow["status"]|null;valid_through:string|null}>(database,"SELECT r.id, r.portal_id, r.display_name, r.role_template, r.status, r.verification_state, r.client_organization, r.is_required_approver, r.recipient_credential_version, p.access_credential_version, p.status AS portal_status, i.status AS issue_status, i.valid_through FROM client_portal_recipients r JOIN client_portals p ON p.id = r.portal_id LEFT JOIN client_portal_issues i ON i.id = p.current_issue_id WHERE r.id = ? LIMIT 1",[recipientId]);
   if (!row || row.status !== "active" || row.verification_state !== "verified" || row.portal_status !== "live" || (row.issue_status !== null && !issueAllowed({status:row.issue_status,valid_through:row.valid_through})) || !verifySharedLinkSessionCookieValue(cookie,{token,publicationId:row.portal_id,credentialVersion:recipientSessionCredentialVersion(row.recipient_credential_version,row.access_credential_version),recipientId:row.id})) return null;
   const grants=await all<{capability:string;effect:"allow"|"deny"}>(database,"SELECT capability, effect FROM client_portal_recipient_grants WHERE recipient_id = ? AND section_id IS NULL",[row.id]);
   return {kind:"recipient" as const,recipientId:row.id,displayName:row.display_name,portalId:row.portal_id,role:row.role_template,status:row.status,verificationState:row.verification_state,organization:row.client_organization,isRequiredApprover:Boolean(row.is_required_approver),overrides:capabilityOverrides(grants)};
@@ -292,7 +302,7 @@ export async function getClientPortalManifest(token:string, requestedIssueNumber
   const rows=await all<SectionRow>(context.database,"SELECT id, section_key, kind, title, sort_order, payload_storage, NULL AS payload_json, r2_object_key, payload_hash, payload_bytes, schema_version, policy_snapshot_json, json_extract(policy_snapshot_json, '$.layoutMode') AS layout_mode FROM client_portal_issue_sections WHERE issue_id = ? ORDER BY sort_order ASC",[context.issue.id]);
   const allowed=filterClientPortalSections(actor,context.policyPortal,rows.map(policySection),{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id}).map(section=>section.id);
   const issuedManifest=record(context.issue.manifest_json); const project=recordValue(issuedManifest.project);
-  return { schemaVersion:2, portal:{id:context.portal.id,name:context.portal.name,status:context.portal.status}, issue:{id:context.issue.id,number:context.issue.issue_number,versionLabel:context.issue.version_label,status:context.issue.status,issuedAt:context.issue.issued_at,validThrough:context.issue.valid_through,contentHash:context.issue.content_hash}, project:{name:typeof project.name === "string" ? project.name : "",code:typeof project.code === "string" ? project.code : null,currencyCode:context.issue.currency_code}, package:publicIssuePackage(issuedManifest.package), changeSet:publicChangeSet(issuedManifest.changeSet), brand:record(context.issue.brand_snapshot_json), recipient:actor.kind === "recipient" ? {displayName:actor.displayName ?? null,role:actor.role,verified:actor.verificationState === "verified"} : null, sections:rows.filter(row=>allowed.includes(row.id)).map(row=>({id:row.id,kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash})), capabilities:evaluateClientPortalPolicy({actor,action:"portal:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id}}).effectiveCapabilities };
+  return attachClientPortalInternalIdentifiers({ schemaVersion:2, portal:{id:createClientPortalPublicIdentifier(token,"portal",context.portal.id),name:context.portal.name,status:context.portal.status}, issue:{id:createClientPortalPublicIdentifier(token,"issue",context.issue.id),number:context.issue.issue_number,versionLabel:context.issue.version_label,status:context.issue.status,issuedAt:context.issue.issued_at,validThrough:context.issue.valid_through,contentHash:context.issue.content_hash}, project:{name:typeof project.name === "string" ? project.name : "",code:typeof project.code === "string" ? project.code : null,currencyCode:context.issue.currency_code}, package:publicIssuePackage(issuedManifest.package), changeSet:publicChangeSet(issuedManifest.changeSet), brand:record(context.issue.brand_snapshot_json), recipient:actor.kind === "recipient" ? {displayName:actor.displayName ?? null,role:actor.role,verified:actor.verificationState === "verified"} : null, sections:rows.filter(row=>allowed.includes(row.id)).map(row=>({id:createClientPortalPublicIdentifier(token,"section",row.id),kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash})), capabilities:evaluateClientPortalPolicy({actor,action:"portal:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id}}).effectiveCapabilities },{portalId:context.portal.id,issueId:context.issue.id});
 }
 
 export async function getClientPortalBrandAsset(token:string, assetId:string, passwordAuthenticated=false) {
@@ -304,13 +314,13 @@ export async function getClientPortalBrandAsset(token:string, assetId:string, pa
 
 export async function getClientPortalSection(token:string, sectionId:string, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
   const context=await resolveClientPortalPublicContext(token,requestedIssueNumber,actor,passwordAuthenticated); if (!context) return null;
-  const row=await first<SectionRow>(context.database,"SELECT id, section_key, kind, title, sort_order, payload_storage, NULL AS payload_json, r2_object_key, payload_hash, payload_bytes, schema_version, policy_snapshot_json, json_extract(policy_snapshot_json, '$.layoutMode') AS layout_mode FROM client_portal_issue_sections WHERE issue_id = ? AND id = ? LIMIT 1",[context.issue.id,sectionId]);
+  const row=await issuedSectionRow(context,token,sectionId);
   if (!row) return null; const section=policySection(row); if (!evaluateClientPortalPolicy({actor,action:"section:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id},section}).allowed) return null;
   if (row.kind === "estimate_browser") {
     const projection=await estimateProjectionSummary(context.database,row,section.visibleFields ?? []);
     if (projection.available) {
       if (projection.payload === null) return null;
-      return {schemaVersion:1,portalId:context.portal.id,issueId:context.issue.id,section:{id:row.id,kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload:projection.payload}};
+      return attachClientPortalInternalIdentifiers({schemaVersion:1,portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),section:{id:createClientPortalPublicIdentifier(token,"section",row.id),kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload:projection.payload}},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
     }
     if (row.payload_bytes > CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_BYTE_LIMIT) return null;
   }
@@ -320,19 +330,19 @@ export async function getClientPortalSection(token:string, sectionId:string, req
     const browser=payload as ClientPortalEstimateBrowserPayload;
     if (browser.schemaVersion === 1 && Array.isArray(browser.estimates) && requiresClientPortalEstimateBrowserServerPaging(browser,row.payload_bytes)) payload=summarizeClientPortalEstimateBrowserPayload(browser);
   }
-  return {schemaVersion:1,portalId:context.portal.id,issueId:context.issue.id,section:{id:row.id,kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload}};
+  return attachClientPortalInternalIdentifiers({schemaVersion:1,portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),section:{id:createClientPortalPublicIdentifier(token,"section",row.id),kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload}},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
 }
 
 export async function getClientPortalIssuedEstimateRowsPage(token:string, sectionId:string, input:{branchId?:string|null;cursor?:string|null;estimateId:string;limit?:number;search?:string|null;tabId:string}, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
   const context=await resolveClientPortalPublicContext(token,requestedIssueNumber,actor,passwordAuthenticated); if (!context) return null;
-  const row=await first<SectionRow>(context.database,"SELECT id, section_key, kind, title, sort_order, payload_storage, NULL AS payload_json, r2_object_key, payload_hash, payload_bytes, schema_version, policy_snapshot_json, json_extract(policy_snapshot_json, '$.layoutMode') AS layout_mode FROM client_portal_issue_sections WHERE issue_id = ? AND id = ? AND kind = 'estimate_browser' LIMIT 1",[context.issue.id,sectionId]);
+  const row=await issuedSectionRow(context,token,sectionId,"estimate_browser");
   if (!row) return null;
   const section=policySection(row);
   if (!evaluateClientPortalPolicy({actor,action:"section:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id},section}).allowed) return null;
   const projection=await estimateProjectionRowsPage(context.database,row,input);
   if (projection) {
     if (projection.invalid) return null;
-    return {issueId:context.issue.id,portalId:context.portal.id,sectionId:row.id,hasMore:projection.hasMore,nextCursor:projection.nextCursor,rows:projection.rows,totalRows:projection.totalRows};
+    return attachClientPortalInternalIdentifiers({issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),sectionId:createClientPortalPublicIdentifier(token,"section",row.id),hasMore:projection.hasMore,nextCursor:projection.nextCursor,rows:projection.rows,totalRows:projection.totalRows},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
   }
   if (row.payload_bytes > CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_BYTE_LIMIT) return null;
   const payloadRow=await sectionWithD1Payload(context.database,row); if (!payloadRow) return null;
@@ -341,5 +351,5 @@ export async function getClientPortalIssuedEstimateRowsPage(token:string, sectio
   const browser=payload as ClientPortalEstimateBrowserPayload;
   if (browser.schemaVersion !== 1 || !Array.isArray(browser.estimates)) return null;
   const page=getClientPortalEstimateBrowserRowsPage(browser,input);
-  return page ? {issueId:context.issue.id,portalId:context.portal.id,sectionId:row.id,...page} : null;
+  return page ? attachClientPortalInternalIdentifiers({issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),sectionId:createClientPortalPublicIdentifier(token,"section",row.id),...page},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id}) : null;
 }

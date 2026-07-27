@@ -17,7 +17,7 @@ function createDatabase(options: { activeMentionIds?: string[]; messages?: Recor
           if (sql.includes("FROM client_portal_messages WHERE actor_type")) return (batchAttempted ? options.raceReplay : options.replay) as T | null;
           if (sql.includes("FROM client_portal_messages m")) return (options.recipientMessage ?? { id: "message_1", thread_id: "thread_1", created_at: new Date().toISOString(), tombstoned_at: null }) as T;
           if (sql.includes("FROM client_portals")) return { id: "portal_1", name: "Harbor House", workspace_id: "workspace_1", project_id: "project_1", status: "live", current_issue_id: "issue_1" } as T;
-          if (sql.includes("FROM client_portal_issues")) return { id: "issue_1", version_label: "Issue 1", status: "issued", valid_through: null } as T;
+          if (sql.includes("FROM client_portal_issues")) return { id: "issue_1", issue_number: 1, version_label: "Issue 1", status: "issued", valid_through: null } as T;
           if (sql.includes("FROM client_portal_issue_sections")) return { id: "section_1", policy_snapshot_json: JSON.stringify(options.sectionPolicy ?? { enabled: true, commentable: true }) } as T;
           if (sql.includes("FROM client_portal_threads")) return { id: "thread_1", issue_id: "issue_1", section_key: "section_1", target_kind: "row", target_public_id: "row_1", target_label: "Floor finish", target_secondary_label: null, subject: "Confirm basis", status: "open", waiting_state: "waiting_on_owner", created_by_actor_id: "recipient_1", created_at: "2026-07-12T00:00:00.000Z", updated_at: "2026-07-12T00:00:00.000Z" } as T;
           return null;
@@ -69,6 +69,9 @@ describe("client portal thread repository", () => {
     expect(serialized).toContain("INSERT INTO client_portal_threads");
     expect(serialized).toContain("INSERT INTO client_portal_messages");
     expect(serialized).toContain("client_portal_thread_subscriptions");
+    expect(serialized).toContain("project_commitment_events");
+    expect(serialized).toContain("client_portal_event_exposures");
+    expect(statements.some((captured) => captured.values.includes("discussion.started"))).toBe(true);
     expect(serialized).not.toContain("'internal'");
   });
 
@@ -92,6 +95,8 @@ describe("client portal thread repository", () => {
     const serialized = JSON.stringify(statements);
     expect(serialized).toContain("waiting_on_owner");
     expect(serialized).toContain("resolved_at");
+    expect(statements.some((captured) => captured.values.includes("discussion.updated"))).toBe(true);
+    expect(statements.some((captured) => captured.values.includes("discussion.resolved"))).toBe(true);
     expect(serialized).not.toContain("audience = 'internal'");
   });
 

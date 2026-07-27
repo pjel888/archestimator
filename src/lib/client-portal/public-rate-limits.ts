@@ -49,7 +49,7 @@ export async function checkClientPortalPublicReadRateLimit({
 }: {
   token: string;
   request: Request;
-  route: "asset" | "manifest" | "section";
+  route: "asset" | "manifest" | "section" | "summary" | "timeline";
 }): Promise<DurableRateLimitResult> {
   const scope: ClientPortalRateLimitScope = "client_portal_public_read";
   return checkRecordedDurableRateLimit({

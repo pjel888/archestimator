@@ -13,7 +13,7 @@ import { readClientPortalRecipientSession, resolveClientPortalRecipientActor } f
 const stableToken = "s".repeat(43);
 const recipientToken = "r".repeat(43);
 
-function recipientDatabase(options: { currentIssueId?: string | null } = {}) {
+function recipientDatabase(options: { currentIssueId?: string | null; recipientPortalId?: string; roleTemplate?: "viewer" | "commenter" | "reviewer" | "approver" | "requester" } = {}) {
   const statements: Array<{ sql: string; values: D1Value[] }> = [];
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -24,7 +24,10 @@ function recipientDatabase(options: { currentIssueId?: string | null } = {}) {
           if (sql.includes("FROM project_publications AS legacy")) return null;
           if (sql.includes("stable_token_hash")) return { access_credential_version: 9, access_policy_json: "{}", current_issue_id: options.currentIssueId === undefined ? "issue_1" : options.currentIssueId, id: "portal_1", name: "Client Review", password_hash: null, project_id: "project_1", status: "live", workspace_id: "workspace_1" } as T;
           if (sql.includes("SELECT status, valid_through FROM client_portal_issues")) return { status: "issued", valid_through: "2099-01-01T00:00:00.000Z" } as T;
-          if (sql.includes("FROM client_portal_recipient_credentials c")) return { client_organization: null, credential_id: "credential_1", display_name: "Avery", id: "recipient_1", is_required_approver: 1, recipient_credential_version: 4, role_template: "approver", status: "active", verification_state: "unverified" } as T;
+          if (sql.includes("FROM client_portal_recipient_credentials c")) {
+            if ((options.recipientPortalId ?? "portal_1") !== values[2]) return null;
+            return { client_organization: null, credential_id: "credential_1", display_name: "Avery", id: "recipient_1", is_required_approver: 1, recipient_credential_version: 4, role_template: options.roleTemplate ?? "approver", status: "active", verification_state: "unverified" } as T;
+          }
           return null;
         },
         async all<T>() { return { results: [], success: true } as D1Result<T>; },
@@ -37,7 +40,7 @@ function recipientDatabase(options: { currentIssueId?: string | null } = {}) {
   return { database, statements };
 }
 
-function sessionDatabase(overrides: Partial<{ access_credential_version: number; issue_status: string | null; portal_status: string; status: string; valid_through: string | null; verification_state: string }> = {}) {
+function sessionDatabase(overrides: Partial<{ access_credential_version: number; issue_status: string | null; portal_status: string; role_template: "viewer" | "commenter" | "reviewer" | "approver" | "requester"; status: string; valid_through: string | null; verification_state: string }> = {}) {
   const row = { access_credential_version: 9, client_organization: null, display_name: "Avery", id: "recipient_1", is_required_approver: 1, issue_status: "issued", portal_id: "portal_1", portal_status: "live", recipient_credential_version: 4, role_template: "approver", status: "active", valid_through: "2099-01-01T00:00:00.000Z", verification_state: "verified", ...overrides };
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -84,6 +87,21 @@ describe("Client Portal recipient access", () => {
 
     mocks.getDatabase.mockResolvedValue(sessionDatabase({ issue_status: null, valid_through: null }));
     await expect(readClientPortalRecipientSession(stableToken, sessionCookie())).resolves.toMatchObject({ recipientId: "recipient_1" });
+  });
+
+  it("preserves requester permissions through credential redemption and sessions", async () => {
+    const { database } = recipientDatabase({ roleTemplate: "requester" });
+    mocks.getDatabase.mockResolvedValue(database);
+    await expect(resolveClientPortalRecipientActor(stableToken, recipientToken)).resolves.toMatchObject({ actor: { role: "requester" } });
+
+    mocks.getDatabase.mockResolvedValue(sessionDatabase({ role_template: "requester" }));
+    await expect(readClientPortalRecipientSession(stableToken, sessionCookie())).resolves.toMatchObject({ role: "requester" });
+  });
+
+  it("denies a valid recipient credential bound to another portal", async () => {
+    const { database } = recipientDatabase({ recipientPortalId: "portal_2" });
+    mocks.getDatabase.mockResolvedValue(database);
+    await expect(resolveClientPortalRecipientActor(stableToken, recipientToken)).resolves.toBeNull();
   });
 
   it("rejects sessions after recipient or portal version rotation", async () => {

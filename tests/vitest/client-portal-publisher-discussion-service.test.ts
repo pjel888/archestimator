@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Result, D1Value } from "@/lib/cloudflare/d1";
-import { addClientPortalInternalNote, carryForwardClientPortalThread, replyToClientPortalThreadAsOwner } from "@/lib/client-portal/publisher-discussion-service";
+import { addClientPortalInternalNote, carryForwardClientPortalThread, replyToClientPortalThreadAsOwner, setClientPortalThreadStatusAsOwner } from "@/lib/client-portal/publisher-discussion-service";
 
 type CapturedStatement = { sql: string; values: D1Value[] };
 
@@ -15,7 +15,7 @@ function createDatabase(options: { activeMentionIds?: string[]; subscribedRecipi
         async first<T>() {
           if (sql.includes("FROM client_portals")) return { id: "portal_1", workspace_id: "workspace_1", project_id: "project_1", status: "live", current_issue_id: "issue_2" } as T;
           if (sql.includes("FROM client_portal_threads")) return { id: "thread_1", issue_id: "issue_1", section_key: "section_1", target_kind: "row", target_public_id: "row_1", target_label: "Floor finish", target_secondary_label: null, subject: "Confirm basis", status: "open", waiting_state: "waiting_on_owner", assignee_user_id: null, created_by_actor_id: "recipient_1", created_at: "2026-07-12T00:00:00.000Z", updated_at: "2026-07-12T00:00:00.000Z" } as T;
-          if (sql.includes("FROM client_portal_issues")) return { id: "issue_2", status: "issued", version_label: "Issue 2" } as T;
+          if (sql.includes("FROM client_portal_issues")) return { id: "issue_2", issue_number: 2, status: "issued", version_label: "Issue 2" } as T;
           return null;
         },
         async all<T>() {
@@ -51,6 +51,8 @@ describe("publisher client portal discussions", () => {
     expect(serialized).toContain("'client'");
     expect(serialized).toContain("'internal'");
     expect(serialized).toContain("waiting_on_client");
+    expect(statements.filter((captured) => captured.sql.includes("INSERT INTO project_commitment_events"))).toHaveLength(1);
+    expect(statements.some((captured) => captured.values.includes("discussion.updated"))).toBe(true);
   });
 
   it("notifies each active subscriber or mention once for an owner reply", async () => {
@@ -87,6 +89,9 @@ describe("publisher client portal discussions", () => {
     expect(serialized).toContain("carried_forward_from_thread_id");
     expect(serialized).toContain("closed_by_supersession");
     expect(serialized).toContain("requires_revalidation");
+    expect(statements.filter((captured) => captured.sql.includes("INSERT INTO project_commitment_events"))).toHaveLength(2);
+    expect(statements.some((captured) => captured.values.includes("discussion.started"))).toBe(true);
+    expect(statements.some((captured) => captured.values.includes("discussion.updated"))).toBe(true);
   });
 
   it("re-resolves a semantic issued target before opening a carried-forward thread", async () => {
@@ -96,5 +101,14 @@ describe("publisher client portal discussions", () => {
     const serialized = JSON.stringify(statements);
     expect(serialized).toContain("section_2");
     expect(serialized).toContain("waiting_on_owner");
+  });
+
+  it("records owner resolution without turning notes or assignments into commitments", async () => {
+    const { database, statements } = createDatabase();
+    await setClientPortalThreadStatusAsOwner({ actor, database, portalId: "portal_1", status: "resolved", threadId: "thread_1" });
+
+    expect(statements.some((captured) => captured.values.includes("discussion.resolved"))).toBe(true);
+    expect(JSON.stringify(statements)).not.toContain("assignment.updated");
+    expect(JSON.stringify(statements)).not.toContain("internal_note");
   });
 });

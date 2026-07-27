@@ -92,6 +92,23 @@ export const CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES = ["viewer", "commenter", "r
 
 export type ClientPortalRecipientRoleTemplate = (typeof CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES)[number];
 
+export const CLIENT_PORTAL_DOMAIN_ROLES = [
+  "client",
+  "owner_representative",
+  "contractor",
+  "architect",
+  "engineer",
+  "quantity_surveyor",
+  "project_manager",
+  "supplier",
+  "subcontractor",
+  "consultant",
+  "procurement",
+  "other",
+] as const;
+
+export type ClientPortalDomainRole = (typeof CLIENT_PORTAL_DOMAIN_ROLES)[number];
+
 export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
   viewer: ["portal:view", "section:view", "field:view", "thread:view", "timeline:view", "request:view", "artifact:view"],
   commenter: [

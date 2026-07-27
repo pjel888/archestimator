@@ -97,7 +97,7 @@ describe("client portal activity service", () => {
           async all<T>() {
             if (sql.includes("FROM client_portal_recipients r")) {
               return {
-                results: [{ decision_submitted_at: null, delivery_state: "delivered", display_name: "Avery Client", first_viewed_at: null, id: "recipient_1", last_reminder_at: null, last_viewed_at: null, open_thread_count: 0, required_approver: 1, role_template: "approver", section_view_count: 0, status: "active", unsubscribed: 0, verification_state: "verified", waiting_on_owner_count: 0 }],
+                results: [{ client_organization: "Northstar", decision_submitted_at: null, delivery_state: "delivered", display_name: "Avery Client", domain_role: "quantity_surveyor", domain_role_label: "Commercial lead", first_viewed_at: null, id: "recipient_1", last_reminder_at: null, last_viewed_at: null, open_thread_count: 0, required_approver: 1, role_template: "requester", section_view_count: 0, status: "active", unsubscribed: 0, verification_state: "verified", waiting_on_owner_count: 0 }],
                 success: true,
               } as D1Result<T>;
             }
@@ -111,8 +111,13 @@ describe("client portal activity service", () => {
 
     await expect(listClientPortalRecipientNextActions({ actor: manager, database, portalId: "portal_1" })).resolves.toEqual([expect.objectContaining({
       displayName: "Avery Client",
+      clientOrganization: "Northstar",
+      domainRole: "quantity_surveyor",
+      domainRoleLabel: "Commercial lead",
+      isRequiredApprover: true,
       nextAction: "decision_pending",
       recipientId: "recipient_1",
+      role: "requester",
     })]);
   });
 
@@ -124,7 +129,7 @@ describe("client portal activity service", () => {
         const statement: D1PreparedStatementLike = {
           bind() { return statement; },
           async first<T>() { return sql.includes("FROM client_portals") ? { current_issue_id: "issue_1", id: "portal_1", project_id: "project_1", status: "live", workspace_id: "workspace_1" } as T : null; },
-          async all<T>() { return { results: [{ decision_submitted_at: null, delivery_state: "dead", display_name: "Avery Client", first_viewed_at: null, id: "recipient_1", last_reminder_at: null, last_viewed_at: null, open_thread_count: 0, required_approver: 0, role_template: "reviewer", section_view_count: 0, status: "active", unsubscribed: 0, verification_state: "unverified", waiting_on_owner_count: 0 }], success: true } as D1Result<T>; },
+          async all<T>() { return { results: [{ client_organization: null, decision_submitted_at: null, delivery_state: "dead", display_name: "Avery Client", domain_role: null, domain_role_label: null, first_viewed_at: null, id: "recipient_1", last_reminder_at: null, last_viewed_at: null, open_thread_count: 0, required_approver: 0, role_template: "reviewer", section_view_count: 0, status: "active", unsubscribed: 0, verification_state: "unverified", waiting_on_owner_count: 0 }], success: true } as D1Result<T>; },
           async run<T>() { return { success: true } as D1Result<T>; },
         };
         return statement;

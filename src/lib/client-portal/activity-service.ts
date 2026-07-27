@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import type { ClientPortalDomainRole, ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
 import { evaluateClientPortalPolicy, type ClientPortalActor, type ClientPortalInternalActor } from "@/lib/client-portal/policy";
 
 const ANALYTICS_EVENTS = new Set(["viewed", "section_viewed", "thread_opened", "thread_created", "decision_started", "decision_submitted"]);
@@ -13,16 +14,19 @@ type PortalRow = { current_issue_id: string | null; id: string; project_id: stri
 type AuditRow = { actor_type: "internal_user" | "recipient" | "system"; event_type: string; id: string; issue_id: string | null; metadata_json: string; occurred_at: string; visibility: "client_safe" | "owner" | "security" };
 type OwnerAuditRow = AuditRow & { actor_id: string | null };
 type RecipientSummaryRow = {
+  client_organization: string | null;
   decision_submitted_at: string | null;
   delivery_state: "dead" | "delivered" | "pending" | "processing" | null;
   display_name: string | null;
+  domain_role: ClientPortalDomainRole | null;
+  domain_role_label: string | null;
   first_viewed_at: string | null;
   id: string;
   last_reminder_at: string | null;
   last_viewed_at: string | null;
   open_thread_count: number;
   required_approver: number;
-  role_template: string;
+  role_template: ClientPortalRecipientRoleTemplate;
   section_view_count: number;
   status: "invited" | "active" | "revoked" | "expired";
   unsubscribed: number;
@@ -147,7 +151,8 @@ export async function listClientPortalOwnerAudit({ actor, database, limit = 100,
 export async function listClientPortalRecipientNextActions({ actor, database, portalId }: { actor: ClientPortalInternalActor; database: D1DatabaseLike; portalId: string }) {
   const portal = await portalFor(database, portalId); authorizeOwner(actor, portal);
   const recipients = await all<RecipientSummaryRow>(database, `SELECT
-      r.id, r.display_name, r.role_template, r.status, r.verification_state, r.is_required_approver AS required_approver,
+      r.id, r.display_name, r.client_organization, r.role_template, r.domain_role, r.domain_role_label,
+      r.status, r.verification_state, r.is_required_approver AS required_approver,
       MIN(CASE WHEN a.event_type = 'viewed' AND a.verified_human = 1 THEN a.occurred_at END) AS first_viewed_at,
       MAX(CASE WHEN a.event_type = 'viewed' AND a.verified_human = 1 THEN a.occurred_at END) AS last_viewed_at,
       COUNT(DISTINCT CASE WHEN a.event_type = 'section_viewed' AND a.verified_human = 1 THEN a.id END) AS section_view_count,
@@ -163,14 +168,19 @@ export async function listClientPortalRecipientNextActions({ actor, database, po
     LEFT JOIN client_portal_decisions d ON d.portal_id = r.portal_id AND d.recipient_id = r.id AND d.issue_id IS ?
     LEFT JOIN client_portal_audit_events ae ON ae.portal_id = r.portal_id AND instr(ae.metadata_json, '"recipientId":"' || r.id || '"') > 0
     WHERE r.portal_id = ?
-    GROUP BY r.id, r.display_name, r.role_template, r.status, r.verification_state, r.is_required_approver
+    GROUP BY r.id, r.display_name, r.client_organization, r.role_template, r.domain_role, r.domain_role_label,
+      r.status, r.verification_state, r.is_required_approver
     ORDER BY r.created_at ASC, r.id ASC`, [portal.current_issue_id, portal.id]);
   const now = new Date();
   return recipients.map((recipient) => ({
+    clientOrganization: recipient.client_organization,
     decisionSubmittedAt: recipient.decision_submitted_at,
     deliveryState: recipient.delivery_state,
     displayName: recipient.display_name,
+    domainRole: recipient.domain_role,
+    domainRoleLabel: recipient.domain_role_label,
     firstViewedAt: recipient.first_viewed_at,
+    isRequiredApprover: recipient.required_approver === 1,
     lastReminderAt: recipient.last_reminder_at,
     lastViewedAt: recipient.last_viewed_at,
     nextAction: recipientNextAction(recipient, now),

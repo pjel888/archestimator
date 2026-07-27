@@ -3,7 +3,12 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
-import { CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES, type ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
+import {
+  CLIENT_PORTAL_DOMAIN_ROLES,
+  CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES,
+  type ClientPortalDomainRole,
+  type ClientPortalRecipientRoleTemplate,
+} from "@/lib/client-portal/contracts";
 import { evaluateClientPortalPolicy, type ClientPortalInternalActor } from "@/lib/client-portal/policy";
 import { createPublicationToken, encryptPublicationToken, hashPublicationToken, readPublicationTokenEncryptionSecret, readPublicationTokenHashSecret } from "@/lib/publication/security";
 
@@ -24,8 +29,18 @@ type RecipientRow = {
 export type ClientPortalRecipientInput = {
   clientOrganization?: string | null;
   displayName?: string | null;
+  domainRole?: ClientPortalDomainRole | null;
+  domainRoleLabel?: string | null;
   email: string;
   isRequiredApprover?: boolean;
+  roleTemplate: ClientPortalRecipientRoleTemplate;
+};
+
+export type ClientPortalRecipientProfileInput = {
+  clientOrganization?: string | null;
+  domainRole?: ClientPortalDomainRole | null;
+  domainRoleLabel?: string | null;
+  isRequiredApprover: boolean;
   roleTemplate: ClientPortalRecipientRoleTemplate;
 };
 
@@ -70,6 +85,28 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function validateRecipientProfile(input: ClientPortalRecipientProfileInput) {
+  if (input.clientOrganization && input.clientOrganization.trim().length > 160) {
+    throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient organization is too long.");
+  }
+  if (input.domainRole !== undefined && input.domainRole !== null && !CLIENT_PORTAL_DOMAIN_ROLES.includes(input.domainRole)) {
+    throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient domain role is invalid.");
+  }
+  if (input.domainRoleLabel && input.domainRoleLabel.trim().length > 160) {
+    throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient domain role label is too long.");
+  }
+  if (!CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES.includes(input.roleTemplate)) {
+    throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient role template is invalid.");
+  }
+  return {
+    clientOrganization: input.clientOrganization?.trim() || null,
+    domainRole: input.domainRole ?? null,
+    domainRoleLabel: input.domainRoleLabel?.trim() || null,
+    isRequiredApprover: Boolean(input.isRequiredApprover),
+    roleTemplate: input.roleTemplate,
+  };
+}
+
 function validateRecipient(input: ClientPortalRecipientInput) {
   const email = normalizeEmail(input.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -78,18 +115,10 @@ function validateRecipient(input: ClientPortalRecipientInput) {
   if (input.displayName && input.displayName.trim().length > 160) {
     throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient display name is too long.");
   }
-  if (input.clientOrganization && input.clientOrganization.trim().length > 160) {
-    throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient organization is too long.");
-  }
-  if (!CLIENT_PORTAL_RECIPIENT_ROLE_TEMPLATES.includes(input.roleTemplate)) {
-    throw new ClientPortalRecipientError("client_portal_invalid_input", "Recipient role template is invalid.");
-  }
   return {
-    clientOrganization: input.clientOrganization?.trim() || null,
+    ...validateRecipientProfile({ ...input, isRequiredApprover: Boolean(input.isRequiredApprover) }),
     displayName: input.displayName?.trim() || null,
     email,
-    isRequiredApprover: Boolean(input.isRequiredApprover),
-    roleTemplate: input.roleTemplate,
   };
 }
 
@@ -265,9 +294,10 @@ export async function inviteClientPortalRecipient(input: ClientPortalRecipientLi
       statement(
         input.database,
         `UPDATE client_portal_recipients
-         SET display_name = ?, client_organization = ?, role_template = ?, is_required_approver = ?, updated_at = ?
+         SET display_name = ?, client_organization = ?, role_template = ?, domain_role = ?, domain_role_label = ?,
+             is_required_approver = ?, updated_at = ?
          WHERE id = ? AND portal_id = ?`,
-        [normalized.displayName, normalized.clientOrganization, normalized.roleTemplate, Number(normalized.isRequiredApprover), timestamp, existingRecipient.id, portal.id],
+        [normalized.displayName, normalized.clientOrganization, normalized.roleTemplate, normalized.domainRole, normalized.domainRoleLabel, Number(normalized.isRequiredApprover), timestamp, existingRecipient.id, portal.id],
       ),
       ],
       database: input.database,
@@ -285,10 +315,10 @@ export async function inviteClientPortalRecipient(input: ClientPortalRecipientLi
       statement(
         input.database,
         `INSERT INTO client_portal_recipients
-          (id, portal_id, email_normalized, display_name, client_organization, role_template, status, is_required_approver,
+          (id, portal_id, email_normalized, display_name, client_organization, role_template, domain_role, domain_role_label, status, is_required_approver,
            verification_state, recipient_credential_version, created_at, updated_at, revoked_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'invited', ?, 'unverified', 1, ?, ?, NULL)`,
-        [recipient.id, portal.id, normalized.email, normalized.displayName, normalized.clientOrganization, normalized.roleTemplate, Number(normalized.isRequiredApprover), timestamp, timestamp],
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'invited', ?, 'unverified', 1, ?, ?, NULL)`,
+        [recipient.id, portal.id, normalized.email, normalized.displayName, normalized.clientOrganization, normalized.roleTemplate, normalized.domainRole, normalized.domainRoleLabel, Number(normalized.isRequiredApprover), timestamp, timestamp],
       ),
     ],
     database: input.database,
@@ -300,14 +330,20 @@ export async function inviteClientPortalRecipient(input: ClientPortalRecipientLi
 
 export async function updateClientPortalRecipientRole({
   actor,
+  clientOrganization,
   database,
+  domainRole,
+  domainRoleLabel,
   isRequiredApprover,
   portalId,
   recipientId,
   roleTemplate,
 }: {
   actor: ClientPortalInternalActor;
+  clientOrganization?: string | null;
   database: D1DatabaseLike;
+  domainRole?: ClientPortalDomainRole | null;
+  domainRoleLabel?: string | null;
   isRequiredApprover: boolean;
   portalId: string;
   recipientId: string;
@@ -315,20 +351,27 @@ export async function updateClientPortalRecipientRole({
 }) {
   const portal = await resolvePortal({ actor, database, portalId }, "recipient:update_role");
   await requireRecipient(database, portal.id, recipientId);
+  const normalized = validateRecipientProfile({ clientOrganization, domainRole, domainRoleLabel, isRequiredApprover, roleTemplate });
   const timestamp = new Date().toISOString();
   await runBatch(database, [
     statement(
       database,
       `UPDATE client_portal_recipients
-       SET role_template = ?, is_required_approver = ?, updated_at = ?
+       SET client_organization = ?, role_template = ?, domain_role = ?, domain_role_label = ?,
+           is_required_approver = ?, updated_at = ?
        WHERE id = ? AND portal_id = ?`,
-      [roleTemplate, Number(isRequiredApprover), timestamp, recipientId, portal.id],
+      [normalized.clientOrganization, normalized.roleTemplate, normalized.domainRole, normalized.domainRoleLabel, Number(normalized.isRequiredApprover), timestamp, recipientId, portal.id],
     ),
     ...queueAuditAndNotification({
       actorId: actor.userId,
       database,
       eventType: "portal.recipient.role_updated",
-      metadata: { isRequiredApprover, roleTemplate },
+      metadata: {
+        domainRole: normalized.domainRole ?? "none",
+        domainRoleLabel: normalized.domainRoleLabel ?? "none",
+        isRequiredApprover: normalized.isRequiredApprover,
+        roleTemplate: normalized.roleTemplate,
+      },
       portal,
       recipientId,
       timestamp,

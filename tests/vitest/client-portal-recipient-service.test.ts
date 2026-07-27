@@ -60,13 +60,22 @@ describe("client portal recipient service", () => {
       actor,
       database,
       portalId: "portal_1",
-      recipient: { email: "Client@example.com", displayName: "Client Reviewer", roleTemplate: "approver", isRequiredApprover: true },
+      recipient: {
+        clientOrganization: "Northstar Construction",
+        displayName: "Client Reviewer",
+        domainRole: "quantity_surveyor",
+        domainRoleLabel: "Commercial lead",
+        email: "Client@example.com",
+        roleTemplate: "requester",
+        isRequiredApprover: true,
+      },
     });
 
     expect(result).toMatchObject({ deliveryState: "pending", recipientCredentialVersion: 1 });
     expect(result.recipientId).toMatch(/^recipient_/);
     expect(result.outboxId).toMatch(/^outbox_/);
     expect(statements.some((entry) => entry.sql.includes("INSERT INTO client_portal_recipients"))).toBe(true);
+    expect(statements.some((entry) => entry.sql.includes("domain_role") && entry.values.includes("quantity_surveyor") && entry.values.includes("Commercial lead") && entry.values.includes("requester") && entry.values.includes(1))).toBe(true);
     expect(statements.some((entry) => entry.sql.includes("INSERT INTO client_portal_recipient_credentials"))).toBe(true);
     const serialized = JSON.stringify(statements);
     expect(serialized).toContain("portal.recipient.invited");
@@ -101,7 +110,29 @@ describe("client portal recipient service", () => {
     expect(serialized).not.toContain("DELETE FROM client_portal_recipients");
   });
 
-  it("updates role and required approver independently of credential rotation", async () => {
+  it("updates permission role, domain identity, and required-approver authority independently of credential rotation", async () => {
+    const { database, statements } = createDatabase();
+    await updateClientPortalRecipientRole({
+      actor,
+      database,
+      portalId: "portal_1",
+      recipientId: "recipient_1",
+      clientOrganization: "Owner Team",
+      domainRole: "owner_representative",
+      domainRoleLabel: "Project sponsor",
+      roleTemplate: "viewer",
+      isRequiredApprover: true,
+    });
+
+    const serialized = JSON.stringify(statements);
+    expect(serialized).toContain("portal.recipient.role_updated");
+    expect(serialized).toContain("owner_representative");
+    expect(serialized).toContain("Project sponsor");
+    expect(statements.some((entry) => entry.sql.includes("SET client_organization") && entry.values.includes("viewer") && entry.values.includes(1))).toBe(true);
+    expect(serialized).not.toContain("INSERT INTO client_portal_recipient_credentials");
+  });
+
+  it("does not infer approval authority from the permission role", async () => {
     const { database, statements } = createDatabase();
     await updateClientPortalRecipientRole({
       actor,
@@ -109,12 +140,10 @@ describe("client portal recipient service", () => {
       portalId: "portal_1",
       recipientId: "recipient_1",
       roleTemplate: "approver",
-      isRequiredApprover: true,
+      isRequiredApprover: false,
     });
 
-    const serialized = JSON.stringify(statements);
-    expect(serialized).toContain("portal.recipient.role_updated");
-    expect(serialized).not.toContain("INSERT INTO client_portal_recipient_credentials");
+    expect(statements.some((entry) => entry.sql.includes("SET client_organization") && entry.values.includes("approver") && entry.values.includes(0))).toBe(true);
   });
 
   it("denies a manager whose project relationship does not match the portal", async () => {

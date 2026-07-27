@@ -2,7 +2,7 @@
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { revalidatePath } from "next/cache";
-import type { ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
+import type { ClientPortalDomainRole, ClientPortalRecipientRoleTemplate } from "@/lib/client-portal/contracts";
 import type { ClientPortalInternalActor } from "@/lib/client-portal/policy";
 import {
   inviteClientPortalRecipient,
@@ -81,12 +81,18 @@ export async function revokeClientPortalRecipientAction({
 }
 
 export async function updateClientPortalRecipientRoleAction({
+  clientOrganization,
+  domainRole,
+  domainRoleLabel,
   isRequiredApprover,
   portalId,
   projectId,
   recipientId,
   roleTemplate,
 }: {
+  clientOrganization?: string | null;
+  domainRole?: ClientPortalDomainRole | null;
+  domainRoleLabel?: string | null;
   isRequiredApprover: boolean;
   portalId: string;
   projectId: string;
@@ -94,7 +100,7 @@ export async function updateClientPortalRecipientRoleAction({
   roleTemplate: ClientPortalRecipientRoleTemplate;
 }) {
   const [actor, database] = await Promise.all([managerActor(projectId), requireClientPortalDatabase()]);
-  const result = await updateClientPortalRecipientRole({ actor, database, portalId, recipientId, roleTemplate, isRequiredApprover });
+  const result = await updateClientPortalRecipientRole({ actor, clientOrganization, database, domainRole, domainRoleLabel, portalId, recipientId, roleTemplate, isRequiredApprover });
   revalidatePath(detailPath(projectId, portalId));
   return result;
 }
