@@ -186,9 +186,12 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   const legacyRecipientToken = typeof searchParamsData.rt === "string" ? searchParamsData.rt.trim() : "";
   const recipientToken = canonicalRecipientToken || legacyRecipientToken || undefined;
   const recipientSessionStatus = searchParamsData.recipientSession === "invalid" ? "invalid" : undefined;
+  const requestedIssueNumber = typeof searchParamsData.issue === "string" && /^\d+$/.test(searchParamsData.issue)
+    ? Number(searchParamsData.issue)
+    : undefined;
 
   if (await isClientPortalToken(token)) {
-    return <ClientPortalShell token={token} recipientToken={recipientToken} />;
+    return <ClientPortalShell token={token} recipientToken={recipientToken} initialIssueNumber={requestedIssueNumber} />;
   }
 
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
