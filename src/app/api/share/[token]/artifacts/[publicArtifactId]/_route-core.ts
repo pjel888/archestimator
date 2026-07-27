@@ -240,14 +240,28 @@ export async function handlePublicArtifactContent(
     });
     if (!authorization.allowed) return unavailable();
 
+    const limiterInput = {
+      portalId: context.portal.id,
+      publicArtifactId: normalizedPublicId,
+      recipientId: actor.kind === "recipient" ? actor.recipientId : null,
+      request,
+    };
+    let contentRateLimit;
+    try {
+      contentRateLimit = await routeDependencies.checkRangeRateLimit(limiterInput);
+    } catch {
+      return serviceUnavailable();
+    }
+    if (!contentRateLimit.allowed) {
+      return rateLimited(contentRateLimit.message, contentRateLimit.retryAfter);
+    }
+
     if (request.headers.has("range")) {
       let rateLimit;
       try {
         rateLimit = await routeDependencies.checkRangeRateLimit({
-          portalId: context.portal.id,
-          publicArtifactId: normalizedPublicId,
-          recipientId: actor.kind === "recipient" ? actor.recipientId : null,
-          request,
+          ...limiterInput,
+          publicArtifactId: `${normalizedPublicId}:range`,
         });
       } catch {
         return serviceUnavailable();

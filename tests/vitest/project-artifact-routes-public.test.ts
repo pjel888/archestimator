@@ -76,7 +76,13 @@ describe("public project artifact route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(deps.checkRangeRateLimit).not.toHaveBeenCalled();
+    expect(deps.checkRangeRateLimit).toHaveBeenCalledOnce();
+    expect(deps.checkRangeRateLimit).toHaveBeenCalledWith({
+      portalId: "portal-1",
+      publicArtifactId: "public-artifact-1",
+      recipientId: "recipient-1",
+      request: expect.any(Request),
+    });
     expect(deps.readIssuedArtifact).toHaveBeenCalledWith(expect.objectContaining({
       issueId: "issue-1",
       publicArtifactId: "public-artifact-1",
@@ -120,9 +126,15 @@ describe("public project artifact route", () => {
     expect(response.status).toBe(206);
     expect(response.headers.get("content-range")).toBe("bytes 1-2/4");
     expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(deps.checkRangeRateLimit).toHaveBeenCalledWith({
+    expect(deps.checkRangeRateLimit).toHaveBeenNthCalledWith(1, {
       portalId: "portal-1",
       publicArtifactId: "public-artifact-1",
+      recipientId: "recipient-1",
+      request: expect.any(Request),
+    });
+    expect(deps.checkRangeRateLimit).toHaveBeenNthCalledWith(2, {
+      portalId: "portal-1",
+      publicArtifactId: "public-artifact-1:range",
       recipientId: "recipient-1",
       request: expect.any(Request),
     });
@@ -149,6 +161,24 @@ describe("public project artifact route", () => {
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("retry-after")).toBe("30");
     expect(deps.resolvePublicContext).toHaveBeenCalled();
+    expect(deps.evaluatePolicy).toHaveBeenCalled();
+    expect(deps.readArtifact).not.toHaveBeenCalled();
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it("durably rate limits full content reads after authorization and before storage", async () => {
+    const deps = dependencies({
+      checkRangeRateLimit: vi.fn(async () => ({ allowed: false as const, message: "Too many attempts.", retryAfter: 45 })),
+    });
+    const response = await handlePublicArtifactContent(
+      new Request("https://archestimator.test/api/share/share-token/artifacts/public-artifact-1"),
+      "share-token",
+      "public-artifact-1",
+      deps,
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("45");
     expect(deps.evaluatePolicy).toHaveBeenCalled();
     expect(deps.readArtifact).not.toHaveBeenCalled();
     expect(deps.createStorageProvider).not.toHaveBeenCalled();

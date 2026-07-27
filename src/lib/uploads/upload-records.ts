@@ -31,6 +31,7 @@ export type RecordUploadAssetInput = {
   contentType: string;
   sizeBytes: number;
   checksumBytes?: Buffer | Uint8Array | null;
+  idempotencyKey?: string;
   scanStatus: UploadScanStatus;
   metadata?: Record<string, Json | undefined>;
 };
@@ -75,9 +76,48 @@ function sha256Hex(bytes: Buffer | Uint8Array | null | undefined) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function metadataJson(metadata: Record<string, Json | undefined> | undefined) {
-  return JSON.stringify(metadata ?? {});
+function sha256Text(value: string) {
+  return createHash("sha256").update(value).digest("hex");
 }
+
+function canonicalJsonValue(value: Json | undefined): Json | undefined {
+  if (Array.isArray(value)) return value.map((item) => canonicalJsonValue(item) ?? null);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter((entry) => entry[1] !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, canonicalJsonValue(item)]),
+  );
+}
+
+function metadataJson(metadata: Record<string, Json | undefined> | undefined) {
+  return JSON.stringify(canonicalJsonValue(metadata ?? {}));
+}
+
+function stableUploadId(namespace: string, identity: string) {
+  const hash = sha256Text(`${namespace}:${identity}`);
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+}
+
+type ReservedUploadSessionRow = {
+  id: string;
+  workspace_id: string;
+  actor_user_id: string;
+  surface: UploadSurface;
+  target_entity_type: string | null;
+  target_entity_id: string | null;
+  storage_bucket: string;
+  storage_path: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  checksum_sha256: string | null;
+  status: string;
+  expires_at: string | null;
+  metadata_json: string;
+  created_at: string;
+};
 
 function targetEntityValue(value: string | null | undefined) {
   return value?.trim() || null;
@@ -126,17 +166,46 @@ export async function reserveUploadAsset(
     throw new Error("Upload reservation expiry must be in the future.");
   }
 
-  const uploadSessionId = randomUUID();
-  const assetId = randomUUID();
   const checksumSha256 = sha256Hex(input.checksumBytes);
-  const metadata = metadataJson(input.metadata);
   const targetEntityType = targetEntityValue(input.targetEntityType);
   const targetEntityId = targetEntityValue(input.targetEntityId);
   const projectId = projectIdForAsset(input);
   const estimateId = estimateIdForAsset(input);
+  const persistedIntent = {
+    actorUserId: input.actorUserId,
+    bucket: input.bucket,
+    checksumSha256,
+    contentType: input.contentType,
+    fileName: input.fileName,
+    metadata: input.metadata ?? {},
+    path: input.path,
+    scanStatus: input.scanStatus,
+    sizeBytes: input.sizeBytes,
+    surface: input.surface,
+    targetEntityId,
+    targetEntityType,
+    thumbnailPath: input.thumbnailPath ?? null,
+    workspaceId: input.workspaceId,
+  } satisfies Record<string, Json | undefined>;
+  const intentSha256 = sha256Text(metadataJson(persistedIntent));
+  const idempotencyKey = input.idempotencyKey?.trim() || null;
+  if (idempotencyKey && idempotencyKey.length > 512) {
+    throw new Error("Upload idempotency identity is too long.");
+  }
+  const idempotencySha256 = idempotencyKey ? sha256Text(idempotencyKey) : null;
+  const stableIdentity = idempotencySha256
+    ? `${input.workspaceId}:${input.actorUserId}:${input.surface}:${idempotencySha256}`
+    : null;
+  const uploadSessionId = stableIdentity ? stableUploadId("upload-session", stableIdentity) : randomUUID();
+  const assetId = stableIdentity ? stableUploadId("upload-asset", stableIdentity) : randomUUID();
+  const metadata = metadataJson({
+    ...(input.metadata ?? {}),
+    uploadIdempotencySha256: idempotencySha256,
+    uploadIntentSha256: intentSha256,
+  });
 
   const sessionStatement = db.prepare(`
-    INSERT INTO upload_sessions (
+    INSERT OR IGNORE INTO upload_sessions (
       id,
       workspace_id,
       actor_user_id,
@@ -176,7 +245,7 @@ export async function reserveUploadAsset(
   );
 
   const eventStatement = db.prepare(`
-    INSERT INTO upload_events (
+    INSERT OR IGNORE INTO upload_events (
       id,
       upload_session_id,
       upload_asset_id,
@@ -188,7 +257,7 @@ export async function reserveUploadAsset(
     )
     VALUES (?, ?, NULL, ?, ?, 'session_reserved', ?, ?)
   `).bind(
-    randomUUID(),
+    stableUploadId("upload-reserved-event", uploadSessionId),
     uploadSessionId,
     input.workspaceId,
     input.actorUserId,
@@ -204,6 +273,34 @@ export async function reserveUploadAsset(
     [sessionStatement, eventStatement],
     "Could not reserve the upload lifecycle atomically.",
   );
+
+  const persisted = await db.prepare<ReservedUploadSessionRow>(`
+    SELECT id, workspace_id, actor_user_id, surface, target_entity_type, target_entity_id,
+           storage_bucket, storage_path, file_name, content_type, size_bytes,
+           checksum_sha256, status, expires_at, metadata_json, created_at
+    FROM upload_sessions
+    WHERE id = ?
+    LIMIT 1
+  `).bind(uploadSessionId).first();
+  const exactIntent = persisted
+    && persisted.workspace_id === input.workspaceId
+    && persisted.actor_user_id === input.actorUserId
+    && persisted.surface === input.surface
+    && persisted.target_entity_type === targetEntityType
+    && persisted.target_entity_id === targetEntityId
+    && persisted.storage_bucket === input.bucket
+    && persisted.storage_path === input.path
+    && persisted.file_name === input.fileName
+    && persisted.content_type === input.contentType
+    && Number(persisted.size_bytes) === input.sizeBytes
+    && persisted.checksum_sha256 === checksumSha256
+    && persisted.metadata_json === metadata;
+  if (!exactIntent) {
+    throw new Error("Upload idempotency identity is already in use for a different intent.");
+  }
+  if (persisted.status !== "reserved" && persisted.status !== "finalized") {
+    throw new Error("Upload idempotency identity is no longer retryable.");
+  }
 
   return {
     uploadSessionId,
@@ -224,8 +321,8 @@ export async function reserveUploadAsset(
     sizeBytes: input.sizeBytes,
     checksumSha256,
     metadataJson: metadata,
-    expiresAt,
-    createdAt,
+    expiresAt: persisted.expires_at ?? expiresAt,
+    createdAt: persisted.created_at,
   };
 }
 

@@ -440,6 +440,7 @@ describe("recipient change-request evidence byte upload route", () => {
       workspaceId: "workspace-1",
     });
     expect(deps.buildObjectKey).toHaveBeenCalledWith(expect.objectContaining({
+      contentSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       surface: "portal-request-evidence",
       targetEntityId: "project-1",
       userId: "recipient-1",
@@ -448,6 +449,7 @@ describe("recipient change-request evidence byte upload route", () => {
     expect(deps.reserveUpload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       actorUserId: "recipient-1",
       bucket: "project-artifacts",
+      idempotencyKey: expect.stringMatching(/^portal-request-evidence:request-version-1:[a-f0-9]{64}$/),
       scanStatus: "pending",
       surface: "portal-request-evidence",
       targetEntityId: "request-1",

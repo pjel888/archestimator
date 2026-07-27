@@ -141,7 +141,7 @@ describe("internal upload cleanup route", () => {
     const assetStatement = database.statements.find((statement) => statement.sql.includes("SELECT id, upload_session_id"));
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
     expect(assetStatement?.values.at(-1)).toBe(5);
-    expect(sessionStatement?.values[5]).toBe(5);
+    expect(sessionStatement?.values.at(-1)).toBe(5);
     expect(r2.delete).toHaveBeenCalledWith(`component-attachments/${ATTACHMENT_PATH}`);
     expect(database.runStatements).toHaveLength(2);
     expect(database.runStatements.map((statement) => statement.values[5])).toEqual([
@@ -226,7 +226,7 @@ describe("internal upload cleanup route", () => {
     const assetStatement = database.statements.find((statement) => statement.sql.includes("SELECT id, upload_session_id"));
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
     expect(assetStatement?.values.at(-1)).toBe(5);
-    expect(sessionStatement?.values[5]).toBe(5);
+    expect(sessionStatement?.values.at(-1)).toBe(5);
     expect(database.runStatements).toEqual([]);
     expect(body).toMatchObject({
       mode: "dry-run",

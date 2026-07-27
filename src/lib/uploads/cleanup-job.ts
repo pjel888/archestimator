@@ -140,7 +140,8 @@ type UploadSessionCleanupRow = {
 };
 
 type UploadCleanupPreparationRow = {
-  upload_asset_id: string;
+  upload_asset_id?: string;
+  id?: string;
 };
 
 type UploadCleanupDiagnosticRow = {
@@ -320,7 +321,35 @@ export function createUploadCleanupCoordinator(db: D1DatabaseLike): UploadCleanu
   return {
     async prepare(candidate, record, context) {
       const uploadAssetId = record?.uploadAssetId ?? null;
-      if (!uploadAssetId) return { action: "remove" };
+      if (!uploadAssetId) {
+        const timestamp = context.now.toISOString();
+        const prepared = await db.prepare<UploadCleanupPreparationRow>(`
+          UPDATE upload_sessions AS session
+          SET status = 'expired',
+              updated_at = ?
+          WHERE session.id = ?
+            AND session.workspace_id = ?
+            AND session.status IN ('reserved', 'failed', 'expired')
+            AND session.expires_at <= ?
+            AND NOT EXISTS (
+              SELECT 1 FROM upload_assets asset WHERE asset.upload_session_id = session.id
+            )
+          RETURNING id
+        `).bind(
+          timestamp,
+          candidate.uploadSessionId,
+          candidate.workspaceId,
+          timestamp,
+        ).first<UploadCleanupPreparationRow>();
+        if (prepared) return { action: "remove" };
+
+        const session = await db.prepare<{ status: string }>(`
+          SELECT status FROM upload_sessions WHERE id = ? AND workspace_id = ? LIMIT 1
+        `).bind(candidate.uploadSessionId, candidate.workspaceId).first<{ status: string }>();
+        if (!session) return { action: "retain", reason: "missing" };
+        if (session.status === "deleted") return { action: "retain", reason: "already_purged" };
+        return { action: "retain", reason: "not_ready" };
+      }
 
       const timestamp = context.now.toISOString();
       const prepared = await db.prepare<UploadCleanupPreparationRow>(
@@ -426,7 +455,29 @@ export function createUploadCleanupCoordinator(db: D1DatabaseLike): UploadCleanu
 
     async recordResult(candidate, record, result) {
       const uploadAssetId = record?.uploadAssetId ?? null;
-      if (!uploadAssetId) return;
+      if (!uploadAssetId) {
+        const timestamp = result.now.toISOString();
+        const sessionResult = await db.prepare(`
+          UPDATE upload_sessions AS session
+          SET status = ?,
+              updated_at = ?
+          WHERE session.id = ?
+            AND session.workspace_id = ?
+            AND session.status IN ('reserved', 'failed', 'expired')
+            AND NOT EXISTS (
+              SELECT 1 FROM upload_assets asset WHERE asset.upload_session_id = session.id
+            )
+        `).bind(
+          result.outcome === "removed" ? "deleted" : "expired",
+          timestamp,
+          candidate.uploadSessionId,
+          candidate.workspaceId,
+        ).run();
+        if (sessionResult.success === false) {
+          throw new Error("Could not persist the upload session cleanup result.");
+        }
+        return;
+      }
 
       const timestamp = result.now.toISOString();
       const cleanupResult = result.outcome === "removed"
@@ -742,13 +793,13 @@ export async function listUploadCleanupJobRecords(
         `
           SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at
           FROM upload_sessions
-          WHERE status IN (?, ?, ?, ?)
+          WHERE status IN (?, ?, ?)
             AND expires_at <= ?
           ORDER BY expires_at ASC
           LIMIT ?
         `,
       )
-      .bind("reserved", "failed", "expired", "deleted", cutoffs.expiredSessionsBefore, limit)
+      .bind("reserved", "failed", "expired", cutoffs.expiredSessionsBefore, limit)
       .all<UploadSessionCleanupRow>(),
   ]);
 

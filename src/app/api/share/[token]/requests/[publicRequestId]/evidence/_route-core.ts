@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import type {
   D1DatabaseLike,
@@ -403,7 +403,7 @@ export async function handleRecipientEvidenceByteUpload(
     }
 
     const isImage = declaredMime.startsWith("image/");
-    let uploadBytes = sourceBytes;
+    let uploadBytes: Uint8Array = sourceBytes;
     let uploadContentType: string = declaredMime;
     let uploadFileName = file.name;
     let normalizedImageMetadata: Record<string, string | number> = {};
@@ -445,7 +445,9 @@ export async function handleRecipientEvidenceByteUpload(
       }
     }
 
+    const contentSha256 = createHash("sha256").update(uploadBytes).digest("hex");
     const objectPath = routeDependencies.buildObjectKey({
+      contentSha256,
       surface: UPLOAD_SURFACE,
       workspaceId: context.portal.workspace_id,
       userId: actor.recipientId,
@@ -471,6 +473,7 @@ export async function handleRecipientEvidenceByteUpload(
         contentType: uploadContentType,
         sizeBytes: uploadBytes.byteLength,
         checksumBytes: uploadBytes,
+        idempotencyKey: `portal-request-evidence:${exposure.requestVersionId}:${contentSha256}`,
         scanStatus: "pending",
         metadata: {
           portalId: context.portal.id,

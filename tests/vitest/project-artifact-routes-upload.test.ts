@@ -68,6 +68,8 @@ describe("project artifact upload route", () => {
     expect(payload.checksumSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(routeDependencies.readFormData).toHaveBeenCalledWith(expect.anything(), 26 * 1024 * 1024);
     expect(routeDependencies.reserveUpload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      idempotencyKey: expect.stringMatching(/^project-artifact:.*:[a-f0-9]{64}$/),
+      path: expect.stringMatching(/[a-f0-9]{64}\.pdf$/),
       surface: "project-artifact",
       targetEntityId: projectId,
       targetEntityType: "project",

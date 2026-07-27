@@ -126,6 +126,7 @@ export async function handleProjectArtifactUpload(
     const checksumSha256 = await computeProjectArtifactSha256(bytes);
     const policy = getUploadPolicy("project-artifact");
     const path = buildUploadObjectKey({
+      contentSha256: checksumSha256,
       extension: "pdf",
       fileName: file.name,
       surface: "project-artifact",
@@ -138,6 +139,7 @@ export async function handleProjectArtifactUpload(
       actorUserId: access.actor.id,
       bucket: policy.bucket,
       checksumBytes: bytes,
+      idempotencyKey: `project-artifact:${access.projectId}:${checksumSha256}`,
       contentType: validated.contentType,
       fileName: file.name,
       metadata: { projectId: access.projectId, uploadKind: "project-artifact-pdf" },

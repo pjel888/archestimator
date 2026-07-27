@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StorageCleanupReport } from "@/lib/mass-deletion/bulk-action";
 import {
   createUploadCleanupStorageFromProvider,
+  createUploadCleanupCoordinator,
   createUploadCleanupEventWriter,
   listUploadCleanupJobRecords,
   runUploadCleanupJob,
@@ -51,6 +52,14 @@ class FakeD1Statement {
   }
 
   async first<R>() {
+    if (this.database.sessionStatus !== null && this.sql.includes("UPDATE upload_sessions AS session")) {
+      if (this.database.sessionStatus === "deleted") return null as R | null;
+      this.database.sessionStatus = "expired";
+      return { id: this.values[1] } as R;
+    }
+    if (this.database.sessionStatus !== null && this.sql.includes("SELECT status FROM upload_sessions")) {
+      return { status: this.database.sessionStatus } as R;
+    }
     return null as R | null;
   }
 
@@ -58,11 +67,21 @@ class FakeD1Statement {
     if (this.sql.includes("FROM upload_assets")) {
       return { success: true, results: this.database.assetRows as R[] };
     }
-    return { success: true, results: this.database.sessionRows as R[] };
+    const limit = Number(this.values.at(-1));
+    const statuses = new Set(this.values.slice(0, -2));
+    return {
+      success: true,
+      results: this.database.sessionRows
+        .filter((row) => statuses.has((row as { status: string }).status))
+        .slice(0, limit) as R[],
+    };
   }
 
   async run() {
     this.database.runStatements.push(this);
+    if (this.database.sessionStatus !== null && this.sql.includes("UPDATE upload_sessions AS session")) {
+      this.database.sessionStatus = String(this.values[0]);
+    }
     return { success: true, meta: { changes: 1 } };
   }
 }
@@ -71,6 +90,7 @@ class FakeD1Database {
   assetRows: unknown[] = [];
   runStatements: FakeD1Statement[] = [];
   sessionRows: unknown[] = [];
+  sessionStatus: string | null = null;
   statements: FakeD1Statement[] = [];
 
   prepare(sql: string) {
@@ -392,7 +412,6 @@ describe("upload cleanup job runner", () => {
       "reserved",
       "failed",
       "expired",
-      "deleted",
       "2026-06-26T03:10:00.000Z",
       25,
     ]);
@@ -415,6 +434,67 @@ describe("upload cleanup job runner", () => {
         status: "reserved",
       }),
     ]);
+  });
+
+  it("persists terminal session-only cleanup and excludes it from repeated limited reads", async () => {
+    const database = new FakeD1Database();
+    database.sessionRows = [1, 2, 3].map((index) => ({
+      id: `session-${index}`,
+      workspace_id: WORKSPACE_ID,
+      actor_user_id: USER_ID,
+      surface: "project-image",
+      storage_bucket: "project-images",
+      storage_path: `${WORKSPACE_ID}/${USER_ID}/project-images/project-1/expired-${index}.webp`,
+      status: "reserved",
+      expires_at: `2026-06-2${index}T00:00:00.000Z`,
+    }));
+
+    const firstPage = await listUploadCleanupJobRecords(database, { now: NOW, limit: 2 });
+    expect(firstPage.map((record) => record.uploadSessionId)).toEqual(["session-1", "session-2"]);
+    (database.sessionRows[0] as { status: string }).status = "deleted";
+    (database.sessionRows[1] as { status: string }).status = "deleted";
+
+    const secondPage = await listUploadCleanupJobRecords(database, { now: NOW, limit: 2 });
+    expect(secondPage.map((record) => record.uploadSessionId)).toEqual(["session-3"]);
+
+    const coordinatorDatabase = new FakeD1Database();
+    coordinatorDatabase.sessionStatus = "reserved";
+    const coordinator = createUploadCleanupCoordinator(coordinatorDatabase as never);
+    const remove = vi.fn(async (targets): Promise<StorageCleanupReport> => ({
+      removed: [...targets],
+      rejected: [],
+      failed: [],
+    }));
+    const eventWriter = { record: vi.fn(async () => undefined) };
+    const firstRun = await runUploadCleanupJob({
+      records: [firstPage[0]],
+      storage: { remove },
+      eventWriter,
+      coordinator,
+      now: NOW,
+      runId: "session-cleanup",
+    });
+    expect(firstRun.audit.succeededCount).toBe(1);
+    expect(coordinatorDatabase.sessionStatus).toBe("deleted");
+    const terminalUpdate = coordinatorDatabase.runStatements.at(-1);
+    expect(terminalUpdate?.sql).toContain("UPDATE upload_sessions AS session");
+    expect(terminalUpdate?.values.slice(0, 4)).toEqual([
+      "deleted",
+      NOW.toISOString(),
+      "session-1",
+      WORKSPACE_ID,
+    ]);
+
+    const repeatedRun = await runUploadCleanupJob({
+      records: [firstPage[0]],
+      storage: { remove },
+      eventWriter,
+      coordinator,
+      now: NOW,
+      runId: "session-cleanup-repeat",
+    });
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(repeatedRun.storageReport.rejected).toHaveLength(1);
   });
 
   it("provides storage and event adapters with hashed path metadata only", async () => {
