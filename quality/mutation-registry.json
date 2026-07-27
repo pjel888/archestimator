@@ -11,6 +11,37 @@
         "tests/vitest/landing-ab-testing.test.tsx"
       ],
       "reason": "Experiment result calculations are a critical numerical decision surface."
+    },
+    {
+      "id": "MUT-ONBOARDING-RUNTIME",
+      "targets": [
+        "src/components/onboarding/OnboardingTourClient.tsx"
+      ],
+      "tests": [
+        "tests/vitest/onboarding-tour-client.test.tsx"
+      ],
+      "reason": "Joyride launch, target handoff, recovery, and completion state are critical guided-work behavior."
+    },
+    {
+      "id": "MUT-ONBOARDING-PROGRESS",
+      "targets": [
+        "src/lib/onboarding/flow-repository.ts"
+      ],
+      "tests": [
+        "tests/vitest/onboarding-flow-repository.test.ts"
+      ],
+      "reason": "Onboarding progress authorization, leases, CAS, and proof persistence are critical state transitions."
+    },
+    {
+      "id": "MUT-ONBOARDING-STARTER",
+      "targets": [
+        "src/lib/onboarding/starter-pack-actions.ts"
+      ],
+      "tests": [
+        "tests/vitest/starter-pack-actions.test.ts",
+        "tests/vitest/guided-estimate-sample.test.ts"
+      ],
+      "reason": "Starter installation and preservation rules protect user-owned workspace data."
     }
   ]
 }

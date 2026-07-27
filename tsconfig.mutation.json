@@ -4,7 +4,6 @@
     "incremental": false,
     "plugins": [],
     "types": [
-      "bun",
       "node",
       "vitest/globals"
     ]

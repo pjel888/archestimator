@@ -23,11 +23,12 @@ export default defineConfig({
     fileParallelism: false,
     include: exactTests.length > 0
       ? exactTests
-      : [
-          "tests/vitest/**/*.test.{ts,tsx}",
-          "tests/property/**/*.test.{ts,tsx}",
-          ...requiredTests,
-        ],
+      : requiredTests.length > 0
+        ? requiredTests
+        : [
+            "tests/vitest/**/*.test.{ts,tsx}",
+            "tests/property/**/*.test.{ts,tsx}",
+          ],
     maxWorkers: 1,
     testTimeout: 30_000,
   },

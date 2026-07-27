@@ -33,6 +33,7 @@ const strykerConfig = {
     "!next-env.d.ts",
     "!image-loader.ts",
     "!public/**",
+    "!migrations/**",
     "!quality/**",
     "!scripts/quality/**",
     "!scripts/enforce-button-architecture.mjs",
