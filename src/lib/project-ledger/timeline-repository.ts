@@ -40,10 +40,13 @@ type EventRow = {
 };
 
 type BaselineRow = {
+  approved_approvals: number;
+  approver_names: string | null;
   baseline_number: number;
   currency_code: string;
   established_at: string;
   issue_number: number;
+  required_approvals: number;
   total_minor_units: number;
   version_label: string;
 };
@@ -54,8 +57,11 @@ type IssueRow = {
   issued_at: string;
   status: string;
   total_cost: number;
+  unresolved_item_count: number;
   version_label: string;
 };
+
+type LatestEventRow = Pick<EventRow, "event_type" | "occurred_at" | "title">;
 
 export type ProjectTimelineFilters = {
   portalId?: string | null;
@@ -65,6 +71,11 @@ export type ProjectTimelineFilters = {
 export type ProjectTimelinePage = {
   context: {
     activeBaseline: {
+      approvals: {
+        approved: number;
+        names: string[];
+        required: number;
+      };
       baselineNumber: number;
       currencyCode: string;
       establishedAt: string;
@@ -78,13 +89,24 @@ export type ProjectTimelinePage = {
       totalEvents: number;
       waitingDiscussions: number;
     };
+    currentPortal: {
+      id: string;
+      isPrimary: boolean;
+      name: string;
+    } | null;
     currentIssue: {
       currencyCode: string;
       issueNumber: number;
       issuedAt: string;
       status: string;
       total: number;
+      unresolvedItems: number;
       versionLabel: string;
+    } | null;
+    latestOfficialEvent: {
+      eventType: string;
+      occurredAt: string;
+      title: string;
     } | null;
     portals: Array<{
       audienceKind: string;
@@ -184,7 +206,10 @@ export async function readProjectTimelinePage(input: {
     ORDER BY is_primary DESC, name COLLATE NOCASE ASC, id ASC
   `, [input.projectId]);
   const requestedPortalId = input.filters?.portalId?.trim() || null;
-  const selectedPortal = portals.find((portal) => portal.id === requestedPortalId)
+  const selectedPortal = requestedPortalId
+    ? portals.find((portal) => portal.id === requestedPortalId) ?? null
+    : null;
+  const currentStatePortal = selectedPortal
     ?? portals.find((portal) => Boolean(portal.is_primary))
     ?? portals[0]
     ?? null;
@@ -209,9 +234,10 @@ export async function readProjectTimelinePage(input: {
     values.push(parsedCursor.occurredAt, parsedCursor.occurredAt, parsedCursor.id);
   }
 
-  const scope = selectedPortal ? "AND origin_portal_id = ?" : "";
-  const scopeValues: D1Value[] = selectedPortal ? [selectedPortal.id] : [];
-  const [rows, baseline, currentIssue, counts] = await Promise.all([
+  const eventScope = selectedPortal ? "AND origin_portal_id = ?" : "";
+  const eventScopeValues: D1Value[] = selectedPortal ? [selectedPortal.id] : [];
+  const currentStateScopeValues: D1Value[] = currentStatePortal ? [currentStatePortal.id] : [];
+  const [rows, baseline, currentIssue, latestOfficialEvent, counts] = await Promise.all([
     all<EventRow>(database, `
       SELECT event.id, event.event_type, event.source_type, event.source_id, event.source_version_id,
              event.origin_portal_id, portal.name AS origin_portal_name,
@@ -232,32 +258,48 @@ export async function readProjectTimelinePage(input: {
       ORDER BY event.occurred_at DESC, event.id DESC
       LIMIT ?
     `, [...values, limit + 1]),
-    selectedPortal ? first<BaselineRow>(database, `
+    currentStatePortal ? first<BaselineRow>(database, `
       SELECT baseline.baseline_number, baseline.total_minor_units, baseline.currency_code,
-             baseline.established_at, issue.issue_number, issue.version_label
+             baseline.established_at, issue.issue_number, issue.version_label,
+             COALESCE(CAST(json_extract(issue.decision_policy_snapshot_json, '$.requiredApprovals') AS INTEGER), 0) AS required_approvals,
+             (SELECT count(*) FROM client_portal_decisions decision
+              WHERE decision.issue_id = issue.id AND decision.decision = 'approved' AND decision.voided_at IS NULL) AS approved_approvals,
+             (SELECT group_concat(COALESCE(NULLIF(trim(decision.signer_name), ''), recipient.display_name), '||')
+              FROM client_portal_decisions decision
+              LEFT JOIN client_portal_recipients recipient ON recipient.id = decision.recipient_id
+              WHERE decision.issue_id = issue.id AND decision.decision = 'approved' AND decision.voided_at IS NULL) AS approver_names
       FROM client_portal_baselines baseline
       JOIN client_portal_issues issue ON issue.id = baseline.issue_id
       WHERE baseline.portal_id = ? AND baseline.status = 'active'
       LIMIT 1
-    `, [selectedPortal.id]) : Promise.resolve(null),
-    selectedPortal ? first<IssueRow>(database, `
+    `, [currentStatePortal.id]) : Promise.resolve(null),
+    currentStatePortal ? first<IssueRow>(database, `
       SELECT issue.issue_number, issue.version_label, issue.status, issue.issued_at,
-             issue.total_cost, issue.currency_code
+             issue.total_cost, issue.currency_code,
+             COALESCE(json_array_length(draft.unresolved_items_json), 0) AS unresolved_item_count
       FROM client_portal_issues issue
+      LEFT JOIN client_portal_issue_drafts draft ON draft.id = issue.draft_id
       WHERE issue.id = ? AND issue.portal_id = ?
       LIMIT 1
-    `, [selectedPortal.current_issue_id ?? "", selectedPortal.id]) : Promise.resolve(null),
+    `, [currentStatePortal.current_issue_id ?? "", currentStatePortal.id]) : Promise.resolve(null),
+    currentStatePortal ? first<LatestEventRow>(database, `
+      SELECT event_type, title, occurred_at
+      FROM project_commitment_events
+      WHERE project_id = ? AND origin_portal_id = ?
+      ORDER BY occurred_at DESC, id DESC
+      LIMIT 1
+    `, [input.projectId, currentStatePortal.id]) : Promise.resolve(null),
     Promise.all([
       first<{ total: number }>(database, `
         SELECT count(*) AS total FROM project_commitment_events
-        WHERE project_id = ? ${scope}
-      `, [input.projectId, ...scopeValues]),
+        WHERE project_id = ? ${eventScope}
+      `, [input.projectId, ...eventScopeValues]),
       first<{ total: number }>(database, `
         SELECT count(*) AS total FROM project_change_requests
         WHERE project_id = ?
-          ${selectedPortal ? "AND origin_portal_id = ?" : ""}
+          ${currentStatePortal ? "AND origin_portal_id = ?" : ""}
           AND status IN ('submitted', 'acknowledged', 'under_assessment', 'proposal_issued')
-      `, [input.projectId, ...scopeValues]),
+      `, [input.projectId, ...currentStateScopeValues]),
       first<{ total: number }>(database, `
         SELECT count(*) AS total FROM project_artifacts
         WHERE project_id = ? AND status = 'active'
@@ -267,10 +309,10 @@ export async function readProjectTimelinePage(input: {
         FROM client_portal_threads thread
         JOIN client_portals portal ON portal.id = thread.portal_id
         WHERE portal.project_id = ?
-          ${selectedPortal ? "AND thread.portal_id = ?" : ""}
+          ${currentStatePortal ? "AND thread.portal_id = ?" : ""}
           AND thread.status IN ('open', 'requires_revalidation')
           AND thread.waiting_state = 'waiting_on_owner'
-      `, [input.projectId, ...scopeValues]),
+      `, [input.projectId, ...currentStateScopeValues]),
     ]),
   ]);
   const pageRows = rows.slice(0, limit);
@@ -279,6 +321,11 @@ export async function readProjectTimelinePage(input: {
   return {
     context: {
       activeBaseline: baseline ? {
+        approvals: {
+          approved: Number(baseline.approved_approvals ?? 0),
+          names: baseline.approver_names?.split("||").filter(Boolean) ?? [],
+          required: Number(baseline.required_approvals ?? 0),
+        },
         baselineNumber: Number(baseline.baseline_number),
         currencyCode: baseline.currency_code,
         establishedAt: baseline.established_at,
@@ -292,13 +339,24 @@ export async function readProjectTimelinePage(input: {
         totalEvents: Number(totalEvents?.total ?? 0),
         waitingDiscussions: Number(waitingDiscussions?.total ?? 0),
       },
+      currentPortal: currentStatePortal ? {
+        id: currentStatePortal.id,
+        isPrimary: Boolean(currentStatePortal.is_primary),
+        name: currentStatePortal.name,
+      } : null,
       currentIssue: currentIssue ? {
         currencyCode: currentIssue.currency_code,
         issueNumber: Number(currentIssue.issue_number),
         issuedAt: currentIssue.issued_at,
         status: currentIssue.status,
         total: Number(currentIssue.total_cost),
+        unresolvedItems: Number(currentIssue.unresolved_item_count ?? 0),
         versionLabel: currentIssue.version_label,
+      } : null,
+      latestOfficialEvent: latestOfficialEvent ? {
+        eventType: latestOfficialEvent.event_type,
+        occurredAt: latestOfficialEvent.occurred_at,
+        title: latestOfficialEvent.title,
       } : null,
       portals: portals.map((portal) => ({
         audienceKind: portal.audience_kind,

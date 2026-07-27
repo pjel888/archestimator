@@ -159,6 +159,7 @@ type PortalProjectionRow = {
   project_code: string | null;
   project_id: string;
   project_name: string;
+  required_approval_count: number | null;
   required_approver_count: number | null;
   total_recipient_count: number | null;
   unverified_recipient_count: number | null;
@@ -214,6 +215,8 @@ function nextAction(row: PortalProjectionRow): CommitmentCenterNextAction {
   const openRequests = count(row.open_request_count);
   const deliveryFailures = count(row.delivery_dead_count);
   const unverifiedRecipients = count(row.unverified_recipient_count);
+  const requiredApprovals = count(row.required_approval_count);
+  const approvedDecisions = count(row.decision_approved_count);
 
   if (waitingDiscussions > 0) {
     return {
@@ -244,6 +247,23 @@ function nextAction(row: PortalProjectionRow): CommitmentCenterNextAction {
       href: `${control}?tab=people`,
       kind: "portal_control",
       label: `Review ${unverifiedRecipients} unverified recipient${unverifiedRecipients === 1 ? "" : "s"}`,
+      priority: "attention",
+    };
+  }
+  if (row.issue_number && row.issue_status === "accepted" && row.baseline_number === null) {
+    return {
+      href: `${root}/timeline?portal=${encodeURIComponent(row.portal_id)}`,
+      kind: "timeline",
+      label: "Restore the accepted baseline",
+      priority: "urgent",
+    };
+  }
+  if (row.issue_number && (row.issue_status === "issued" || row.issue_status === "under_review") && approvedDecisions < requiredApprovals) {
+    const pendingApprovals = requiredApprovals - approvedDecisions;
+    return {
+      href: `${control}?tab=decisions`,
+      kind: "portal_control",
+      label: `Await ${pendingApprovals} required approval${pendingApprovals === 1 ? "" : "s"}`,
       priority: "attention",
     };
   }
@@ -375,6 +395,7 @@ export async function readWorkspaceCommitmentCenter(input: {
       current_issue.version_label AS issue_version_label,
       current_issue.status AS issue_status,
       current_issue.issued_at AS issue_issued_at,
+      COALESCE(CAST(json_extract(current_issue.decision_policy_snapshot_json, '$.requiredApprovals') AS INTEGER), 0) AS required_approval_count,
       latest_event.event_type AS latest_event_type,
       latest_event.title AS latest_event_title,
       latest_event.occurred_at AS latest_event_occurred_at,
@@ -455,8 +476,10 @@ export async function readWorkspaceCommitmentCenter(input: {
         OR workspace_member.role IN ('owner', 'admin')
       )
     ORDER BY
-      CASE WHEN waiting_discussion_count > 0 OR delivery_dead_count > 0 THEN 0
-           WHEN open_request_count > 0 OR unverified_recipient_count > 0 THEN 1
+      CASE WHEN waiting_discussion_count > 0 OR delivery_dead_count > 0
+                  OR (issue_status = 'accepted' AND baseline_number IS NULL) THEN 0
+           WHEN open_request_count > 0 OR unverified_recipient_count > 0
+                  OR (issue_status IN ('issued', 'under_review') AND decision_approved_count < required_approval_count) THEN 1
            ELSE 2 END,
       latest_event_occurred_at DESC,
       project.name COLLATE NOCASE ASC,

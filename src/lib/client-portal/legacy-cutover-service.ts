@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
 import { migrateLegacyPublicationToClientPortal } from "@/lib/client-portal/legacy-migration-service";
-import { CLIENT_PORTAL_LEGACY_WRITE_FREEZE_FLAG_KEY } from "@/lib/client-portal/rollout";
 
 type CountRow = { count: number | null };
 type StatusCountRow = { count: number; status: string };
@@ -181,9 +180,9 @@ function cutoverStatements(database: D1DatabaseLike, workspaceId: string, cutove
           notes = json_set(CASE WHEN json_valid(notes) THEN notes ELSE '{}' END, '$.cutover_at', ?, '$.workspace_id', ?)
       WHERE legacy_publication_id IN (SELECT id FROM project_publications WHERE workspace_id = ?)
         AND migration_status = 'verified'`, [cutoverAt, cutoverAt, workspaceId, workspaceId]),
-    statement(database, `INSERT INTO feature_flags(key, enabled, description, updated_at, updated_by)
-      VALUES (?, 1, 'Legacy shared-link authoring is frozen after verified Client Portal cutover.', ?, 'legacy_cutover')
-      ON CONFLICT(key) DO UPDATE SET enabled = 1, description = excluded.description, updated_at = excluded.updated_at, updated_by = excluded.updated_by`, [CLIENT_PORTAL_LEGACY_WRITE_FREEZE_FLAG_KEY, cutoverAt]),
+    statement(database, `INSERT INTO client_portal_legacy_workspace_cutovers(workspace_id, frozen_at, frozen_by)
+      VALUES (?, ?, 'legacy_cutover')
+      ON CONFLICT(workspace_id) DO UPDATE SET frozen_at = excluded.frozen_at, frozen_by = excluded.frozen_by`, [workspaceId, cutoverAt]),
     statement(database, `INSERT INTO client_portal_audit_events
       (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at)
       SELECT 'audit_' || lower(hex(randomblob(16))), ?, mapping.portal_id, mapping.issue_id, 'system', 'legacy_cutover', 'legacy_migration_cutover_completed', 'owner',
@@ -247,10 +246,10 @@ export async function cutoverLegacyWorkspaceToClientPortals({
   if (finalized.some((mapping) => mapping.migration_status !== "cutover_complete")) {
     throw new LegacyWorkspaceCutoverError("Legacy cutover mappings were not finalized.");
   }
-  const freeze = await database.prepare<{ enabled: number }>("SELECT enabled FROM feature_flags WHERE key = ? LIMIT 1")
-    .bind(CLIENT_PORTAL_LEGACY_WRITE_FREEZE_FLAG_KEY)
-    .first<{ enabled: number }>();
-  if (freeze?.enabled !== 1) throw new LegacyWorkspaceCutoverError("Legacy write freeze was not enabled.");
+  const freeze = await database.prepare<{ frozen_at: string }>("SELECT frozen_at FROM client_portal_legacy_workspace_cutovers WHERE workspace_id = ? LIMIT 1")
+    .bind(workspaceId)
+    .first<{ frozen_at: string }>();
+  if (!freeze?.frozen_at) throw new LegacyWorkspaceCutoverError("Legacy workspace write freeze was not enabled.");
 
   return { cutoverAt, dryRun: false, freezeEnabled: true, inventory, migrated, skipped, status: "cutover_complete", unresolved };
 }

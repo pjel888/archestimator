@@ -36,18 +36,29 @@ async function recipientContext(request: Request, token: string, requiresPost: b
   return database ? { actor, database } : { error: unavailable() };
 }
 
-async function resolveCurrentIssueId(
+async function resolveIssueId(
   database: NonNullable<Awaited<ReturnType<typeof getCloudflareD1Database>>>,
   portalId: string,
   token: string,
   publicIssueId: string,
 ) {
-  const portal = await database.prepare<{ current_issue_id: string | null }>("SELECT current_issue_id FROM client_portals WHERE id = ? LIMIT 1")
+  const issues = await database.prepare<{ id: string }>("SELECT id FROM client_portal_issues WHERE portal_id = ? AND status <> 'archived' ORDER BY issue_number DESC")
     .bind(portalId)
-    .first<{ current_issue_id: string | null }>();
-  return portal?.current_issue_id
-    ? resolveClientPortalPublicIdentifier(token, "issue", publicIssueId, [portal.current_issue_id])
-    : null;
+    .all<{ id: string }>();
+  return resolveClientPortalPublicIdentifier(token, "issue", publicIssueId, (issues.results ?? []).map((issue) => issue.id));
+}
+
+async function resolveDecisionId(
+  database: NonNullable<Awaited<ReturnType<typeof getCloudflareD1Database>>>,
+  issueId: string,
+  portalId: string,
+  token: string,
+  publicDecisionId: string,
+) {
+  const decisions = await database.prepare<{ id: string }>("SELECT id FROM client_portal_decisions WHERE portal_id = ? AND issue_id = ? AND voided_at IS NULL ORDER BY submitted_at DESC, id DESC")
+    .bind(portalId, issueId)
+    .all<{ id: string }>();
+  return resolveClientPortalPublicIdentifier(token, "decision", publicDecisionId, (decisions.results ?? []).map((decision) => decision.id));
 }
 
 function publicReceipt(token: string, receipt: Awaited<ReturnType<typeof submitClientPortalDecision>>) {
@@ -58,6 +69,14 @@ function publicReceipt(token: string, receipt: Awaited<ReturnType<typeof submitC
   };
 }
 
+function publicProjection(token: string, decision: NonNullable<Awaited<ReturnType<typeof summarizeClientPortalDecisions>>["focusDecision"]>) {
+  return {
+    ...decision,
+    id: createClientPortalPublicIdentifier(token, "decision", decision.id),
+    issueId: createClientPortalPublicIdentifier(token, "issue", decision.issueId),
+  };
+}
+
 export async function submitClientPortalDecisionResponse(request: Request, token: string) {
   const context = await recipientContext(request, token, true); if ("error" in context) return context.error;
   const rateLimit = await checkClientPortalDecisionRateLimit({ portalId: context.actor.portalId, recipientId: context.actor.recipientId });
@@ -65,7 +84,7 @@ export async function submitClientPortalDecisionResponse(request: Request, token
   const body = await readBoundedJsonBody<{ decision?: unknown; expectedIssueContentHash?: unknown; issueId?: unknown; note?: unknown; signerName?: unknown }>(request, 5 * 1024);
   if (!body.ok) return Response.json({ error: body.error }, { status: body.status, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
   if ((body.value.decision !== "approved" && body.value.decision !== "changes_requested" && body.value.decision !== "declined") || typeof body.value.issueId !== "string" || typeof body.value.expectedIssueContentHash !== "string" || (body.value.note !== undefined && typeof body.value.note !== "string") || (body.value.signerName !== undefined && typeof body.value.signerName !== "string")) return Response.json({ error: "Decision request is invalid." }, { status: 400, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  const issueId = await resolveCurrentIssueId(context.database, context.actor.portalId, token, body.value.issueId);
+  const issueId = await resolveIssueId(context.database, context.actor.portalId, token, body.value.issueId);
   if (!issueId) return unavailable();
   try {
     const receipt = await submitClientPortalDecision({ actor: context.actor, database: context.database, portalId: context.actor.portalId, issueId, decision: body.value.decision, expectedIssueContentHash: body.value.expectedIssueContentHash, idempotencyKey: request.headers.get("idempotency-key")?.trim() ?? "", note: body.value.note, signerName: body.value.signerName });
@@ -79,13 +98,19 @@ export async function clientPortalDecisionSummaryResponse(request: Request, toke
   if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
   const publicIssueId = new URL(request.url).searchParams.get("issueId");
   if (!publicIssueId) return Response.json({ error: "Issue is required." }, { status: 400, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  const issueId = await resolveCurrentIssueId(context.database, context.actor.portalId, token, publicIssueId);
+  const issueId = await resolveIssueId(context.database, context.actor.portalId, token, publicIssueId);
   if (!issueId) return unavailable();
+  const publicDecisionId = new URL(request.url).searchParams.get("decisionId");
+  const focusDecisionId = publicDecisionId
+    ? await resolveDecisionId(context.database, issueId, context.actor.portalId, token, publicDecisionId)
+    : null;
+  if (publicDecisionId && !focusDecisionId) return unavailable();
   try {
-    const summary = await summarizeClientPortalDecisions({ actor: context.actor, database: context.database, portalId: context.actor.portalId, issueId });
+    const summary = await summarizeClientPortalDecisions({ actor: context.actor, database: context.database, portalId: context.actor.portalId, issueId, focusDecisionId });
     return Response.json({ summary: {
       ...summary,
       issueId: createClientPortalPublicIdentifier(token, "issue", summary.issueId),
+      focusDecision: summary.focusDecision ? publicProjection(token, summary.focusDecision) : null,
       ownReceipt: summary.ownReceipt ? publicReceipt(token, summary.ownReceipt) : null,
     } }, { headers: CLIENT_PORTAL_NO_STORE_HEADERS });
   } catch (error) { return decisionError(error); }

@@ -153,6 +153,7 @@ function normalizeSaveInput(input: SaveClientPortalIssueDraftInput): SaveClientP
       assumptions: normalizeStringList(input.metadata.assumptions, "assumptions"),
       decisionPolicy: requireJsonObject(input.metadata.decisionPolicy, "decisionPolicy"),
       exclusions: normalizeStringList(input.metadata.exclusions, "exclusions"),
+      narrativeProvenance: input.metadata.narrativeProvenance,
       revisionNote: optionalText(input.metadata.revisionNote, "revisionNote"),
       sectionOverrides: requireJsonObject(input.metadata.sectionOverrides, "sectionOverrides"),
       unresolvedItems: normalizeStringList(input.metadata.unresolvedItems, "unresolvedItems"),

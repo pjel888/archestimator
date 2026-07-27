@@ -109,6 +109,35 @@ export const CLIENT_PORTAL_DOMAIN_ROLES = [
 
 export type ClientPortalDomainRole = (typeof CLIENT_PORTAL_DOMAIN_ROLES)[number];
 
+const REQUESTER_CAPABILITIES = [
+  "portal:view",
+  "section:view",
+  "field:view",
+  "thread:view",
+  "thread:create",
+  "thread:reply",
+  "timeline:view",
+  "request:view",
+  "request:create",
+  "request:amend_own",
+  "request:withdraw_own",
+  "artifact:view",
+  "artifact:upload_evidence",
+] as const satisfies readonly ClientPortalCapability[];
+
+const REVIEWER_CAPABILITIES = [
+  ...REQUESTER_CAPABILITIES,
+  "thread:resolve",
+  "thread:reopen",
+  "decision:view",
+  "decision:submit_review",
+] as const satisfies readonly ClientPortalCapability[];
+
+const APPROVER_CAPABILITIES = [
+  ...REVIEWER_CAPABILITIES,
+  "decision:submit_formal",
+] as const satisfies readonly ClientPortalCapability[];
+
 export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
   viewer: ["portal:view", "section:view", "field:view", "thread:view", "timeline:view", "request:view", "artifact:view"],
   commenter: [
@@ -122,52 +151,9 @@ export const CLIENT_PORTAL_ROLE_CAPABILITIES = {
     "request:view",
     "artifact:view",
   ],
-  reviewer: [
-    "portal:view",
-    "section:view",
-    "field:view",
-    "thread:view",
-    "thread:create",
-    "thread:reply",
-    "thread:resolve",
-    "thread:reopen",
-    "decision:view",
-    "decision:submit_review",
-    "timeline:view",
-    "request:view",
-    "artifact:view",
-  ],
-  approver: [
-    "portal:view",
-    "section:view",
-    "field:view",
-    "thread:view",
-    "thread:create",
-    "thread:reply",
-    "thread:resolve",
-    "thread:reopen",
-    "decision:view",
-    "decision:submit_review",
-    "decision:submit_formal",
-    "timeline:view",
-    "request:view",
-    "artifact:view",
-  ],
-  requester: [
-    "portal:view",
-    "section:view",
-    "field:view",
-    "thread:view",
-    "thread:create",
-    "thread:reply",
-    "timeline:view",
-    "request:view",
-    "request:create",
-    "request:amend_own",
-    "request:withdraw_own",
-    "artifact:view",
-    "artifact:upload_evidence",
-  ],
+  reviewer: REVIEWER_CAPABILITIES,
+  approver: APPROVER_CAPABILITIES,
+  requester: REQUESTER_CAPABILITIES,
 } as const satisfies Record<ClientPortalRecipientRoleTemplate, readonly ClientPortalCapability[]>;
 
 export const CLIENT_PORTAL_ISSUE_DECISION_SCOPE = "issue" as const;

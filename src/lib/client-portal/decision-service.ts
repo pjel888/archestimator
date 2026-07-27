@@ -41,6 +41,18 @@ export type ClientPortalDecisionReceipt = {
   versionLabel: string;
 };
 
+export type ClientPortalDecisionProjection = {
+  currencyCode: string;
+  decision: ClientPortalDecision;
+  id: string;
+  issueId: string;
+  issueNumber: number;
+  signerName: string | null;
+  submittedAt: string;
+  total: number;
+  versionLabel: string;
+};
+
 export class ClientPortalDecisionError extends Error {
   constructor(readonly code: "client_portal_decision_denied" | "client_portal_decision_duplicate" | "client_portal_decision_invalid" | "client_portal_decision_not_found" | "client_portal_decision_stale" | "client_portal_decision_write_failed", message: string) { super(message); }
 }
@@ -89,8 +101,28 @@ async function context(database: D1DatabaseLike, actor: ClientPortalRecipientAct
   return { issue, policy, policyActor, policyPortal, recipient };
 }
 
+async function decisionSummaryContext(database: D1DatabaseLike, actor: ClientPortalRecipientActor, portalId: string, issueId: string) {
+  const [portal, issue, recipient] = await Promise.all([
+    first<PortalRow>(database, "SELECT id, workspace_id, project_id, status, current_issue_id FROM client_portals WHERE id = ? LIMIT 1", [portalId]),
+    first<IssueRow>(database, "SELECT id, issue_number, version_label, status, content_hash, total_cost, currency_code, valid_through, decision_policy_snapshot_json FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1", [issueId, portalId]),
+    first<RecipientRow>(database, "SELECT email_normalized, display_name, client_organization, role_template, domain_role, domain_role_label, is_required_approver FROM client_portal_recipients WHERE id = ? AND portal_id = ? AND status = 'active' LIMIT 1", [actor.recipientId, portalId]),
+  ]);
+  if (!portal || !issue || !recipient || issue.status === "archived") throw new ClientPortalDecisionError("client_portal_decision_not_found", "Client Portal decision was not found.");
+  const policyPortal: ClientPortalPolicyPortal = { id: portal.id, workspaceId: portal.workspace_id, projectId: portal.project_id, status: portal.status, allowAnonymousView: false };
+  const policyActor: ClientPortalRecipientActor = { ...actor, role: recipient.role_template, isRequiredApprover: recipient.is_required_approver === 1 };
+  const policy = decisionPolicy(issue.decision_policy_snapshot_json);
+  if (policy.requiredRecipientIds.length) policyActor.isRequiredApprover = policy.requiredRecipientIds.includes(actor.recipientId);
+  const authorization = evaluateClientPortalPolicy({ actor: policyActor, action: "decision:view", portal: policyPortal, issue: { id: issue.id, status: issue.status, isCurrent: portal.current_issue_id === issue.id } });
+  if (!authorization.allowed) throw new ClientPortalDecisionError("client_portal_decision_denied", "Recipient cannot view Client Portal decisions.");
+  return { issue, policy };
+}
+
 function receipt(row: DecisionRow, issue: IssueRow, replayed: boolean): ClientPortalDecisionReceipt {
   return { id: row.id, decision: row.decision, issueId: issue.id, issueNumber: issue.issue_number, versionLabel: issue.version_label, total: issue.total_cost, currencyCode: issue.currency_code, issueContentHash: row.issue_content_hash, signerName: row.signer_name, note: row.note, submittedAt: row.submitted_at, replayed };
+}
+
+function projection(row: DecisionRow, issue: IssueRow): ClientPortalDecisionProjection {
+  return { id: row.id, decision: row.decision, issueId: issue.id, issueNumber: issue.issue_number, versionLabel: issue.version_label, total: issue.total_cost, currencyCode: issue.currency_code, signerName: row.signer_name, submittedAt: row.submitted_at };
 }
 
 export async function submitClientPortalDecision({ actor, database, decision, expectedIssueContentHash, idempotencyKey: rawIdempotencyKey, issueId, note: rawNote, portalId, signerName: rawSignerName }: { actor: ClientPortalRecipientActor; database: D1DatabaseLike; decision: ClientPortalDecision; expectedIssueContentHash: string; idempotencyKey: string; issueId: string; note?: string | null; portalId: string; signerName?: string | null }): Promise<ClientPortalDecisionReceipt> {
@@ -228,22 +260,23 @@ export async function submitClientPortalDecision({ actor, database, decision, ex
   return receipt(row, issue, false);
 }
 
-export async function summarizeClientPortalDecisions({ actor, database, issueId, portalId }: { actor: ClientPortalRecipientActor; database: D1DatabaseLike; issueId: string; portalId: string }) {
-  const { issue, policy, policyActor, policyPortal } = await context(database, actor, portalId, issueId);
-  const authorization = evaluateClientPortalPolicy({ actor: policyActor, action: "decision:view", portal: policyPortal, issue: { id: issue.id, status: issue.status, isCurrent: true } });
-  if (!authorization.allowed) throw new ClientPortalDecisionError("client_portal_decision_denied", "Recipient cannot view Client Portal decisions.");
+export async function summarizeClientPortalDecisions({ actor, database, focusDecisionId, issueId, portalId }: { actor: ClientPortalRecipientActor; database: D1DatabaseLike; focusDecisionId?: string | null; issueId: string; portalId: string }) {
+  const { issue, policy } = await decisionSummaryContext(database, actor, portalId, issueId);
   const requiredPredicate = policy.requiredRecipientIds.length ? `decision_row.recipient_id IN (${policy.requiredRecipientIds.map(() => "?").join(", ")})` : "recipient.is_required_approver = 1";
-  const [result, requiredResult, ownReceipt] = await Promise.all([
+  const [result, requiredResult, ownReceipt, focusDecision] = await Promise.all([
     database.prepare<{ decision: ClientPortalDecision; total: number }>("SELECT decision, count(*) AS total FROM client_portal_decisions WHERE issue_id = ? AND voided_at IS NULL GROUP BY decision").bind(issue.id).all<{ decision: ClientPortalDecision; total: number }>(),
     database.prepare<{ decision: ClientPortalDecision; total: number }>(`SELECT decision_row.decision, count(*) AS total FROM client_portal_decisions decision_row JOIN client_portal_recipients recipient ON recipient.id = decision_row.recipient_id WHERE decision_row.issue_id = ? AND decision_row.voided_at IS NULL AND ${requiredPredicate} GROUP BY decision_row.decision`).bind(issue.id, ...policy.requiredRecipientIds).all<{ decision: ClientPortalDecision; total: number }>(),
     first<DecisionRow>(database, "SELECT id, issue_id, decision, note, signer_name, issue_content_hash, intent_hash, submitted_at FROM client_portal_decisions WHERE issue_id = ? AND recipient_id = ? AND voided_at IS NULL LIMIT 1", [issue.id, actor.recipientId]),
+    focusDecisionId ? first<DecisionRow>(database, "SELECT id, issue_id, decision, note, signer_name, issue_content_hash, intent_hash, submitted_at FROM client_portal_decisions WHERE id = ? AND issue_id = ? AND portal_id = ? AND voided_at IS NULL LIMIT 1", [focusDecisionId, issue.id, portalId]) : Promise.resolve(null),
   ]);
+  if (focusDecisionId && !focusDecision) throw new ClientPortalDecisionError("client_portal_decision_not_found", "Client Portal decision was not found.");
   return {
     issueId: issue.id,
     issueStatus: issue.status,
     requiredApprovals: policy.requiredApprovals,
     counts: Object.fromEntries((result.results ?? []).map((row) => [row.decision, Number(row.total)])) as Partial<Record<ClientPortalDecision, number>>,
     requiredCounts: Object.fromEntries((requiredResult.results ?? []).map((row) => [row.decision, Number(row.total)])) as Partial<Record<ClientPortalDecision, number>>,
+    focusDecision: focusDecision ? projection(focusDecision, issue) : null,
     ownReceipt: ownReceipt ? receipt(ownReceipt, issue, true) : null,
   };
 }

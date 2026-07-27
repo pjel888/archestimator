@@ -156,9 +156,21 @@ export type ClientPortalIssuePackage = {
 };
 
 export type ClientPortalIssueChangeSet = {
+  aiProvenance?: {
+    aiDraft: string;
+    approvedAt: string;
+    approvedBy: string;
+    generatedAt: string;
+    inputHash: string;
+    model: string;
+    outputHash: string;
+    provider: string;
+    runId: string;
+    schemaVersion: number;
+  };
   deterministicSummary: string;
   finalNarrative: string;
-  narrativeSource: "deterministic" | "human";
+  narrativeSource: "ai_reviewed" | "deterministic" | "human";
   privateChangeSet: PrivateClientPortalChangeSet;
   publicChangeSet: PublicClientPortalChangeSet;
   structuredDiffHash: string;
@@ -330,6 +342,27 @@ function requireChangeSet(changeSet: ClientPortalIssueChangeSet | undefined, iss
   }
   if (!changeSet.deterministicSummary.trim() || !changeSet.finalNarrative.trim()) {
     throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Issue change-set narratives must be non-empty.");
+  }
+  if (changeSet.narrativeSource === "ai_reviewed") {
+    const provenance = changeSet.aiProvenance;
+    if (
+      !provenance
+      || !provenance.aiDraft.trim()
+      || !provenance.approvedBy.trim()
+      || !provenance.runId.trim()
+      || !provenance.model.trim()
+      || !provenance.provider.trim()
+      || !Number.isSafeInteger(provenance.schemaVersion)
+      || provenance.schemaVersion < 1
+      || !/^[a-f0-9]{64}$/.test(provenance.inputHash)
+      || !/^[a-f0-9]{64}$/.test(provenance.outputHash)
+      || !Number.isFinite(Date.parse(provenance.generatedAt))
+      || !Number.isFinite(Date.parse(provenance.approvedAt))
+    ) {
+      throw new ClientPortalIssueBuildError("client_portal_source_invalid", "AI-reviewed issue narratives require verified generation and approval provenance.");
+    }
+  } else if (changeSet.aiProvenance) {
+    throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Non-AI issue narratives cannot include AI provenance.");
   }
   if (changeSet.privateChangeSet.currencyCode !== changeSet.publicChangeSet.currencyCode) {
     throw new ClientPortalIssueBuildError("client_portal_source_invalid", "Private and public issue change sets must use one currency.");
@@ -910,7 +943,9 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
       "client_portal_issue_change_sets",
       [
         "issue_id", "comparison_issue_id", "comparison_baseline_id", "schema_version", "structured_diff_json",
-        "structured_diff_hash", "deterministic_summary", "final_narrative", "narrative_source", "created_at",
+        "structured_diff_hash", "deterministic_summary", "ai_draft", "ai_run_id", "ai_model_snapshot", "ai_prompt_schema_version",
+        "ai_provider_snapshot", "ai_input_hash", "ai_output_hash", "ai_generated_at", "final_narrative", "narrative_source",
+        "narrative_approved_by", "narrative_approved_at", "created_at",
       ],
       [
         issueId,
@@ -920,8 +955,18 @@ export async function publishClientPortalIssue(input: ClientPortalIssueBuildInpu
         canonicalJson(input.changeSet.privateChangeSet),
         input.changeSet.structuredDiffHash,
         input.changeSet.deterministicSummary,
+        input.changeSet.aiProvenance?.aiDraft ?? null,
+        input.changeSet.aiProvenance?.runId ?? null,
+        input.changeSet.aiProvenance?.model ?? null,
+        input.changeSet.aiProvenance?.schemaVersion ?? null,
+        input.changeSet.aiProvenance?.provider ?? null,
+        input.changeSet.aiProvenance?.inputHash ?? null,
+        input.changeSet.aiProvenance?.outputHash ?? null,
+        input.changeSet.aiProvenance?.generatedAt ?? null,
         input.changeSet.finalNarrative,
         input.changeSet.narrativeSource,
+        input.changeSet.aiProvenance?.approvedBy ?? null,
+        input.changeSet.aiProvenance?.approvedAt ?? null,
         issuedAt,
       ],
       commitGuard,

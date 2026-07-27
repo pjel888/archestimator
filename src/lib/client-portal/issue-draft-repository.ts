@@ -16,11 +16,27 @@ export type ClientPortalIssueDraftMetadata = {
   decisionPolicy: Record<string, unknown>;
   exclusions: string[];
   issueKind: ClientPortalIssueKind;
+  narrativeProvenance?: ClientPortalNarrativeProvenance | null;
   requestedDecision: "none" | "acknowledgement" | "formal";
   revisionNote: string | null;
   sectionOverrides: Record<string, unknown>;
   unresolvedItems: string[];
   versionLabel: string | null;
+};
+
+export type ClientPortalNarrativeProvenance = {
+  aiDraft: string;
+  approvedAt: string;
+  approvedBy: string;
+  generatedAt: string;
+  inputFingerprint: string;
+  inputHash: string;
+  model: string;
+  outputHash: string;
+  provider: string;
+  runId: string;
+  schemaVersion: number;
+  selection: Record<"summary" | "included" | "excluded" | "unresolved" | "warnings", string[]>;
 };
 
 export type ClientPortalIssueDraftEstimateSelection = {
@@ -79,6 +95,7 @@ type DraftRow = {
   exclusions_json: string;
   id: string;
   issue_kind: ClientPortalIssueKind;
+  narrative_provenance_json: string | null;
   portal_id: string;
   project_id: string;
   published_at: string | null;
@@ -139,6 +156,7 @@ const DRAFT_COLUMNS = `
   id, workspace_id, project_id, portal_id, status, draft_revision, issue_kind,
   version_label, based_on_issue_id, based_on_baseline_id, comparison_issue_id,
   revision_note, assumptions_json, exclusions_json, unresolved_items_json,
+  narrative_provenance_json,
   requested_decision, decision_policy_json, section_overrides_json,
   created_by, updated_by, created_at, updated_at, published_issue_id,
   published_at, abandoned_at
@@ -158,6 +176,38 @@ function parseObject(value: string): Record<string, unknown> {
     throw new Error("Invalid issue draft object payload.");
   }
   return parsed as Record<string, unknown>;
+}
+
+function parseNarrativeProvenance(value: string | null): ClientPortalNarrativeProvenance | null {
+  if (value === null) return null;
+  const parsed = JSON.parse(value) as unknown;
+  if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("Invalid issue draft narrative provenance.");
+  const record = parsed as Record<string, unknown>;
+  const selection = record.selection;
+  const categories = ["summary", "included", "excluded", "unresolved", "warnings"] as const;
+  if (!selection || Array.isArray(selection) || typeof selection !== "object") throw new Error("Invalid issue draft narrative provenance selection.");
+  const selected = selection as Record<string, unknown>;
+  if (categories.some((category) => !Array.isArray(selected[category]) || (selected[category] as unknown[]).some((id) => typeof id !== "string"))) {
+    throw new Error("Invalid issue draft narrative provenance selection.");
+  }
+  const stringFields = ["aiDraft", "approvedAt", "approvedBy", "generatedAt", "inputFingerprint", "inputHash", "model", "outputHash", "provider", "runId"] as const;
+  if (stringFields.some((field) => typeof record[field] !== "string" || !(record[field] as string).trim()) || !Number.isSafeInteger(record.schemaVersion) || Number(record.schemaVersion) < 1) {
+    throw new Error("Invalid issue draft narrative provenance.");
+  }
+  return {
+    aiDraft: record.aiDraft as string,
+    approvedAt: record.approvedAt as string,
+    approvedBy: record.approvedBy as string,
+    generatedAt: record.generatedAt as string,
+    inputFingerprint: record.inputFingerprint as string,
+    inputHash: record.inputHash as string,
+    model: record.model as string,
+    outputHash: record.outputHash as string,
+    provider: record.provider as string,
+    runId: record.runId as string,
+    schemaVersion: Number(record.schemaVersion),
+    selection: Object.fromEntries(categories.map((category) => [category, [...selected[category] as string[]]])) as ClientPortalNarrativeProvenance["selection"],
+  };
 }
 
 async function allRows<T>(database: D1DatabaseLike, sql: string, values: D1Value[]): Promise<T[]> {
@@ -242,6 +292,7 @@ function toDraft(row: DraftRow, selections: Awaited<ReturnType<typeof readSelect
     exclusions: parseStringArray(row.exclusions_json),
     id: row.id,
     issueKind: row.issue_kind,
+    narrativeProvenance: parseNarrativeProvenance(row.narrative_provenance_json),
     portalId: row.portal_id,
     projectId: row.project_id,
     publishedAt: row.published_at,
@@ -436,7 +487,7 @@ export async function replaceIssueDraft(
     `UPDATE client_portal_issue_drafts
      SET status = 'draft', draft_revision = draft_revision + 1,
          issue_kind = ?, version_label = ?, based_on_issue_id = ?,
-         based_on_baseline_id = ?, comparison_issue_id = ?, revision_note = ?,
+         based_on_baseline_id = ?, comparison_issue_id = ?, revision_note = ?, narrative_provenance_json = ?,
          assumptions_json = ?, exclusions_json = ?, unresolved_items_json = ?,
          requested_decision = ?, decision_policy_json = ?, section_overrides_json = ?,
          updated_by = ?, updated_at = ?
@@ -449,6 +500,7 @@ export async function replaceIssueDraft(
     input.metadata.basedOnBaselineId,
     input.metadata.comparisonIssueId,
     input.metadata.revisionNote,
+    input.metadata.narrativeProvenance ? JSON.stringify(input.metadata.narrativeProvenance) : null,
     JSON.stringify(input.metadata.assumptions),
     JSON.stringify(input.metadata.exclusions),
     JSON.stringify(input.metadata.unresolvedItems),

@@ -648,9 +648,23 @@ export async function publishClientPortalDraft({ actor, database, draftId, idemp
           current,
         });
         return {
+          ...(issueDraft.narrativeProvenance ? {
+            aiProvenance: {
+              aiDraft: issueDraft.narrativeProvenance.aiDraft,
+              approvedAt: issueDraft.narrativeProvenance.approvedAt,
+              approvedBy: issueDraft.narrativeProvenance.approvedBy,
+              generatedAt: issueDraft.narrativeProvenance.generatedAt,
+              inputHash: issueDraft.narrativeProvenance.inputHash,
+              model: issueDraft.narrativeProvenance.model,
+              outputHash: issueDraft.narrativeProvenance.outputHash,
+              provider: issueDraft.narrativeProvenance.provider,
+              runId: issueDraft.narrativeProvenance.runId,
+              schemaVersion: issueDraft.narrativeProvenance.schemaVersion,
+            },
+          } : {}),
           deterministicSummary: result.deterministicSummary,
           finalNarrative: issueDraft.revisionNote ?? result.deterministicSummary,
-          narrativeSource: "human" as const,
+          narrativeSource: issueDraft.narrativeProvenance ? "ai_reviewed" as const : "human" as const,
           privateChangeSet: result.privateChangeSet,
           publicChangeSet: result.publicChangeSet,
           structuredDiffHash: sha256(result.hashInput),

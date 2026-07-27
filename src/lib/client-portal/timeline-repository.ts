@@ -7,6 +7,7 @@ import {
   type ClientPortalActor,
   type ClientPortalPolicyTarget,
 } from "@/lib/client-portal/policy";
+import { createClientPortalPublicIdentifier } from "@/lib/client-portal/public-identifiers";
 import { resolveClientPortalBaseContext } from "@/lib/client-portal/public-repository";
 
 type TimelineRow = {
@@ -14,9 +15,11 @@ type TimelineRow = {
   actor_type: "internal_user" | "recipient" | "system";
   client_safe_snapshot_json: string;
   event_type: string;
+  internal_metadata_json: string;
   occurred_at: string;
   policy_snapshot_json: string;
   public_event_id: string;
+  source_id: string;
   source_type: "issue" | "decision" | "baseline" | "change_request" | "artifact" | "legacy_publication";
   status: "visible" | "withdrawn" | "redacted";
   summary: string | null;
@@ -53,17 +56,24 @@ type CurrentIssueSummaryRow = {
   version_label: string;
 };
 
-const EVENT_SNAPSHOT_KEYS: Record<string, readonly string[]> = {
-  issue: ["currencyCode", "issueNumber", "requestCodes", "replacesIssueNumber", "status", "totalCost", "versionLabel"],
-  decision: ["decision", "issueNumber", "signerName"],
-  baseline: ["currencyCode", "issueNumber", "status", "totalCost"],
-  change_request: ["publicRequestId", "status", "title"],
-  artifact: ["publicArtifactId", "title", "versionLabel"],
-  legacy_publication: ["issueNumber", "status", "versionLabel"],
-};
+type SnapshotFieldKind = "boolean" | "number" | "string" | "string[]";
+type SnapshotSchema = Readonly<Record<string, SnapshotFieldKind>>;
 
-function publicScalar(value: unknown): string | number | boolean | null {
-  return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null ? value : null;
+const EVENT_SNAPSHOT_SCHEMA = {
+  issue: { currencyCode: "string", issueNumber: "number", requestCodes: "string[]", replacesIssueNumber: "number", status: "string", totalCost: "number", versionLabel: "string" },
+  decision: { decision: "string", issueNumber: "number", signerName: "string" },
+  baseline: { currencyCode: "string", issueNumber: "number", status: "string", totalCost: "number" },
+  change_request: { publicRequestId: "string", requestCode: "string", status: "string", title: "string", versionNumber: "number" },
+  artifact: { artifactCode: "string", artifactType: "string", publicArtifactId: "string", title: "string", versionLabel: "string", versionNumber: "number" },
+  legacy_publication: { issueNumber: "number", status: "string", versionLabel: "string" },
+} satisfies Record<TimelineRow["source_type"], SnapshotSchema>;
+
+function publicSnapshotValue(kind: SnapshotFieldKind, value: unknown) {
+  if (value === null) return null;
+  if (kind === "string[]") {
+    return Array.isArray(value) && value.length <= 100 && value.every((entry) => typeof entry === "string") ? value : undefined;
+  }
+  return typeof value === kind ? value as string | number | boolean : undefined;
 }
 
 function publicSnapshot(sourceType: TimelineRow["source_type"], value: string) {
@@ -71,18 +81,13 @@ function publicSnapshot(sourceType: TimelineRow["source_type"], value: string) {
     const parsed = JSON.parse(value) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     const source = parsed as Record<string, unknown>;
-    const allowed = EVENT_SNAPSHOT_KEYS[sourceType];
-    if (Object.keys(source).some((key) => !allowed.includes(key))) return {};
+    const schema = EVENT_SNAPSHOT_SCHEMA[sourceType];
     const result: Record<string, string | number | boolean | null | string[]> = {};
-    for (const key of allowed) {
+    for (const [key, kind] of Object.entries(schema)) {
       const value = source[key];
       if (value === undefined) continue;
-      if (key === "requestCodes") {
-        if (Array.isArray(value) && value.length <= 100 && value.every((entry) => typeof entry === "string")) result[key] = value;
-        continue;
-      }
-      const scalar = publicScalar(value);
-      if (scalar !== null || value === null) result[key] = scalar;
+      const sanitized = publicSnapshotValue(kind, value);
+      if (sanitized !== undefined) result[key] = sanitized;
     }
     return result;
   } catch {
@@ -160,12 +165,34 @@ function canViewExposure(
   return Boolean(target && evaluateClientPortalPolicy({ actor, action, portal, target }).allowed);
 }
 
-function publicTarget(sourceType: TimelineRow["source_type"], snapshot: ReturnType<typeof publicSnapshot>) {
+function internalTargetMetadata(value: string) {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const source = parsed as Record<string, unknown>;
+    return {
+      decisionId: typeof source.decisionId === "string" ? source.decisionId : null,
+      threadId: typeof source.threadId === "string" ? source.threadId : null,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function publicTarget(row: TimelineRow, snapshot: ReturnType<typeof publicSnapshot>, token: string) {
   const issueNumber = typeof snapshot.issueNumber === "number" ? snapshot.issueNumber : null;
-  if (sourceType === "change_request" && typeof snapshot.publicRequestId === "string") {
+  const metadata = internalTargetMetadata(row.internal_metadata_json);
+  if (row.event_type.startsWith("discussion.") && metadata.threadId) {
+    return { kind: "thread" as const, issueNumber, publicThreadId: createClientPortalPublicIdentifier(token, "thread", metadata.threadId) };
+  }
+  if (row.source_type === "decision") {
+    const decisionId = metadata.decisionId ?? row.source_id;
+    return { kind: "decision" as const, issueNumber, publicDecisionId: createClientPortalPublicIdentifier(token, "decision", decisionId) };
+  }
+  if (row.source_type === "change_request" && typeof snapshot.publicRequestId === "string") {
     return { kind: "request" as const, publicRequestId: snapshot.publicRequestId };
   }
-  if (sourceType === "artifact" && typeof snapshot.publicArtifactId === "string") {
+  if (row.source_type === "artifact" && typeof snapshot.publicArtifactId === "string") {
     return { kind: "artifact" as const, publicArtifactId: snapshot.publicArtifactId };
   }
   return issueNumber === null ? null : { kind: "issue" as const, issueNumber };
@@ -314,7 +341,8 @@ export async function getClientPortalTimeline(input: {
     const rows = await all<TimelineRow>(context.database, `
       SELECT exposure.public_event_id, exposure.policy_snapshot_json, exposure.status,
              event.event_type, event.source_type, event.actor_type, event.actor_name_snapshot,
-             event.title, event.summary, event.client_safe_snapshot_json, event.occurred_at
+             event.title, event.summary, event.client_safe_snapshot_json, event.internal_metadata_json,
+             event.source_id, event.occurred_at
       FROM client_portal_event_exposures exposure
       JOIN project_commitment_events event ON event.id = exposure.event_id
       WHERE ${where.join(" AND ")}
@@ -345,7 +373,7 @@ export async function getClientPortalTimeline(input: {
         snapshot,
         sourceType: row.source_type,
         summary: row.summary,
-        target: publicTarget(row.source_type, snapshot),
+        target: publicTarget(row, snapshot, input.token),
         title: row.title,
       };
     }),
