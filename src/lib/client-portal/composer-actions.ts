@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { reconcileAcceptedClientPortalBaseline } from "@/lib/client-portal/baseline-service";
 import type { ClientPortalComposerTemplate } from "@/lib/client-portal/composer-contracts";
 import { applyClientPortalComposerTemplate, createClientPortalDraft, createClientPortalSection, reorderClientPortalSections, saveClientPortalSectionDraft } from "@/lib/client-portal/composer-service";
 import { publishClientPortalDraft } from "@/lib/client-portal/publish-service";
@@ -59,4 +60,13 @@ export async function publishClientPortalDraftAction({ draftId, idempotencyKey, 
   const issue = await publishClientPortalDraft({ actor, database, draftId, idempotencyKey, portalId });
   revalidatePath(detailPath(projectId, portalId));
   return issue;
+}
+
+export async function reconcileAcceptedClientPortalBaselineAction({ issueId, portalId, projectId }: { issueId: string; portalId: string; projectId: string }) {
+  const { actor, database } = await context(projectId);
+  const receipt = await reconcileAcceptedClientPortalBaseline({ actor, database, issueId, portalId });
+  revalidatePath("/workshop/publisher");
+  revalidatePath(`/workshop/projects/${encodeURIComponent(projectId)}/timeline`);
+  revalidatePath(detailPath(projectId, portalId));
+  return receipt;
 }

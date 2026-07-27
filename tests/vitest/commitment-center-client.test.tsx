@@ -1,5 +1,15 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  reconcile: vi.fn(),
+  refresh: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("@/lib/client-portal/composer-actions", () => ({
+  reconcileAcceptedClientPortalBaselineAction: mocks.reconcile,
+}));
 
 import { CommitmentCenterClient } from "@/components/workshop/publisher/CommitmentCenterClient";
 import type { WorkspaceCommitmentCenter } from "@/lib/publisher/commitment-center-repository";
@@ -70,6 +80,11 @@ const data: WorkspaceCommitmentCenter = {
 };
 
 describe("Commitment Center client", () => {
+  beforeEach(() => {
+    mocks.reconcile.mockReset();
+    mocks.refresh.mockReset();
+  });
+
   it("switches among all modern global views without legacy authoring", () => {
     render(<CommitmentCenterClient initialData={data} />);
 
@@ -91,5 +106,33 @@ describe("Commitment Center client", () => {
       element?.tagName === "TD" && element.textContent?.includes("2 active") === true,
     )).toBeInTheDocument();
     expect(screen.queryByText("Share Wizard")).not.toBeInTheDocument();
+  });
+
+  it("executes baseline reconciliation against the projected issue destination", async () => {
+    mocks.reconcile.mockResolvedValue({ baselineId: "baseline-2" });
+    const reconciliationData: WorkspaceCommitmentCenter = {
+      ...data,
+      portals: [{
+        ...data.portals[0]!,
+        activeBaseline: null,
+        nextAction: {
+          issueId: "issue-2",
+          kind: "baseline_reconciliation",
+          label: "Restore the accepted baseline",
+          priority: "urgent",
+        },
+      }],
+    };
+
+    render(<CommitmentCenterClient initialData={reconciliationData} />);
+    fireEvent.click(screen.getByRole("button", { name: "Restore the accepted baseline" }));
+
+    await waitFor(() => expect(mocks.reconcile).toHaveBeenCalledWith({
+      issueId: "issue-2",
+      portalId: "portal-1",
+      projectId: "project-1",
+    }));
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status")).toHaveTextContent("Accepted baseline restored.");
   });
 });

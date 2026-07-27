@@ -9,10 +9,12 @@ import {
   UsersThree,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 import { Button, ButtonLink } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { reconcileAcceptedClientPortalBaselineAction } from "@/lib/client-portal/composer-actions";
 import { onboardingTarget } from "@/lib/onboarding/target-catalog";
 import type {
   CommitmentCenterDecisionRow,
@@ -99,6 +101,38 @@ function EmptyView({ children }: { children: React.ReactNode }) {
 }
 
 function NextActionLink({ portal }: { portal: CommitmentCenterPortalRow }) {
+  const router = useRouter();
+  const [message, setMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  if (portal.nextAction.kind === "baseline_reconciliation") {
+    const issueId = portal.nextAction.issueId;
+    return (
+      <div className="grid justify-items-end gap-1">
+        <Button
+          disabled={isPending}
+          onClick={() => startTransition(async () => {
+            try {
+              await reconcileAcceptedClientPortalBaselineAction({
+                issueId,
+                portalId: portal.portal.id,
+                projectId: portal.project.id,
+              });
+              setMessage("Accepted baseline restored.");
+              router.refresh();
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : "Accepted baseline could not be restored.");
+            }
+          })}
+          size="sm"
+          type="button"
+          variant="warning"
+        >
+          {isPending ? "Restoring accepted baseline..." : portal.nextAction.label}
+        </Button>
+        {message ? <span className="text-[11px] text-secondary" role="status">{message}</span> : null}
+      </div>
+    );
+  }
   return (
     <ButtonLink
       href={portal.nextAction.href}

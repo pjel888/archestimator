@@ -16,12 +16,19 @@ export type CommitmentCenterView =
   | "decisions"
   | "access_delivery";
 
-export type CommitmentCenterNextAction = {
-  href: string;
-  kind: "timeline" | "portal_control" | "compose";
-  label: string;
-  priority: "urgent" | "attention" | "monitor";
-};
+export type CommitmentCenterNextAction =
+  | {
+      href: string;
+      kind: "timeline" | "portal_control" | "compose";
+      label: string;
+      priority: "urgent" | "attention" | "monitor";
+    }
+  | {
+      issueId: string;
+      kind: "baseline_reconciliation";
+      label: string;
+      priority: "urgent";
+    };
 
 export type CommitmentCenterPortalRow = {
   access: {
@@ -142,6 +149,7 @@ type PortalProjectionRow = {
   delivery_pending_count: number | null;
   invited_recipient_count: number | null;
   issue_issued_at: string | null;
+  issue_id: string | null;
   issue_number: number | null;
   issue_status: string | null;
   issue_version_label: string | null;
@@ -218,6 +226,14 @@ function nextAction(row: PortalProjectionRow): CommitmentCenterNextAction {
   const requiredApprovals = count(row.required_approval_count);
   const approvedDecisions = count(row.decision_approved_count);
 
+  if (row.can_manage_portal && row.issue_id && row.issue_status === "accepted" && row.baseline_number === null) {
+    return {
+      issueId: row.issue_id,
+      kind: "baseline_reconciliation",
+      label: "Restore the accepted baseline",
+      priority: "urgent",
+    };
+  }
   if (waitingDiscussions > 0) {
     return {
       href: `${control}?tab=discussions`,
@@ -248,14 +264,6 @@ function nextAction(row: PortalProjectionRow): CommitmentCenterNextAction {
       kind: "portal_control",
       label: `Review ${unverifiedRecipients} unverified recipient${unverifiedRecipients === 1 ? "" : "s"}`,
       priority: "attention",
-    };
-  }
-  if (row.issue_number && row.issue_status === "accepted" && row.baseline_number === null) {
-    return {
-      href: `${root}/timeline?portal=${encodeURIComponent(row.portal_id)}`,
-      kind: "timeline",
-      label: "Restore the accepted baseline",
-      priority: "urgent",
     };
   }
   if (row.issue_number && (row.issue_status === "issued" || row.issue_status === "under_review") && approvedDecisions < requiredApprovals) {
@@ -392,6 +400,7 @@ export async function readWorkspaceCommitmentCenter(input: {
       baseline.established_at AS baseline_established_at,
       baseline_issue.version_label AS baseline_version_label,
       current_issue.issue_number,
+      current_issue.id AS issue_id,
       current_issue.version_label AS issue_version_label,
       current_issue.status AS issue_status,
       current_issue.issued_at AS issue_issued_at,

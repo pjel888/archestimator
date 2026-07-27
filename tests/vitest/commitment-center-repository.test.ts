@@ -48,6 +48,7 @@ function fixtureDatabase(options: { emptyPortals?: boolean; portalOverrides?: Re
               delivery_pending_count: 1,
               invited_recipient_count: 1,
               issue_issued_at: "2026-07-26T10:00:00.000Z",
+              issue_id: "issue-4",
               issue_number: 4,
               issue_status: "under_review",
               issue_version_label: "Proposal v4",
@@ -199,20 +200,21 @@ describe("workspace Commitment Center repository", () => {
     });
   });
 
-  it("escalates an accepted issue without an active baseline", async () => {
+  it("prioritizes executable accepted-baseline reconciliation over overlapping portal work", async () => {
     const { database } = fixtureDatabase({ portalOverrides: {
       baseline_number: null,
+      delivery_dead_count: 2,
       issue_status: "accepted",
-      open_request_count: 0,
-      unverified_recipient_count: 0,
-      waiting_discussion_count: 0,
+      open_request_count: 3,
+      unverified_recipient_count: 4,
+      waiting_discussion_count: 1,
     } });
 
     const result = await readWorkspaceCommitmentCenter({ database, userId: "user-1", workspaceId: "workspace-1" });
 
     expect(result.portals[0]?.nextAction).toEqual({
-      href: "/workshop/projects/project-1/timeline?portal=portal-1",
-      kind: "timeline",
+      issueId: "issue-4",
+      kind: "baseline_reconciliation",
       label: "Restore the accepted baseline",
       priority: "urgent",
     });
