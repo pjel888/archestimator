@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
@@ -18,7 +18,7 @@ function appendUnique<Item extends { id: string }>(current: Item[], next: Item[]
   return [...current, ...next.filter((item) => !existingIds.has(item.id))];
 }
 
-export function ClientPortalDiscussionSection({ capabilities, composeTarget, issueId, sectionId, token }: { capabilities: string[]; composeTarget?: DiscussionTarget | null; issueId: string; projectName: string; sectionId: string; token: string }) {
+export function ClientPortalDiscussionSection({ capabilities, composeTarget, initialThreadId, issueId, sectionId, token }: { capabilities: string[]; composeTarget?: DiscussionTarget | null; initialThreadId?: string | null; issueId: string; projectName: string; sectionId: string; token: string }) {
   const canView = capabilities.includes("thread:view");
   const canCreate = capabilities.includes("thread:create");
   const canReply = capabilities.includes("thread:reply");
@@ -35,6 +35,7 @@ export function ClientPortalDiscussionSection({ capabilities, composeTarget, iss
   const [body, setBody] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "saving" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const targetThreadRef = useRef<HTMLButtonElement | null>(null);
 
   const loadThreads = useCallback(async (cursor: string | null = null, append = false) => {
     if (!canView) return;
@@ -57,21 +58,33 @@ export function ClientPortalDiscussionSection({ capabilities, composeTarget, iss
   useEffect(() => {
     if (!canView) return;
     let active = true;
-    void fetch(endpoint(token), { cache: "no-store" })
-      .then(async (response) => response.ok ? response.json() as Promise<DiscussionPage<Thread, "threads">> : null)
-      .then((payload) => {
+    void (async () => {
+      try {
+        let nextCursor: string | null = null;
+        let payload: DiscussionPage<Thread, "threads"> | null = null;
+        let loaded: Thread[] = [];
+        do {
+          const response = await fetch(pageEndpoint(endpoint(token), nextCursor), { cache: "no-store" });
+          if (!response.ok) throw new Error("Discussion could not be loaded.");
+          payload = await response.json() as DiscussionPage<Thread, "threads">;
+          loaded = appendUnique(loaded, payload.threads ?? []);
+          nextCursor = payload.hasMore === true ? payload.nextCursor ?? null : null;
+        } while (initialThreadId && !loaded.some((thread) => thread.id === initialThreadId) && nextCursor);
         if (!active) return;
-        const next = payload?.threads ?? [];
-        setThreads(next);
+        setThreads(loaded);
         setThreadsHaveMore(payload?.hasMore === true);
         setThreadNextCursor(payload?.nextCursor ?? null);
-        setSelectedId(composeTarget ? null : next[0]?.id ?? null);
-      })
-      .catch(() => {
+        setSelectedId(composeTarget ? null : initialThreadId ? loaded.find((thread) => thread.id === initialThreadId)?.id ?? null : loaded[0]?.id ?? null);
+      } catch {
         if (active) { setState("error"); setError("Discussion could not be loaded."); }
-      });
+      }
+    })();
     return () => { active = false; };
-  }, [canView, composeTarget, token]);
+  }, [canView, composeTarget, initialThreadId, token]);
+
+  useEffect(() => {
+    if (initialThreadId && selectedId === initialThreadId) targetThreadRef.current?.focus();
+  }, [initialThreadId, selectedId, threads]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -133,7 +146,7 @@ export function ClientPortalDiscussionSection({ capabilities, composeTarget, iss
     <div className="grid min-h-[520px] overflow-hidden border border-hairline bg-white lg:grid-cols-[20rem_minmax(0,1fr)]">
       <aside className="border-b border-hairline bg-surfaceMuted/30 lg:border-b-0 lg:border-r">
         <div className="border-b border-hairline p-3"><div className="flex items-center justify-between gap-3"><div><h3 className="text-[14px] font-medium text-ink">Conversations</h3><p className="text-[11px] text-secondary">{threads.length}{threadsHaveMore ? "+" : ""} thread{threads.length === 1 && !threadsHaveMore ? "" : "s"}</p></div>{canCreate ? <Button size="sm" variant="secondary" onClick={() => { setSelectedId(null); setMessages([]); setMessagesHaveMore(false); setMessageNextCursor(null); }}>New</Button> : null}</div></div>
-        <div className="max-h-64 overflow-y-auto lg:max-h-[456px]">{threads.map((thread) => <button key={thread.id} type="button" className={`block w-full cursor-pointer border-b border-hairline p-3 text-left ${thread.id === selectedId ? "bg-white" : "hover:bg-white/70"}`} onClick={() => { setSelectedId(thread.id); setMessages([]); setMessagesHaveMore(false); setMessageNextCursor(null); }}><span className="flex justify-between gap-2 text-[12px] font-medium text-ink"><span className="truncate">{thread.subject}</span>{thread.unreadCount > 0 ? <span className="rounded-full bg-accent px-1.5 text-[10px] text-white">{thread.unreadCount}</span> : null}</span><span className="mt-1 block truncate text-[11px] text-secondary">{thread.target.label} · {thread.status.replace(/_/g, " ")}</span></button>)}{threadsHaveMore && threadNextCursor ? <div className="p-3"><Button className="w-full" size="sm" variant="secondary" disabled={loadingMoreThreads} onClick={() => void loadThreads(threadNextCursor, true)}>{loadingMoreThreads ? "Loading…" : "More conversations"}</Button></div> : null}</div>
+        <div className="max-h-64 overflow-y-auto lg:max-h-[456px]">{threads.map((thread) => <button ref={thread.id === initialThreadId ? targetThreadRef : undefined} key={thread.id} type="button" aria-current={thread.id === selectedId ? "true" : undefined} className={`block w-full cursor-pointer border-b border-hairline p-3 text-left ${thread.id === selectedId ? "bg-white" : "hover:bg-white/70"}`} onClick={() => { setSelectedId(thread.id); setMessages([]); setMessagesHaveMore(false); setMessageNextCursor(null); }}><span className="flex justify-between gap-2 text-[12px] font-medium text-ink"><span className="truncate">{thread.subject}</span>{thread.unreadCount > 0 ? <span className="rounded-full bg-accent px-1.5 text-[10px] text-white">{thread.unreadCount}</span> : null}</span><span className="mt-1 block truncate text-[11px] text-secondary">{thread.target.label} · {thread.status.replace(/_/g, " ")}</span></button>)}{threadsHaveMore && threadNextCursor ? <div className="p-3"><Button className="w-full" size="sm" variant="secondary" disabled={loadingMoreThreads} onClick={() => void loadThreads(threadNextCursor, true)}>{loadingMoreThreads ? "Loading…" : "More conversations"}</Button></div> : null}</div>
       </aside>
       <section className="flex min-w-0 flex-col">
         <header className="border-b border-hairline p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">{selected ? selected.target.label : composeTarget?.label ?? "New conversation"}</p><h3 className="mt-1 text-[16px] font-medium text-ink">{selected?.subject ?? (composeTarget ? `Discuss ${composeTarget.label}` : "Ask the project team")}</h3>{!selected && composeTarget?.secondaryLabel ? <p className="mt-1 text-[11px] text-secondary">{composeTarget.secondaryLabel}</p> : null}</header>

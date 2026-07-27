@@ -1,1 +1,3 @@
-export { dynamic, GET } from "@/app/api/share/[token]/summary/route";
+export const dynamic = "force-dynamic";
+
+export { GET } from "@/app/api/share/[token]/summary/route";

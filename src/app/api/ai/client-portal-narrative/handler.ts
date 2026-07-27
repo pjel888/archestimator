@@ -27,7 +27,10 @@ import {
 } from "@/lib/client-portal/narrative-ai-provider";
 import { readIssueDraft } from "@/lib/client-portal/issue-draft-repository";
 import { loadClientPortalIssueDraftSources } from "@/lib/client-portal/issue-draft-sources";
+import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { assertProjectPublicationManager } from "@/lib/publication/actions";
+import { assertSameOrigin, getClientIp } from "@/lib/publication/security";
+import { checkRecordedDurableRateLimit, type DurableRateLimitResult } from "@/lib/security/durable-rate-limits";
 
 type NarrativeRequest = {
   draftId: string;
@@ -42,11 +45,14 @@ type NarrativeDraftContext = {
 };
 
 type NarrativeHandlerDependencies = {
+  checkQuota: (input: { request: Request; userContext: AiRequestUserContext & { authMode: "better-auth"; workspaceId: string } }) => Promise<DurableRateLimitResult>;
   getUserContext: () => Promise<AiRequestUserContext | null>;
   readDraftContext: (input: NarrativeRequest & { userContext: AiRequestUserContext & { authMode: "better-auth"; workspaceId: string } }) => Promise<NarrativeDraftContext | null>;
   provider: ClientPortalNarrativeProvider;
   recordAudit: (input: AiPackageAuditRows | null) => Promise<void>;
 };
+
+const MAX_REQUEST_BODY_BYTES = 2_048;
 
 const noStoreHeaders = {
   "Cache-Control": "private, no-store, max-age=0",
@@ -54,6 +60,15 @@ const noStoreHeaders = {
 };
 
 const defaultDependencies: NarrativeHandlerDependencies = {
+  checkQuota: ({ request, userContext }) => checkRecordedDurableRateLimit({
+    keyParts: [userContext.workspaceId, userContext.userId, getClientIp(request)],
+    metadata: { route: "client_portal_narrative" },
+    scope: "ai_client_portal_narrative",
+    windows: [
+      { seconds: 60, limit: 5, message: (retryAfter) => `AI narrative quota exceeded. Please wait ${retryAfter} seconds.` },
+      { seconds: 60 * 60, limit: 30, message: (retryAfter) => `AI narrative quota exceeded. Please wait ${retryAfter} seconds.` },
+    ],
+  }),
   getUserContext: getAiRequestUserContext,
   async readDraftContext(input) {
     const [manager, database] = await Promise.all([
@@ -121,9 +136,15 @@ export async function handleClientPortalNarrativeRequest(
   },
 ) {
   const deps = { ...defaultDependencies, ...options.dependencies };
+  const sameOrigin = assertSameOrigin(request);
+  if (!sameOrigin.ok) return response({ error: sameOrigin.message }, sameOrigin.status);
+
+  const body = await readBoundedJsonBody<unknown>(request, MAX_REQUEST_BODY_BYTES);
+  if (!body.ok) return response({ error: body.error }, body.status);
+
   let parsed: NarrativeRequest;
   try {
-    parsed = parseRequest(await request.json());
+    parsed = parseRequest(body.value);
   } catch (error) {
     return response({ error: error instanceof Error ? error.message : "Narrative request is invalid." }, 400);
   }
@@ -147,6 +168,22 @@ export async function handleClientPortalNarrativeRequest(
     return response({ error: "Issue draft can no longer receive a narrative.", code: "immutable_draft" }, 409);
   }
 
+  const providerConfigured = options.aiEnabled && deps.provider.hasApiKey();
+  if (providerConfigured) {
+    let quota: DurableRateLimitResult;
+    try {
+      quota = await deps.checkQuota({ request, userContext });
+    } catch {
+      return response({ error: "AI narrative quota is unavailable." }, 503);
+    }
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quota.message },
+        { status: 429, headers: { ...noStoreHeaders, "Retry-After": String(quota.retryAfter) } },
+      );
+    }
+  }
+
   const changeSet = buildClientPortalNarrativeInput({ draft: draftContext.draft, sources: draftContext.sources });
   const facts = buildClientPortalNarrativeFacts(changeSet);
   const inputFingerprint = buildClientPortalNarrativeInputFingerprint({ draftRevision: parsed.draftRevision, changeSet });
@@ -159,7 +196,7 @@ export async function handleClientPortalNarrativeRequest(
   let usage: Record<string, number> = {};
   let selection = createDeterministicClientPortalNarrativeSelection(facts);
 
-  if (options.aiEnabled && !deps.provider.hasApiKey()) {
+  if (options.aiEnabled && !providerConfigured) {
     fallbackReason = "unconfigured";
   } else if (options.aiEnabled) {
     provider = deps.provider.name;

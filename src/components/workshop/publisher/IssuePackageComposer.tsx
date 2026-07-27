@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { publishClientPortalDraftAction } from "@/lib/client-portal/composer-actions";
 import {
+  acceptClientPortalNarrativeAction,
   abandonClientPortalIssueDraftAction,
   markClientPortalIssueDraftReadyAction,
   openClientPortalIssueDraftAction,
@@ -257,9 +258,32 @@ export function IssuePackageComposer({ portalId, projectId, templateHasEstimateS
 
   function acceptNarrative() {
     if (!narrativeReview || narrativeReviewStale || !narrativeReviewed || !narrativeReview.text.trim()) return;
-    update({ revisionNote: narrativeReview.text.trim() });
-    setNarrativeReview({ ...narrativeReview, accepted: true, text: narrativeReview.text.trim() });
-    setNarrativeMessage("Reviewed narrative accepted into the final revision note and queued for save.");
+    if (narrativeReview.response.source !== "ai") {
+      update({ narrativeProvenance: null, revisionNote: narrativeReview.text.trim() });
+      setNarrativeReview({ ...narrativeReview, accepted: true, text: narrativeReview.text.trim() });
+      setNarrativeMessage("Reviewed narrative accepted into the final revision note and queued for save.");
+      return;
+    }
+    startTransition(async () => {
+      if (!(await flushAutosave()) || !draftRef.current) return;
+      try {
+        const saved = await acceptClientPortalNarrativeAction({
+          draftId: draftRef.current.id,
+          expectedRevision: serverRevisionRef.current,
+          finalText: narrativeReview.text,
+          portalId,
+          projectId,
+          response: narrativeReview.response,
+        });
+        draftRef.current = saved;
+        serverRevisionRef.current = saved.draftRevision;
+        setDraft(saved);
+        setNarrativeReview({ ...narrativeReview, accepted: true, text: narrativeReview.text.trim() });
+        setNarrativeMessage("Reviewed AI narrative accepted with durable generation and approval provenance.");
+      } catch (error) {
+        setNarrativeMessage(messageFor(error));
+      }
+    });
   }
 
   function markReady() {

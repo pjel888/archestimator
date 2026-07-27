@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -49,9 +49,11 @@ export function ProjectTimelineClient({ initialData, projectId, projectName }: P
   const [sourceType, setSourceType] = useState<ProjectCommitmentEventSourceType | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestGeneration = useRef(0);
   const root = `/workshop/projects/${encodeURIComponent(projectId)}`;
 
   async function load(input: { append?: boolean; cursor?: string | null; nextPortalId?: string; nextSourceType?: ProjectCommitmentEventSourceType | "" }) {
+    const generation = ++requestGeneration.current;
     const selectedPortalId = input.nextPortalId ?? portalId;
     const selectedSourceType = input.nextSourceType ?? sourceType;
     const search = new URLSearchParams();
@@ -60,14 +62,23 @@ export function ProjectTimelineClient({ initialData, projectId, projectName }: P
     if (input.cursor) search.set("cursor", input.cursor);
     setLoading(true);
     setError(null);
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/timeline?${search}`, { cache: "no-store" }).catch(() => null);
-    setLoading(false);
-    if (!response?.ok) {
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/timeline?${search}`, { cache: "no-store" });
+      if (generation !== requestGeneration.current) return;
+      if (!response.ok) {
+        setLoading(false);
+        setError("Timeline could not be refreshed.");
+        return;
+      }
+      const next = await response.json() as ProjectTimelinePage;
+      if (generation !== requestGeneration.current) return;
+      setData((current) => input.append ? { ...next, events: [...current.events, ...next.events] } : next);
+      setLoading(false);
+    } catch {
+      if (generation !== requestGeneration.current) return;
+      setLoading(false);
       setError("Timeline could not be refreshed.");
-      return;
     }
-    const next = await response.json() as ProjectTimelinePage;
-    setData(input.append ? { ...next, events: [...data.events, ...next.events] } : next);
   }
 
   function changePortal(nextPortalId: string) {
@@ -102,16 +113,18 @@ export function ProjectTimelineClient({ initialData, projectId, projectName }: P
         <section aria-labelledby="agreement-heading" className="overflow-hidden border border-hairline bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3">
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Selected portal</p>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Project scope</p>
               <h2 id="agreement-heading" className="mt-1 text-[18px] font-medium tracking-tight">Current agreement</h2>
+              <p className="mt-1 text-[12px] text-secondary">{data.context.currentPortal ? `${data.context.currentPortal.name}${data.context.currentPortal.isPrimary ? " · primary" : ""}` : "No active commitment scope"}</p>
             </div>
             <label className="grid gap-1 text-[10px] font-medium uppercase tracking-wide text-tertiary">
-              Portal
+              Scope
               <select
                 className="min-h-9 min-w-56 border border-hairline bg-white px-3 text-[13px] font-normal normal-case tracking-normal text-ink outline-none focus:border-accent"
                 onChange={(event) => changePortal(event.target.value)}
                 value={portalId}
               >
+                <option value="">All project activity</option>
                 {data.context.portals.map((portal) => <option key={portal.id} value={portal.id}>{portal.name}{portal.isPrimary ? " · primary" : ""}</option>)}
               </select>
             </label>
@@ -119,13 +132,23 @@ export function ProjectTimelineClient({ initialData, projectId, projectName }: P
           <div className="grid gap-px bg-hairline sm:grid-cols-2 lg:grid-cols-4">
             <div className="bg-white p-4">
               <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Active baseline</p>
-              <p className="mt-2 text-[18px] font-medium">{data.context.activeBaseline?.versionLabel ?? "Not established"}</p>
-              <p className="mt-1 text-[12px] text-secondary">{data.context.activeBaseline ? formatMoney(data.context.activeBaseline.totalMinorUnits, data.context.activeBaseline.currencyCode) : "No approved issue yet"}</p>
+              <p className="mt-2 text-[18px] font-medium">{data.context.activeBaseline ? `Baseline ${data.context.activeBaseline.baselineNumber} · ${data.context.activeBaseline.versionLabel}` : "Not established"}</p>
+              <p className="mt-1 text-[12px] text-secondary">{data.context.activeBaseline ? `${formatMoney(data.context.activeBaseline.totalMinorUnits, data.context.activeBaseline.currencyCode)} · ${formatDate(data.context.activeBaseline.establishedAt)}` : "No approved issue yet"}</p>
+            </div>
+            <div className="bg-white p-4">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Approvers</p>
+              <p className="mt-2 text-[18px] font-medium">{data.context.activeBaseline ? `${data.context.activeBaseline.approvals.approved}/${data.context.activeBaseline.approvals.required}` : "—"}</p>
+              <p className="mt-1 text-[12px] text-secondary">{data.context.activeBaseline?.approvals.names.join(", ") || "No recorded approvers"}</p>
             </div>
             <div className="bg-white p-4">
               <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Pending issue</p>
               <p className="mt-2 text-[18px] font-medium">{data.context.currentIssue?.versionLabel ?? "None"}</p>
               <p className="mt-1 text-[12px] capitalize text-secondary">{data.context.currentIssue?.status.replaceAll("_", " ") ?? "No proposal awaiting action"}</p>
+            </div>
+            <div className="bg-white p-4">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Unresolved items</p>
+              <p className="mt-2 text-[24px] font-medium tabular-nums">{data.context.currentIssue?.unresolvedItems ?? 0}</p>
+              <p className="mt-1 text-[12px] text-secondary">Explicitly carried in the current issue</p>
             </div>
             <div className="bg-white p-4">
               <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Open requests</p>
@@ -136,6 +159,11 @@ export function ProjectTimelineClient({ initialData, projectId, projectName }: P
               <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Waiting discussions</p>
               <p className="mt-2 text-[24px] font-medium tabular-nums">{data.context.counts.waitingDiscussions}</p>
               <p className="mt-1 text-[12px] text-secondary">Need an owner response</p>
+            </div>
+            <div className="bg-white p-4 sm:col-span-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-tertiary">Latest official event</p>
+              <p className="mt-2 text-[15px] font-medium">{data.context.latestOfficialEvent?.title ?? "No official events"}</p>
+              <p className="mt-1 text-[12px] text-secondary">{data.context.latestOfficialEvent ? formatDate(data.context.latestOfficialEvent.occurredAt) : "This scope has no commitment history yet"}</p>
             </div>
           </div>
         </section>
@@ -160,7 +188,7 @@ export function ProjectTimelineClient({ initialData, projectId, projectName }: P
           </div>
 
           {error ? <p className="border-b border-hairline px-4 py-3 text-[12px] text-danger" role="alert">{error}</p> : null}
-          {data.events.length === 0 ? <p className="px-4 py-10 text-center text-[13px] text-secondary">No commitment events match this portal and filter.</p> : (
+          {data.events.length === 0 ? <p className="px-4 py-10 text-center text-[13px] text-secondary">No commitment events match this scope and filter.</p> : (
             <ol className="divide-y divide-hairline">
               {data.events.map((event) => (
                 <li key={event.id} id={`event-${event.id}`} className="grid gap-3 px-4 py-4 sm:grid-cols-[8rem_minmax(0,1fr)_auto]">

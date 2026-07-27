@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type TimelineData = {
-  events: Array<{ actor: { name: string | null; type: string }; eventType: string; id: string; occurredAt: string; snapshot: Record<string, unknown>; sourceType: string; summary: string | null; target: { kind: "artifact"; publicArtifactId: string } | { kind: "issue"; issueNumber: number } | { kind: "request"; publicRequestId: string } | null; title: string }>;
+  events: Array<{ actor: { name: string | null; type: string }; eventType: string; id: string; occurredAt: string; snapshot: Record<string, unknown>; sourceType: string; summary: string | null; target: { kind: "artifact"; publicArtifactId: string } | { kind: "decision"; issueNumber: number | null; publicDecisionId: string } | { kind: "issue"; issueNumber: number } | { kind: "request"; publicRequestId: string } | { kind: "thread"; issueNumber: number | null; publicThreadId: string } | null; title: string }>;
   hasMore: boolean;
   nextCursor: string | null;
   summary: {
@@ -33,6 +33,8 @@ function targetLink(token: string, event: TimelineData["events"][number], fallba
   const base = `/share/${encodeURIComponent(token)}${issueNumber ? `?issue=${issueNumber}` : ""}`;
   if (event.target?.kind === "request") return { href: `${base}#request/${encodeURIComponent(event.target.publicRequestId)}`, label: "Open request" };
   if (event.target?.kind === "artifact") return { href: `${base}#artifact/${encodeURIComponent(event.target.publicArtifactId)}`, label: "Open issued artifact" };
+  if (event.target?.kind === "thread") return { href: `${base}#thread/${encodeURIComponent(event.target.publicThreadId)}`, label: "Open conversation" };
+  if (event.target?.kind === "decision") return { href: `${base}#decision/${encodeURIComponent(event.target.publicDecisionId)}`, label: "Open decision" };
   if (event.target?.kind === "issue") return { href: `${base}#overview`, label: "Open issued package" };
   return null;
 }

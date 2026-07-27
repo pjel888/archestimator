@@ -102,7 +102,7 @@ const PORTAL_VIEW_LABELS: Record<PortalView, string> = {
 };
 
 type PortalHashTarget =
-  | { id: string; kind: "artifact" | "request" | "section" }
+  | { id: string; kind: "artifact" | "decision" | "request" | "section" | "thread" }
   | { kind: "view"; view: PortalView }
   | null;
 
@@ -110,7 +110,7 @@ function portalHashTarget(hash: string): PortalHashTarget {
   const value = hash.replace(/^#/, "");
   if (!value) return null;
   const [prefix, ...rest] = value.split("/");
-  if ((prefix === "artifact" || prefix === "request") && rest.length > 0) {
+  if ((prefix === "artifact" || prefix === "decision" || prefix === "request" || prefix === "thread") && rest.length > 0) {
     try {
       const id = decodeURIComponent(rest.join("/")).trim();
       return id ? { id, kind: prefix } : null;
@@ -250,6 +250,8 @@ export function ClientPortalShell({ initialIssueNumber, token, recipientToken }:
   const [selectedViewOverride, setSelectedViewOverride] = useState<PortalView | null>(null);
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -295,17 +297,27 @@ export function ClientPortalShell({ initialIssueNumber, token, recipientToken }:
       const requestedView = requestedTarget?.kind === "view" ? requestedTarget.view : null;
       const requestedArtifactId = requestedTarget?.kind === "artifact" && nextManifest?.package?.artifacts.some((artifact) => artifact.id === requestedTarget.id) ? requestedTarget.id : null;
       const requestedRequestId = requestedTarget?.kind === "request" ? requestedTarget.id : null;
+      const requestedThreadId = requestedTarget?.kind === "thread" && nextSummary.capabilities.includes("thread:view") ? requestedTarget.id : null;
+      const requestedDecisionId = requestedTarget?.kind === "decision" && nextSummary.capabilities.includes("decision:view") ? requestedTarget.id : null;
       setSelectedArtifactId(requestedArtifactId);
       setSelectedRequestId(requestedRequestId);
+      setSelectedThreadId(requestedThreadId);
+      setSelectedDecisionId(requestedDecisionId);
       setSelectedViewOverride(requestedArtifactId
         ? "documents"
         : requestedRequestId
           ? "requests"
-          : requestedView === "timeline" || requestedView === "requests" || requestedView === "documents" || (!requestedTarget && nextSummary.capabilities.includes("timeline:view"))
-            ? requestedView ?? "timeline"
-            : null);
+          : requestedThreadId
+            ? "discussion"
+            : requestedDecisionId
+              ? "decision"
+              : requestedView === "timeline" || requestedView === "requests" || requestedView === "documents" || (!requestedTarget && nextSummary.capabilities.includes("timeline:view"))
+                ? requestedView ?? "timeline"
+                : null);
       setSelectedSectionId(
         nextManifest?.sections.find((item) => requestedTarget?.kind === "section" && item.id === requestedTarget.id)?.id
+        ?? nextManifest?.sections.find((item) => requestedThreadId && item.kind === "discussion")?.id
+        ?? nextManifest?.sections.find((item) => requestedDecisionId && item.kind === "decision")?.id
         ?? nextManifest?.sections.find((item) => requestedView && portalViewForSection(item.kind) === requestedView)?.id
         ?? nextManifest?.sections[0]?.id
         ?? null,
@@ -328,6 +340,26 @@ export function ClientPortalShell({ initialIssueNumber, token, recipientToken }:
       if (target?.kind === "request" && (summary?.capabilities.includes("request:view") || summary?.capabilities.includes("request:create"))) {
         setSelectedRequestId(target.id);
         setSelectedViewOverride("requests");
+        return;
+      }
+      if (target?.kind === "thread" && summary?.capabilities.includes("thread:view")) {
+        const discussionSection = manifest?.sections.find((item) => item.kind === "discussion");
+        if (discussionSection) {
+          setSelectedThreadId(target.id);
+          setSelectedDecisionId(null);
+          setSelectedViewOverride("discussion");
+          setSelectedSectionId(discussionSection.id);
+        }
+        return;
+      }
+      if (target?.kind === "decision" && summary?.capabilities.includes("decision:view")) {
+        const decisionSection = manifest?.sections.find((item) => item.kind === "decision");
+        if (decisionSection) {
+          setSelectedDecisionId(target.id);
+          setSelectedThreadId(null);
+          setSelectedViewOverride("decision");
+          setSelectedSectionId(decisionSection.id);
+        }
         return;
       }
       if (target?.kind === "view" && target.view === "timeline" && summary?.capabilities.includes("timeline:view")) {
@@ -394,12 +426,16 @@ export function ClientPortalShell({ initialIssueNumber, token, recipientToken }:
   const selectedArtifact = manifest?.package?.artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? manifest?.package?.artifacts[0] ?? null;
 
   function selectSection(sectionId: string) {
+    setSelectedThreadId(null);
+    setSelectedDecisionId(null);
     setSelectedViewOverride(null);
     setSelectedSectionId(sectionId);
     window.history.replaceState(null, "", `#${encodeURIComponent(sectionId)}`);
   }
 
   function selectView(view: PortalView) {
+    setSelectedThreadId(null);
+    setSelectedDecisionId(null);
     if (view === "timeline") {
       setSelectedViewOverride("timeline");
       window.history.replaceState(null, "", "#timeline");
@@ -532,11 +568,11 @@ export function ClientPortalShell({ initialIssueNumber, token, recipientToken }:
               : isFinancialSection(section.section.kind)
                 ? <ClientPortalFinancialSection kind={section.section.kind} payload={section.section.payload} />
                 : section.section.kind === "discussion"
-                  ? <ClientPortalDiscussionSection capabilities={summary.capabilities} composeTarget={discussionTarget} issueId={manifest.issue.id} projectName={summary.project.name} sectionId={section.section.id} token={token} />
+                  ? <ClientPortalDiscussionSection capabilities={summary.capabilities} composeTarget={discussionTarget} initialThreadId={selectedThreadId} issueId={manifest.issue.id} projectName={summary.project.name} sectionId={section.section.id} token={token} />
                   : section.section.kind === "activity"
                     ? <ClientPortalActivitySection payload={section.section.payload} sectionId={section.section.id} token={token} />
                     : section.section.kind === "decision"
-                      ? <ClientPortalDecisionSection capabilities={summary.capabilities} issue={manifest.issue} token={token} />
+                      ? <ClientPortalDecisionSection capabilities={summary.capabilities} initialDecisionId={selectedDecisionId} issue={manifest.issue} token={token} />
                       : <ClientPortalPayload payload={section.section.payload} /> : null}
             </>}
           </div>
