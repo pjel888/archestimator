@@ -60,41 +60,52 @@ function buildParticulars(row: EstimateRowItem) {
   return `${material} — ${description}`;
 }
 
-function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
-  const remarks: string[] = [];
+function addPricingRemarks(remarks: string[], row: EstimateRowItem, settings: ProposalExportSettings) {
+  if (!settings.showSupplierInRemarks) return;
   const supplier = normalizeWhitespace(row.supplier);
   const pricingSource = normalizeWhitespace(row.pricingSource);
   const pricingDate = normalizeWhitespace(row.pricingDate);
-  const notes = normalizeWhitespace(row.notes);
+  if (supplier) remarks.push(`Supplier: ${supplier}`);
+  if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
+  if (pricingDate) remarks.push(`As of ${pricingDate}`);
+}
+
+function quotationRemark(row: EstimateRowItem) {
   const quotationReference = normalizeWhitespace(row.quotationReference);
+  if (row.quotationRequirement !== "required" && !row.quotationStatus) return null;
+  const quotationStatus = row.quotationStatus
+    ? row.quotationStatus.replaceAll("_", " ")
+    : "not requested";
+  return `Quotation: ${quotationStatus}${quotationReference ? ` (${quotationReference})` : ""}`;
+}
+
+function vatRemark(row: EstimateRowItem) {
+  if (!row.commercialVatTreatment) return null;
+  const vatLabel = row.commercialVatTreatment === "inclusive"
+    ? "VAT INC"
+    : row.commercialVatTreatment === "exclusive"
+      ? "VAT EX"
+      : "VAT Exempt";
+  const vatRate = row.commercialVatTreatment === "exempt"
+    ? ""
+    : ` ${(row.commercialVatRateBps ?? 1200) / 100}%`;
+  return `${vatLabel}${vatRate}`;
+}
+
+function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
+  const remarks: string[] = [];
+  const notes = normalizeWhitespace(row.notes);
 
   // `showSupplierInRemarks` gates internal pricing intelligence (supplier and pricing
   // source/date) together — applyAudiencePolicy forces it off for a client
   // audience so none of it leaks into a client-facing bid (F-19). Free-form notes are
   // client-relevant and always kept.
-  if (settings.showSupplierInRemarks) {
-    if (supplier) remarks.push(`Supplier: ${supplier}`);
-    if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
-    if (pricingDate) remarks.push(`As of ${pricingDate}`);
-  }
+  addPricingRemarks(remarks, row, settings);
   if (notes) remarks.push(notes);
-  if (row.quotationRequirement === "required" || row.quotationStatus) {
-    const quotationStatus = row.quotationStatus
-      ? row.quotationStatus.replaceAll("_", " ")
-      : "not requested";
-    remarks.push(`Quotation: ${quotationStatus}${quotationReference ? ` (${quotationReference})` : ""}`);
-  }
-  if (row.commercialVatTreatment) {
-    const vatLabel = row.commercialVatTreatment === "inclusive"
-      ? "VAT INC"
-      : row.commercialVatTreatment === "exclusive"
-        ? "VAT EX"
-        : "VAT Exempt";
-    const vatRate = row.commercialVatTreatment === "exempt"
-      ? ""
-      : ` ${(row.commercialVatRateBps ?? 1200) / 100}%`;
-    remarks.push(`${vatLabel}${vatRate}`);
-  }
+  const quotation = quotationRemark(row);
+  if (quotation) remarks.push(quotation);
+  const vat = vatRemark(row);
+  if (vat) remarks.push(vat);
 
   return remarks.join(" | ");
 }
@@ -204,18 +215,8 @@ type ProjectedAccessoryEdge = {
   quantityRule: Record<string, unknown>;
 };
 
-function resolveEffectiveProposalRows(
-  flatRows: ProposalFlatSourceRow<EstimateRowItem>[],
-  settings: ProposalExportSettings,
-  currencyCode: string,
-) {
-  const flatRowById = new Map(flatRows.map((flatRow) => [flatRow.sourceRowId, flatRow]));
-  const baseRows = new Map(flatRows.map((flatRow) => [
-    flatRow.sourceRowId,
-    normalizeSourceRow(flatRow, settings, currencyCode),
-  ]));
+function indexAccessoryEdges(flatRows: ProposalFlatSourceRow<EstimateRowItem>[]) {
   const accessoryByChild = new Map<string, ProjectedAccessoryEdge>();
-
   for (const flatRow of flatRows) {
     for (const child of flatRow.sourceRow.accessoryChildren ?? []) {
       accessoryByChild.set(child.childRowItemId, {
@@ -236,6 +237,32 @@ function resolveEffectiveProposalRows(
       quantityRule: parent.quantityRule,
     });
   }
+  return accessoryByChild;
+}
+
+function collectContributionOptions(flatRows: ProposalFlatSourceRow<EstimateRowItem>[]) {
+  const alternativeGroups = new Map<string, NonNullable<EstimateRowItem["alternativeGroup"]>>();
+  const optionalItems: Array<{ rowId: string; included: boolean }> = [];
+  for (const flatRow of flatRows) {
+    const alternative = flatRow.sourceRow.alternativeGroup;
+    if (alternative) alternativeGroups.set(alternative.id, alternative);
+    const optional = flatRow.sourceRow.optionalContribution;
+    if (optional) optionalItems.push({ rowId: flatRow.sourceRowId, included: optional.isIncluded });
+  }
+  return { alternativeGroups, optionalItems };
+}
+
+function resolveEffectiveProposalRows(
+  flatRows: ProposalFlatSourceRow<EstimateRowItem>[],
+  settings: ProposalExportSettings,
+  currencyCode: string,
+) {
+  const flatRowById = new Map(flatRows.map((flatRow) => [flatRow.sourceRowId, flatRow]));
+  const baseRows = new Map(flatRows.map((flatRow) => [
+    flatRow.sourceRowId,
+    normalizeSourceRow(flatRow, settings, currencyCode),
+  ]));
+  const accessoryByChild = indexAccessoryEdges(flatRows);
 
   const effectiveRows = new Map<string, ProposalNormalizedSourceRow>();
   const effectiveAccessoryInclusion = new Map<string, boolean>();
@@ -273,14 +300,7 @@ function resolveEffectiveProposalRows(
 
   for (const flatRow of flatRows) resolveAccessoryRow(flatRow.sourceRowId);
 
-  const alternativeGroups = new Map<string, NonNullable<EstimateRowItem["alternativeGroup"]>>();
-  const optionalItems = [];
-  for (const flatRow of flatRows) {
-    const alternative = flatRow.sourceRow.alternativeGroup;
-    if (alternative) alternativeGroups.set(alternative.id, alternative);
-    const optional = flatRow.sourceRow.optionalContribution;
-    if (optional) optionalItems.push({ rowId: flatRow.sourceRowId, included: optional.isIncluded });
-  }
+  const { alternativeGroups, optionalItems } = collectContributionOptions(flatRows);
 
   const contribution = resolveEffectiveContribution({
     rows: flatRows.map((flatRow) => {

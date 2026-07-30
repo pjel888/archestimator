@@ -113,7 +113,6 @@ import {
   type ArchiveCatalogueEntityCommand,
   type CatalogueGovernanceCommand,
   type CreateCatalogueEntityCommand,
-  type MergeCatalogueEntitiesCommand,
   type RenameCatalogueEntityCommand,
   type RestoreCatalogueEntityCommand,
 } from "./catalogue-governance";
@@ -3424,10 +3423,4 @@ export async function restoreComponentCatalogueEntity(
   input: Omit<RestoreCatalogueEntityCommand, "kind">,
 ) {
   return executeComponentCatalogueGovernanceAction({ ...input, kind: "restore" });
-}
-
-export async function mergeComponentCatalogueEntities(
-  input: Omit<MergeCatalogueEntitiesCommand, "kind">,
-) {
-  return executeComponentCatalogueGovernanceAction({ ...input, kind: "merge" });
 }

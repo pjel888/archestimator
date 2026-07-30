@@ -9,7 +9,7 @@ import type {
   MaterialImageUploadResult,
 } from "./material-image-contract";
 
-export type MaterialImageClientPhase =
+type MaterialImageClientPhase =
   | "idle"
   | "selection_error"
   | "selected"
@@ -23,7 +23,7 @@ export type MaterialImageClientPhase =
   | "removing"
   | "remove_error";
 
-export type MaterialImageClientIssue = {
+type MaterialImageClientIssue = {
   phase: "selection" | "upload" | "save" | "remove";
   message: string;
   retryable: boolean;

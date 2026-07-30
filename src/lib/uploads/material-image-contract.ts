@@ -4,7 +4,7 @@ export const MATERIAL_IMAGE_MAX_EDGE = 1600;
 export const MATERIAL_IMAGE_THUMBNAIL_EDGE = 512;
 export const MATERIAL_IMAGE_CONTENT_TYPE = "image/webp" as const;
 
-export const MATERIAL_IMAGE_MIME_TYPES = [
+const MATERIAL_IMAGE_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
@@ -14,7 +14,7 @@ export const MATERIAL_IMAGE_MIME_TYPES = [
 export type MaterialImageMimeType = (typeof MATERIAL_IMAGE_MIME_TYPES)[number];
 export type MaterialImageSurface = "project-image" | "component-image";
 export type MaterialImageBucket = "project-images" | "component-images";
-export type MaterialImageScanStatus = "not_required" | "pending";
+type MaterialImageScanStatus = "not_required" | "pending";
 
 export type MaterialImageUploadErrorCode =
   | "empty_file"
@@ -34,13 +34,13 @@ export type MaterialImageUploadErrorCode =
   | "recording_failed"
   | "invalid_response";
 
-export type MaterialImageUploadError = {
+type MaterialImageUploadError = {
   code: MaterialImageUploadErrorCode;
   message: string;
   retryable: boolean;
 };
 
-export type MaterialImageUploadErrorEnvelope = {
+type MaterialImageUploadErrorEnvelope = {
   error: MaterialImageUploadError;
 };
 
@@ -244,7 +244,7 @@ export function isEstimateRowProjectImageStoragePath(
     && Boolean(segments[6]);
 }
 
-export function isMaterialImageServingUrl(value: unknown): value is string {
+function isMaterialImageServingUrl(value: unknown): value is string {
   if (typeof value !== "string" || value.length === 0) return false;
   if (value.startsWith("/") && !value.startsWith("//")) return true;
   try {
@@ -255,7 +255,7 @@ export function isMaterialImageServingUrl(value: unknown): value is string {
   }
 }
 
-export function isPrivateBrokeredMaterialImageUrl(value: unknown): value is string {
+function isPrivateBrokeredMaterialImageUrl(value: unknown): value is string {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 }
 
@@ -407,8 +407,29 @@ export function toOpaqueMaterialImageUploadResult(
   serving: { url: string; thumbnailUrl: string },
 ): OpaqueMaterialImageUploadResult {
   const result = toMaterialImageUploadResult(stored, serving);
-  const { bucket: _bucket, path: _path, thumbnailPath: _thumbnailPath, ...opaque } = result;
-  return opaque;
+  return {
+    ...opaqueMaterialImageAssetFields(result),
+    originalBytes: result.originalBytes,
+    originalContentType: result.originalContentType,
+    checksumSha256: result.checksumSha256,
+  };
+}
+
+function opaqueMaterialImageAssetFields(result: OpaqueMaterialImageUploadResult) {
+  return {
+    assetId: result.assetId,
+    uploadSessionId: result.uploadSessionId,
+    url: result.url,
+    thumbnailUrl: result.thumbnailUrl,
+    fileName: result.fileName,
+    contentType: result.contentType,
+    sizeBytes: result.sizeBytes,
+    width: result.width,
+    height: result.height,
+    thumbnailWidth: result.thumbnailWidth,
+    thumbnailHeight: result.thumbnailHeight,
+    scanStatus: result.scanStatus,
+  };
 }
 
 export function toOpaqueMaterialImageAssetDescriptor(
@@ -417,17 +438,6 @@ export function toOpaqueMaterialImageAssetDescriptor(
   return {
     kind: "upload-asset",
     schemaVersion: 1,
-    assetId: result.assetId,
-    uploadSessionId: result.uploadSessionId,
-    url: result.url,
-    thumbnailUrl: result.thumbnailUrl,
-    fileName: result.fileName,
-    contentType: result.contentType,
-    sizeBytes: result.sizeBytes,
-    scanStatus: result.scanStatus,
-    width: result.width,
-    height: result.height,
-    thumbnailWidth: result.thumbnailWidth,
-    thumbnailHeight: result.thumbnailHeight,
+    ...opaqueMaterialImageAssetFields(result),
   };
 }

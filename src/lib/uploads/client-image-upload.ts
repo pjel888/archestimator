@@ -51,7 +51,7 @@ export function admitMaterialImageFile(file: File): MaterialImageFileAdmission {
   return { ok: true, file };
 }
 
-export function createMaterialImageUploadFormData(
+function createMaterialImageUploadFormData(
   file: File,
   fields: MaterialImageUploadFields = {},
 ) {

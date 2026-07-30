@@ -27,7 +27,7 @@ import type {
   ReservedUploadFailureStage,
 } from "./upload-records";
 
-export type MaterialImageReserveUpload = (
+type MaterialImageReserveUpload = (
   input: RecordUploadAssetInput,
 ) => Promise<ReservedUploadAsset>;
 

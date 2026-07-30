@@ -1,7 +1,7 @@
-export const CATALOGUE_ENTITY_KINDS = ["brand", "supplier"] as const;
+const CATALOGUE_ENTITY_KINDS = ["brand", "supplier"] as const;
 export type CatalogueEntityKind = (typeof CATALOGUE_ENTITY_KINDS)[number];
 
-export const CATALOGUE_ENTITY_LIFECYCLE_STATES = ["active", "archived", "merged"] as const;
+const CATALOGUE_ENTITY_LIFECYCLE_STATES = ["active", "archived", "merged"] as const;
 export type CatalogueEntityLifecycleState = (typeof CATALOGUE_ENTITY_LIFECYCLE_STATES)[number];
 
 export type CatalogueEntity = {
@@ -67,7 +67,7 @@ export type RestoreCatalogueEntityCommand = CatalogueGovernanceCommandBase & {
   expectedRevision: number;
 };
 
-export type MergeCatalogueEntitiesCommand = CatalogueGovernanceCommandBase & {
+type MergeCatalogueEntitiesCommand = CatalogueGovernanceCommandBase & {
   kind: "merge";
   survivorId: string;
   duplicateId: string;
