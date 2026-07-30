@@ -5,7 +5,7 @@
   "measurement": {
     "scope": "legacy repository debt measured before static no-new-debt enforcement",
     "command": "knip --reporter json --include files,dependencies,unlisted,unresolved,exports,nsExports,types,nsTypes,enumMembers,namespaceMembers,duplicates,cycles",
-    "issue_count": 825
+    "issue_count": 824
   },
   "measured_legacy_issues": [
     {
@@ -4037,11 +4037,6 @@
       "type": "types",
       "file": "src/lib/uploads/server-image-processing.ts",
       "symbol": "ProcessedSupportImage"
-    },
-    {
-      "type": "types",
-      "file": "src/lib/uploads/server-image-processing.ts",
-      "symbol": "ProcessedUploadImage"
     },
     {
       "type": "types",

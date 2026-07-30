@@ -13,6 +13,7 @@ export interface StaticThresholds {
 export interface ChangedSource {
   path: string;
   text: string;
+  previous_text?: string;
   added_lines: Set<number>;
   critical: boolean;
 }
@@ -189,6 +190,32 @@ function cyclomaticComplexity(node: ts.FunctionLikeDeclaration): number {
   return complexity;
 }
 
+function functionComplexitiesByIdentity(
+  path: string,
+  text: string,
+): Map<string, number> {
+  const sourceFile = ts.createSourceFile(
+    path,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind(path),
+  );
+  const occurrences = new Map<string, number>();
+  const complexities = new Map<string, number>();
+  const visit = (node: ts.Node): void => {
+    if (isFunctionLike(node) && node.body) {
+      const name = functionName(node);
+      const occurrence = occurrences.get(name) ?? 0;
+      occurrences.set(name, occurrence + 1);
+      complexities.set(`${name}:${occurrence}`, cyclomaticComplexity(node));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return complexities;
+}
+
 export function analyzeChangedFunctions(
   sources: ChangedSource[],
   thresholds: StaticThresholds,
@@ -226,6 +253,10 @@ export function analyzeChangedFunctions(
       true,
       scriptKind(source.path),
     );
+    const previousComplexities = source.previous_text
+      ? functionComplexitiesByIdentity(source.path, source.previous_text)
+      : new Map<string, number>();
+    const occurrences = new Map<string, number>();
     const moduleLines = sourceFile.getLineAndCharacterOfPosition(sourceFile.end).line + 1;
     if (moduleLines > thresholds.oversized_module_lines) {
       oversizedModules.push({ path: source.path, lines: moduleLines });
@@ -234,13 +265,17 @@ export function analyzeChangedFunctions(
       if (isFunctionLike(node) && node.body) {
         const startLine = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
         const endLine = sourceFile.getLineAndCharacterOfPosition(node.end).line + 1;
+        const name = functionName(node);
+        const occurrence = occurrences.get(name) ?? 0;
+        occurrences.set(name, occurrence + 1);
         const changed = [...source.added_lines].some(
           (line) => line >= startLine && line <= endLine,
         );
         if (changed) {
+          const previousComplexity = previousComplexities.get(`${name}:${occurrence}`);
           const measured = {
             path: source.path,
-            name: functionName(node),
+            name,
             start_line: startLine,
             end_line: endLine,
             complexity: cyclomaticComplexity(node),
@@ -251,6 +286,7 @@ export function analyzeChangedFunctions(
           if (
             source.critical &&
             measured.complexity > thresholds.critical_changed_function_complexity
+            && (previousComplexity === undefined || measured.complexity > previousComplexity)
           ) {
             findings.push({
               code: "CRITICAL_CHANGED_FUNCTION_COMPLEXITY",
@@ -299,8 +335,9 @@ export function detectAddedDuplicateBusinessBlocks(
   thresholds: StaticThresholds,
 ): QualityFinding[] {
   const occurrences = indexBusinessBlocks(allBusinessSources, thresholds);
+  const emitted = new Set<string>();
   return changedSources.flatMap((source) =>
-    duplicateFindingsForSource(source, occurrences, thresholds),
+    duplicateFindingsForSource(source, occurrences, thresholds, emitted),
   );
 }
 
@@ -327,13 +364,44 @@ function indexBusinessBlocks(
   return occurrences;
 }
 
+function matchingDuplicateLocation(
+  occurrences: Map<string, Array<{ path: string; start_line: number }>>,
+  normalized: string,
+  sourcePath: string,
+  sourceStart: number,
+) {
+  return (occurrences.get(normalized) ?? []).find(
+    (location) => location.path !== sourcePath || location.start_line !== sourceStart,
+  );
+}
+
+function isDuplicateContinuation(
+  previousMatch: { sourceStart: number; otherPath: string; otherStart: number } | undefined,
+  sourceStart: number,
+  other: { path: string; start_line: number },
+) {
+  return previousMatch !== undefined
+    && previousMatch.sourceStart + 1 === sourceStart
+    && previousMatch.otherPath === other.path
+    && previousMatch.otherStart + 1 === other.start_line;
+}
+
+function duplicateIdentity(
+  sourcePath: string,
+  sourceStart: number,
+  other: { path: string; start_line: number },
+) {
+  return [`${sourcePath}:${sourceStart}`, `${other.path}:${other.start_line}`].sort().join(":");
+}
+
 function duplicateFindingsForSource(
   source: ChangedSource,
   occurrences: Map<string, Array<{ path: string; start_line: number }>>,
   thresholds: StaticThresholds,
+  emitted: Set<string>,
 ): QualityFinding[] {
   const findings: QualityFinding[] = [];
-  const emitted = new Set<string>();
+  let previousMatch: { sourceStart: number; otherPath: string; otherStart: number } | undefined;
   const lines = normalizeBusinessLines(source.text);
   for (
     let index = 0;
@@ -344,17 +412,19 @@ function duplicateFindingsForSource(
     if (!window.every((line) => source.added_lines.has(line.line))) continue;
     const normalized = window.map((line) => line.text).join("\n");
     if (normalized.length < thresholds.duplicate_block_minimum_characters) continue;
-    const other = (occurrences.get(normalized) ?? []).find(
-      (location) => location.path !== source.path || location.start_line !== window[0].line,
-    );
+    const sourceStart = window[0].line;
+    const other = matchingDuplicateLocation(occurrences, normalized, source.path, sourceStart);
     if (!other) continue;
-    const identity = [source.path, window[0].line, other.path, other.start_line].join(":");
+    const isContinuation = isDuplicateContinuation(previousMatch, sourceStart, other);
+    previousMatch = { sourceStart, otherPath: other.path, otherStart: other.start_line };
+    if (isContinuation) continue;
+    const identity = duplicateIdentity(source.path, sourceStart, other);
     if (emitted.has(identity)) continue;
     emitted.add(identity);
     findings.push({
       code: "NEW_DUPLICATED_BUSINESS_BLOCK",
       message:
-        `${source.path}:${window[0].line} duplicates ${other.path}:${other.start_line}`,
+        `${source.path}:${sourceStart} duplicates ${other.path}:${other.start_line}`,
       path: source.path,
       detail: {
         lines: thresholds.duplicate_block_minimum_lines,

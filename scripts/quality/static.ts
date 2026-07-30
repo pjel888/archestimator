@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import {
   finishCli,
   flagString,
@@ -63,6 +63,18 @@ try {
 } catch (error) {
   findings.push({ code: "STATIC_COMPARISON_BASE", message: String(error) });
 }
+
+interface EslintMessage {
+  line?: number;
+  message: string;
+  ruleId?: string | null;
+  severity: number;
+}
+
+interface EslintReport {
+  filePath: string;
+  messages: EslintMessage[];
+}
 const thresholds = await readJson<StaticThresholdFile>(
   resolve(root, flagString(flags, "thresholds", "quality/thresholds.json")!),
 );
@@ -77,7 +89,7 @@ findings.push(...validateKnipBaseline(baseline));
 const riskMap = await readJson<RiskMap>(resolve(root, "quality/risk-map.json"));
 const plannedCommands = [
   "bun run type-check",
-  "eslint --max-warnings=0 <changed executable scope>",
+  "eslint --format json <changed executable scope>",
   "knip --reporter json <static issue types>",
 ];
 
@@ -91,7 +103,7 @@ function runCommand(
     cwd: root,
     encoding: "utf8",
     timeout: options.timeout ?? 15 * 60_000,
-    maxBuffer: 30 * 1024 * 1024,
+    maxBuffer: 128 * 1024 * 1024,
     env: { ...process.env, ...options.environment },
   });
   commandResults.push({
@@ -146,8 +158,14 @@ async function deriveChangedScope(baseSha: string): Promise<{
   return { files: toChangedFiles(changed, untracked), mergeBase };
 }
 
+function readSourceAtRevision(revision: string, path: string): string | undefined {
+  const run = runCommand("git", ["show", `${revision}:${path}`]);
+  return run.status === 0 ? run.stdout ?? "" : undefined;
+}
+
 async function readChangedSources(
   changedFiles: ReturnType<typeof toChangedFiles>,
+  baseRevision?: string,
 ): Promise<ChangedSource[]> {
   const sources: ChangedSource[] = [];
   for (const file of changedFiles.filter((candidate) => isExecutablePath(candidate.path))) {
@@ -155,6 +173,9 @@ async function readChangedSources(
       sources.push({
         path: file.path,
         text: await readFile(resolve(root, file.path), "utf8"),
+        previous_text: baseRevision && !file.untracked
+          ? readSourceAtRevision(baseRevision, file.path)
+          : undefined,
         added_lines: file.added_lines,
         critical:
           classifyFiles([file.path], riskMap).classification.profile !==
@@ -214,10 +235,43 @@ function evaluateCommand(
   }
 }
 
+function collectNewEslintWarnings(
+  run: ReturnType<typeof spawnSync>,
+  changedFiles: ReturnType<typeof toChangedFiles>,
+): QualityFinding[] {
+  let reports: EslintReport[];
+  try {
+    reports = JSON.parse(run.stdout ?? "") as EslintReport[];
+  } catch (error) {
+    return [{
+      code: "ESLINT_COLLECTION_FAILED",
+      message: `Cannot parse changed-scope ESLint report: ${String(error)}`,
+    }];
+  }
+
+  const changedLines = new Map(changedFiles.map((file) => [file.path, file.added_lines]));
+  const warnings = reports.flatMap((report) => {
+    const path = relative(root, report.filePath).replace(/\\/gu, "/");
+    const addedLines = changedLines.get(path);
+    if (!addedLines) return [];
+    return report.messages
+      .filter((message) => message.severity === 1 && addedLines.has(message.line ?? 0))
+      .map((message) => ({ path, message }));
+  });
+
+  if (warnings.length <= staticThresholds.eslint_max_warnings) return [];
+  return warnings.map(({ path, message }) => ({
+    code: "NEW_ESLINT_WARNING",
+    message: `${path}:${message.line ?? 0} ${message.message}`,
+    path,
+    detail: { rule_id: message.ruleId ?? null },
+  }));
+}
+
 const changedScope = comparisonBase
   ? await deriveChangedScope(comparisonBase.resolved_sha)
   : { files: [], mergeBase: undefined };
-const changedSources = await readChangedSources(changedScope.files);
+const changedSources = await readChangedSources(changedScope.files, changedScope.mergeBase);
 const executablePaths = changedScope.files
   .map((file) => file.path)
   .filter(isExecutablePath);
@@ -225,14 +279,9 @@ const executablePaths = changedScope.files
 if (!flags.has("plan")) {
   evaluateCommand(runCommand("bun", ["run", "type-check"]), "bun run type-check");
   if (executablePaths.length > 0) {
-    evaluateCommand(
-      runCommand("bunx", [
-        "eslint",
-        `--max-warnings=${staticThresholds.eslint_max_warnings}`,
-        ...executablePaths,
-      ]),
-      "changed-scope ESLint",
-    );
+    const eslintRun = runCommand("bunx", ["eslint", "--format", "json", ...executablePaths]);
+    evaluateCommand(eslintRun, "changed-scope ESLint");
+    findings.push(...collectNewEslintWarnings(eslintRun, changedScope.files));
   } else {
     findings.push({
       code: "STATIC_EXECUTABLE_SCOPE_EMPTY",
