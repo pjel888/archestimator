@@ -1,7 +1,5 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
 import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import { assertD1MutationStatementLimit } from "@/lib/estimates/mutation-receipts";
@@ -13,6 +11,7 @@ import {
   type EstimateD1Actor,
   type EstimateMutationIntentContext,
 } from "@/lib/estimates/d1-intents/intent-context";
+import { buildGuardedReceiptStatement } from "@/lib/estimates/d1-intents/guarded-receipt";
 
 import type { QuotationFacts, VatTreatment } from "./contracts";
 import {
@@ -24,13 +23,7 @@ import {
 
 const MAX_BATCH_IDENTIFIERS = 500;
 
-export type PersistedVatTermsPair = {
-  treatment: VatTreatment;
-  rateBps: number;
-  revision: number;
-};
-
-export type PersistedRowCommercialTerms = {
+type PersistedRowCommercialTerms = {
   rowId: string;
   estimateId: string;
   projectId: string;
@@ -49,12 +42,6 @@ export type PersistedRowCommercialTerms = {
   termsRevision: number;
 };
 
-export type CommercialTermsBatch = {
-  projectDefault: PersistedVatTermsPair | null;
-  estimateDefaults: Map<string, PersistedVatTermsPair>;
-  rowTerms: Map<string, PersistedRowCommercialTerms>;
-};
-
 export type EstimateQuotationOption = {
   versionId: string;
   title: string;
@@ -62,7 +49,7 @@ export type EstimateQuotationOption = {
   fileName: string;
 };
 
-export type CommercialRepositoryErrorCode =
+type CommercialRepositoryErrorCode =
   | "invalid_batch"
   | "not_authorized"
   | "quotation_not_linkable"
@@ -77,13 +64,6 @@ export type CommercialMutationReceipt = {
 export type CommercialRepositoryResult<T> =
   | { ok: true; value: T }
   | { ok: false; code: CommercialRepositoryErrorCode };
-
-type DefaultRow = {
-  estimate_id?: string;
-  treatment: VatTreatment;
-  rate_bps: number;
-  revision: number;
-};
 
 type RowTermsRow = {
   row_id: string;
@@ -182,6 +162,17 @@ function readCommercialReceipt(value: unknown): CommercialMutationReceipt {
   return receipt as CommercialMutationReceipt;
 }
 
+function isValidCommercialOverride(
+  treatment: "inclusive" | "exclusive" | "exempt" | null,
+  rateBps: number | null,
+) {
+  const hasTreatment = treatment !== null;
+  const hasRate = rateBps !== null;
+  return hasTreatment === hasRate
+    && (!hasRate || (Number.isInteger(rateBps) && rateBps >= 0 && rateBps <= 10_000))
+    && (treatment !== "exempt" || rateBps === 0);
+}
+
 function buildGuardedCommercialReceiptStatement(input: {
   context: EstimateMutationIntentContext;
   rowId: string;
@@ -191,29 +182,19 @@ function buildGuardedCommercialReceiptStatement(input: {
   result: CommercialMutationReceipt;
   timestamp: string;
 }) {
-  return {
-    sql: `
-      INSERT INTO estimate_mutation_receipts (
-        id, workspace_id, command_kind, intent_id, actor_user_id,
-        resource_type, resource_id, request_fingerprint, status,
-        result_json, created_at, updated_at
-      )
-      VALUES (
-        ?, ?, ?, ?,
-        (SELECT ? WHERE EXISTS (
+  return buildGuardedReceiptStatement({
+    context: input.context,
+    resourceType: "estimate_row_commercial_terms",
+    resourceId: input.rowId,
+    result: input.result,
+    timestamp: input.timestamp,
+    guardSql: `
           SELECT 1 FROM estimate_row_items AS row
           JOIN estimate_row_commercial_terms AS terms ON terms.row_id = row.id
           WHERE row.id = ? AND row.estimate_id = ? AND row.row_revision = ? AND terms.terms_revision = ?
-        )),
-        'estimate_row_commercial_terms', ?, ?, 'committed', ?, ?, ?
-      )
     `,
-    values: [
-      randomUUID(), input.context.workspaceId, input.context.commandKind, input.context.intentId,
-      input.context.actorUserId, input.rowId, input.estimateId, input.rowRevision, input.termsRevision,
-      input.rowId, input.context.requestFingerprint, JSON.stringify(input.result), input.timestamp, input.timestamp,
-    ],
-  };
+    guardValues: [input.context.actorUserId, input.rowId, input.estimateId, input.rowRevision, input.termsRevision],
+  });
 }
 
 async function commitCommercialMutation(input: {
@@ -287,26 +268,26 @@ async function commitCommercialMutation(input: {
     }),
   ];
   assertD1MutationStatementLimit(statements.length);
-  try {
-    await runRequiredD1Batch(
-      input.database,
-      statements.map((statement) => prepareStatement(input.database, statement)),
-      "Commercial terms could not be saved.",
-    );
-  } catch (error) {
+  const recoverConcurrentMutation = async (): Promise<CommercialRepositoryResult<CommercialMutationReceipt> | undefined> => {
     const replay = await readConcurrentEstimateMutationReceipt<CommercialMutationReceipt>(input.database, prepared.context);
     if (replay) return { ok: true, value: readCommercialReceipt(replay) };
     const latest = await readCommercialMutationState(input);
     if (!latest || latest.row_revision !== input.expectedRowRevision || latest.terms_revision !== input.expectedTermsRevision) {
       return { ok: false, code: "commercial_terms_conflict" };
     }
+  };
+  try {
+    await runRequiredD1Batch(
+      input.database,
+      statements.map((statement) => prepareStatement(input.database, statement)),
+      "Commercial terms could not be saved.",
+  );
+  } catch (error) {
+    const recovered = await recoverConcurrentMutation();
+    if (recovered) return recovered;
     throw error;
   }
   return { ok: true, value: result };
-}
-
-function vatPair(row: DefaultRow): PersistedVatTermsPair {
-  return { treatment: row.treatment, rateBps: Number(row.rate_bps), revision: Number(row.revision) };
 }
 
 function unavailableQuotationAttachment(): QuotationAttachmentProjection {
@@ -451,91 +432,6 @@ export async function listAvailableEstimateQuotationOptions(input: {
   };
 }
 
-/** Loads defaults, rows, and live quotation truth without per-row queries. */
-export async function readCommercialTermsBatch(input: {
-  database: D1DatabaseLike;
-  workspaceId: string;
-  projectId: string;
-  estimateIds: readonly string[];
-  now: string;
-}): Promise<CommercialRepositoryResult<CommercialTermsBatch>> {
-  const estimateIds = uniqueIdentifiers(input.estimateIds);
-  if (!estimateIds) return { ok: false, code: "invalid_batch" };
-  const estimateSql = placeholders(estimateIds);
-
-  const [projectRows, estimateRows, rowRows] = await Promise.all([
-    all<DefaultRow>(input.database, `
-      SELECT treatment, rate_bps, revision
-      FROM project_commercial_defaults
-      WHERE workspace_id = ? AND project_id = ?
-      LIMIT 1
-    `, [input.workspaceId, input.projectId]),
-    all<DefaultRow>(input.database, `
-      SELECT estimate_id, treatment, rate_bps, revision
-      FROM estimate_commercial_defaults
-      WHERE workspace_id = ? AND project_id = ? AND estimate_id IN (${estimateSql})
-        AND treatment IS NOT NULL AND rate_bps IS NOT NULL
-    `, [input.workspaceId, input.projectId, ...estimateIds]),
-    all<RowTermsRow>(input.database, `
-      SELECT row_id, workspace_id, project_id, estimate_id,
-             selected_option_id, selected_option_treatment, selected_option_rate_bps,
-             selected_option_terms_revision, override_treatment, override_rate_bps,
-             quotation_requirement, quotation_status, quotation_reference,
-             quotation_artifact_version_id, terms_revision
-      FROM estimate_row_commercial_terms
-      WHERE workspace_id = ? AND project_id = ? AND estimate_id IN (${estimateSql})
-      ORDER BY estimate_id, row_id
-    `, [input.workspaceId, input.projectId, ...estimateIds]),
-  ]);
-
-  const linkedVersionIds = rowRows
-    .map((row) => row.quotation_artifact_version_id)
-    .filter((value): value is string => Boolean(value));
-  const quotationPolicies = linkedVersionIds.length
-    ? await readQuotationAttachmentPolicyBatch({ ...input, versionIds: linkedVersionIds })
-    : { ok: true as const, value: new Map<string, QuotationAttachmentProjection>() };
-  if (!quotationPolicies.ok) return quotationPolicies;
-
-  const estimateDefaults = new Map<string, PersistedVatTermsPair>();
-  for (const row of estimateRows) {
-    if (row.estimate_id) estimateDefaults.set(row.estimate_id, vatPair(row));
-  }
-
-  const rowTerms = new Map<string, PersistedRowCommercialTerms>();
-  for (const row of rowRows) {
-    const linkedVersionId = row.quotation_artifact_version_id;
-    rowTerms.set(row.row_id, {
-      rowId: row.row_id,
-      estimateId: row.estimate_id,
-      projectId: row.project_id,
-      workspaceId: row.workspace_id,
-      selectedOptionId: row.selected_option_id,
-      selectedOptionTreatment: row.selected_option_treatment,
-      selectedOptionRateBps: row.selected_option_rate_bps === null ? null : Number(row.selected_option_rate_bps),
-      selectedOptionTermsRevision: row.selected_option_terms_revision === null ? null : Number(row.selected_option_terms_revision),
-      overrideTreatment: row.override_treatment,
-      overrideRateBps: row.override_rate_bps === null ? null : Number(row.override_rate_bps),
-      quotationRequirement: row.quotation_requirement,
-      quotationStatus: row.quotation_status,
-      quotationReference: row.quotation_reference,
-      quotationArtifactVersionId: linkedVersionId,
-      quotationAttachment: linkedVersionId
-        ? quotationPolicies.value.get(linkedVersionId) ?? unavailableQuotationAttachment()
-        : { attachmentState: "none", hasAttachment: false, downloadableVersionId: null },
-      termsRevision: Number(row.terms_revision),
-    });
-  }
-
-  return {
-    ok: true,
-    value: {
-      projectDefault: projectRows[0] ? vatPair(projectRows[0]) : null,
-      estimateDefaults,
-      rowTerms,
-    },
-  };
-}
-
 async function canEditCommercialTerms(input: {
   database: D1DatabaseLike;
   workspaceId: string;
@@ -647,13 +543,7 @@ export async function updateRowCommercialTerms(input: {
   quotationReference: string | null;
   now: string;
 }): Promise<CommercialRepositoryResult<CommercialMutationReceipt & QuotationFacts>> {
-  const hasTreatment = input.overrideTreatment !== null;
-  const hasRate = input.overrideRateBps !== null;
-  if (
-    hasTreatment !== hasRate ||
-    (hasRate && (!Number.isInteger(input.overrideRateBps) || input.overrideRateBps! < 0 || input.overrideRateBps! > 10_000)) ||
-    (input.overrideTreatment === "exempt" && input.overrideRateBps !== 0)
-  ) {
+  if (!isValidCommercialOverride(input.overrideTreatment, input.overrideRateBps)) {
     return { ok: false, code: "invalid_batch" };
   }
   const quotationFacts = normalizeQuotationFacts(input);

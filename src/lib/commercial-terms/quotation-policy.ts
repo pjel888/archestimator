@@ -4,7 +4,7 @@ import {
   type QuotationFacts,
 } from "./contracts";
 
-export type QuotationAttachmentState = "none" | "available" | "unavailable";
+type QuotationAttachmentState = "none" | "available" | "unavailable";
 
 export type QuotationAttachmentCandidate = {
   linkedVersionId: string | null;

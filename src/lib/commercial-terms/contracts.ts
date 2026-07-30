@@ -6,7 +6,7 @@ export const VAT_TREATMENTS = ["inclusive", "exclusive", "exempt"] as const;
 export type VatTreatment = (typeof VAT_TREATMENTS)[number];
 
 export const QUOTATION_REQUIREMENTS = ["not_required", "required"] as const;
-export type QuotationRequirement = (typeof QUOTATION_REQUIREMENTS)[number];
+type QuotationRequirement = (typeof QUOTATION_REQUIREMENTS)[number];
 
 export const QUOTATION_STATUSES = [
   "not_requested",
@@ -14,7 +14,7 @@ export const QUOTATION_STATUSES = [
   "available",
   "unavailable",
 ] as const;
-export type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
+type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
 
 export type QuotationFacts = {
   quotationRequirement: QuotationRequirement;
@@ -22,13 +22,11 @@ export type QuotationFacts = {
   quotationReference: string | null;
 };
 
-export const COMMERCIAL_TERMS_SOURCES = [
-  "row_override",
-  "captured_selected_option",
-  "estimate_default",
-  "project_default",
-] as const;
-export type CommercialTermsSource = (typeof COMMERCIAL_TERMS_SOURCES)[number];
+export type CommercialTermsSource =
+  | "row_override"
+  | "captured_selected_option"
+  | "estimate_default"
+  | "project_default";
 
 export type VatTermsPair = {
   treatment: VatTreatment;
@@ -41,7 +39,7 @@ export type OptionalVatTermsPair = {
   rateBps?: number | null;
 };
 
-export type CapturedSelectedOptionTerms = OptionalVatTermsPair & {
+type CapturedSelectedOptionTerms = OptionalVatTermsPair & {
   selectedOptionId: string;
   selectedOptionTermsRevision: number;
 };
@@ -74,14 +72,14 @@ export type CommercialCalculationErrorCode =
   | "invalid_vat_treatment"
   | "invalid_vat_rate";
 
-export type CommercialDomainFailure<Code extends string> = {
+type CommercialDomainFailure<Code extends string> = {
   ok: false;
   code: Code;
   field: string;
   source?: CommercialTermsSource;
 };
 
-export type CommercialDomainResult<T, Code extends string> =
+type CommercialDomainResult<T, Code extends string> =
   | { ok: true; value: T }
   | CommercialDomainFailure<Code>;
 
