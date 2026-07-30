@@ -452,6 +452,32 @@ export class CollaborationRoom {
       : null;
   }
 
+  private validateBroadcastCapability(
+    claims: RealtimeRoomTokenClaims,
+    capability: "broadcast:cursor" | "broadcast:row-update",
+    valid: boolean,
+  ) {
+    if (!hasRealtimeRoomCapability(claims, capability)) return "capability_denied" as const;
+    return valid ? null : "invalid_event_payload" as const;
+  }
+
+  private async readContributionBroadcastAuthorizationError(
+    claims: RealtimeRoomTokenClaims,
+    roomName: string,
+    payload: unknown,
+  ) {
+    if (!hasRealtimeRoomCapability(claims, "broadcast:row-update")) return "capability_denied" as const;
+    if (!roomName.startsWith("estimate:") || !isEstimateContributionRealtimeEvent(payload)) {
+      return "invalid_event_payload" as const;
+    }
+    if (payload.scope.estimateId !== roomName.slice("estimate:".length)) {
+      return "invalid_event_payload" as const;
+    }
+    return await this.hasCommittedContributionReceipt(claims, payload)
+      ? null
+      : "uncommitted_event" as const;
+  }
+
   private async readBroadcastAuthorizationError(
     claims: RealtimeRoomTokenClaims,
     roomName: string,
@@ -461,30 +487,21 @@ export class CollaborationRoom {
     "capability_denied" | "invalid_event_payload" | "uncommitted_event" | "unsupported_event" | null
   > {
     if (event === "cursor") {
-      if (!hasRealtimeRoomCapability(claims, "broadcast:cursor"))
-        return "capability_denied";
-      return isValidCursorPayload(payload, claims, roomName)
-        ? null
-        : "invalid_event_payload";
+      return this.validateBroadcastCapability(
+        claims,
+        "broadcast:cursor",
+        isValidCursorPayload(payload, claims, roomName),
+      );
     }
     if (event === "row-update") {
-      if (!hasRealtimeRoomCapability(claims, "broadcast:row-update"))
-        return "capability_denied";
-      return isValidRowUpdatePayload(payload, roomName)
-        ? null
-        : "invalid_event_payload";
+      return this.validateBroadcastCapability(
+        claims,
+        "broadcast:row-update",
+        isValidRowUpdatePayload(payload, roomName),
+      );
     }
     if (event === ESTIMATE_CONTRIBUTION_BROADCAST_EVENT) {
-      if (!hasRealtimeRoomCapability(claims, "broadcast:row-update"))
-        return "capability_denied";
-      if (!roomName.startsWith("estimate:")) return "invalid_event_payload";
-      if (!isEstimateContributionRealtimeEvent(payload))
-        return "invalid_event_payload";
-      if (payload.scope.estimateId !== roomName.slice("estimate:".length))
-        return "invalid_event_payload";
-      return await this.hasCommittedContributionReceipt(claims, payload)
-        ? null
-        : "uncommitted_event";
+      return this.readContributionBroadcastAuthorizationError(claims, roomName, payload);
     }
     return "unsupported_event";
   }

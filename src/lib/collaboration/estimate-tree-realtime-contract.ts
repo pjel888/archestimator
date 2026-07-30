@@ -103,7 +103,7 @@ export type EstimateContributionRealtimeScope = {
   contributionScopeId: string;
 };
 
-export type EstimateContributionChangedIds = {
+type EstimateContributionChangedIds = {
   rowIds: string[];
   groupIds: string[];
   edgeIds: string[];
@@ -171,22 +171,34 @@ function matchesEstimateContributionScope(
     && value.contributionScopeId === expectedScope.contributionScopeId;
 }
 
+function hasValidRealtimeEventEnvelope(value: Record<string, unknown>) {
+  return value.schemaVersion === ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION
+    && hasOnlyKeys(value, ["schemaVersion", "type", "scope", "scopeRevision", "changed", "mutationId", "sentAt"])
+    && value.type === "estimate_contribution.changed"
+    && isEstimateContributionScope(value.scope)
+    && Number.isSafeInteger(value.scopeRevision)
+    && (value.scopeRevision as number) >= 1
+    && isBoundedIdentifier(value.mutationId)
+    && typeof value.sentAt === "string"
+    && Number.isFinite(Date.parse(value.sentAt));
+}
+
+function hasValidRealtimeChangedIdentifiers(value: unknown) {
+  return isRecord(value)
+    && hasOnlyKeys(value, ["rowIds", "groupIds", "edgeIds"])
+    && isBoundedIdentifierList(value.rowIds)
+    && isBoundedIdentifierList(value.groupIds)
+    && isBoundedIdentifierList(value.edgeIds)
+    && value.rowIds.length + value.groupIds.length + value.edgeIds.length > 0;
+}
+
 export function isEstimateContributionRealtimeEvent(
   value: unknown,
   expectedScope?: EstimateContributionRealtimeScope,
 ): value is EstimateContributionRealtimeEvent {
-  if (!isRecord(value) || value.schemaVersion !== ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION) return false;
-  if (!hasOnlyKeys(value, ["schemaVersion", "type", "scope", "scopeRevision", "changed", "mutationId", "sentAt"])) return false;
-  if (value.type !== "estimate_contribution.changed" || !isEstimateContributionScope(value.scope)) return false;
+  if (!isRecord(value) || !hasValidRealtimeEventEnvelope(value)) return false;
   if (expectedScope && !matchesEstimateContributionScope(value.scope, expectedScope)) return false;
-  if (!Number.isSafeInteger(value.scopeRevision) || (value.scopeRevision as number) < 1) return false;
-  if (!isBoundedIdentifier(value.mutationId) || typeof value.sentAt !== "string" || !Number.isFinite(Date.parse(value.sentAt))) return false;
-  if (!isRecord(value.changed)) return false;
-  if (!hasOnlyKeys(value.changed, ["rowIds", "groupIds", "edgeIds"])) return false;
-  if (!isBoundedIdentifierList(value.changed.rowIds)
-    || !isBoundedIdentifierList(value.changed.groupIds)
-    || !isBoundedIdentifierList(value.changed.edgeIds)) return false;
-  return value.changed.rowIds.length + value.changed.groupIds.length + value.changed.edgeIds.length > 0;
+  return hasValidRealtimeChangedIdentifiers(value.changed);
 }
 
 export function createEstimateContributionRealtimeEvent(
@@ -211,22 +223,36 @@ export function createEstimateContributionRealtimeEvent(
   return isEstimateContributionRealtimeEvent(event, scope) ? event : null;
 }
 
-function receiptIdentifiers(value: Record<string, unknown>) {
-  const rows = value.kind === "alternative_group_configured" ? value.rowItemIds
-    : value.kind === "optional_row_marked" || value.kind === "optional_row_unmarked" ? [value.rowItemId]
-      : value.kind === "alternative_group_removed" ? value.removedRowItemIds
-        : value.kind === "accessory_edge_created" || value.kind === "accessory_edge_updated"
-          ? [value.parentRowItemId, value.childRowItemId]
-          : value.changedRowItemIds;
-  const groups = value.kind === "alternative_group_configured" || value.kind === "alternative_group_removed"
+function receiptRowIdentifiers(value: Record<string, unknown>) {
+  if (value.kind === "alternative_group_configured") return value.rowItemIds;
+  if (value.kind === "optional_row_marked" || value.kind === "optional_row_unmarked") return [value.rowItemId];
+  if (value.kind === "alternative_group_removed") return value.removedRowItemIds;
+  if (value.kind === "accessory_edge_created" || value.kind === "accessory_edge_updated") {
+    return [value.parentRowItemId, value.childRowItemId];
+  }
+  return value.changedRowItemIds;
+}
+
+function receiptGroupIdentifiers(value: Record<string, unknown>) {
+  return value.kind === "alternative_group_configured" || value.kind === "alternative_group_removed"
     ? [value.groupId]
     : value.changedGroupIds;
-  const edges = value.kind === "accessory_edge_created"
+}
+
+function receiptEdgeIdentifiers(value: Record<string, unknown>) {
+  return value.kind === "accessory_edge_created"
     || value.kind === "accessory_edge_updated"
     || value.kind === "accessory_edge_deleted"
     ? [value.edgeId]
     : value.changedEdgeIds;
-  return { rows, groups, edges };
+}
+
+function receiptIdentifiers(value: Record<string, unknown>) {
+  return {
+    rows: receiptRowIdentifiers(value),
+    groups: receiptGroupIdentifiers(value),
+    edges: receiptEdgeIdentifiers(value),
+  };
 }
 
 function identifiersAreCommitted(actual: string[], committed: unknown) {
