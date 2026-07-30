@@ -1,0 +1,531 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-28-estimate-material-insert-autosave-incident",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "READY",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "updated_at": "2026-07-30T05:40:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": null,
+  "baseline": {
+    "head": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+    "scoped_status_sha256": "fbb7459e2e339b1dd66727f755111e7a8c05e804aeb2f0bf77f8ddcdba899fd0",
+    "scoped_diff_sha256": "0c40866e2d621e2379e5d5c637451a21317ca1cde47a9747652430f70908c7e4"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "a129e6dbc71069b940e4b6c85e8c0ac625b7f16784e88036673dfcfae62753ed"
+    },
+    {
+      "id": "ART-002",
+      "role": "incident-baseline",
+      "path": "evidence/incident-baseline.json",
+      "sha256": "156a4d23ea85023f25f83ba00df038dbb45f0e8d68b7ad32c0cf87d31fd97e17"
+    },
+    {
+      "id": "ART-003",
+      "role": "q2-evidence-summary",
+      "path": "evidence/q2-evidence-summary.json",
+      "sha256": "9550e37ca45a52f184d78a720ce7512984ea8e3b0bfad1396532225bc788ad2b"
+    },
+    {
+      "id": "ART-999",
+      "role": "evidence",
+      "path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "48b0df6b925bb4114960d9a24249eac5cef81cf30bca5c54cf4cd7d09ac787ef"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "evidence/incident-baseline.json",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-003"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "VALIDATED",
+      "artifact_path": "evidence/incident-baseline.json",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "evidence/incident-baseline.json",
+      "test_requirement": "TARGETED",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Critical invariant: a rejected row creation must never release a dependent edit against a nonexistent server row. Cheaper source inspection is insufficient because only an executed rejected promise proves the queue's failure ordering.",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "test_requirement": "TARGETED",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Critical invariant: creation-dependent commands fail closed while successful inserts, existing-row continuation, and disjoint-row concurrency remain intact. Cheaper diff review is insufficient because these promise-ordering branches must execute together.",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "test_requirement": "BROADER",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Critical invariant: a user adding and editing a material must retain authoritative row state and receive product-safe recovery instead of framework diagnostics. Cheaper targeted coordinator evidence is insufficient because rendered browser behavior, static integration, mutation quality, change impact, and independent Q2 review must also execute.",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_ids": [
+        "TEST-003",
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "evidence/incident-baseline.json",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-MUTATION-01",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-Q2-001",
+      "status": "PASS",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "artifact_path": "evidence/q2-evidence-summary.json",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002",
+        "RISK-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "RISK-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "RISK-003",
+        "UNIT-004"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "ready_slices": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "48b0df6b925bb4114960d9a24249eac5cef81cf30bca5c54cf4cd7d09ac787ef",
+      "claim_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "AC-001",
+        "TEST-001",
+        "GATE-MUTATION-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "48b0df6b925bb4114960d9a24249eac5cef81cf30bca5c54cf4cd7d09ac787ef",
+      "claim_ids": [
+        "REQ-002",
+        "UNIT-002",
+        "AC-002",
+        "TEST-002",
+        "GATE-MUTATION-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "48b0df6b925bb4114960d9a24249eac5cef81cf30bca5c54cf4cd7d09ac787ef",
+      "claim_ids": [
+        "REQ-003",
+        "UNIT-003",
+        "AC-003",
+        "TEST-003",
+        "GATE-VERIFY-01",
+        "GATE-Q2-001"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "48b0df6b925bb4114960d9a24249eac5cef81cf30bca5c54cf4cd7d09ac787ef",
+      "claim_ids": [
+        "REQ-003",
+        "UNIT-003",
+        "AC-003",
+        "TEST-003",
+        "GATE-VERIFY-01",
+        "GATE-Q2-001"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "48b0df6b925bb4114960d9a24249eac5cef81cf30bca5c54cf4cd7d09ac787ef",
+      "claim_ids": [
+        "REQ-003",
+        "UNIT-004",
+        "AC-003",
+        "TEST-004",
+        "GATE-VERIFY-01",
+        "GATE-Q2-001"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "estimate-row-coordinator-change",
+    "material-insert-action-change",
+    "autosave-error-surface-change",
+    "mutation-regression-evidence-change",
+    "authenticated-sources-drawer-mount-change"
+  ],
+  "manifest_sha256": "2755f5b914d478aaee000cd19572cb538d4e8f61eefe70f0e05f413866c3c691"
+}

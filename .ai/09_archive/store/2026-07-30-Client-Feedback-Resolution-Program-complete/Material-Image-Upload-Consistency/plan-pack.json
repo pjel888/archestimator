@@ -1,0 +1,955 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-28-material-image-upload-consistency",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "READY",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "updated_at": "2026-07-30T05:40:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": null,
+  "baseline": {
+    "head": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+    "scoped_status_sha256": "fbb7459e2e339b1dd66727f755111e7a8c05e804aeb2f0bf77f8ddcdba899fd0",
+    "scoped_diff_sha256": "0c40866e2d621e2379e5d5c637451a21317ca1cde47a9747652430f70908c7e4"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "22b308e8d7c0f2d6d4d28dcbffd673f20dbf3a21a14d82fecd3e6d6124d0c2ca"
+    },
+    {
+      "id": "ART-999",
+      "role": "evidence",
+      "path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "PERF-001",
+        "SEC-001",
+        "DATA-001",
+        "DATA-002",
+        "UX-001",
+        "UX-002",
+        "UX-003",
+        "OPS-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006",
+        "AC-007"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-001",
+        "PERF-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Admission and transform parity require executable boundary fixtures and processor call-count evidence across server and both clients.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-003",
+        "TEST-004",
+        "TEST-005",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-003",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001",
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Tenant, project, estimate, row, workspace, asset, session, path, and broker ownership must execute through route and D1 denial cases.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Focused Library persistence must prove revision, asset claim, linked-row sync, replay, conflict, and operation without hydrated siblings.",
+      "test_ids": [
+        "TEST-002",
+        "TEST-004",
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-001",
+        "UX-002",
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Truthful optimistic, cancel, upload-retry, save-retry, remove, and authoritative reload states require client, component, and browser execution.",
+      "test_ids": [
+        "TEST-003",
+        "TEST-004",
+        "TEST-005",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "UX-003"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Keyboard, focus, live-region, zoom, and device behavior cannot be proven by source inspection alone.",
+      "test_ids": [
+        "TEST-004",
+        "TEST-005",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "PERF-001",
+        "SEC-001",
+        "DATA-001",
+        "UX-002",
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Worker processing, R2 writes, D1 lifecycle, private brokers, partial failures, and cleanup require integration and fault evidence.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-002",
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001",
+        "UX-003",
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Q2 completion requires fresh aggregate, browser, mutation, coverage, and independent quality/security review evidence.",
+      "test_ids": [
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-Q2",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "PERF-001",
+        "SEC-001",
+        "DATA-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-005",
+        "RISK-007"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "SEC-001",
+        "DATA-001",
+        "DATA-002",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "PERF-001",
+        "UX-001",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "DATA-002",
+        "UX-001",
+        "UX-002",
+        "UX-003"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004",
+        "RISK-006",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "DATA-002",
+        "UX-001",
+        "UX-002",
+        "UX-003"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-006",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "SEC-001",
+        "UX-003",
+        "OPS-001"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005",
+        "RISK-007",
+        "RISK-008"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "PERF-001",
+        "UNIT-001",
+        "UNIT-003",
+        "RISK-001"
+      ],
+      "rationale": "The existing shared server processor already handles both routes and is the correct single transform boundary."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "PERF-001",
+        "UNIT-001",
+        "UNIT-005",
+        "RISK-001"
+      ],
+      "rationale": "Twelve MiB is the current common route and policy limit; removing the modal's unsupported 20 MiB promise is truthful and bounded."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "DATA-001",
+        "UNIT-001",
+        "RISK-002"
+      ],
+      "rationale": "A typed row-target mode in the existing project route removes duplicate POST code while preserving project-cover callers."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "DATA-001",
+        "UNIT-001",
+        "RISK-005"
+      ],
+      "rationale": "Project and workspace authorization remain separate even though processing, errors, and results are shared."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "RISK-004"
+      ],
+      "rationale": "A focused receipt-backed image mutation removes the unrelated hydrated-price-option precondition without weakening version or sync rules."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UX-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "rationale": "Existing targets can truthfully persist immediately; only targets that do not yet exist must retain a provisional descriptor."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "OPS-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "RISK-003"
+      ],
+      "rationale": "Separating uploaded descriptor state from domain-save state permits safe save-only retry and prevents false success."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "DATA-001",
+        "OPS-001",
+        "UNIT-001",
+        "RISK-005"
+      ],
+      "rationale": "Cloudflare Images or Sharp transform, R2 stores, D1 tracks, and authenticated brokers serve; no provider role is broadened."
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777",
+      "claim_ids": [
+        "UNIT-001",
+        "AC-001",
+        "AC-002",
+        "AC-006",
+        "TEST-001"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777",
+      "claim_ids": [
+        "UNIT-002",
+        "AC-002",
+        "AC-003",
+        "AC-006",
+        "TEST-002"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777",
+      "claim_ids": [
+        "UNIT-003",
+        "AC-001",
+        "AC-004",
+        "TEST-003"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-001",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "TEST-004"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-001",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "TEST-005"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "d8e75a1f59b6d2af28dacfb37a28a1323cbefd1f68e8a6faeab14f4134342777",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-001",
+        "AC-002",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "TEST-006",
+        "GATE-Q2"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [],
+  "stale_triggers": [
+    "the governance pack has not completed or a shared modal, estimate, or cell file changes",
+    "image limits, MIME or pixel policy, processor, route result, or broker behavior changes",
+    "dirty upload-record, R2 provider, cleanup, removal, D1 upload, IMAGES, or R2 interfaces change incompatibly",
+    "component image guards, estimate-row asset validation, linked-row synchronization, or another estimate-row route caller changes",
+    "GitNexus reports a HIGH or CRITICAL affected flow not represented in this plan",
+    "the Q2 quality policy, validation matrix, plan schema, or evidence commands change"
+  ],
+  "manifest_sha256": "1c9cbcfea3d88ff6973292e5d6a6db6f4dc324c6115157392c149ab3e1c15650"
+}

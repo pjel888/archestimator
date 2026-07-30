@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-30T06:20:00.000Z",
+  "source": {
+    "runner": "vitest",
+    "command": "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json",
+    "commit": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+    "measurement": {
+      "schema_version": 1,
+      "integrity_status": "PASS",
+      "command": "bun x vitest run --maxWorkers=1 --coverage --coverage.reportOnFailure=true --reporter=json",
+      "duration_ms": 1870394,
+      "exit_status": 0,
+      "candidate": {
+        "artifact_sha256": "41c66149e183afeb6406dfda98fadafb904058a597504812c94275d682a27e82",
+        "inner_sha256": "f7fbede0b360ca24c2b38a1cde9cdd414acd36e5a6f9643e6a3a5eb02d3d11be",
+        "commit_sha": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+        "comparison_base": {
+          "input_ref": "main",
+          "resolved_sha": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d"
+        },
+        "profile": "Q2_CRITICAL_CHANGE_GATE",
+        "artifact": "artifacts/quality/candidate.json"
+      },
+      "report": {
+        "artifact": "artifacts/quality/component-baseline-measurement/source.vitest.json",
+        "sha256": "552dc1ab939d008e531672aea8d9f075913102b09296a8692f6662ba28e2c7fe"
+      },
+      "coverage": {
+        "artifact": "artifacts/coverage/component-baseline/coverage-summary.json",
+        "sha256": "6d1538051d424e183b9498e38acd50fe7e4ee3b10b36720471a358e5ddf4b958"
+      }
+    },
+    "measurement_artifact": "artifacts/quality/component-baseline-measurement/measurement.json",
+    "measurement_sha256": "9868c4e17803838a0ee1a5ded5bc632830f56cd6233c9b6c31b884fa406a51d9",
+    "artifact": "quality/baselines/component/source.vitest.json",
+    "artifact_sha256": "552dc1ab939d008e531672aea8d9f075913102b09296a8692f6662ba28e2c7fe",
+    "coverage_artifact": "quality/baselines/component/coverage-summary.json",
+    "coverage_sha256": "6d1538051d424e183b9498e38acd50fe7e4ee3b10b36720471a358e5ddf4b958",
+    "candidate_artifact": "artifacts/quality/candidate.json",
+    "candidate_sha256": "41c66149e183afeb6406dfda98fadafb904058a597504812c94275d682a27e82",
+    "candidate_digest": "f7fbede0b360ca24c2b38a1cde9cdd414acd36e5a6f9643e6a3a5eb02d3d11be"
+  },
+  "counts": {
+    "failed_file": 0,
+    "failed_test": 0,
+    "skipped_file": 0,
+    "skipped_test": 0,
+    "collection_failure": 0,
+    "unhandled_error": 0,
+    "infrastructure_failure": 0,
+    "malformed_evidence": 0,
+    "must_fix_critical": 0,
+    "must_fix_infrastructure": 0,
+    "must_fix_noncritical": 0,
+    "ratchet_noncritical": 0,
+    "total_records": 0
+  },
+  "critical_capabilities": [
+    {
+      "id": "CAP-AI",
+      "name": "AI grounding and data boundary",
+      "owners": [
+        "ai"
+      ],
+      "evidence_kinds": [
+        "ai-eval",
+        "security"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-AUTH",
+      "name": "Authentication and authorization boundary",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "component",
+        "e2e",
+        "security"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-CACHE-PRIVACY",
+      "name": "Cache and privacy behavior",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "e2e",
+        "security"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-COLLABORATION",
+      "name": "Realtime collaboration integrity",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "workers",
+        "e2e"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-DATA-INTEGRITY",
+      "name": "Persistent data integrity",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "workers",
+        "bdd"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-EXPORT",
+      "name": "Export correctness and privacy",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "component",
+        "e2e"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-MIGRATION",
+      "name": "D1 migration lifecycle",
+      "owners": [
+        "platform"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "workers",
+        "operations"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-PROVIDER",
+      "name": "Cloudflare provider boundary",
+      "owners": [
+        "platform"
+      ],
+      "evidence_kinds": [
+        "workers",
+        "security",
+        "operations"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-TENANT",
+      "name": "Tenant isolation",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "workers",
+        "e2e",
+        "security"
+      ],
+      "critical": true
+    },
+    {
+      "id": "CAP-UNKNOWN",
+      "name": "Unknown critical capability",
+      "owners": [
+        "quality-core"
+      ],
+      "evidence_kinds": [
+        "classification"
+      ],
+      "must_fix": true,
+      "critical": true
+    },
+    {
+      "id": "CAP-UPLOAD",
+      "name": "Upload authorization and storage",
+      "owners": [
+        "application"
+      ],
+      "evidence_kinds": [
+        "unit",
+        "workers",
+        "security"
+      ],
+      "critical": true
+    }
+  ],
+  "admission": {
+    "phase": "admission",
+    "status": "review_pending",
+    "bootstrap": true,
+    "author_ids": [
+      "codex-lead"
+    ],
+    "open_must_fix_records": 0,
+    "proposed_ratchet_records": 0,
+    "quality_review": {
+      "status": "pending",
+      "artifact": "quality/reviews/component-baseline-quality.md"
+    },
+    "security_review": {
+      "status": "pending",
+      "artifact": "quality/reviews/component-baseline-security.md"
+    }
+  },
+  "identity_derivation": {
+    "fields": "runner,file,test_or_scenario,failure_kind,normalized_signature",
+    "algorithm": "sha256-prefix-20"
+  },
+  "uncertainties": [],
+  "records": []
+}

@@ -42,6 +42,26 @@
         "tests/vitest/guided-estimate-sample.test.ts"
       ],
       "reason": "Starter installation and preservation rules protect user-owned workspace data."
+    },
+    {
+      "id": "MUT-CLIENT-PORTAL-LEGACY-MIGRATION",
+      "targets": [
+        "src/lib/client-portal/legacy-migration-service.ts"
+      ],
+      "tests": [
+        "tests/vitest/client-portal-legacy-migration-service.test.ts"
+      ],
+      "reason": "Legacy migration preserves contractual publication, discussion, decision, timeline, and access evidence."
+    },
+    {
+      "id": "MUT-CLIENT-PORTAL-LEGACY-CUTOVER",
+      "targets": [
+        "src/lib/client-portal/legacy-cutover-service.ts"
+      ],
+      "tests": [
+        "tests/vitest/client-portal-legacy-cutover-service.test.ts"
+      ],
+      "reason": "Workspace cutover fingerprint, write barrier, verification, and atomic finalization protect legacy contractual history."
     }
   ]
 }

@@ -157,6 +157,18 @@ const DISPOSITION_OVERRIDES: Record<string, { disposition: ProviderCleanupDispos
     disposition: "keep-active-audit-tooling-test",
     rationale: "Fixture coverage for this provider-cleanup allowlist scanner.",
   },
+  "tests/vitest/upload-clean-download-provider-proof-script.test.ts": {
+    disposition: "keep-active-negative-assertion",
+    rationale: "Asserts clean-download proof routes do not import the retired Supabase client.",
+  },
+  "tests/vitest/upload-domain-proof-script.test.ts": {
+    disposition: "keep-active-negative-assertion",
+    rationale: "Asserts upload-domain proof routes do not import the retired Supabase client.",
+  },
+  "tests/vitest/upload-storage-proof-script.test.ts": {
+    disposition: "keep-active-negative-assertion",
+    rationale: "Asserts upload-storage proof routes do not import the retired Supabase client.",
+  },
   "tests/vitest/estimate-image-url.test.ts": {
     disposition: "keep-active-security-fixture",
     rationale: "Legacy public storage URL is an unsafe image URL sanitization fixture.",
@@ -589,7 +601,12 @@ function runCli() {
   const outputFile = readEnv("OUTPUT_FILE") ?? DEFAULT_OUTPUT_FILE;
   const markdownFile = readEnv("MARKDOWN_FILE") ?? DEFAULT_MARKDOWN_FILE;
   const strictProviderCleanupExit = envFlag("STRICT_PROVIDER_CLEANUP_EXIT");
-  const report = buildProviderCleanupAllowlistReport();
+  const rootDir = readEnv("PROVIDER_CLEANUP_ROOT_DIR");
+  const scanPaths = readEnv("PROVIDER_CLEANUP_SCAN_PATHS")
+    ?.split(",")
+    .map((path) => path.trim())
+    .filter(Boolean);
+  const report = buildProviderCleanupAllowlistReport({ rootDir, scanPaths });
   writeJson(outputFile, report);
   writeText(markdownFile, renderProviderCleanupAllowlistMarkdown(report));
 

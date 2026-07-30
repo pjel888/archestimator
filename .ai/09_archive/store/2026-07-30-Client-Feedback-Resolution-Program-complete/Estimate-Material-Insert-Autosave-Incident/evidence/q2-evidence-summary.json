@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-07-28T10:06:38.426Z",
+  "sourceRevision": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d+working-tree",
+  "classification": "Q2_CRITICAL_CHANGE_GATE",
+  "rootCause": {
+    "summary": "A confirmed row-coordinator defect allowed an edit queued behind a failed material insertion to call the update action for a row that never existed on the server. That defect can produce the observed opaque production Server Components diagnostic class, but the user's exact hidden exception remains uncorrelated.",
+    "deterministicBeforeFix": "A rejected insert was followed by one updateEstimateRowItem call for the optimistic row.",
+    "historicalSupportOnly": "Runtime record 2026-07-26T18:03:51.125Z-pid36296-2 recorded Estimate row item not found in the current project.",
+    "exactSessionCorrelation": false
+  },
+  "implementation": {
+    "creationDependencies": "Every command queued for a row with a pending creation promise now requires that creation to succeed.",
+    "ordinaryDependencies": "Existing-row failures remain catch-and-continue so a later queued edit can retry with restored authoritative state.",
+    "overlappingInsertions": "The newest same-row creation promise remains authoritative until it settles.",
+    "userRecovery": "Opaque Next Server Components diagnostics are replaced with Could not save this estimate change. Refresh the sheet and try again."
+  },
+  "automatedEvidence": {
+    "coordinator": {
+      "command": "bun x vitest run tests/vitest/estimate-row-mutation-coordinator.test.tsx --maxWorkers=1",
+      "status": "PASS",
+      "tests": 18
+    },
+    "adjacent": {
+      "command": "bun x vitest run tests/vitest/estimate-row-mutation-coordinator.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-mutation-revision-concurrency.test.ts tests/vitest/estimate-route-cache-finalization.test.tsx tests/vitest/estimate-mutations.test.ts --maxWorkers=1",
+      "status": "PASS",
+      "files": 5,
+      "tests": 70
+    },
+    "eslint": {
+      "command": "bun x eslint src/hooks/use-estimate-row-mutations.ts tests/vitest/estimate-row-mutation-coordinator.test.tsx",
+      "status": "PASS"
+    },
+    "typecheck": {
+      "command": "bun run type-check",
+      "status": "PASS"
+    },
+    "static": {
+      "command": "bun run quality:static -- --base main",
+      "status": "PASS",
+      "generatedAt": "2026-07-28T10:04:30.770Z",
+      "changedExecutableFiles": 52
+    },
+    "build": {
+      "command": "bun run build",
+      "status": "PASS",
+      "generatedAt": "2026-07-28T09:35:32.201Z",
+      "artifact": "artifacts/quality/build.json"
+    },
+    "changedCoverage": {
+      "command": "bun x vitest run tests/vitest/estimate-row-mutation-coordinator.test.tsx --maxWorkers=1 --coverage --coverage.include=src/hooks/use-estimate-row-mutations.ts",
+      "status": "PASS",
+      "statements": {
+        "covered": 24,
+        "total": 24
+      },
+      "branches": {
+        "covered": 10,
+        "total": 10
+      }
+    },
+    "mutation": {
+      "runner": "Stryker exact semantic additions with the coordinator suite",
+      "status": "PASS",
+      "score": 92.31,
+      "killed": 12,
+      "survived": 1,
+      "noCoverage": 0,
+      "compileErrors": 5,
+      "survivorAssessment": "Equivalent: changing if (creationDependency) to if (true) only adds undefined to a Set and Promise.all, which preserves behavior."
+    },
+    "independentReview": {
+      "status": "PASS",
+      "decision": "APPROVE",
+      "issues": 0,
+      "highOrCritical": 0,
+      "reviewer": "Singer"
+    },
+    "diffCheck": {
+      "command": "git diff --check -- src/hooks/use-estimate-row-mutations.ts tests/vitest/estimate-row-mutation-coordinator.test.tsx",
+      "status": "PASS"
+    },
+    "aggregateQ2": {
+      "command": "bun run quality:critical",
+      "status": "NOT_RECORDED",
+      "reason": "The recorded focused non-browser layers are green, but no fresh aggregate Q2 PASS receipt is attached; final Q2 remains FAIL until the browser journey and aggregate execute."
+    }
+  },
+  "changeImpact": {
+    "preEditImpact": {
+      "status": "UNKNOWN",
+      "reason": "The stale GitNexus index could not resolve useEstimateRowMutations, enqueueEstimateMutation, or the coordinator test symbol."
+    },
+    "postEditCompareMain": {
+      "status": "HIGH",
+      "changedSymbols": 146,
+      "changedFiles": 50,
+      "affectedProcesses": 6,
+      "attribution": "Shared-worktree aggregate. The reported affected processes come from unrelated client-portal changes; the estimate mutation hook was not resolved in the changed-symbol set."
+    }
+  },
+  "browserEvidence": {
+    "status": "FAIL",
+    "incidentControlsReached": false,
+    "mutationRequestReached": false,
+    "attempts": [
+      {
+        "server": "repository Playwright Webpack dev server",
+        "result": "FAIL",
+        "boundary": "The Sources drawer did not mount; the captured client trace reported a dynamic client-chunk SyntaxError before material controls became available."
+      },
+      {
+        "server": "scratch Turbopack dev server on isolated D1",
+        "result": "FAIL",
+        "boundary": "The first isolated cache emitted a 404 for a preloaded workshop chunk and the Sources drawer did not mount."
+      },
+      {
+        "server": "scratch Turbopack dev server with fresh build cache and isolated D1",
+        "result": "FAIL",
+        "boundary": "Auth, estimate sheet, and onboarding dismissal succeeded, but the Sources drawer remained absent with no material insertion attempted."
+      }
+    ],
+    "decision": "Required authenticated browser evidence is unavailable in the current shared worktree, so no browser PASS or terminal completion is claimed."
+  },
+  "cleanup": {
+    "taskScratchRemoved": true,
+    "isolatedD1Removed": true,
+    "defaultLocalFixtureRemoved": true,
+    "restoredLocalTriggers": [
+      "collaboration_workspace_owner_floor_delete",
+      "protect_default_component_category_delete"
+    ]
+  },
+  "packageDecision": {
+    "status": "CONDITIONALLY_READY",
+    "implementation": "INCOMPLETE",
+    "terminal": "ACTIVE",
+    "reason": "The deterministic repair and recorded focused non-browser layers pass. A ready diagnostic must restore the authenticated incident surface, after which the browser journey and aggregate Q2 gate must run; no final Q2 PASS is claimed."
+  }
+}

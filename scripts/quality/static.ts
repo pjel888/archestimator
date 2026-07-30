@@ -183,9 +183,19 @@ async function readBusinessSources(): Promise<Array<{ path: string; text: string
   const paths = (tracked.stdout ?? "")
     .split(/\r?\n/u)
     .filter(isBusinessSourcePath);
-  return Promise.all(
-    paths.map(async (path) => ({ path, text: await readFile(resolve(root, path), "utf8") })),
+  const sources = await Promise.all(
+    paths.map(async (path) => {
+      try {
+        return { path, text: await readFile(resolve(root, path), "utf8") };
+      } catch (error) {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+          return null;
+        }
+        throw error;
+      }
+    }),
   );
+  return sources.filter((source): source is { path: string; text: string } => source !== null);
 }
 
 function evaluateCommand(

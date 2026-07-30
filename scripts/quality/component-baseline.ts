@@ -18,6 +18,7 @@ import {
   type VitestJsonReport,
 } from "./component-core";
 import {
+  validateBaselineAdmission,
   validateCandidateCheckpointAgainstWorktree,
   validateReviewBuffers,
 } from "./validate-baseline-admission";
@@ -39,6 +40,8 @@ interface ValidationArtifact {
     author_identity_assurance?: string;
     quality_review_sha256?: string;
     security_review_sha256?: string;
+    bootstrap?: boolean;
+    predecessor_baseline_sha256?: string | null;
   };
 }
 
@@ -46,14 +49,28 @@ function draftInputsPresent(values: Array<string | undefined>): boolean {
   return values.every((value) => Boolean(value));
 }
 
+function commaSeparatedFlag(flags: Map<string, string | boolean>, name: string): string[] {
+  return [...new Set(String(flagString(flags, name, "")).split(",").map((value) => value.trim()).filter(Boolean))].sort();
+}
+
 function validationApproves(validation: ValidationArtifact, inventorySha: string, inventory: BaselineInventory): boolean {
-  return validation.status === "PASS" && validation.data?.phase === "admission" &&
-    validation.data.inventory_sha256 === inventorySha &&
-    validation.data.candidate_digest === inventory.source.candidate_digest &&
-    Array.isArray(validation.data.author_ids) && validation.data.author_ids.length > 0 &&
-    validation.data.review_source === "local-agent" &&
-    validation.data.reviewer_identity_assurance === "asserted-local" &&
-    validation.data.author_identity_assurance === "asserted-local";
+  const data = validation.data;
+  if (!data || typeof data.bootstrap !== "boolean") return false;
+  const predecessorApproved = data.bootstrap
+    ? data.predecessor_baseline_sha256 === null
+    : /^[a-f0-9]{64}$/u.test(String(data.predecessor_baseline_sha256));
+  return [
+    validation.status === "PASS",
+    data.phase === "admission",
+    data.inventory_sha256 === inventorySha,
+    data.candidate_digest === inventory.source.candidate_digest,
+    data.bootstrap === inventory.admission.bootstrap,
+    JSON.stringify(data.author_ids) === JSON.stringify(inventory.admission.author_ids),
+    data.review_source === "local-agent",
+    data.reviewer_identity_assurance === "asserted-local",
+    data.author_identity_assurance === "asserted-local",
+    predecessorApproved,
+  ].every(Boolean);
 }
 
 function normalizedRelative(root: string, path: string): string {
@@ -214,8 +231,23 @@ async function buildDraftInventory(root: string, flags: Map<string, string | boo
     measurement: loaded.measurement,
     command: loaded.measurement.command, commit: loaded.measurement.candidate.commit_sha, generatedAt, root,
     evidenceMap, capabilities: registry.capabilities.map((capability) => ({ ...capability, critical: true as const })), proposals, phase,
+    bootstrap: flags.get("allow-bootstrap") === true || flags.get("allow-bootstrap") === "true",
+    authorIds: commaSeparatedFlag(flags, "author-ids"),
     qualityReviewPath: flagString(flags, "quality-review"), securityReviewPath: flagString(flags, "security-review"),
   });
+}
+
+function validateDraftFlags(
+  flags: Map<string, string | boolean>,
+  measurementPath: string,
+  generatedAt: string | undefined,
+  phase: string | undefined,
+): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  if (!draftInputsPresent([measurementPath, generatedAt])) findings.push({ code: "DRAFT_INPUT_REQUIRED", message: "draft requires --measurement and --generated-at" });
+  if (!["draft", "admission"].includes(phase ?? "")) findings.push({ code: "PHASE_INVALID", message: `Unsupported phase ${phase}` });
+  if (phase === "admission" && commaSeparatedFlag(flags, "author-ids").length === 0) findings.push({ code: "DRAFT_AUTHOR_IDS_REQUIRED", message: "admission draft requires --author-ids" });
+  return findings;
 }
 
 async function draft(root: string, flags: Map<string, string | boolean>): Promise<never> {
@@ -223,9 +255,7 @@ async function draft(root: string, flags: Map<string, string | boolean>): Promis
   const output = pathFromFlag(root, flags, "output", "artifacts/quality/component-baseline-inventory.draft.json")!;
   const generatedAt = flagString(flags, "generated-at");
   const phase = flagString(flags, "phase", "draft");
-  const findings: QualityFinding[] = [];
-  if (!draftInputsPresent([measurementPath, generatedAt])) findings.push({ code: "DRAFT_INPUT_REQUIRED", message: "draft requires --measurement and --generated-at" });
-  if (!["draft", "admission"].includes(phase ?? "")) findings.push({ code: "PHASE_INVALID", message: `Unsupported phase ${phase}` });
+  const findings = validateDraftFlags(flags, measurementPath, generatedAt, phase);
   let inventory: BaselineInventory | undefined;
   if (findings.length === 0) {
     const loaded = await loadDraftMeasurement(root, flags, measurementPath, findings);
@@ -274,7 +304,7 @@ async function validateGenerationInputs(root: string, input: GenerationInputs, e
   const reviews = validateReviewBuffers({
     qualityRaw: input.qualityRaw, securityRaw: input.securityRaw,
     inventorySha256: expectedInventorySha, candidateDigest: input.inventory.source.candidate_digest,
-    disallowedReviewers: input.validation.data?.author_ids ?? [],
+    disallowedReviewers: input.inventory.admission.author_ids,
   });
   findings.push(...reviews.findings);
   if (sha256(input.qualityRaw) !== input.validation.data?.quality_review_sha256 || sha256(input.securityRaw) !== input.validation.data?.security_review_sha256) {
@@ -306,8 +336,40 @@ async function canonicalFromFiles(root: string, inventoryPath: string, validatio
     validationPath: normalizedRelative(root, validationPath), validationSha256: expectedValidationSha,
     qualityReviewPath: second.inventory.admission.quality_review.artifact, qualityReviewSha256: sha256(second.qualityRaw), qualityReviewer: secondValidation.qualityReviewer,
     securityReviewPath: second.inventory.admission.security_review.artifact, securityReviewSha256: sha256(second.securityRaw), securityReviewer: secondValidation.securityReviewer,
-    candidateRecord, authorIds: second.validation.data?.author_ids ?? [],
+    candidateRecord, authorIds: second.inventory.admission.author_ids,
+    bootstrap: second.validation.data?.bootstrap === true,
+    predecessorBaselineSha256: second.validation.data?.predecessor_baseline_sha256 ?? null,
   }) };
+}
+
+async function recomputeAdmissionForGeneration(
+  root: string,
+  inventoryPath: string,
+  inventory: BaselineInventory,
+  validation: ValidationArtifact,
+): Promise<QualityFinding[]> {
+  const recomputed = await validateBaselineAdmission({
+    root,
+    inventoryPath,
+    phase: "admission",
+    disallowedReviewers: inventory.admission.author_ids,
+    allowBootstrap: inventory.admission.bootstrap === true,
+    now: Date.now(),
+  });
+  if (recomputed.findings.length > 0) {
+    return [{
+      code: "GENERATION_ADMISSION_RECOMPUTE_FAILED",
+      message: "Admission failed when independently recomputed during canonical generation",
+      detail: recomputed.findings,
+    }];
+  }
+  if (JSON.stringify(recomputed.data) !== JSON.stringify(validation.data)) {
+    return [{
+      code: "GENERATION_ADMISSION_RECOMPUTE_MISMATCH",
+      message: "Admission artifact does not exactly match independently recomputed lineage and ratchet data",
+    }];
+  }
+  return [];
 }
 
 async function generate(root: string, flags: Map<string, string | boolean>): Promise<never> {
@@ -326,6 +388,7 @@ async function generate(root: string, flags: Map<string, string | boolean>): Pro
     if (!validationApproves(validation, inventorySha, inventory)) {
       findings.push({ code: "ADMISSION_VALIDATION_STALE", message: "Validation artifact does not PASS and bind the exact admission inventory and candidate" });
     }
+    findings.push(...await recomputeAdmissionForGeneration(root, inventoryPath, inventory, validation));
     if (findings.length === 0) {
       const generated = await canonicalFromFiles(root, inventoryPath, validationPath, inventorySha, validationSha);
       findings.push(...generated.findings);

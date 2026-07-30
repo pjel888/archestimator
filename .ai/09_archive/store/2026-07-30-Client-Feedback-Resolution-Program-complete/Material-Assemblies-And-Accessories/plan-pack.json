@@ -1,0 +1,856 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-28-material-assemblies-accessories",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "READY",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "updated_at": "2026-07-30T05:40:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": null,
+  "baseline": {
+    "head": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+    "scoped_status_sha256": "fbb7459e2e339b1dd66727f755111e7a8c05e804aeb2f0bf77f8ddcdba899fd0",
+    "scoped_diff_sha256": "0c40866e2d621e2379e5d5c637451a21317ca1cde47a9747652430f70908c7e4"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "c68865a93f1a43b915a5a712a1b75d46cf16114c88456addbeea30390d8125de"
+    },
+    {
+      "id": "ART-999",
+      "role": "evidence",
+      "path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "DATA-001",
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "OPS-002"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002"
+      ]
+    },
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-005"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-004",
+        "AC-006"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-001",
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Dependency candidate identity, migration ordering, same-area edge/move constraints, and D1 trigger behavior require exact manifest/hash checks and executable empty, legacy, and corrupt fixtures.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-003"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "No-cycle, one-parent, same-area scope, cross-area/partial-move denial, atomic whole-closure moves, CAS races, receipts, and remapping are persisted concurrency invariants that source inspection cannot prove.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "A bounded deterministic evaluator needs executed boundary, generated AST, serialization, invalid-input, source-scan, and mutation evidence.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-004"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "No-double-count, owning-area attribution, rollup-only presentation, descendant suppression, order invariance, whole-assembly move parity, and Commercial/tree/export parity require generated-property and output evidence.",
+      "test_ids": [
+        "TEST-003",
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-003",
+        "REQ-004"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Lifecycle semantics, same-area reparenting, single-row/partial-move denial, whole-assembly movement, collaboration convergence, keyboard/focus behavior, browser persistence, and performance budgets require executed UI, accessibility, browser, and measurement evidence.",
+      "test_ids": [
+        "TEST-004",
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "BROADER",
+      "test_trigger": "MVP_CRITICAL_INVARIANT",
+      "test_rationale": "Critical invariant: one exact Q2 candidate must preserve migration, calculation, export, and concurrency behavior. Cheaper non-test and targeted evidence is insufficient because it cannot bind critical mutation, build, browser, and two independent reviews to one hash.",
+      "test_ids": [
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-004",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-Q2",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "OPS-001",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "risk_ids": [
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-003"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-004"
+      ],
+      "risk_ids": [
+        "RISK-004",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-004",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "UNIT-002",
+        "RISK-008"
+      ],
+      "rationale": "A same-area relation sidecar preserves the existing flat area row model while enabling assembly presentation without ambiguous area attribution."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002",
+        "REQ-003",
+        "RISK-004"
+      ],
+      "rationale": "Separate persistence plus one resolver keeps variant, alternative, optional, accessory, and proposal-scope meanings unambiguous."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "UNIT-002",
+        "RISK-002",
+        "RISK-003"
+      ],
+      "rationale": "Migration 0129 is the corrected owner for edge tables plus database-enforced same-area and graph invariants after prerequisite migrations."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "REQ-003",
+        "AC-002",
+        "RISK-003"
+      ],
+      "rationale": "Server validation plus D1 same-area/cycle guards and one contribution revision protect graph integrity and atomic whole-closure movement under races and retries."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "AC-002",
+        "RISK-006"
+      ],
+      "rationale": "Unique child identity, common area identity, and explicit root roles provide deterministic one-parent, attribution, and inclusion semantics."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-003",
+        "RISK-005"
+      ],
+      "rationale": "A versioned bounded AST supports BOM formulas without expanding the narrow row parser or executing source text."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-002",
+        "AC-004",
+        "RISK-004"
+      ],
+      "rationale": "Stable traversal, common-area ownership, and presentation-only rollups ensure each included direct row contributes exactly once to its recursive area subtotal."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "REQ-002",
+        "REQ-004",
+        "RISK-010"
+      ],
+      "rationale": "Contribution-before-tax ordering keeps Commercial as the sole VAT owner and preserves output parity."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "AC-005",
+        "RISK-007"
+      ],
+      "rationale": "Both endpoints must be remapped atomically so copied and templated graphs cannot retain source IDs."
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "AC-005",
+        "RISK-008"
+      ],
+      "rationale": "Typed delete, dissolve, same-area reparent, and atomic move-assembly commands reject incident-edge single-row/cross-area moves and prevent silent graph or area-attribution changes."
+    },
+    {
+      "id": "DEC-AUTO-011",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-003",
+        "UNIT-004",
+        "RISK-009"
+      ],
+      "rationale": "A monotonic shared graph revision and detailed audit payload preserve collaboration and retry convergence."
+    },
+    {
+      "id": "DEC-AUTO-012",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "DATA-001",
+        "UNIT-001",
+        "UNIT-002",
+        "RISK-002"
+      ],
+      "rationale": "The corrected migration sequence is governance 0126, variants 0127, Commercial 0128, and assemblies 0129, with immediate rebaseline on drift."
+    }
+  ],
+  "authorization_boundaries": [],
+  "ready_slices": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "AC-001",
+        "TEST-001"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5",
+      "claim_ids": [
+        "UNIT-002",
+        "UNIT-004",
+        "AC-002",
+        "TEST-002"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5",
+      "claim_ids": [
+        "UNIT-003",
+        "UNIT-005",
+        "AC-003",
+        "AC-004",
+        "TEST-003"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5",
+      "claim_ids": [
+        "UNIT-004",
+        "AC-005",
+        "TEST-004"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-004",
+        "AC-005",
+        "TEST-005"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "f43bcfe4483274d8df016ab05b0275b35e02acf1d2d490678f6a23276ecb9fd5",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-006",
+        "TEST-006",
+        "GATE-Q2"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "migration ownership no longer serializes governance 0126, variants 0127, Commercial 0128, and assemblies 0129",
+    "migration 0129 is allocated by another owner or prerequisite migration inventory moves",
+    "governance, variants, or Commercial implementation status, evidence, candidate hash, migration, or stop contract changes",
+    "the shared contribution scope, resolver, additive-edge port, or invalidity contract changes",
+    "Commercial contribution ordering, VAT ownership, rounding, or export contract changes",
+    "row area identity, tree subtotal attribution, move semantics, mutation, receipt, history, copy, template, collaboration, or export source changes",
+    "D1 recursive trigger or migration checker behavior changes",
+    "current HEAD or scoped source diff changes"
+  ],
+  "manifest_sha256": "0a8f0038fb5ea56c49a0b3917456c10b59497aab3e160119113d685ef884d198"
+}

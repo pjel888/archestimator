@@ -15,6 +15,7 @@ import {
   COMPONENT_PROFILES,
   compareComponentRatchet,
   evaluateRawGreenComponentRun,
+  normalizeComponentCoveragePaths,
   normalizeVitestFailures,
   selectStrictComponentTests,
   validateCanonicalBaselineArtifacts,
@@ -78,12 +79,7 @@ function normalizeCoverage(
   coverage: CoverageSummary,
   root: string,
 ): CoverageSummary {
-  return Object.fromEntries(
-    Object.entries(coverage).map(([path, metrics]) => {
-      if (path === "total") return [path, metrics];
-      return [normalizedPath(relative(root, resolve(path))), metrics];
-    }),
-  );
+  return normalizeComponentCoveragePaths(coverage, root);
 }
 
 async function loadVitestRun(

@@ -1,0 +1,1126 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-28-estimate-tree-live-subtotals",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "READY",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "next_unit": null,
+  "updated_at": "2026-07-30T05:40:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "baseline": {
+    "head": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+    "scoped_status_sha256": "fbb7459e2e339b1dd66727f755111e7a8c05e804aeb2f0bf77f8ddcdba899fd0",
+    "scoped_diff_sha256": "0c40866e2d621e2379e5d5c637451a21317ca1cde47a9747652430f70908c7e4"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "066e9f1cb2c5fb67ee3cc154ac696eae750ffb0153ee414744b4b224da3b006e"
+    },
+    {
+      "id": "ART-999",
+      "role": "evidence",
+      "path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "title": "PP-D-R assignment, sanitized raw .ai/03_plans/2026-07-28/Client-Feedback-Resolution-Program/evidence/client-feedback.md, and completed analyst architecture analysis",
+      "source_revision": "owner-feedback@2026-07-28",
+      "affected_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "UX-001",
+        "OPS-002",
+        "PERF-001",
+        "SEC-001",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "title": "Current Content, Tree, editable-row calculator/store/index, query, repository, and metadata source",
+      "source_revision": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d@observed-2026-07-28-dirty-worktree-preserved",
+      "affected_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "UX-001",
+        "SEC-001"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "title": "Client Feedback Resolution Program dependency and exactly-once contribution contract",
+      "source_revision": "program@214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+      "affected_ids": [
+        "OPS-002",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "title": "Canonical product performance budget and 1500-node 5000-row load limits",
+      "source_revision": "performance-contracts@214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+      "affected_ids": [
+        "PERF-001",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "title": "Planning, Q2 quality, validation, performance, and shared-worktree contracts",
+      "source_revision": "local-contracts@2026-07-28",
+      "affected_ids": [
+        "OPS-003",
+        "SEC-001"
+      ],
+      "artifact_path": "00-PLAN.md"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "PERF-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-004"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "OPS-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001",
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The bridge, immutable facade, exact scope isolation, payload minimization, and teardown do not exist and require red-first contract and privacy tests.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Recursive exactness and the prohibition on a second calculator require generated-tree property evidence against the existing store output.",
+      "test_ids": [
+        "TEST-002",
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Every foreground, background, partial, stale, unavailable, optimistic, rejection, and rollback state needs deterministic and browser failure evidence.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-003",
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-003",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-002",
+        "UX-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Metadata-only currency and non-chatty accessible labels require DOM and cross-device proof.",
+      "test_ids": [
+        "TEST-001",
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Variants, options, accessories, assemblies, VAT, and area moves can double count or misattribute cost unless an integrated same-area, cross-area-invalidity, whole-closure-move, collaboration, and export fixture proves one contribution path.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "PERF-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The canonical budgets and 1500-node 5000-row cap require fixed deterministic and browser measurements with calculator call counts.",
+      "test_ids": [
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001",
+        "OPS-003"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Q2 requires full relevant suites, 100 percent changed-branch coverage, changed and critical mutation, aggregate evidence, and independent reviews.",
+      "test_ids": [
+        "TEST-006",
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-CONTRACT-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-UX-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-003",
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-PERF-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-PRIVACY-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "UX-001",
+        "OPS-002",
+        "PERF-001",
+        "SEC-001",
+        "OPS-003"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "PERF-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-006",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "OPS-002",
+        "PERF-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-003",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "UX-001",
+        "OPS-002",
+        "PERF-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-003",
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "UX-001",
+        "OPS-002",
+        "PERF-001",
+        "SEC-001",
+        "OPS-003"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006",
+        "EVID-007"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-003",
+        "AC-001"
+      ],
+      "rationale": "A tiny scope-keyed external snapshot bridge solves the sibling boundary without lifting editable rows or coupling Tree to the Content store."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "PERF-001",
+        "UNIT-002",
+        "UNIT-004",
+        "AC-002",
+        "AC-006"
+      ],
+      "rationale": "The existing recursive initialization and incremental ancestor updates are already the calculation authority; Tree must consume rather than duplicate them."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-003",
+        "UNIT-004",
+        "AC-003"
+      ],
+      "rationale": "Orthogonal data and mutation states preserve partiality while distinguishing optimistic, pending, retained rejection, and rollback behavior."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "UNIT-003",
+        "UNIT-004",
+        "AC-004"
+      ],
+      "rationale": "Estimate/proposal metadata is the currency authority; server node.total and tree-local PHP fallbacks are stale and potentially wrong."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-004",
+        "AC-002"
+      ],
+      "rationale": "Every node reads its own recursive store value, making each top-level node the requested main-area rollup without substituting projectTotal."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-003",
+        "UNIT-004",
+        "AC-003"
+      ],
+      "rationale": "Load-limit and lazy-hydration evidence must stay visible so a loaded-data subtotal is never represented as a complete zero or final precision."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UNIT-004",
+        "AC-004"
+      ],
+      "rationale": "Accessible names include area, currency, and status while one pane-level transition region prevents a live-region announcement for every keystroke."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-002",
+        "UNIT-003",
+        "UNIT-004",
+        "AC-005"
+      ],
+      "rationale": "Final 0127 Variants, 0128 Commercial, and same-area 0129 Assemblies contribution/move semantics must land before tree integration so each payable element is counted once in its owning area and cross-area states fail closed."
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005",
+        "AC-001",
+        "AC-003",
+        "AC-004",
+        "TEST-001",
+        "GATE-CONTRACT-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-005",
+        "AC-002",
+        "TEST-002",
+        "GATE-CONTRACT-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "AC-002",
+        "AC-003",
+        "AC-005",
+        "TEST-003",
+        "GATE-CONTRACT-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "AC-003",
+        "AC-004",
+        "TEST-004",
+        "GATE-UX-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "AC-006",
+        "TEST-005",
+        "GATE-PERF-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-007",
+        "TEST-006",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-005",
+        "AC-001",
+        "AC-007",
+        "TEST-007",
+        "GATE-PRIVACY-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "1cd35aee86e56b042ee2f279b235a4d8b5f068c920ee640ee06670fc86e818a7",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [],
+  "stale_triggers": [
+    "migration inventory no longer allocates 0126 governance, 0127 variants, 0128 commercial, and 0129 assemblies in that exact order",
+    "a tree-total migration becomes necessary or another pack allocates a migration to tree totals",
+    "variants, commercial, or assemblies contribution, same-area attribution, whole-closure move semantics, or completion status changes",
+    "editable-row recursive calculation, store copy-on-write incremental updates, or tree-index ancestor chains change",
+    "workspace sibling composition or Content and Tree ownership changes",
+    "currency metadata precedence or the shared Money-Math formatter contract changes",
+    "tree load limits, partial warning, lazy hydration, or query-state semantics change",
+    "an overlapping writer changes EstimateSheetContent.tsx, EstimateSheetTree.tsx, or editable-row-model.ts",
+    "canonical performance budgets, load caps, Q2 thresholds, or browser matrix changes",
+    "GitNexus becomes current or returns HIGH or CRITICAL impact inconsistent with this plan"
+  ],
+  "manifest_sha256": "38558b7a5df11db059c790cf1a33a97266eb814fd91e4445eb193a921b123066"
+}

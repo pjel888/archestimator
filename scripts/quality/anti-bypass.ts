@@ -37,7 +37,7 @@ if (scanPaths.length === 0 && !flagString(flags, "fixture") && comparisonBase) {
     const changed = spawnSync(
       "git",
       [
-        "diff", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB",
+        "diff", "--no-renames", "--name-only", "--diff-filter=ACMRTUXB",
         comparisonBase.resolved_sha,
       ],
       { cwd: root, encoding: "utf8" },

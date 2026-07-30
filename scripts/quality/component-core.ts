@@ -1,5 +1,8 @@
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { posix, relative, resolve, sep } from "node:path";
+import { isAbsolute, posix, relative, resolve, sep } from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
+import baselineSchema from "../../quality/schemas/baseline.schema.json";
 import { readJson, sha256, type QualityFinding } from "./common";
 import { candidateDigest, type CandidateRecord } from "./candidate-core";
 
@@ -45,9 +48,15 @@ export interface VitestFileResult {
 
 export interface VitestJsonReport {
   success?: boolean;
+  numTotalTestSuites?: number;
+  numPassedTestSuites?: number;
+  numFailedTestSuites?: number;
+  numPendingTestSuites?: number;
   numTotalTests?: number;
+  numPassedTests?: number;
   numFailedTests?: number;
   numPendingTests?: number;
+  numTodoTests?: number;
   testResults?: VitestFileResult[];
   unhandledErrors?: unknown[];
 }
@@ -69,6 +78,20 @@ export interface CoverageValue {
 
 export type CoverageMetrics = Record<CoverageMetric, CoverageValue>;
 export type CoverageSummary = Record<string, CoverageMetrics>;
+
+const validateBaselineSchema = new Ajv2020({
+  allErrors: true,
+  strict: false,
+  validateFormats: false,
+}).compile(baselineSchema);
+
+function validateCanonicalBaselineSchema(value: unknown): QualityFinding[] {
+  if (validateBaselineSchema(value)) return [];
+  return (validateBaselineSchema.errors ?? []).map((error) => ({
+    code: "COMPONENT_BASELINE_SCHEMA_INVALID",
+    message: `${error.instancePath || "/"} ${error.message ?? "does not match the canonical baseline schema"}`,
+  }));
+}
 
 export interface ComponentBaseline {
   schema_version: 1;
@@ -109,6 +132,8 @@ export interface ComponentBaseline {
     review_source: "local-agent";
     reviewer_identity_assurance: "asserted-local";
     author_identity_assurance: "asserted-local";
+    bootstrap: boolean;
+    predecessor_baseline_sha256: string | null;
   };
   suite: {
     test_files: string[];
@@ -142,6 +167,57 @@ export function validateComponentProfileSelection(
 
 function normalizePath(path: string): string {
   return path.split(sep).join("/");
+}
+
+function repositoryEvidenceAliasError(portablePath: string): string | null {
+  const segments = portablePath.split("/");
+  const checks: Array<[boolean, string]> = [
+    [/^\/\/[?.]\//u.test(portablePath) || /^\/\/[^/]/u.test(portablePath), "uses an unsupported Windows namespace or UNC path"],
+    [segments.some((segment) => /[. ]$/u.test(segment)), "contains a Windows trailing dot or space alias"],
+    [segments.some((segment, index) => segment.includes(":") && !(index === 0 && /^[A-Za-z]:$/u.test(segment))), "contains an NTFS alternate data stream or colon alias"],
+  ];
+  return checks.find(([invalid]) => invalid)?.[1] ?? null;
+}
+
+function repositoryEvidencePathIsOutside(relativePath: string, rawRelativePath: string): boolean {
+  return ["", ".", "total", ".."].includes(relativePath) ||
+    relativePath.startsWith("../") ||
+    [isAbsolute(rawRelativePath), posix.isAbsolute(relativePath)].some(Boolean);
+}
+
+function normalizeRepositoryEvidencePath(path: string, root: string, subject: string): string {
+  const portablePath = path.replaceAll("\\", "/");
+  const aliasError = repositoryEvidenceAliasError(portablePath);
+  if (aliasError) throw new Error(`${subject} ${path} ${aliasError}`);
+  const rawRelativePath = relative(resolve(root), resolve(root, path));
+  const relativePath = normalizePath(rawRelativePath);
+  if (repositoryEvidencePathIsOutside(relativePath, rawRelativePath)) {
+    throw new Error(`${subject} ${path} is outside the repository or aliases total`);
+  }
+  return relativePath;
+}
+
+export function normalizeComponentCoveragePaths(
+  coverage: CoverageSummary,
+  root: string,
+): CoverageSummary {
+  if (!coverageSummaryIsComplete(coverage)) {
+    throw new Error("Coverage summary contains malformed metrics");
+  }
+  const normalized = new Map<string, CoverageSummary[string]>();
+  const identities = new Set<string>();
+  for (const [path, metrics] of Object.entries(coverage)) {
+    const relativePath = path === "total" ? path : normalizeRepositoryEvidencePath(path, root, "Coverage path");
+    const identity = process.platform === "win32" ? relativePath.toLowerCase() : relativePath;
+    if (identities.has(identity)) throw new Error(`Coverage paths collide at ${relativePath}`);
+    identities.add(identity);
+    normalized.set(relativePath, metrics);
+  }
+  if (normalized.size !== Object.keys(coverage).length) throw new Error("Coverage path normalization changed the record count");
+  const result = Object.fromEntries(normalized);
+  const findings = validateComponentCoverageSummary(result);
+  if (findings.length > 0) throw new Error(findings.map((finding) => finding.message).join("; "));
+  return result;
 }
 
 function escapeRegex(value: string): string {
@@ -386,19 +462,20 @@ export function normalizeVitestFailures(
   root: string,
 ): { failures: LeafFailure[]; findings: QualityFinding[]; testFiles: string[] } {
   const failures: LeafFailure[] = [];
-  const findings: QualityFinding[] = [];
-  const testFiles = collectTestFiles(report, root);
-  if ((report.numPendingTests ?? 0) > 0) {
+  const findings = validateVitestReportConsistency(report, root);
+  const safeReport = isRecord(report) ? report : {};
+  const testFiles = collectTestFiles(safeReport, root);
+  if ((safeReport.numPendingTests ?? 0) > 0) {
     findings.push({
       code: "COMPONENT_TEST_SKIPPED",
-      message: `Vitest reported ${report.numPendingTests} skipped or pending test(s)`,
+      message: `Vitest reported ${safeReport.numPendingTests} skipped or pending test(s)`,
     });
   }
 
-  for (const result of report.testResults ?? []) {
+  for (const result of safeReport.testResults ?? []) {
     appendTestResultFailures(result, root, failures, findings);
   }
-  appendUnhandledFailures(report.unhandledErrors ?? [], failures, findings);
+  appendUnhandledFailures(safeReport.unhandledErrors ?? [], failures, findings);
 
   return {
     failures: deduplicateFailures(failures),
@@ -422,6 +499,10 @@ function baselineObject(value: unknown): value is ComponentBaseline {
 function sortedUniqueStrings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0) &&
     new Set(value).size === value.length && JSON.stringify(value) === JSON.stringify([...value].sort());
+}
+
+function normalizedIdentityList(value: unknown): value is string[] {
+  return sortedUniqueStrings(value) && value.every((identity) => /^[A-Za-z0-9_-]+$/u.test(identity));
 }
 
 function candidateFileIsNormalized(value: unknown): boolean {
@@ -456,7 +537,8 @@ function candidateRecordFilesAreNormalized(value: unknown): boolean {
   if (!Array.isArray(value) || !value.every(candidateFileIsNormalized)) return false;
   const paths = value.map((file) => (file as Record<string, unknown>).path);
   return [
-    JSON.stringify(paths) === JSON.stringify([...paths].sort()),
+    JSON.stringify(paths) === JSON.stringify([...paths].sort((left, right) =>
+      String(left).localeCompare(String(right)))),
   ].every(Boolean);
 }
 
@@ -491,10 +573,24 @@ function validateBaselineAdmissionFields(baseline: ComponentBaseline): QualityFi
   return findings;
 }
 
-const baselineAdmissionFieldCount = 15;
+const baselineAdmissionFieldCount = 17;
 
 function admissionFieldFindings(field: string, value: unknown): QualityFinding[] {
   const findings: QualityFinding[] = [];
+  if (field === "bootstrap") {
+    if (typeof value !== "boolean") findings.push({
+      code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
+      message: "Component baseline admission.bootstrap must be boolean",
+    });
+    return findings;
+  }
+  if (field === "predecessor_baseline_sha256") {
+    if (value !== null && !isSha256(value)) findings.push({
+      code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
+      message: "Component baseline admission.predecessor_baseline_sha256 must be null or a SHA-256 digest",
+    });
+    return findings;
+  }
   if (!value) findings.push({
     code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
     message: `Component baseline admission.${field} is missing`,
@@ -515,11 +611,14 @@ function admissionBindingIsComplete(admission: ComponentBaseline["admission"]): 
     admissionAuthorsAreValid(admission),
     admissionReviewersAreValid(admission),
     isSha256(admission.candidate_digest),
+    admission.bootstrap
+      ? admission.predecessor_baseline_sha256 === null
+      : isSha256(admission.predecessor_baseline_sha256),
   ].every(Boolean);
 }
 
 function admissionAuthorsAreValid(admission: ComponentBaseline["admission"]): boolean {
-  return sortedUniqueStrings(admission.author_ids) && admission.author_ids.length > 0;
+  return normalizedIdentityList(admission.author_ids) && admission.author_ids.length > 0;
 }
 
 function admissionReviewersAreValid(admission: ComponentBaseline["admission"]): boolean {
@@ -598,7 +697,7 @@ function validateBaselineShape(baseline: ComponentBaseline): QualityFinding[] {
     baseline.suite.total_tests >= 0 &&
     Array.isArray(baseline.allowed_failures) &&
     baseline.allowed_failures.every(isRecord) &&
-    coverageSummaryIsComplete(baseline.coverage)
+    validateComponentCoverageSummary(baseline.coverage).length === 0
   ) {
     return [];
   }
@@ -666,28 +765,224 @@ function isNonnegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
+function coverageCountersAreComplete(value: Record<string, unknown>): value is CoverageValue {
+  const { total, covered, skipped, pct } = value;
+  const countersAreIntegers = [total, covered, skipped].every(isNonnegativeInteger);
+  const percentageIsFinite = typeof pct === "number" && Number.isFinite(pct);
+  if (!countersAreIntegers || !percentageIsFinite) return false;
+  return covered <= total && skipped <= total && covered + skipped <= total;
+}
+
 function coverageValueIsComplete(value: unknown): value is CoverageValue {
   if (!isRecord(value)) return false;
   const fields = ["total", "covered", "skipped", "pct"] as const;
   if (Object.keys(value).length !== fields.length || !fields.every((field) => field in value)) return false;
-  const { total, covered, skipped, pct } = value;
-  return isNonnegativeInteger(total) && isNonnegativeInteger(covered) && isNonnegativeInteger(skipped) &&
-    typeof pct === "number" && Number.isFinite(pct) && pct >= 0 && pct <= 100 &&
-    covered <= total && skipped <= total && covered + skipped <= total;
+  if (!coverageCountersAreComplete(value)) return false;
+  const { total, covered, pct } = value;
+  const expectedPercentage = total === 0 ? 100 : Math.floor((covered / total) * 10_000) / 100;
+  return pct === expectedPercentage;
 }
 
 function coverageSummaryIsComplete(value: unknown): value is CoverageSummary {
   if (!isRecord(value) || !isRecord(value.total)) return false;
-  return Object.values(value).every((metrics) =>
-    isRecord(metrics) && Object.keys(metrics).length === coverageMetrics.length &&
-    coverageMetrics.every((metric) => coverageValueIsComplete(metrics[metric])));
+  return Object.values(value).every((metrics) => {
+    if (!isRecord(metrics)) return false;
+    const keys = Object.keys(metrics);
+    const knownKeys = [...coverageMetrics, "branchesTrue"];
+    return coverageMetrics.every((metric) => coverageValueIsComplete(metrics[metric])) &&
+      keys.every((key) => knownKeys.includes(key)) &&
+      (metrics.branchesTrue === undefined || coverageValueIsComplete(metrics.branchesTrue));
+  });
 }
 
-function validateCurrentCoverageShape(coverage: unknown): QualityFinding[] {
-  return coverageSummaryIsComplete(coverage) ? [] : [{
+function coverageAggregateMatchesFiles(coverage: CoverageSummary): boolean {
+  const fileEntries = Object.entries(coverage).filter(([path]) => path !== "total");
+  const standardMetricsMatch = coverageMetrics.every((metric) => {
+    const aggregate = coverage.total[metric];
+    if (fileEntries.length === 0) return aggregate.total === 0 && aggregate.covered === 0 && aggregate.skipped === 0;
+    const sum = fileEntries.reduce((current, [, metrics]) => ({
+      total: current.total + metrics[metric].total,
+      covered: current.covered + metrics[metric].covered,
+      skipped: current.skipped + metrics[metric].skipped,
+    }), { total: 0, covered: 0, skipped: 0 });
+    return aggregate.total === sum.total && aggregate.covered === sum.covered && aggregate.skipped === sum.skipped;
+  });
+  if (!standardMetricsMatch) return false;
+
+  const aggregateBranchesTrue = (coverage.total as CoverageMetrics & { branchesTrue?: CoverageValue }).branchesTrue;
+  const fileBranchesTrue = fileEntries
+    .map(([, metrics]) => (metrics as CoverageMetrics & { branchesTrue?: CoverageValue }).branchesTrue)
+    .filter((value): value is CoverageValue => value !== undefined);
+  if (aggregateBranchesTrue === undefined) return fileBranchesTrue.length === 0;
+  if (fileBranchesTrue.length === 0) {
+    return aggregateBranchesTrue.total === 0 && aggregateBranchesTrue.covered === 0 && aggregateBranchesTrue.skipped === 0;
+  }
+  if (fileBranchesTrue.length !== fileEntries.length) return false;
+  const sum = fileBranchesTrue.reduce((current, value) => ({
+    total: current.total + value.total,
+    covered: current.covered + value.covered,
+    skipped: current.skipped + value.skipped,
+  }), { total: 0, covered: 0, skipped: 0 });
+  return aggregateBranchesTrue.total === sum.total && aggregateBranchesTrue.covered === sum.covered &&
+    aggregateBranchesTrue.skipped === sum.skipped;
+}
+
+export function validateComponentCoverageSummary(coverage: unknown): QualityFinding[] {
+  if (coverageSummaryIsComplete(coverage) && coverageAggregateMatchesFiles(coverage)) return [];
+  return [{
     code: "COMPONENT_COVERAGE_MALFORMED",
-    message: "Current component coverage must contain complete finite statements, branches, functions, and lines metrics",
+    message: "Component coverage must contain complete finite metrics whose aggregate counters exactly match file counters",
   }];
+}
+
+const vitestCounterNames = [
+  "numTotalTestSuites",
+  "numPassedTestSuites",
+  "numFailedTestSuites",
+  "numPendingTestSuites",
+  "numTotalTests",
+  "numPassedTests",
+  "numFailedTests",
+  "numPendingTests",
+  "numTodoTests",
+] as const;
+
+function malformedVitestReport(message: string): QualityFinding {
+  return { code: "COMPONENT_REPORT_MALFORMED", message };
+}
+
+type StructuredVitestReport = VitestJsonReport & { success: boolean; testResults: VitestFileResult[] };
+
+function vitestReportIsStructured(report: VitestJsonReport): report is StructuredVitestReport {
+  return isRecord(report) && typeof report.success === "boolean" && Array.isArray(report.testResults);
+}
+
+function validateVitestReportHeader(report: StructuredVitestReport): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  for (const name of vitestCounterNames) {
+    if (!isNonnegativeInteger(report[name])) findings.push(malformedVitestReport(`Vitest report ${name} must be a nonnegative integer`));
+  }
+  if (report.unhandledErrors !== undefined && !Array.isArray(report.unhandledErrors)) {
+    findings.push(malformedVitestReport("Vitest report unhandledErrors must be an array when present"));
+  }
+  return findings;
+}
+
+function canonicalVitestFileIdentity(result: VitestFileResult, root: string): string {
+  const canonicalPath = normalizeRepositoryEvidencePath(result.name!, root, "Vitest file");
+  return process.platform === "win32" ? canonicalPath.toLowerCase() : canonicalPath;
+}
+
+function vitestFileNameIsNormalized(result: VitestFileResult): result is VitestFileResult & { name: string } {
+  return isRecord(result) && typeof result.name === "string" && result.name.length > 0 && result.name.trim() === result.name;
+}
+
+function registerVitestFileIdentity(result: VitestFileResult & { name: string }, root: string, fileIdentities: Set<string>): QualityFinding[] {
+  try {
+    const identity = canonicalVitestFileIdentity(result, root);
+    const duplicate = fileIdentities.has(identity);
+    fileIdentities.add(identity);
+    return duplicate ? [malformedVitestReport(`Vitest file result name is duplicated: ${result.name}`)] : [];
+  } catch (error) {
+    return [malformedVitestReport(String(error))];
+  }
+}
+
+function validateVitestFileAssertions(result: VitestFileResult & { name: string }): QualityFinding[] {
+  if (!Array.isArray(result.assertionResults)) return [malformedVitestReport(`Vitest file ${result.name} must contain assertionResults`)];
+  const findings: QualityFinding[] = [];
+  if (result.status === "passed" && result.assertionResults.length === 0) findings.push(malformedVitestReport(`Vitest file ${result.name} passed without assertion evidence`));
+  if (result.status === "passed" && result.assertionResults.some((assertion) => assertion.status === "failed")) findings.push(malformedVitestReport(`Vitest file ${result.name} passed while containing a failed assertion`));
+  return findings;
+}
+
+function validateVitestFileResult(
+  result: VitestFileResult,
+  index: number,
+  root: string,
+  fileIdentities: Set<string>,
+): QualityFinding[] {
+  if (!vitestFileNameIsNormalized(result)) {
+    return [malformedVitestReport(`Vitest file result ${index} must have a nonempty normalized name`)];
+  }
+  const findings = registerVitestFileIdentity(result, root, fileIdentities);
+  if (!["passed", "failed"].includes(String(result.status))) findings.push(malformedVitestReport(`Vitest file ${result.name} has unsupported status ${String(result.status)}`));
+  return [...findings, ...validateVitestFileAssertions(result)];
+}
+
+function observeVitestAssertions(assertions: VitestAssertion[]): { findings: QualityFinding[]; passed: number; failed: number; pending: number; todo: number } {
+  const findings: QualityFinding[] = [];
+  const observed = { passed: 0, failed: 0, pending: 0, todo: 0 };
+  for (const assertion of assertions) {
+    if (assertion.status === "passed" || assertion.status === "failed" || assertion.status === "todo") {
+      observed[assertion.status] += 1;
+    } else if (assertion.status === "pending" || assertion.status === "skipped") {
+      observed.pending += 1;
+    } else {
+      findings.push(malformedVitestReport(`Vitest assertion has unsupported status ${String(assertion.status)}`));
+    }
+  }
+  return { findings, ...observed };
+}
+
+function validateVitestTestCounters(report: StructuredVitestReport, assertions: VitestAssertion[]): QualityFinding[] {
+  const observed = observeVitestAssertions(assertions);
+  const expectedCounters = {
+    numTotalTests: assertions.length,
+    numPassedTests: observed.passed,
+    numFailedTests: observed.failed,
+    numPendingTests: observed.pending,
+    numTodoTests: observed.todo,
+  } as const;
+  const findings = [...observed.findings];
+  for (const [name, expected] of Object.entries(expectedCounters)) {
+    const reported = report[name as keyof typeof expectedCounters];
+    if (reported !== expected) findings.push(malformedVitestReport(`Vitest report ${name}=${reported}; observed ${expected}`));
+  }
+  return findings;
+}
+
+function validateVitestSuiteCounters(report: StructuredVitestReport): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  const suiteTotal = report.numTotalTestSuites!;
+  const suiteParts = report.numPassedTestSuites! + report.numFailedTestSuites! + report.numPendingTestSuites!;
+  if (suiteTotal !== suiteParts) findings.push(malformedVitestReport(`Vitest suite counters total ${suiteTotal}; observed parts ${suiteParts}`));
+  if (report.numPendingTestSuites! > 0) findings.push(malformedVitestReport("Vitest report contains pending or skipped suites"));
+  if ((report.testResults.length === 0) !== (suiteTotal === 0)) {
+    findings.push(malformedVitestReport("Vitest suite counters do not correspond to collected test files"));
+  } else if (report.testResults.length > suiteTotal) {
+    findings.push(malformedVitestReport(`Vitest collected ${report.testResults.length} files but only ${suiteTotal} suites`));
+  }
+  return findings;
+}
+
+function validateVitestFailureState(report: StructuredVitestReport): QualityFinding[] {
+  const findings: QualityFinding[] = [];
+  const unhandledCount = Array.isArray(report.unhandledErrors) ? report.unhandledErrors.length : 0;
+  const hasFailedFile = report.testResults.some((result) => result.status === "failed");
+  if (hasFailedFile !== (report.numFailedTestSuites! > 0)) {
+    findings.push(malformedVitestReport("Vitest failed-suite counters contradict file outcomes"));
+  }
+  const hasFailure = report.numFailedTests! > 0 || report.numFailedTestSuites! > 0 || hasFailedFile || unhandledCount > 0;
+  if (report.success === hasFailure) findings.push(malformedVitestReport(`Vitest success=${report.success} contradicts observed failure state ${hasFailure}`));
+  return findings;
+}
+
+export function validateVitestReportConsistency(report: VitestJsonReport, root: string): QualityFinding[] {
+  if (!vitestReportIsStructured(report)) {
+    return [malformedVitestReport("Vitest report must contain boolean success and a testResults array")];
+  }
+  const headerFindings = validateVitestReportHeader(report);
+  if (headerFindings.length > 0) return headerFindings;
+  const fileIdentities = new Set<string>();
+  const fileFindings = report.testResults.flatMap((result, index) => validateVitestFileResult(result, index, root, fileIdentities));
+  const assertions = report.testResults.flatMap((result) => Array.isArray(result.assertionResults) ? result.assertionResults : []);
+  return [
+    ...fileFindings,
+    ...validateVitestTestCounters(report, assertions),
+    ...validateVitestSuiteCounters(report),
+    ...validateVitestFailureState(report),
+  ];
 }
 
 interface BaselineInventory {
@@ -695,6 +990,8 @@ interface BaselineInventory {
   admission?: {
     phase?: string;
     status?: string;
+    bootstrap?: boolean;
+    author_ids?: string[];
   };
   source?: {
     command?: string;
@@ -732,6 +1029,8 @@ interface BaselineValidation {
     author_identity_assurance?: string;
     quality_review_sha256?: string;
     security_review_sha256?: string;
+    bootstrap?: boolean;
+    predecessor_baseline_sha256?: string | null;
   };
 }
 
@@ -753,7 +1052,7 @@ interface RetainedComponentMeasurement {
   coverage?: { artifact?: string; sha256?: string };
 }
 
-interface ReviewDecision {
+export interface ReviewDecision {
   decision?: string;
   inventorySha?: string;
   candidateSha?: string;
@@ -766,17 +1065,31 @@ interface ReviewDecision {
 
 type BaselineArtifact = readonly [label: string, path: string, expectedSha: string];
 
-function reviewDecision(text: string): ReviewDecision {
-  return {
-    decision: text.match(/(?:Decision|Status)\s*:\s*`?(APPROVE|REJECT)`?/iu)?.[1],
-    inventorySha: text.match(/Inventory SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
-    candidateSha: text.match(/Candidate Digest\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
-    reviewer: text.match(/Reviewer\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    role: text.match(/Reviewer Role\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    source: text.match(/Source\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    reviewerAssurance: text.match(/Reviewer Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    authorAssurance: text.match(/Author Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-  };
+export function parseBaselineReviewDecision(text: string): ReviewDecision {
+  const fieldNames = {
+    "Decision": "decision",
+    "Inventory SHA-256": "inventorySha",
+    "Candidate Digest": "candidateSha",
+    "Reviewer": "reviewer",
+    "Reviewer Role": "role",
+    "Source": "source",
+    "Reviewer Identity Assurance": "reviewerAssurance",
+    "Author Identity Assurance": "authorAssurance",
+  } as const;
+  const lines = text.split(/\r?\n/u).filter(Boolean);
+  if (lines.length !== Object.keys(fieldNames).length) return {};
+  const decision: ReviewDecision = {};
+  const seen = new Set<string>();
+  for (const line of lines) {
+    const match = line.match(/^([^:]+): ([^\r\n]+)$/u);
+    if (!match) return {};
+    const [, label, value] = match;
+    const property = fieldNames[label as keyof typeof fieldNames];
+    if (!property || seen.has(label!) || value !== value.trim()) return {};
+    seen.add(label!);
+    decision[property] = value;
+  }
+  return decision;
 }
 
 function canonicalBaselineArtifacts(baseline: ComponentBaseline): BaselineArtifact[] {
@@ -872,6 +1185,8 @@ function identitySetsMatch(left: Set<string>, right: Set<string>): boolean {
 
 function runtimeInventoryIsStructured(inventory: unknown): inventory is BaselineInventory {
   return isRecord(inventory) && isRecord(inventory.source) && isRecord(inventory.admission) &&
+    typeof inventory.admission.bootstrap === "boolean" &&
+    normalizedIdentityList(inventory.admission.author_ids) && inventory.admission.author_ids.length > 0 &&
     Array.isArray(inventory.records) && inventory.records.every(isRecord);
 }
 
@@ -982,19 +1297,25 @@ async function validateBaselineInventory(
 function validationApprovesInventory(
   validation: BaselineValidation,
   expectedSha: string,
-  candidateDigestValue: string | undefined,
+  inventory: BaselineInventory,
 ): boolean {
-  return (
-    validation.status === "PASS" &&
-    validation.data?.phase === "admission" &&
-    validation.data?.inventory_sha256 === expectedSha &&
-    validation.data?.candidate_digest === candidateDigestValue &&
-    Array.isArray(validation.data?.author_ids) &&
-    validation.data.author_ids.length > 0 &&
-    validation.data.review_source === "local-agent" &&
-    validation.data.reviewer_identity_assurance === "asserted-local" &&
-    validation.data.author_identity_assurance === "asserted-local"
-  );
+  const data = validation.data;
+  if (!data || typeof data.bootstrap !== "boolean") return false;
+  const predecessorApproved = data.bootstrap
+    ? data.predecessor_baseline_sha256 === null
+    : isSha256(data.predecessor_baseline_sha256);
+  return [
+    validation.status === "PASS",
+    data.phase === "admission",
+    data.inventory_sha256 === expectedSha,
+    data.candidate_digest === inventory.source?.candidate_digest,
+    data.bootstrap === inventory.admission?.bootstrap,
+    JSON.stringify(data.author_ids) === JSON.stringify(inventory.admission?.author_ids),
+    data.review_source === "local-agent",
+    data.reviewer_identity_assurance === "asserted-local",
+    data.author_identity_assurance === "asserted-local",
+    predecessorApproved,
+  ].every(Boolean);
 }
 
 async function validateBaselineValidationArtifact(
@@ -1010,7 +1331,7 @@ async function validateBaselineValidationArtifact(
     if (!runtimeInventoryIsStructured(inventory)) {
       return [{ code: "COMPONENT_BASELINE_VALIDATION_MALFORMED", message: "Admission validation cannot bind a malformed inventory", path: baseline.admission.validation_artifact }];
     }
-    if (!validationApprovesInventory(validation, baseline.admission.inventory_sha256, inventory.source?.candidate_digest)) {
+    if (!validationApprovesInventory(validation, baseline.admission.inventory_sha256, inventory)) {
       findings.push({
         code: "COMPONENT_BASELINE_ADMISSION_NOT_APPROVED",
         message: "Baseline validation artifact does not approve the bound inventory",
@@ -1036,7 +1357,7 @@ async function readBaselineReviews(
       baseline.admission.security_review_artifact,
     ].map(async (path): Promise<ReviewDecision> => {
       try {
-        return reviewDecision(await readFile(resolve(root, path), "utf8"));
+        return parseBaselineReviewDecision(await readFile(resolve(root, path), "utf8"));
       } catch {
         return {};
       }
@@ -1070,6 +1391,111 @@ function validateBaselineReviews(
     findings.push({ code: "COMPONENT_BASELINE_REVIEW_IS_AUTHOR", message: "Baseline authors cannot approve their own inventory" });
   }
   return findings;
+}
+
+function readImmutableGitFile(root: string, commitSha: string, path: string): string | null {
+  const reference = spawnSync("git", ["show", `${commitSha}:${path}`], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 50 * 1024 * 1024,
+  });
+  if (reference.error) throw reference.error;
+  if (reference.status === 0) return reference.stdout;
+  const commit = spawnSync("git", ["cat-file", "-e", `${commitSha}^{commit}`], { cwd: root });
+  if (commit.status !== 0) throw new Error(`Comparison base ${commitSha} is unavailable`);
+  return null;
+}
+
+function baselineExistsInCurrentHead(root: string): boolean {
+  const history = spawnSync("git", ["log", "-1", "--format=%H", "--diff-filter=A", "HEAD", "--", "quality/baseline.json"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (history.error || history.status !== 0) throw history.error ?? new Error("Current HEAD baseline lineage is unavailable");
+  return Boolean(history.stdout.trim());
+}
+
+function validateBootstrapPredecessor(
+  root: string,
+  baseline: ComponentBaseline,
+  predecessorRaw: string | null,
+): QualityFinding[] {
+  const valid = predecessorRaw === null &&
+    baseline.admission.predecessor_baseline_sha256 === null &&
+    !baselineExistsInCurrentHead(root);
+  return valid ? [] : [{
+    code: "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
+    message: "Bootstrap baseline conflicts with immutable baseline history or a predecessor binding",
+  }];
+}
+
+function validateEstablishedPredecessor(
+  root: string,
+  baseline: ComponentBaseline,
+  predecessorRaw: string | null,
+  comparisonBaseSha: string,
+  report: VitestJsonReport,
+  coverage: CoverageSummary,
+): QualityFinding[] {
+  if (predecessorRaw === null) return [{ code: "COMPONENT_BASELINE_PREDECESSOR_MISSING", message: "Non-bootstrap baseline has no immutable predecessor" }];
+  if (sha256(predecessorRaw) !== baseline.admission.predecessor_baseline_sha256) {
+    return [{ code: "COMPONENT_BASELINE_PREDECESSOR_HASH_MISMATCH", message: "Predecessor binding does not match the immutable comparison-base baseline" }];
+  }
+  const predecessor = JSON.parse(predecessorRaw) as ComponentBaseline;
+  if (predecessor.source?.coverage !== "quality/baselines/component/coverage-summary.json") {
+    return [{ code: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID", message: "Predecessor coverage source is not canonical" }];
+  }
+  const predecessorCoverageRaw = readImmutableGitFile(root, comparisonBaseSha, predecessor.source.coverage);
+  if (predecessorCoverageRaw === null || sha256(predecessorCoverageRaw) !== predecessor.source.coverage_sha256) {
+    return [{ code: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID", message: "Predecessor source coverage is missing or hash-mismatched" }];
+  }
+  const reconstructed = normalizeComponentCoveragePaths(JSON.parse(predecessorCoverageRaw) as CoverageSummary, root);
+  if (JSON.stringify(reconstructed) !== JSON.stringify(predecessor.coverage)) {
+    return [{ code: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID", message: "Predecessor embedded coverage does not match its immutable source" }];
+  }
+  return compareComponentRatchet(report, coverage, predecessor, root);
+}
+
+async function validateImmutablePredecessorAdmission(root: string, baseline: ComponentBaseline): Promise<QualityFinding[]> {
+  try {
+    const comparisonBaseSha = baseline.source.candidate.record.comparison_base.resolved_sha;
+    const predecessorRaw = readImmutableGitFile(root, comparisonBaseSha, "quality/baseline.json");
+    if (baseline.admission.bootstrap) return validateBootstrapPredecessor(root, baseline, predecessorRaw);
+    const [report, rawCoverage] = await Promise.all([
+      readJson<VitestJsonReport>(resolve(root, baseline.source.report)),
+      readJson<CoverageSummary>(resolve(root, baseline.source.coverage)),
+    ]);
+    return validateEstablishedPredecessor(
+      root, baseline, predecessorRaw, comparisonBaseSha,
+      report, normalizeComponentCoveragePaths(rawCoverage, root),
+    );
+  } catch (error) {
+    return [{
+      code: "COMPONENT_BASELINE_PREDECESSOR_VALIDATION_FAILED",
+      message: `Immutable predecessor admission could not be recomputed: ${String(error)}`,
+    }];
+  }
+}
+
+async function validateEmbeddedBaselineCoverage(
+  root: string,
+  baseline: ComponentBaseline,
+): Promise<QualityFinding[]> {
+  try {
+    const raw = await readFile(resolve(root, baseline.source.coverage));
+    if (sha256(raw) !== baseline.source.coverage_sha256) return [];
+    const reconstructed = normalizeComponentCoveragePaths(
+      JSON.parse(raw.toString()) as CoverageSummary,
+      root,
+    );
+    return JSON.stringify(reconstructed) === JSON.stringify(baseline.coverage) ? [] : [{
+      code: "COMPONENT_BASELINE_EMBEDDED_COVERAGE_MISMATCH",
+      message: "Canonical baseline embedded coverage does not match its hash-bound source coverage",
+      path: baseline.source.coverage,
+    }];
+  } catch {
+    return [];
+  }
 }
 
 export function validateCanonicalGenerationBindings(input: {
@@ -1154,7 +1580,7 @@ function validateGenerationByteBindings(
   if (sha256(input.validationRaw) !== input.expectedValidationSha256) {
     findings.push({ code: "GENERATION_ADMISSION_DRIFT", message: "Admission validation artifact changed before canonical generation" });
   }
-  if (!validationApprovesInventory(validation, inventorySha, inventory.source?.candidate_digest)) {
+  if (!validationApprovesInventory(validation, inventorySha, inventory)) {
     findings.push({ code: "GENERATION_ADMISSION_BINDING_MISMATCH", message: "Admission validation no longer binds the exact inventory and candidate" });
   }
   if (sha256(input.reportRaw) !== inventory.source?.artifact_sha256) {
@@ -1210,8 +1636,8 @@ function validateEmbeddedBaselineLineage(
   const measurement = baseline.source.measurement;
   const retained = inventory.source?.measurement;
   const digest = candidateDigest(candidate.record);
-  const validationAuthors = Array.isArray(validation.data?.author_ids)
-    ? [...validation.data.author_ids].sort()
+  const inventoryAuthors = Array.isArray(inventory.admission?.author_ids)
+    ? inventory.admission.author_ids
     : [];
   const valid = [
     digest === candidate.digest,
@@ -1235,9 +1661,13 @@ function validateEmbeddedBaselineLineage(
     measurement.report_sha256 === retained?.report?.sha256,
     measurement.coverage_sha256 === baseline.source.coverage_sha256,
     measurement.coverage_sha256 === retained?.coverage?.sha256,
-    JSON.stringify(baseline.admission.author_ids) === JSON.stringify(validationAuthors),
+    JSON.stringify(baseline.admission.author_ids) === JSON.stringify(inventoryAuthors),
+    JSON.stringify(validation.data?.author_ids) === JSON.stringify(inventoryAuthors),
     baseline.admission.quality_reviewer === reviews[0]?.reviewer,
     baseline.admission.security_reviewer === reviews[1]?.reviewer,
+    baseline.admission.bootstrap === validation.data?.bootstrap,
+    baseline.admission.bootstrap === inventory.admission?.bootstrap,
+    baseline.admission.predecessor_baseline_sha256 === validation.data?.predecessor_baseline_sha256,
   ].every(Boolean);
   return valid ? [] : [{
     code: "COMPONENT_BASELINE_EMBEDDED_LINEAGE_MISMATCH",
@@ -1249,15 +1679,20 @@ export async function validateCanonicalBaselineArtifacts(
   root: string,
   baseline: ComponentBaseline | unknown,
 ): Promise<QualityFinding[]> {
-  const findings = validateComponentBaseline(baseline);
+  const findings = [
+    ...validateCanonicalBaselineSchema(baseline),
+    ...validateComponentBaseline(baseline),
+  ];
   if (findings.some((finding) => finding.code.startsWith("COMPONENT_BASELINE_"))) {
     return findings;
   }
 
   const canonical = baseline as ComponentBaseline;
   findings.push(...await validateBaselineArtifactHashes(root, canonical));
+  findings.push(...await validateEmbeddedBaselineCoverage(root, canonical));
   findings.push(...await validateBaselineInventory(root, canonical));
   findings.push(...await validateBaselineValidationArtifact(root, canonical));
+  findings.push(...await validateImmutablePredecessorAdmission(root, canonical));
   let inventory: BaselineInventory = {};
   let validation: BaselineValidation = {};
   try {
@@ -1272,8 +1707,8 @@ export async function validateCanonicalBaselineArtifacts(
     // The validation-artifact validator above already records the malformed artifact.
   }
   const reviews = await readBaselineReviews(root, canonical);
-  const validationAuthors = Array.isArray(validation.data?.author_ids) ? validation.data.author_ids : [];
-  findings.push(...validateBaselineReviews(canonical, inventory.source?.candidate_digest, validationAuthors, reviews));
+  const inventoryAuthors = Array.isArray(inventory.admission?.author_ids) ? inventory.admission.author_ids : [];
+  findings.push(...validateBaselineReviews(canonical, inventory.source?.candidate_digest, inventoryAuthors, reviews));
   findings.push(...validateEmbeddedBaselineLineage(canonical, inventory, validation, reviews));
   return findings;
 }
@@ -1331,33 +1766,51 @@ function findComponentCoverageRegressions(
   coverage: CoverageSummary,
   baselineCoverage: CoverageSummary,
 ): QualityFinding[] {
-  const malformed = validateCurrentCoverageShape(coverage);
-  if (malformed.length > 0 || !coverageSummaryIsComplete(baselineCoverage)) return malformed.length > 0 ? malformed : [{
+  const malformed = validateComponentCoverageSummary(coverage);
+  if (malformed.length > 0 || validateComponentCoverageSummary(baselineCoverage).length > 0) return malformed.length > 0 ? malformed : [{
     code: "COMPONENT_BASELINE_SHAPE_MALFORMED",
     message: "Component baseline coverage is malformed",
   }];
-  const findings: QualityFinding[] = [];
-  for (const [file, baselineMetrics] of Object.entries(baselineCoverage)) {
-    const currentMetrics = coverage[file];
-    if (!currentMetrics) {
-      findings.push({
-        code: "COMPONENT_COVERAGE_FILE_MISSING",
-        message: `Coverage no longer reports ${file}`,
-        path: file,
-      });
-      continue;
-    }
-    for (const metric of coverageMetrics) {
-      if (currentMetrics[metric].pct < baselineMetrics[metric].pct) {
-        findings.push({
-          code: "COMPONENT_COVERAGE_REGRESSION",
-          message: `${file} ${metric} coverage ${currentMetrics[metric].pct} is below baseline ${baselineMetrics[metric].pct}`,
-          path: file,
-        });
-      }
-    }
-  }
-  return findings;
+  const files = new Set([...Object.keys(baselineCoverage), ...Object.keys(coverage)]);
+  return [...files].sort().flatMap((file) => componentCoverageFileRegressions(file, coverage[file], baselineCoverage[file]));
+}
+
+function componentCoverageFileRegressions(
+  file: string,
+  currentMetrics: CoverageMetrics | undefined,
+  baselineMetrics: CoverageMetrics | undefined,
+): QualityFinding[] {
+  if (!currentMetrics) return [{ code: "COMPONENT_COVERAGE_FILE_MISSING", message: `Coverage no longer reports ${file}`, path: file }];
+  if (!baselineMetrics) return coverageMetrics.flatMap((metric) => newCoverageFileMetricRegression(file, metric, currentMetrics[metric]));
+  return coverageMetrics.flatMap((metric) => existingCoverageFileMetricRegression(file, metric, currentMetrics[metric], baselineMetrics[metric]));
+}
+
+function newCoverageFileMetricRegression(file: string, metric: CoverageMetric, current: CoverageValue): QualityFinding[] {
+  const currentUncovered = current.total - current.covered;
+  if (currentUncovered === 0) return [];
+  return [{
+    code: "COMPONENT_COVERAGE_REGRESSION",
+    message: `${file} ${metric} introduces ${currentUncovered} uncovered item(s) beyond the baseline file set`,
+    path: file,
+  }];
+}
+
+function existingCoverageFileMetricRegression(
+  file: string,
+  metric: CoverageMetric,
+  current: CoverageValue,
+  baseline: CoverageValue,
+): QualityFinding[] {
+  const currentUncovered = current.total - current.covered;
+  const baselineUncovered = baseline.total - baseline.covered;
+  const uncoveredRegressed = currentUncovered > baselineUncovered;
+  const unsafeDenominatorShrink = file !== "total" && current.total < baseline.total && currentUncovered !== baselineUncovered;
+  if (!uncoveredRegressed && !unsafeDenominatorShrink) return [];
+  return [{
+    code: "COMPONENT_COVERAGE_REGRESSION",
+    message: `${file} ${metric} uncovered count ${currentUncovered} is worse or less trustworthy than baseline ${baselineUncovered}`,
+    path: file,
+  }];
 }
 
 export function compareComponentRatchet(
@@ -1372,7 +1825,7 @@ export function compareComponentRatchet(
   if (findings.some((finding) => finding.code.startsWith("COMPONENT_BASELINE_"))) {
     return findings;
   }
-  const coverageFindings = validateCurrentCoverageShape(coverage);
+  const coverageFindings = validateComponentCoverageSummary(coverage);
   if (coverageFindings.length > 0) return [...findings, ...coverageFindings];
 
   findings.push(...findNewComponentFailures(normalized.failures, baseline.allowed_failures));

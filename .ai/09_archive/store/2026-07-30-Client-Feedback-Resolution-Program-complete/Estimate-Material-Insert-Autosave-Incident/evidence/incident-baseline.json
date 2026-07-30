@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-07-28T10:06:38.426Z",
+  "sourceRevision": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+  "screenshot": {
+    "sourcePath": "C:/Users/phili/AppData/Local/Temp/codex-clipboard-40d3fbf1-c172-44e8-9863-219ef97c0819.png",
+    "sha256": "1745df9b50bc3b92825ea094f79763dbf8a42e934dc717b48f875c3c0673bb55",
+    "sizeBytes": 58001,
+    "surfaceLabel": "Estimate learning",
+    "saveStatusLabel": "Edits save automatically",
+    "visibleMessageClass": "opaque-next-server-components-error",
+    "mappedSource": "src/components/workshop/EstimateSheetContent.tsx",
+    "provenance": "user-attached screenshot fingerprinted on 2026-07-28",
+    "causalityBoundary": "Proves the autosave surface and message class only; it does not expose the hidden exception or correlate a historical runtime record to the user's exact session."
+  },
+  "historicalRuntimeEvidence": [
+    {
+      "recordId": "2026-07-26T18:03:51.125Z-pid36296-2",
+      "method": "POST",
+      "route": "/workshop/projects/[projectId]/estimates/[nodeId]",
+      "routeType": "action",
+      "sanitizedCause": "Estimate row item not found in the current project.",
+      "classification": "supporting-historical-action-evidence"
+    },
+    {
+      "recordIds": [
+        "2026-07-26T18:50:20.205Z-pid37628-114",
+        "2026-07-26T18:50:20.214Z-pid37628-115"
+      ],
+      "route": "/workshop/getting-started",
+      "sanitizedCause": "No QueryClient set, use QueryClientProvider to set one",
+      "classification": "separate-observation-not-screenshot-cause"
+    }
+  ],
+  "deterministicReproduction": {
+    "test": "cancels rapid edits when their normal library row insert fails and permits a same-row retry",
+    "command": "bun x vitest run tests/vitest/estimate-row-mutation-coordinator.test.tsx -t <failed-insert-case>",
+    "beforeFix": {
+      "result": "FAIL",
+      "observed": "updateEstimateRowItem called once after insert rejection"
+    },
+    "afterFix": {
+      "result": "PASS",
+      "observed": "dependent update canceled before server action"
+    }
+  },
+  "focusedSuite": {
+    "command": "bun x vitest run tests/vitest/estimate-row-mutation-coordinator.test.tsx",
+    "result": "PASS",
+    "tests": 18
+  },
+  "graph": {
+    "impactResult": "UNKNOWN",
+    "reason": "GitNexus index could not resolve the nested coordinator or parent hook before edits",
+    "manualBlastRadius": "all estimate row commands share the coordinator",
+    "implementationConstraint": "only pending row-creation dependencies fail closed",
+    "postEditSharedWorktreeRisk": "HIGH",
+    "postEditAttribution": "The compare-main result covers 50 shared-worktree files and six unrelated client-portal flows; it did not resolve this estimate hook."
+  },
+  "worktree": {
+    "shared": true,
+    "unrelatedChangesPresent": true,
+    "preservationRequired": true
+  }
+}

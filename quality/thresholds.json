@@ -10,7 +10,7 @@
     "allow_regression": false,
     "baseline_required": true,
     "baseline_path": "quality/baseline.json",
-    "baseline_status": "PENDING",
+    "baseline_status": "ADMITTED",
     "legacy_targets": {
       "statements": 90,
       "lines": 90,

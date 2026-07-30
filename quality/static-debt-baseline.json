@@ -5,7 +5,7 @@
   "measurement": {
     "scope": "legacy repository debt measured before static no-new-debt enforcement",
     "command": "knip --reporter json --include files,dependencies,unlisted,unresolved,exports,nsExports,types,nsTypes,enumMembers,namespaceMembers,duplicates,cycles",
-    "issue_count": 827
+    "issue_count": 825
   },
   "measured_legacy_issues": [
     {
@@ -47,11 +47,6 @@
       "type": "duplicates",
       "file": "src/lib/component-library/unit-options.ts",
       "symbol": "CONTENT_UNIT_OPTIONS <-> PACKAGE_UNIT_OPTIONS"
-    },
-    {
-      "type": "duplicates",
-      "file": "src/lib/publisher/roster-filter.ts",
-      "symbol": "parsePublisherRosterFilters <-> parseRosterFilters"
     },
     {
       "type": "exports",
@@ -1187,11 +1182,6 @@
       "type": "exports",
       "file": "src/lib/client-portal/issue-builder.ts",
       "symbol": "ClientPortalIssueBuildError"
-    },
-    {
-      "type": "exports",
-      "file": "src/lib/client-portal/legacy-migration-service.ts",
-      "symbol": "LegacyClientPortalMigrationError"
     },
     {
       "type": "exports",

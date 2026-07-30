@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "kind": "baseline-admission",
+  "status": "PASS",
+  "generated_at": "2026-07-30T06:22:22.839Z",
+  "summary": "Baseline admission validation passed for 0 record(s)",
+  "findings": [],
+  "data": {
+    "phase": "admission",
+    "inventory": "quality/baselines/component/inventory.json",
+    "inventory_sha256": "eb3fd1f856dacbf82ef2f1c508ca9b61bd49d3cc2b9dbff429418bdcd6d532ac",
+    "candidate_digest": "f7fbede0b360ca24c2b38a1cde9cdd414acd36e5a6f9643e6a3a5eb02d3d11be",
+    "record_count": 0,
+    "author_ids": [
+      "codex-lead"
+    ],
+    "review_source": "local-agent",
+    "reviewer_identity_assurance": "asserted-local",
+    "author_identity_assurance": "asserted-local",
+    "quality_review_sha256": "72af043c62f9f3e58a6ebda8c7a41c15a2c82233ebd012521a97f6876c2f362a",
+    "security_review_sha256": "48ec4bdb12b80bb1bb3c29608a735a7bf4cf9c0edb612bb6fb486c2e21556edc",
+    "bootstrap": true,
+    "predecessor_baseline_sha256": null
+  }
+}

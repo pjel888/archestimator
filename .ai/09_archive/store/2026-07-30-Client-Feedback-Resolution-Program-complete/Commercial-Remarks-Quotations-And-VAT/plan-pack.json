@@ -1,0 +1,1210 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-07-28-commercial-remarks-quotations-vat",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "READY",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "next_unit": null,
+  "updated_at": "2026-07-30T05:40:00.000Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "baseline": {
+    "head": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d",
+    "scoped_status_sha256": "fbb7459e2e339b1dd66727f755111e7a8c05e804aeb2f0bf77f8ddcdba899fd0",
+    "scoped_diff_sha256": "0c40866e2d621e2379e5d5c637451a21317ca1cde47a9747652430f70908c7e4"
+  },
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "4a80df3c77e1b069be8829dc4d6fdc546f173482f1cf89f1d7d66e886a686135"
+    },
+    {
+      "id": "ART-999",
+      "role": "evidence",
+      "path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "title": "PP-D-R assignment and sanitized raw .ai/03_plans/2026-07-28/Client-Feedback-Resolution-Program/evidence/client-feedback.md",
+      "source_revision": "owner-feedback@2026-07-28",
+      "affected_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "SEC-001",
+        "UX-001",
+        "DATA-002",
+        "OPS-002",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "title": "Completed analyst attachment and current estimate row, starter snapshot, proposal VAT, preference, and mutation source",
+      "source_revision": "214fd2af3564c6c90d6bb46a7f2f7bd19faa811d@observed-2026-07-28-dirty-worktree-preserved",
+      "affected_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "UX-001",
+        "DATA-002",
+        "OPS-002"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "title": "Private project quotation artifacts, immutable versions, scan controls, project ownership, and authorization source",
+      "source_revision": "project-artifacts@214fd2af3564c6c90d6bb46a7f2f7bd19faa811d+unfamiliar-diff-preserved",
+      "affected_ids": [
+        "SEC-001",
+        "UX-001",
+        "DATA-002",
+        "OPS-002"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "title": "Migration allocation and Variants generic additive-edge dependency",
+      "source_revision": "governance-0126_variants-0127_commercial-0128_assemblies-0129@owner-correction-2026-07-28",
+      "affected_ids": [
+        "REQ-001",
+        "OPS-001",
+        "DATA-002",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "title": "Money-Math, Estimate Mutation Integrity, xlsx-export, publication privacy, and shared contribution ownership contracts",
+      "source_revision": "active-packs@observed-2026-07-28",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001",
+        "DATA-002",
+        "OPS-002",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    },
+    {
+      "id": "SRC-006",
+      "status": "CURRENT",
+      "title": "Canonical planning, D1, Q2, validation, performance, and shared-worktree policies",
+      "source_revision": "local-contracts@2026-07-28",
+      "affected_ids": [
+        "OPS-001",
+        "SEC-001",
+        "UX-001",
+        "OPS-002",
+        "OPS-003"
+      ],
+      "artifact_path": "00-PLAN.md"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "DATA-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-005",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "OPS-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-004",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-003",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "DATA-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "OPS-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-005",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-003",
+        "AC-004"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "RISK-006",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-003",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-007",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-005",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-008",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-006",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-009",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-010",
+      "status": "MITIGATED",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-006",
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The notes read projection is currently incomplete and migration must prove nested variant notes never manufacture client-visible row Remarks.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Commercial-owned price-option VAT sidecars, atomic selection snapshots, row-first precedence, variant switches, and exact minor-unit inclusive extraction require example and generated property evidence against the shared Money-Math contract.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Migration 0128 option/row VAT persistence, deterministic captured snapshots, explicit-first backfill, additive 12 percent fallback, quotation non-inference, and inventory order require fresh local D1 proof.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "SEC-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Quotation status and attachment truth plus clean-scan, immutable-version, ownership, edit authorization, attach-then-archive/reject/scan-fail lifecycle, fail-closed download/export, and safe-error behavior need adversarial tests.",
+      "test_ids": [
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001",
+        "UX-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The compact three-control column, persisted visibility, unambiguous VAT labels, accessibility, device behavior, and cap performance do not exist.",
+      "test_ids": [
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "SEC-001",
+        "DATA-002"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Structured row/selected-option snapshots, safe attachment-state projection, consolidation, four summaries, transient VAT replacement, generic additive-edge parity, and client redaction need deterministic export/publication evidence.",
+      "test_ids": [
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-002"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Terms must join the canonical revision, transaction, receipt, history, optimistic rollback/rejection, and collaboration boundary without split writes.",
+      "test_ids": [
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "OPS-003"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Q2 requires full relevant suites, 100 percent changed branches, mutation, browser/performance/privacy evidence, and independent reviews.",
+      "test_ids": [
+        "TEST-008"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "TEST-008",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-008"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-DOMAIN-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-SECURITY-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-004",
+        "AC-006",
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-006",
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-UX-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-EXPORT-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-VERIFY-01",
+      "status": "PASS",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006",
+        "EVID-007",
+        "EVID-008"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "SEC-001",
+        "UX-001",
+        "DATA-002",
+        "OPS-002",
+        "OPS-003"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "UNIT-002",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "OPS-001",
+        "SEC-001"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "UNIT-003",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-002"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "DATA-002",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-006",
+        "RISK-008",
+        "RISK-009"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-004",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-003"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "SEC-001",
+        "UX-001",
+        "OPS-002"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "UNIT-005",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-004"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "SEC-001",
+        "DATA-002"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-005",
+        "RISK-006",
+        "RISK-008",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "UNIT-006",
+      "status": "VERIFIED",
+      "artifact_path": "00-PLAN.md",
+      "depends_on": [
+        "UNIT-005"
+      ],
+      "requirement_ids": [
+        "DATA-001",
+        "REQ-001",
+        "OPS-001",
+        "SEC-001",
+        "UX-001",
+        "DATA-002",
+        "OPS-002",
+        "OPS-003"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005",
+        "RISK-006",
+        "RISK-007",
+        "RISK-008",
+        "RISK-009",
+        "RISK-010"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-004",
+        "EVID-005",
+        "EVID-006",
+        "EVID-007",
+        "EVID-008"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "AC-001"
+      ],
+      "rationale": "EstimateRowItem.notes is already canonical; nested variant notes remain private nested data and never manufacture row Remarks."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-003",
+        "UNIT-005",
+        "AC-002",
+        "AC-006"
+      ],
+      "rationale": "An atomic treatment/rate pair resolves by explicit row override, captured selected-price-option default, estimate, then project without cross-level mixing; Commercial 0128 owns both option sidecar and row snapshot."
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "UNIT-003",
+        "AC-002"
+      ],
+      "rationale": "Basis points plus shared checked integer roundDiv semantics provide documented exclusive addition, inclusive extraction, and exempt zero VAT."
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "OPS-001",
+        "UNIT-002",
+        "AC-003"
+      ],
+      "rationale": "Commercial alone owns 0128 project/estimate defaults, price-option VAT sidecars, captured row snapshots/terms, and visibility between Variants 0127 and Assemblies 0129; inventory drift is a stale trigger."
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "UNIT-002",
+        "UNIT-004",
+        "AC-004"
+      ],
+      "rationale": "Row-owned quotation requirement, status, reference, and attachment truth are orthogonal; generic attachments and requiresQuote never imply Available, and option records contain no quotation fields."
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "SEC-001",
+        "UNIT-004",
+        "AC-004"
+      ],
+      "rationale": "Only same-project clean or approved immutable private quotation versions may link; live policy revalidation projects later-invalid links unavailable, denies download/export identity, and preserves business status plus audit history."
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UX-001",
+        "UNIT-004",
+        "AC-005"
+      ],
+      "rationale": "One compact Commercial column contains separately labelled structured Remarks, Quotation, and VAT controls with persisted visibility."
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "UNIT-005",
+        "AC-006"
+      ],
+      "rationale": "Exports freeze structured terms and replace transient percentage-or-included VAT rather than maintain a dual path."
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "DATA-002",
+        "OPS-003",
+        "UNIT-005",
+        "UNIT-006",
+        "AC-006",
+        "AC-008"
+      ],
+      "rationale": "Commercial completes against the final Variants generic additive-edge port with synthetic contributions; downstream Assemblies 0129 then proves real integrated parity."
+    }
+  ],
+  "authorization_boundaries": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-006",
+        "AC-001",
+        "TEST-001",
+        "GATE-DOMAIN-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-006",
+        "AC-002",
+        "TEST-002",
+        "GATE-DOMAIN-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-002",
+        "UNIT-006",
+        "AC-003",
+        "TEST-003",
+        "GATE-DOMAIN-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-004",
+        "UNIT-006",
+        "AC-004",
+        "TEST-004",
+        "GATE-SECURITY-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-004",
+        "UNIT-006",
+        "AC-005",
+        "TEST-005",
+        "GATE-UX-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-005",
+        "UNIT-006",
+        "AC-006",
+        "TEST-006",
+        "GATE-SECURITY-01",
+        "GATE-EXPORT-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-003",
+        "UNIT-006",
+        "AC-007",
+        "TEST-007",
+        "GATE-DOMAIN-01",
+        "GATE-SECURITY-01",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-008",
+      "status": "PASS",
+      "artifact_path": "evidence/IMPLEMENTATION-CLOSEOUT-2026-07-30.md",
+      "claim_ids": [
+        "UNIT-006",
+        "AC-008",
+        "TEST-008",
+        "GATE-VERIFY-01"
+      ],
+      "source_revision": "3dc6252ce57e97c8c16dd52e43e97690c7c53d2f83d6dfd9ba6d99fe507a0019",
+      "sha256": "09fca58791c41d60b18b7690a116e132ced06519253f401f697ca9e52e44a098",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [],
+  "stale_triggers": [
+    "migration inventory no longer allocates 0126 governance, 0127 variants, 0128 commercial, and 0129 assemblies in that exact order",
+    "another pack creates, reserves, renames, or applies migration 0128",
+    "variants changes selected-option identity, selection or linked-refresh mutation, generic additive-edge port, or exactly-once contribution semantics; Commercial remains sole owner of option VAT sidecars and captured row terms",
+    "commercial becomes dependent on assemblies implementation instead of completing before downstream migration 0129",
+    "nested variant notes are proposed for copying, concatenation, promotion, or backfill into instance-owned EstimateRowItem.notes",
+    "money-math changes currency scale, checked integer operations, calculation version, or roundDiv tie behavior",
+    "mutation integrity changes row revision, receipt, history, rollback, rejection, or collaboration authority",
+    "xlsx-export retains ownership or changes proposal model, workbook, preview, consolidation, or frozen snapshot contracts",
+    "current unfamiliar edits in project-artifacts/contracts.ts or client-portal/issue-source-projection.ts change or remain unhanded",
+    "estimate row notes, selected-option identity, component price-option persistence, source snapshots, starter taxTreatment/requiresQuote, proposal VAT, project artifacts, or preference schema changes",
+    "an overlapping writer changes EstimateSheetContent.tsx, AddComponentModal.tsx, component mutation, editable-row-model.ts, column-model.ts, proposal-export, publication, or artifact paths",
+    "client wording changes the three structured commercial groups, quotation orthogonality, or VAT Exclusive versus VAT Exempt distinction",
+    "canonical performance budgets, 1500-node 5000-row cap, Q2 thresholds, browser projects, privacy policy, or Cloudflare bindings change",
+    "GitNexus becomes current or reports HIGH or CRITICAL impact inconsistent with this plan"
+  ],
+  "manifest_sha256": "7dc8aed7e495bc9210882afe1d3c112dc5f7df6cfaa0197fbbf62d97a5ddf58f"
+}

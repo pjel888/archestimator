@@ -54,10 +54,13 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "critical"],
+        "required": ["id", "name", "owners", "evidence_kinds", "critical"],
         "properties": {
           "id": { "type": "string", "pattern": "^CAP-[A-Z0-9-]+$" },
           "name": { "type": "string", "minLength": 1 },
+          "owners": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "evidence_kinds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "must_fix": { "type": "boolean" },
           "critical": { "const": true }
         }
       }
@@ -65,15 +68,21 @@
     "admission": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["phase", "status", "open_must_fix_records", "proposed_ratchet_records", "quality_review", "security_review"],
+      "required": ["phase", "status", "bootstrap", "author_ids", "open_must_fix_records", "proposed_ratchet_records", "quality_review", "security_review"],
       "properties": {
         "phase": { "enum": ["draft", "admission"] },
         "status": { "enum": ["draft", "review_pending"] },
+        "bootstrap": { "type": "boolean" },
+        "author_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" } },
         "open_must_fix_records": { "$ref": "#/$defs/count" },
         "proposed_ratchet_records": { "$ref": "#/$defs/count" },
         "quality_review": { "$ref": "#/$defs/reviewPointer" },
         "security_review": { "$ref": "#/$defs/reviewPointer" }
-      }
+      },
+      "allOf": [{
+        "if": { "properties": { "phase": { "const": "admission" } }, "required": ["phase"] },
+        "then": { "properties": { "author_ids": { "minItems": 1 } } }
+      }]
     },
     "identity_derivation": {
       "type": "object",

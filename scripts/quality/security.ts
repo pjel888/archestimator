@@ -16,7 +16,7 @@ import {
 } from "./security-gate-core";
 import { isScannableSecurityPath } from "./security-secret-core";
 
-const MAX_SCANNED_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_SCANNED_FILE_BYTES = 32 * 1024 * 1024;
 const { flags } = parseArgs();
 const root = qualityRoot();
 const outputPath = resolve(

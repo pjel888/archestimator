@@ -64,7 +64,9 @@
         "security_reviewer",
         "review_source",
         "reviewer_identity_assurance",
-        "author_identity_assurance"
+        "author_identity_assurance",
+        "bootstrap",
+        "predecessor_baseline_sha256"
       ],
       "properties": {
         "inventory": { "const": "quality/baselines/component/inventory.json" },
@@ -82,12 +84,19 @@
         },
         "security_review_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
         "candidate_digest": { "$ref": "#/$defs/sha256" },
-        "author_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "author_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" } },
         "quality_reviewer": { "type": "string", "minLength": 1 },
         "security_reviewer": { "type": "string", "minLength": 1 },
         "review_source": { "const": "local-agent" },
         "reviewer_identity_assurance": { "const": "asserted-local" },
-        "author_identity_assurance": { "const": "asserted-local" }
+        "author_identity_assurance": { "const": "asserted-local" },
+        "bootstrap": { "type": "boolean" },
+        "predecessor_baseline_sha256": {
+          "anyOf": [
+            { "type": "null" },
+            { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          ]
+        }
       }
     },
     "suite": {
@@ -156,6 +165,7 @@
         "properties": {
           "statements": { "$ref": "#/$defs/coverageValue" },
           "branches": { "$ref": "#/$defs/coverageValue" },
+          "branchesTrue": { "$ref": "#/$defs/coverageValue" },
           "functions": { "$ref": "#/$defs/coverageValue" },
           "lines": { "$ref": "#/$defs/coverageValue" }
         }

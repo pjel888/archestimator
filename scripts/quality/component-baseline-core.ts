@@ -1,5 +1,5 @@
 import { posix, relative, resolve, sep } from "node:path";
-import { COMPONENT_BASELINE_MEASUREMENT_COMMAND, globMatches, type ComponentBaseline, type ComponentEvidenceMap, type CoverageSummary, type VitestAssertion, type VitestFileResult, type VitestJsonReport } from "./component-core";
+import { COMPONENT_BASELINE_MEASUREMENT_COMMAND, globMatches, normalizeComponentCoveragePaths, validateVitestReportConsistency, type ComponentBaseline, type ComponentEvidenceMap, type CoverageSummary, type VitestAssertion, type VitestFileResult, type VitestJsonReport } from "./component-core";
 import { sha256, type QualityFinding } from "./common";
 import { candidateDigest, type CandidateRecord } from "./candidate-core";
 
@@ -67,6 +67,8 @@ export interface BaselineInventory {
   admission: {
     phase: "draft" | "admission";
     status: "draft" | "review_pending";
+    bootstrap: boolean;
+    author_ids: string[];
     open_must_fix_records: number;
     proposed_ratchet_records: number;
     quality_review: { status: "pending"; artifact: string };
@@ -100,6 +102,8 @@ export interface InventoryBuildInput {
   proposals?: Record<string, RatchetProposal>;
   infrastructureFailure?: string;
   phase?: "draft" | "admission";
+  bootstrap?: boolean;
+  authorIds?: string[];
   qualityReviewPath?: string;
   securityReviewPath?: string;
 }
@@ -263,6 +267,8 @@ export interface CanonicalBaselineInput {
   securityReviewer: string;
   candidateRecord: CandidateRecord;
   authorIds: string[];
+  bootstrap: boolean;
+  predecessorBaselineSha256: string | null;
 }
 
 const failureKinds: BaselineFailureKind[] = [
@@ -363,25 +369,17 @@ function rawRecords(input: InventoryBuildInput): RawRecord[] {
   if (input.infrastructureFailure) {
     records.push({ file: "<runner>", test: "<infrastructure>", kind: "infrastructure_failure", signature: normalizeFailureSignature(input.infrastructureFailure) });
   }
-  if (!Array.isArray(input.report.testResults) || typeof input.report.success !== "boolean") {
-    records.push({ file: "<report>", test: "<shape>", kind: "malformed_evidence", signature: "Vitest report lacks success or testResults" });
-  }
-  records.push(...reportConsistencyRecords(input.report, records));
+  records.push(...reportConsistencyRecords(input.report, input.root));
   return records;
 }
 
-function reportConsistencyRecords(report: VitestJsonReport, records: RawRecord[]): RawRecord[] {
-  const findings: RawRecord[] = [];
-  const failed = records.filter((record) => record.kind === "failed_test").length;
-  const skipped = records.filter((record) => record.kind === "skipped_test" || record.kind === "skipped_file").length;
-  if (typeof report.numFailedTests === "number" && report.numFailedTests !== failed) findings.push(malformedCounter("numFailedTests", report.numFailedTests, failed));
-  if (typeof report.numPendingTests === "number" && report.numPendingTests !== skipped) findings.push(malformedCounter("numPendingTests", report.numPendingTests, skipped));
-  if (report.success === false && records.length === 0) findings.push({ file: "<report>", test: "<success>", kind: "malformed_evidence", signature: "Vitest reported unsuccessful execution without a leaf failure" });
-  return findings;
-}
-
-function malformedCounter(name: string, reported: number, observed: number): RawRecord {
-  return { file: "<report>", test: `<${name}>`, kind: "malformed_evidence", signature: `${name}:${reported};observed:${observed}` };
+function reportConsistencyRecords(report: VitestJsonReport, root: string): RawRecord[] {
+  return validateVitestReportConsistency(report, root).map((finding, index) => ({
+    file: "<report>",
+    test: `<consistency-${index}>`,
+    kind: "malformed_evidence",
+    signature: finding.message,
+  }));
 }
 
 function recordClassification(kind: BaselineFailureKind, critical: boolean): BaselineClassification {
@@ -456,6 +454,8 @@ export function buildBaselineInventory(input: InventoryBuildInput): BaselineInve
     admission: {
       phase,
       status: phase === "draft" ? "draft" : "review_pending",
+      bootstrap: input.bootstrap === true,
+      author_ids: [...new Set(input.authorIds ?? [])].sort(),
       open_must_fix_records: openMustFix,
       proposed_ratchet_records: proposedRatchets,
       quality_review: { status: "pending", artifact: input.qualityReviewPath ?? "quality/reviews/component-baseline-quality.md" },
@@ -503,6 +503,21 @@ function validateInventoryAdmissionCount(inventory: BaselineInventory): QualityF
   return inventory.admission?.open_must_fix_records === open ? [] : [{ code: "ADMISSION_OPEN_COUNT", message: `admission.open_must_fix_records must be ${open}` }];
 }
 
+function validateInventoryAuthorIds(inventory: BaselineInventory): QualityFinding[] {
+  const authors = inventory.admission?.author_ids;
+  if (!Array.isArray(authors) || authors.some((author) => typeof author !== "string" || !/^[A-Za-z0-9_-]+$/u.test(author))) {
+    return [{ code: "ADMISSION_AUTHOR_IDS", message: "admission.author_ids must contain normalized author identities" }];
+  }
+  const normalized = [...new Set(authors)].sort();
+  if (JSON.stringify(authors) !== JSON.stringify(normalized)) {
+    return [{ code: "ADMISSION_AUTHOR_IDS", message: "admission.author_ids must be sorted and unique" }];
+  }
+  if (inventory.admission.phase === "admission" && authors.length === 0) {
+    return [{ code: "ADMISSION_AUTHOR_IDS", message: "Admission inventory must bind the complete author identity list" }];
+  }
+  return [];
+}
+
 export function validateInventorySemantics(inventory: BaselineInventory, now: number): QualityFinding[] {
   if (!inventory || typeof inventory !== "object" || !Array.isArray(inventory.records) || inventory.records.some((record) => !record || typeof record !== "object" || !Array.isArray(record.critical_capability_ids) || !record.acceptance || typeof record.acceptance !== "object")) {
     return [{ code: "INVENTORY_STRUCTURE_INVALID", message: "Inventory structure is invalid; semantic validation stopped" }];
@@ -513,10 +528,14 @@ export function validateInventorySemantics(inventory: BaselineInventory, now: nu
     ...(inventory.records ?? []).flatMap((record) => validateRecordSemantics(record, now, ids, identities)),
     ...validateInventoryCounts(inventory),
     ...validateInventoryAdmissionCount(inventory),
+    ...validateInventoryAuthorIds(inventory),
   ];
 }
 
 export function buildCanonicalBaseline(input: CanonicalBaselineInput): ComponentBaseline {
+  const reportFindings = validateVitestReportConsistency(input.report, input.root);
+  if (reportFindings.length > 0) throw new Error(reportFindings.map((finding) => finding.message).join("; "));
+  const coverage = normalizeComponentCoveragePaths(input.coverage, input.root);
   const failures = input.inventory.records
     .filter((record) => record.classification === "ratchet_noncritical" && record.status === "proposed")
     .map((record) => ({
@@ -562,9 +581,11 @@ export function buildCanonicalBaseline(input: CanonicalBaselineInput): Component
       review_source: "local-agent",
       reviewer_identity_assurance: "asserted-local",
       author_identity_assurance: "asserted-local",
+      bootstrap: input.bootstrap,
+      predecessor_baseline_sha256: input.predecessorBaselineSha256,
     },
     suite: { test_files: testFiles, total_tests: input.report.numTotalTests ?? 0 },
     allowed_failures: failures,
-    coverage: input.coverage,
+    coverage,
   };
 }

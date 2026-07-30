@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
+import Ajv2020 from "ajv/dist/2020.js";
+import baselineAdmissionSchema from "../../quality/schemas/baseline-admission.schema.json";
 import {
   finishCli, flagString, makeResult, parseArgs, qualityRoot, sha256,
   type QualityFinding,
@@ -23,18 +25,16 @@ import {
   type CandidateRecord,
 } from "./candidate-core";
 import { resolveComparisonBase, type ComparisonBase } from "./comparison-base-core";
-import type { ComponentEvidenceMap, CoverageSummary, VitestJsonReport } from "./component-core";
-
-interface ReviewDecision {
-  decision?: string;
-  inventorySha?: string;
-  candidateSha?: string;
-  reviewer?: string;
-  role?: string;
-  source?: string;
-  reviewerAssurance?: string;
-  authorAssurance?: string;
-}
+import {
+  compareComponentRatchet,
+  normalizeComponentCoveragePaths,
+  parseBaselineReviewDecision,
+  type ComponentBaseline,
+  type ComponentEvidenceMap,
+  type CoverageSummary,
+  type ReviewDecision,
+  type VitestJsonReport,
+} from "./component-core";
 
 export interface AdmissionValidationOptions {
   root: string;
@@ -43,6 +43,7 @@ export interface AdmissionValidationOptions {
   qualityReviewPath?: string;
   securityReviewPath?: string;
   disallowedReviewers: string[];
+  allowBootstrap?: boolean;
   now: number;
 }
 
@@ -58,6 +59,13 @@ export interface AdmissionValidationData extends Record<string, unknown> {
   author_identity_assurance: "asserted-local";
   quality_review_sha256: string | null;
   security_review_sha256: string | null;
+  bootstrap: boolean;
+  predecessor_baseline_sha256: string | null;
+}
+
+interface PredecessorBaselineBinding {
+  bootstrap: boolean;
+  sha256: string | null;
 }
 
 interface ResolvedReviewPaths {
@@ -68,6 +76,11 @@ interface ResolvedReviewPaths {
 const shaPattern = /^[a-f0-9]{64}$/u;
 const commitPattern = /^[a-f0-9]{40}$/u;
 const candidateSources = new Set(["committed", "staged", "unstaged", "untracked"]);
+const validateInventorySchema = new Ajv2020({
+  allErrors: true,
+  strict: false,
+  validateFormats: false,
+}).compile(baselineAdmissionSchema);
 export const canonicalBaselineEvidencePaths = new Set([
   "quality/baselines/component/source.vitest.json",
   "quality/baselines/component/coverage-summary.json",
@@ -128,7 +141,13 @@ export function validateInventoryStructure(value: unknown): QualityFinding[] {
   if (!isObject(value)) {
     return [{ code: "INVENTORY_STRUCTURE", message: "Inventory must be a JSON object" }];
   }
-  const findings: QualityFinding[] = [];
+  const schemaValid = validateInventorySchema(value);
+  const findings: QualityFinding[] = schemaValid
+    ? []
+    : (validateInventorySchema.errors ?? []).map((error) => ({
+        code: "INVENTORY_SCHEMA_INVALID",
+        message: `${error.instancePath || "/"} ${error.message ?? "does not match the canonical inventory schema"}`,
+      }));
   if (!isObject(value.source)) findings.push({ code: "SOURCE_STRUCTURE", message: "Inventory source must be an object" });
   else findings.push(...sourceStructureFindings(value.source));
   if (!isObject(value.admission)) findings.push({ code: "ADMISSION_STRUCTURE", message: "Inventory admission must be an object" });
@@ -155,6 +174,7 @@ function admissionStructureFindings(admission: Record<string, unknown>): Quality
   const qualityReview = admission.quality_review;
   const securityReview = admission.security_review;
   const valid = typeof admission.phase === "string" && typeof admission.status === "string" &&
+    typeof admission.bootstrap === "boolean" &&
     Number.isInteger(admission.open_must_fix_records) && Number.isInteger(admission.proposed_ratchet_records) &&
     isObject(qualityReview) && typeof qualityReview.artifact === "string" &&
     isObject(securityReview) && typeof securityReview.artifact === "string";
@@ -193,19 +213,6 @@ function validateAdmissionRecords(inventory: BaselineInventory, findings: Qualit
   inventory.records.forEach((record) => validateAdmissionRecord(record, findings));
 }
 
-function parseReview(text: string): ReviewDecision {
-  return {
-    decision: text.match(/(?:Decision|Status)\s*:\s*`?(APPROVE|REJECT)`?/iu)?.[1],
-    inventorySha: text.match(/Inventory SHA-?256\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
-    candidateSha: text.match(/Candidate Digest\s*:\s*`?([a-f0-9]{64})`?/iu)?.[1],
-    reviewer: text.match(/Reviewer\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    role: text.match(/Reviewer Role\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    source: text.match(/Source\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    reviewerAssurance: text.match(/Reviewer Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-    authorAssurance: text.match(/Author Identity Assurance\s*:\s*`?([^`\r\n]+)`?/iu)?.[1]?.trim(),
-  };
-}
-
 export function validateReviewBuffers(input: {
   qualityRaw: Buffer | string;
   securityRaw: Buffer | string;
@@ -214,8 +221,8 @@ export function validateReviewBuffers(input: {
   disallowedReviewers: string[];
 }): { findings: QualityFinding[]; qualityReviewer?: string; securityReviewer?: string } {
   const findings: QualityFinding[] = [];
-  const quality = parseReview(input.qualityRaw.toString());
-  const security = parseReview(input.securityRaw.toString());
+  const quality = parseBaselineReviewDecision(input.qualityRaw.toString());
+  const security = parseBaselineReviewDecision(input.securityRaw.toString());
   validateReviewDecision(quality, "Quality", input.inventorySha256, input.candidateDigest, findings);
   validateReviewDecision(security, "Security", input.inventorySha256, input.candidateDigest, findings);
   validateReviewerSeparation(quality, security, input.disallowedReviewers, findings);
@@ -251,7 +258,7 @@ async function validateReviews(options: AdmissionValidationOptions, inventory: B
     findings.push(...validateReviewBuffers({
       qualityRaw, securityRaw, inventorySha256: inventorySha,
       candidateDigest: inventory.source.candidate_digest,
-      disallowedReviewers: options.disallowedReviewers,
+      disallowedReviewers: inventory.admission.author_ids,
     }).findings);
   } catch {
     findings.push({ code: "MISSING_REVIEW", message: "Missing independent baseline review" });
@@ -530,7 +537,151 @@ function measurementMatchesInventory(measurement: ComponentMeasurementEnvelope, 
   ].every(Boolean);
 }
 
-async function validateSourceContents(root: string, inventory: BaselineInventory, findings: QualityFinding[]): Promise<void> {
+function readImmutableFile(root: string, commitSha: string, path: string): string | null {
+  const reference = spawnSync("git", ["show", `${commitSha}:${path}`], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 50 * 1024 * 1024,
+  });
+  if (reference.error) throw reference.error;
+  if (reference.status === 0) return reference.stdout;
+  const commit = spawnSync("git", ["cat-file", "-e", `${commitSha}^{commit}`], { cwd: root });
+  if (commit.status !== 0) throw new Error(`Comparison base ${commitSha} is unavailable`);
+  return null;
+}
+
+function baselineExistsInHeadHistory(root: string, baselinePath: string): boolean {
+  const establishedOnHead = spawnSync("git", ["log", "-1", "--format=%H", "--diff-filter=A", "HEAD", "--", baselinePath], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (establishedOnHead.error || establishedOnHead.status !== 0) {
+    throw establishedOnHead.error ?? new Error("Current HEAD baseline lineage is unavailable");
+  }
+  return Boolean(establishedOnHead.stdout.trim());
+}
+
+async function baselineExistsInWorktree(root: string, baselinePath: string): Promise<boolean> {
+  try {
+    await readFile(resolve(root, baselinePath), "utf8");
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+async function validateBootstrapBaselineAdmission(
+  root: string,
+  baselinePath: string,
+  bootstrapDeclared: boolean,
+  bootstrapConfirmed: boolean,
+  binding: PredecessorBaselineBinding,
+  findings: QualityFinding[],
+): Promise<void> {
+  if (baselineExistsInHeadHistory(root, baselinePath)) {
+    findings.push({
+      code: "BASELINE_ADMISSION_BOOTSTRAP_HISTORY_EXISTS",
+      message: "Bootstrap is forbidden because the current HEAD lineage already established a canonical baseline",
+    });
+    return;
+  }
+  if (await baselineExistsInWorktree(root, baselinePath)) {
+    findings.push({
+      code: "BASELINE_ADMISSION_BOOTSTRAP_COLLISION",
+      message: "A canonical baseline exists in the worktree but not in the immutable comparison base",
+    });
+  }
+  if (!bootstrapDeclared) {
+    findings.push({
+      code: "BASELINE_ADMISSION_BOOTSTRAP_REQUIRED",
+      message: "Initial baseline admission must be declared in the independently reviewed inventory",
+    });
+    return;
+  }
+  if (!bootstrapConfirmed) {
+    findings.push({
+      code: "BASELINE_ADMISSION_BOOTSTRAP_CONFIRMATION_REQUIRED",
+      message: "Initial baseline admission requires an explicit --allow-bootstrap confirmation",
+    });
+    return;
+  }
+  binding.bootstrap = true;
+}
+
+async function validateEstablishedBaselineRatchet(
+  root: string,
+  baselinePath: string,
+  referenceRaw: string,
+  report: VitestJsonReport,
+  coverage: CoverageSummary,
+  comparisonBaseSha: string,
+  bootstrapDeclared: boolean,
+  bootstrapConfirmed: boolean,
+  binding: PredecessorBaselineBinding,
+  findings: QualityFinding[],
+): Promise<void> {
+  if (bootstrapDeclared || bootstrapConfirmed) {
+    findings.push({
+      code: "BASELINE_ADMISSION_BOOTSTRAP_DECLARATION_MISMATCH",
+      message: "Bootstrap cannot be declared when the immutable comparison base already contains a baseline",
+    });
+  }
+  const currentRaw = await readFile(resolve(root, baselinePath), "utf8");
+  if (sha256(currentRaw) !== sha256(referenceRaw)) {
+    findings.push({
+      code: "BASELINE_ADMISSION_EXISTING_BASELINE_MUTATED",
+      message: "The canonical baseline differs from the immutable comparison-base version",
+    });
+  }
+  const baseline = JSON.parse(referenceRaw) as ComponentBaseline;
+  if (baseline.source?.coverage !== "quality/baselines/component/coverage-summary.json") {
+    throw new Error("Predecessor baseline coverage source is not canonical");
+  }
+  const sourceCoverageRaw = readImmutableFile(root, comparisonBaseSha, baseline.source.coverage);
+  if (sourceCoverageRaw === null) throw new Error("Predecessor source coverage is unavailable");
+  if (sha256(sourceCoverageRaw) !== baseline.source.coverage_sha256) {
+    throw new Error("Predecessor source coverage hash does not match its canonical baseline");
+  }
+  const reconstructedCoverage = normalizeComponentCoveragePaths(JSON.parse(sourceCoverageRaw) as CoverageSummary, root);
+  if (JSON.stringify(reconstructedCoverage) !== JSON.stringify(baseline.coverage)) {
+    throw new Error("Predecessor embedded coverage does not match its hash-bound source coverage");
+  }
+  binding.sha256 = sha256(referenceRaw);
+  findings.push(...compareComponentRatchet(report, normalizeComponentCoveragePaths(coverage, root), baseline, root));
+}
+
+async function validateExistingBaselineRatchet(
+  root: string,
+  report: VitestJsonReport,
+  coverage: CoverageSummary,
+  comparisonBaseSha: string,
+  bootstrapDeclared: boolean,
+  bootstrapConfirmed: boolean,
+  binding: PredecessorBaselineBinding,
+  findings: QualityFinding[],
+): Promise<void> {
+  const baselinePath = "quality/baseline.json";
+  try {
+    const referenceRaw = readImmutableFile(root, comparisonBaseSha, baselinePath);
+    if (referenceRaw === null) {
+      await validateBootstrapBaselineAdmission(root, baselinePath, bootstrapDeclared, bootstrapConfirmed, binding, findings);
+      return;
+    }
+    await validateEstablishedBaselineRatchet(
+      root, baselinePath, referenceRaw, report, coverage, comparisonBaseSha,
+      bootstrapDeclared, bootstrapConfirmed, binding, findings,
+    );
+  } catch (error) {
+    findings.push({
+      code: "BASELINE_ADMISSION_EXISTING_BASELINE_MALFORMED",
+      message: `Existing canonical baseline could not be ratcheted: ${String(error)}`,
+    });
+  }
+}
+
+async function validateSourceContents(options: AdmissionValidationOptions, inventory: BaselineInventory, binding: PredecessorBaselineBinding, findings: QualityFinding[]): Promise<void> {
+  const { root } = options;
   try {
     const [reportRaw, coverageRaw, candidateRaw, measurementRaw, evidenceMapRaw, registryRaw] = await Promise.all([
       readFile(resolve(root, inventory.source.artifact), "utf8"),
@@ -555,6 +706,18 @@ async function validateSourceContents(root: string, inventory: BaselineInventory
     findings.push(...measurementFindings);
     const retainedMeasurementFindings = validateComponentMeasurementEnvelope(inventory.source.measurement);
     findings.push(...retainedMeasurementFindings.map((finding) => ({ ...finding, code: "RETAINED_MEASUREMENT_ENVELOPE_INVALID" })));
+    if (inventory.admission.phase === "admission") {
+      await validateExistingBaselineRatchet(
+        root,
+        report,
+        coverage,
+        inventory.source.measurement.candidate.comparison_base.resolved_sha,
+        inventory.admission.bootstrap,
+        options.allowBootstrap === true,
+        binding,
+        findings,
+      );
+    }
     const measurementBindingValid = measurement ? measurementMatchesInventory(measurement, inventory) : false;
     if (measurementFindings.length === 0 && !measurementBindingValid) {
       findings.push({ code: "MEASUREMENT_INVENTORY_BINDING_MISMATCH", message: "Inventory source bindings do not exactly match the measurement envelope" });
@@ -568,6 +731,8 @@ async function validateSourceContents(root: string, inventory: BaselineInventory
       command: inventory.source.command, commit: inventory.source.commit, generatedAt: inventory.generated_at, root,
       evidenceMap, capabilities: registry.capabilities.map((capability) => ({ ...capability, critical: true as const })),
       proposals: inventoryProposals(inventory), phase: inventory.admission.phase,
+      bootstrap: inventory.admission.bootstrap,
+      authorIds: inventory.admission.author_ids,
       qualityReviewPath: inventory.admission.quality_review.artifact, securityReviewPath: inventory.admission.security_review.artifact,
     });
     if (JSON.stringify(observedIdentitySummary(rebuilt)) !== JSON.stringify(observedIdentitySummary(inventory))) findings.push({ code: "SOURCE_INVENTORY_MISMATCH", message: "Inventory records do not exactly match normalized source evidence" });
@@ -584,27 +749,41 @@ function validateTopLevel(inventory: BaselineInventory, findings: QualityFinding
   if (!shaPattern.test(inventory.source?.candidate_digest ?? "")) findings.push({ code: "SOURCE_CANDIDATE_DIGEST", message: "source.candidate_digest must be a SHA-256 digest" });
 }
 
-export async function validateBaselineAdmission(options: AdmissionValidationOptions): Promise<{ findings: QualityFinding[]; data: AdmissionValidationData }> {
-  const findings = validateAuthorIds(options);
-  let inventory: BaselineInventory | undefined;
-  let parsed: unknown;
+interface LoadedAdmissionInventory {
+  inventory?: BaselineInventory;
+  parsed?: unknown;
+  raw: string;
+  reviewPaths?: ResolvedReviewPaths;
+}
+
+async function loadAdmissionInventory(
+  options: AdmissionValidationOptions,
+  predecessorBinding: PredecessorBaselineBinding,
+  findings: QualityFinding[],
+): Promise<LoadedAdmissionInventory> {
   let raw = "";
-  let reviewPaths: ResolvedReviewPaths | undefined;
+  let parsed: unknown;
   try {
     raw = await readFile(options.inventoryPath, "utf8");
     parsed = JSON.parse(raw) as unknown;
   } catch (error) {
     findings.push({ code: "INVENTORY_MALFORMED", message: `Inventory is missing or malformed: ${String(error)}` });
+    return { raw };
   }
-  if (raw) {
-    const structural = validateInventoryStructure(parsed);
-    findings.push(...structural);
-    if (structural.length === 0) {
-      inventory = parsed as BaselineInventory;
-      reviewPaths = resolvedReviewPaths(options, inventory);
-      await validateLoadedInventory(options, inventory, raw, reviewPaths, findings);
-    }
-  }
+  const structural = validateInventoryStructure(parsed);
+  findings.push(...structural);
+  if (structural.length > 0) return { raw, parsed };
+  const inventory = parsed as BaselineInventory;
+  findings.push(...validateAuthorIds(options, inventory));
+  const reviewPaths = resolvedReviewPaths(options, inventory);
+  await validateLoadedInventory(options, inventory, raw, reviewPaths, predecessorBinding, findings);
+  return { inventory, parsed, raw, reviewPaths };
+}
+
+export async function validateBaselineAdmission(options: AdmissionValidationOptions): Promise<{ findings: QualityFinding[]; data: AdmissionValidationData }> {
+  const findings: QualityFinding[] = [];
+  const predecessorBinding: PredecessorBaselineBinding = { bootstrap: false, sha256: null };
+  const { inventory, raw, reviewPaths } = await loadAdmissionInventory(options, predecessorBinding, findings);
   const reviewHashes = inventory && reviewPaths && options.phase === "admission"
     ? await admittedReviewHashes(reviewPaths)
     : { quality: null, security: null };
@@ -616,12 +795,14 @@ export async function validateBaselineAdmission(options: AdmissionValidationOpti
       inventory_sha256: raw ? sha256(raw) : null,
       candidate_digest: inventory?.source?.candidate_digest ?? null,
       record_count: inventory?.records?.length ?? 0,
-      author_ids: [...options.disallowedReviewers].sort(),
+      author_ids: inventory?.admission?.author_ids ?? [],
       review_source: "local-agent",
       reviewer_identity_assurance: "asserted-local",
       author_identity_assurance: "asserted-local",
       quality_review_sha256: reviewHashes.quality,
       security_review_sha256: reviewHashes.security,
+      bootstrap: predecessorBinding.bootstrap,
+      predecessor_baseline_sha256: predecessorBinding.sha256,
     },
   };
 }
@@ -635,19 +816,28 @@ async function admittedReviewHashes(paths: ResolvedReviewPaths): Promise<{ quali
   }
 }
 
-function validateAuthorIds(options: AdmissionValidationOptions): QualityFinding[] {
-  if (options.phase !== "admission" || options.disallowedReviewers.length > 0) return [];
-  return [{ code: "AUTHOR_IDS_REQUIRED", message: "Admission requires the complete author ID list for reviewer independence validation" }];
+function validateAuthorIds(options: AdmissionValidationOptions, inventory: BaselineInventory): QualityFinding[] {
+  if (options.phase !== "admission") return [];
+  const authors = inventory.admission.author_ids;
+  if (!Array.isArray(authors) || authors.length === 0) {
+    return [{ code: "AUTHOR_IDS_REQUIRED", message: "Admission inventory must bind the complete author ID list" }];
+  }
+  if (options.disallowedReviewers.length === 0) return [];
+  const provided = [...new Set(options.disallowedReviewers)].sort();
+  return JSON.stringify(provided) === JSON.stringify(authors) ? [] : [{
+    code: "AUTHOR_IDS_OVERRIDE_MISMATCH",
+    message: "CLI author IDs must exactly match the independently reviewed inventory author IDs",
+  }];
 }
 
-async function validateLoadedInventory(options: AdmissionValidationOptions, inventory: BaselineInventory, raw: string, reviewPaths: ResolvedReviewPaths, findings: QualityFinding[]): Promise<void> {
+async function validateLoadedInventory(options: AdmissionValidationOptions, inventory: BaselineInventory, raw: string, reviewPaths: ResolvedReviewPaths, predecessorBinding: PredecessorBaselineBinding, findings: QualityFinding[]): Promise<void> {
   validateTopLevel(inventory, findings);
   (inventory.records ?? []).forEach((record, index) => validateRecordShape(record, index, findings));
   findings.push(...validateInventorySemantics(inventory, options.now));
   validatePhase(inventory, options.phase, findings);
   validateImmutablePaths(options, inventory, findings);
   await validateSources(options.root, inventory, findings);
-  await validateSourceContents(options.root, inventory, findings);
+  await validateSourceContents(options, inventory, predecessorBinding, findings);
   if (options.phase !== "admission") return;
   await validateCandidateProvenance(options.root, inventory, findings);
   validateAdmissionRecords(inventory, findings);
@@ -672,6 +862,7 @@ async function main(): Promise<never> {
     qualityReviewPath: flagString(flags, "quality-review"),
     securityReviewPath: flagString(flags, "security-review"),
     disallowedReviewers: String(flagString(flags, "disallowed-reviewers", "")).split(",").map((value) => value.trim()).filter(Boolean),
+    allowBootstrap: flags.get("allow-bootstrap") === true || flags.get("allow-bootstrap") === "true",
     now: Date.now(),
   });
   const result = makeResult(
