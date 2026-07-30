@@ -15,6 +15,20 @@ vi.mock("@/lib/estimates/d1-intents/history-events", () => ({ prepareHistoryEven
 vi.mock("@/lib/estimates/d1-intents/intent-context", () => ({
   buildProjectPublicationRevisionForEstimate: vi.fn(() => ({ sql: "UPDATE projects SET publication_source_revision = publication_source_revision + 1", values: [] })),
   prepareEstimateMutationIntent: mocks.prepareIntent,
+  async prepareParsedEstimateMutationIntent(
+    database: unknown,
+    actor: unknown,
+    input: unknown,
+    parseCommittedResult: (value: unknown) => unknown,
+  ) {
+    const prepared = await mocks.prepareIntent(database, actor, input);
+    return {
+      ...prepared,
+      committedResult: prepared.committedResult === null
+        ? null
+        : parseCommittedResult(prepared.committedResult),
+    };
+  },
   readConcurrentEstimateMutationReceipt: mocks.concurrentReceipt,
 }));
 

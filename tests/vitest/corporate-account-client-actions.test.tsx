@@ -198,6 +198,11 @@ describe("corporate account client mutations", () => {
     fireEvent.change(screen.getByLabelText("Workspace"), {
       target: { value: "55555555-5555-4555-8555-555555555555" },
     });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Link workspace" }),
+      ).not.toBeDisabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Link workspace" }));
     await waitFor(() =>
       expect(actionMocks.linkWorkspaceAction).toHaveBeenCalledWith({

@@ -10,6 +10,20 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/estimates/d1-intents/intent-context", () => ({
   prepareEstimateMutationIntent: mocks.prepareEstimateMutationIntent,
+  async prepareParsedEstimateMutationIntent(
+    database: unknown,
+    actor: unknown,
+    input: unknown,
+    parseCommittedResult: (value: unknown) => unknown,
+  ) {
+    const prepared = await mocks.prepareEstimateMutationIntent(database, actor, input);
+    return {
+      ...prepared,
+      committedResult: prepared.committedResult === null
+        ? null
+        : parseCommittedResult(prepared.committedResult),
+    };
+  },
   readConcurrentEstimateMutationReceipt: mocks.readConcurrentEstimateMutationReceipt,
   buildProjectPublicationRevisionForEstimate: vi.fn(() => ({
     sql: "UPDATE projects SET publication_source_revision = publication_source_revision + 1",

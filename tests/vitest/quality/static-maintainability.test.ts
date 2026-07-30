@@ -114,6 +114,24 @@ describe("static source debt", () => {
     ]);
   });
 
+  it("does not re-report pre-existing complexity when a function is otherwise changed", () => {
+    const branches = Array.from(
+      { length: 10 },
+      (_, index) => `if (value === ${index}) return ${index};`,
+    ).join("\n");
+    const previousText = `export function critical(value: number) {\n${branches}\nreturn -1;\n}`;
+    const currentText = `export function critical(value: number) {\nconst normalized = value;\n${branches}\nreturn -1;\n}`;
+    const source: ChangedSource = {
+      path: "src/lib/auth/critical.ts",
+      text: currentText,
+      previous_text: previousText,
+      critical: true,
+      added_lines: new Set([2]),
+    };
+
+    expect(analyzeChangedFunctions([source], thresholds).findings).toEqual([]);
+  });
+
   it("fails a newly duplicated business block without reporting unrelated legacy text", () => {
     const block = [
       "const normalizedSubtotal = subtotalAmount + allowanceAmount;",
@@ -130,6 +148,24 @@ describe("static source debt", () => {
         (finding) => finding.code,
       ),
     ).toContain("NEW_DUPLICATED_BUSINESS_BLOCK");
+  });
+
+  it("reports one actionable finding for an overlapping duplicate region", () => {
+    const block = [
+      "const normalizedSubtotal = subtotalAmount + allowanceAmount;",
+      "const normalizedTax = normalizedSubtotal * applicableTaxRate;",
+      "const normalizedFees = normalizedSubtotal * applicableFeeRate;",
+      "const normalizedTotal = normalizedSubtotal + normalizedTax + normalizedFees;",
+      "const roundedTotal = Math.round(normalizedTotal * 100) / 100;",
+      "const displayTotal = roundedTotal.toFixed(2);",
+      "return { normalizedSubtotal, normalizedTax, normalizedFees, displayTotal };",
+    ].join("\n");
+    const original = { path: "src/lib/original.ts", text: block };
+    const copy = changedSource("src/lib/copy.ts", block);
+
+    expect(
+      detectAddedDuplicateBusinessBlocks([original, copy], [copy], thresholds),
+    ).toHaveLength(1);
   });
 });
 
