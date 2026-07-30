@@ -27,7 +27,7 @@ import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-sto
  * hydration clean.
  */
 export function EstimateHeaderActions() {
-  const params = useParams<{ nodeId?: string; projectId?: string }>();
+  const params = useParams<{ nodeId?: string; projectId?: string }>() ?? {};
   const openActivity = useEstimateHeaderActionsStore((state) => state.openActivity);
   const openProposalPreview = useEstimateHeaderActionsStore((state) => state.openProposalPreview);
   const canPreviewExport = useEstimateHeaderActionsStore((state) => state.canPreviewExport);

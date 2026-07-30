@@ -159,6 +159,8 @@ export function readEstimateRowPriceOptionsSnapshot(value: unknown): ComponentPr
     const sourceUrl = readOptionalText(option.sourceUrl);
     const notes = readOptionalText(option.notes);
     const supplierId = readOptionalText(option.supplierId);
+    const brandId = readOptionalText(option.brandId);
+    const brand = readOptionalText(option.brand);
     const activeCostEntryId = readOptionalText(option.activeCostEntryId);
     const costEntries = readSnapshotCostEntries(option.costEntries);
     const packageQuantity = readOptionalPositiveNumber(option.packageQuantity);
@@ -195,6 +197,8 @@ export function readEstimateRowPriceOptionsSnapshot(value: unknown): ComponentPr
       ...(sourceUrl !== undefined ? { sourceUrl } : {}),
       ...(notes !== undefined ? { notes } : {}),
       ...(supplierId !== undefined ? { supplierId } : {}),
+      ...(brandId !== undefined ? { brandId } : {}),
+      ...(brand !== undefined ? { brand } : {}),
       ...(activeCostEntryId !== undefined ? { activeCostEntryId } : {}),
       ...(costEntries ? { costEntries } : {}),
       ...(packageQuantity !== undefined ? { packageQuantity } : {}),

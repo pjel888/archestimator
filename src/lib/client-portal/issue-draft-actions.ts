@@ -172,9 +172,10 @@ export async function acceptClientPortalNarrativeAction(input: {
   return saved;
 }
 
-export async function markClientPortalIssueDraftReadyAction(input: { draftId: string; expectedRevision: number; portalId: string; projectId: string }) {
+async function transitionClientPortalIssueDraftAction(input: { draftId: string; expectedRevision: number; portalId: string; projectId: string }, transition: "ready" | "abandon") {
   const scope = await context(input.projectId);
-  const draft = await markClientPortalIssueDraftReady({
+  const transitionDraft = transition === "ready" ? markClientPortalIssueDraftReady : abandonClientPortalIssueDraft;
+  const draft = await transitionDraft({
     actorId: scope.actorId,
     database: scope.database,
     draftId: input.draftId,
@@ -188,18 +189,10 @@ export async function markClientPortalIssueDraftReadyAction(input: { draftId: st
   return draft;
 }
 
+export async function markClientPortalIssueDraftReadyAction(input: { draftId: string; expectedRevision: number; portalId: string; projectId: string }) {
+  return transitionClientPortalIssueDraftAction(input, "ready");
+}
+
 export async function abandonClientPortalIssueDraftAction(input: { draftId: string; expectedRevision: number; portalId: string; projectId: string }) {
-  const scope = await context(input.projectId);
-  const draft = await abandonClientPortalIssueDraft({
-    actorId: scope.actorId,
-    database: scope.database,
-    draftId: input.draftId,
-    expectedRevision: input.expectedRevision,
-    now: new Date().toISOString(),
-    portalId: input.portalId,
-    projectId: scope.projectId,
-    workspaceId: scope.workspaceId,
-  });
-  revalidatePath(detailPath(scope.projectId, input.portalId));
-  return draft;
+  return transitionClientPortalIssueDraftAction(input, "abandon");
 }

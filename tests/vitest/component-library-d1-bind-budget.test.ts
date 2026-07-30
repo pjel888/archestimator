@@ -123,6 +123,47 @@ describe("component library Cloudflare D1 bind budget", () => {
     expect(lifecycleActionSource).toContain("AND execution_lease_expires_at > ?");
   });
 
+  it("keeps Template sidecar copy, duplicate, propagation, and delete work set-based", () => {
+    const insertSource = readFileSync("src/lib/estimates/d1-intents/templates.ts", "utf8");
+    const propagationSource = readFileSync("src/lib/component-library/template-propagation-d1.ts", "utf8");
+    const instanceActionSource = readFileSync("src/lib/component-library/template-instance-actions.ts", "utf8");
+    const editorActionSource = readFileSync("src/lib/component-library/template-editor-actions.ts", "utf8");
+
+    for (const table of [
+      "estimate_row_variant_selections",
+      "estimate_alternative_groups",
+      "estimate_alternative_members",
+      "estimate_optional_items",
+      "estimate_accessory_edges",
+    ]) {
+      expect(insertSource).toContain(`INSERT INTO ${table}`);
+      expect(propagationSource).toContain(`INSERT INTO ${table}`);
+      expect(instanceActionSource).toContain(`INSERT INTO ${table}`);
+    }
+    for (const table of [
+      "estimate_template_row_variant_selections",
+      "estimate_template_alternative_groups",
+      "estimate_template_alternative_members",
+      "estimate_template_optional_items",
+      "estimate_template_accessory_edges",
+    ]) {
+      expect(editorActionSource).toContain(`INSERT INTO ${table}`);
+    }
+    expect(insertSource).toContain("estimate_template_sidecar_source_guard");
+    expect(instanceActionSource).toContain("duplicate_materialized_sidecar_guard");
+    expect(instanceActionSource.indexOf("DELETE FROM estimate_alternative_groups"))
+      .toBeLessThan(instanceActionSource.indexOf("DELETE FROM estimate_row_items"));
+    expect(propagationSource.indexOf("DELETE FROM estimate_alternative_groups"))
+      .toBeLessThan(propagationSource.indexOf("DELETE FROM estimate_row_items"));
+    expect(editorActionSource.indexOf("DELETE FROM estimate_template_alternative_groups"))
+      .toBeLessThan(editorActionSource.indexOf("DELETE FROM estimate_template_row_items"));
+    expect(editorActionSource).toContain("buildTemplateVersionSidecarRefreshStatement");
+    expect(editorActionSource).toContain("'$.sidecars'");
+    expect(propagationSource).toContain("sidecars: snapshot.sidecars");
+    expect(propagationSource).toContain("assertD1MutationStatementLimit(statements.length)");
+    expect(instanceActionSource).toContain("assertD1MutationStatementLimit(statements.length)");
+  });
+
   it("previews and archives the full 500-component UI batch without exceeding 100 binds per statement", async () => {
     const database = createD1Fixture();
     const actions = await import("@/lib/component-library/actions");

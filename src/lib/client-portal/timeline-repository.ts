@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
+import { mapBaselineSummary, type BaselineSummaryRow } from "@/lib/client-portal/baseline-summary";
 import { CLIENT_PORTAL_CAPABILITIES } from "@/lib/client-portal/contracts";
 import {
   evaluateClientPortalPolicy,
@@ -36,15 +37,6 @@ type ProjectSummaryRow = {
   currency_code: string;
   name: string;
   project_code: string | null;
-};
-
-type BaselineSummaryRow = {
-  baseline_number: number;
-  currency_code: string;
-  established_at: string;
-  issue_number: number;
-  total_minor_units: number;
-  version_label: string;
 };
 
 type CurrentIssueSummaryRow = {
@@ -179,21 +171,45 @@ function internalTargetMetadata(value: string) {
   }
 }
 
+type PublicTimelineTarget =
+  | { kind: "artifact"; publicArtifactId: string }
+  | { kind: "decision"; issueNumber: number | null; publicDecisionId: string }
+  | { kind: "issue"; issueNumber: number }
+  | { kind: "request"; publicRequestId: string }
+  | { kind: "thread"; issueNumber: number | null; publicThreadId: string }
+  | null;
+
+type PublicTargetContext = {
+  issueNumber: number | null;
+  metadata: ReturnType<typeof internalTargetMetadata>;
+  row: TimelineRow;
+  snapshot: ReturnType<typeof publicSnapshot>;
+  token: string;
+};
+
+type PublicTargetBuilder = (context: PublicTargetContext) => Exclude<PublicTimelineTarget, null> | null;
+
+const PUBLIC_TARGET_BUILDERS: readonly PublicTargetBuilder[] = [
+  ({ issueNumber, metadata, row, token }) => row.event_type.startsWith("discussion.") && metadata.threadId
+    ? { kind: "thread", issueNumber, publicThreadId: createClientPortalPublicIdentifier(token, "thread", metadata.threadId) }
+    : null,
+  ({ issueNumber, metadata, row, token }) => row.source_type === "decision"
+    ? { kind: "decision", issueNumber, publicDecisionId: createClientPortalPublicIdentifier(token, "decision", metadata.decisionId ?? row.source_id) }
+    : null,
+  ({ row, snapshot }) => row.source_type === "change_request" && typeof snapshot.publicRequestId === "string"
+    ? { kind: "request", publicRequestId: snapshot.publicRequestId }
+    : null,
+  ({ row, snapshot }) => row.source_type === "artifact" && typeof snapshot.publicArtifactId === "string"
+    ? { kind: "artifact", publicArtifactId: snapshot.publicArtifactId }
+    : null,
+];
+
 function publicTarget(row: TimelineRow, snapshot: ReturnType<typeof publicSnapshot>, token: string) {
   const issueNumber = typeof snapshot.issueNumber === "number" ? snapshot.issueNumber : null;
-  const metadata = internalTargetMetadata(row.internal_metadata_json);
-  if (row.event_type.startsWith("discussion.") && metadata.threadId) {
-    return { kind: "thread" as const, issueNumber, publicThreadId: createClientPortalPublicIdentifier(token, "thread", metadata.threadId) };
-  }
-  if (row.source_type === "decision") {
-    const decisionId = metadata.decisionId ?? row.source_id;
-    return { kind: "decision" as const, issueNumber, publicDecisionId: createClientPortalPublicIdentifier(token, "decision", decisionId) };
-  }
-  if (row.source_type === "change_request" && typeof snapshot.publicRequestId === "string") {
-    return { kind: "request" as const, publicRequestId: snapshot.publicRequestId };
-  }
-  if (row.source_type === "artifact" && typeof snapshot.publicArtifactId === "string") {
-    return { kind: "artifact" as const, publicArtifactId: snapshot.publicArtifactId };
+  const context = { issueNumber, metadata: internalTargetMetadata(row.internal_metadata_json), row, snapshot, token };
+  for (const buildTarget of PUBLIC_TARGET_BUILDERS) {
+    const target = buildTarget(context);
+    if (target) return target;
   }
   return issueNumber === null ? null : { kind: "issue" as const, issueNumber };
 }
@@ -271,14 +287,7 @@ async function readPublicSummary(
     project: { code: project.project_code, currencyCode: project.currency_code, name: project.name },
     recipient: actor.kind === "recipient" ? { displayName: actor.displayName ?? null, role: actor.role } : null,
     capabilities,
-    activeBaseline: baseline ? {
-      baselineNumber: Number(baseline.baseline_number),
-      currencyCode: baseline.currency_code,
-      establishedAt: baseline.established_at,
-      issueNumber: Number(baseline.issue_number),
-      totalMinorUnits: Number(baseline.total_minor_units),
-      versionLabel: baseline.version_label,
-    } : null,
+    activeBaseline: mapBaselineSummary(baseline),
     pendingIssue: currentIssue ? {
       currencyCode: currentIssue.currency_code,
       issueNumber: Number(currentIssue.issue_number),
@@ -306,6 +315,73 @@ export async function getClientPortalSummary(input: {
   return context ? readPublicSummary(actor, context) : null;
 }
 
+type ClientPortalContext = NonNullable<Awaited<ReturnType<typeof resolveClientPortalBaseContext>>>;
+type TimelineCursor = NonNullable<ReturnType<typeof cursor>>;
+
+function timelineAuthorization(actor: ClientPortalActor, context: ClientPortalContext) {
+  return evaluateClientPortalPolicy({
+    actor,
+    action: "timeline:view",
+    portal: context.policyPortal,
+    target: { kind: "timeline_event", portalId: context.portal.id, exposureStatus: "visible" },
+  });
+}
+
+function timelinePageQuery(portalId: string, scanCursor: TimelineCursor | null) {
+  const where = ["exposure.portal_id = ?", "exposure.status = 'visible'"];
+  const values: D1Value[] = [portalId];
+  if (scanCursor) {
+    where.push("(event.occurred_at < ? OR (event.occurred_at = ? AND exposure.public_event_id < ?))");
+    values.push(scanCursor.occurredAt, scanCursor.occurredAt, scanCursor.publicEventId);
+  }
+  return { values, where };
+}
+
+async function readTimelineRows(
+  actor: ClientPortalActor,
+  context: ClientPortalContext,
+  initialCursor: TimelineCursor | null,
+  limit: number,
+) {
+  const visibleRows: TimelineRow[] = [];
+  let scanCursor = initialCursor;
+  let exhausted = false;
+  while (visibleRows.length <= limit && !exhausted) {
+    const query = timelinePageQuery(context.portal.id, scanCursor);
+    const rows = await all<TimelineRow>(context.database, `
+      SELECT exposure.public_event_id, exposure.policy_snapshot_json, exposure.status,
+             event.event_type, event.source_type, event.actor_type, event.actor_name_snapshot,
+             event.title, event.summary, event.client_safe_snapshot_json, event.internal_metadata_json,
+             event.source_id, event.occurred_at
+      FROM client_portal_event_exposures exposure
+      JOIN project_commitment_events event ON event.id = exposure.event_id
+      WHERE ${query.where.join(" AND ")}
+      ORDER BY event.occurred_at DESC, exposure.public_event_id DESC
+      LIMIT ?
+    `, [...query.values, 100]);
+    visibleRows.push(...rows.filter((row) => canViewExposure(actor, context.policyPortal, row, "timeline_event", "timeline:view")));
+    const last = rows.at(-1);
+    exhausted = rows.length < 100 || !last;
+    scanCursor = last ? { occurredAt: last.occurred_at, publicEventId: last.public_event_id } : scanCursor;
+  }
+  return visibleRows;
+}
+
+function publicTimelineEvent(row: TimelineRow, token: string) {
+  const snapshot = publicSnapshot(row.source_type, row.client_safe_snapshot_json);
+  return {
+    actor: { name: row.actor_name_snapshot, type: row.actor_type },
+    eventType: row.event_type,
+    id: row.public_event_id,
+    occurredAt: row.occurred_at,
+    snapshot,
+    sourceType: row.source_type,
+    summary: row.summary,
+    target: publicTarget(row, snapshot, token),
+    title: row.title,
+  };
+}
+
 export async function getClientPortalTimeline(input: {
   actor?: ClientPortalActor;
   cursor?: string | null;
@@ -316,44 +392,13 @@ export async function getClientPortalTimeline(input: {
   const actor = input.actor ?? { kind: "anonymous" as const };
   const context = await resolveClientPortalBaseContext(input.token, actor, input.passwordAuthenticated ?? false);
   if (!context) return null;
-  const authorization = evaluateClientPortalPolicy({
-    actor,
-    action: "timeline:view",
-    portal: context.policyPortal,
-    target: { kind: "timeline_event", portalId: context.portal.id, exposureStatus: "visible" },
-  });
-  if (!authorization.allowed) return null;
+  if (!timelineAuthorization(actor, context).allowed) return null;
   const parsedCursor = cursor(input.cursor);
   if (input.cursor && !parsedCursor) return null;
   const limit = Math.max(1, Math.min(50, Math.trunc(input.limit ?? 20)));
   const summary = await readPublicSummary(actor, context);
   if (!summary) return null;
-  const visibleRows: TimelineRow[] = [];
-  let scanCursor = parsedCursor;
-  let exhausted = false;
-  while (visibleRows.length <= limit && !exhausted) {
-    const where = ["exposure.portal_id = ?", "exposure.status = 'visible'"];
-    const values: D1Value[] = [context.portal.id];
-    if (scanCursor) {
-      where.push("(event.occurred_at < ? OR (event.occurred_at = ? AND exposure.public_event_id < ?))");
-      values.push(scanCursor.occurredAt, scanCursor.occurredAt, scanCursor.publicEventId);
-    }
-    const rows = await all<TimelineRow>(context.database, `
-      SELECT exposure.public_event_id, exposure.policy_snapshot_json, exposure.status,
-             event.event_type, event.source_type, event.actor_type, event.actor_name_snapshot,
-             event.title, event.summary, event.client_safe_snapshot_json, event.internal_metadata_json,
-             event.source_id, event.occurred_at
-      FROM client_portal_event_exposures exposure
-      JOIN project_commitment_events event ON event.id = exposure.event_id
-      WHERE ${where.join(" AND ")}
-      ORDER BY event.occurred_at DESC, exposure.public_event_id DESC
-      LIMIT ?
-    `, [...values, 100]);
-    visibleRows.push(...rows.filter((row) => canViewExposure(actor, context.policyPortal, row, "timeline_event", "timeline:view")));
-    const last = rows.at(-1);
-    exhausted = rows.length < 100 || !last;
-    scanCursor = last ? { occurredAt: last.occurred_at, publicEventId: last.public_event_id } : scanCursor;
-  }
+  const visibleRows = await readTimelineRows(actor, context, parsedCursor, limit);
   const page = visibleRows.slice(0, limit);
   return {
     schemaVersion: 1,
@@ -363,20 +408,7 @@ export async function getClientPortalTimeline(input: {
       currentIssue: summary.pendingIssue,
       openRequestCount: summary.visibleCounts.openRequests,
     },
-    events: page.map((row) => {
-      const snapshot = publicSnapshot(row.source_type, row.client_safe_snapshot_json);
-      return {
-        actor: { name: row.actor_name_snapshot, type: row.actor_type },
-        eventType: row.event_type,
-        id: row.public_event_id,
-        occurredAt: row.occurred_at,
-        snapshot,
-        sourceType: row.source_type,
-        summary: row.summary,
-        target: publicTarget(row, snapshot, input.token),
-        title: row.title,
-      };
-    }),
+    events: page.map((row) => publicTimelineEvent(row, input.token)),
     hasMore: visibleRows.length > limit,
     nextCursor: visibleRows.length > limit ? nextCursor(page.at(-1)) : null,
   };

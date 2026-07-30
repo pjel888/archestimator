@@ -63,6 +63,7 @@ export type EstimateAuthoritativeRow = {
   material: string;
   description: string;
   supplier: string;
+  brandId: string | null;
   unit: string;
   quantity: number;
   quantityBase: number | null;
@@ -102,6 +103,7 @@ export type EstimateRowRecord = {
   discipline: string | null;
   material: string | null;
   supplier: string | null;
+  brand_id: string | null;
   supplier_id: string | null;
   quantity: number;
   quantity_base: number | null;
@@ -138,12 +140,16 @@ type LibrarySourceCommitReceipt = {
   itemUnit: string;
   itemUnitCost: number;
   itemMiscCost: number;
+  itemBrandId: string | null;
+  itemBrand: string | null;
   itemActivePriceOptionId: string | null;
   selectedOptionId: string | null;
   optionLabel: string | null;
   optionUnit: string | null;
   optionUnitCost: number | null;
   optionMiscCost: number | null;
+  optionBrandId: string | null;
+  optionBrand: string | null;
   optionUpdatedAt: string | null;
   activeCostEntryId: string | null;
   activeCostEntryUnitCost: number | null;
@@ -152,6 +158,8 @@ type LibrarySourceCommitReceipt = {
   resolvedUnit: string;
   resolvedUnitCost: number;
   resolvedMiscCost: number;
+  resolvedBrandId: string | null;
+  resolvedBrand: string | null;
   fingerprint: string;
 };
 
@@ -165,6 +173,8 @@ type LibraryItemProjection = {
   unit: string;
   unit_cost: number | string;
   misc_cost: number | string;
+  brand_id: string | null;
+  brand: string | null;
 };
 
 type LibraryPriceOptionProjection = {
@@ -174,6 +184,8 @@ type LibraryPriceOptionProjection = {
   unit: string;
   unit_cost: number | string;
   misc_cost: number | string;
+  brand_id: string | null;
+  brand: string;
   is_active: number | boolean;
   updated_at: string;
 };
@@ -205,6 +217,7 @@ const ROW_INSERT_COLUMNS = [
   "discipline",
   "material",
   "supplier",
+  "brand_id",
   "supplier_id",
   "quantity",
   "quantity_base",
@@ -377,6 +390,7 @@ function rowItemHistoryResult(row: EstimateRowRecord, eventId?: string): Estimat
       material: row.material ?? "",
       description: row.description ?? "",
       supplier: row.supplier ?? "",
+      brandId: row.brand_id,
       unit: row.unit ?? "unit",
       quantity,
       quantityBase: row.quantity_base,
@@ -452,6 +466,7 @@ function updateValuesForRowPatch(rowPatch: Record<string, unknown>) {
     material: "material",
     description: "description",
     supplier: "supplier",
+    brandId: "brand_id",
     unit: "unit",
     unitCost: "unit_cost",
     quantity: "quantity",
@@ -495,6 +510,7 @@ function applyRowPatchForActivity(
     material: "material",
     description: "description",
     supplier: "supplier",
+    brandId: "brand_id",
     unit: "unit",
     unitCost: "unit_cost",
     quantity: "quantity",
@@ -535,7 +551,7 @@ type VariantActivityIdentity = { id: string | null; label: string | null };
 type ProjectComponentPriceOptionSnapshot = Record<string, unknown> & { id: string };
 
 const PROJECT_COMPONENT_VARIANT_OPTION_SIGNATURE_KEYS = [
-  "label", "sku", "variantDescription", "unit", "unitCost", "pricingSource", "pricingDate", "sourceUrl",
+  "label", "brand", "brandId", "sku", "variantDescription", "unit", "unitCost", "pricingSource", "pricingDate", "sourceUrl",
   "imageBucket", "imagePath", "thumbnailPath", "imageMetadata", "attachments",
 ] as const;
 
@@ -637,6 +653,8 @@ function projectComponentVariantSourceSnapshotPatch(
 ) {
   const imageUrl = readNonEmptyText(option.thumbnailPath) ?? readNonEmptyText(option.imagePath);
   return {
+    brand: readNonEmptyText(option.brand),
+    brandId: readNonEmptyText(option.brandId),
     description: readNonEmptyText(option.variantDescription),
     imageUrl,
     priceOptionLabel: readNonEmptyText(option.label),
@@ -727,11 +745,16 @@ function normalizeProjectComponentVariantSelectionRowPatch(row: EstimateRowRecor
     || projectComponentVariantImageSignature(previousSelectedOption) !== projectComponentVariantImageSignature(selectedOption);
   const variantSnapshotPatch = projectComponentVariantSourceSnapshotPatch(selectedOption!, { clearImageAsset: imageChanged });
   return {
+    brandId: variantSnapshotPatch.brandId,
     description: variantSnapshotPatch.description ?? "",
     unit: variantSnapshotPatch.unit,
     unitCost: variantSnapshotPatch.unit_cost,
     sourceSnapshot: { ...currentSourceSnapshot, ...variantSnapshotPatch, priceOptionId: selectedId },
-    metadata: { ...readJsonRecord(rowMetadata(row)), priceOptionId: selectedId },
+    metadata: {
+      ...readJsonRecord(rowMetadata(row)),
+      brandId: variantSnapshotPatch.brandId,
+      priceOptionId: selectedId,
+    },
   };
 }
 
@@ -774,6 +797,7 @@ function serializeRow(row: Record<string, unknown>): EstimateRowRecord {
     discipline: typeof row.discipline === "string" ? row.discipline : null,
     material: typeof row.material === "string" ? row.material : null,
     supplier: typeof row.supplier === "string" ? row.supplier : null,
+    brand_id: typeof row.brand_id === "string" ? row.brand_id : null,
     supplier_id: typeof row.supplier_id === "string" ? row.supplier_id : null,
     quantity: readNumber(row.quantity),
     quantity_base: row.quantity_base === null || row.quantity_base === undefined ? null : readNumber(row.quantity_base),
@@ -914,6 +938,7 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
     sourceSnapshot: getSourceSnapshot(libraryItem),
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     supplierId: libraryItem.supplierId ?? null,
+    brandId: libraryItem.brandId ?? null,
     material: libraryItem.material,
     description: libraryItem.description,
     supplier: libraryItem.supplier,
@@ -941,7 +966,8 @@ async function readCurrentLibrarySourceReceipt(
   if (!sourceLibraryItemId) return null;
   const item = await firstD1Row<LibraryItemProjection>(
     database,
-    `SELECT id, workspace_id, active_price_option_id, current_version_number, updated_at, lifecycle_state, unit, unit_cost, misc_cost
+    `SELECT id, workspace_id, active_price_option_id, current_version_number, updated_at, lifecycle_state,
+            unit, unit_cost, misc_cost, brand_id, brand
      FROM cost_library_items WHERE id = ? LIMIT 1`,
     [sourceLibraryItemId],
   );
@@ -966,7 +992,7 @@ async function readCurrentLibrarySourceReceipt(
   const option = selectedOptionId
     ? await firstD1Row<LibraryPriceOptionProjection>(
         database,
-        `SELECT id, item_id, label, unit, unit_cost, misc_cost, is_active, updated_at
+        `SELECT id, item_id, label, unit, unit_cost, misc_cost, brand_id, brand, is_active, updated_at
          FROM cost_library_item_price_options WHERE id = ? AND item_id = ? LIMIT 1`,
         [selectedOptionId, sourceLibraryItemId],
       )
@@ -986,11 +1012,15 @@ async function readCurrentLibrarySourceReceipt(
   const resolvedUnit = option?.unit ?? item.unit;
   const resolvedUnitCost = Number(costEntry?.unit_cost ?? option?.unit_cost ?? item.unit_cost);
   const resolvedMiscCost = Number(costEntry?.misc_cost ?? option?.misc_cost ?? item.misc_cost);
+  const resolvedBrandId = option?.brand_id ?? item.brand_id ?? null;
+  const resolvedBrand = readNonEmptyText(option?.brand) ?? readNonEmptyText(item.brand);
   if (
     libraryItem.unit !== resolvedUnit
     || libraryItem.itemCost !== resolvedUnitCost
     || libraryItem.miscCost !== resolvedMiscCost
     || (libraryItem.priceOptionLabel !== undefined && option?.label !== libraryItem.priceOptionLabel)
+    || (libraryItem.brandId !== undefined && (libraryItem.brandId ?? null) !== resolvedBrandId)
+    || (libraryItem.brand !== undefined && readNonEmptyText(libraryItem.brand) !== resolvedBrand)
   ) {
     throw new Error("Library variant pricing changed. Refresh the estimate before committing this component.");
   }
@@ -1003,12 +1033,16 @@ async function readCurrentLibrarySourceReceipt(
     itemUnit: item.unit,
     itemUnitCost: Number(item.unit_cost),
     itemMiscCost: Number(item.misc_cost),
+    itemBrandId: item.brand_id ?? null,
+    itemBrand: item.brand ?? null,
     itemActivePriceOptionId: item.active_price_option_id,
     selectedOptionId: option?.id ?? null,
     optionLabel: option?.label ?? null,
     optionUnit: option?.unit ?? null,
     optionUnitCost: option ? Number(option.unit_cost) : null,
     optionMiscCost: option ? Number(option.misc_cost) : null,
+    optionBrandId: option?.brand_id ?? null,
+    optionBrand: option?.brand ?? null,
     optionUpdatedAt: option?.updated_at ?? null,
     activeCostEntryId: costEntry?.id ?? null,
     activeCostEntryUnitCost: costEntry ? Number(costEntry.unit_cost) : null,
@@ -1017,6 +1051,8 @@ async function readCurrentLibrarySourceReceipt(
     resolvedUnit,
     resolvedUnitCost,
     resolvedMiscCost,
+    resolvedBrandId,
+    resolvedBrand,
   };
   return { ...receipt, fingerprint: createMutationRequestFingerprint(receipt) };
 }
@@ -1027,7 +1063,7 @@ function buildLibrarySourceCommitGuardStatements(receipt: LibrarySourceCommitRec
       SELECT 1 FROM cost_library_items
       WHERE id = ? AND workspace_id = ? AND current_version_number = ? AND updated_at IS ?
         AND lifecycle_state IS ? AND lifecycle_state <> 'archived' AND unit = ? AND unit_cost = ?
-        AND misc_cost = ? AND active_price_option_id IS ?
+        AND misc_cost = ? AND brand_id IS ? AND brand IS ? AND active_price_option_id IS ?
     ) THEN 1 ELSE json('') END AS estimate_library_source_guard`,
     values: [
       receipt.sourceLibraryItemId,
@@ -1038,6 +1074,8 @@ function buildLibrarySourceCommitGuardStatements(receipt: LibrarySourceCommitRec
       receipt.itemUnit,
       receipt.itemUnitCost,
       receipt.itemMiscCost,
+      receipt.itemBrandId,
+      receipt.itemBrand,
       receipt.itemActivePriceOptionId,
     ],
   }];
@@ -1046,7 +1084,7 @@ function buildLibrarySourceCommitGuardStatements(receipt: LibrarySourceCommitRec
     sql: `SELECT CASE WHEN EXISTS (
       SELECT 1 FROM cost_library_item_price_options
       WHERE id = ? AND item_id = ? AND workspace_id = ? AND is_active = 1 AND label IS ?
-        AND unit IS ? AND unit_cost IS ? AND misc_cost IS ? AND updated_at IS ?
+        AND unit IS ? AND unit_cost IS ? AND misc_cost IS ? AND brand_id IS ? AND brand IS ? AND updated_at IS ?
     ) THEN 1 ELSE json('') END AS estimate_library_option_guard`,
     values: [
       receipt.selectedOptionId,
@@ -1056,6 +1094,8 @@ function buildLibrarySourceCommitGuardStatements(receipt: LibrarySourceCommitRec
       receipt.optionUnit,
       receipt.optionUnitCost,
       receipt.optionMiscCost,
+      receipt.optionBrandId,
+      receipt.optionBrand,
       receipt.optionUpdatedAt,
     ],
   });
@@ -1086,6 +1126,25 @@ function buildLibrarySourceCommitGuardStatements(receipt: LibrarySourceCommitRec
     });
   }
   return guards;
+}
+
+function applyLibrarySourceReceiptToReplacementPayload(
+  rowPatch: Record<string, unknown>,
+  receipt: LibrarySourceCommitReceipt,
+) {
+  return {
+    ...rowPatch,
+    brandId: receipt.resolvedBrandId,
+    sourceSnapshot: {
+      ...readJsonRecord(rowPatch.sourceSnapshot),
+      brandId: receipt.resolvedBrandId,
+      brand: receipt.resolvedBrand,
+    },
+    metadata: {
+      ...readJsonRecord(rowPatch.metadata),
+      brandId: receipt.resolvedBrandId,
+    },
+  };
 }
 
 function buildProjectComponentImpactGuardStatement(input: {
@@ -2004,6 +2063,7 @@ export async function insertEstimateRowItemWithHistory(
     source_library_item_id: payload.sourceLibraryItemId ?? null,
     source_snapshot: payload.sourceSnapshot ?? {},
     category_node_id: payload.categoryNodeId ?? null,
+    brand_id: payload.brandId ?? null,
     supplier_id: payload.supplierId ?? null,
     material: payload.material ?? "",
     description: payload.description ?? "",
@@ -2143,6 +2203,7 @@ export async function duplicateEstimateRowItemWithHistory(
     discipline: sourceRow.discipline ?? "",
     material: sourceRow.material ?? "",
     supplier: sourceRow.supplier ?? "",
+    brand_id: sourceRow.brand_id,
     supplier_id: sourceRow.supplier_id,
     quantity: sourceRow.quantity,
     quantity_base: sourceRow.quantity_base,
@@ -2249,6 +2310,9 @@ async function patchEstimateRowItem(
   rowPatch: Record<string, unknown>,
   expectedLibrarySourceReceipt: LibrarySourceCommitReceipt | null,
 ): Promise<EstimateRowHistoryResult> {
+  if (expectedLibrarySourceReceipt) {
+    rowPatch = applyLibrarySourceReceiptToReplacementPayload(rowPatch, expectedLibrarySourceReceipt);
+  }
   const { context: intent, committedResult } = await prepareEstimateMutationIntent<EstimateRowHistoryResult>(
     database,
     actor,
@@ -2396,6 +2460,72 @@ async function patchEstimateRowItem(
   const changedFields = columns.map(([column]) => column);
   if (variantsDiffer(previousVariant, nextVariant)) changedFields.push("variant_changed");
   if (attachmentPlan.changed) changedFields.push("component_variant_attachments");
+  const variantSelectionStatement: D1IntentStatement[] = nextVariant?.id && variantsDiffer(previousVariant, nextVariant)
+    ? [{
+        sql: `INSERT INTO estimate_row_variant_selections (
+                estimate_row_item_id, estimate_id, workspace_id, selected_price_option_id,
+                selected_option_snapshot_json, selection_revision, selected_at, selected_by
+              ) VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+              ON CONFLICT(estimate_row_item_id) DO UPDATE SET
+                selected_price_option_id = excluded.selected_price_option_id,
+                selected_option_snapshot_json = excluded.selected_option_snapshot_json,
+                selection_revision = estimate_row_variant_selections.selection_revision + 1,
+                selected_at = excluded.selected_at,
+                selected_by = excluded.selected_by`,
+        values: [
+          input.rowId,
+          input.estimateId,
+          intent.workspaceId,
+          nextVariant.id,
+          JSON.stringify(readJsonRecord(updated.source_snapshot)),
+          nowIso(),
+          intent.actorUserId,
+        ],
+      }, {
+        sql: `UPDATE estimate_row_commercial_terms
+              SET selected_option_id = ?,
+                  selected_option_treatment = (
+                    SELECT terms.treatment
+                    FROM cost_library_item_price_option_commercial_terms AS terms
+                    WHERE terms.workspace_id = ? AND terms.price_option_id = ?
+                      AND terms.treatment IS NOT NULL AND terms.rate_bps IS NOT NULL
+                    LIMIT 1
+                  ),
+                  selected_option_rate_bps = (
+                    SELECT terms.rate_bps
+                    FROM cost_library_item_price_option_commercial_terms AS terms
+                    WHERE terms.workspace_id = ? AND terms.price_option_id = ?
+                      AND terms.treatment IS NOT NULL AND terms.rate_bps IS NOT NULL
+                    LIMIT 1
+                  ),
+                  selected_option_terms_revision = (
+                    SELECT terms.terms_revision
+                    FROM cost_library_item_price_option_commercial_terms AS terms
+                    WHERE terms.workspace_id = ? AND terms.price_option_id = ?
+                      AND terms.treatment IS NOT NULL AND terms.rate_bps IS NOT NULL
+                    LIMIT 1
+                  ),
+                  terms_revision = terms_revision + 1,
+                  updated_by = ?,
+                  updated_at = ?
+              WHERE row_id = ? AND workspace_id = ? AND project_id = ? AND estimate_id = ?`,
+        values: [
+          nextVariant.id,
+          intent.workspaceId,
+          nextVariant.id,
+          intent.workspaceId,
+          nextVariant.id,
+          intent.workspaceId,
+          nextVariant.id,
+          intent.actorUserId,
+          nowIso(),
+          input.rowId,
+          intent.workspaceId,
+          input.projectId,
+          input.estimateId,
+        ],
+      }]
+    : [];
   const persistedImpactFingerprint = expectedImpactFingerprint ?? propagation.impactFingerprint;
   const mutationStatements: D1IntentStatement[] = [
     buildRowRevisionGuardStatement(input.estimateId, [{ rowId: input.rowId, rowRevision: expected }]),
@@ -2411,6 +2541,7 @@ async function patchEstimateRowItem(
     ...attachmentPlan.postSourceGuards,
     ...attachmentPlan.mutationStatements,
     ...propagation.mutationStatements,
+    ...variantSelectionStatement,
   ];
   if (mutationStatements.length + 4 > D1_MAX_BATCH_STATEMENTS) {
     throw new Error("Component propagation is too large to persist atomically with activity history.");
@@ -2940,8 +3071,8 @@ export async function moveEstimateRowComponentWithHistory(
   },
 ) {
   await assertScopedEstimate(database, actor, input);
-  await readCurrentLibrarySourceReceipt(database, input.sourceLibraryItem);
-  await readCurrentLibrarySourceReceipt(database, input.targetLibraryItem);
+  const sourceLibraryReceipt = await readCurrentLibrarySourceReceipt(database, input.sourceLibraryItem);
+  const targetLibraryReceipt = await readCurrentLibrarySourceReceipt(database, input.targetLibraryItem);
   if (!database.batch) throw new Error("Atomic estimate row component moves are unavailable.");
   if (!input.sourceRowId || !input.targetRowId || input.sourceRowId === input.targetRowId) {
     throw new Error("Source and target estimate rows must be different.");
@@ -2953,8 +3084,14 @@ export async function moveEstimateRowComponentWithHistory(
   if (expectedRows.some((row) => !Number.isInteger(row.rowRevision) || row.rowRevision < 1)) {
     throw new Error("Component move requires the current revision for both rows.");
   }
-  const sourceReplacementPayload = buildEstimateRowReplacementPayload(input.sourceLibraryItem);
-  const targetReplacementPayload = buildEstimateRowReplacementPayload(input.targetLibraryItem);
+  const sourceReplacementDraft = buildEstimateRowReplacementPayload(input.sourceLibraryItem);
+  const targetReplacementDraft = buildEstimateRowReplacementPayload(input.targetLibraryItem);
+  const sourceReplacementPayload = sourceLibraryReceipt
+    ? applyLibrarySourceReceiptToReplacementPayload(sourceReplacementDraft, sourceLibraryReceipt)
+    : sourceReplacementDraft;
+  const targetReplacementPayload = targetLibraryReceipt
+    ? applyLibrarySourceReceiptToReplacementPayload(targetReplacementDraft, targetLibraryReceipt)
+    : targetReplacementDraft;
   const { context: intent, committedResult } = await prepareEstimateMutationIntent<Record<string, unknown>>(
     database,
     actor,
@@ -3059,6 +3196,8 @@ export async function moveEstimateRowComponentWithHistory(
     topology.guard,
     buildEstimateNodeTabGuardStatement(input.estimateId, topologyNodeIds, expectedTabId),
     buildRowRevisionGuardStatement(input.estimateId, expectedRows),
+    ...(sourceLibraryReceipt ? buildLibrarySourceCommitGuardStatements(sourceLibraryReceipt) : []),
+    ...(targetLibraryReceipt ? buildLibrarySourceCommitGuardStatements(targetLibraryReceipt) : []),
     sourcePlan.statement,
     targetPlan.statement,
     buildProjectPublicationRevisionForEstimate(input.projectId, intent.workspaceId, input.estimateId),

@@ -26,12 +26,10 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectEstimateNodePage).toContain("EstimateWorkspaceClient");
     expect(projectEstimateNodePage).not.toContain('import { EstimateSheetContent }');
     expect(projectEstimateNodePage).not.toContain('import { EstimateSheetTree }');
-    expect(estimateWorkspaceClient).toContain(
-      '() => import("./EstimateSheetTree").then((module) => module.EstimateSheetTree)',
-    );
-    expect(estimateWorkspaceClient).toContain(
-      '() => import("./EstimateSheetContent").then((module) => module.EstimateSheetContent)',
-    );
+    expect(estimateWorkspaceClient).toContain('traceEstimateClientChunk("estimate.client.tree-chunk"');
+    expect(estimateWorkspaceClient).toContain('import("./EstimateSheetTree").then((module) => module.EstimateSheetTree)');
+    expect(estimateWorkspaceClient).toContain('traceEstimateClientChunk("estimate.client.content-chunk"');
+    expect(estimateWorkspaceClient).toContain('import("./EstimateSheetContent").then((module) => module.EstimateSheetContent)');
   });
 
   it("keeps list and sheet loading fallbacks specific to their route levels", () => {

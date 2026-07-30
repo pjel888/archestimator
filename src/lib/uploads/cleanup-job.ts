@@ -135,6 +135,7 @@ type UploadSessionCleanupRow = {
   surface: UploadCleanupRecord["surface"];
   storage_bucket: string;
   storage_path: string;
+  metadata_json: string | null;
   status: string;
   expires_at: string | null;
 };
@@ -740,6 +741,17 @@ function cleanupRecordFromSessionRow(row: UploadSessionCleanupRow): UploadCleanu
     ? row.status
     : "reserved";
 
+  let thumbnailPath: string | null = null;
+  try {
+    const metadata = JSON.parse(row.metadata_json ?? "{}") as unknown;
+    if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+      const candidate = (metadata as Record<string, unknown>).uploadThumbnailPath;
+      thumbnailPath = typeof candidate === "string" && candidate.trim() ? candidate.trim() : null;
+    }
+  } catch {
+    thumbnailPath = null;
+  }
+
   return {
     assetId: row.id,
     uploadAssetId: null,
@@ -749,6 +761,7 @@ function cleanupRecordFromSessionRow(row: UploadSessionCleanupRow): UploadCleanu
     surface: row.surface,
     bucket: row.storage_bucket,
     path: row.storage_path,
+    thumbnailPath,
     status,
     expiresAt: row.expires_at,
   };
@@ -791,7 +804,7 @@ export async function listUploadCleanupJobRecords(
     db
       .prepare<UploadSessionCleanupRow>(
         `
-          SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at
+          SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, metadata_json, status, expires_at
           FROM upload_sessions
           WHERE status IN (?, ?, ?)
             AND expires_at <= ?

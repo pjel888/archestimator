@@ -129,7 +129,7 @@ function makeSheetTree(areaCount: number, rowsPerArea: number): EstimateTreeNode
   ];
 }
 
-function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: number) {
+async function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: number) {
   const tree = makeSheetTree(areaCount, rowsPerArea);
   const renderCounts = new Map<string, number>();
   const rowRenderCounts = new Map<string, number>();
@@ -154,6 +154,9 @@ function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: num
     </QueryClientProvider>,
   );
   const initialRenderMs = Math.round((performance.now() - startedAt) * 100) / 100;
+  await act(async () => {
+    await Promise.resolve();
+  });
 
   const editedRowId = "perf-row-1-001";
   const quantityInput = view.container.querySelector<HTMLInputElement>(
@@ -225,18 +228,18 @@ describe("estimate sheet render/keystroke baseline", () => {
     window.localStorage.clear();
   });
 
-  it("profiles a 50-row sheet (5 areas x 10 rows)", () => {
-    const profile = profileKeystrokes("sheet-50", 5, 10);
+  it("profiles a 50-row sheet (5 areas x 10 rows)", async () => {
+    const profile = await profileKeystrokes("sheet-50", 5, 10);
     expectProfileWithinLocalBudget(profile);
   }, 60_000);
 
-  it("profiles a 200-row sheet (10 areas x 20 rows)", () => {
-    const profile = profileKeystrokes("sheet-200", 10, 20);
+  it("profiles a 200-row sheet (10 areas x 20 rows)", async () => {
+    const profile = await profileKeystrokes("sheet-200", 10, 20);
     expectProfileWithinLocalBudget(profile);
   }, 60_000);
 
-  it("profiles a 500-row sheet (10 areas x 50 rows)", () => {
-    const profile = profileKeystrokes("sheet-500", 10, 50);
+  it("profiles a 500-row sheet (10 areas x 50 rows)", async () => {
+    const profile = await profileKeystrokes("sheet-500", 10, 50);
     expectProfileWithinLocalBudget(profile);
   }, 120_000);
 });

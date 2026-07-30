@@ -3,16 +3,20 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type FocusEvent, type KeyboardEvent, type RefObject, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { ArrowsOutSimple, CopySimple, DotsSixVertical, DotsThree, Info, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
+import { Modal } from "@/components/ui/modal";
 import { ControlInput } from "@/components/ui/control-input";
 import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 import { registerEstimateOnboardingTargetAdapter } from "@/components/onboarding/estimate-target-adapter";
 import type { EstimateRowMutationStatus } from "@/hooks/use-estimate-row-mutations";
+import type { EstimateContributionBroadcastReceipt } from "@/lib/collaboration/estimate-tree-realtime-contract";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import {
   EMPTY_ESTIMATE_COLUMN_WIDTHS,
@@ -30,6 +34,19 @@ import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type RowDetailTab } 
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { useEstimateColumnResizeController } from "../columns/use-estimate-column-resize-controller";
+import { CommercialCell, type CommercialCellValue } from "../CommercialCell";
+import { QuotationAttachmentControl } from "../QuotationAttachmentControl";
+import {
+  linkEstimateRowQuotationAttachment,
+  listEstimateQuotationOptions,
+  unlinkEstimateRowQuotationAttachment,
+  updateEstimateRowCommercialTerms,
+} from "@/lib/commercial-terms/actions";
+import type { EstimateQuotationOption } from "@/lib/commercial-terms/repository";
+import {
+  selectEstimateAlternativeAction,
+  setEstimateOptionalInclusionAction,
+} from "@/lib/estimates/value-engineering-actions";
 import {
   ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
   LIBRARY_ITEM_DRAG_MIME_TYPE,
@@ -77,6 +94,7 @@ export type EstimateRowItemsTableProps = {
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
+  estimateTabId?: string;
   targetNodeId: string;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
@@ -97,6 +115,7 @@ export type EstimateRowItemsTableProps = {
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
+  onContributionChanged?: (receipt?: EstimateContributionBroadcastReceipt, contributionScopeId?: string) => void;
   columnResize?: EstimateTableColumnResizeConfig;
   virtualization?: {
     enabled?: boolean;
@@ -126,6 +145,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.canManageLibrary !== next.canManageLibrary ||
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
+    prev.estimateTabId !== next.estimateTabId ||
     prev.targetNodeId !== next.targetNodeId ||
     prev.brandOptions !== next.brandOptions ||
     prev.supplierOptions !== next.supplierOptions ||
@@ -145,6 +165,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
+    prev.onContributionChanged !== next.onContributionChanged ||
     prev.virtualization !== next.virtualization
   ) {
     return false;
@@ -161,6 +182,7 @@ const noopExpressDraftHandler = () => undefined;
 const noopCommitWidths = () => undefined;
 const ESTIMATE_COLUMN_HELP: Partial<Record<EstimateColumnId, string>> = {
   material: "The material or component used for this line, including its unit cost.",
+  commercial: "Remarks, quotation availability, and the VAT treatment required for this material.",
   quantity: "The total amount needed. You can enter a base quantity with a contingency amount, such as 10 + 1.",
   contingency: "Extra quantity added to the base quantity. It changes Qty before the subtotal is calculated.",
   subTotal: "Qty multiplied by the unit cost, before adjustment and miscellaneous cost.",
@@ -310,6 +332,198 @@ function getEstimateRowDropEdge(event: DragEvent<HTMLTableRowElement>) {
   return event.clientY < rect.top + rect.height / 2 ? "before" : "after";
 }
 
+function EstimateCommercialCellController({
+  canEditEstimate,
+  item,
+  rowLabel,
+  projectId,
+  estimateId,
+  onCommercialChanged,
+}: {
+  canEditEstimate: boolean;
+  item: EstimateRowItem;
+  rowLabel: string;
+  projectId?: string;
+  estimateId?: string;
+  onCommercialChanged?: () => void;
+}) {
+  const editableRowStore = useEditableRowStore();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(item.commercialTermsRevision ?? 1);
+  const [rowRevision, setRowRevision] = useState(item.rowRevision ?? 1);
+  const [quotationAttachment, setQuotationAttachment] = useState(
+    item.quotationAttachment ?? { attachmentState: "none" as const, hasAttachment: false },
+  );
+  const [quotationPickerOpen, setQuotationPickerOpen] = useState(false);
+  const [quotationArtifacts, setQuotationArtifacts] = useState<EstimateQuotationOption[]>([]);
+  const [quotationArtifactsLoading, setQuotationArtifactsLoading] = useState(false);
+  const [selectedQuotationVersionId, setSelectedQuotationVersionId] = useState("");
+  const [value, setValue] = useState<CommercialCellValue>({
+    remarks: item.notes ?? "",
+    quotationRequirement: item.quotationRequirement ?? "not_required",
+    quotationStatus: item.quotationStatus ?? "not_requested",
+    quotationReference: item.quotationReference ?? "",
+    vatTreatment: item.commercialVatTreatment ?? "exclusive",
+    vatRateBps: item.commercialVatRateBps ?? 1200,
+  });
+
+  function commit(next: Omit<CommercialCellValue, "remarks">) {
+    if (!canEditEstimate || !projectId || !estimateId || pending) return;
+    const previous = value;
+    const optimistic = { ...value, ...next };
+    setValue(optimistic);
+    setPending(true);
+    setError(null);
+    void updateEstimateRowCommercialTerms({
+      projectId,
+      estimateId,
+      rowId: item.id,
+      mutationId: crypto.randomUUID(),
+      expectedRowRevision: rowRevision,
+      expectedTermsRevision: revision,
+      overrideTreatment: optimistic.vatTreatment,
+      overrideRateBps: optimistic.vatRateBps,
+      quotationRequirement: optimistic.quotationRequirement,
+      quotationStatus: optimistic.quotationStatus,
+      quotationReference: optimistic.quotationReference || null,
+    }).then((result) => {
+      setRevision(result.termsRevision);
+      setRowRevision(result.rowRevision);
+      onCommercialChanged?.();
+    }).catch((saveError: unknown) => {
+      setValue(previous);
+      setError(saveError instanceof Error ? saveError.message : "Commercial terms could not be saved.");
+    }).finally(() => setPending(false));
+  }
+
+  function openQuotationPicker() {
+    if (!projectId || pending) return;
+    setQuotationPickerOpen(true);
+    setQuotationArtifactsLoading(true);
+    setError(null);
+    if (!estimateId) return;
+    void listEstimateQuotationOptions({ projectId, estimateId })
+      .then((artifacts) => {
+        setQuotationArtifacts(artifacts);
+        setSelectedQuotationVersionId(artifacts[0]?.versionId ?? "");
+      })
+      .catch((loadError: unknown) => {
+        setQuotationArtifacts([]);
+        setSelectedQuotationVersionId("");
+        setError(loadError instanceof Error ? loadError.message : "Quotation files could not be loaded.");
+      })
+      .finally(() => setQuotationArtifactsLoading(false));
+  }
+
+  function linkQuotation() {
+    if (!projectId || !estimateId || !selectedQuotationVersionId || pending) return;
+    setPending(true);
+    setError(null);
+    void linkEstimateRowQuotationAttachment({
+      projectId,
+      estimateId,
+      rowId: item.id,
+      mutationId: crypto.randomUUID(),
+      expectedRowRevision: rowRevision,
+      expectedTermsRevision: revision,
+      quotationArtifactVersionId: selectedQuotationVersionId,
+    }).then((result) => {
+      setRevision(result.termsRevision);
+      setRowRevision(result.rowRevision);
+      setQuotationAttachment(result.quotationAttachment);
+      setQuotationPickerOpen(false);
+      onCommercialChanged?.();
+    }).catch((linkError: unknown) => {
+      setError(linkError instanceof Error ? linkError.message : "Quotation attachment could not be saved.");
+    }).finally(() => setPending(false));
+  }
+
+  function unlinkQuotation() {
+    if (!projectId || !estimateId || pending) return;
+    setPending(true);
+    setError(null);
+    void unlinkEstimateRowQuotationAttachment({
+      projectId,
+      estimateId,
+      rowId: item.id,
+      mutationId: crypto.randomUUID(),
+      expectedRowRevision: rowRevision,
+      expectedTermsRevision: revision,
+    }).then((result) => {
+      setRevision(result.termsRevision);
+      setRowRevision(result.rowRevision);
+      setQuotationAttachment(result.quotationAttachment);
+      onCommercialChanged?.();
+    }).catch((unlinkError: unknown) => {
+      setError(unlinkError instanceof Error ? unlinkError.message : "Quotation attachment could not be removed.");
+    }).finally(() => setPending(false));
+  }
+
+  return (
+    <>
+      <CommercialCell
+        rowLabel={rowLabel}
+        value={value}
+        disabled={!canEditEstimate}
+        pending={pending}
+        error={error}
+        onRemarksCommit={(remarks) => {
+          setValue((current) => ({ ...current, remarks }));
+          editableRowStore.getState().stageRow(item, { notes: remarks });
+          editableRowStore.getState().commitRowFields(item, { notes: remarks });
+        }}
+        onCommercialChange={commit}
+      />
+      <QuotationAttachmentControl
+        {...quotationAttachment}
+        canEdit={canEditEstimate && Boolean(projectId && estimateId)}
+        pending={pending}
+        error={null}
+        onLinkRequested={openQuotationPicker}
+        onUnlink={unlinkQuotation}
+      />
+      <Modal
+        open={quotationPickerOpen}
+        onOpenChange={setQuotationPickerOpen}
+        title={`Quotation for ${rowLabel}`}
+        description="Choose the current version of an active project quotation."
+        size="sm"
+        closeLabel="Close quotation selector"
+        footer={(
+          <>
+            <Button type="button" variant="secondary" size="sm" disabled={pending} onClick={() => setQuotationPickerOpen(false)}>Cancel</Button>
+            <Button type="button" variant="primary" size="sm" disabled={pending || quotationArtifactsLoading || !selectedQuotationVersionId} onClick={linkQuotation}>
+              {pending ? "Saving…" : "Attach quotation"}
+            </Button>
+          </>
+        )}
+      >
+        {quotationArtifactsLoading ? (
+          <output role="status" className="text-sm text-secondary">Loading project quotations…</output>
+        ) : quotationArtifacts.length ? (
+          <label className="grid gap-1 text-sm font-medium text-ink">
+            Project quotation
+            <select
+              className="h-10 rounded-xs border border-hairline bg-white px-2 text-sm"
+              value={selectedQuotationVersionId}
+              onChange={(event) => setSelectedQuotationVersionId(event.currentTarget.value)}
+            >
+              {quotationArtifacts.map((artifact) => (
+                <option key={artifact.versionId} value={artifact.versionId}>
+                  {artifact.title}{artifact.revisionLabel ? ` — ${artifact.revisionLabel}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className="text-sm text-secondary">No active project quotations are available. Add one in Project Files first.</p>
+        )}
+      </Modal>
+    </>
+  );
+}
+
 type EstimateRowItemTableRowProps = {
   canEditEstimate: boolean;
   canManageLibrary: boolean;
@@ -318,6 +532,7 @@ type EstimateRowItemTableRowProps = {
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
+  estimateTabId?: string;
   rowIndex: number;
   selected: boolean;
   activeCellIndex: number | null;
@@ -345,6 +560,7 @@ type EstimateRowItemTableRowProps = {
   rowIds: readonly string[];
   onRequestFocusByRowId: (rowId: string, cellIndex: number) => void;
   onExpressEditorActiveChange: (rowId: string, active: boolean) => void;
+  onContributionChanged?: (receipt?: EstimateContributionBroadcastReceipt, contributionScopeId?: string) => void;
   style?: CSSProperties;
 };
 
@@ -356,6 +572,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   supplierOptions,
   projectId,
   estimateId,
+  estimateTabId,
   rowIndex,
   selected,
   activeCellIndex,
@@ -383,14 +600,22 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   rowIds,
   onRequestFocusByRowId,
   onExpressEditorActiveChange,
+  onContributionChanged,
   style,
 }: EstimateRowItemTableRowProps) {
   reportEstimateRowItemRender(item.id);
   const editableRowStore = useEditableRowStore();
-  const storedEditableRow = useStore(editableRowStore, (state) => state.rows[item.id]);
-  const rowCommitState = useStore(editableRowStore, (state) => selectEditableRowCommitState(state, item.id));
-  const externalRowMutationStatus = useStore(editableRowStore, (state) => selectExternalRowMutationStatus(state, item.id));
-  const componentSyncPending = useStore(editableRowStore, (state) => state.componentSyncPendingRowIds.has(item.id));
+  const {
+    storedEditableRow,
+    rowCommitState,
+    externalRowMutationStatus,
+    componentSyncPending,
+  } = useStore(editableRowStore, useShallow((state) => ({
+    storedEditableRow: state.rows[item.id],
+    rowCommitState: selectEditableRowCommitState(state, item.id),
+    externalRowMutationStatus: selectExternalRowMutationStatus(state, item.id),
+    componentSyncPending: state.componentSyncPendingRowIds.has(item.id),
+  })));
   const rowMutationStatus: EstimateRowMutationStatus | undefined = rowCommitState.phase === "pending"
     || rowCommitState.phase === "awaiting-confirmation"
     ? {
@@ -470,6 +695,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const [quantityInputDraft, setQuantityInputDraft] = useState<string | null>(null);
   const [quantityCellHovered, setQuantityCellHovered] = useState(false);
   const [quantityBreakdownFocused, setQuantityBreakdownFocused] = useState(false);
+  const pendingQuantityDraftRef = useRef<string | null>(null);
+  const quantityDraftFrameIdRef = useRef(0);
   const rowActionTriggerRef = useRef<HTMLButtonElement | null>(null);
   const quantityHasContingency = computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0;
   const quantityBreakdownVisible = quantityHasContingency && (quantityCellHovered || quantityBreakdownFocused);
@@ -479,6 +706,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, quantityDisplayUnit);
   const rowContingencyQuantityUnitLabel = formatQuantityUnitLabel(rowContingencyQuantity, quantityDisplayUnit);
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
+  const [contributionPending, setContributionPending] = useState(false);
+  const [contributionError, setContributionError] = useState<string | null>(null);
   const rowMutationPending = rowMutationStatus?.phase === "pending";
   const duplicateRowItemDisabled = Boolean(expressDraftState) || rowMutationPending || componentSyncPending;
 
@@ -558,6 +787,15 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     editableRowStore.getState().commitRowFields(item, patch);
   }
 
+  function commitExpressImageFields(values: Partial<EditableRowValue>) {
+    if (!canEditEstimate) return Promise.reject(new Error("You do not have permission to edit this estimate."));
+    const nextValues = { ...resolvedEditableRow, ...values };
+    const patch: Partial<EditableRowValue> = {};
+    if (values.imageUrl !== undefined && nextValues.imageUrl !== (item.imageUrl ?? "")) patch.imageUrl = nextValues.imageUrl;
+    if (values.imageAsset !== undefined) patch.imageAsset = values.imageAsset;
+    return editableRowStore.getState().commitRowFieldsAwaited(item, patch);
+  }
+
   function updateQuantityFields(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
     editableRowStore.getState().stageRow(computedItem, values);
@@ -569,6 +807,21 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     if (parsed.ok) updateQuantityFields(parsed.patch);
     else updateQuantityFields({ quantityExpression: value });
   }
+
+  function scheduleQuantityDraft(value: string) {
+    pendingQuantityDraftRef.current = value;
+    if (quantityDraftFrameIdRef.current) return;
+    quantityDraftFrameIdRef.current = window.requestAnimationFrame(() => {
+      quantityDraftFrameIdRef.current = 0;
+      const pendingValue = pendingQuantityDraftRef.current;
+      pendingQuantityDraftRef.current = null;
+      if (pendingValue !== null) updateQuantityDraft(pendingValue);
+    });
+  }
+
+  useEffect(() => () => {
+    if (quantityDraftFrameIdRef.current) window.cancelAnimationFrame(quantityDraftFrameIdRef.current);
+  }, []);
 
   function commitQuantityFields(values: Partial<EditableRowValue>) {
     if (!canEditEstimate) return;
@@ -651,6 +904,65 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     editableRowStore.getState().commitSelectedVariant(computedItem, priceOption);
   }
 
+  function selectAlternative() {
+    const group = item.alternativeGroup;
+    if (!canEditEstimate || !projectId || !estimateId || !estimateTabId || !item.contributionScopeId || !group || contributionPending) return;
+    setContributionPending(true);
+    setContributionError(null);
+    const mutationId = crypto.randomUUID();
+    void selectEstimateAlternativeAction({
+      projectId,
+      estimateId,
+      estimateTabId,
+      contributionScopeId: item.contributionScopeId,
+      groupId: group.id,
+      selectedRowItemId: item.id,
+      expectedGroupRevision: group.revision,
+      expectedContributionRevision: item.contributionRevision ?? 1,
+      intentId: mutationId,
+    }).then((result) => {
+      onContributionChanged?.({
+        delivery: "server_mutation",
+        changed: result.changed,
+        scopeRevision: result.contributionRevision,
+        mutationId,
+        changedRowIds: [item.id],
+        changedGroupIds: [group.id],
+      }, item.contributionScopeId);
+    }).catch((error: unknown) => {
+      setContributionError(error instanceof Error ? error.message : "This material option could not be selected.");
+    }).finally(() => setContributionPending(false));
+  }
+
+  function toggleOptionalContribution() {
+    const optional = item.optionalContribution;
+    if (!canEditEstimate || !projectId || !estimateId || !estimateTabId || !item.contributionScopeId || !optional || contributionPending) return;
+    setContributionPending(true);
+    setContributionError(null);
+    const mutationId = crypto.randomUUID();
+    void setEstimateOptionalInclusionAction({
+      projectId,
+      estimateId,
+      estimateTabId,
+      contributionScopeId: item.contributionScopeId,
+      rowItemId: item.id,
+      isIncluded: !optional.isIncluded,
+      expectedOptionalRevision: optional.revision,
+      expectedContributionRevision: item.contributionRevision ?? 1,
+      intentId: mutationId,
+    }).then((result) => {
+      onContributionChanged?.({
+        delivery: "server_mutation",
+        changed: result.changed,
+        scopeRevision: result.contributionRevision,
+        mutationId,
+        changedRowIds: [item.id],
+      }, item.contributionScopeId);
+    }).catch((error: unknown) => {
+      setContributionError(error instanceof Error ? error.message : "This optional material could not be updated.");
+    }).finally(() => setContributionPending(false));
+  }
+
 
   return (
     <tr
@@ -716,7 +1028,58 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         ) : (
           <span className="size-6" aria-hidden="true" />
         )}
-        <span className="size-6" aria-hidden="true" />
+        {item.alternativeGroup ? (
+          <Tooltip
+            label={item.alternativeGroup.selectedRowItemId === item.id ? "Selected material option" : "Use this material option"}
+            side="right"
+            contentClassName="z-[1200]"
+          >
+            <button
+              type="button"
+              className={cn(
+                "grid size-6 place-items-center rounded-full border text-[9px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/60",
+                item.alternativeGroup.selectedRowItemId === item.id
+                  ? "border-brand-orange bg-brand-orange text-white"
+                  : "border-hairline bg-white text-secondary hover:border-brand-orange hover:text-brand-orange",
+              )}
+              aria-label={`${item.alternativeGroup.selectedRowItemId === item.id ? "Selected" : "Select"} ${computedItemLabel} for ${item.alternativeGroup.name || "material options"}`}
+              aria-pressed={item.alternativeGroup.selectedRowItemId === item.id}
+              disabled={!canEditEstimate || contributionPending}
+              onClick={selectAlternative}
+            >
+              V
+            </button>
+          </Tooltip>
+        ) : item.optionalContribution ? (
+          <Tooltip label={item.optionalContribution.isIncluded ? "Optional material included" : "Optional material excluded"} side="right" contentClassName="z-[1200]">
+            <button
+              type="button"
+              className={cn(
+                "grid size-6 place-items-center rounded-xs border text-[9px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/60",
+                item.optionalContribution.isIncluded ? "border-info bg-infoSoft text-info" : "border-hairline bg-white text-tertiary",
+              )}
+              aria-label={`${item.optionalContribution.isIncluded ? "Exclude" : "Include"} optional material ${computedItemLabel}`}
+              aria-pressed={item.optionalContribution.isIncluded}
+              disabled={!canEditEstimate || contributionPending}
+              onClick={toggleOptionalContribution}
+            >
+              O
+            </button>
+          </Tooltip>
+        ) : item.accessoryParent || item.accessoryChildren?.length ? (
+          <Tooltip
+            label={item.accessoryParent ? "Accessory material" : `${item.accessoryChildren?.length ?? 0} linked accessories`}
+            side="right"
+            contentClassName="z-[1200]"
+          >
+            <span className="grid size-6 place-items-center rounded-xs border border-hairline bg-surfaceMuted text-[9px] font-semibold text-secondary" aria-label={item.accessoryParent ? "Accessory material" : `${item.accessoryChildren?.length ?? 0} linked accessories`}>
+              A{item.accessoryChildren?.length ? item.accessoryChildren.length : ""}
+            </span>
+          </Tooltip>
+        ) : (
+          <span className="size-6" aria-hidden="true" />
+        )}
+        {contributionError ? <output className="sr-only" role="alert">{contributionError}</output> : null}
       </td>
       <td className="min-w-0 border-r border-hairline">
         <EstimateMaterialCell
@@ -734,6 +1097,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onExpressEditorActiveChange={(active) => onExpressEditorActiveChange(computedItem.id, active)}
           onExpressFieldChange={updateExpressEditableRow}
           onExpressFieldCommit={commitExpressFields}
+          onExpressImageCommit={commitExpressImageFields}
           onExpressFieldRevert={(field) => {
             const initialRow = getInitialEditableRow(item);
             editableRowStore.getState().stageRow(item, { [field]: initialRow[field] });
@@ -772,6 +1136,17 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onDeleteExpressDraft={() => onDeleteExpressDraft(computedItem.id)}
         />
       </td>
+      <td className="min-w-0 border-r border-hairline">
+        <EstimateCommercialCellController
+          key={`${item.id}:${item.rowRevision ?? 0}:${item.commercialTermsRevision ?? 0}`}
+          canEditEstimate={canEditEstimate}
+          item={item}
+          rowLabel={computedItemLabel}
+          projectId={projectId}
+          estimateId={estimateId}
+          onCommercialChanged={onContributionChanged}
+        />
+      </td>
       <td
         className={cn(
           "group/qty-cell relative flex flex-col items-center justify-center border-r border-hairline px-1 text-center",
@@ -791,7 +1166,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onChange={(event) => {
             setQuantityInputFocused(true);
             setQuantityInputDraft(event.target.value);
-            updateQuantityDraft(event.target.value);
+            scheduleQuantityDraft(event.target.value);
           }}
           onFocus={() => {
             setQuantityInputFocused(true);
@@ -799,6 +1174,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             setFocusedCell({ rowId: computedItem.id, cellIndex: 0 });
           }}
           onBlur={(event) => {
+            if (quantityDraftFrameIdRef.current) window.cancelAnimationFrame(quantityDraftFrameIdRef.current);
+            quantityDraftFrameIdRef.current = 0;
+            pendingQuantityDraftRef.current = null;
             setQuantityInputFocused(false);
             setQuantityInputDraft(null);
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
@@ -1074,6 +1452,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   supplierOptions,
   projectId,
   estimateId,
+  estimateTabId,
   targetNodeId,
   onInsertLibraryItem,
   onReplaceRowItem,
@@ -1094,6 +1473,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   selectedRowIds,
   onToggleRowSelection,
   onToggleRowsSelection,
+  onContributionChanged,
   columnResize,
   virtualization = WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION,
 }: EstimateRowItemsTableProps) {
@@ -1352,6 +1732,10 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               <EstimateColumnHeader columnId="material" label="Materials" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="material" resizeController={columnResizeController} /> : null}
             </th>
+            <th scope="col" className={headerCellClassName("commercial")}>
+              <EstimateColumnHeader columnId="commercial" label="Commercial" />
+              {columnResize ? <EstimateRowColumnResizeHandle columnId="commercial" resizeController={columnResizeController} /> : null}
+            </th>
             <th scope="col" className={headerCellClassName("quantity")}>
               <EstimateColumnHeader columnId="quantity" label="Qty" />
               {columnResize ? <EstimateRowColumnResizeHandle columnId="quantity" resizeController={columnResizeController} /> : null}
@@ -1402,6 +1786,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 supplierOptions={supplierOptions}
                 projectId={projectId}
                 estimateId={estimateId}
+                estimateTabId={estimateTabId}
                 rowIndex={virtualRow.index}
                 selected={canEditEstimate && selectedRowIds.has(item.id)}
                 activeCellIndex={focusedCell?.rowId === item.id ? focusedCell.cellIndex : null}
@@ -1409,6 +1794,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 setFocusedCell={setFocusedCell}
                 setReplaceTargetRowId={setReplaceTargetRowId}
                 onExpressEditorActiveChange={handleExpressEditorActiveChange}
+                onContributionChanged={onContributionChanged}
                 onInsertLibraryItem={onInsertLibraryItem}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}

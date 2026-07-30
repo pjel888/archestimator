@@ -35,6 +35,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  useParams: () => ({ nodeId: "main-house", projectId: "project-1" }),
   usePathname: () => "/workshop/projects/project-1/estimates/main-house",
   useRouter: () => ({
     prefetch: vi.fn(),
@@ -401,7 +402,7 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
     expect(
       within(livingAreaSection)
-        .getByRole("row", { name: /Materials Qty Contingency Subtotal Adjustment Misc Cost Total Item Cost/ })
+        .getByRole("row", { name: /Materials Commercial Qty Contingency Subtotal Adjustment Misc Cost Total Item Cost/ })
         .querySelector("svg"),
     ).toHaveAttribute("aria-hidden", "true");
   });
@@ -1002,12 +1003,13 @@ describe("estimate sheet cost inputs", () => {
 
     const replacement = estimateLibraryItems.find((item) => item.material === "HEMLINGBY Loveseat");
     expect(replacement).toBeDefined();
+    const replacementWithZeroQuantity = { ...replacement!, quantity: 0 };
 
     const targetComponent = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     const dataTransfer = {
       types: ["application/x-archestimator-library-item"],
       dropEffect: "copy",
-      getData: (type: string) => (type === "application/x-archestimator-library-item" ? JSON.stringify(replacement) : ""),
+      getData: (type: string) => (type === "application/x-archestimator-library-item" ? JSON.stringify(replacementWithZeroQuantity) : ""),
     };
 
     fireEvent.dragOver(targetComponent, { dataTransfer });

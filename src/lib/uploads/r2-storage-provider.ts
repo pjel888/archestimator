@@ -63,6 +63,12 @@ export function buildCloudflareR2ObjectKey(bucket: string, path: string): string
   return `${bucket}/${path}`;
 }
 
+function assertValidDownloadRange(range: { length: number; offset: number }) {
+  const validOffset = Number.isSafeInteger(range.offset) && range.offset >= 0;
+  const validLength = Number.isSafeInteger(range.length) && range.length > 0;
+  if (!validOffset || !validLength) throw new Error("Something went wrong. Try again in a moment.");
+}
+
 export function createCloudflareR2UploadStorageProvider(
   r2: CloudflareR2UploadBucket,
   options: CloudflareR2UploadStorageProviderOptions = {},
@@ -95,9 +101,7 @@ export function createCloudflareR2UploadStorageProvider(
       };
     },
     async downloadObjectRange(bucket, path, range) {
-      if (!Number.isSafeInteger(range.offset) || range.offset < 0 || !Number.isSafeInteger(range.length) || range.length <= 0) {
-        throw new Error("Something went wrong. Try again in a moment.");
-      }
+      assertValidDownloadRange(range);
       const object = await r2.get(buildCloudflareR2ObjectKey(bucket, path), { range });
       if (!object) throw new Error("Something went wrong. Try again in a moment.");
       const body = await object.arrayBuffer();

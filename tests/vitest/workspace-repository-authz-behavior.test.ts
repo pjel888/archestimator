@@ -191,6 +191,10 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
     return new FakeD1Statement(this, sql) as D1PreparedStatementLike<T>;
   }
 
+  async batch<T = Record<string, unknown>>(statements: D1PreparedStatementLike<T>[]) {
+    return Promise.all(statements.map((statement) => statement.run()));
+  }
+
   async first({ sql, values }: D1Query) {
     this.queries.push({ sql, values });
 
@@ -376,6 +380,21 @@ describe("workspace repository D1 authorization behavior", () => {
 
     expect(result.project?.id).toBe(PROJECT_ID);
     expect(result.workspace.id).toBe(PROJECT_WORKSPACE_ID);
+  });
+
+  it("rejects invalid project and estimate ids before opening D1", async () => {
+    const database = new FakeWorkspaceRepositoryD1Database({ projectAccess: "allow" });
+    const { getCurrentWorkspaceProjectForEstimate } = await importWorkspaceRepository(database);
+
+    const invalidProject = await getCurrentWorkspaceProjectForEstimate("invalid-project", ESTIMATE_ALLOWED_ID);
+    const invalidEstimate = await getCurrentWorkspaceProjectForEstimate(PROJECT_ID, "invalid-estimate");
+
+    expect(invalidProject.project).toBeNull();
+    expect(invalidEstimate.project).toBeNull();
+    expect(invalidProject.workspace.id).toBe(DEFAULT_WORKSPACE_ID);
+    expect(invalidEstimate.workspace.id).toBe(DEFAULT_WORKSPACE_ID);
+    expect(database.queries.flatMap((query) => query.values)).not.toContain("invalid-project");
+    expect(database.queries.flatMap((query) => query.values)).not.toContain("invalid-estimate");
   });
 
   it("returns the default workspace and no project for a cross-workspace outsider", async () => {

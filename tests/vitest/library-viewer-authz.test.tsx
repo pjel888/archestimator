@@ -406,8 +406,10 @@ describe("library viewer mutation authorization", () => {
     expect(priceOptionInserts[0]?.values[5]).toBe(12.34);
     expect(priceOptionInserts[0]?.values[6]).toBe(99);
     expect(priceOptionInserts[0]?.values[11]).toBeNull();
-    expect(priceOptionInserts[0]?.values[12]).toBe("Supplier quote");
-    expect(JSON.parse(String(priceOptionInserts[0]?.values[13]))).toEqual(expect.objectContaining({
+    expect(priceOptionInserts[0]?.values[12]).toBeNull();
+    expect(priceOptionInserts[0]?.values[13]).toBe("");
+    expect(priceOptionInserts[0]?.values[14]).toBe("Supplier quote");
+    expect(JSON.parse(String(priceOptionInserts[0]?.values[15]))).toEqual(expect.objectContaining({
       packageQuantity: 1,
       packageUnit: "unit",
       dimensionLength: 1,
@@ -418,7 +420,7 @@ describe("library viewer mutation authorization", () => {
       massUnit: "kg",
       variantMetadata: { legacy: true },
     }));
-    expect(JSON.parse(String(priceOptionInserts[1]?.values[13]))).toEqual(expect.objectContaining({
+    expect(JSON.parse(String(priceOptionInserts[1]?.values[15]))).toEqual(expect.objectContaining({
       packageQuantity: 12,
       packageUnit: "pieces",
     }));

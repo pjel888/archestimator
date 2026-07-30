@@ -6,7 +6,7 @@ import {
   type D1Value,
 } from "@/lib/cloudflare/d1";
 
-export const COMMITMENT_CENTER_PORTAL_LIMIT = 100;
+const COMMITMENT_CENTER_PORTAL_LIMIT = 100;
 export const COMMITMENT_CENTER_DETAIL_LIMIT = 200;
 
 export type CommitmentCenterView =
@@ -16,7 +16,7 @@ export type CommitmentCenterView =
   | "decisions"
   | "access_delivery";
 
-export type CommitmentCenterNextAction =
+type CommitmentCenterNextAction =
   | {
       href: string;
       kind: "timeline" | "portal_control" | "compose";
@@ -216,113 +216,182 @@ function projectRoot(projectId: string) {
   return `/workshop/projects/${encodeURIComponent(projectId)}`;
 }
 
-function nextAction(row: PortalProjectionRow): CommitmentCenterNextAction {
+type PortalActionLinks = {
+  compose: string;
+  control: string;
+  timeline: string;
+};
+
+type PortalActionBuilder = (
+  row: PortalProjectionRow,
+  links: PortalActionLinks,
+) => CommitmentCenterNextAction | null;
+
+function actionLinks(row: PortalProjectionRow): PortalActionLinks {
   const root = projectRoot(row.project_id);
-  const control = `${root}/client-portals/${encodeURIComponent(row.portal_id)}`;
+  return {
+    compose: `${root}/client-portals/compose?portal=${encodeURIComponent(row.portal_id)}`,
+    control: `${root}/client-portals/${encodeURIComponent(row.portal_id)}`,
+    timeline: `${root}/timeline?portal=${encodeURIComponent(row.portal_id)}`,
+  };
+}
+
+function quantityLabel(countValue: number, singular: string) {
+  return `${countValue} ${singular}${countValue === 1 ? "" : "s"}`;
+}
+
+function baselineReconciliationAction(row: PortalProjectionRow): CommitmentCenterNextAction | null {
+  if (!row.can_manage_portal || !row.issue_id || row.issue_status !== "accepted" || row.baseline_number !== null) return null;
+  return {
+    issueId: row.issue_id,
+    kind: "baseline_reconciliation",
+    label: "Restore the accepted baseline",
+    priority: "urgent",
+  };
+}
+
+function discussionAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
   const waitingDiscussions = count(row.waiting_discussion_count);
-  const openRequests = count(row.open_request_count);
+  if (waitingDiscussions === 0) return null;
+  return {
+    href: `${links.control}?tab=discussions`,
+    kind: "portal_control",
+    label: `Respond to ${quantityLabel(waitingDiscussions, "discussion")}`,
+    priority: "urgent",
+  };
+}
+
+function deliveryAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
   const deliveryFailures = count(row.delivery_dead_count);
+  if (deliveryFailures === 0) return null;
+  return {
+    href: `${links.control}?tab=people`,
+    kind: "portal_control",
+    label: `Resolve ${quantityLabel(deliveryFailures, "delivery failure")}`,
+    priority: "urgent",
+  };
+}
+
+function requestAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
+  const openRequests = count(row.open_request_count);
+  if (openRequests === 0) return null;
+  return {
+    href: `${links.timeline}&source=change_request`,
+    kind: "timeline",
+    label: `Assess ${quantityLabel(openRequests, "open request")}`,
+    priority: "attention",
+  };
+}
+
+function recipientAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
   const unverifiedRecipients = count(row.unverified_recipient_count);
+  if (unverifiedRecipients === 0) return null;
+  return {
+    href: `${links.control}?tab=people`,
+    kind: "portal_control",
+    label: `Review ${quantityLabel(unverifiedRecipients, "unverified recipient")}`,
+    priority: "attention",
+  };
+}
+
+function approvalAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
   const requiredApprovals = count(row.required_approval_count);
   const approvedDecisions = count(row.decision_approved_count);
+  const reviewable = row.issue_status === "issued" || row.issue_status === "under_review";
+  if (!row.issue_number || !reviewable || approvedDecisions >= requiredApprovals) return null;
+  const pendingApprovals = requiredApprovals - approvedDecisions;
+  return {
+    href: `${links.control}?tab=decisions`,
+    kind: "portal_control",
+    label: `Await ${quantityLabel(pendingApprovals, "required approval")}`,
+    priority: "attention",
+  };
+}
 
-  if (row.can_manage_portal && row.issue_id && row.issue_status === "accepted" && row.baseline_number === null) {
-    return {
-      issueId: row.issue_id,
-      kind: "baseline_reconciliation",
-      label: "Restore the accepted baseline",
-      priority: "urgent",
-    };
-  }
-  if (waitingDiscussions > 0) {
-    return {
-      href: `${control}?tab=discussions`,
-      kind: "portal_control",
-      label: `Respond to ${waitingDiscussions} discussion${waitingDiscussions === 1 ? "" : "s"}`,
-      priority: "urgent",
-    };
-  }
-  if (deliveryFailures > 0) {
-    return {
-      href: `${control}?tab=people`,
-      kind: "portal_control",
-      label: `Resolve ${deliveryFailures} delivery failure${deliveryFailures === 1 ? "" : "s"}`,
-      priority: "urgent",
-    };
-  }
-  if (openRequests > 0) {
-    return {
-      href: `${root}/timeline?portal=${encodeURIComponent(row.portal_id)}&source=change_request`,
-      kind: "timeline",
-      label: `Assess ${openRequests} open request${openRequests === 1 ? "" : "s"}`,
-      priority: "attention",
-    };
-  }
-  if (unverifiedRecipients > 0) {
-    return {
-      href: `${control}?tab=people`,
-      kind: "portal_control",
-      label: `Review ${unverifiedRecipients} unverified recipient${unverifiedRecipients === 1 ? "" : "s"}`,
-      priority: "attention",
-    };
-  }
-  if (row.issue_number && (row.issue_status === "issued" || row.issue_status === "under_review") && approvedDecisions < requiredApprovals) {
-    const pendingApprovals = requiredApprovals - approvedDecisions;
-    return {
-      href: `${control}?tab=decisions`,
-      kind: "portal_control",
-      label: `Await ${pendingApprovals} required approval${pendingApprovals === 1 ? "" : "s"}`,
-      priority: "attention",
-    };
-  }
-  if (!row.issue_number || row.portal_status === "draft" || row.portal_status === "ready") {
-    return {
-      href: `${root}/client-portals/compose?portal=${encodeURIComponent(row.portal_id)}`,
-      kind: "compose",
-      label: "Compose the next issue",
-      priority: "attention",
-    };
-  }
-  if (row.issue_status === "changes_requested" || row.issue_status === "declined") {
-    return {
-      href: `${root}/client-portals/compose?portal=${encodeURIComponent(row.portal_id)}`,
-      kind: "compose",
-      label: "Prepare a revised issue",
-      priority: "attention",
-    };
+function initialComposeAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
+  if (row.issue_number && row.portal_status !== "draft" && row.portal_status !== "ready") return null;
+  return {
+    href: links.compose,
+    kind: "compose",
+    label: "Compose the next issue",
+    priority: "attention",
+  };
+}
+
+function revisionAction(row: PortalProjectionRow, links: PortalActionLinks): CommitmentCenterNextAction | null {
+  if (row.issue_status !== "changes_requested" && row.issue_status !== "declined") return null;
+  return {
+    href: links.compose,
+    kind: "compose",
+    label: "Prepare a revised issue",
+    priority: "attention",
+  };
+}
+
+const PORTAL_ACTION_BUILDERS: readonly PortalActionBuilder[] = [
+  (row) => baselineReconciliationAction(row),
+  discussionAction,
+  deliveryAction,
+  requestAction,
+  recipientAction,
+  approvalAction,
+  initialComposeAction,
+  revisionAction,
+];
+
+function nextAction(row: PortalProjectionRow): CommitmentCenterNextAction {
+  const links = actionLinks(row);
+  for (const buildAction of PORTAL_ACTION_BUILDERS) {
+    const candidate = buildAction(row, links);
+    if (candidate) return candidate;
   }
   return {
-    href: `${root}/timeline?portal=${encodeURIComponent(row.portal_id)}`,
+    href: links.timeline,
     kind: "timeline",
     label: "Monitor commitment timeline",
     priority: "monitor",
   };
 }
 
+function mapPendingIssue(row: PortalProjectionRow): CommitmentCenterPortalRow["pendingIssue"] {
+  const pendingStatuses = ["issued", "under_review", "changes_requested"];
+  if (row.issue_number === null || row.issue_status === null || !pendingStatuses.includes(row.issue_status)) return null;
+  return {
+    issueNumber: Number(row.issue_number),
+    issuedAt: row.issue_issued_at ?? "",
+    status: row.issue_status,
+    versionLabel: row.issue_version_label ?? `Issue ${row.issue_number}`,
+  };
+}
+
+function mapActiveBaseline(row: PortalProjectionRow): CommitmentCenterPortalRow["activeBaseline"] {
+  if (row.baseline_number === null) return null;
+  return {
+    baselineNumber: Number(row.baseline_number),
+    currencyCode: row.baseline_currency_code ?? "USD",
+    establishedAt: row.baseline_established_at ?? "",
+    totalMinorUnits: Number(row.baseline_total_minor_units ?? 0),
+    versionLabel: row.baseline_version_label ?? `Baseline ${row.baseline_number}`,
+  };
+}
+
+function mapLatestEvent(row: PortalProjectionRow): CommitmentCenterPortalRow["latestEvent"] {
+  if (!row.latest_event_type || !row.latest_event_occurred_at || !row.latest_event_title) return null;
+  return {
+    eventType: row.latest_event_type,
+    occurredAt: row.latest_event_occurred_at,
+    title: row.latest_event_title,
+  };
+}
+
 function mapPortal(row: PortalProjectionRow): CommitmentCenterPortalRow {
-  const pendingIssue = row.issue_number !== null
-    && row.issue_status !== null
-    && ["issued", "under_review", "changes_requested"].includes(row.issue_status)
-    ? {
-        issueNumber: Number(row.issue_number),
-        issuedAt: row.issue_issued_at ?? "",
-        status: row.issue_status,
-        versionLabel: row.issue_version_label ?? `Issue ${row.issue_number}`,
-      }
-    : null;
 
   return {
     access: {
       passwordRequired: Boolean(row.password_required),
       portalStatus: row.portal_status,
     },
-    activeBaseline: row.baseline_number === null ? null : {
-      baselineNumber: Number(row.baseline_number),
-      currencyCode: row.baseline_currency_code ?? "USD",
-      establishedAt: row.baseline_established_at ?? "",
-      totalMinorUnits: Number(row.baseline_total_minor_units ?? 0),
-      versionLabel: row.baseline_version_label ?? `Baseline ${row.baseline_number}`,
-    },
+    activeBaseline: mapActiveBaseline(row),
     audience: row.audience_kind,
     canManagePortal: Boolean(row.can_manage_portal),
     currentDecisions: {
@@ -337,16 +406,10 @@ function mapPortal(row: PortalProjectionRow): CommitmentCenterPortalRow {
       latestState: row.latest_delivery_state,
       pending: count(row.delivery_pending_count),
     },
-    latestEvent: row.latest_event_type && row.latest_event_occurred_at && row.latest_event_title
-      ? {
-          eventType: row.latest_event_type,
-          occurredAt: row.latest_event_occurred_at,
-          title: row.latest_event_title,
-        }
-      : null,
+    latestEvent: mapLatestEvent(row),
     nextAction: nextAction(row),
     openRequests: count(row.open_request_count),
-    pendingIssue,
+    pendingIssue: mapPendingIssue(row),
     portal: {
       id: row.portal_id,
       isPrimary: Boolean(row.is_primary),

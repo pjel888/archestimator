@@ -39,6 +39,11 @@ type ExposureRow = {
 
 type ExposureRecipientRow = {
   id: string;
+  role_template: string;
+};
+
+type PortalAccessPolicyRow = {
+  access_policy_json: string;
 };
 
 type RequestExposurePolicySnapshot = {
@@ -301,7 +306,7 @@ async function recipientRequestActor(
   };
 }
 
-export async function readRecipientIdentity(
+async function readRecipientIdentity(
   database: D1DatabaseLike,
   portalId: string,
   recipientId: string,
@@ -319,20 +324,68 @@ export async function readAutomaticRequestExposurePolicy(
   portalId: string,
   requesterRecipientId: string,
 ): Promise<RequestExposurePolicySnapshot> {
-  const rows = await database.prepare<ExposureRecipientRow>(`
-    SELECT id
-    FROM client_portal_recipients
-    WHERE portal_id = ?
-      AND status = 'active'
-      AND verification_state = 'verified'
-      AND permission_role IN ('requester', 'reviewer', 'approver')
-    ORDER BY id ASC
-  `).bind(portalId).all<ExposureRecipientRow>();
+  const [portal, rows] = await Promise.all([
+    database.prepare<PortalAccessPolicyRow>(`
+      SELECT access_policy_json
+      FROM client_portals
+      WHERE id = ?
+      LIMIT 1
+    `).bind(portalId).first<PortalAccessPolicyRow>(),
+    database.prepare<ExposureRecipientRow>(`
+      SELECT id, role_template
+      FROM client_portal_recipients
+      WHERE portal_id = ?
+        AND status = 'active'
+        AND verification_state = 'verified'
+      ORDER BY id ASC
+    `).bind(portalId).all<ExposureRecipientRow>(),
+  ]);
+  const allowedRoleTemplates = new Set<string>();
+  const explicitlyAllowedRecipientIds = new Set<string>();
+  if (portal) {
+    try {
+      const accessPolicy = JSON.parse(portal.access_policy_json) as Record<string, unknown>;
+      const requestVisibility = accessPolicy.requestVisibility;
+      if (requestVisibility && typeof requestVisibility === "object" && !Array.isArray(requestVisibility)) {
+        const policy = requestVisibility as Record<string, unknown>;
+        const roles = policy.allowedRoleTemplates;
+        const recipientIds = policy.allowedRecipientIds;
+        const validRoles = roles === undefined || (Array.isArray(roles) && roles.every((role) =>
+          typeof role === "string" && ["viewer", "commenter", "requester", "reviewer", "approver"].includes(role)));
+        const validRecipientIds = recipientIds === undefined || (Array.isArray(recipientIds) && recipientIds.every((recipientId) =>
+          typeof recipientId === "string" && recipientId.trim().length > 0));
+        if (!validRoles || !validRecipientIds) {
+          throw new Error("Invalid request visibility policy.");
+        }
+        for (const role of Array.isArray(roles) ? roles : []) {
+          allowedRoleTemplates.add(role);
+        }
+        for (const recipientId of Array.isArray(recipientIds) ? recipientIds : []) {
+          explicitlyAllowedRecipientIds.add(recipientId);
+        }
+      }
+    } catch {}
+  }
   const allowedRecipientIds = [...new Set([
     requesterRecipientId,
-    ...(rows.results ?? []).map((row) => row.id),
+    ...(rows.results ?? [])
+      .filter((row) => allowedRoleTemplates.has(row.role_template) || explicitlyAllowedRecipientIds.has(row.id))
+      .map((row) => row.id),
   ])].sort();
   return { capability: "request:view", allowedRecipientIds };
+}
+
+async function exposedRequestFromRow(database: D1DatabaseLike, context: PublicContext, row: ExposureRow) {
+  let rawPolicy: unknown;
+  try {
+    rawPolicy = JSON.parse(row.policy_snapshot_json);
+  } catch {
+    return null;
+  }
+  const policySnapshot = requestExposurePolicySnapshot(rawPolicy);
+  if (!policySnapshot) return null;
+  const request = await readChangeRequest({ database, projectId: context.portal.project_id, requestId: row.request_id, workspaceId: context.portal.workspace_id });
+  return request ? { exposure: { policySnapshot, publicRequestId: row.public_request_id, status: row.status }, request } satisfies ExposedRequest : null;
 }
 
 export async function listExposedRequests(database: D1DatabaseLike, context: PublicContext) {
@@ -343,26 +396,7 @@ export async function listExposedRequests(database: D1DatabaseLike, context: Pub
     ORDER BY exposed_at DESC, public_request_id DESC
     LIMIT 100
   `).bind(context.portal.id).all<ExposureRow>();
-  const exposed: Array<ExposedRequest | null> = await Promise.all((rows.results ?? []).map(async (row) => {
-    let rawPolicy: unknown;
-    try {
-      rawPolicy = JSON.parse(row.policy_snapshot_json);
-    } catch {
-      return null;
-    }
-    const policySnapshot = requestExposurePolicySnapshot(rawPolicy);
-    if (!policySnapshot) return null;
-    const request = await readChangeRequest({
-      database,
-      projectId: context.portal.project_id,
-      requestId: row.request_id,
-      workspaceId: context.portal.workspace_id,
-    });
-    return request ? {
-      exposure: { policySnapshot, publicRequestId: row.public_request_id, status: row.status },
-      request,
-    } : null;
-  }));
+  const exposed: Array<ExposedRequest | null> = await Promise.all((rows.results ?? []).map((row) => exposedRequestFromRow(database, context, row)));
   return exposed.filter((entry): entry is ExposedRequest => entry !== null);
 }
 
@@ -378,24 +412,19 @@ export async function readExposedRequest(
     LIMIT 1
   `).bind(context.portal.id, publicRequestId).first<ExposureRow>();
   if (!row) return null;
-  let rawPolicy: unknown;
-  try {
-    rawPolicy = JSON.parse(row.policy_snapshot_json);
-  } catch {
-    return null;
-  }
-  const policySnapshot = requestExposurePolicySnapshot(rawPolicy);
-  if (!policySnapshot) return null;
-  const request = await readChangeRequest({
-    database,
-    projectId: context.portal.project_id,
-    requestId: row.request_id,
-    workspaceId: context.portal.workspace_id,
+  return exposedRequestFromRow(database, context, row);
+}
+
+async function rateLimitedRecipientContext(request: Request, token: string, mutation: boolean, routeDependencies: PublicChangeRequestDependencies) {
+  const result = await recipientContext(request, token, mutation, routeDependencies);
+  if ("error" in result) return { error: result.error, value: null };
+  const rateLimit = await (mutation ? routeDependencies.mutationRateLimit : routeDependencies.readRateLimit)({
+    portalId: result.actor.portalId,
+    recipientId: result.actor.recipientId,
   });
-  return request ? {
-    exposure: { policySnapshot, publicRequestId: row.public_request_id, status: row.status },
-    request,
-  } satisfies ExposedRequest : null;
+  return rateLimit.allowed
+    ? { error: null, value: result }
+    : { error: rateLimited(rateLimit.message, rateLimit.retryAfter), value: null };
 }
 
 export async function listPublicChangeRequestsResponse(
@@ -403,13 +432,9 @@ export async function listPublicChangeRequestsResponse(
   token: string,
   routeDependencies: PublicChangeRequestDependencies = dependencies,
 ) {
-  const result = await recipientContext(request, token, false, routeDependencies);
-  if ("error" in result) return result.error;
-  const rateLimit = await routeDependencies.readRateLimit({
-    portalId: result.actor.portalId,
-    recipientId: result.actor.recipientId,
-  });
-  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
+  const access = await rateLimitedRecipientContext(request, token, false, routeDependencies);
+  if (!access.value) return access.error;
+  const result = access.value;
   const requests = await routeDependencies.listExposedRequests(result.context.database, result.context);
   return Response.json(
     { requests: requests.map((entry) => publicProjection(entry, result.actor, result.context, routeDependencies.evaluatePolicy)).filter(Boolean) },
@@ -423,13 +448,9 @@ export async function readPublicChangeRequestResponse(
   publicRequestId: string,
   routeDependencies: PublicChangeRequestDependencies = dependencies,
 ) {
-  const result = await recipientContext(request, token, false, routeDependencies);
-  if ("error" in result) return result.error;
-  const rateLimit = await routeDependencies.readRateLimit({
-    portalId: result.actor.portalId,
-    recipientId: result.actor.recipientId,
-  });
-  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
+  const access = await rateLimitedRecipientContext(request, token, false, routeDependencies);
+  if (!access.value) return access.error;
+  const result = access.value;
   const exposed = await routeDependencies.readExposedRequest(
     result.context.database,
     result.context,
@@ -446,13 +467,9 @@ export async function createPublicChangeRequestResponse(
   token: string,
   routeDependencies: PublicChangeRequestDependencies = dependencies,
 ) {
-  const result = await recipientContext(request, token, true, routeDependencies);
-  if ("error" in result) return result.error;
-  const rateLimit = await routeDependencies.mutationRateLimit({
-    portalId: result.actor.portalId,
-    recipientId: result.actor.recipientId,
-  });
-  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
+  const access = await rateLimitedRecipientContext(request, token, true, routeDependencies);
+  if (!access.value) return access.error;
+  const result = access.value;
   const authorization = routeDependencies.evaluatePolicy({
     actor: result.actor,
     action: "request:create",
@@ -512,28 +529,35 @@ export async function createPublicChangeRequestResponse(
   }
 }
 
+async function exposedMutationContext(
+  request: Request,
+  token: string,
+  publicRequestId: string,
+  action: "request:amend_own" | "request:withdraw_own",
+  routeDependencies: PublicChangeRequestDependencies,
+) {
+  const access = await rateLimitedRecipientContext(request, token, true, routeDependencies);
+  if (!access.value) return { error: access.error, value: null };
+  const result = access.value;
+  const exposed = await routeDependencies.readExposedRequest(result.context.database, result.context, publicRequestId);
+  const target = exposed ? requestTarget(exposed, result.context) : null;
+  const allowed = target ? routeDependencies.evaluatePolicy({ actor: result.actor, action, portal: result.context.policyPortal, target }).allowed : false;
+  if (!exposed || !allowed) return { error: unavailable(), value: null };
+  const key = idempotencyKey(request);
+  if (!key) return { error: invalid("A valid Idempotency-Key header is required."), value: null };
+  const requestActor = await recipientRequestActor(result.context.database, result.actor, routeDependencies);
+  return requestActor ? { error: null, value: { exposed, key, requestActor, result } } : { error: unavailable(), value: null };
+}
+
 export async function amendPublicChangeRequestResponse(
   request: Request,
   token: string,
   publicRequestId: string,
   routeDependencies: PublicChangeRequestDependencies = dependencies,
 ) {
-  const result = await recipientContext(request, token, true, routeDependencies);
-  if ("error" in result) return result.error;
-  const rateLimit = await routeDependencies.mutationRateLimit({
-    portalId: result.actor.portalId,
-    recipientId: result.actor.recipientId,
-  });
-  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
-  const exposed = await routeDependencies.readExposedRequest(result.context.database, result.context, publicRequestId);
-  if (!exposed) return unavailable();
-  const target = requestTarget(exposed, result.context);
-  if (!target) return unavailable();
-  if (!routeDependencies.evaluatePolicy({ actor: result.actor, action: "request:amend_own", portal: result.context.policyPortal, target }).allowed) {
-    return unavailable();
-  }
-  const key = idempotencyKey(request);
-  if (!key) return invalid("A valid Idempotency-Key header is required.");
+  const mutation = await exposedMutationContext(request, token, publicRequestId, "request:amend_own", routeDependencies);
+  if (!mutation.value) return mutation.error;
+  const { exposed, key, requestActor, result } = mutation.value;
   const body = await readBoundedJsonBody<{
     contentHash?: unknown;
     description?: unknown;
@@ -551,8 +575,6 @@ export async function amendPublicChangeRequestResponse(
       { status: 409, headers: CLIENT_PORTAL_NO_STORE_HEADERS },
     );
   }
-  const requestActor = await recipientRequestActor(result.context.database, result.actor, routeDependencies);
-  if (!requestActor) return unavailable();
   try {
     const amended = await routeDependencies.amendRequest({
       actor: requestActor,
@@ -588,26 +610,11 @@ export async function withdrawPublicChangeRequestResponse(
   publicRequestId: string,
   routeDependencies: PublicChangeRequestDependencies = dependencies,
 ) {
-  const result = await recipientContext(request, token, true, routeDependencies);
-  if ("error" in result) return result.error;
-  const rateLimit = await routeDependencies.mutationRateLimit({
-    portalId: result.actor.portalId,
-    recipientId: result.actor.recipientId,
-  });
-  if (!rateLimit.allowed) return rateLimited(rateLimit.message, rateLimit.retryAfter);
-  const exposed = await routeDependencies.readExposedRequest(result.context.database, result.context, publicRequestId);
-  if (!exposed) return unavailable();
-  const target = requestTarget(exposed, result.context);
-  if (!target) return unavailable();
-  if (!routeDependencies.evaluatePolicy({ actor: result.actor, action: "request:withdraw_own", portal: result.context.policyPortal, target }).allowed) {
-    return unavailable();
-  }
-  const key = idempotencyKey(request);
-  if (!key) return invalid("A valid Idempotency-Key header is required.");
+  const mutation = await exposedMutationContext(request, token, publicRequestId, "request:withdraw_own", routeDependencies);
+  if (!mutation.value) return mutation.error;
+  const { exposed, key, requestActor, result } = mutation.value;
   const body = await readBoundedJsonBody<{ note?: unknown }>(request, 2 * 1024);
   if (!body.ok) return Response.json({ error: body.error }, { status: body.status, headers: CLIENT_PORTAL_NO_STORE_HEADERS });
-  const requestActor = await recipientRequestActor(result.context.database, result.actor, routeDependencies);
-  if (!requestActor) return unavailable();
   try {
     const withdrawn = await routeDependencies.withdrawRequest({
       actor: requestActor,

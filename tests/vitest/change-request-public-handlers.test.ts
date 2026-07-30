@@ -266,22 +266,98 @@ describe("public change request handlers", () => {
     expect(await deniedResponse.json()).toEqual({ requests: [] });
   });
 
-  it("builds automatic exposure for active verified requester, reviewer, and approver roles", async () => {
+  it("keeps automatic exposure requester-only when portal visibility policy is absent", async () => {
     const all = vi.fn(async () => ({
       results: [
-        { id: "recipient-1" },
-        { id: "recipient-reviewer" },
-        { id: "recipient-approver" },
+        { id: "recipient-1", role_template: "requester" },
+        { id: "recipient-reviewer", role_template: "reviewer" },
+        { id: "recipient-approver", role_template: "approver" },
+        { id: "recipient-viewer", role_template: "viewer" },
       ],
     }));
-    const prepare = vi.fn(() => ({ bind: vi.fn(() => ({ all })) }));
+    const first = vi.fn(async () => ({ access_policy_json: "{}" }));
+    const prepare = vi.fn((sql: string) => ({
+      bind: vi.fn(() => sql.includes("FROM client_portals") ? { first } : { all }),
+    }));
 
     await expect(readAutomaticRequestExposurePolicy({ prepare } as never, "portal-1", "recipient-1")).resolves.toEqual({
       capability: "request:view",
-      allowedRecipientIds: ["recipient-1", "recipient-approver", "recipient-reviewer"],
+      allowedRecipientIds: ["recipient-1"],
     });
-    expect(prepare.mock.calls[0]?.[0]).toContain("permission_role IN ('requester', 'reviewer', 'approver')");
-    expect(prepare.mock.calls[0]?.[0]).not.toContain("request:view");
+    expect(prepare.mock.calls.some(([sql]) => String(sql).includes("access_policy_json"))).toBe(true);
+    expect(prepare.mock.calls.some(([sql]) => String(sql).includes("role_template"))).toBe(true);
+  });
+
+  it("keeps automatic exposure requester-only when portal visibility fields are malformed", async () => {
+    const all = vi.fn(async () => ({
+      results: [
+        { id: "recipient-reviewer", role_template: "reviewer" },
+        { id: "recipient-viewer", role_template: "viewer" },
+      ],
+    }));
+    const first = vi.fn(async () => ({
+      access_policy_json: JSON.stringify({
+        requestVisibility: {
+          allowedRecipientIds: "recipient-viewer",
+          allowedRoleTemplates: { role: "reviewer" },
+        },
+      }),
+    }));
+    const prepare = vi.fn((sql: string) => ({
+      bind: vi.fn(() => sql.includes("FROM client_portals") ? { first } : { all }),
+    }));
+
+    await expect(readAutomaticRequestExposurePolicy({ prepare } as never, "portal-1", "recipient-1")).resolves.toEqual({
+      capability: "request:view",
+      allowedRecipientIds: ["recipient-1"],
+    });
+  });
+
+  it.each([
+    { allowedRoleTemplates: ["reviewer", 7] },
+    { allowedRecipientIds: ["recipient-viewer", null] },
+  ])("rejects mixed valid and invalid visibility arrays: %j", async (requestVisibility) => {
+    const all = vi.fn(async () => ({
+      results: [
+        { id: "recipient-reviewer", role_template: "reviewer" },
+        { id: "recipient-viewer", role_template: "viewer" },
+      ],
+    }));
+    const first = vi.fn(async () => ({ access_policy_json: JSON.stringify({ requestVisibility }) }));
+    const prepare = vi.fn((sql: string) => ({
+      bind: vi.fn(() => sql.includes("FROM client_portals") ? { first } : { all }),
+    }));
+
+    await expect(readAutomaticRequestExposurePolicy({ prepare } as never, "portal-1", "recipient-1")).resolves.toEqual({
+      capability: "request:view",
+      allowedRecipientIds: ["recipient-1"],
+    });
+  });
+
+  it("uses explicit portal request visibility to narrow or broaden automatic exposure", async () => {
+    const all = vi.fn(async () => ({
+      results: [
+        { id: "recipient-reviewer", role_template: "reviewer" },
+        { id: "recipient-viewer", role_template: "viewer" },
+        { id: "recipient-commenter", role_template: "commenter" },
+      ],
+    }));
+    const first = vi.fn(async () => ({
+      access_policy_json: JSON.stringify({
+        requestVisibility: {
+          allowedRecipientIds: ["recipient-commenter"],
+          allowedRoleTemplates: ["viewer"],
+        },
+      }),
+    }));
+    const prepare = vi.fn((sql: string) => ({
+      bind: vi.fn(() => sql.includes("FROM client_portals") ? { first } : { all }),
+    }));
+
+    await expect(readAutomaticRequestExposurePolicy({ prepare } as never, "portal-1", "recipient-1")).resolves.toEqual({
+      capability: "request:view",
+      allowedRecipientIds: ["recipient-1", "recipient-commenter", "recipient-viewer"],
+    });
   });
 
   it("selects and strictly parses immutable policy snapshots before loading requests", async () => {

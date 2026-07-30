@@ -1,5 +1,6 @@
 import type { EstimateRowMetadata } from "@/lib/estimates/express-components";
 import type { EstimateTemplateLinkProjection } from "@/lib/component-library/template-link-types";
+import type { ClientSafeQuotationAttachmentProjection } from "@/lib/commercial-terms/quotation-policy";
 
 export type EstimateRowItemSource = "project" | "supplier" | "library";
 export type EstimateRowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "detached" | "source-changed";
@@ -61,6 +62,8 @@ export type ComponentPriceOption = {
   sourceUrl?: string | null;
   notes?: string | null;
   supplierId?: string | null;
+  brandId?: string | null;
+  brand?: string | null;
   activeCostEntryId?: string | null;
   costEntries?: ComponentVariantCostEntry[];
   packageQuantity?: number | null;
@@ -144,6 +147,43 @@ export type EstimateRowItem = {
   lifecycleStateChangedAt?: string;
   history?: ComponentHistoryEntry[];
   notes?: string;
+  commercialVatTreatment?: "inclusive" | "exclusive" | "exempt";
+  commercialVatRateBps?: number;
+  commercialVatSource?: "row_override" | "captured_selected_option" | "estimate_default" | "project_default";
+  commercialTermsRevision?: number;
+  quotationRequirement?: "not_required" | "required";
+  quotationStatus?: "not_requested" | "requested" | "available" | "unavailable";
+  quotationReference?: string | null;
+  quotationAttachment?: ClientSafeQuotationAttachmentProjection;
+  contributionScopeId?: string;
+  contributionRevision?: number;
+  alternativeGroup?: {
+    id: string;
+    name: string;
+    selectedRowItemId: string;
+    memberRowItemIds: string[];
+    revision: number;
+  };
+  optionalContribution?: {
+    isIncluded: boolean;
+    revision: number;
+  };
+  accessoryParent?: {
+    edgeId: string;
+    parentRowItemId: string;
+    mode: "required" | "optional";
+    isIncluded: boolean;
+    quantityRule: Record<string, unknown>;
+    revision: number;
+  };
+  accessoryChildren?: Array<{
+    edgeId: string;
+    childRowItemId: string;
+    mode: "required" | "optional";
+    isIncluded: boolean;
+    quantityRule: Record<string, unknown>;
+    revision: number;
+  }>;
   isFavorite?: boolean;
   isCustom?: boolean;
   createdAt?: string;

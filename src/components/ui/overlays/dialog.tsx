@@ -362,6 +362,12 @@ export function DialogContent({
       return;
     }
 
+    if (!event.shiftKey && activeElement === content) {
+      event.preventDefault();
+      firstFocusable.focus({ preventScroll: true });
+      return;
+    }
+
     if (!event.shiftKey && activeElement === lastFocusable) {
       event.preventDefault();
       firstFocusable.focus({ preventScroll: true });

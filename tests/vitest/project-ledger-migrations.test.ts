@@ -40,7 +40,7 @@ function createDatabaseThrough(maximumMigration: string) {
 function applyMigrationRange(
   database: LocalSqliteDatabase,
   firstMigration: string,
-  lastMigration = "0123_client_portal_ai_narrative_provenance.sql",
+  lastMigration = "0125_client_portal_cutover_barrier_lease.sql",
 ) {
   for (const file of migrationFiles) {
     if (file < firstMigration) continue;
@@ -352,6 +352,92 @@ function createBackfillHistoryFixture() {
 }
 
 describe("project ledger migrations", () => {
+  it("rejects a migrated mapping when its cutover barrier lease is stale", () => {
+    const database = createDatabaseThrough("0125_client_portal_cutover_barrier_lease.sql");
+    database.exec(`
+      INSERT INTO workspaces (id, name, created_at, updated_at)
+      VALUES ('workspace-lease', 'Lease workspace', '${timestamp}', '${timestamp}');
+      INSERT INTO projects (id, workspace_id, name, created_at, updated_at, currency_code)
+      VALUES ('project-lease', 'workspace-lease', 'Lease project', '${timestamp}', '${timestamp}', 'USD');
+      INSERT INTO project_publications (
+        id, workspace_id, project_id, token_hash, encrypted_token, snapshot_json,
+        published_at, created_at, updated_at
+      ) VALUES (
+        'publication-lease', 'workspace-lease', 'project-lease', 'token-lease',
+        'encrypted-lease', '{}', '${timestamp}', '${timestamp}', '${timestamp}'
+      );
+      INSERT INTO client_portals (
+        id, workspace_id, project_id, name, stable_token_hash, encrypted_stable_token,
+        created_by, created_at, updated_at
+      ) VALUES (
+        'portal-lease', 'workspace-lease', 'project-lease', 'Lease portal',
+        'portal-token-lease', 'portal-encrypted-lease', 'owner-lease', '${timestamp}', '${timestamp}'
+      );
+      INSERT INTO client_portal_issues (
+        id, portal_id, issue_number, version_label, status, issued_at, issued_by,
+        idempotency_key, manifest_json, content_hash, total_cost, currency_code,
+        brand_snapshot_json, decision_policy_snapshot_json, created_at
+      ) VALUES (
+        'issue-lease', 'portal-lease', 1, 'Lease issue', 'issued', '${timestamp}',
+        'owner-lease', 'issue-lease-idempotency', '{}', '${hashA}', 1, 'USD', '{}', '{}', '${timestamp}'
+      );
+      INSERT INTO client_portal_legacy_workspace_cutovers(workspace_id, frozen_at, frozen_by)
+      VALUES ('workspace-lease', '${timestamp}', 'legacy_cutover_pending:admin-1');
+    `);
+    const mappingSql = `INSERT INTO client_portal_legacy_mappings (
+      legacy_publication_id, portal_id, issue_id, migration_status, notes
+    ) VALUES (
+      'publication-lease', 'portal-lease', 'issue-lease', 'imported',
+      '{"cutover_lease_frozen_at":"${timestamp}","cutover_lease_frozen_by":"legacy_cutover_pending:admin-1"}'
+    )`;
+    expect(() => database.exec(`INSERT INTO client_portal_legacy_mappings (
+      legacy_publication_id, portal_id, issue_id, migration_status, notes
+    ) VALUES ('publication-lease', 'portal-lease', 'issue-lease', 'imported', '{}')`)).not.toThrow();
+    expect(() => database.exec(`UPDATE client_portal_legacy_mappings
+      SET notes = json_set(
+        notes,
+        '$.cutover_lease_frozen_at', '${timestamp}',
+        '$.cutover_lease_frozen_by', 'legacy_cutover_pending:admin-1'
+      )
+      WHERE legacy_publication_id = 'publication-lease'`)).not.toThrow();
+    database.exec(`
+      UPDATE client_portal_legacy_workspace_cutovers
+      SET frozen_by = 'legacy_cutover_pending:admin-2'
+      WHERE workspace_id = 'workspace-lease';
+    `);
+    expect(() => database.exec(`
+      UPDATE client_portal_legacy_mappings
+      SET migration_status = 'verified', notes = json_remove(
+        notes, '$.cutover_lease_frozen_at', '$.cutover_lease_frozen_by'
+      )
+      WHERE legacy_publication_id = 'publication-lease';
+    `)).toThrow(/barrier lease is stale/);
+    database.exec("DELETE FROM client_portal_legacy_mappings WHERE legacy_publication_id = 'publication-lease';");
+    expect(() => database.exec(mappingSql)).toThrow(/barrier lease is stale/);
+    database.exec(`
+      UPDATE client_portal_legacy_workspace_cutovers
+      SET frozen_by = 'legacy_cutover'
+      WHERE workspace_id = 'workspace-lease';
+      INSERT INTO client_portal_legacy_mappings (
+        legacy_publication_id, portal_id, issue_id, migration_status, verified_at, notes
+      ) VALUES (
+        'publication-lease', 'portal-lease', 'issue-lease', 'cutover_complete', '${timestamp}', '{}'
+      );
+    `);
+    const barrierBefore = database.prepare("SELECT frozen_at, frozen_by FROM client_portal_legacy_workspace_cutovers WHERE workspace_id = 'workspace-lease'").get();
+    const auditCountBefore = database.prepare("SELECT COUNT(*) AS count FROM client_portal_audit_events WHERE workspace_id = 'workspace-lease'").get();
+    expect(() => database.exec(`
+      UPDATE client_portal_legacy_mappings
+      SET migration_status = 'rejected'
+      WHERE legacy_publication_id = 'publication-lease';
+    `)).toThrow(/finalized legacy cutover mapping is immutable/);
+    expect(database.prepare("SELECT migration_status FROM client_portal_legacy_mappings WHERE legacy_publication_id = 'publication-lease'").get()).toEqual({ migration_status: "cutover_complete" });
+    expect(database.prepare("SELECT frozen_at, frozen_by FROM client_portal_legacy_workspace_cutovers WHERE workspace_id = 'workspace-lease'").get()).toEqual(barrierBefore);
+    expect(database.prepare("SELECT COUNT(*) AS count FROM client_portal_audit_events WHERE workspace_id = 'workspace-lease'").get()).toEqual(auditCountBefore);
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    database.close();
+  });
+
   it("replays semantic version and client-visible discussion history idempotently", () => {
     const database = createBackfillHistoryFixture();
 

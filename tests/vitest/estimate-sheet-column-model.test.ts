@@ -12,11 +12,12 @@ import {
 } from "@/lib/estimate-sheet/column-model";
 
 describe("estimate sheet column model", () => {
-  it("keeps the canonical 10-track default geometry intact", () => {
+  it("keeps the canonical 11-track default geometry intact", () => {
     expect(ESTIMATE_COLUMN_DEFINITIONS.map((column) => column.id)).toEqual([
       "index",
       "select",
       "material",
+      "commercial",
       "quantity",
       "contingency",
       "subTotal",
@@ -25,15 +26,16 @@ describe("estimate sheet column model", () => {
       "totalItemCosts",
       "actions",
     ]);
-    expect(DEFAULT_ESTIMATE_COLUMN_TEMPLATE).toBe("28px 32px minmax(240px,1fr) 64px 84px 92px 84px 92px 108px 32px");
+    expect(DEFAULT_ESTIMATE_COLUMN_TEMPLATE).toBe("28px 32px minmax(240px,1fr) 160px 64px 84px 92px 84px 92px 108px 32px");
     expect(ESTIMATE_COLUMN_TEMPLATE).toBe(
-      "var(--estimate-column-template, 28px 32px minmax(var(--est-col-material, 280px), 1fr) var(--est-col-quantity, 64px) var(--est-col-contingency, 84px) var(--est-col-subTotal, 92px) var(--est-col-adjustment, 84px) var(--est-col-miscCost, 92px) var(--est-col-totalItemCosts, 108px) 32px)",
+      "var(--estimate-column-template, 28px 32px minmax(var(--est-col-material, 280px), 1fr) var(--est-col-commercial, 160px) var(--est-col-quantity, 64px) var(--est-col-contingency, 84px) var(--est-col-subTotal, 92px) var(--est-col-adjustment, 84px) var(--est-col-miscCost, 92px) var(--est-col-totalItemCosts, 108px) 32px)",
     );
   });
 
-  it("only exposes the seven data columns as resizable", () => {
+  it("only exposes the eight data columns as resizable", () => {
     expect(RESIZABLE_ESTIMATE_COLUMN_IDS).toEqual([
       "material",
+      "commercial",
       "quantity",
       "contingency",
       "subTotal",
@@ -44,6 +46,7 @@ describe("estimate sheet column model", () => {
     expect(DEFAULT_ESTIMATE_COLUMN_WIDTHS.material).toBe(280);
     expect(ESTIMATE_COLUMN_DEFINITIONS.filter((column) => column.resizable).map((column) => column.cssVar)).toEqual([
       "--est-col-material",
+      "--est-col-commercial",
       "--est-col-quantity",
       "--est-col-contingency",
       "--est-col-subTotal",
@@ -65,9 +68,10 @@ describe("estimate sheet column model", () => {
     expect(normalizeEstimateColumnWidths({})).toEqual({});
   });
 
-  it("builds all seven CSS variables from defaults plus overrides", () => {
+  it("builds all eight CSS variables from defaults plus overrides", () => {
     expect(buildEstimateColumnVars({ material: 240, quantity: 74 })).toEqual({
       "--est-col-material": "240px",
+      "--est-col-commercial": "160px",
       "--est-col-quantity": "74px",
       "--est-col-contingency": "84px",
       "--est-col-subTotal": "92px",

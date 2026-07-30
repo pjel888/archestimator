@@ -1563,6 +1563,7 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
     sourceSnapshot: getSourceSnapshot(libraryItem),
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     supplierId: libraryItem.supplierId ?? null,
+    brandId: libraryItem.brandId ?? null,
     material: libraryItem.material,
     description: libraryItem.description,
     supplier: libraryItem.supplier,

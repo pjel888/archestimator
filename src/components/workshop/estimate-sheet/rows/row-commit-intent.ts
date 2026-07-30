@@ -54,6 +54,8 @@ export type RowCommitIntent =
 export type SelectedVariantCommitInput = {
   id: string;
   label: string;
+  brandId?: string | null;
+  brand?: string | null;
   variantDescription?: string | null;
   sku?: string | null;
   unit: string;
@@ -165,6 +167,8 @@ export function createSelectedVariantUpdateIntent(
     rowId: item.id,
     item,
     values: {
+      brand: option.brand ?? item.brand ?? "",
+      brandId: option.brandId ?? null,
       description: option.variantDescription ?? item.description,
       unit: option.unit || item.unit,
       unitCost: String(option.unitCost),

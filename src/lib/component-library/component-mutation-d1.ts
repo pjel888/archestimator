@@ -88,6 +88,8 @@ export type ComponentMutationPriceOption = {
   sourceUrl: string | null;
   notes: string;
   supplierId: string | null;
+  brandId: string | null;
+  brand: string | null;
   activeCostEntryId: string | null;
   costEntries: ComponentMutationCostEntry[];
   packageQuantity: number | null;
@@ -214,6 +216,8 @@ type LibraryComponentSyncOption = {
   label: string;
   variantDescription: string;
   sku: string | null;
+  brand: string | null;
+  brandId: string | null;
   unit: string;
   unitCost: number;
   miscCost: number;
@@ -237,6 +241,7 @@ type LinkedEstimateRowSyncPlan = {
   description: string;
   supplier: string | null;
   supplierId: string | null;
+  brandId: string | null;
   unit: string;
   unitCost: number;
   sourceSnapshot: Record<string, Json | undefined>;
@@ -730,6 +735,8 @@ function priceOptionSnapshot(priceOption: ComponentMutationPriceOption) {
     sourceUrl: priceOption.sourceUrl,
     notes: priceOption.notes,
     supplierId: priceOption.supplierId,
+    brandId: priceOption.brandId,
+    brand: priceOption.brand,
     packageQuantity: priceOption.packageQuantity,
     packageUnit: priceOption.packageUnit,
     dimensionLength: priceOption.dimensionLength,
@@ -1040,10 +1047,10 @@ function buildComponentPriceOptionWritePlan(
     sql: `
       INSERT INTO cost_library_item_price_options (
         id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,
-        is_active, is_default, updated_at, supplier_id, pricing_source,
-        metadata_json, created_at
+        is_active, is_default, updated_at, supplier_id, brand_id, brand,
+        pricing_source, metadata_json, created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         label = excluded.label,
         unit = excluded.unit,
@@ -1054,6 +1061,8 @@ function buildComponentPriceOptionWritePlan(
         is_default = excluded.is_default,
         updated_at = excluded.updated_at,
         supplier_id = excluded.supplier_id,
+        brand_id = excluded.brand_id,
+        brand = excluded.brand,
         pricing_source = excluded.pricing_source,
         metadata_json = excluded.metadata_json
       WHERE cost_library_item_price_options.item_id = excluded.item_id
@@ -1072,6 +1081,8 @@ function buildComponentPriceOptionWritePlan(
       boolInt(input.priceOption.isDefault),
       timestamp,
       input.priceOption.supplierId,
+      input.priceOption.brandId,
+      input.priceOption.brand ?? "",
       input.priceOption.pricingSource,
       jsonText(metadata),
       timestamp,
@@ -1522,6 +1533,8 @@ function buildLibraryComponentSyncOption(input: {
   pricingSource: string | null;
   pricingDate: string | null;
   thumbnailPath: string | null;
+  brand: string | null;
+  brandId: string | null;
   snapshot: Record<string, unknown>;
 }): LibraryComponentSyncOption {
   const snapshot = readJsonRecord(input.snapshot);
@@ -1535,6 +1548,8 @@ function buildLibraryComponentSyncOption(input: {
     label: input.label,
     variantDescription: typeof snapshot.variantDescription === "string" ? snapshot.variantDescription : "",
     sku: typeof snapshot.sku === "string" ? snapshot.sku : null,
+    brand: input.brand,
+    brandId: input.brandId,
     unit: input.unit,
     unitCost: input.unitCost,
     miscCost: input.miscCost,
@@ -1592,8 +1607,8 @@ function buildLinkedEstimateRowSyncPlans(input: {
     const rowDescription = selectedOption.variantDescription || input.componentDescription;
     const imageUrl = selectedOption.thumbnailPath || input.componentThumbnailPath;
     const sourceSnapshotPatch = {
-      brand: input.brand,
-      brandId: input.brandId,
+      brand: selectedOption.brand,
+      brandId: selectedOption.brandId,
       componentDescription: input.componentDescription,
       componentVersionNumber: input.componentVersionNumber,
       description: rowDescription,
@@ -1617,7 +1632,7 @@ function buildLinkedEstimateRowSyncPlans(input: {
       unit_cost: selectedOption.unitCost,
     };
     const metadataPatch = {
-      brandId: input.brandId,
+      brandId: selectedOption.brandId,
       componentVersionNumber: input.componentVersionNumber,
       priceOptionId: selectedOption.id,
       sourceComponentId: input.itemId,
@@ -1638,13 +1653,13 @@ function buildLinkedEstimateRowSyncPlans(input: {
       ...(isOverridden ? {} : {
         material: input.material,
         description: rowDescription,
-        brand: input.brand,
+        brand: selectedOption.brand,
         supplier: input.supplier ?? "",
         unit: selectedOption.unit,
         itemCost: selectedOption.unitCost,
         imageUrl,
         sourceUrl: selectedOption.sourceUrl,
-        brandId: input.brandId,
+        brandId: selectedOption.brandId,
         supplierId: input.supplierId,
         sku: selectedOption.sku,
         pricingDate: selectedOption.pricingDate,
@@ -1662,6 +1677,7 @@ function buildLinkedEstimateRowSyncPlans(input: {
       description: rowDescription,
       supplier: input.supplier,
       supplierId: input.supplierId,
+      brandId: selectedOption.brandId,
       unit: selectedOption.unit,
       unitCost: selectedOption.unitCost,
       sourceSnapshot,
@@ -1686,6 +1702,7 @@ function buildLinkedEstimateRowsSyncStatement(input: {
     description: plan.description,
     supplier: plan.supplier,
     supplierId: plan.supplierId,
+    brandId: plan.brandId,
     unit: plan.unit,
     unitCost: plan.unitCost,
     sourceSnapshot: plan.sourceSnapshot,
@@ -1713,6 +1730,10 @@ function buildLinkedEstimateRowsSyncStatement(input: {
           supplier_id = CASE
             WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN supplier_id
             ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.supplierId')
+          END,
+          brand_id = CASE
+            WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN brand_id
+            ELSE json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.brandId')
           END,
           unit = CASE
             WHEN json_extract((SELECT sync_row FROM sync_rows WHERE json_extract(sync_row, '$.rowId') = estimate_row_items.id), '$.isOverridden') = 1 THEN unit
@@ -1925,6 +1946,8 @@ export async function updateCostLibraryComponentInD1(
     pricingSource: option.pricingSource,
     pricingDate: option.pricingDate,
     thumbnailPath: option.thumbnailPath,
+    brand: typeof option.snapshot.brand === "string" ? option.snapshot.brand : null,
+    brandId: typeof option.snapshot.brandId === "string" ? option.snapshot.brandId : null,
     snapshot: option.snapshot,
   }));
   const sourcePriceOptions = syncOptions.map((option) => option.snapshot);

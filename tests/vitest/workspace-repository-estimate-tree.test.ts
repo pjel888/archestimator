@@ -28,6 +28,7 @@ function row(
     source_snapshot: { category: "General" },
     description: "",
     supplier: "",
+    brand_id: null,
     supplier_id: null,
     unit: "unit",
     quantity_base: null,
@@ -168,6 +169,48 @@ describe("workspace repository estimate tree projection", () => {
       id: "express-row",
       metadata: { expressComponent: { kind: "express", id: "express-1" } },
     });
+  });
+
+  it("projects only client-safe quotation attachment truth independently from quotation status", () => {
+    const tree = buildEstimateTree(
+      [node({ id: "kitchen", parent_id: null, kind: "area", name: "Kitchen", sort_order: 0 })],
+      [
+        row({
+          id: "available-row",
+          node_id: "kitchen",
+          material: "Cabinet",
+          quantity: 1,
+          unit_cost: 100,
+          misc_cost: 0,
+          sort_order: 0,
+          quotation_status: "not_requested",
+          quotation_attachment: { attachmentState: "available", hasAttachment: true },
+        }),
+        row({
+          id: "no-attachment-row",
+          node_id: "kitchen",
+          material: "Countertop",
+          quantity: 1,
+          unit_cost: 100,
+          misc_cost: 0,
+          sort_order: 1,
+          quotation_status: "available",
+          quotation_attachment: { attachmentState: "none", hasAttachment: false },
+        }),
+      ],
+    );
+
+    const rows = tree[0]?.estimateRowItems ?? [];
+    expect(rows[0]).toMatchObject({
+      quotationStatus: "not_requested",
+      quotationAttachment: { attachmentState: "available", hasAttachment: true },
+    });
+    expect(rows[1]).toMatchObject({
+      quotationStatus: "available",
+      quotationAttachment: { attachmentState: "none", hasAttachment: false },
+    });
+    expect(JSON.stringify(rows)).not.toContain("quotationArtifactVersionId");
+    expect(JSON.stringify(rows)).not.toContain("downloadableVersionId");
   });
 
   it("strips unsafe legacy source snapshot image URLs while preserving safe internal thumbnails", () => {
@@ -433,6 +476,95 @@ describe("estimate landing-node selection", () => {
 });
 
 describe("workspace repository estimate tree readback", () => {
+  it("re-evaluates linked artifact truth on read and returns no private attachment identity", async () => {
+    const estimateRows = [
+      row({ id: "available-row", node_id: "area-1", material: "Cabinet", quantity: 1, unit_cost: 100, misc_cost: 0, sort_order: 0 }),
+      row({ id: "archived-row", node_id: "area-1", material: "Tile", quantity: 1, unit_cost: 100, misc_cost: 0, sort_order: 1 }),
+      row({ id: "none-row", node_id: "area-1", material: "Paint", quantity: 1, unit_cost: 100, misc_cost: 0, sort_order: 2 }),
+    ];
+    const commercialRow = (rowId: string, linkedVersionId: string | null, artifactStatus: string | null) => ({
+      row_id: rowId,
+      workspace_id: "workspace-1",
+      project_id: "project-1",
+      override_treatment: null,
+      override_rate_bps: null,
+      selected_option_treatment: "exclusive",
+      selected_option_rate_bps: 1200,
+      terms_revision: 3,
+      quotation_requirement: "required",
+      quotation_status: "available",
+      quotation_reference: "SUP-1",
+      quotation_artifact_version_id: linkedVersionId,
+      version_workspace_id: linkedVersionId ? "workspace-1" : null,
+      version_project_id: linkedVersionId ? "project-1" : null,
+      version_artifact_id: linkedVersionId ? `artifact-${rowId}` : null,
+      version_content_sha256: linkedVersionId ? `hash-${rowId}` : null,
+      artifact_id: linkedVersionId ? `artifact-${rowId}` : null,
+      artifact_workspace_id: linkedVersionId ? "workspace-1" : null,
+      artifact_project_id: linkedVersionId ? "project-1" : null,
+      artifact_type: linkedVersionId ? "quotation" : null,
+      artifact_status: artifactStatus,
+      upload_workspace_id: linkedVersionId ? "workspace-1" : null,
+      upload_project_id: linkedVersionId ? "project-1" : null,
+      upload_surface: linkedVersionId ? "project-artifact" : null,
+      upload_status: linkedVersionId ? "finalized" : null,
+      upload_purge_state: linkedVersionId ? "active" : null,
+      upload_content_type: linkedVersionId ? "application/pdf" : null,
+      upload_checksum_sha256: linkedVersionId ? `hash-${rowId}` : null,
+      upload_scan_status: linkedVersionId ? "clean" : null,
+      scan_override_actor_user_id: null,
+      scan_override_reason: null,
+      scan_override_expires_at: null,
+      scan_override_checksum_sha256: null,
+    });
+    const database = {
+      prepare(sql: string) {
+        return {
+          bind() { return this; },
+          async first() { return null; },
+          async run() { return { success: true }; },
+          async all() {
+            if (sql.includes("FROM estimate_nodes")) {
+              return { results: [{ id: "area-1", kind: "area", name: "Area", parent_id: null, sort_order: 0 }] };
+            }
+            if (sql.includes("FROM estimate_row_items")) return { results: estimateRows };
+            if (sql.includes("FROM estimate_row_commercial_terms AS terms")) {
+              return { results: [
+                commercialRow("available-row", "version-private-1", "active"),
+                commercialRow("archived-row", "version-private-2", "archived"),
+                commercialRow("none-row", null, null),
+              ] };
+            }
+            return { results: [] };
+          },
+        };
+      },
+    } as unknown as D1DatabaseLike;
+
+    const payload = await readEstimateTabTreePayloadD1(database, {
+      id: "estimate-1",
+      project_id: "project-1",
+      name: "Estimate",
+      sheet_code: "ES-001",
+      notes: null,
+      project_budget: null,
+      currency_code: "PHP",
+      metadata: {},
+      created_by: null,
+      created_at: createdAt,
+      updated_at: createdAt,
+    }, "tab-1");
+
+    const projectedRows = payload.tree[0]?.estimateRowItems ?? [];
+    expect(projectedRows.map((projectedRow) => projectedRow.quotationAttachment)).toEqual([
+      { attachmentState: "available", hasAttachment: true },
+      { attachmentState: "unavailable", hasAttachment: false },
+      { attachmentState: "none", hasAttachment: false },
+    ]);
+    expect(JSON.stringify(projectedRows)).not.toContain("version-private");
+    expect(JSON.stringify(projectedRows)).not.toContain("downloadableVersionId");
+  });
+
   it("binds tab-scoped node reads in estimate, tab, limit order", async () => {
     const boundStatements: Array<{ sql: string; values: D1Value[] }> = [];
     const database = {

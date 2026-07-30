@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
 import type { ClientPortalInternalActor } from "@/lib/client-portal/policy";
 
-export type ClientPortalBaselineStatus = "active" | "superseded" | "voided";
+type ClientPortalBaselineStatus = "active" | "superseded" | "voided";
 
 export type ClientPortalBaseline = {
   baselineNumber: number;

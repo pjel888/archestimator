@@ -1,11 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/ui/cn";
 import { onboardingTarget } from "@/lib/onboarding/target-catalog";
+import {
+  observeEstimateClientInteractive,
+  traceEstimateClientChunk,
+  traceEstimateClientHydration,
+  traceEstimateClientRsc,
+} from "@/lib/perf/estimate-loading-client";
 import {
   EstimateSurfaceVariantProvider,
   type EstimateSurfaceVariant,
@@ -56,11 +62,17 @@ function EstimateContentDynamicFallback() {
 
 // Tree is client-only (window/DnD); content keeps SSR for first paint of sheet chrome.
 const EstimateSheetTree = dynamic(
-  () => import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
+  () =>
+    traceEstimateClientChunk("estimate.client.tree-chunk", () =>
+      import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
+    ),
   { ssr: false, loading: () => <EstimateTreeDynamicFallback /> },
 );
 const EstimateSheetContent = dynamic(
-  () => import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
+  () =>
+    traceEstimateClientChunk("estimate.client.content-chunk", () =>
+      import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
+    ),
   { loading: () => <EstimateContentDynamicFallback /> },
 );
 
@@ -143,6 +155,14 @@ export function EstimateWorkspaceClient({
   presentationMode = false,
   forceDesktopRails = false,
 }: EstimateWorkspaceClientProps) {
+  if (!presentationMode) traceEstimateClientRsc();
+
+  useEffect(() => {
+    if (presentationMode) return;
+    traceEstimateClientHydration();
+    return observeEstimateClientInteractive();
+  }, [presentationMode]);
+
   const queryClient = useQueryClient();
   const dataProjectId = presentationMode ? "" : projectId;
   const tabQueriesEnabled = Boolean(activeTabId);

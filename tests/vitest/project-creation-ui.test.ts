@@ -69,6 +69,10 @@ const projectImageRoute = readFileSync(
   "src/app/api/projects/images/route.ts",
   "utf8",
 );
+const materialImageService = readFileSync(
+  "src/lib/uploads/material-image-service.ts",
+  "utf8",
+);
 const projectImageClient = readFileSync(
   "src/components/workshop/project-image-client.ts",
   "utf8",
@@ -469,7 +473,8 @@ describe("project creation UI governance", () => {
     expect(projectImageRoute).toContain(
       'const PROJECT_IMAGE_BUCKET = "project-images"',
     );
-    expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
+    expect(projectImageRoute).toContain('createProjectImageRouteUrl(result.assetId, "image")');
+    expect(projectImageRoute).toContain('createProjectImageRouteUrl(result.assetId, "thumbnail")');
     expect(projectImageRoute).toContain('formData.get("projectId"');
     expect(projectImageRoute).toContain(
       "readProjectFromD1(uploadMetadataDb, projectId)",
@@ -481,7 +486,9 @@ describe("project creation UI governance", () => {
     expect(projectImageRoute).toContain(
       "${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}",
     );
-    expect(projectImageRoute).toContain("processUploadImageToWebp");
+    expect(projectImageRoute).toContain("createMaterialImageUploadService");
+    expect(projectImageRoute).toContain("readDurableProjectImageAsset(db, assetId)");
+    expect(materialImageService).toContain("processUploadImageToWebp");
     expect(projectImageRoute).not.toContain('import sharp from "sharp"');
   });
 });

@@ -35,7 +35,6 @@ export function ProjectVarianceSpine({
   onActiveBucketChange,
   onTogglePin,
 }: ProjectVarianceSpineProps) {
-  const baselineId = view.baselineEstimateId;
   const baselineName = view.estimates.find((estimate) => estimate.isBaseline)?.name ?? "Baseline";
   const comparandName = view.estimates.find((estimate) => estimate.id === view.comparandEstimateId)?.name ?? "Comparand";
 

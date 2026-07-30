@@ -29,6 +29,10 @@ const actionMocks = vi.hoisted(() => ({
   updateEstimateRowItem: vi.fn(),
 }));
 
+async function flushQuantityDraftFrame() {
+  await act(() => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve())));
+}
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/projects/relief-project/estimates/relief-group",
   useRouter: () => routerMock,
@@ -216,7 +220,7 @@ describe("estimate sheet render relief (U1)", () => {
     expect(rowRenderCounts.get("relief-row-1-3") ?? 0).toBe(0);
   });
 
-  it("edits in two different tables keep both subtotals live with no stale rows", () => {
+  it("edits in two different tables keep both subtotals live with no stale rows", async () => {
     const { view } = renderSheet();
     const projectTotals: number[] = [];
     const onTotalChange = (event: Event) => projectTotals.push((event as CustomEvent<{ total: number }>).detail.total);
@@ -227,6 +231,7 @@ describe("estimate sheet render relief (U1)", () => {
       act(() => input_setValue(firstInput, "3"));
       const secondInput = quantityInput(view, "relief-row-2-1");
       act(() => input_setValue(secondInput, "4"));
+      await flushQuantityDraftFrame();
 
       const firstRow = firstInput.closest("tr")!;
       const secondRow = secondInput.closest("tr")!;

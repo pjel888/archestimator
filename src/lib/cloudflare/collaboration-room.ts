@@ -5,6 +5,12 @@ import {
   type RealtimeRoomTokenClaims,
 } from "@/lib/collaboration/realtime-room-token";
 import { COLLABORATION_CAPACITY_CONTRACT } from "@/lib/collaboration/capacity-contract";
+import {
+  ESTIMATE_CONTRIBUTION_BROADCAST_EVENT,
+  isEstimateContributionRealtimeEvent,
+  matchesCommittedEstimateContributionReceipt,
+  type EstimateContributionRealtimeEvent,
+} from "@/lib/collaboration/estimate-tree-realtime-contract";
 
 const MAX_MESSAGE_BYTES = COLLABORATION_CAPACITY_CONTRACT.maxMessageBytes;
 const MAX_EVENT_NAME_LENGTH = 80;
@@ -27,6 +33,19 @@ type DurableObjectStateLike = {
 type WebSocketPairConstructor = new () => {
   0: WebSocket;
   1: WebSocket;
+};
+
+type CollaborationD1Database = {
+  prepare(sql: string): {
+    bind(...values: Array<string | number>): {
+      all<T>(): Promise<{ success?: boolean; results?: T[] }>;
+    };
+  };
+};
+
+type ContributionReceiptRow = {
+  result_json: string;
+  current_revision: number;
 };
 
 declare const WebSocketPair: WebSocketPairConstructor;
@@ -259,7 +278,7 @@ export class CollaborationRoom {
         sendJson(ws, { type: "error", code: "capability_denied" });
         return;
       }
-      const authorizationError = this.readBroadcastAuthorizationError(
+      const authorizationError = await this.readBroadcastAuthorizationError(
         claims,
         roomName,
         parsed.event,
@@ -433,13 +452,14 @@ export class CollaborationRoom {
       : null;
   }
 
-  private readBroadcastAuthorizationError(
+  private async readBroadcastAuthorizationError(
     claims: RealtimeRoomTokenClaims,
     roomName: string,
     event: string,
     payload: unknown,
-  ):
-    "capability_denied" | "invalid_event_payload" | "unsupported_event" | null {
+  ): Promise<
+    "capability_denied" | "invalid_event_payload" | "uncommitted_event" | "unsupported_event" | null
+  > {
     if (event === "cursor") {
       if (!hasRealtimeRoomCapability(claims, "broadcast:cursor"))
         return "capability_denied";
@@ -454,7 +474,74 @@ export class CollaborationRoom {
         ? null
         : "invalid_event_payload";
     }
+    if (event === ESTIMATE_CONTRIBUTION_BROADCAST_EVENT) {
+      if (!hasRealtimeRoomCapability(claims, "broadcast:row-update"))
+        return "capability_denied";
+      if (!roomName.startsWith("estimate:")) return "invalid_event_payload";
+      if (!isEstimateContributionRealtimeEvent(payload))
+        return "invalid_event_payload";
+      if (payload.scope.estimateId !== roomName.slice("estimate:".length))
+        return "invalid_event_payload";
+      return await this.hasCommittedContributionReceipt(claims, payload)
+        ? null
+        : "uncommitted_event";
+    }
     return "unsupported_event";
+  }
+
+  private async hasCommittedContributionReceipt(
+    claims: RealtimeRoomTokenClaims,
+    payload: EstimateContributionRealtimeEvent,
+  ) {
+    const database = this.readD1Database();
+    if (!database) return false;
+    try {
+      const result = await database.prepare(`
+        SELECT receipt.result_json, scope.revision AS current_revision
+        FROM estimate_mutation_receipts AS receipt
+        JOIN estimate_contribution_scopes AS scope
+          ON scope.workspace_id = receipt.workspace_id
+         AND scope.id = json_extract(receipt.result_json, '$.contributionScopeId')
+        WHERE receipt.intent_id = ?
+          AND receipt.actor_user_id = ?
+          AND receipt.status = 'committed'
+          AND scope.id = ?
+          AND scope.estimate_id = ?
+          AND scope.estimate_tab_id = ?
+          AND json_extract(receipt.result_json, '$.contributionRevision') = ?
+          AND scope.revision >= ?
+        LIMIT 10
+      `).bind(
+        payload.mutationId,
+        claims.sub,
+        payload.scope.contributionScopeId,
+        payload.scope.estimateId,
+        payload.scope.tabId,
+        payload.scopeRevision,
+        payload.scopeRevision,
+      ).all<ContributionReceiptRow>();
+      if (result.success === false) return false;
+      return (result.results ?? []).some((row) => {
+        try {
+          return matchesCommittedEstimateContributionReceipt(
+            payload,
+            JSON.parse(row.result_json) as unknown,
+            Number(row.current_revision),
+          );
+        } catch {
+          return false;
+        }
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  private readD1Database() {
+    const database = this.env.ARCH_DB as Partial<CollaborationD1Database> | undefined;
+    return typeof database?.prepare === "function"
+      ? database as CollaborationD1Database
+      : null;
   }
 
   private async scheduleAuthorizationDeadline() {

@@ -33,6 +33,10 @@ const actionMocks = vi.hoisted(() => ({
   updateEstimateRowItem: vi.fn(),
 }));
 
+async function flushQuantityDraftFrame() {
+  await act(() => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve())));
+}
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/projects/memo-project/estimates/memo-group",
   useRouter: () => routerMock,
@@ -151,7 +155,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
     window.localStorage.clear();
   });
 
-  it("keeps proposal signatures and selected-node presentation lazy during ordinary row edits", () => {
+  it("keeps proposal signatures and selected-node presentation lazy during ordinary row edits", async () => {
     const { view, clearCounts, counts } = renderSheet();
     const input = quantityInput(view, "memo-row-1-1");
     act(() => input.focus());
@@ -160,6 +164,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
     act(() => {
       fireEvent.change(input, { target: { value: "3" } });
     });
+    await flushQuantityDraftFrame();
 
     expect(input.value).toBe("3");
     expect(document.activeElement).toBe(input);
@@ -168,7 +173,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
     expect(counts().selectedPresentationComputes).toBe(0);
   });
 
-  it("re-renders the edited branch path without waking sibling branches", () => {
+  it("re-renders the edited branch path without waking sibling branches", async () => {
     const { view, branchRenderCounts, clearCounts } = renderSheet();
     const input = quantityInput(view, "memo-row-1-1");
 
@@ -176,6 +181,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
     act(() => {
       fireEvent.change(input, { target: { value: "4" } });
     });
+    await flushQuantityDraftFrame();
 
     expect(within(input.closest("tr")!).getAllByText(/1,800\.00/).length).toBeGreaterThan(0);
     expect(branchRenderCounts.get("memo-group") ?? 0).toBeGreaterThan(0);
@@ -184,7 +190,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
     expect(branchRenderCounts.get("memo-area-3") ?? 0).toBe(0);
   });
 
-  it("updates node totals incrementally while preserving visible totals", () => {
+  it("updates node totals incrementally while preserving visible totals", async () => {
     const { view, clearCounts, counts } = renderSheet();
     const projectTotals: number[] = [];
     const onTotalChange = (event: Event) => projectTotals.push((event as CustomEvent<{ total: number }>).detail.total);
@@ -196,6 +202,7 @@ describe("estimate sheet memoization (U1-U5)", () => {
       act(() => {
         fireEvent.change(input, { target: { value: "5" } });
       });
+      await flushQuantityDraftFrame();
 
       expect(within(input.closest("tr")!).getAllByText(/2,250\.00/).length).toBeGreaterThan(0);
       expect(projectTotals.at(-1)).toBe(5850);

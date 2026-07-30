@@ -436,7 +436,12 @@ describe("PublisherProjectMembersPanel", () => {
       projectId: "project-1",
       userId: "user-2",
     });
-    await user.click(within(dialog).getByRole("radio", { name: "Remove project access only and retain direct estimate access" }));
+    const retainEstimateAccess = within(dialog).getByRole("radio", {
+      name: "Remove project access only and retain direct estimate access",
+    });
+    await waitFor(() => expect(retainEstimateAccess).toBeEnabled());
+    await user.click(retainEstimateAccess);
+    await waitFor(() => expect(retainEstimateAccess).toBeChecked());
     await user.click(within(dialog).getByRole("button", { name: "Remove access" }));
     await waitFor(() =>
       expect(collaborationActions.removeProjectCollaborator).toHaveBeenCalledWith({

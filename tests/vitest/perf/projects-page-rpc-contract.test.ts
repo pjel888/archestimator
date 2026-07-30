@@ -109,6 +109,13 @@ class FakeWorkspaceProjectsD1Database {
     return new FakeWorkspaceProjectsD1Statement(this, sql);
   }
 
+  async batch(statements: FakeWorkspaceProjectsD1Statement[]) {
+    return statements.map((_statement, index) => ({
+      success: true,
+      meta: { changes: index === 1 ? 1 : 0 },
+    }));
+  }
+
   first<T>(sql: string): T | null {
     if (sql.includes("FROM beta_starter_pack_states")) return null;
     if (

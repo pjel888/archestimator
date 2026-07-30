@@ -29,7 +29,7 @@ export type ClientPortalNarrativeInput = {
   requestedDecision: string;
 };
 
-export type ClientPortalNarrativeFact = {
+type ClientPortalNarrativeFact = {
   id: string;
   text: string;
 };
@@ -245,32 +245,35 @@ export function renderClientPortalNarrative(factsByCategory: ClientPortalNarrati
   return [summary, ...sections.flatMap(([label, values]) => values.length ? [`${label}: ${values.join("; ")}.`] : [])].filter(Boolean).join("\n\n");
 }
 
-export function parseClientPortalNarrativeResponse(value: unknown): ClientPortalNarrativeResponse {
-  if (!isRecord(value)) throw new Error("Narrative response is invalid.");
-  const fallbackReasons = new Set([null, "disabled", "unconfigured", "timeout", "invalid_output", "provider_error"]);
-  if (
-    value.schemaVersion !== CLIENT_PORTAL_NARRATIVE_SCHEMA_VERSION
-    || !Number.isInteger(value.draftRevision)
-    || typeof value.inputFingerprint !== "string"
-    || typeof value.narrative !== "string"
-    || (value.source !== "ai" && value.source !== "deterministic")
-    || typeof value.provider !== "string"
-    || typeof value.model !== "string"
-    || !fallbackReasons.has((value.fallbackReason ?? null) as never)
-    || typeof value.runId !== "string"
-    || typeof value.generatedAt !== "string"
-    || typeof value.inputHash !== "string"
-    || typeof value.outputHash !== "string"
-  ) {
+const NARRATIVE_RESPONSE_STRING_FIELDS = ["inputFingerprint", "narrative", "provider", "model", "runId", "generatedAt", "inputHash", "outputHash"] as const;
+const NARRATIVE_FALLBACK_REASONS = new Set([null, "disabled", "unconfigured", "timeout", "invalid_output", "provider_error"]);
+
+function assertNarrativeResponseMetadata(value: Record<string, unknown>) {
+  const validIdentity = value.schemaVersion === CLIENT_PORTAL_NARRATIVE_SCHEMA_VERSION && Number.isInteger(value.draftRevision);
+  const validStrings = NARRATIVE_RESPONSE_STRING_FIELDS.every((field) => typeof value[field] === "string");
+  const validSource = value.source === "ai" || value.source === "deterministic";
+  const validFallback = NARRATIVE_FALLBACK_REASONS.has((value.fallbackReason ?? null) as never);
+  if (!validIdentity || !validStrings || !validSource || !validFallback) {
     throw new Error("Narrative response metadata is invalid.");
   }
-  const rawSelection = value.selection;
-  if (!isRecord(rawSelection)) throw new Error("Narrative response selection is invalid.");
+}
+
+function narrativeResponseSelection(value: unknown) {
+  if (!isRecord(value)) throw new Error("Narrative response selection is invalid.");
   const selection = {} as ClientPortalNarrativeSelection;
   for (const category of CLIENT_PORTAL_NARRATIVE_CATEGORIES) {
-    const ids = rawSelection[category];
-    if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string")) throw new Error("Narrative response selection is invalid.");
-    selection[category] = [...ids] as string[];
+    const identifiers = value[category];
+    if (!Array.isArray(identifiers) || identifiers.some((identifier) => typeof identifier !== "string")) {
+      throw new Error("Narrative response selection is invalid.");
+    }
+    selection[category] = [...identifiers] as string[];
   }
+  return selection;
+}
+
+export function parseClientPortalNarrativeResponse(value: unknown): ClientPortalNarrativeResponse {
+  if (!isRecord(value)) throw new Error("Narrative response is invalid.");
+  assertNarrativeResponseMetadata(value);
+  const selection = narrativeResponseSelection(value.selection);
   return { ...value, fallbackReason: (value.fallbackReason ?? null) as ClientPortalNarrativeResponse["fallbackReason"], selection } as ClientPortalNarrativeResponse;
 }

@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import {
   assertEstimateTemplateLinkPayloadSize,
   buildEstimateTemplateVersionSnapshot,
@@ -76,6 +76,50 @@ type TemplateHeaderRow = {
   updated_at: string;
 };
 
+type TemplateVariantSelectionRow = {
+  template_row_item_id: string;
+  template_id: string;
+  selected_price_option_id: string;
+  selected_option_snapshot_json: Json | string;
+};
+
+type TemplateAlternativeGroupRow = {
+  id: string;
+  template_id: string;
+  selected_template_row_item_id: string;
+  name: string;
+};
+
+type TemplateAlternativeMemberRow = {
+  group_id: string;
+  template_row_item_id: string;
+  sort_order: number | string;
+};
+
+type TemplateOptionalItemRow = {
+  template_id: string;
+  template_row_item_id: string;
+  is_included: number | boolean;
+};
+
+type TemplateAccessoryEdgeRow = {
+  id: string;
+  template_id: string;
+  parent_template_row_item_id: string;
+  child_template_row_item_id: string;
+  mode: "required" | "optional";
+  is_included: number | boolean;
+  quantity_rule_json: Json | string;
+};
+
+export type TemplateSidecars = {
+  variantSelections: TemplateVariantSelectionRow[];
+  alternativeGroups: TemplateAlternativeGroupRow[];
+  alternativeMembers: TemplateAlternativeMemberRow[];
+  optionalItems: TemplateOptionalItemRow[];
+  accessoryEdges: TemplateAccessoryEdgeRow[];
+};
+
 type TemplateLibraryItemRow = {
   id: string;
   workspace_id: string;
@@ -109,6 +153,8 @@ type TemplatePriceOptionRow = {
   misc_cost: number | string;
   currency: string;
   supplier_id: string | null;
+  brand_id: string | null;
+  brand: string | null;
   pricing_source: string | null;
   metadata_json: Json | string | null;
   is_active: number | boolean;
@@ -247,6 +293,8 @@ function buildCurrentPriceOptionSnapshot(
     pricingDate: currentCostEntry?.pricing_date ?? readSnapshotText(metadata, "pricingDate"),
     sourceUrl: currentCostEntry?.source_url ?? readSnapshotText(metadata, "sourceUrl"),
     supplierId: option.supplier_id,
+    brandId: option.brand_id,
+    brand: option.brand,
     thumbnailPath: readSnapshotText(metadata, "thumbnailPath"),
     isActive: readSnapshotBoolean(option.is_active),
     isDefault: readSnapshotBoolean(option.is_default),
@@ -274,8 +322,8 @@ function buildCurrentSourceSnapshot(input: {
     sourceUpdatedAt: input.item.updated_at,
     category: input.item.category,
     categoryNodeId: input.item.category_node_id,
-    brand: input.item.brand,
-    brandId: input.item.brand_id,
+    brand: input.selectedOption.brand,
+    brandId: input.selectedOption.brand_id,
     supplier: input.item.supplier,
     supplierId: input.selectedOption.supplier_id ?? input.item.supplier_id,
     componentVersionNumber: readNumber(input.item.current_version_number),
@@ -330,6 +378,413 @@ function assertTemplateCopyStatementLimit(statementCount: number) {
     error.statementCount = statementCount;
     throw error;
   }
+}
+
+export async function loadTemplateSidecars(
+  database: D1DatabaseLike,
+  templateIds: string[],
+  allowedRowIds: ReadonlySet<string>,
+): Promise<TemplateSidecars> {
+  if (allowedRowIds.size === 0) {
+    return {
+      variantSelections: [],
+      alternativeGroups: [],
+      alternativeMembers: [],
+      optionalItems: [],
+      accessoryEdges: [],
+    };
+  }
+  const templateIdsJson = JSON.stringify(templateIds);
+  const [variantSelections, alternativeGroups, alternativeMembers, optionalItems, accessoryEdges] = await Promise.all([
+    allD1Rows<TemplateVariantSelectionRow>(
+      database,
+      `SELECT template_row_item_id, template_id, selected_price_option_id, selected_option_snapshot_json
+       FROM estimate_template_row_variant_selections
+       WHERE template_id IN (SELECT value FROM json_each(?))
+       ORDER BY template_row_item_id ASC`,
+      [templateIdsJson],
+    ),
+    allD1Rows<TemplateAlternativeGroupRow>(
+      database,
+      `SELECT id, template_id, selected_template_row_item_id, name
+       FROM estimate_template_alternative_groups
+       WHERE template_id IN (SELECT value FROM json_each(?))
+       ORDER BY id ASC`,
+      [templateIdsJson],
+    ),
+    allD1Rows<TemplateAlternativeMemberRow>(
+      database,
+      `SELECT member.group_id, member.template_row_item_id, member.sort_order
+       FROM estimate_template_alternative_members AS member
+       JOIN estimate_template_alternative_groups AS group_record ON group_record.id = member.group_id
+       WHERE group_record.template_id IN (SELECT value FROM json_each(?))
+       ORDER BY member.group_id ASC, member.sort_order ASC, member.template_row_item_id ASC`,
+      [templateIdsJson],
+    ),
+    allD1Rows<TemplateOptionalItemRow>(
+      database,
+      `SELECT template_id, template_row_item_id, is_included
+       FROM estimate_template_optional_items
+       WHERE template_id IN (SELECT value FROM json_each(?))
+       ORDER BY template_row_item_id ASC`,
+      [templateIdsJson],
+    ),
+    allD1Rows<TemplateAccessoryEdgeRow>(
+      database,
+      `SELECT id, template_id, parent_template_row_item_id, child_template_row_item_id,
+              mode, is_included, quantity_rule_json
+       FROM estimate_template_accessory_edges
+       WHERE template_id IN (SELECT value FROM json_each(?))
+       ORDER BY id ASC`,
+      [templateIdsJson],
+    ),
+  ]);
+  const alternativeMembersByGroup = new Map<string, TemplateAlternativeMemberRow[]>();
+  for (const member of alternativeMembers) {
+    const members = alternativeMembersByGroup.get(member.group_id) ?? [];
+    members.push(member);
+    alternativeMembersByGroup.set(member.group_id, members);
+  }
+  const includedAlternativeGroups = alternativeGroups.filter((group) => {
+    const members = alternativeMembersByGroup.get(group.id) ?? [];
+    const selectedIsAllowed = allowedRowIds.has(group.selected_template_row_item_id);
+    const hasAllowedMember = members.some((member) => allowedRowIds.has(member.template_row_item_id));
+    if (!selectedIsAllowed && !hasAllowedMember) return false;
+    if (!selectedIsAllowed || members.some((member) => !allowedRowIds.has(member.template_row_item_id))) {
+      throw new Error("Estimate Template alternative group crosses the selected copy boundary.");
+    }
+    return true;
+  });
+  const includedGroupIds = new Set(includedAlternativeGroups.map((group) => group.id));
+  const includedAccessoryEdges = accessoryEdges.filter((edge) => {
+    const parentIsAllowed = allowedRowIds.has(edge.parent_template_row_item_id);
+    const childIsAllowed = allowedRowIds.has(edge.child_template_row_item_id);
+    if (parentIsAllowed !== childIsAllowed) {
+      throw new Error("Estimate Template accessory edge crosses the selected copy boundary.");
+    }
+    return parentIsAllowed;
+  });
+  return {
+    variantSelections: variantSelections.filter((selection) => allowedRowIds.has(selection.template_row_item_id)),
+    alternativeGroups: includedAlternativeGroups,
+    alternativeMembers: alternativeMembers.filter((member) => includedGroupIds.has(member.group_id)),
+    optionalItems: optionalItems.filter((item) => allowedRowIds.has(item.template_row_item_id)),
+    accessoryEdges: includedAccessoryEdges,
+  };
+}
+
+function buildEstimateSidecarStatements(input: {
+  sidecars: TemplateSidecars;
+  rowIdBySource: ReadonlyMap<string, string>;
+  workspaceId: string;
+  projectId: string;
+  estimateId: string;
+  estimateTabId: string | null;
+  actorUserId: string;
+  timestamp: string;
+}): D1IntentStatement[] {
+  const variantPayload = input.sidecars.variantSelections.map((selection) => ({
+    rowId: input.rowIdBySource.get(selection.template_row_item_id),
+    selectedPriceOptionId: selection.selected_price_option_id,
+    selectedOptionSnapshot: readJson(selection.selected_option_snapshot_json, {}),
+  }));
+  const groupIdBySource = new Map(input.sidecars.alternativeGroups.map((group) => [group.id, randomUUID()]));
+  const groupPayload = input.sidecars.alternativeGroups.map((group) => ({
+    id: groupIdBySource.get(group.id),
+    selectedRowId: input.rowIdBySource.get(group.selected_template_row_item_id),
+    name: group.name,
+  }));
+  const memberPayload = input.sidecars.alternativeMembers.map((member) => ({
+    groupId: groupIdBySource.get(member.group_id),
+    rowId: input.rowIdBySource.get(member.template_row_item_id),
+    sortOrder: readNumber(member.sort_order),
+  }));
+  const optionalPayload = input.sidecars.optionalItems.map((item) => ({
+    rowId: input.rowIdBySource.get(item.template_row_item_id),
+    isIncluded: item.is_included === true || item.is_included === 1,
+  }));
+  const edgePayload = input.sidecars.accessoryEdges.map((edge) => ({
+    id: randomUUID(),
+    parentRowId: input.rowIdBySource.get(edge.parent_template_row_item_id),
+    childRowId: input.rowIdBySource.get(edge.child_template_row_item_id),
+    mode: edge.mode,
+    isIncluded: edge.is_included === true || edge.is_included === 1,
+    quantityRule: readJson(edge.quantity_rule_json, {}),
+  }));
+  if ([...variantPayload, ...groupPayload, ...memberPayload, ...optionalPayload, ...edgePayload]
+    .some((entry) => Object.values(entry).some((value) => value === undefined))) {
+    throw new Error("Estimate Template sidecar mapping is incomplete.");
+  }
+  const requiresScope = groupPayload.length > 0 || optionalPayload.length > 0 || edgePayload.length > 0;
+  if (requiresScope && !input.estimateTabId) {
+    throw new Error("Estimate Template alternatives and accessories require an active estimate tab.");
+  }
+  const statements: D1IntentStatement[] = [];
+  if (variantPayload.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_row_variant_selections (
+              estimate_row_item_id, estimate_id, workspace_id, selected_price_option_id,
+              selected_option_snapshot_json, selection_revision, selected_at, selected_by
+            )
+            SELECT json_extract(value, '$.rowId'), ?, ?, json_extract(value, '$.selectedPriceOptionId'),
+                   json_extract(value, '$.selectedOptionSnapshot'), 1, ?, ?
+            FROM json_each(?)`,
+      values: [input.estimateId, input.workspaceId, input.timestamp, input.actorUserId, JSON.stringify(variantPayload)],
+    });
+  }
+  if (!requiresScope) return statements;
+  statements.push({
+    sql: `INSERT INTO estimate_contribution_scopes (
+            id, workspace_id, project_id, estimate_id, estimate_tab_id, revision, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+          ON CONFLICT(workspace_id, project_id, estimate_id, estimate_tab_id) DO UPDATE SET
+            revision = estimate_contribution_scopes.revision + 1,
+            updated_at = excluded.updated_at`,
+    values: [randomUUID(), input.workspaceId, input.projectId, input.estimateId, input.estimateTabId, input.timestamp, input.timestamp],
+  });
+  const scopeLookup = `(
+    SELECT id FROM estimate_contribution_scopes
+    WHERE workspace_id = ? AND project_id = ? AND estimate_id = ? AND estimate_tab_id = ?
+  )`;
+  const scopeValues: D1Value[] = [input.workspaceId, input.projectId, input.estimateId, input.estimateTabId];
+  if (groupPayload.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_alternative_groups (
+              id, contribution_scope_id, selected_row_item_id, name, revision, created_at, updated_at
+            )
+            SELECT json_extract(value, '$.id'), ${scopeLookup},
+                   json_extract(value, '$.selectedRowId'), json_extract(value, '$.name'), 1, ?, ?
+            FROM json_each(?)`,
+      values: [...scopeValues, input.timestamp, input.timestamp, JSON.stringify(groupPayload)],
+    });
+  }
+  if (memberPayload.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_alternative_members (
+              contribution_scope_id, group_id, row_item_id, sort_order, created_at
+            )
+            SELECT ${scopeLookup}, json_extract(value, '$.groupId'),
+                   json_extract(value, '$.rowId'), json_extract(value, '$.sortOrder'), ?
+            FROM json_each(?)`,
+      values: [...scopeValues, input.timestamp, JSON.stringify(memberPayload)],
+    });
+  }
+  if (optionalPayload.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_optional_items (
+              contribution_scope_id, row_item_id, is_included, revision, created_at, updated_at
+            )
+            SELECT ${scopeLookup}, json_extract(value, '$.rowId'),
+                   json_extract(value, '$.isIncluded'), 1, ?, ?
+            FROM json_each(?)`,
+      values: [...scopeValues, input.timestamp, input.timestamp, JSON.stringify(optionalPayload)],
+    });
+  }
+  if (edgePayload.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_accessory_edges (
+              id, contribution_scope_id, workspace_id, project_id, estimate_id, estimate_tab_id,
+              parent_row_item_id, child_row_item_id, mode, is_included, quantity_rule_json,
+              revision, created_by, updated_by, created_at, updated_at
+            )
+            SELECT json_extract(value, '$.id'), ${scopeLookup}, ?, ?, ?, ?,
+                   json_extract(value, '$.parentRowId'), json_extract(value, '$.childRowId'),
+                   json_extract(value, '$.mode'), json_extract(value, '$.isIncluded'),
+                   json_extract(value, '$.quantityRule'), 1, ?, ?, ?, ?
+            FROM json_each(?)`,
+      values: [
+        ...scopeValues,
+        input.workspaceId,
+        input.projectId,
+        input.estimateId,
+        input.estimateTabId,
+        input.actorUserId,
+        input.actorUserId,
+        input.timestamp,
+        input.timestamp,
+        JSON.stringify(edgePayload),
+      ],
+    });
+  }
+  return statements;
+}
+
+export function buildTemplateSidecarSourceGuard(
+  sidecars: TemplateSidecars,
+  allowedRowIds: ReadonlySet<string>,
+): { sql: string; values: D1Value[] } {
+  const variants = sidecars.variantSelections.map((selection) => ({
+    rowId: selection.template_row_item_id,
+    templateId: selection.template_id,
+    optionId: selection.selected_price_option_id,
+    snapshot: readJson(selection.selected_option_snapshot_json, {}),
+  }));
+  const groups = sidecars.alternativeGroups.map((group) => ({
+    id: group.id,
+    templateId: group.template_id,
+    selectedRowId: group.selected_template_row_item_id,
+    name: group.name,
+  }));
+  const members = sidecars.alternativeMembers.map((member) => ({
+    groupId: member.group_id,
+    rowId: member.template_row_item_id,
+    sortOrder: readNumber(member.sort_order),
+  }));
+  const optionalItems = sidecars.optionalItems.map((item) => ({
+    templateId: item.template_id,
+    rowId: item.template_row_item_id,
+    isIncluded: item.is_included === true || item.is_included === 1,
+  }));
+  const edges = sidecars.accessoryEdges.map((edge) => ({
+    id: edge.id,
+    templateId: edge.template_id,
+    parentRowId: edge.parent_template_row_item_id,
+    childRowId: edge.child_template_row_item_id,
+    mode: edge.mode,
+    isIncluded: edge.is_included === true || edge.is_included === 1,
+    quantityRule: readJson(edge.quantity_rule_json, {}),
+  }));
+  return {
+    sql: `WITH copied_rows(id) AS (SELECT value FROM json_each(?))
+    SELECT CASE WHEN
+      (SELECT COUNT(*) FROM estimate_template_row_variant_selections
+       WHERE template_row_item_id IN (SELECT id FROM copied_rows)) = ?
+      AND (SELECT COUNT(*) FROM estimate_template_alternative_groups
+           WHERE selected_template_row_item_id IN (SELECT id FROM copied_rows)) = ?
+      AND (SELECT COUNT(*)
+           FROM estimate_template_alternative_members AS member
+           JOIN estimate_template_alternative_groups AS group_record ON group_record.id = member.group_id
+           WHERE group_record.selected_template_row_item_id IN (SELECT id FROM copied_rows)
+             AND member.template_row_item_id IN (SELECT id FROM copied_rows)) = ?
+      AND (SELECT COUNT(*) FROM estimate_template_optional_items
+           WHERE template_row_item_id IN (SELECT id FROM copied_rows)) = ?
+      AND (SELECT COUNT(*) FROM estimate_template_accessory_edges
+           WHERE parent_template_row_item_id IN (SELECT id FROM copied_rows)
+              AND child_template_row_item_id IN (SELECT id FROM copied_rows)) = ?
+      AND NOT EXISTS (
+        SELECT 1
+        FROM estimate_template_alternative_groups AS closure_group
+        WHERE (
+          closure_group.selected_template_row_item_id IN (SELECT id FROM copied_rows)
+          OR EXISTS (
+            SELECT 1 FROM estimate_template_alternative_members AS closure_member
+            WHERE closure_member.group_id = closure_group.id
+              AND closure_member.template_row_item_id IN (SELECT id FROM copied_rows)
+          )
+        )
+        AND (
+          closure_group.selected_template_row_item_id NOT IN (SELECT id FROM copied_rows)
+          OR EXISTS (
+            SELECT 1 FROM estimate_template_alternative_members AS closure_member
+            WHERE closure_member.group_id = closure_group.id
+              AND closure_member.template_row_item_id NOT IN (SELECT id FROM copied_rows)
+          )
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM estimate_template_accessory_edges AS closure_edge
+        WHERE (closure_edge.parent_template_row_item_id IN (SELECT id FROM copied_rows))
+          <> (closure_edge.child_template_row_item_id IN (SELECT id FROM copied_rows))
+      )
+      AND
+      NOT EXISTS (
+        SELECT 1 FROM json_each(?) AS expected
+        WHERE NOT EXISTS (
+          SELECT 1 FROM estimate_template_row_variant_selections AS current
+          WHERE current.template_row_item_id = json_extract(expected.value, '$.rowId')
+            AND current.template_id = json_extract(expected.value, '$.templateId')
+            AND current.selected_price_option_id = json_extract(expected.value, '$.optionId')
+            AND json(current.selected_option_snapshot_json) = json(json_extract(expected.value, '$.snapshot'))
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(?) AS expected
+        WHERE NOT EXISTS (
+          SELECT 1 FROM estimate_template_alternative_groups AS current
+          WHERE current.id = json_extract(expected.value, '$.id')
+            AND current.template_id = json_extract(expected.value, '$.templateId')
+            AND current.selected_template_row_item_id = json_extract(expected.value, '$.selectedRowId')
+            AND current.name = json_extract(expected.value, '$.name')
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(?) AS expected
+        WHERE NOT EXISTS (
+          SELECT 1 FROM estimate_template_alternative_members AS current
+          WHERE current.group_id = json_extract(expected.value, '$.groupId')
+            AND current.template_row_item_id = json_extract(expected.value, '$.rowId')
+            AND current.sort_order = json_extract(expected.value, '$.sortOrder')
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(?) AS expected
+        WHERE NOT EXISTS (
+          SELECT 1 FROM estimate_template_optional_items AS current
+          WHERE current.template_id = json_extract(expected.value, '$.templateId')
+            AND current.template_row_item_id = json_extract(expected.value, '$.rowId')
+            AND current.is_included = json_extract(expected.value, '$.isIncluded')
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(?) AS expected
+        WHERE NOT EXISTS (
+          SELECT 1 FROM estimate_template_accessory_edges AS current
+          WHERE current.id = json_extract(expected.value, '$.id')
+            AND current.template_id = json_extract(expected.value, '$.templateId')
+            AND current.parent_template_row_item_id = json_extract(expected.value, '$.parentRowId')
+            AND current.child_template_row_item_id = json_extract(expected.value, '$.childRowId')
+            AND current.mode = json_extract(expected.value, '$.mode')
+            AND current.is_included = json_extract(expected.value, '$.isIncluded')
+            AND json(current.quantity_rule_json) = json(json_extract(expected.value, '$.quantityRule'))
+        )
+      )
+    THEN 1 ELSE json('') END AS estimate_template_sidecar_source_guard`,
+    values: [
+      JSON.stringify([...allowedRowIds]),
+      variants.length,
+      groups.length,
+      members.length,
+      optionalItems.length,
+      edges.length,
+      JSON.stringify(variants),
+      JSON.stringify(groups),
+      JSON.stringify(members),
+      JSON.stringify(optionalItems),
+      JSON.stringify(edges),
+    ],
+  };
+}
+
+export function buildTemplateVersionSidecars(sidecars: TemplateSidecars) {
+  return {
+    variantSelections: sidecars.variantSelections.map((selection) => ({
+      templateRowItemId: selection.template_row_item_id,
+      selectedPriceOptionId: selection.selected_price_option_id,
+      selectedOptionSnapshot: readJson(selection.selected_option_snapshot_json, {}),
+    })),
+    alternativeGroups: sidecars.alternativeGroups.map((group) => ({
+      id: group.id,
+      selectedTemplateRowItemId: group.selected_template_row_item_id,
+      name: group.name,
+    })),
+    alternativeMembers: sidecars.alternativeMembers.map((member) => ({
+      groupId: member.group_id,
+      templateRowItemId: member.template_row_item_id,
+      sortOrder: readNumber(member.sort_order),
+    })),
+    optionalItems: sidecars.optionalItems.map((item) => ({
+      templateRowItemId: item.template_row_item_id,
+      isIncluded: item.is_included === true || item.is_included === 1,
+    })),
+    accessoryEdges: sidecars.accessoryEdges.map((edge) => ({
+      id: edge.id,
+      parentTemplateRowItemId: edge.parent_template_row_item_id,
+      childTemplateRowItemId: edge.child_template_row_item_id,
+      mode: edge.mode,
+      isIncluded: edge.is_included === true || edge.is_included === 1,
+      quantityRule: readJson(edge.quantity_rule_json, {}),
+    })),
+  };
 }
 
 function validateCopyTopology(
@@ -444,6 +899,7 @@ function buildRowInsert(input: {
   sourceSnapshot: Record<string, unknown>;
   categoryNodeId: string | null;
   supplierId: string | null;
+  brandId: string | null;
   material: string;
   description: string;
   supplier: string;
@@ -457,12 +913,12 @@ function buildRowInsert(input: {
     sql: `
       INSERT INTO estimate_row_items (
         id, estimate_id, node_id, description, designation, discipline,
-        material, supplier, supplier_id, quantity, quantity_base,
+        material, supplier, supplier_id, brand_id, quantity, quantity_base,
         quantity_contingency_amount, unit, unit_cost, misc_cost,
         contingency_percentage, adjustment_percentage, source_snapshot_json,
         sort_order, row_revision, category_node_id, source_library_item_id,
         link_state, metadata_json, pricing_provenance_origin, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     values: [
       input.id,
@@ -474,6 +930,7 @@ function buildRowInsert(input: {
       input.material,
       input.supplier,
       input.supplierId,
+      input.brandId,
       readNumber(input.row.quantity),
       null,
       null,
@@ -587,6 +1044,8 @@ async function copyTemplateNodes(
   const nodesToCopy = templateNodes.filter((node) => allowedNodeIds.has(node.id));
   const rowsToCopy = templateRows.filter((row) => allowedNodeIds.has(row.template_node_id));
   validateCopyTopology(templateIds, templateNodes, templateRows, nodesToCopy, rowsToCopy);
+  const copiedTemplateRowIds = new Set(rowsToCopy.map((row) => row.id));
+  const templateSidecars = await loadTemplateSidecars(database, templateIds, copiedTemplateRowIds);
 
   const linkedSourceIds = [...new Set(rowsToCopy.flatMap((row) => (
     row.source_library_item_id ? [row.source_library_item_id] : []
@@ -675,13 +1134,11 @@ async function copyTemplateNodes(
   const expectedMaxSiblingSortOrder = readNumber(sibling?.sort_order, 0);
   const sourceRoots = nodesToCopy.filter((node) => !node.parent_id || !allowedNodeIds.has(node.parent_id));
   if (sourceRoots.length === 0) throw new Error("Estimate template source has no root nodes to insert.");
-  const exactStatementCount = 1 + nodesToCopy.length + rowsToCopy.length + 1 + 1 + 1 + 1;
-  assertTemplateCopyStatementLimit(exactStatementCount);
-
   const sourceFingerprint = createMutationRequestFingerprint({
     templateHeaders,
     templateNodes,
     templateRows,
+    templateSidecars,
     libraryItems,
     priceOptions,
     currentCostEntries,
@@ -750,6 +1207,7 @@ async function copyTemplateNodes(
 
   const copiedAt = nowIso();
   const nodeIdBySource = new Map(nodesToCopy.map((node) => [node.id, randomUUID()]));
+  const rowIdBySource = new Map(rowsToCopy.map((row) => [row.id, randomUUID()]));
   const sourceRootIds = new Set(sourceRoots.map((root) => root.id));
   const sourceRootRankById = new Map(sourceRoots.map((root, index) => [root.id, index + 1]));
   const insertedRootNodeIds = sourceRoots.map((root) => nodeIdBySource.get(root.id)!);
@@ -793,7 +1251,7 @@ async function copyTemplateNodes(
       ? currentCostEntryByOptionId.get(selectedOption.id)
       : undefined;
     return buildRowInsert({
-      id: randomUUID(),
+      id: rowIdBySource.get(row.id)!,
       estimateId: intent.estimateId,
       nodeId,
       row,
@@ -804,6 +1262,9 @@ async function copyTemplateNodes(
       supplierId: currentSnapshot
         ? selectedOption!.supplier_id ?? currentItem!.supplier_id
         : row.supplier_id,
+      brandId: currentSnapshot
+        ? selectedOption!.brand_id
+        : readSnapshotText(savedSnapshot, "brandId"),
       material: currentSnapshot ? currentItem!.name : row.material ?? "",
       description: currentSnapshot ? currentItem!.description : row.description ?? "",
       supplier: currentSnapshot ? currentItem!.supplier ?? "" : row.supplier ?? "",
@@ -818,6 +1279,18 @@ async function copyTemplateNodes(
       timestamp: copiedAt,
     });
   });
+  const sidecarStatements = buildEstimateSidecarStatements({
+    sidecars: templateSidecars,
+    rowIdBySource,
+    workspaceId: intent.workspaceId,
+    projectId: intent.projectId,
+    estimateId: intent.estimateId,
+    estimateTabId: targetTabId,
+    actorUserId: intent.actorUserId,
+    timestamp: copiedAt,
+  });
+  const exactStatementCount = 2 + nodeStatements.length + rowStatements.length + sidecarStatements.length + 4;
+  assertTemplateCopyStatementLimit(exactStatementCount);
   const history = await prepareHistoryEventInsert(database, {
     projectId: intent.projectId,
     estimateId: intent.estimateId,
@@ -858,8 +1331,10 @@ async function copyTemplateNodes(
   };
   const statements: D1IntentStatement[] = [
     sourceGuard,
+    buildTemplateSidecarSourceGuard(templateSidecars, copiedTemplateRowIds),
     ...nodeStatements,
     ...rowStatements,
+    ...sidecarStatements,
     buildProjectPublicationRevisionForEstimate(intent.projectId, intent.workspaceId, intent.estimateId),
     history.statement,
     history.outboxStatement,
@@ -991,6 +1466,8 @@ async function linkTemplateNodes(
     readNumber(left.sort_order) - readNumber(right.sort_order) || left.id.localeCompare(right.id)
   ));
   validateCopyTopology([template.id], templateNodes, templateRows, templateNodes, templateRows);
+  const templateRowIds = new Set(templateRows.map((row) => row.id));
+  const templateSidecars = await loadTemplateSidecars(database, [template.id], templateRowIds);
 
   const linkedSourceIds = [...new Set(templateRows.flatMap((row) => (
     row.source_library_item_id ? [row.source_library_item_id] : []
@@ -1078,6 +1555,7 @@ async function linkTemplateNodes(
     template,
     templateNodes,
     templateRows,
+    templateSidecars,
     libraryItems,
     priceOptions,
     currentCostEntries,
@@ -1087,6 +1565,12 @@ async function linkTemplateNodes(
     nodes: templateNodes,
     rows: templateRows,
   });
+  const versionSnapshot = {
+    ...version.snapshot,
+    sidecars: buildTemplateVersionSidecars(templateSidecars),
+  };
+  const serializedVersionSnapshot = JSON.stringify(versionSnapshot);
+  const versionSourceFingerprint = createMutationRequestFingerprint(versionSnapshot);
   const linkedSourceGuardPayload = JSON.stringify({
     workspaceId: intent.workspaceId,
     ids: linkedSourceIds,
@@ -1197,6 +1681,7 @@ async function linkTemplateNodes(
   const linkedAt = nowIso();
   const instanceId = randomUUID();
   const nodeIdBySource = new Map(templateNodes.map((node) => [node.id, randomUUID()]));
+  const rowIdBySource = new Map(templateRows.map((row) => [row.id, randomUUID()]));
   const sourceRootIds = new Set(sourceRoots.map((root) => root.id));
   const sourceRootRankById = new Map(sourceRoots.map((root, index) => [root.id, index + 1]));
   const nodePayload = templateNodes.map((node) => ({
@@ -1234,7 +1719,7 @@ async function linkTemplateNodes(
       : null;
     const effectiveCostEntry = selectedOption ? currentCostEntryByOptionId.get(selectedOption.id) : undefined;
     return {
-      id: randomUUID(),
+      id: rowIdBySource.get(row.id)!,
       estimateId: intent.estimateId,
       estimateNodeId,
       templateRowItemId: row.id,
@@ -1244,6 +1729,7 @@ async function linkTemplateNodes(
       material: currentSnapshot ? currentItem!.name : row.material ?? "",
       supplier: currentSnapshot ? currentItem!.supplier ?? "" : row.supplier ?? "",
       supplierId: currentSnapshot ? selectedOption!.supplier_id ?? currentItem!.supplier_id : row.supplier_id,
+      brandId: currentSnapshot ? selectedOption!.brand_id : readSnapshotText(savedSnapshot, "brandId"),
       quantity: readNumber(row.quantity),
       unit: currentSnapshot ? selectedOption!.unit : row.unit ?? "unit",
       unitCost: currentSnapshot
@@ -1264,8 +1750,18 @@ async function linkTemplateNodes(
       pricingProvenanceOrigin: row.pricing_provenance_origin ?? "inherited_snapshot",
     };
   });
+  const sidecarStatements = buildEstimateSidecarStatements({
+    sidecars: templateSidecars,
+    rowIdBySource,
+    workspaceId: intent.workspaceId,
+    projectId: intent.projectId,
+    estimateId: intent.estimateId,
+    estimateTabId: targetTabId,
+    actorUserId: intent.actorUserId,
+    timestamp: linkedAt,
+  });
   assertEstimateTemplateLinkPayloadSize({
-    version: version.snapshot,
+    version: versionSnapshot,
     nodes: nodePayload,
     rows: rowPayload,
   });
@@ -1290,7 +1786,7 @@ async function linkTemplateNodes(
       sourceVersionNumber: readNumber(template.current_version_number, 1),
       savedSnapshotUnlinkedRowCount: unavailableRows.length,
       sourceFingerprint,
-      statementCount: 11,
+      statementCount: 12 + sidecarStatements.length,
     },
   });
   if (!history.statement || !history.outboxStatement) {
@@ -1312,12 +1808,13 @@ async function linkTemplateNodes(
     insertedNodeCount: nodePayload.length,
     insertedRowItemCount: rowPayload.length,
     sourceFingerprint,
-    statementCount: 11,
+    statementCount: 12 + sidecarStatements.length,
     appliedVersionNumber: versionNumber,
     targetVersionNumber: versionNumber,
   };
   const statements: D1IntentStatement[] = [
     sourceGuard,
+    buildTemplateSidecarSourceGuard(templateSidecars, templateRowIds),
     {
       sql: `INSERT INTO estimate_template_versions (
               template_id, version_number, workspace_id, snapshot_json,
@@ -1329,8 +1826,8 @@ async function linkTemplateNodes(
         template.id,
         versionNumber,
         intent.workspaceId,
-        version.serializedSnapshot,
-        version.sourceFingerprint,
+        serializedVersionSnapshot,
+        versionSourceFingerprint,
         { summary: "Current Template snapshot ensured for linked insertion." },
         template.created_by ?? intent.actorUserId,
         linkedAt,
@@ -1357,7 +1854,7 @@ async function linkTemplateNodes(
     {
       sql: `INSERT INTO estimate_row_items (
               id, estimate_id, node_id, description, designation, discipline,
-              material, supplier, supplier_id, quantity, quantity_base,
+              material, supplier, supplier_id, brand_id, quantity, quantity_base,
               quantity_contingency_amount, unit, unit_cost, misc_cost,
               contingency_percentage, adjustment_percentage, source_snapshot_json,
               sort_order, row_revision, category_node_id, source_library_item_id,
@@ -1373,6 +1870,7 @@ async function linkTemplateNodes(
               json_extract(value, '$.material'),
               json_extract(value, '$.supplier'),
               json_extract(value, '$.supplierId'),
+              json_extract(value, '$.brandId'),
               json_extract(value, '$.quantity'),
               NULL,
               NULL,
@@ -1435,6 +1933,7 @@ async function linkTemplateNodes(
             FROM json_each(?)`,
       values: [instanceId, intent.workspaceId, intent.estimateId, linkedAt, linkedAt, rowPayloadJson],
     },
+    ...sidecarStatements,
     buildProjectPublicationRevisionForEstimate(intent.projectId, intent.workspaceId, intent.estimateId),
     history.statement,
     history.outboxStatement,
@@ -1443,6 +1942,7 @@ async function linkTemplateNodes(
   if (statements.length !== result.statementCount) {
     throw new Error("Linked Estimate Template insertion statement contract drifted.");
   }
+  assertTemplateCopyStatementLimit(statements.length);
   try {
     await runD1Batch(database, statements);
   } catch (error) {

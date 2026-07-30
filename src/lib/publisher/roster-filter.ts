@@ -84,5 +84,3 @@ export function parsePublisherRosterFilters(searchParams: PublisherRosterSearchP
     ),
   };
 }
-
-export const parseRosterFilters = parsePublisherRosterFilters;

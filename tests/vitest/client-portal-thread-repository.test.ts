@@ -173,11 +173,23 @@ describe("client portal thread repository", () => {
     expect(page.nextCursor).toBe("2026-07-12T00:00:02.000Z|thread_2");
     const listStatement = statements.find((entry) => entry.sql.includes("FROM client_portal_threads t"));
     expect(listStatement?.sql).toContain("LIMIT ?");
+    expect(listStatement?.sql).toContain("m.visibility = 'client'");
     expect(listStatement?.values.at(-1)).toBe(3);
 
     await listClientPortalRecipientThreads({ actor, cursor: page.nextCursor, database, portalId: "portal_1", limit: 2 });
     const cursorStatement = statements.filter((entry) => entry.sql.includes("FROM client_portal_threads t")).at(-1);
     expect(cursorStatement?.values).toContain("thread_2");
+  });
+
+  it("marks only the latest client-visible message as read", async () => {
+    const { database, statements } = createDatabase();
+
+    await markClientPortalRecipientThreadRead({ actor, database, portalId: "portal_1", threadId: "thread_1" });
+
+    expect(statements.some((entry) =>
+      entry.sql.includes("SELECT id FROM client_portal_messages")
+      && entry.sql.includes("visibility = 'client'")
+    )).toBe(true);
   });
 
   it("bounds client-visible messages and returns an ascending continuation cursor", async () => {

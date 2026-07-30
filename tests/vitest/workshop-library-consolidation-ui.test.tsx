@@ -363,7 +363,7 @@ describe("workshop library consolidation UI", () => {
     expect(addComponentModal).toContain("attachmentBusy");
     expect(addComponentModal).toContain('accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"');
     expect(addComponentModal).toContain("isImageUploadBusy(imageUpload.state)");
-    expect(addComponentModal).toContain("disabled={isPending || imageBusy || attachmentBusy}");
+    expect(addComponentModal).toContain("disabled={isPending || imageBusy || attachmentBusy || catalogueBusy}");
     expect(nextConfig).toContain("localPatterns: localImagePatterns");
     expect(nextConfig).toContain('{ pathname: "/api/projects/images" }');
     expect(nextConfig).not.toContain('hostname: "**"');
@@ -683,7 +683,9 @@ describe("workshop library consolidation UI", () => {
     expect(variantTwoUnitCombobox).toHaveValue("tile-box");
     fireEvent.click(within(variantsPanel).getByRole("button", { name: "Open V-1 — Variant 1" }));
     const brandCombobox = within(dialog).getByRole("combobox", { name: "Brand" });
-    fireEvent.change(brandCombobox, { target: { value: "Acme Hardware" } });
+    fireEvent.change(brandCombobox, { target: { value: "Database" } });
+    fireEvent.click(screen.getByRole("option", { name: "Database Brand" }));
+    await waitFor(() => expect(brandCombobox).toHaveValue("Database Brand"));
     const supplierCombobox = within(dialog).getByRole("combobox", { name: "Supplier" });
     fireEvent.change(supplierCombobox, { target: { value: "Database" } });
     fireEvent.click(screen.getByRole("option", { name: "Database Supplier" }));
@@ -713,8 +715,8 @@ describe("workshop library consolidation UI", () => {
         unit: "box",
         supplierId: "db-supplier",
         supplier: "Database Supplier",
-        brand: "Acme Hardware",
-        brandId: null,
+        brand: "Database Brand",
+        brandId: "db-brand",
         lifecycleState: "in_production",
         priceOptions: [
           expect.objectContaining({

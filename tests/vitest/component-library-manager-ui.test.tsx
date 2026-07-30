@@ -413,20 +413,50 @@ describe("component library manager UI", () => {
   });
 
   it("opens the inline folder-name dialog from the compact Add folder control", async () => {
+    const animationFrame = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    try {
+      await renderLibrary();
+
+      const addFolderButton = screen.getByRole("button", { name: "Add library folder" });
+      fireEvent.pointerDown(addFolderButton, { button: 0, pointerType: "mouse" });
+      fireEvent.mouseUp(addFolderButton, { button: 0 });
+      fireEvent.click(addFolderButton);
+
+      const dialog = await screen.findByRole("dialog", { name: "New folder" });
+      expect(screen.getByRole("dialog", { name: "New folder" })).toBe(dialog);
+      await waitFor(() => expect(within(dialog).getByLabelText("Folder name")).toHaveFocus());
+      expect(within(dialog).getByRole("button", { name: "Create folder" })).toBeInTheDocument();
+
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(addFolderButton).toHaveFocus());
+    } finally {
+      animationFrame.mockRestore();
+    }
+  });
+
+  it("skips folder-trigger focus restoration after the trigger disconnects", async () => {
     await renderLibrary();
-
     const addFolderButton = screen.getByRole("button", { name: "Add library folder" });
-    fireEvent.pointerDown(addFolderButton, { button: 0, pointerType: "mouse" });
-    fireEvent.mouseUp(addFolderButton, { button: 0 });
     fireEvent.click(addFolderButton);
-
     const dialog = await screen.findByRole("dialog", { name: "New folder" });
-    expect(screen.getByRole("dialog", { name: "New folder" })).toBe(dialog);
     await waitFor(() => expect(within(dialog).getByLabelText("Folder name")).toHaveFocus());
-    expect(within(dialog).getByRole("button", { name: "Create folder" })).toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(addFolderButton).toHaveFocus());
+    let restoreFocus: FrameRequestCallback | undefined;
+    const animationFrame = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      restoreFocus = callback;
+      return 1;
+    });
+    try {
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      addFolderButton.remove();
+      restoreFocus?.(0);
+      expect(addFolderButton).not.toHaveFocus();
+    } finally {
+      animationFrame.mockRestore();
+    }
   });
 
   it("routes the tree-toolbar Add folder control through its create callback", () => {

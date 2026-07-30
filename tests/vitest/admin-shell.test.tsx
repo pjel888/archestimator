@@ -5,6 +5,7 @@ import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -45,6 +46,7 @@ describe("AdminShell", () => {
           <p>Admin content</p>
         </AdminShell>,
       );
+      render(<AdminSidebar />);
 
       expect(screen.getByRole("main", { name: "Admin dashboard" })).toBeInTheDocument();
       const navigation = await screen.findByRole("navigation", { name: "Admin sections" });

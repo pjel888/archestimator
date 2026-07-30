@@ -48,9 +48,17 @@ export function WorkshopSettingsModal({
 }: WorkshopSettingsModalProps) {
   const [open, setOpen] = useState(initialOpen);
   const pendingNavigationRef = useRef<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
+    if (!nextOpen && trigger === "button") {
+      const unsubscribe = subscribeToModalLifecycle((event) => {
+        if (event.type !== "closed_focus_restored" || event.activeModalCount !== 0) return;
+        unsubscribe();
+        window.requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+      });
+    }
     if (!nextOpen && closeHref && !pendingNavigationRef.current) {
       window.location.assign(closeHref);
     }
@@ -80,6 +88,7 @@ export function WorkshopSettingsModal({
     <WorkshopSettingsModalContext.Provider value={modalContext}>
       {trigger === "button" ? (
         <IconButton
+          ref={triggerRef}
           type="button"
           variant="ghost"
           size="icon-sm"

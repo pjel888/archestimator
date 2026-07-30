@@ -58,7 +58,13 @@ class FakeD1Statement<
           candidate.upload_session_id === uploadSessionId &&
           candidate.project_id === projectId &&
           candidate.estimate_id === estimateId &&
-          candidate.target_entity_id === rowId,
+          candidate.target_entity_id === rowId &&
+          candidate.workspace_id === candidate.project_workspace_id &&
+          candidate.surface === "project-image" &&
+          candidate.bucket === "project-images" &&
+          candidate.target_entity_type === "estimate-row" &&
+          candidate.status === "finalized" &&
+          candidate.purge_state === "active",
       );
       return (row ?? null) as R | null;
     }
@@ -389,6 +395,13 @@ describe("upload domain contracts", () => {
       project_id: projectId,
       estimate_id: estimateId,
       target_entity_id: rowId,
+      target_entity_type: "estimate-row",
+      workspace_id: "workspace-1",
+      actor_user_id: "user-1",
+      project_workspace_id: "workspace-1",
+      surface: "project-image",
+      status: "finalized",
+      purge_state: "active",
       bucket: "project-images",
       path: `workspace-1/user-1/project-images/${projectId}/estimate-row-images/${estimateId}/reference.webp`,
       thumbnail_path: `workspace-1/user-1/project-images/${projectId}/estimate-row-images/${estimateId}/reference-thumb.webp`,
@@ -421,6 +434,52 @@ describe("upload domain contracts", () => {
       width: 800,
       height: 600,
     });
+  });
+
+  it.each([
+    ["wrong surface", { surface: "component-image" }],
+    ["wrong bucket", { bucket: "component-images" }],
+    ["pending asset", { status: "pending" }],
+    ["purged asset", { purge_state: "purged" }],
+    ["wrong workspace", { workspace_id: "workspace-2" }],
+    ["wrong path workspace", { path: "workspace-2/user-1/project-images/22222222-2222-4222-8222-222222222222/estimate-row-images/33333333-3333-4333-8333-333333333333/reference.webp" }],
+    ["wrong path project", { path: "workspace-1/user-1/project-images/55555555-5555-4555-8555-555555555555/estimate-row-images/33333333-3333-4333-8333-333333333333/reference.webp" }],
+    ["wrong path estimate", { path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/estimate-row-images/66666666-6666-4666-8666-666666666666/reference.webp" }],
+    ["mismatched thumbnail", { thumbnail_path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/estimate-row-images/33333333-3333-4333-8333-333333333333/other-thumb.webp" }],
+  ])("rejects an estimate-row image with %s", async (_label, override) => {
+    const database = new FakeD1Database();
+    const asset = {
+      id: "99999999-aaaa-4aaa-8aaa-999999999999",
+      upload_session_id: "99999999-bbbb-4bbb-8bbb-999999999999",
+      project_id: "22222222-2222-4222-8222-222222222222",
+      estimate_id: "33333333-3333-4333-8333-333333333333",
+      target_entity_id: "44444444-4444-4444-8444-444444444444",
+      target_entity_type: "estimate-row",
+      workspace_id: "workspace-1",
+      actor_user_id: "user-1",
+      project_workspace_id: "workspace-1",
+      surface: "project-image",
+      status: "finalized",
+      purge_state: "active",
+      bucket: "project-images",
+      path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/estimate-row-images/33333333-3333-4333-8333-333333333333/reference.webp",
+      thumbnail_path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/estimate-row-images/33333333-3333-4333-8333-333333333333/reference-thumb.webp",
+      file_name: "reference.png",
+      content_type: "image/webp",
+      size_bytes: 10,
+      scan_status: "not_required",
+      metadata_json: "{}",
+      ...override,
+    };
+    database.uploadAssetRows.push(asset);
+
+    await expect(validateEstimateRowImageAsset(database, {
+      assetId: String(asset.id),
+      uploadSessionId: String(asset.upload_session_id),
+      projectId: String(asset.project_id),
+      estimateId: String(asset.estimate_id),
+      rowId: String(asset.target_entity_id),
+    })).resolves.toBeNull();
   });
 
   it("fails when D1 upload record persistence rejects", async () => {

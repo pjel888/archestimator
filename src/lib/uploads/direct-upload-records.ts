@@ -533,104 +533,84 @@ export async function readRecordedUploadAssetForSession(
   };
 }
 
+function recordedUploadAsset(existing: ExistingUploadAssetRow): RecordedUploadAsset {
+  return { uploadSessionId: existing.upload_session_id, assetId: existing.id, scanStatus: existing.scan_status as RecordedUploadAsset["scanStatus"] };
+}
+
+async function reconcileExistingUploadAsset(db: D1DatabaseLike, input: FinalizeUploadSessionInput, session: NonNullable<Awaited<ReturnType<typeof readUploadSessionForFinalize>>>, existing: ExistingUploadAssetRow) {
+  const now = new Date().toISOString();
+  const eventType = existing.scan_status === "pending" ? "scan_pending" : "asset_finalized";
+  await runRequiredD1Batch(
+    db,
+    [
+      db.prepare(`
+        UPDATE upload_sessions
+        SET status = 'finalized', updated_at = ?
+        WHERE id = ? AND workspace_id = ? AND actor_user_id = ? AND status <> 'finalized'
+      `).bind(now, session.id, input.workspaceId, input.actorUserId),
+      db.prepare(`
+        INSERT OR IGNORE INTO upload_events (
+          id, upload_session_id, upload_asset_id, workspace_id, actor_user_id,
+          event_type, metadata_json, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(randomUUID(),existing.upload_session_id,existing.id,session.workspace_id,session.actor_user_id,eventType,mergeMetadataJson({}, undefined, { reconciled: true, scanStatus: existing.scan_status }),now),
+    ],
+    "Could not reconcile the finalized upload lifecycle.",
+  );
+  return recordedUploadAsset(existing);
+}
+
+function assertFinalizableUploadSession(session: NonNullable<Awaited<ReturnType<typeof readUploadSessionForFinalize>>>, input: FinalizeUploadSessionInput) {
+  const retryable = session.status === "reserved" || session.status === "finalized";
+  if (!retryable) throw new Error("Upload session is not reservable or repairable.");
+  const expired = session.status === "reserved" && session.expires_at && Date.parse(session.expires_at) <= Date.now();
+  if (expired) throw new Error("Upload session expired.");
+  if (session.content_type !== input.observedContentType) throw new Error("Upload content type mismatch.");
+  if (session.size_bytes !== input.observedSizeBytes) throw new Error("Upload size mismatch.");
+}
+
+function uploadFinalizationProof(session: NonNullable<Awaited<ReturnType<typeof readUploadSessionForFinalize>>>, input: FinalizeUploadSessionInput) {
+  const expectedChecksum = normalizeChecksum(session.checksum_sha256);
+  const observedChecksum = normalizeChecksum(input.observedChecksumSha256);
+  const observedEtag = input.observedEtag?.trim() || null;
+  if (expectedChecksum && observedChecksum && expectedChecksum !== observedChecksum) throw new Error("Upload checksum mismatch.");
+  if (!observedChecksum && !observedEtag) throw new Error("Upload finalization requires checksum or ETag proof.");
+  return { finalChecksum: expectedChecksum ?? observedChecksum, observedEtag };
+}
+
+function finalizedUploadProjectId(session: NonNullable<Awaited<ReturnType<typeof readUploadSessionForFinalize>>>) {
+  const projectSurface = session.target_entity_type === "project-component" || session.surface === "project-artifact" || session.surface === "portal-request-evidence";
+  return projectSurface ? metadataString(session.metadata, "projectId") : null;
+}
+
+function assertInitialUploadScanStatus(scanStatus: FinalizeUploadSessionInput["scanStatus"]) {
+  if (scanStatus !== "not_required" && scanStatus !== "pending") {
+    throw new Error("Initial upload finalization only accepts not_required or pending scan status.");
+  }
+}
+
 export async function finalizeUploadSessionAsset(
   db: D1DatabaseLike,
   input: FinalizeUploadSessionInput,
 ): Promise<RecordedUploadAsset> {
-  if (input.scanStatus !== "not_required" && input.scanStatus !== "pending") {
-    throw new Error("Initial upload finalization only accepts not_required or pending scan status.");
-  }
+  assertInitialUploadScanStatus(input.scanStatus);
 
   const session = await readUploadSessionForFinalize(db, input);
   if (!session) throw new Error("Upload session was not found.");
 
   const existing = await readExistingUploadAsset(db, session.id);
   if (existing?.scan_status) {
-    const now = new Date().toISOString();
-    const eventType = existing.scan_status === "pending" ? "scan_pending" : "asset_finalized";
-    await runRequiredD1Batch(
-      db,
-      [
-        db.prepare(
-          `
-            UPDATE upload_sessions
-            SET status = 'finalized',
-                updated_at = ?
-            WHERE id = ?
-              AND workspace_id = ?
-              AND actor_user_id = ?
-              AND status <> 'finalized'
-          `,
-        ).bind(now, session.id, input.workspaceId, input.actorUserId),
-        db.prepare(
-          `
-            INSERT OR IGNORE INTO upload_events (
-              id,
-              upload_session_id,
-              upload_asset_id,
-              workspace_id,
-              actor_user_id,
-              event_type,
-              metadata_json,
-              created_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-        ).bind(
-          randomUUID(),
-          existing.upload_session_id,
-          existing.id,
-          session.workspace_id,
-          session.actor_user_id,
-          eventType,
-          mergeMetadataJson({}, undefined, {
-            reconciled: true,
-            scanStatus: existing.scan_status,
-          }),
-          now,
-        ),
-      ],
-      "Could not reconcile the finalized upload lifecycle.",
-    );
-    return {
-      uploadSessionId: existing.upload_session_id,
-      assetId: existing.id,
-      scanStatus: existing.scan_status,
-    };
+    return reconcileExistingUploadAsset(db, input, session, existing);
   }
 
-  if (session.status !== "reserved" && session.status !== "finalized") {
-    throw new Error("Upload session is not reservable or repairable.");
-  }
-  if (session.status === "reserved" && session.expires_at && Date.parse(session.expires_at) <= Date.now()) {
-    throw new Error("Upload session expired.");
-  }
-  if (session.content_type !== input.observedContentType) {
-    throw new Error("Upload content type mismatch.");
-  }
-  if (session.size_bytes !== input.observedSizeBytes) {
-    throw new Error("Upload size mismatch.");
-  }
-
-  const expectedChecksum = normalizeChecksum(session.checksum_sha256);
-  const observedChecksum = normalizeChecksum(input.observedChecksumSha256);
-  const observedEtag = input.observedEtag?.trim() || null;
-  if (expectedChecksum && observedChecksum && expectedChecksum !== observedChecksum) {
-    throw new Error("Upload checksum mismatch.");
-  }
-  if (!observedChecksum && !observedEtag) {
-    throw new Error("Upload finalization requires checksum or ETag proof.");
-  }
+  assertFinalizableUploadSession(session, input);
+  const { finalChecksum, observedEtag } = uploadFinalizationProof(session, input);
 
   const now = new Date().toISOString();
   const assetId = randomUUID();
   const mergedMetadataJson = finalizedSessionMetadata(session, input.metadata, observedEtag);
-  const finalChecksum = expectedChecksum ?? observedChecksum;
-  const projectId = session.target_entity_type === "project-component"
-    || session.surface === "project-artifact"
-    || session.surface === "portal-request-evidence"
-    ? metadataString(session.metadata, "projectId")
-    : null;
+  const projectId = finalizedUploadProjectId(session);
   const updateStatement = db.prepare(
       `
         UPDATE upload_sessions
@@ -762,21 +742,11 @@ export async function finalizeUploadSessionAsset(
     if ((results[1]?.meta?.changes ?? 0) === 0) {
       const winner = await readExistingUploadAsset(db, session.id);
       if (!winner?.scan_status) throw new Error("Upload session could not be finalized.");
-      return {
-        uploadSessionId: winner.upload_session_id,
-        assetId: winner.id,
-        scanStatus: winner.scan_status,
-      };
+      return recordedUploadAsset(winner);
     }
   } catch (error) {
     const winner = await readExistingUploadAsset(db, session.id).catch(() => null);
-    if (winner?.scan_status) {
-      return {
-        uploadSessionId: winner.upload_session_id,
-        assetId: winner.id,
-        scanStatus: winner.scan_status,
-      };
-    }
+    if (winner?.scan_status) return recordedUploadAsset(winner);
     throw error;
   }
 

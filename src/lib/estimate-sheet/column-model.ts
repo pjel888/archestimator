@@ -4,6 +4,7 @@ export type EstimateColumnId =
   | "index"
   | "select"
   | "material"
+  | "commercial"
   | "quantity"
   | "contingency"
   | "subTotal"
@@ -14,6 +15,7 @@ export type EstimateColumnId =
 
 export type ResizableEstimateColumnId =
   | "material"
+  | "commercial"
   | "quantity"
   | "contingency"
   | "subTotal"
@@ -38,6 +40,7 @@ export const ESTIMATE_COLUMN_DEFINITIONS = [
   { id: "index", label: "#", defaultWidth: 28, minWidth: 28, maxWidth: 28, resizable: false },
   { id: "select", label: "Select", defaultWidth: 32, minWidth: 32, maxWidth: 32, resizable: false },
   { id: "material", label: "Materials", defaultWidth: 280, minWidth: 240, maxWidth: 640, resizable: true, cssVar: "--est-col-material" },
+  { id: "commercial", label: "Commercial", defaultWidth: 160, minWidth: 144, maxWidth: 280, resizable: true, cssVar: "--est-col-commercial" },
   { id: "quantity", label: "Qty", defaultWidth: 64, minWidth: 52, maxWidth: 140, resizable: true, cssVar: "--est-col-quantity" },
   { id: "contingency", label: "Contingency", compactLabel: "Cont.", defaultWidth: 84, minWidth: 68, maxWidth: 200, resizable: true, cssVar: "--est-col-contingency" },
   { id: "subTotal", label: "Subtotal", defaultWidth: 92, minWidth: 76, maxWidth: 220, resizable: true, cssVar: "--est-col-subTotal" },
@@ -61,12 +64,13 @@ export const DEFAULT_ESTIMATE_COLUMN_WIDTHS = Object.freeze(
 
 export const EMPTY_ESTIMATE_COLUMN_WIDTHS = Object.freeze({}) as Readonly<EstimateColumnWidths>;
 
-export const DEFAULT_ESTIMATE_COLUMN_TEMPLATE = "28px 32px minmax(240px,1fr) 64px 84px 92px 84px 92px 108px 32px";
+export const DEFAULT_ESTIMATE_COLUMN_TEMPLATE = "28px 32px minmax(240px,1fr) 160px 64px 84px 92px 84px 92px 108px 32px";
 
 const ESTIMATE_COLUMN_TEMPLATE_TRACKS = [
   "28px",
   "32px",
   "minmax(var(--est-col-material, 280px), 1fr)",
+  "var(--est-col-commercial, 160px)",
   "var(--est-col-quantity, 64px)",
   "var(--est-col-contingency, 84px)",
   "var(--est-col-subTotal, 92px)",

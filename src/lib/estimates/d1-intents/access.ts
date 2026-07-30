@@ -2,6 +2,7 @@ import "server-only";
 
 import { canEditEstimateStrictInD1, canEditProjectStrictInD1 } from "@/lib/authz/d1-access";
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { isEstimateRowProjectImageStoragePath } from "@/lib/uploads/material-image-contract";
 
 import { firstD1Row } from "./database";
 import type { EstimateD1Actor } from "./intent-context";
@@ -84,6 +85,8 @@ export async function validateEstimateRowImageAsset(
 ): Promise<EstimateRowImageAssetDescriptor | null> {
   const row = await firstD1Row<{
     id: string;
+    workspace_id: string;
+    actor_user_id: string;
     bucket: string | null;
     path: string | null;
     thumbnail_path: string | null;
@@ -95,19 +98,45 @@ export async function validateEstimateRowImageAsset(
   }>(
     database,
     `
-      SELECT id, storage_bucket AS bucket, storage_path AS path, thumbnail_path, file_name, content_type, size_bytes, scan_status, metadata_json
-      FROM upload_assets
-      WHERE id = ?
-        AND upload_session_id = ?
-        AND project_id = ?
-        AND estimate_id = ?
-        AND target_entity_id = ?
-        AND status IN ('finalized', 'pending')
+      SELECT asset.id, asset.workspace_id, asset.actor_user_id,
+             asset.storage_bucket AS bucket, asset.storage_path AS path,
+             asset.thumbnail_path, asset.file_name, asset.content_type,
+             asset.size_bytes, asset.scan_status, asset.metadata_json
+      FROM upload_assets AS asset
+      JOIN projects AS project ON project.id = asset.project_id
+      WHERE asset.id = ?
+        AND asset.upload_session_id = ?
+        AND asset.project_id = ?
+        AND asset.estimate_id = ?
+        AND asset.target_entity_id = ?
+        AND asset.workspace_id = project.workspace_id
+        AND asset.surface = 'project-image'
+        AND asset.storage_bucket = 'project-images'
+        AND asset.target_entity_type = 'estimate-row'
+        AND asset.status = 'finalized'
+        AND asset.purge_state = 'active'
       LIMIT 1
     `,
     [input.assetId, input.uploadSessionId, input.projectId, input.estimateId, input.rowId],
   );
-  if (!row?.id || !row.bucket || !row.path) return null;
+  if (
+    !row?.id
+    || row.bucket !== "project-images"
+    || row.content_type !== "image/webp"
+    || !isEstimateRowProjectImageStoragePath(row.path, {
+      workspaceId: row.workspace_id,
+      actorUserId: row.actor_user_id,
+      projectId: input.projectId,
+      estimateId: input.estimateId,
+    })
+    || row.thumbnail_path !== row.path.replace(/\.webp$/, "-thumb.webp")
+    || !isEstimateRowProjectImageStoragePath(row.thumbnail_path, {
+      workspaceId: row.workspace_id,
+      actorUserId: row.actor_user_id,
+      projectId: input.projectId,
+      estimateId: input.estimateId,
+    })
+  ) return null;
   const metadata = readJsonRecord(row.metadata_json);
   return {
     kind: "upload-asset",

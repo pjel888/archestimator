@@ -5,6 +5,7 @@ import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
+import type { EstimateContributionBroadcastReceipt } from "@/lib/collaboration/estimate-tree-realtime-contract";
 import { cn } from "@/lib/ui/cn";
 import { pesoFormatter, type RowDetailTab } from "../activity-history-model";
 import {
@@ -40,6 +41,7 @@ export type EstimateSheetBranchProps = {
   supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
+  estimateTabId?: string;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onInsertTemplates: (targetParentNodeId: string, templateIds: string[]) => void;
   onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
@@ -63,6 +65,7 @@ export type EstimateSheetBranchProps = {
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
+  onContributionChanged?: (receipt?: EstimateContributionBroadcastReceipt, contributionScopeId?: string) => void;
   columnResize?: EstimateTableColumnResizeConfig;
   nodeTotals?: ReadonlyMap<string, number>;
   totalsIncomplete?: boolean;
@@ -144,6 +147,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.nodeCode !== next.nodeCode ||
     prev.projectId !== next.projectId ||
     prev.estimateId !== next.estimateId ||
+    prev.estimateTabId !== next.estimateTabId ||
     prev.canEditEstimate !== next.canEditEstimate ||
     prev.canManageLibrary !== next.canManageLibrary ||
     prev.depth !== next.depth ||
@@ -170,6 +174,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
+    prev.onContributionChanged !== next.onContributionChanged ||
     prev.columnResize !== next.columnResize ||
     prev.totalsIncomplete !== next.totalsIncomplete ||
     !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
@@ -201,7 +206,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onPromoteRowToLibrary, promotingRowId, sourceInsertPendingNodeIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, totalsIncomplete = false, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, canManageLibrary = false, brandOptions, supplierOptions, projectId, estimateId, estimateTabId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onPromoteRowToLibrary, promotingRowId, sourceInsertPendingNodeIds, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, onContributionChanged, columnResize, nodeTotals, totalsIncomplete = false, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const editableRowStore = useEditableRowStore();
   const storedNodeTotal = useStore(editableRowStore, (state) => state.nodeTotals.get(node.id));
@@ -495,6 +500,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               supplierOptions={supplierOptions}
               projectId={projectId}
               estimateId={estimateId}
+              estimateTabId={estimateTabId}
               targetNodeId={node.id}
               onInsertLibraryItem={onInsertLibraryItem}
               onReplaceRowItem={onReplaceRowItem}
@@ -515,6 +521,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               selectedRowIds={selectedRowIds}
               onToggleRowSelection={onToggleRowSelection}
               onToggleRowsSelection={onToggleRowsSelection}
+              onContributionChanged={onContributionChanged}
               columnResize={columnResize}
             />
           </div>
@@ -548,6 +555,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 supplierOptions={supplierOptions}
                 projectId={projectId}
                 estimateId={estimateId}
+                estimateTabId={estimateTabId}
                 onInsertLibraryItem={onInsertLibraryItem}
                 onInsertTemplates={onInsertTemplates}
                 onInsertTemplateNode={onInsertTemplateNode}
@@ -571,6 +579,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 selectedRowIds={selectedRowIds}
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}
+                onContributionChanged={onContributionChanged}
                 columnResize={columnResize}
                 nodeTotals={nodeTotals}
                 totalsIncomplete={totalsIncomplete}

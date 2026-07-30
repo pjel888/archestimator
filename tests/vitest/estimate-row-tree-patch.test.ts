@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { findEstimateRowItemInTree, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import {
+  collectComponentRollbackPatches,
+  findEstimateRowItemInTree,
+  patchEstimateRowItemInTree,
+} from "@/lib/estimates/estimate-row-tree-patch";
 
 const tree: EstimateTreeNode[] = [
   {
@@ -112,5 +116,13 @@ describe("patchEstimateRowItemInTree", () => {
     const nextTree = patchEstimateRowItemInTree(branchedTree, "row-1", { quantity: 3 });
 
     expect(nextTree[0].children?.[1]).toBe(separateArea);
+  });
+
+  it("captures rollback defaults for a nested row without child nodes", () => {
+    const patches = collectComponentRollbackPatches(tree, "row-1", { contingencyPercentage: 12 });
+
+    expect(patches).toEqual({
+      "row-1": { contingencyPercentage: 0 },
+    });
   });
 });

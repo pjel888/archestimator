@@ -557,6 +557,81 @@ body:has([data-workshop-page-shell-root]) {
   overflow: hidden;
 }
 
+/* Workshop readability roles change text and target geometry, never page scale. */
+:where([data-workshop-page-shell-root], body:has([data-workshop-page-shell-root])) {
+  --workshop-text-metadata: 9px;
+  --workshop-text-supporting: 10px;
+  --workshop-text-primary: 11px;
+  --workshop-text-title: 12px;
+  --workshop-target-min: 24px;
+}
+
+body:has([data-workshop-page-shell-root])
+  :where(button, input, select, textarea, a[href], [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], td, [data-slot="table-cell"]),
+body:has([data-workshop-page-shell-root]) [role="dialog"]
+  :where(button, input, select, textarea, a[href], [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], td, [data-slot="table-cell"]) {
+  font-size: var(--workshop-text-primary) !important;
+}
+
+body:has([data-workshop-page-shell-root])
+  :where(button, a[href], [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], td, [data-slot="table-cell"])
+  :where(span:not([aria-hidden="true"])),
+body:has([data-workshop-page-shell-root]) [role="dialog"]
+  :where(button, a[href], [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], td, [data-slot="table-cell"])
+  :where(span:not([aria-hidden="true"])) {
+  font-size: inherit !important;
+}
+
+body:has([data-workshop-page-shell-root])
+  :where(label, output, th, [role="alert"], [role="status"], [data-slot="table-head"], [data-slot="table-caption"]),
+body:has([data-workshop-page-shell-root]) [role="dialog"]
+  :where(label, output, th, [role="alert"], [role="status"], [data-slot="table-head"], [data-slot="table-caption"]) {
+  font-size: var(--workshop-text-supporting) !important;
+}
+
+body:has([data-workshop-page-shell-root]) :where(small, time),
+body:has([data-workshop-page-shell-root]) [role="dialog"] :where(small, time) {
+  font-size: var(--workshop-text-metadata) !important;
+}
+
+body:has([data-workshop-page-shell-root]) :where(h1, h2, h3, [role="heading"]),
+body:has([data-workshop-page-shell-root]) [role="dialog"] :where(h1, h2, h3, [role="heading"]) {
+  font-size: var(--workshop-text-title) !important;
+}
+
+body:has([data-workshop-page-shell-root]) [role="dialog"] {
+  max-inline-size: calc(100vw - 16px);
+  font-size: var(--workshop-text-primary);
+}
+
+body:has([data-workshop-page-shell-root]) [role="dialog"] :where(p, li, dt, dd) {
+  overflow-wrap: anywhere;
+}
+
+:where([data-workshop-page-shell-root], body:has([data-workshop-page-shell-root]) [role="dialog"])
+  :where(button, a[href], input, select, textarea, summary, [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  scroll-margin: 8px;
+}
+
+:where([data-workshop-page-shell-root], body:has([data-workshop-page-shell-root]) [role="dialog"])
+  :where(button, a[data-slot="button-link"], summary, [role="button"], [role="menuitem"], [role="option"], [role="tab"], [data-tree-drag-handle]) {
+  min-block-size: var(--workshop-target-min);
+  min-inline-size: var(--workshop-target-min);
+}
+
+:where([data-workshop-page-shell-root], body:has([data-workshop-page-shell-root]) [role="dialog"])
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-block-size: var(--workshop-target-min);
+}
+
+@media (pointer: coarse) {
+  :where([data-workshop-page-shell-root], body:has([data-workshop-page-shell-root])) {
+    --workshop-target-min: 32px;
+  }
+}
+
 body:has(.dashboard-transparent-shell) {
   background: transparent;
 }
@@ -2841,7 +2916,7 @@ input[type="number"] {
   .dashboard-first-estimate__step {
   border-color: color-mix(in srgb, var(--brand-orange) 28%, transparent);
   background: var(--brand-orange-soft);
-  color: var(--brand-orange-dark);
+  color: color-mix(in srgb, var(--brand-orange-dark) 92%, black);
 }
 
 .dashboard-first-estimate__action {

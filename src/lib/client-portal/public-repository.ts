@@ -34,6 +34,7 @@ type R2BucketLike = { get(key:string):Promise<R2ObjectLike|null> };
 type BrandAssetRow = { id:string;workspace_id:string;project_id:string|null;asset_kind:"owner_logo"|"client_logo"|"cover_image"|"document";storage_key:string;content_type:string;status:"active"|"quarantined"|"deleted" };
 type EstimateProjectionRow = { row_json:string; sort_order:number };
 type EstimateProjectionSummaryRow = { row_count:number; summary_json:string };
+type RecipientCredentialRow = { credential_id:string;id:string;display_name:string|null;role_template:ClientPortalRecipientRoleTemplate;status:"invited"|"active"|"revoked"|"expired";verification_state:"unverified"|"verified"|"failed";client_organization:string|null;is_required_approver:number;recipient_credential_version:number };
 
 export const CLIENT_PORTAL_NO_STORE_HEADERS = {
   "Cache-Control": "private, no-store",
@@ -51,11 +52,23 @@ function issuedBrandAssetIds(value:unknown) {
 }
 function strings(value:unknown) { return Array.isArray(value) ? value.filter((item):item is string => typeof item === "string") : []; }
 function publicText(value:unknown,maxLength=500) { if (typeof value !== "string") return null; const normalized=value.replace(/\s+/g," ").trim(); return normalized ? normalized.slice(0,maxLength) : null; }
+function publicTextOrEmpty(value:unknown,maxLength:number) { return publicText(value,maxLength) ?? ""; }
+function allPresent(values:unknown[]) { return values.every(Boolean); }
+function allDefined(values:unknown[]) { return values.every((value)=>value !== undefined); }
+function publicNullableText(value:unknown,maxLength:number) { const normalized=value === null ? null : publicText(value,maxLength); return {valid:value === null ? normalized === null : Boolean(normalized),value:normalized}; }
+function validIssueArtifactIdentity(id:string|null,purpose:string|null) { return Boolean(id && /^artifact_[a-f0-9]{32}$/.test(id) && purpose && CLIENT_PORTAL_ISSUE_ARTIFACT_PURPOSES.includes(purpose as (typeof CLIENT_PORTAL_ISSUE_ARTIFACT_PURPOSES)[number])); }
+function publicIssueArtifact(entry:unknown) {
+  const row=recordValue(entry); const id=publicText(row.id,64); const purpose=publicText(row.purpose,30); const title=publicText(row.title,200); const contentType=publicText(row.contentType,100); const sizeBytes=Number(row.sizeBytes); const sortOrder=Number(row.sortOrder);
+  const validIdentity=validIssueArtifactIdentity(id,purpose);
+  const validContent=allPresent([title,contentType]) && Number.isSafeInteger(sizeBytes) && sizeBytes >= 0;
+  if (!validIdentity || !validContent || !Number.isSafeInteger(sortOrder) || sortOrder < 0) return [];
+  return [{id:id as string,purpose:purpose as string,title:title as string,description:publicText(row.description,500),contentType:contentType as string,sizeBytes,commentable:row.commentable===true,downloadable:row.downloadable===true,decisionRelevant:row.decisionRelevant===true,sortOrder}];
+}
 function publicIssuePackage(value:unknown) {
   const source=recordValue(value); const issueKind=publicText(source.issueKind,40); const requestedDecision=publicText(source.requestedDecision,30);
   if (!issueKind || !CLIENT_PORTAL_ISSUE_KINDS.includes(issueKind as (typeof CLIENT_PORTAL_ISSUE_KINDS)[number])) return null;
   const estimates=Array.isArray(source.estimates) ? source.estimates.flatMap((entry)=>{ const row=recordValue(entry); const id=publicText(row.id,64); const sortOrder=Number(row.sortOrder); return id && /^est_[A-Za-z0-9_-]{20}$/.test(id) && Number.isSafeInteger(sortOrder) && sortOrder >= 0 ? [{id,sortOrder}] : []; }) : [];
-  const artifacts=Array.isArray(source.artifacts) ? source.artifacts.flatMap((entry)=>{ const row=recordValue(entry); const id=publicText(row.id,64); const purpose=publicText(row.purpose,30); const title=publicText(row.title,200); const contentType=publicText(row.contentType,100); const sizeBytes=Number(row.sizeBytes); const sortOrder=Number(row.sortOrder); if (!id || !/^artifact_[a-f0-9]{32}$/.test(id) || !purpose || !CLIENT_PORTAL_ISSUE_ARTIFACT_PURPOSES.includes(purpose as (typeof CLIENT_PORTAL_ISSUE_ARTIFACT_PURPOSES)[number]) || !title || !contentType || !Number.isSafeInteger(sizeBytes) || sizeBytes < 0 || !Number.isSafeInteger(sortOrder) || sortOrder < 0) return []; return [{id,purpose,title,description:publicText(row.description,500),contentType,sizeBytes,commentable:row.commentable===true,downloadable:row.downloadable===true,decisionRelevant:row.decisionRelevant===true,sortOrder}]; }) : [];
+  const artifacts=Array.isArray(source.artifacts) ? source.artifacts.flatMap(publicIssueArtifact) : [];
   const requests=Array.isArray(source.requests) ? source.requests.flatMap((entry)=>{ const row=recordValue(entry); const code=publicText(row.code,80); const title=publicText(row.title,200); const relationship=publicText(row.relationship,30); const sortOrder=Number(row.sortOrder); return code && title && relationship && CLIENT_PORTAL_ISSUE_REQUEST_RELATIONSHIPS.includes(relationship as (typeof CLIENT_PORTAL_ISSUE_REQUEST_RELATIONSHIPS)[number]) && Number.isSafeInteger(sortOrder) && sortOrder >= 0 ? [{code,title,relationship,sortOrder}] : []; }) : [];
   return {issueKind,revisionNote:publicText(source.revisionNote,2_000),requestedDecision:["none","acknowledgement","formal"].includes(requestedDecision ?? "") ? requestedDecision : "none",unresolvedItems:strings(source.unresolvedItems).map((item)=>publicText(item,500)).filter((item):item is string=>Boolean(item)).slice(0,100),estimates,artifacts,requests};
 }
@@ -68,24 +81,122 @@ function publicNarrativeItem(value:unknown) { const source=exactRecord(value,["t
 function publicRowValue(value:unknown) {
   if (value === null) return null;
   const source=exactRecord(value,["publicId","publicLabel","description","designation","discipline","material","quantityScaled","quantityScale","unit","rowTotalMinorUnits","scopeStatus"]); if (!source) return undefined;
-  const publicId=publicOpaqueId(source.publicId); const publicLabel=publicText(source.publicLabel,500); const description=publicText(source.description,2_000) ?? ""; const designation=publicText(source.designation,500) ?? ""; const discipline=publicText(source.discipline,500) ?? ""; const material=publicText(source.material,500) ?? ""; const quantityScaled=publicInteger(source.quantityScaled); const quantityScale=publicInteger(source.quantityScale); const unit=publicText(source.unit,100) ?? ""; const rowTotalMinorUnits=publicInteger(source.rowTotalMinorUnits); const scopeStatus=publicEnum(source.scopeStatus,["included","excluded","allowance","alternate","informational"] as const);
-  return publicId && publicLabel && quantityScaled !== undefined && quantityScale === 1_000_000 && rowTotalMinorUnits !== undefined && scopeStatus ? {publicId,publicLabel,description,designation,discipline,material,quantityScaled,quantityScale,unit,rowTotalMinorUnits,scopeStatus} : undefined;
+  const publicId=publicOpaqueId(source.publicId); const publicLabel=publicText(source.publicLabel,500); const description=publicTextOrEmpty(source.description,2_000); const designation=publicTextOrEmpty(source.designation,500); const discipline=publicTextOrEmpty(source.discipline,500); const material=publicTextOrEmpty(source.material,500); const quantityScaled=publicInteger(source.quantityScaled); const quantityScale=publicInteger(source.quantityScale); const unit=publicTextOrEmpty(source.unit,100); const rowTotalMinorUnits=publicInteger(source.rowTotalMinorUnits); const scopeStatus=publicEnum(source.scopeStatus,["included","excluded","allowance","alternate","informational"] as const);
+  const validIdentity=allPresent([publicId,publicLabel,scopeStatus]);
+  const validQuantity=allDefined([quantityScaled,quantityScale]) && quantityScale === 1_000_000;
+  if (!validIdentity || !validQuantity || rowTotalMinorUnits === undefined) return undefined;
+  return {publicId:publicId as string,publicLabel:publicLabel as string,description,designation,discipline,material,quantityScaled,quantityScale,unit,rowTotalMinorUnits,scopeStatus:scopeStatus as NonNullable<typeof scopeStatus>};
 }
+
+function publicTreeChange(value:unknown) {
+  const node=exactRecord(value,["type","publicId","publicLabel","changeTypes"]); if (!node) return null;
+  const type=publicEnum(node.type,["added","removed","changed"] as const); const publicId=publicOpaqueId(node.publicId); const publicLabel=publicText(node.publicLabel,500);
+  const changeTypes=publicChangeArray(node.changeTypes,(change)=>publicEnum(change,["node_added","node_removed","node_renamed","node_moved","node_reordered"] as const));
+  return type && publicId && publicLabel && changeTypes ? {type,publicId,publicLabel,changeTypes} : null;
+}
+
+function publicEstimateRowChangeKeys(value:unknown) {
+  const optionalPreviousId=recordValue(value).previousPublicId === undefined ? [] : ["previousPublicId"];
+  return ["type","publicId",...optionalPreviousId,"publicLabel","matchMethod","confidence","changeTypes","before","after","deltaMinorUnits"];
+}
+
+function optionalPublicId(value:unknown) { return value === undefined ? undefined : publicOpaqueId(value); }
+
+function publicEstimateRowChange(value:unknown) {
+  const change=exactRecord(value,publicEstimateRowChangeKeys(value)); if (!change) return null;
+  const type=publicEnum(change.type,["added","removed","changed"] as const); const publicId=publicOpaqueId(change.publicId);
+  const previousPublicId=optionalPublicId(change.previousPublicId);
+  const publicLabel=publicText(change.publicLabel,500); const matchMethod=publicEnum(change.matchMethod,["none","source_row_id","source_component"] as const); const confidence=publicEnum(change.confidence,["none","exact","high"] as const);
+  const changeTypes=publicChangeArray(change.changeTypes,(item)=>publicEnum(item,["description_changed","designation_changed","discipline_changed","material_changed","quantity_changed","unit_changed","unit_cost_changed","misc_cost_changed","contingency_changed","adjustment_changed","scope_status_changed","source_link_state_changed","row_total_changed","row_moved"] as const));
+  const before=publicRowValue(change.before); const after=publicRowValue(change.after); const deltaMinorUnits=publicInteger(change.deltaMinorUnits);
+  const validIdentity=allPresent([type,publicId,publicLabel,matchMethod,confidence]) && previousPublicId !== null;
+  const validChange=allPresent([changeTypes]) && allDefined([before,after,deltaMinorUnits]);
+  if (!validIdentity || !validChange) return null;
+  return {type:type as string,publicId:publicId as string,...(previousPublicId ? {previousPublicId} : {}),publicLabel:publicLabel as string,matchMethod:matchMethod as string,confidence:confidence as string,changeTypes:changeTypes as unknown[],before,after,deltaMinorUnits:deltaMinorUnits as number};
+}
+
+function publicEstimateChange(value:unknown) {
+  const row=exactRecord(value,["publicId","publicLabel","type","changeTypes","previousTotalMinorUnits","currentTotalMinorUnits","totalDeltaMinorUnits","treeChanges","rowChanges"]); if (!row) return null;
+  const publicId=publicOpaqueId(row.publicId); const publicLabel=publicText(row.publicLabel,500); const type=publicEnum(row.type,["added","removed","changed"] as const);
+  const changeTypes=publicChangeArray(row.changeTypes,(item)=>publicEnum(item,["estimate_added","estimate_removed","estimate_renamed","sheet_code_changed","estimate_total_changed"] as const));
+  const previousTotalMinorUnits=publicInteger(row.previousTotalMinorUnits); const currentTotalMinorUnits=publicInteger(row.currentTotalMinorUnits); const totalDeltaMinorUnits=publicInteger(row.totalDeltaMinorUnits);
+  const treeChanges=publicChangeArray(row.treeChanges,publicTreeChange); const rowChanges=publicChangeArray(row.rowChanges,publicEstimateRowChange);
+  const validIdentity=allPresent([publicId,publicLabel,type,changeTypes]);
+  const validTotals=allDefined([previousTotalMinorUnits,currentTotalMinorUnits,totalDeltaMinorUnits]);
+  if (!validIdentity || !validTotals || !allPresent([treeChanges,rowChanges])) return null;
+  return {publicId:publicId as string,publicLabel:publicLabel as string,type:type as string,changeTypes:changeTypes as unknown[],previousTotalMinorUnits,currentTotalMinorUnits,totalDeltaMinorUnits,treeChanges,rowChanges};
+}
+
+function publicArtifactChange(value:unknown) {
+  const row=exactRecord(value,["type","publicId","publicLabel","changeTypes","beforeVersion","afterVersion"]); if (!row) return null;
+  const type=publicEnum(row.type,["added","removed","changed"] as const); const publicId=publicOpaqueId(row.publicId); const publicLabel=publicText(row.publicLabel,500);
+  const changeTypes=publicChangeArray(row.changeTypes,(item)=>publicEnum(item,["artifact_added","artifact_removed","version_changed","purpose_changed","download_policy_changed","comment_policy_changed","decision_relevance_changed"] as const));
+  const before=publicNullableText(row.beforeVersion,200); const after=publicNullableText(row.afterVersion,200);
+  return allPresent([type,publicId,publicLabel,changeTypes]) && before.valid && after.valid ? {type:type as string,publicId:publicId as string,publicLabel:publicLabel as string,changeTypes:changeTypes as unknown[],beforeVersion:before.value,afterVersion:after.value} : null;
+}
+
+function publicRequestChange(value:unknown) {
+  const row=exactRecord(value,["type","publicId","publicCode","publicTitle","changeTypes","beforeVersion","afterVersion"]); if (!row) return null;
+  const type=publicEnum(row.type,["added","removed","changed"] as const); const publicId=publicOpaqueId(row.publicId); const publicCode=publicText(row.publicCode,80); const publicTitle=publicText(row.publicTitle,500);
+  const changeTypes=publicChangeArray(row.changeTypes,(item)=>publicEnum(item,["request_added","request_removed","version_changed","relationship_changed"] as const));
+  const beforeVersion=publicInteger(row.beforeVersion,true); const afterVersion=publicInteger(row.afterVersion,true);
+  return type && publicId && publicCode && publicTitle && changeTypes && beforeVersion !== undefined && afterVersion !== undefined ? {type,publicId,publicCode,publicTitle,changeTypes,beforeVersion,afterVersion} : null;
+}
+
+function publicChangeComparison(value:unknown) {
+  const comparison=exactRecord(value,["capability","limitationReason"]); if (!comparison) return null;
+  const capability=publicEnum(comparison.capability,["full","aggregate_only","unavailable"] as const);
+  const limitationReason=comparison.limitationReason === null ? null : publicText(comparison.limitationReason,2_000);
+  return capability && (comparison.limitationReason === null || limitationReason) ? {capability,limitationReason} : null;
+}
+
+function publicChangeSummary(value:unknown) {
+  const summary=exactRecord(value,["previousTotalMinorUnits","currentTotalMinorUnits","totalDeltaMinorUnits","addedRows","removedRows","changedRows","movedRows","addedArtifacts","removedArtifacts","changedArtifacts","addressedRequests"]); if (!summary) return null;
+  const previousTotalMinorUnits=publicInteger(summary.previousTotalMinorUnits,true); const currentTotalMinorUnits=publicInteger(summary.currentTotalMinorUnits); const totalDeltaMinorUnits=publicInteger(summary.totalDeltaMinorUnits,true);
+  const counts=[summary.addedRows,summary.removedRows,summary.changedRows,summary.movedRows,summary.addedArtifacts,summary.removedArtifacts,summary.changedArtifacts].map((entry)=>publicInteger(entry));
+  const addressedRequests=publicChangeArray(summary.addressedRequests,(entry)=>publicText(entry,80));
+  const validTotals=previousTotalMinorUnits !== undefined && currentTotalMinorUnits !== undefined && totalDeltaMinorUnits !== undefined;
+  if (!validTotals || counts.some((entry)=>typeof entry !== "number" || entry < 0) || addressedRequests === null) return null;
+  return {previousTotalMinorUnits,currentTotalMinorUnits,totalDeltaMinorUnits,addedRows:counts[0],removedRows:counts[1],changedRows:counts[2],movedRows:counts[3],addedArtifacts:counts[4],removedArtifacts:counts[5],changedArtifacts:counts[6],addressedRequests};
+}
+
+function publicDecisionChange(value:unknown) {
+  if (value === null) return {valid:true,value:null};
+  const decision=exactRecord(value,["before","after"]); if (!decision) return {valid:false,value:null};
+  const before=publicEnum(decision.before,["none","acknowledgement","formal"] as const); const after=publicEnum(decision.after,["none","acknowledgement","formal"] as const);
+  return allPresent([before,after]) ? {valid:true,value:{before:before as string,after:after as string}} : {valid:false,value:null};
+}
+
+function publicValidityChange(value:unknown) {
+  if (value === null) return {valid:true,value:null};
+  const validity=exactRecord(value,["before","after"]); if (!validity) return {valid:false,value:null};
+  const before=publicNullableText(validity.before,100); const after=publicNullableText(validity.after,100);
+  return before.valid && after.valid ? {valid:true,value:{before:before.value,after:after.value}} : {valid:false,value:null};
+}
+
+function publicNarrativeChanges(value:unknown) {
+  const narrative=exactRecord(value,["assumptionChanges","exclusionChanges","unresolvedItemChanges","requestedDecisionChange","validityChange"]); if (!narrative) return null;
+  const assumptionChanges=publicChangeArray(narrative.assumptionChanges,publicNarrativeItem); const exclusionChanges=publicChangeArray(narrative.exclusionChanges,publicNarrativeItem); const unresolvedItemChanges=publicChangeArray(narrative.unresolvedItemChanges,publicNarrativeItem);
+  const decision=publicDecisionChange(narrative.requestedDecisionChange); const validity=publicValidityChange(narrative.validityChange);
+  return allPresent([assumptionChanges,exclusionChanges,unresolvedItemChanges]) && decision.valid && validity.valid
+    ? {assumptionChanges:assumptionChanges as unknown[],exclusionChanges:exclusionChanges as unknown[],unresolvedItemChanges:unresolvedItemChanges as unknown[],requestedDecisionChange:decision.value,validityChange:validity.value}
+    : null;
+}
+
+function publicStructuredChangeSet(value:unknown) {
+  const structured=exactRecord(value,["schemaVersion","comparison","currencyCode","summary","estimateChanges","artifactChanges","requestChanges","narrativeChanges"]); if (!structured || structured.schemaVersion !== 1) return null;
+  const comparison=publicChangeComparison(structured.comparison); const currencyCode=publicText(structured.currencyCode,3); const summary=publicChangeSummary(structured.summary);
+  const estimateChanges=publicChangeArray(structured.estimateChanges,publicEstimateChange); const artifactChanges=publicChangeArray(structured.artifactChanges,publicArtifactChange); const requestChanges=publicChangeArray(structured.requestChanges,publicRequestChange); const narrativeChanges=publicNarrativeChanges(structured.narrativeChanges);
+  const validCurrency=Boolean(currencyCode && /^[A-Z]{3}$/.test(currencyCode));
+  return validCurrency && allPresent([comparison,summary,estimateChanges,artifactChanges,requestChanges,narrativeChanges]) ? {schemaVersion:1,comparison:comparison as NonNullable<typeof comparison>,currencyCode:currencyCode as string,summary:summary as NonNullable<typeof summary>,estimateChanges:estimateChanges as unknown[],artifactChanges:artifactChanges as unknown[],requestChanges:requestChanges as unknown[],narrativeChanges:narrativeChanges as NonNullable<typeof narrativeChanges>} : null;
+}
+
 function publicChangeSet(value:unknown) {
   try {
     const source=exactRecord(value,["structured","deterministicSummary","finalNarrative","narrativeSource"]); if (!source) return null;
-    const structured=exactRecord(source.structured,["schemaVersion","comparison","currencyCode","summary","estimateChanges","artifactChanges","requestChanges","narrativeChanges"]); if (!structured || structured.schemaVersion !== 1) return null;
-    const comparison=exactRecord(structured.comparison,["capability","limitationReason"]); const capability=comparison && publicEnum(comparison.capability,["full","aggregate_only","unavailable"] as const); const limitationReason=comparison?.limitationReason === null ? null : publicText(comparison?.limitationReason,2_000); if (!comparison || !capability || (comparison.limitationReason !== null && !limitationReason)) return null;
-    const currencyCode=publicText(structured.currencyCode,3); if (!currencyCode || !/^[A-Z]{3}$/.test(currencyCode)) return null;
-    const summary=exactRecord(structured.summary,["previousTotalMinorUnits","currentTotalMinorUnits","totalDeltaMinorUnits","addedRows","removedRows","changedRows","movedRows","addedArtifacts","removedArtifacts","changedArtifacts","addressedRequests"]); if (!summary) return null;
-    const previousTotalMinorUnits=publicInteger(summary.previousTotalMinorUnits,true); const currentTotalMinorUnits=publicInteger(summary.currentTotalMinorUnits); const totalDeltaMinorUnits=publicInteger(summary.totalDeltaMinorUnits,true); const counts=[summary.addedRows,summary.removedRows,summary.changedRows,summary.movedRows,summary.addedArtifacts,summary.removedArtifacts,summary.changedArtifacts].map((entry)=>publicInteger(entry)); const addressedRequests=publicChangeArray(summary.addressedRequests,(entry)=>publicText(entry,80));
-    if (previousTotalMinorUnits === undefined || currentTotalMinorUnits === undefined || totalDeltaMinorUnits === undefined || counts.some((entry)=>typeof entry !== "number" || entry < 0) || addressedRequests === null) return null;
-    const estimateChanges=publicChangeArray(structured.estimateChanges,(entry)=>{ const row=exactRecord(entry,["publicId","publicLabel","type","changeTypes","previousTotalMinorUnits","currentTotalMinorUnits","totalDeltaMinorUnits","treeChanges","rowChanges"]); if (!row) return null; const publicId=publicOpaqueId(row.publicId); const publicLabel=publicText(row.publicLabel,500); const type=publicEnum(row.type,["added","removed","changed"] as const); const changeTypes=publicChangeArray(row.changeTypes,(item)=>publicEnum(item,["estimate_added","estimate_removed","estimate_renamed","sheet_code_changed","estimate_total_changed"] as const)); const previousTotal=publicInteger(row.previousTotalMinorUnits); const currentTotal=publicInteger(row.currentTotalMinorUnits); const delta=publicInteger(row.totalDeltaMinorUnits); const treeChanges=publicChangeArray(row.treeChanges,(item)=>{ const node=exactRecord(item,["type","publicId","publicLabel","changeTypes"]); if (!node) return null; const nodeType=publicEnum(node.type,["added","removed","changed"] as const); const nodeId=publicOpaqueId(node.publicId); const nodeLabel=publicText(node.publicLabel,500); const nodeTypes=publicChangeArray(node.changeTypes,(change)=>publicEnum(change,["node_added","node_removed","node_renamed","node_moved","node_reordered"] as const)); return nodeType && nodeId && nodeLabel && nodeTypes ? {type:nodeType,publicId:nodeId,publicLabel:nodeLabel,changeTypes:nodeTypes} : null; }); const rowChanges=publicChangeArray(row.rowChanges,(item)=>{ const keys=["type","publicId",...(recordValue(item).previousPublicId === undefined ? [] : ["previousPublicId"]),"publicLabel","matchMethod","confidence","changeTypes","before","after","deltaMinorUnits"]; const change=exactRecord(item,keys); if (!change) return null; const changeType=publicEnum(change.type,["added","removed","changed"] as const); const rowId=publicOpaqueId(change.publicId); const previousPublicId=change.previousPublicId === undefined ? undefined : publicOpaqueId(change.previousPublicId); const rowLabel=publicText(change.publicLabel,500); const matchMethod=publicEnum(change.matchMethod,["none","source_row_id","source_component"] as const); const confidence=publicEnum(change.confidence,["none","exact","high"] as const); const rowTypes=publicChangeArray(change.changeTypes,(itemType)=>publicEnum(itemType,["description_changed","designation_changed","discipline_changed","material_changed","quantity_changed","unit_changed","unit_cost_changed","misc_cost_changed","contingency_changed","adjustment_changed","scope_status_changed","source_link_state_changed","row_total_changed","row_moved"] as const)); const before=publicRowValue(change.before); const after=publicRowValue(change.after); const rowDelta=publicInteger(change.deltaMinorUnits); return changeType && rowId && (previousPublicId !== null) && rowLabel && matchMethod && confidence && rowTypes && before !== undefined && after !== undefined && rowDelta !== undefined ? {type:changeType,publicId:rowId,...(previousPublicId ? {previousPublicId} : {}),publicLabel:rowLabel,matchMethod,confidence,changeTypes:rowTypes,before,after,deltaMinorUnits:rowDelta} : null; }); return publicId && publicLabel && type && changeTypes && previousTotal !== undefined && currentTotal !== undefined && delta !== undefined && treeChanges && rowChanges ? {publicId,publicLabel,type,changeTypes,previousTotalMinorUnits:previousTotal,currentTotalMinorUnits:currentTotal,totalDeltaMinorUnits:delta,treeChanges,rowChanges} : null; });
-    const artifactChanges=publicChangeArray(structured.artifactChanges,(entry)=>{ const row=exactRecord(entry,["type","publicId","publicLabel","changeTypes","beforeVersion","afterVersion"]); if (!row) return null; const type=publicEnum(row.type,["added","removed","changed"] as const); const publicId=publicOpaqueId(row.publicId); const publicLabel=publicText(row.publicLabel,500); const changeTypes=publicChangeArray(row.changeTypes,(item)=>publicEnum(item,["artifact_added","artifact_removed","version_changed","purpose_changed","download_policy_changed","comment_policy_changed","decision_relevance_changed"] as const)); const beforeVersion=row.beforeVersion === null ? null : publicText(row.beforeVersion,200); const afterVersion=row.afterVersion === null ? null : publicText(row.afterVersion,200); return type && publicId && publicLabel && changeTypes && (beforeVersion !== null || row.beforeVersion === null) && (afterVersion !== null || row.afterVersion === null) ? {type,publicId,publicLabel,changeTypes,beforeVersion,afterVersion} : null; });
-    const requestChanges=publicChangeArray(structured.requestChanges,(entry)=>{ const row=exactRecord(entry,["type","publicId","publicCode","publicTitle","changeTypes","beforeVersion","afterVersion"]); if (!row) return null; const type=publicEnum(row.type,["added","removed","changed"] as const); const publicId=publicOpaqueId(row.publicId); const publicCode=publicText(row.publicCode,80); const publicTitle=publicText(row.publicTitle,500); const changeTypes=publicChangeArray(row.changeTypes,(item)=>publicEnum(item,["request_added","request_removed","version_changed","relationship_changed"] as const)); const beforeVersion=publicInteger(row.beforeVersion,true); const afterVersion=publicInteger(row.afterVersion,true); return type && publicId && publicCode && publicTitle && changeTypes && beforeVersion !== undefined && afterVersion !== undefined ? {type,publicId,publicCode,publicTitle,changeTypes,beforeVersion,afterVersion} : null; });
-    const narrative=exactRecord(structured.narrativeChanges,["assumptionChanges","exclusionChanges","unresolvedItemChanges","requestedDecisionChange","validityChange"]); if (!narrative) return null; const assumptionChanges=publicChangeArray(narrative.assumptionChanges,publicNarrativeItem); const exclusionChanges=publicChangeArray(narrative.exclusionChanges,publicNarrativeItem); const unresolvedItemChanges=publicChangeArray(narrative.unresolvedItemChanges,publicNarrativeItem); const decision=narrative.requestedDecisionChange === null ? null : exactRecord(narrative.requestedDecisionChange,["before","after"]); const requestedDecisionChange=decision ? {before:publicEnum(decision.before,["none","acknowledgement","formal"] as const),after:publicEnum(decision.after,["none","acknowledgement","formal"] as const)} : null; const validity=narrative.validityChange === null ? null : exactRecord(narrative.validityChange,["before","after"]); const validityChange=validity ? {before:validity.before === null ? null : publicText(validity.before,100),after:validity.after === null ? null : publicText(validity.after,100)} : null; if (!assumptionChanges || !exclusionChanges || !unresolvedItemChanges || (decision && (!requestedDecisionChange?.before || !requestedDecisionChange.after)) || (validity && (validityChange?.before === null) !== (validity.before === null) || validity && (validityChange?.after === null) !== (validity.after === null))) return null;
-    const deterministicSummary=publicText(source.deterministicSummary,4_000); const finalNarrative=publicText(source.finalNarrative,4_000); const narrativeSource=publicEnum(source.narrativeSource,["deterministic","human","ai_reviewed"] as const); if (!deterministicSummary || !finalNarrative || !narrativeSource || !estimateChanges || !artifactChanges || !requestChanges) return null;
-    return {structured:{schemaVersion:1,comparison:{capability,limitationReason},currencyCode,summary:{previousTotalMinorUnits,currentTotalMinorUnits,totalDeltaMinorUnits,addedRows:counts[0],removedRows:counts[1],changedRows:counts[2],movedRows:counts[3],addedArtifacts:counts[4],removedArtifacts:counts[5],changedArtifacts:counts[6],addressedRequests},estimateChanges,artifactChanges,requestChanges,narrativeChanges:{assumptionChanges,exclusionChanges,unresolvedItemChanges,requestedDecisionChange,validityChange}},deterministicSummary,finalNarrative,narrativeSource};
+    const structured=publicStructuredChangeSet(source.structured); if (!structured) return null;
+    const deterministicSummary=publicText(source.deterministicSummary,4_000); const finalNarrative=publicText(source.finalNarrative,4_000); const narrativeSource=publicEnum(source.narrativeSource,["deterministic","human","ai_reviewed"] as const);
+    return deterministicSummary && finalNarrative && narrativeSource ? {structured,deterministicSummary,finalNarrative,narrativeSource} : null;
   } catch { return null; }
 }
 function canonicalJson(value:unknown):string { const normalize=(entry:unknown):unknown => Array.isArray(entry) ? entry.map(normalize) : entry && typeof entry === "object" ? Object.fromEntries(Object.keys(entry as Record<string, unknown>).sort().map(key=>[key,normalize((entry as Record<string, unknown>)[key])])) : entry; return JSON.stringify(normalize(value)); }
@@ -124,6 +235,8 @@ async function resolvePortalToken(database:D1DatabaseLike, token:string):Promise
     FROM project_publications AS legacy
     JOIN client_portal_legacy_mappings AS mapping ON mapping.legacy_publication_id = legacy.id
     JOIN client_portals AS portal ON portal.id = mapping.portal_id
+      AND portal.workspace_id = legacy.workspace_id AND portal.project_id = legacy.project_id
+    JOIN client_portal_issues AS issue ON issue.id = mapping.issue_id AND issue.portal_id = portal.id
     WHERE legacy.token_hash = ? AND legacy.status = 'published' AND mapping.migration_status IN ('verified', 'cutover_complete')
     LIMIT 1`,[tokenHash]);
   if (mapped) return {mappedIssueId:mapped.mapped_issue_id,passwordHash:mapped.legacy_password_hash,portal:mapped};
@@ -227,7 +340,7 @@ export async function resolveClientPortalBaseContext(token:string, actor:ClientP
 export async function resolveClientPortalPublicContext(token:string, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
   const base=await resolveClientPortalBaseContext(token,actor,passwordAuthenticated); if (!base) return null;
   const {database,mappedIssueId,portal,policyPortal}=base;
-  const issue=await first<IssueRow>(database,mappedIssueId ? "SELECT id, portal_id, issue_number, version_label, status, issued_at, valid_through, content_hash, total_cost, currency_code, manifest_json, brand_snapshot_json, decision_policy_snapshot_json FROM client_portal_issues WHERE id = ? LIMIT 1" : requestedIssueNumber ? "SELECT id, portal_id, issue_number, version_label, status, issued_at, valid_through, content_hash, total_cost, currency_code, manifest_json, brand_snapshot_json, decision_policy_snapshot_json FROM client_portal_issues WHERE portal_id = ? AND issue_number = ? LIMIT 1" : "SELECT id, portal_id, issue_number, version_label, status, issued_at, valid_through, content_hash, total_cost, currency_code, manifest_json, brand_snapshot_json, decision_policy_snapshot_json FROM client_portal_issues WHERE id = ? LIMIT 1",mappedIssueId ? [mappedIssueId] : requestedIssueNumber ? [portal.id,String(requestedIssueNumber)] : [portal.current_issue_id ?? ""]);
+  const issue=await first<IssueRow>(database,mappedIssueId ? "SELECT id, portal_id, issue_number, version_label, status, issued_at, valid_through, content_hash, total_cost, currency_code, manifest_json, brand_snapshot_json, decision_policy_snapshot_json FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1" : requestedIssueNumber ? "SELECT id, portal_id, issue_number, version_label, status, issued_at, valid_through, content_hash, total_cost, currency_code, manifest_json, brand_snapshot_json, decision_policy_snapshot_json FROM client_portal_issues WHERE portal_id = ? AND issue_number = ? LIMIT 1" : "SELECT id, portal_id, issue_number, version_label, status, issued_at, valid_through, content_hash, total_cost, currency_code, manifest_json, brand_snapshot_json, decision_policy_snapshot_json FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1",mappedIssueId ? [mappedIssueId,portal.id] : requestedIssueNumber ? [portal.id,String(requestedIssueNumber)] : [portal.current_issue_id ?? "",portal.id]);
   if (!issue || !issueAllowed(issue)) return null;
   if (!evaluateClientPortalPolicy({actor,action:"portal:view",portal:policyPortal,issue:{id:issue.id,status:issue.status,isCurrent:issue.id===portal.current_issue_id}}).allowed) return null;
   return { database, portal, issue, policyPortal };
@@ -264,26 +377,47 @@ export async function requiresClientPortalPassword(token:string, cookieHeader:st
 
 function cookieValue(cookie:string,name:string) { return cookie.split(";").map(part=>part.trim()).find(part=>part.startsWith(`${name}=`))?.slice(name.length+1); }
 function recipientSessionCredentialVersion(recipientVersion:number, accessVersion:number) { return `${recipientVersion}:${accessVersion}`; }
+
+async function recipientIssueAvailable(database:D1DatabaseLike, portal:PortalRow, issueId:string|null) {
+  if (!issueId) return true;
+  const issue=await first<Pick<IssueRow,"status"|"valid_through">>(database,"SELECT status, valid_through FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1",[issueId,portal.id]);
+  return Boolean(issue && issueAllowed(issue));
+}
+
+async function activeRecipientCredential(database:D1DatabaseLike, tokenHash:string, timestamp:string, portalId:string) {
+  return first<RecipientCredentialRow>(database,"SELECT c.id AS credential_id, r.id, r.display_name, r.role_template, r.status, r.verification_state, r.client_organization, r.is_required_approver, r.recipient_credential_version FROM client_portal_recipient_credentials c JOIN client_portal_recipients r ON r.id = c.recipient_id WHERE c.token_hash = ? AND c.status = 'active' AND (c.expires_at IS NULL OR c.expires_at > ?) AND r.portal_id = ? AND r.status = 'active' LIMIT 1",[tokenHash,timestamp,portalId]);
+}
+
+async function verifyRecipientCredential(database:D1DatabaseLike, portal:PortalRow, issueId:string|null, recipient:RecipientCredentialRow, tokenHash:string, timestamp:string) {
+  if (!database.batch) return false;
+  const results=await database.batch([
+    database.prepare("UPDATE client_portal_recipient_credentials SET status = 'used' WHERE id = ? AND recipient_id = ? AND token_hash = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)").bind(recipient.credential_id,recipient.id,tokenHash,timestamp),
+    database.prepare("UPDATE client_portal_recipients SET verification_state = 'verified', last_verified_at = ?, updated_at = ? WHERE id = ? AND portal_id = ? AND status = 'active' AND last_verified_at IS NULL AND EXISTS (SELECT 1 FROM client_portal_recipient_credentials c WHERE c.id = ? AND c.recipient_id = client_portal_recipients.id AND c.status = 'used')").bind(timestamp,timestamp,recipient.id,portal.id,recipient.credential_id),
+    database.prepare("INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) SELECT ?, ?, ?, ?, 'recipient', ?, 'portal.recipient.verified', 'security', ?, ?, ? FROM client_portal_recipients WHERE id = ? AND portal_id = ? AND last_verified_at = ?").bind(`audit_${randomUUID()}`,portal.workspace_id,portal.id,issueId ?? null,recipient.id,JSON.stringify({recipientCredentialVersion:recipient.recipient_credential_version}),timestamp,timestamp,recipient.id,portal.id,timestamp),
+  ]);
+  const failed=results.some((result)=>result.success === false);
+  const credentialUpdated=(results[0]?.meta?.changes ?? 0) === 1;
+  const recipientUpdated=(results[1]?.meta?.changes ?? 0) === 1;
+  return !failed && credentialUpdated && recipientUpdated;
+}
+
+function verifiedRecipientActor(portal:PortalRow, recipient:RecipientCredentialRow, overrides:ClientPortalCapabilityOverride[]) {
+  return {kind:"recipient" as const,recipientId:recipient.id,displayName:recipient.display_name,portalId:portal.id,role:recipient.role_template,status:recipient.status,verificationState:"verified" as const,organization:recipient.client_organization,isRequiredApprover:Boolean(recipient.is_required_approver),overrides};
+}
+
 export async function resolveClientPortalRecipientActor(token:string, recipientToken:string) {
   if (!isPublicationTokenShape(token) || !isPublicationTokenShape(recipientToken)) return null;
   const database=await db(); const resolved=await resolvePortalToken(database,token); const portal=resolved?.portal;
   if (!portal || portal.status !== "live") return null;
   const issueId=resolved?.mappedIssueId ?? portal.current_issue_id;
-  const issue=issueId ? await first<Pick<IssueRow,"status"|"valid_through">>(database,"SELECT status, valid_through FROM client_portal_issues WHERE id = ? AND portal_id = ? LIMIT 1",[issueId,portal.id]) : null;
-  if (issueId && (!issue || !issueAllowed(issue))) return null;
+  if (!await recipientIssueAvailable(database,portal,issueId)) return null;
   const timestamp=new Date().toISOString();
   const tokenHash=hashPublicationToken(recipientToken,readPublicationTokenHashSecret());
-  const recipient=await first<{credential_id:string;id:string;display_name:string|null;role_template:ClientPortalRecipientRoleTemplate;status:"invited"|"active"|"revoked"|"expired";verification_state:"unverified"|"verified"|"failed";client_organization:string|null;is_required_approver:number;recipient_credential_version:number}>(database,"SELECT c.id AS credential_id, r.id, r.display_name, r.role_template, r.status, r.verification_state, r.client_organization, r.is_required_approver, r.recipient_credential_version FROM client_portal_recipient_credentials c JOIN client_portal_recipients r ON r.id = c.recipient_id WHERE c.token_hash = ? AND c.status = 'active' AND (c.expires_at IS NULL OR c.expires_at > ?) AND r.portal_id = ? AND r.status = 'active' LIMIT 1",[tokenHash,timestamp,portal.id]);
+  const recipient=await activeRecipientCredential(database,tokenHash,timestamp,portal.id);
   if (!recipient) return null;
-  if (!database.batch) return null;
-  const verificationResults=await database.batch([
-    database.prepare("UPDATE client_portal_recipient_credentials SET status = 'used' WHERE id = ? AND recipient_id = ? AND token_hash = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > ?)").bind(recipient.credential_id,recipient.id,tokenHash,timestamp),
-    database.prepare("UPDATE client_portal_recipients SET verification_state = 'verified', last_verified_at = ?, updated_at = ? WHERE id = ? AND portal_id = ? AND status = 'active' AND last_verified_at IS NULL AND EXISTS (SELECT 1 FROM client_portal_recipient_credentials c WHERE c.id = ? AND c.recipient_id = client_portal_recipients.id AND c.status = 'used')").bind(timestamp,timestamp,recipient.id,portal.id,recipient.credential_id),
-    database.prepare("INSERT INTO client_portal_audit_events (id, workspace_id, portal_id, issue_id, actor_type, actor_id, event_type, visibility, metadata_json, occurred_at, created_at) SELECT ?, ?, ?, ?, 'recipient', ?, 'portal.recipient.verified', 'security', ?, ?, ? FROM client_portal_recipients WHERE id = ? AND portal_id = ? AND last_verified_at = ?").bind(`audit_${randomUUID()}`,portal.workspace_id,portal.id,issueId ?? null,recipient.id,JSON.stringify({recipientCredentialVersion:recipient.recipient_credential_version}),timestamp,timestamp,recipient.id,portal.id,timestamp),
-  ]);
-  if (verificationResults.some((result)=>result.success === false) || (verificationResults[0]?.meta?.changes ?? 0) !== 1 || (verificationResults[1]?.meta?.changes ?? 0) !== 1) return null;
+  if (!await verifyRecipientCredential(database,portal,issueId,recipient,tokenHash,timestamp)) return null;
   const grants=await all<{capability:string;effect:"allow"|"deny"}>(database,"SELECT capability, effect FROM client_portal_recipient_grants WHERE recipient_id = ? AND section_id IS NULL",[recipient.id]);
-  const actor={kind:"recipient" as const,recipientId:recipient.id,displayName:recipient.display_name,portalId:portal.id,role:recipient.role_template,status:recipient.status,verificationState:"verified" as const,organization:recipient.client_organization,isRequiredApprover:Boolean(recipient.is_required_approver),overrides:capabilityOverrides(grants)};
+  const actor=verifiedRecipientActor(portal,recipient,capabilityOverrides(grants));
   const capabilities=evaluateClientPortalPolicy({actor,action:"portal:view",portal:{id:portal.id,workspaceId:portal.workspace_id,projectId:portal.project_id,status:portal.status,allowAnonymousView:false}}).effectiveCapabilities;
   return { actor, capabilities, credentialVersion:recipientSessionCredentialVersion(recipient.recipient_credential_version,portal.access_credential_version), displayName:recipient.display_name, portalId:portal.id };
 }
@@ -312,38 +446,60 @@ export async function getClientPortalBrandAsset(token:string, assetId:string, pa
   return { contentType:asset.content_type, storageKey:asset.storage_key };
 }
 
-export async function getClientPortalSection(token:string, sectionId:string, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
-  const context=await resolveClientPortalPublicContext(token,requestedIssueNumber,actor,passwordAuthenticated); if (!context) return null;
-  const row=await issuedSectionRow(context,token,sectionId);
-  if (!row) return null; const section=policySection(row); if (!evaluateClientPortalPolicy({actor,action:"section:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id},section}).allowed) return null;
-  if (row.kind === "estimate_browser") {
-    const projection=await estimateProjectionSummary(context.database,row,section.visibleFields ?? []);
-    if (projection.available) {
-      if (projection.payload === null) return null;
-      return attachClientPortalInternalIdentifiers({schemaVersion:1,portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),section:{id:createClientPortalPublicIdentifier(token,"section",row.id),kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload:projection.payload}},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
-    }
-    if (row.payload_bytes > CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_BYTE_LIMIT) return null;
+type ClientPortalPublicContext = NonNullable<Awaited<ReturnType<typeof resolveClientPortalPublicContext>>>;
+
+function attachPublicSectionPayload(context:ClientPortalPublicContext, token:string, row:SectionRow, payload:unknown) {
+  return attachClientPortalInternalIdentifiers({schemaVersion:1,portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),section:{id:createClientPortalPublicIdentifier(token,"section",row.id),kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload}},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
+}
+
+function canViewPublicSection(context:ClientPortalPublicContext, actor:ClientPortalActor, section:ClientPortalPolicySection) {
+  return evaluateClientPortalPolicy({actor,action:"section:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id},section}).allowed;
+}
+
+async function projectedEstimateSection(context:ClientPortalPublicContext, token:string, row:SectionRow, section:ClientPortalPolicySection) {
+  if (row.kind !== "estimate_browser") return {handled:false as const,response:null};
+  const projection=await estimateProjectionSummary(context.database,row,section.visibleFields ?? []);
+  if (projection.available) {
+    return {handled:true as const,response:projection.payload === null ? null : attachPublicSectionPayload(context,token,row,projection.payload)};
   }
+  return row.payload_bytes > CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_BYTE_LIMIT
+    ? {handled:true as const,response:null}
+    : {handled:false as const,response:null};
+}
+
+async function inlinePublicSection(context:ClientPortalPublicContext, token:string, row:SectionRow, section:ClientPortalPolicySection) {
   const payloadRow=await sectionWithD1Payload(context.database,row); if (!payloadRow) return null;
   let payload=await issuedPayload(payloadRow,section.visibleFields ?? []); if (payload === null) return null;
   if (row.kind === "estimate_browser" && typeof payload === "object" && !Array.isArray(payload)) {
     const browser=payload as ClientPortalEstimateBrowserPayload;
-    if (browser.schemaVersion === 1 && Array.isArray(browser.estimates) && requiresClientPortalEstimateBrowserServerPaging(browser,row.payload_bytes)) payload=summarizeClientPortalEstimateBrowserPayload(browser);
+    if (browser.schemaVersion === 1 && Array.isArray(browser.estimates) && requiresClientPortalEstimateBrowserServerPaging(browser,row.payload_bytes)) {
+      payload=summarizeClientPortalEstimateBrowserPayload(browser);
+    }
   }
-  return attachClientPortalInternalIdentifiers({schemaVersion:1,portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),section:{id:createClientPortalPublicIdentifier(token,"section",row.id),kind:row.kind,title:row.title,layoutMode:row.layout_mode,payloadHash:row.payload_hash,payload}},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
+  return attachPublicSectionPayload(context,token,row,payload);
 }
 
-export async function getClientPortalIssuedEstimateRowsPage(token:string, sectionId:string, input:{branchId?:string|null;cursor?:string|null;estimateId:string;limit?:number;search?:string|null;tabId:string}, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
+export async function getClientPortalSection(token:string, sectionId:string, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
   const context=await resolveClientPortalPublicContext(token,requestedIssueNumber,actor,passwordAuthenticated); if (!context) return null;
-  const row=await issuedSectionRow(context,token,sectionId,"estimate_browser");
+  const row=await issuedSectionRow(context,token,sectionId);
   if (!row) return null;
-  const section=policySection(row);
-  if (!evaluateClientPortalPolicy({actor,action:"section:view",portal:context.policyPortal,issue:{id:context.issue.id,status:context.issue.status,isCurrent:context.issue.id===context.portal.current_issue_id},section}).allowed) return null;
+  const section=policySection(row); if (!canViewPublicSection(context,actor,section)) return null;
+  const projected=await projectedEstimateSection(context,token,row,section);
+  return projected.handled ? projected.response : inlinePublicSection(context,token,row,section);
+}
+
+function attachEstimateRowsPage(context:ClientPortalPublicContext, token:string, row:SectionRow, page:Record<string,unknown>) {
+  return attachClientPortalInternalIdentifiers({issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),sectionId:createClientPortalPublicIdentifier(token,"section",row.id),...page},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
+}
+
+async function projectedEstimateRows(context:ClientPortalPublicContext, token:string, row:SectionRow, input:{branchId?:string|null;cursor?:string|null;estimateId:string;limit?:number;search?:string|null;tabId:string}) {
   const projection=await estimateProjectionRowsPage(context.database,row,input);
-  if (projection) {
-    if (projection.invalid) return null;
-    return attachClientPortalInternalIdentifiers({issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),sectionId:createClientPortalPublicIdentifier(token,"section",row.id),hasMore:projection.hasMore,nextCursor:projection.nextCursor,rows:projection.rows,totalRows:projection.totalRows},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id});
-  }
+  if (!projection) return {handled:false as const,response:null};
+  if (projection.invalid) return {handled:true as const,response:null};
+  return {handled:true as const,response:attachEstimateRowsPage(context,token,row,{hasMore:projection.hasMore,nextCursor:projection.nextCursor,rows:projection.rows,totalRows:projection.totalRows})};
+}
+
+async function inlineEstimateRows(context:ClientPortalPublicContext, token:string, row:SectionRow, section:ClientPortalPolicySection, input:{branchId?:string|null;cursor?:string|null;estimateId:string;limit?:number;search?:string|null;tabId:string}) {
   if (row.payload_bytes > CLIENT_PORTAL_ESTIMATE_BROWSER_INLINE_BYTE_LIMIT) return null;
   const payloadRow=await sectionWithD1Payload(context.database,row); if (!payloadRow) return null;
   const payload=await issuedPayload(payloadRow,section.visibleFields ?? []);
@@ -351,5 +507,15 @@ export async function getClientPortalIssuedEstimateRowsPage(token:string, sectio
   const browser=payload as ClientPortalEstimateBrowserPayload;
   if (browser.schemaVersion !== 1 || !Array.isArray(browser.estimates)) return null;
   const page=getClientPortalEstimateBrowserRowsPage(browser,input);
-  return page ? attachClientPortalInternalIdentifiers({issueId:createClientPortalPublicIdentifier(token,"issue",context.issue.id),portalId:createClientPortalPublicIdentifier(token,"portal",context.portal.id),sectionId:createClientPortalPublicIdentifier(token,"section",row.id),...page},{portalId:context.portal.id,issueId:context.issue.id,sectionId:row.id}) : null;
+  return page ? attachEstimateRowsPage(context,token,row,page as unknown as Record<string,unknown>) : null;
+}
+
+export async function getClientPortalIssuedEstimateRowsPage(token:string, sectionId:string, input:{branchId?:string|null;cursor?:string|null;estimateId:string;limit?:number;search?:string|null;tabId:string}, requestedIssueNumber?:number, actor:ClientPortalActor={kind:"anonymous"}, passwordAuthenticated=false) {
+  const context=await resolveClientPortalPublicContext(token,requestedIssueNumber,actor,passwordAuthenticated); if (!context) return null;
+  const row=await issuedSectionRow(context,token,sectionId,"estimate_browser");
+  if (!row) return null;
+  const section=policySection(row);
+  if (!canViewPublicSection(context,actor,section)) return null;
+  const projected=await projectedEstimateRows(context,token,row,input);
+  return projected.handled ? projected.response : inlineEstimateRows(context,token,row,section,input);
 }

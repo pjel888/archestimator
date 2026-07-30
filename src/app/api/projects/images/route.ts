@@ -12,6 +12,7 @@ import {
   canEditEstimateInD1,
   canEditProjectInD1,
   readEstimateInProjectFromD1,
+  readEstimateRowItemInEstimateFromD1,
   readProjectFromD1,
 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
@@ -19,19 +20,32 @@ import { isUuid } from "@/lib/ids";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import { logAppError } from "@/lib/observability/logger";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
-import { claimUploadAssetsForRemoval } from "@/lib/uploads/removal-claims";
 import {
-  CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
-  processUploadImageToWebp,
-} from "@/lib/uploads/server-image-processing";
+  MATERIAL_IMAGE_MAX_BYTES,
+  isMaterialImageMimeType,
+  materialImageUploadFailure,
+  toMaterialImageAssetDescriptor,
+  toMaterialImageUploadResult,
+  toOpaqueMaterialImageAssetDescriptor,
+  toOpaqueMaterialImageUploadResult,
+} from "@/lib/uploads/material-image-contract";
+import {
+  createMaterialImageUploadService,
+  readDurableProjectImageAsset,
+} from "@/lib/uploads/material-image-service";
+import { claimUploadAssetsForRemoval } from "@/lib/uploads/removal-claims";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import {
   createPrivateImageEntityTag,
   matchesIfNoneMatch,
   PRIVATE_IMAGE_SUCCESS_CACHE_CONTROL,
 } from "@/lib/uploads/private-image-revalidation";
-import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
-import { recordUploadAsset } from "@/lib/uploads/upload-records";
+import {
+  failReservedUploadAsset,
+  finalizeReservedUploadAsset,
+  renewReservedUploadCleanupLease,
+  reserveUploadAsset,
+} from "@/lib/uploads/upload-records";
 
 export const runtime = "nodejs";
 
@@ -39,19 +53,8 @@ const PROJECT_IMAGE_BUCKET = "project-images";
 const PROJECT_IMAGE_ROUTE = "/api/projects/images";
 const PROJECT_IMAGE_PATH_SEGMENT = "project-images";
 const ESTIMATE_ROW_IMAGE_PATH_SEGMENT = "estimate-row-images";
-const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
-const MAX_IMAGE_PIXELS = 24_000_000;
-const MAX_IMAGE_EDGE = 1600;
-const THUMBNAIL_EDGE = 512;
 const PRE_BODY_PROJECT_IMAGE_ADMISSION_WORKSPACE_ID =
   "pre-body-project-image-upload";
-const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-]);
-const AVIF_FTYP_BRANDS = new Set(["avif", "avis"]);
 const PRIVATE_IMAGE_ERROR_CACHE_CONTROL =
   "private, no-cache, no-store, max-age=0, must-revalidate";
 
@@ -71,59 +74,6 @@ function privateImageNotFound() {
   );
 }
 
-function readAscii(bytes: Uint8Array, start: number, end: number) {
-  return String.fromCharCode(...bytes.subarray(start, end));
-}
-
-function readIsoBaseMediaBrands(bytes: Uint8Array) {
-  if (bytes.length < 16 || readAscii(bytes, 4, 8) !== "ftyp") return [];
-  const brands = [readAscii(bytes, 8, 12)];
-  const readableLength = Math.min(bytes.length, 64);
-  for (let index = 16; index + 4 <= readableLength; index += 4) {
-    brands.push(readAscii(bytes, index, index + 4));
-  }
-  return brands;
-}
-
-function readMagicMime(bytes: Uint8Array): string | null {
-  if (
-    bytes.length >= 3 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes[2] === 0xff
-  )
-    return "image/jpeg";
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a
-  ) {
-    return "image/png";
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return "image/webp";
-  }
-  const brands = readIsoBaseMediaBrands(bytes);
-  if (brands.some((brand) => AVIF_FTYP_BRANDS.has(brand))) return "image/avif";
-  return null;
-}
-
 function safeUploadName(name: string) {
   const stem = name
     .replace(/\.[^.]+$/, "")
@@ -134,9 +84,16 @@ function safeUploadName(name: string) {
   return stem || "project-image";
 }
 
-function createProjectImageRouteUrl(path: string) {
-  const search = new URLSearchParams({ path });
+function createProjectImageRouteUrl(assetId: string, variant: "image" | "thumbnail") {
+  const search = new URLSearchParams({ assetId, variant });
   return `${PROJECT_IMAGE_ROUTE}?${search.toString()}`;
+}
+
+function readUploadAttemptId(formData: FormData) {
+  const value = formData.get("uploadAttemptId");
+  if (value === null) return randomUUID();
+  if (typeof value !== "string" || !/^[a-zA-Z0-9._:-]{8,128}$/.test(value)) return null;
+  return value;
 }
 
 function parseProjectImageStoragePath(path: string) {
@@ -175,25 +132,6 @@ function uploadMetadataUnavailableResponse() {
   return jsonError("Something went wrong. Try again in a moment.", 503);
 }
 
-async function uploadWebp({
-  buffer,
-  path,
-  storageProvider,
-}: {
-  buffer: Buffer;
-  path: string;
-  storageProvider: UploadStorageProvider;
-}) {
-  await storageProvider.uploadObject({
-    bucket: PROJECT_IMAGE_BUCKET,
-    path,
-    body: buffer,
-    contentType: "image/webp",
-    cacheControl: "31536000",
-  });
-  return createProjectImageRouteUrl(path);
-}
-
 function isUserOwnedUploadPath(path: string, userId: string) {
   const parsed = parseProjectImageStoragePath(path);
   return Boolean(parsed && parsed.ownerUserId === userId);
@@ -215,10 +153,9 @@ function readStoragePaths(value: unknown) {
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const parsedPath = parseProjectImageStoragePath(
-    requestUrl.searchParams.get("path") ?? "",
-  );
-  if (!parsedPath) return privateImageNotFound();
+  const assetId = requestUrl.searchParams.get("assetId")?.trim() ?? "";
+  const variant = requestUrl.searchParams.get("variant") ?? "image";
+  if (!isUuid(assetId) || (variant !== "image" && variant !== "thumbnail")) return privateImageNotFound();
 
   const currentUser = await getCurrentUserContext();
   if (!currentUser) return privateImageNotFound();
@@ -229,41 +166,43 @@ export async function GET(request: Request) {
 
   const db = await getCloudflareD1Database();
   if (!db) return privateImageNotFound();
-  const project = await readProjectFromD1(db, parsedPath.projectId);
+  const asset = await readDurableProjectImageAsset(db, assetId).catch(() => null);
+  if (!asset) return privateImageNotFound();
+  const project = await readProjectFromD1(db, asset.projectId);
 
-  if (!project || project.workspace_id !== parsedPath.workspaceId) {
+  if (!project || project.workspace_id !== asset.workspaceId) {
     return privateImageNotFound();
   }
 
-  if (parsedPath.estimateId) {
+  if (asset.targetEntityType === "estimate-row") {
+    if (!asset.estimateId) return privateImageNotFound();
     const estimate = await readEstimateInProjectFromD1(
       db,
-      parsedPath.estimateId,
-      parsedPath.projectId,
+      asset.estimateId,
+      asset.projectId,
     );
     if (!estimate) return privateImageNotFound();
-  }
-
-  const hasProjectAccess = await canAccessProjectInD1(
-    db,
-    parsedPath.projectId,
-    currentUser,
-  );
-  if (!hasProjectAccess) {
-    if (!parsedPath.estimateId) return privateImageNotFound();
+    const estimateRow = await readEstimateRowItemInEstimateFromD1(db, asset.targetEntityId, asset.estimateId);
+    if (!estimateRow) return privateImageNotFound();
     const hasEstimateAccess = await canAccessEstimateInD1(
       db,
-      parsedPath.estimateId,
+      asset.estimateId,
       currentUser,
     );
     if (!hasEstimateAccess) return privateImageNotFound();
+  } else {
+    const hasProjectAccess = await canAccessProjectInD1(db, asset.projectId, currentUser);
+    if (!hasProjectAccess) return privateImageNotFound();
   }
+
+  const storagePath = variant === "thumbnail" ? asset.thumbnailPath : asset.path;
+  if (!storagePath) return privateImageNotFound();
 
   const storageProvider = await createRuntimeUploadStorageProvider();
   const ifNoneMatch = request.headers.get("if-none-match");
   if (ifNoneMatch && storageProvider.headObject) {
     const metadata = await storageProvider
-      .headObject(PROJECT_IMAGE_BUCKET, parsedPath.path)
+      .headObject(PROJECT_IMAGE_BUCKET, storagePath)
       .catch(() => null);
     const entityTag = metadata
       ? createPrivateImageEntityTag(metadata)
@@ -280,7 +219,7 @@ export async function GET(request: Request) {
   }
 
   const object = await storageProvider
-    .downloadObject(PROJECT_IMAGE_BUCKET, parsedPath.path)
+    .downloadObject(PROJECT_IMAGE_BUCKET, storagePath)
     .catch(() => null);
   if (!object) return privateImageNotFound();
   const entityTag = createPrivateImageEntityTag(object, object.body);
@@ -298,7 +237,7 @@ export async function GET(request: Request) {
   return new Response(object.body, {
     headers: {
       "Cache-Control": PRIVATE_IMAGE_SUCCESS_CACHE_CONTROL,
-      "Content-Type": object.contentType ?? "image/webp",
+      "Content-Type": object.contentType ?? asset.contentType ?? "image/webp",
       ETag: entityTag,
       "X-Content-Type-Options": "nosniff",
     },
@@ -307,11 +246,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? 0);
-  if (contentLength > MAX_UPLOAD_BYTES + 1024 * 1024) {
-    return jsonError(
-      "Image upload is too large. Compress or choose an image under 12 MB.",
-      413,
-    );
+  if (contentLength > MATERIAL_IMAGE_MAX_BYTES + 1024 * 1024) {
+    const failure = materialImageUploadFailure("too_large");
+    return jsonError(failure.error.message, failure.status);
   }
 
   const currentUser = await requireCurrentUserContext();
@@ -330,24 +267,48 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const projectId = String(formData.get("projectId") ?? "").trim();
+    const estimateId = String(formData.get("estimateId") ?? "").trim();
+    const rowItemId = String(formData.get("rowItemId") ?? "").trim();
     const file = formData.get("file");
+    const uploadAttemptId = readUploadAttemptId(formData);
     if (!projectId) return jsonError("Project is required.");
+    if (Boolean(estimateId) !== Boolean(rowItemId)) {
+      return jsonError("Estimate and estimate row must be supplied together.");
+    }
     if (!(file instanceof File)) return jsonError("Image file is required.");
-    if (file.type && !ALLOWED_MIME_TYPES.has(file.type))
-      return jsonError("Use a JPG, PNG, WebP, or AVIF image.");
-    if (file.size <= 0) return jsonError("Image file is empty.");
-    if (file.size > MAX_UPLOAD_BYTES)
-      return jsonError(
-        "Image upload is too large. Compress or choose an image under 12 MB.",
-        413,
-      );
+    if (!uploadAttemptId) return jsonError("Image upload attempt is invalid.");
+    if (file.type && !isMaterialImageMimeType(file.type)) {
+      const failure = materialImageUploadFailure("unsupported_type");
+      return jsonError(failure.error.message, failure.status);
+    }
+    if (file.size <= 0) {
+      const failure = materialImageUploadFailure("empty_file");
+      return jsonError(failure.error.message, failure.status);
+    }
+    if (file.size > MATERIAL_IMAGE_MAX_BYTES) {
+      const failure = materialImageUploadFailure("too_large");
+      return jsonError(failure.error.message, failure.status);
+    }
 
     const uploadMetadataDb = await getCloudflareD1Database();
     if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
     const project = await readProjectFromD1(uploadMetadataDb, projectId);
 
     if (!project) return jsonError("Project could not be found.", 404);
-    if (!(await canEditProjectInD1(uploadMetadataDb, projectId, currentUser))) {
+    let targetEntityType = "project";
+    let targetEntityId = projectId;
+    if (estimateId && rowItemId) {
+      const estimate = await readEstimateInProjectFromD1(uploadMetadataDb, estimateId, projectId);
+      if (!estimate) return jsonError("Estimate could not be found.", 404);
+      const estimateRow = await readEstimateRowItemInEstimateFromD1(uploadMetadataDb, rowItemId, estimateId);
+      if (!estimateRow) return jsonError("Estimate row could not be found.", 404);
+      const canEditEstimate = await canEditEstimateInD1(uploadMetadataDb, estimateId, currentUser);
+      if (!canEditEstimate) {
+        return jsonError("You do not have permission to edit this estimate.", 403);
+      }
+      targetEntityType = "estimate-row";
+      targetEntityId = rowItemId;
+    } else if (!(await canEditProjectInD1(uploadMetadataDb, projectId, currentUser))) {
       return jsonError("You do not have permission to edit this project.", 403);
     }
     const admission = reserveUploadAdmission({
@@ -364,111 +325,63 @@ export async function POST(request: Request) {
 
     try {
       const sourceBuffer = Buffer.from(await file.arrayBuffer());
-      const magicMime = readMagicMime(sourceBuffer.subarray(0, 64));
-      if (!magicMime || !ALLOWED_MIME_TYPES.has(magicMime)) {
-        return jsonError(
-          "The uploaded file does not look like a supported image.",
-        );
-      }
-
-      const processedImage = await processUploadImageToWebp({
-        sourceBuffer,
-        magicMime,
-        maxImagePixels: MAX_IMAGE_PIXELS,
-        maxImageEdge: MAX_IMAGE_EDGE,
-        thumbnailEdge: THUMBNAIL_EDGE,
-      });
-      if (processedImage.status === "cloudflare-image-processing-unavailable") {
-        return jsonError(CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE, 501);
-      }
-      if (processedImage.status === "unsupported-encoding")
-        return jsonError("Unsupported image encoding.");
-      if (processedImage.status === "missing-dimensions")
-        return jsonError("Could not read image dimensions.");
-      if (processedImage.status === "dimensions-too-large")
-        return jsonError(
-          "Image dimensions are too large. Use an image under 24 megapixels.",
-          413,
-        );
-      if (processedImage.status === "decode-error") {
-        return jsonError(
-          "Could not decode image safely. Choose a standard JPG, PNG, WebP, or AVIF file.",
-        );
-      }
-      const { optimized, thumbnail } = processedImage.image;
-      const contentSha256 = createHash("sha256").update(optimized.data).digest("hex");
-
       const storageProvider = await createRuntimeUploadStorageProvider();
-      const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
-      const basePath = `${project.workspace_id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${baseName}`;
+      const sourceSha256 = createHash("sha256").update(sourceBuffer).digest("hex");
+      const baseName = `${safeUploadName(file.name)}-${sourceSha256}-${uploadAttemptId}`;
+      const basePath = estimateId
+        ? `${project.workspace_id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${ESTIMATE_ROW_IMAGE_PATH_SEGMENT}/${estimateId}/${baseName}`
+        : `${project.workspace_id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${baseName}`;
       const imagePath = `${basePath}.webp`;
       const thumbnailPath = `${basePath}-thumb.webp`;
-      const uploadedPaths: string[] = [];
-
-      try {
-        const url = await uploadWebp({
-          buffer: optimized.data,
-          path: imagePath,
-          storageProvider,
-        });
-        uploadedPaths.push(imagePath);
-        const thumbnailUrl = await uploadWebp({
-          buffer: thumbnail.data,
-          path: thumbnailPath,
-          storageProvider,
-        });
-        uploadedPaths.push(thumbnailPath);
-        const uploadRecord = await recordUploadAsset(uploadMetadataDb, {
-          workspaceId: project.workspace_id,
-          actorUserId: currentUser.userId,
-          surface: "project-image",
-          targetEntityType: "project",
-          targetEntityId: projectId,
-          bucket: PROJECT_IMAGE_BUCKET,
-          path: imagePath,
-          thumbnailPath,
-          fileName: file.name,
-          contentType: "image/webp",
-          sizeBytes: optimized.data.byteLength,
-          checksumBytes: optimized.data,
-          scanStatus: "not_required",
-          metadata: {
-            originalBytes: file.size,
-            optimizedBytes: optimized.data.byteLength,
-            thumbnailBytes: thumbnail.data.byteLength,
-            width: optimized.info.width,
-            height: optimized.info.height,
-            thumbnailWidth: thumbnail.info.width,
-            thumbnailHeight: thumbnail.info.height,
-          },
-        });
-
-        return NextResponse.json({
-          bucket: PROJECT_IMAGE_BUCKET,
-          uploadSessionId: uploadRecord.uploadSessionId,
-          assetId: uploadRecord.assetId,
-          scanStatus: uploadRecord.scanStatus,
-          path: imagePath,
-          thumbnailPath,
-          url,
-          thumbnailUrl,
-          width: optimized.info.width,
-          height: optimized.info.height,
-          thumbnailWidth: thumbnail.info.width,
-          thumbnailHeight: thumbnail.info.height,
-          originalBytes: file.size,
-          optimizedBytes: optimized.data.byteLength,
-          contentType: "image/webp",
-          contentSha256,
-        });
-      } catch {
-        if (uploadedPaths.length > 0) {
-          await storageProvider
-            .removeObjects(PROJECT_IMAGE_BUCKET, uploadedPaths)
-            .catch(() => undefined);
-        }
-        return jsonError("Could not store image.", 500);
+      const uploadMaterialImage = createMaterialImageUploadService({
+      storageProvider,
+      reserveUploadAsset: (input) => reserveUploadAsset(uploadMetadataDb, input),
+      renewCleanupLease: (reservation) => renewReservedUploadCleanupLease(uploadMetadataDb, reservation),
+      finalizeUploadAsset: (reservation) => finalizeReservedUploadAsset(uploadMetadataDb, reservation),
+        failUploadAsset: (reservation, failureStage) => failReservedUploadAsset(uploadMetadataDb, reservation, failureStage),
+      });
+      const serviceResult = await uploadMaterialImage({
+        surface: "project-image",
+        workspaceId: project.workspace_id,
+        actorUserId: currentUser.userId,
+        targetEntityType,
+        targetEntityId,
+        fileName: file.name,
+        declaredMimeType: file.type,
+        sourceBytes: sourceBuffer,
+        imagePath,
+        thumbnailPath,
+        idempotencyKey: `project-image:${targetEntityType}:${targetEntityId}:${uploadAttemptId}`,
+        metadata: {
+          projectId,
+          ...(estimateId ? { estimateId, rowItemId } : {}),
+        },
+      });
+      if (!serviceResult.ok) {
+        return jsonError(serviceResult.error.message, serviceResult.status);
       }
+
+      const result = serviceResult.result;
+      const serving = {
+        url: createProjectImageRouteUrl(result.assetId, "image"),
+        thumbnailUrl: createProjectImageRouteUrl(result.assetId, "thumbnail"),
+      };
+      if (estimateId) {
+        const authorizedResult = toOpaqueMaterialImageUploadResult(result, serving);
+        return NextResponse.json({
+          ...authorizedResult,
+          optimizedBytes: result.sizeBytes,
+          contentSha256: result.checksumSha256,
+          imageAsset: toOpaqueMaterialImageAssetDescriptor(authorizedResult),
+        });
+      }
+      const authorizedResult = toMaterialImageUploadResult(result, serving);
+      return NextResponse.json({
+        ...authorizedResult,
+        optimizedBytes: result.sizeBytes,
+        contentSha256: result.checksumSha256,
+        imageAsset: toMaterialImageAssetDescriptor(authorizedResult),
+      });
     } finally {
       admission.release();
     }

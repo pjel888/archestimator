@@ -62,6 +62,7 @@ type EstimateImageModalState = {
   imageUrlDraftDirty: boolean;
   selectedImage: File | null;
   selectedImagePreview: string;
+  uploadedImage: UploadedEstimateImage | null;
   uploadState: UploadClientState;
 };
 
@@ -72,6 +73,8 @@ type EstimateImageModalAction =
   | { type: "file:selected"; file: File; previewUrl: string; message?: string }
   | { type: "file:error"; message: string }
   | { type: "upload:start" }
+  | { type: "upload:ready"; uploadedImage: UploadedEstimateImage }
+  | { type: "save:start" }
   | { type: "upload:success" }
   | { type: "upload:error"; message: string }
   | { type: "upload:cancelled" };
@@ -82,6 +85,7 @@ const INITIAL_ESTIMATE_IMAGE_MODAL_STATE: EstimateImageModalState = {
   imageUrlDraftDirty: false,
   selectedImage: null,
   selectedImagePreview: "",
+  uploadedImage: null,
   uploadState: IDLE_UPLOAD_CLIENT_STATE,
 };
 
@@ -102,6 +106,7 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
         imageUrlDraftDirty: true,
         selectedImage: null,
         selectedImagePreview: "",
+        uploadedImage: null,
         uploadState: reduceUploadClientState(state.uploadState, { type: "reset" }),
       };
     case "file:selected":
@@ -111,6 +116,7 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
         imageUrlDraftDirty: false,
         selectedImage: action.file,
         selectedImagePreview: action.previewUrl,
+        uploadedImage: null,
         uploadState: reduceUploadClientState(state.uploadState, { type: "select", message: action.message ?? `${action.file.name} selected.` }),
       };
     case "file:error":
@@ -118,13 +124,26 @@ function estimateImageModalReducer(state: EstimateImageModalState, action: Estim
         ...state,
         selectedImage: null,
         selectedImagePreview: "",
+        uploadedImage: null,
         uploadState: reduceUploadClientState(state.uploadState, { type: "blocking-error", message: action.message }),
       };
     case "upload:start":
       return {
         ...state,
         open: false,
+        uploadedImage: null,
         uploadState: reduceUploadClientState(state.uploadState, { type: "uploading", message: "Uploading image..." }),
+      };
+    case "upload:ready":
+      return {
+        ...state,
+        uploadedImage: action.uploadedImage,
+        uploadState: reduceUploadClientState(state.uploadState, { type: "uploaded", message: "Image uploaded. Saving row..." }),
+      };
+    case "save:start":
+      return {
+        ...state,
+        uploadState: reduceUploadClientState(state.uploadState, { type: "finalizing", message: "Saving image to row..." }),
       };
     case "upload:success":
       return INITIAL_ESTIMATE_IMAGE_MODAL_STATE;
@@ -175,7 +194,7 @@ async function uploadEstimateReferenceImage(
   }
   formData.set("file", file);
   const uploaded = await postUploadFormData<UploadedEstimateImage>(
-    options.scope === "library" ? "/api/component-library/images" : "/api/estimate-row-images",
+    options.scope === "library" ? "/api/component-library/images" : "/api/projects/images",
     formData,
     {
       signal: options.signal,
@@ -352,14 +371,14 @@ function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVari
 
 function getActiveMaterialVariantId(item: EstimateMaterialCardItem, options: MaterialVariantOption[]) {
   if (item.priceOptionId && options.some((option) => option.id === item.priceOptionId)) return item.priceOptionId;
-  return options.find((option) => option.isDefault)?.id ?? options[0]?.id;
+  return options.length === 1 ? options[0]?.id : undefined;
 }
 
 function getActiveMaterialVariantLabel(item: EstimateMaterialCardItem) {
   const variantOptions = getMaterialVariantOptions(item);
   if (variantOptions.length < 2) return null;
   const activeOptionId = getActiveMaterialVariantId(item, variantOptions);
-  return variantOptions.find((option) => option.id === activeOptionId)?.label.trim() || null;
+  return variantOptions.find((option) => option.id === activeOptionId)?.label.trim() || "Selection required";
 }
 
 function MaterialVariantControl({
@@ -373,13 +392,13 @@ function MaterialVariantControl({
 }) {
   const variantOptions = getMaterialVariantOptions(item);
   const activeOptionId = getActiveMaterialVariantId(item, variantOptions);
-  const activeOptionIndex = Math.max(0, variantOptions.findIndex((option) => option.id === activeOptionId));
-  const activeOption = variantOptions[activeOptionIndex];
-  const variantLabel = formatVariantCode(activeOptionIndex);
-  const variantTitle = activeOption?.label ?? "Default";
+  const activeOptionIndex = variantOptions.findIndex((option) => option.id === activeOptionId);
+  const activeOption = activeOptionIndex >= 0 ? variantOptions[activeOptionIndex] : undefined;
+  const variantLabel = activeOptionIndex >= 0 ? formatVariantCode(activeOptionIndex) : "Select";
+  const variantTitle = activeOption?.label ?? "Selection required";
   const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
   const controlClass =
-    "inline-flex h-3.5 w-fit max-w-full min-w-0 cursor-pointer items-center justify-start gap-0.5 self-start px-0 text-[8px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/40";
+    "inline-flex min-h-4 w-fit max-w-full min-w-0 cursor-pointer items-center justify-start gap-0.5 self-start px-0 text-[9px] font-medium leading-3 text-tertiary transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/50";
 
   if (!canEditEstimate || !onSelectVariant) {
     return (
@@ -398,7 +417,7 @@ function MaterialVariantControl({
       trigger={(
         <button
           type="button"
-          className={controlClass}
+          className={`${controlClass} min-h-6 min-w-6 rounded-xs px-1`}
           aria-label={`Change variant for ${item.material}`}
           title={`Variant: ${variantTitle}`}
           onClick={(event) => event.stopPropagation()}
@@ -529,7 +548,7 @@ function ExpressMaterialImageEditor({
   estimateId?: string;
   imageUploadScope: "library" | "project";
   onActiveChange: (active: boolean) => void;
-  onCommitImageUrl: (nextImageUrl: string, imageAsset?: EstimateRowImageAssetDescriptor | null) => void;
+  onCommitImageUrl: (nextImageUrl: string, imageAsset?: EstimateRowImageAssetDescriptor | null) => Promise<void>;
 }) {
   const imageInputId = useId();
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -537,9 +556,9 @@ function ExpressMaterialImageEditor({
   const selectedImagePreviewRef = useRef("");
   const imageUploadAbortRef = useRef<AbortController | null>(null);
   const imageUploadAttemptRef = useRef(0);
-  const { imageUrlDraft, imageUrlDraftDirty, open: imageModalOpen, selectedImage, selectedImagePreview, uploadState: imageUploadState } = imageModal;
+  const { imageUrlDraft, imageUrlDraftDirty, open: imageModalOpen, selectedImage, selectedImagePreview, uploadedImage, uploadState: imageUploadState } = imageModal;
   const imageModalBusy = isUploadClientBusy(imageUploadState);
-  const imageUploadRetryable = Boolean(selectedImage && isUploadClientRetryable(imageUploadState));
+  const imageUploadRetryable = Boolean((uploadedImage || selectedImage) && isUploadClientRetryable(imageUploadState));
   const showThumbnailUploadState = Boolean(selectedImage && !imageModalOpen && imageUploadState.message);
   const thumbnailStatusRole = getUploadClientStatusRole(imageUploadState);
   const thumbnailImageStyle = selectedImagePreview ? { backgroundImage: `url(${selectedImagePreview})` } : imageStyle;
@@ -583,6 +602,15 @@ function ExpressMaterialImageEditor({
     imageFileInputRef.current?.click();
   }
 
+  const persistUploadedImage = useCallback(async (image: UploadedEstimateImage, attemptId: number) => {
+    dispatchImageModal({ type: "save:start" });
+    await onCommitImageUrl(image.url, image.imageAsset ?? null);
+    if (imageUploadAttemptRef.current !== attemptId) return;
+    replaceSelectedImagePreview("");
+    dispatchImageModal({ type: "upload:success" });
+    onActiveChange(false);
+  }, [onActiveChange, onCommitImageUrl, replaceSelectedImagePreview]);
+
   const startImageUpload = useCallback(async (file: File) => {
     if (draftState) return;
     const attemptId = imageUploadAttemptRef.current + 1;
@@ -590,8 +618,9 @@ function ExpressMaterialImageEditor({
     const abortController = new AbortController();
     imageUploadAbortRef.current = abortController;
     dispatchImageModal({ type: "upload:start" });
+    let uploadedResult: UploadedEstimateImage | null = null;
     try {
-      const uploadedImage = await uploadEstimateReferenceImage(file, {
+      uploadedResult = await uploadEstimateReferenceImage(file, {
         signal: abortController.signal,
         projectId,
         estimateId,
@@ -599,21 +628,19 @@ function ExpressMaterialImageEditor({
         scope: imageUploadScope,
       });
       if (imageUploadAttemptRef.current === attemptId) {
-        onCommitImageUrl(uploadedImage.url, uploadedImage.imageAsset ?? null);
-        replaceSelectedImagePreview("");
-        dispatchImageModal({ type: "upload:success" });
-        onActiveChange(false);
+        dispatchImageModal({ type: "upload:ready", uploadedImage: uploadedResult });
+        await persistUploadedImage(uploadedResult, attemptId);
       }
     } catch (error) {
       if (imageUploadAttemptRef.current === attemptId) {
         dispatchImageModal(isUploadAbortError(error)
           ? { type: "upload:cancelled" }
-          : { type: "upload:error", message: getUploadClientErrorMessage(error, "Could not upload image.") });
+          : { type: "upload:error", message: getUploadClientErrorMessage(error, uploadedResult ? "Could not save image to row." : "Could not upload image.") });
       }
     } finally {
       if (imageUploadAbortRef.current === abortController) imageUploadAbortRef.current = null;
     }
-  }, [draftState, estimateId, imageUploadScope, itemId, onActiveChange, onCommitImageUrl, projectId, replaceSelectedImagePreview]);
+  }, [draftState, estimateId, imageUploadScope, itemId, persistUploadedImage, projectId]);
 
   useEffect(() => {
     if (!selectedImage) return;
@@ -653,8 +680,16 @@ function ExpressMaterialImageEditor({
       void startImageUpload(selectedImage);
       return;
     }
-    if (imageUrlDraftDirty) onCommitImageUrl(imageUrlDraft, null);
-    closeImageModal();
+    if (!imageUrlDraftDirty) {
+      closeImageModal();
+      return;
+    }
+    try {
+      await onCommitImageUrl(imageUrlDraft, null);
+      closeImageModal();
+    } catch (error) {
+      dispatchImageModal({ type: "upload:error", message: getUploadClientErrorMessage(error, "Could not save image to row.") });
+    }
   }
 
   return (
@@ -706,7 +741,15 @@ function ExpressMaterialImageEditor({
                 aria-label="Retry upload"
                 onClick={(event) => {
                   event.stopPropagation();
-                  if (selectedImage) void startImageUpload(selectedImage);
+                  if (uploadedImage) {
+                    const attemptId = imageUploadAttemptRef.current + 1;
+                    imageUploadAttemptRef.current = attemptId;
+                    void persistUploadedImage(uploadedImage, attemptId).catch((error) => {
+                      if (imageUploadAttemptRef.current === attemptId) {
+                        dispatchImageModal({ type: "upload:error", message: getUploadClientErrorMessage(error, "Could not save image to row.") });
+                      }
+                    });
+                  } else if (selectedImage) void startImageUpload(selectedImage);
                 }}
               >
                 Retry
@@ -840,6 +883,7 @@ function ExpressMaterialEditor({
   estimateId,
   onChange,
   onCommit,
+  onCommitImage,
   onRevert,
   onActiveChange,
   onSelectVariant,
@@ -856,6 +900,7 @@ function ExpressMaterialEditor({
   estimateId?: string;
   onChange: (values: Partial<EditableRowValue>) => void;
   onCommit: (values: Partial<EditableRowValue>) => void;
+  onCommitImage?: (values: Partial<EditableRowValue>) => Promise<void>;
   onRevert: (field: ExpressEditableField) => void;
   onActiveChange: (active: boolean) => void;
   onSelectVariant?: (option: MaterialVariantOption) => void;
@@ -969,11 +1014,12 @@ function ExpressMaterialEditor({
             estimateId={estimateId}
             imageUploadScope={classifyEstimateRowSource(item) === "linked-library" ? "library" : "project"}
             onActiveChange={onActiveChange}
-            onCommitImageUrl={(nextImageUrl, imageAsset) => {
+            onCommitImageUrl={async (nextImageUrl, imageAsset) => {
               const normalizedImageUrl = nextImageUrl.trim();
               const imagePatch = { imageUrl: normalizedImageUrl, imageAsset: imageAsset ?? null };
               onChange(imagePatch);
-              onCommit(imagePatch);
+              if (onCommitImage) await onCommitImage(imagePatch);
+              else await Promise.resolve(onCommit(imagePatch));
             }}
           />
         )}
@@ -1165,6 +1211,7 @@ export function EstimateMaterialCell({
   onExpressEditorActiveChange,
   onExpressFieldChange,
   onExpressFieldCommit,
+  onExpressImageCommit,
   onExpressFieldRevert,
   onReplaceDragOver,
   onReplaceDragLeave,
@@ -1196,6 +1243,7 @@ export function EstimateMaterialCell({
   onExpressEditorActiveChange: (active: boolean) => void;
   onExpressFieldChange: (values: Partial<EditableRowValue>) => void;
   onExpressFieldCommit: (values: Partial<EditableRowValue>) => void;
+  onExpressImageCommit?: (values: Partial<EditableRowValue>) => Promise<void>;
   onExpressFieldRevert: (field: ExpressEditableField) => void;
   onReplaceDragOver: () => void;
   onReplaceDragLeave: () => void;
@@ -1414,6 +1462,7 @@ export function EstimateMaterialCell({
             estimateId={estimateId}
             onChange={onExpressFieldChange}
             onCommit={onExpressFieldCommit}
+            onCommitImage={onExpressImageCommit}
             onRevert={onExpressFieldRevert}
             onActiveChange={onExpressEditorActiveChange}
             onSelectVariant={showInlineVariantControl ? onSelectVariant : undefined}

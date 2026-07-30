@@ -94,7 +94,17 @@ describe("legacy Client Portal token resolution", () => {
     const context = await resolveClientPortalPublicContext(token, 99);
 
     expect(context).toMatchObject({ portal: { id: "portal_1" }, issue: { id: "issue_legacy_2", issue_number: 2 } });
-    expect(mocks.database?.queries.some((query) => query.sql.includes("mapping.migration_status IN ('verified', 'cutover_complete')"))).toBe(true);
+    expect(mocks.database?.queries.some((query) =>
+      query.sql.includes("mapping.migration_status IN ('verified', 'cutover_complete')")
+      && query.sql.includes("portal.workspace_id = legacy.workspace_id")
+      && query.sql.includes("portal.project_id = legacy.project_id")
+      && query.sql.includes("issue.portal_id = portal.id")
+    )).toBe(true);
+    expect(mocks.database?.queries.some((query) =>
+      query.sql.includes("FROM client_portal_issues WHERE id = ? AND portal_id = ?")
+      && query.values[0] === "issue_legacy_2"
+      && query.values[1] === "portal_1"
+    )).toBe(true);
     expect(mocks.database?.queries.some((query) => query.sql.includes("FROM client_portals WHERE stable_token_hash"))).toBe(false);
     expect(await isClientPortalToken(token)).toBe(true);
   });

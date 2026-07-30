@@ -329,7 +329,6 @@ export async function addClientPortalInternalNote({ actor, body: rawBody, databa
   const messageId = `message_${randomUUID()}`;
   await runBatch(database, [
     statement(database, "INSERT INTO client_portal_messages (id, thread_id, actor_type, actor_id, author_snapshot_json, body, reply_to_message_id, idempotency_key, visibility, created_at) VALUES (?, ?, 'internal_user', ?, ?, ?, NULL, ?, 'internal', ?)", [messageId, thread.id, actor.userId, authorSnapshot(actor), body, idempotencyKey, timestamp]),
-    statement(database, "UPDATE client_portal_threads SET updated_at = ? WHERE id = ?", [timestamp, thread.id]),
   ]);
   return { id: messageId, replayed: false };
 }

@@ -51,6 +51,48 @@ type RowMappingRow = {
   row_revision: number | string;
 };
 
+type SnapshotSidecars = {
+  variantSelections: Array<{
+    templateRowItemId: string;
+    selectedPriceOptionId: string;
+    selectedOptionSnapshot: Record<string, unknown>;
+  }>;
+  alternativeGroups: Array<{
+    id: string;
+    selectedTemplateRowItemId: string;
+    name: string;
+  }>;
+  alternativeMembers: Array<{
+    groupId: string;
+    templateRowItemId: string;
+    sortOrder: number;
+  }>;
+  optionalItems: Array<{
+    templateRowItemId: string;
+    isIncluded: boolean;
+  }>;
+  accessoryEdges: Array<{
+    id: string;
+    parentTemplateRowItemId: string;
+    childTemplateRowItemId: string;
+    mode: "required" | "optional";
+    isIncluded: boolean;
+    quantityRule: Record<string, unknown>;
+  }>;
+};
+
+type LinkedTemplateVersionSnapshot = EstimateTemplateVersionSnapshot & {
+  sidecars: SnapshotSidecars;
+};
+
+type PropagationSidecarState = {
+  contributionScopes: Array<Record<string, D1Value>>;
+  variantSelections: Array<Record<string, D1Value>>;
+  alternatives: Array<Record<string, D1Value>>;
+  optionalItems: Array<Record<string, D1Value>>;
+  accessoryEdges: Array<Record<string, D1Value>>;
+};
+
 type ComponentSourceRow = {
   id: string;
   name: string;
@@ -70,6 +112,8 @@ type ComponentSourceRow = {
   option_unit_cost: number | string | null;
   option_misc_cost: number | string | null;
   option_supplier_id: string | null;
+  option_brand_id: string | null;
+  option_brand: string | null;
   option_pricing_source: string | null;
   option_updated_at: string | null;
   cost_unit_cost: number | string | null;
@@ -118,7 +162,7 @@ function nextAttemptAt(attempt: number, now: Date) {
   return new Date(now.getTime() + delayMs).toISOString();
 }
 
-function parseSnapshot(value: unknown): EstimateTemplateVersionSnapshot {
+function parseSnapshot(value: unknown): LinkedTemplateVersionSnapshot {
   const parsed = typeof value === "string" ? JSON.parse(value) as unknown : value;
   if (!parsed || typeof parsed !== "object") throw new TemplatePropagationError(
     "Template version snapshot is invalid.",
@@ -126,7 +170,7 @@ function parseSnapshot(value: unknown): EstimateTemplateVersionSnapshot {
     "mapping_repair_required",
     false,
   );
-  const snapshot = parsed as EstimateTemplateVersionSnapshot;
+  const snapshot = parsed as EstimateTemplateVersionSnapshot & { sidecars?: Partial<SnapshotSidecars> };
   if (snapshot.schemaVersion !== 1 || !Array.isArray(snapshot.nodes) || !Array.isArray(snapshot.rows)) {
     throw new TemplatePropagationError(
       "Template version snapshot is unsupported.",
@@ -135,8 +179,315 @@ function parseSnapshot(value: unknown): EstimateTemplateVersionSnapshot {
       false,
     );
   }
-  assertEstimateTemplateLinkPayloadSize(snapshot);
-  return snapshot;
+  const sidecars: SnapshotSidecars = {
+    variantSelections: Array.isArray(snapshot.sidecars?.variantSelections) ? snapshot.sidecars.variantSelections : [],
+    alternativeGroups: Array.isArray(snapshot.sidecars?.alternativeGroups) ? snapshot.sidecars.alternativeGroups : [],
+    alternativeMembers: Array.isArray(snapshot.sidecars?.alternativeMembers) ? snapshot.sidecars.alternativeMembers : [],
+    optionalItems: Array.isArray(snapshot.sidecars?.optionalItems) ? snapshot.sidecars.optionalItems : [],
+    accessoryEdges: Array.isArray(snapshot.sidecars?.accessoryEdges) ? snapshot.sidecars.accessoryEdges : [],
+  };
+  const rowIds = new Set(snapshot.rows.map((row) => row.id));
+  const groupIds = new Set(sidecars.alternativeGroups.map((group) => group.id));
+  const referencesUnavailableRow = sidecars.variantSelections.some((selection) => !rowIds.has(selection.templateRowItemId))
+    || sidecars.alternativeGroups.some((group) => !rowIds.has(group.selectedTemplateRowItemId))
+    || sidecars.alternativeMembers.some((member) => !groupIds.has(member.groupId) || !rowIds.has(member.templateRowItemId))
+    || sidecars.optionalItems.some((item) => !rowIds.has(item.templateRowItemId))
+    || sidecars.accessoryEdges.some((edge) => (
+      !rowIds.has(edge.parentTemplateRowItemId)
+      || !rowIds.has(edge.childTemplateRowItemId)
+      || edge.parentTemplateRowItemId === edge.childTemplateRowItemId
+    ));
+  if (referencesUnavailableRow) {
+    throw new TemplatePropagationError(
+      "Template version sidecar mapping is invalid.",
+      "template_sidecar_mapping_invalid",
+      "mapping_repair_required",
+      false,
+    );
+  }
+  const normalized = { ...snapshot, sidecars } as LinkedTemplateVersionSnapshot;
+  assertEstimateTemplateLinkPayloadSize(normalized);
+  return normalized;
+}
+
+function buildPropagationSidecarStatements(input: {
+  snapshot: LinkedTemplateVersionSnapshot;
+  estimateRowIdByTemplateId: ReadonlyMap<string, string>;
+  instance: InstanceRow;
+  timestamp: string;
+}) {
+  const variants = input.snapshot.sidecars.variantSelections.map((selection) => ({
+    rowId: input.estimateRowIdByTemplateId.get(selection.templateRowItemId),
+    optionId: selection.selectedPriceOptionId,
+    snapshot: selection.selectedOptionSnapshot,
+  }));
+  const groupIdBySource = new Map(input.snapshot.sidecars.alternativeGroups.map((group) => [group.id, globalThis.crypto.randomUUID()]));
+  const groups = input.snapshot.sidecars.alternativeGroups.map((group) => ({
+    id: groupIdBySource.get(group.id),
+    selectedRowId: input.estimateRowIdByTemplateId.get(group.selectedTemplateRowItemId),
+    name: group.name,
+  }));
+  const members = input.snapshot.sidecars.alternativeMembers.map((member) => ({
+    groupId: groupIdBySource.get(member.groupId),
+    rowId: input.estimateRowIdByTemplateId.get(member.templateRowItemId),
+    sortOrder: numeric(member.sortOrder),
+  }));
+  const optionalItems = input.snapshot.sidecars.optionalItems.map((item) => ({
+    rowId: input.estimateRowIdByTemplateId.get(item.templateRowItemId),
+    isIncluded: item.isIncluded,
+  }));
+  const edges = input.snapshot.sidecars.accessoryEdges.map((edge) => ({
+    id: globalThis.crypto.randomUUID(),
+    parentRowId: input.estimateRowIdByTemplateId.get(edge.parentTemplateRowItemId),
+    childRowId: input.estimateRowIdByTemplateId.get(edge.childTemplateRowItemId),
+    mode: edge.mode,
+    isIncluded: edge.isIncluded,
+    quantityRule: edge.quantityRule,
+  }));
+  if ([...variants, ...groups, ...members, ...optionalItems, ...edges]
+    .some((entry) => Object.values(entry).some((value) => value === undefined))) {
+    throw new TemplatePropagationError(
+      "Template version sidecar mapping is incomplete.",
+      "template_sidecar_mapping_invalid",
+      "mapping_repair_required",
+      false,
+    );
+  }
+  const statements: Array<{ sql: string; values?: D1Value[] }> = [];
+  if (variants.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_row_variant_selections (
+              estimate_row_item_id, estimate_id, workspace_id, selected_price_option_id,
+              selected_option_snapshot_json, selection_revision, selected_at, selected_by
+            )
+            SELECT json_extract(value, '$.rowId'), ?, ?, json_extract(value, '$.optionId'),
+                   json_extract(value, '$.snapshot'), 1, ?, ?
+            FROM json_each(?)`,
+      values: [input.instance.estimate_id, input.instance.workspace_id, input.timestamp, input.instance.created_by, JSON.stringify(variants)],
+    });
+  }
+  const requiresScope = groups.length > 0 || optionalItems.length > 0 || edges.length > 0;
+  if (!requiresScope) return statements;
+  statements.push({
+    sql: `INSERT INTO estimate_contribution_scopes (
+            id, workspace_id, project_id, estimate_id, estimate_tab_id, revision, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+          ON CONFLICT(workspace_id, project_id, estimate_id, estimate_tab_id) DO UPDATE SET
+            revision = estimate_contribution_scopes.revision + 1,
+            updated_at = excluded.updated_at`,
+    values: [globalThis.crypto.randomUUID(), input.instance.workspace_id, input.instance.project_id,
+      input.instance.estimate_id, input.instance.estimate_tab_id, input.timestamp, input.timestamp],
+  });
+  const scopeLookup = `(SELECT id FROM estimate_contribution_scopes
+    WHERE workspace_id = ? AND project_id = ? AND estimate_id = ? AND estimate_tab_id = ?)`;
+  const scopeValues = [input.instance.workspace_id, input.instance.project_id, input.instance.estimate_id, input.instance.estimate_tab_id];
+  if (groups.length > 0) statements.push({
+    sql: `INSERT INTO estimate_alternative_groups (
+            id, contribution_scope_id, selected_row_item_id, name, revision, created_at, updated_at
+          ) SELECT json_extract(value, '$.id'), ${scopeLookup}, json_extract(value, '$.selectedRowId'),
+                   json_extract(value, '$.name'), 1, ?, ? FROM json_each(?)`,
+    values: [...scopeValues, input.timestamp, input.timestamp, JSON.stringify(groups)],
+  });
+  if (members.length > 0) statements.push({
+    sql: `INSERT INTO estimate_alternative_members (
+            contribution_scope_id, group_id, row_item_id, sort_order, created_at
+          ) SELECT ${scopeLookup}, json_extract(value, '$.groupId'), json_extract(value, '$.rowId'),
+                   json_extract(value, '$.sortOrder'), ? FROM json_each(?)`,
+    values: [...scopeValues, input.timestamp, JSON.stringify(members)],
+  });
+  if (optionalItems.length > 0) statements.push({
+    sql: `INSERT INTO estimate_optional_items (
+            contribution_scope_id, row_item_id, is_included, revision, created_at, updated_at
+          ) SELECT ${scopeLookup}, json_extract(value, '$.rowId'), json_extract(value, '$.isIncluded'),
+                   1, ?, ? FROM json_each(?)`,
+    values: [...scopeValues, input.timestamp, input.timestamp, JSON.stringify(optionalItems)],
+  });
+  if (edges.length > 0) statements.push({
+    sql: `INSERT INTO estimate_accessory_edges (
+            id, contribution_scope_id, workspace_id, project_id, estimate_id, estimate_tab_id,
+            parent_row_item_id, child_row_item_id, mode, is_included, quantity_rule_json,
+            revision, created_by, updated_by, created_at, updated_at
+          ) SELECT json_extract(value, '$.id'), ${scopeLookup}, ?, ?, ?, ?,
+                   json_extract(value, '$.parentRowId'), json_extract(value, '$.childRowId'),
+                   json_extract(value, '$.mode'), json_extract(value, '$.isIncluded'),
+                   json_extract(value, '$.quantityRule'), 1, ?, ?, ?, ? FROM json_each(?)`,
+    values: [...scopeValues, input.instance.workspace_id, input.instance.project_id, input.instance.estimate_id,
+      input.instance.estimate_tab_id, input.instance.created_by, input.instance.created_by,
+      input.timestamp, input.timestamp, JSON.stringify(edges)],
+  });
+  return statements;
+}
+
+async function loadPropagationSidecarState(input: {
+  database: D1DatabaseLike;
+  instance: InstanceRow;
+  estimateRowIds: string[];
+}): Promise<PropagationSidecarState> {
+  const rowIds = JSON.stringify(input.estimateRowIds);
+  const [contributionScopes, variantSelections, alternatives, optionalItems, accessoryEdges] = await Promise.all([
+    all<Record<string, D1Value>>(
+      input.database,
+      `SELECT id, revision, created_at, updated_at
+       FROM estimate_contribution_scopes
+       WHERE workspace_id = ? AND project_id = ? AND estimate_id = ? AND estimate_tab_id = ?
+       ORDER BY id`,
+      [input.instance.workspace_id, input.instance.project_id, input.instance.estimate_id, input.instance.estimate_tab_id],
+    ),
+    all<Record<string, D1Value>>(
+      input.database,
+      `SELECT estimate_row_item_id, selected_price_option_id, selected_option_snapshot_json,
+              selection_revision, selected_at, selected_by
+       FROM estimate_row_variant_selections
+       WHERE estimate_id = ? AND workspace_id = ?
+         AND estimate_row_item_id IN (SELECT value FROM json_each(?))
+       ORDER BY estimate_row_item_id`,
+      [input.instance.estimate_id, input.instance.workspace_id, rowIds],
+    ),
+    all<Record<string, D1Value>>(
+      input.database,
+      `SELECT group_row.id AS group_id, group_row.contribution_scope_id,
+              group_row.selected_row_item_id, group_row.name, group_row.revision,
+              group_row.created_at AS group_created_at, group_row.updated_at AS group_updated_at,
+              member.row_item_id AS member_row_item_id, member.sort_order AS member_sort_order,
+              member.created_at AS member_created_at
+       FROM estimate_alternative_groups AS group_row
+       LEFT JOIN estimate_alternative_members AS member ON member.group_id = group_row.id
+       WHERE group_row.selected_row_item_id IN (SELECT value FROM json_each(?))
+          OR EXISTS (
+            SELECT 1 FROM estimate_alternative_members AS linked_member
+            WHERE linked_member.group_id = group_row.id
+              AND linked_member.row_item_id IN (SELECT value FROM json_each(?))
+          )
+       ORDER BY group_row.id, member.sort_order, member.row_item_id`,
+      [rowIds, rowIds],
+    ),
+    all<Record<string, D1Value>>(
+      input.database,
+      `SELECT optional_row.contribution_scope_id, optional_row.row_item_id,
+              optional_row.is_included, optional_row.revision,
+              optional_row.created_at, optional_row.updated_at
+       FROM estimate_optional_items AS optional_row
+       WHERE optional_row.row_item_id IN (SELECT value FROM json_each(?))
+       ORDER BY optional_row.contribution_scope_id, optional_row.row_item_id`,
+      [rowIds],
+    ),
+    all<Record<string, D1Value>>(
+      input.database,
+      `SELECT id, contribution_scope_id, workspace_id, project_id, estimate_id, estimate_tab_id,
+              parent_row_item_id, child_row_item_id, mode, is_included, quantity_rule_json,
+              revision, created_by, updated_by, created_at, updated_at
+       FROM estimate_accessory_edges
+       WHERE estimate_id = ? AND (
+         parent_row_item_id IN (SELECT value FROM json_each(?))
+         OR child_row_item_id IN (SELECT value FROM json_each(?))
+       )
+       ORDER BY id`,
+      [input.instance.estimate_id, rowIds, rowIds],
+    ),
+  ]);
+  return { contributionScopes, variantSelections, alternatives, optionalItems, accessoryEdges };
+}
+
+function buildPropagationSidecarGuard(input: {
+  instance: InstanceRow;
+  estimateRowIds: string[];
+  state: PropagationSidecarState;
+}) {
+  const rowIds = JSON.stringify(input.estimateRowIds);
+  return {
+    sql: `WITH linked_rows(id) AS (SELECT value FROM json_each(?)),
+      current_sidecars(value) AS (
+        SELECT json_object(
+          'contributionScopes', json(COALESCE((
+            SELECT json_group_array(json_object(
+              'id', id, 'revision', revision, 'created_at', created_at, 'updated_at', updated_at
+            )) FROM (
+              SELECT id, revision, created_at, updated_at
+              FROM estimate_contribution_scopes
+              WHERE workspace_id = ? AND project_id = ? AND estimate_id = ? AND estimate_tab_id = ?
+              ORDER BY id
+            )
+          ), '[]')),
+          'variantSelections', json(COALESCE((
+            SELECT json_group_array(json_object(
+              'estimate_row_item_id', estimate_row_item_id,
+              'selected_price_option_id', selected_price_option_id,
+              'selected_option_snapshot_json', selected_option_snapshot_json,
+              'selection_revision', selection_revision, 'selected_at', selected_at, 'selected_by', selected_by
+            )) FROM (
+              SELECT estimate_row_item_id, selected_price_option_id, selected_option_snapshot_json,
+                     selection_revision, selected_at, selected_by
+              FROM estimate_row_variant_selections
+              WHERE estimate_id = ? AND workspace_id = ?
+                AND estimate_row_item_id IN (SELECT id FROM linked_rows)
+              ORDER BY estimate_row_item_id
+            )
+          ), '[]')),
+          'alternatives', json(COALESCE((
+            SELECT json_group_array(json_object(
+              'group_id', group_id, 'contribution_scope_id', contribution_scope_id,
+              'selected_row_item_id', selected_row_item_id, 'name', name, 'revision', revision,
+              'group_created_at', group_created_at, 'group_updated_at', group_updated_at,
+              'member_row_item_id', member_row_item_id, 'member_sort_order', member_sort_order,
+              'member_created_at', member_created_at
+            )) FROM (
+              SELECT group_row.id AS group_id, group_row.contribution_scope_id,
+                     group_row.selected_row_item_id, group_row.name, group_row.revision,
+                     group_row.created_at AS group_created_at, group_row.updated_at AS group_updated_at,
+                     member.row_item_id AS member_row_item_id, member.sort_order AS member_sort_order,
+                     member.created_at AS member_created_at
+              FROM estimate_alternative_groups AS group_row
+              LEFT JOIN estimate_alternative_members AS member ON member.group_id = group_row.id
+              WHERE group_row.selected_row_item_id IN (SELECT id FROM linked_rows)
+                 OR EXISTS (
+                   SELECT 1 FROM estimate_alternative_members AS linked_member
+                   WHERE linked_member.group_id = group_row.id
+                     AND linked_member.row_item_id IN (SELECT id FROM linked_rows)
+                 )
+              ORDER BY group_row.id, member.sort_order, member.row_item_id
+            )
+          ), '[]')),
+          'optionalItems', json(COALESCE((
+            SELECT json_group_array(json_object(
+              'contribution_scope_id', contribution_scope_id, 'row_item_id', row_item_id,
+              'is_included', is_included, 'revision', revision,
+              'created_at', created_at, 'updated_at', updated_at
+            )) FROM (
+              SELECT contribution_scope_id, row_item_id, is_included, revision, created_at, updated_at
+              FROM estimate_optional_items
+              WHERE row_item_id IN (SELECT id FROM linked_rows)
+              ORDER BY contribution_scope_id, row_item_id
+            )
+          ), '[]')),
+          'accessoryEdges', json(COALESCE((
+            SELECT json_group_array(json_object(
+              'id', id, 'contribution_scope_id', contribution_scope_id, 'workspace_id', workspace_id,
+              'project_id', project_id, 'estimate_id', estimate_id, 'estimate_tab_id', estimate_tab_id,
+              'parent_row_item_id', parent_row_item_id, 'child_row_item_id', child_row_item_id,
+              'mode', mode, 'is_included', is_included, 'quantity_rule_json', quantity_rule_json,
+              'revision', revision, 'created_by', created_by, 'updated_by', updated_by,
+              'created_at', created_at, 'updated_at', updated_at
+            )) FROM (
+              SELECT id, contribution_scope_id, workspace_id, project_id, estimate_id, estimate_tab_id,
+                     parent_row_item_id, child_row_item_id, mode, is_included, quantity_rule_json,
+                     revision, created_by, updated_by, created_at, updated_at
+              FROM estimate_accessory_edges
+              WHERE estimate_id = ? AND (
+                parent_row_item_id IN (SELECT id FROM linked_rows)
+                OR child_row_item_id IN (SELECT id FROM linked_rows)
+              )
+              ORDER BY id
+            )
+          ), '[]'))
+        )
+      )
+      SELECT CASE WHEN (SELECT value FROM current_sidecars) = json(?)
+        THEN 1 ELSE json('') END AS template_propagation_sidecar_concurrency_guard`,
+    values: [rowIds, input.instance.workspace_id, input.instance.project_id,
+      input.instance.estimate_id, input.instance.estimate_tab_id,
+      input.instance.estimate_id, input.instance.workspace_id, input.instance.estimate_id,
+      JSON.stringify(input.state)],
+  };
 }
 
 async function loadComponentSources(
@@ -154,7 +505,8 @@ async function loadComponentSources(
             option.id AS option_id, option.is_default AS option_is_default,
             option.label AS option_label, option.unit AS option_unit,
             option.unit_cost AS option_unit_cost, option.misc_cost AS option_misc_cost,
-            option.supplier_id AS option_supplier_id, option.pricing_source AS option_pricing_source,
+            option.supplier_id AS option_supplier_id, option.brand_id AS option_brand_id,
+            option.brand AS option_brand, option.pricing_source AS option_pricing_source,
             option.updated_at AS option_updated_at,
             cost.id AS cost_entry_id, cost.unit_cost AS cost_unit_cost, cost.misc_cost AS cost_misc_cost,
             cost.pricing_source AS cost_pricing_source, cost.pricing_date AS cost_pricing_date,
@@ -214,6 +566,7 @@ function buildComponentRowPayload(
     material: source.name,
     supplier: source.supplier ?? "",
     supplierId: source.option_supplier_id ?? source.supplier_id,
+    brandId: source.option_brand_id,
     quantity: existing ? numeric(existing.quantity) : row.initialTakeoffDefaults.quantity,
     unit: source.option_unit ?? "unit",
     unitCost,
@@ -235,8 +588,8 @@ function buildComponentRowPayload(
       pricingSource: source.cost_pricing_source ?? source.option_pricing_source,
       pricingDate: source.cost_pricing_date,
       sourceUrl: source.cost_source_url,
-      brand: source.brand,
-      brandId: source.brand_id,
+      brand: source.option_brand,
+      brandId: source.option_brand_id,
       supplier: source.supplier,
       supplierId: source.option_supplier_id ?? source.supplier_id,
       unit: source.option_unit,
@@ -399,6 +752,8 @@ async function applyClaimedJob(
       optionUpdatedAt: source.option_updated_at,
       optionUnitCost: source.option_unit_cost,
       optionMiscCost: source.option_misc_cost,
+      optionBrandId: source.option_brand_id,
+      optionBrand: source.option_brand,
       costEntryId: source.cost_entry_id,
       costEntryUpdatedAt: source.cost_updated_at,
       costUnitCost: source.cost_unit_cost,
@@ -426,11 +781,29 @@ async function applyClaimedJob(
       ? buildComponentRowPayload(row, componentSources.get(row.id)!, estimateRowId, estimateNodeId, existing)
       : buildCustomRowPayload(row, estimateRowId, estimateNodeId, existing);
   });
-  assertEstimateTemplateLinkPayloadSize({ nodePayload, rowPayload });
+  const estimateRowIdByTemplateId = new Map(rowPayload.map((row) => [row.templateRowItemId, row.id]));
+  const sidecarStatements = buildPropagationSidecarStatements({
+    snapshot,
+    estimateRowIdByTemplateId,
+    instance,
+    timestamp,
+  });
+  assertEstimateTemplateLinkPayloadSize({ nodePayload, rowPayload, sidecars: snapshot.sidecars });
   const nodePayloadJson = JSON.stringify(nodePayload);
   const rowPayloadJson = JSON.stringify(rowPayload);
   const targetTemplateNodeIds = snapshot.nodes.map((node) => node.id);
   const targetTemplateRowIds = snapshot.rows.map((row) => row.id);
+  const existingEstimateRowIds = rowMappings.map((mapping) => mapping.estimate_row_item_id);
+  const sidecarState = await loadPropagationSidecarState({
+    database,
+    instance,
+    estimateRowIds: existingEstimateRowIds,
+  });
+  const sidecarGuard = buildPropagationSidecarGuard({
+    instance,
+    estimateRowIds: existingEstimateRowIds,
+    state: sidecarState,
+  });
   const history = await prepareHistoryEventInsert(database, {
     workspaceId: instance.workspace_id,
     projectId: instance.project_id,
@@ -492,6 +865,8 @@ async function applyClaimedJob(
             AND option.updated_at IS json_extract(expected.value, '$.optionUpdatedAt')
             AND option.unit_cost IS json_extract(expected.value, '$.optionUnitCost')
             AND option.misc_cost IS json_extract(expected.value, '$.optionMiscCost')
+            AND option.brand_id IS json_extract(expected.value, '$.optionBrandId')
+            AND option.brand IS json_extract(expected.value, '$.optionBrand')
             AND cost.id IS json_extract(expected.value, '$.costEntryId')
             AND cost.updated_at IS json_extract(expected.value, '$.costEntryUpdatedAt')
             AND cost.unit_cost IS json_extract(expected.value, '$.costUnitCost')
@@ -517,6 +892,76 @@ async function applyClaimedJob(
       ) THEN 1 ELSE json('') END AS template_estimate_row_revision_guard`,
       values: [JSON.stringify(estimateRowGuardPayload), instance.estimate_id],
     }] : []),
+    sidecarGuard,
+    {
+      sql: `WITH linked_rows(id) AS (SELECT value FROM json_each(?)),
+        removed_rows(id) AS (
+          SELECT mapping.estimate_row_item_id
+          FROM estimate_template_instance_rows AS mapping
+          WHERE mapping.instance_id = ? AND mapping.workspace_id = ?
+            AND ${removalPredicate("mapping.template_row_item_id")}
+        )
+        SELECT CASE WHEN NOT EXISTS (
+          SELECT 1 FROM estimate_accessory_edges AS edge
+          WHERE (edge.parent_row_item_id IN (SELECT id FROM removed_rows)
+              OR edge.child_row_item_id IN (SELECT id FROM removed_rows))
+            AND NOT (
+              edge.parent_row_item_id IN (SELECT id FROM linked_rows)
+              AND edge.child_row_item_id IN (SELECT id FROM linked_rows)
+              AND edge.created_by IS ?
+            )
+        ) AND NOT EXISTS (
+          SELECT 1 FROM estimate_alternative_groups AS group_row
+          WHERE (
+              group_row.selected_row_item_id IN (SELECT id FROM removed_rows)
+              OR EXISTS (
+                SELECT 1 FROM estimate_alternative_members AS removed_member
+                WHERE removed_member.group_id = group_row.id
+                  AND removed_member.row_item_id IN (SELECT id FROM removed_rows)
+              )
+            )
+            AND NOT (
+              group_row.selected_row_item_id IN (SELECT id FROM linked_rows)
+              AND NOT EXISTS (
+                SELECT 1 FROM estimate_alternative_members AS external_member
+                WHERE external_member.group_id = group_row.id
+                  AND external_member.row_item_id NOT IN (SELECT id FROM linked_rows)
+              )
+            )
+        ) THEN 1 ELSE json('') END AS template_sidecar_removal_ownership_guard`,
+      values: [JSON.stringify(existingEstimateRowIds), instance.id, instance.workspace_id,
+        JSON.stringify(targetTemplateRowIds), instance.created_by],
+    },
+    {
+      sql: `DELETE FROM estimate_accessory_edges
+        WHERE estimate_id = ?
+          AND parent_row_item_id IN (SELECT value FROM json_each(?))
+          AND child_row_item_id IN (SELECT value FROM json_each(?))
+          AND created_by IS ?`,
+      values: [instance.estimate_id, JSON.stringify(existingEstimateRowIds),
+        JSON.stringify(existingEstimateRowIds), instance.created_by],
+    },
+    {
+      sql: `DELETE FROM estimate_optional_items
+        WHERE row_item_id IN (SELECT value FROM json_each(?))`,
+      values: [JSON.stringify(existingEstimateRowIds)],
+    },
+    {
+      sql: `DELETE FROM estimate_alternative_groups
+        WHERE selected_row_item_id IN (SELECT value FROM json_each(?))
+          AND NOT EXISTS (
+            SELECT 1 FROM estimate_alternative_members AS external_member
+            WHERE external_member.group_id = estimate_alternative_groups.id
+              AND external_member.row_item_id NOT IN (SELECT value FROM json_each(?))
+          )`,
+      values: [JSON.stringify(existingEstimateRowIds), JSON.stringify(existingEstimateRowIds)],
+    },
+    {
+      sql: `DELETE FROM estimate_row_variant_selections
+        WHERE estimate_row_item_id IN (SELECT value FROM json_each(?))
+          AND selected_by IS ?`,
+      values: [JSON.stringify(existingEstimateRowIds), instance.created_by],
+    },
     {
       sql: `DELETE FROM estimate_row_items
         WHERE estimate_id = ? AND id IN (
@@ -567,7 +1012,7 @@ async function applyClaimedJob(
     {
       sql: `INSERT INTO estimate_row_items (
         id, estimate_id, node_id, description, designation, discipline, material,
-        supplier, supplier_id, quantity, unit, unit_cost, misc_cost,
+        supplier, supplier_id, brand_id, quantity, unit, unit_cost, misc_cost,
         contingency_percentage, adjustment_percentage, source_snapshot_json,
         sort_order, row_revision, category_node_id, source_library_item_id,
         link_state, metadata_json, pricing_provenance_origin, created_at, updated_at
@@ -576,7 +1021,7 @@ async function applyClaimedJob(
              json_extract(value, '$.description'), json_extract(value, '$.designation'),
              json_extract(value, '$.discipline'), json_extract(value, '$.material'),
              json_extract(value, '$.supplier'), json_extract(value, '$.supplierId'),
-             json_extract(value, '$.quantity'), json_extract(value, '$.unit'),
+             json_extract(value, '$.brandId'), json_extract(value, '$.quantity'), json_extract(value, '$.unit'),
              json_extract(value, '$.unitCost'), json_extract(value, '$.miscCost'),
              json_extract(value, '$.contingencyPercentage'), json_extract(value, '$.adjustmentPercentage'),
              json_extract(value, '$.sourceSnapshot'), json_extract(value, '$.sortOrder'),
@@ -588,7 +1033,7 @@ async function applyClaimedJob(
         node_id = excluded.node_id, description = excluded.description,
         designation = excluded.designation, discipline = excluded.discipline,
         material = excluded.material, supplier = excluded.supplier,
-        supplier_id = excluded.supplier_id, unit = excluded.unit,
+        supplier_id = excluded.supplier_id, brand_id = excluded.brand_id, unit = excluded.unit,
         unit_cost = excluded.unit_cost, misc_cost = excluded.misc_cost,
         source_snapshot_json = excluded.source_snapshot_json, sort_order = excluded.sort_order,
         row_revision = excluded.row_revision, category_node_id = excluded.category_node_id,
@@ -622,6 +1067,7 @@ async function applyClaimedJob(
         estimate_row_item_id = excluded.estimate_row_item_id, updated_at = excluded.updated_at`,
       values: [instance.id, instance.workspace_id, instance.estimate_id, timestamp, timestamp, rowPayloadJson],
     },
+    ...sidecarStatements,
     {
       sql: publicationRevision.sql,
       values: [...(publicationRevision.values ?? [])] as D1Value[],

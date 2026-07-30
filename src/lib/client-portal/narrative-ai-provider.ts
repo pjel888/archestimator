@@ -6,7 +6,7 @@ import {
   type ClientPortalNarrativeFacts,
 } from "@/lib/client-portal/narrative-ai";
 
-export type ClientPortalNarrativeProviderResult = {
+type ClientPortalNarrativeProviderResult = {
   provider: string;
   model: string;
   output: unknown;

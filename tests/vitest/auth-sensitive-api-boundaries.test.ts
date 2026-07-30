@@ -144,7 +144,7 @@ class FakeD1Statement {
       this.database.failNextRun = null;
       throw error;
     }
-    this.database.runStatements.push({ sql: this.sql, values: this.values });
+    this.database.runStatement(this.sql, this.values);
     return { success: true, meta: { changes: 1 } };
   }
 }
@@ -173,6 +173,8 @@ class FakeD1Database {
   readonly statements: FakeD1Statement[] = [];
   readonly runStatements: Array<{ sql: string; values: unknown[] }> = [];
   readonly batchCalls: FakeD1Statement[][] = [];
+  readonly uploadSessions = new Map<string, Record<string, unknown>>();
+  readonly finalizedUploadAssets = new Map<string, Record<string, unknown>>();
 
   prepare(sql: string) {
     const statement = new FakeD1Statement(this, sql);
@@ -185,7 +187,65 @@ class FakeD1Database {
     return Promise.all(statements.map((statement) => statement.run()));
   }
 
+  runStatement(sql: string, values: unknown[]) {
+    this.runStatements.push({ sql, values });
+
+    if (sql.includes("INSERT OR IGNORE INTO upload_sessions")) {
+      this.uploadSessions.set(String(values[0]), {
+        id: values[0],
+        workspace_id: values[1],
+        actor_user_id: values[2],
+        surface: values[3],
+        target_entity_type: values[4],
+        target_entity_id: values[5],
+        storage_bucket: values[6],
+        storage_path: values[7],
+        file_name: values[8],
+        content_type: values[9],
+        size_bytes: values[10],
+        checksum_sha256: values[11],
+        status: "reserved",
+        expires_at: values[12],
+        metadata_json: values[13],
+        created_at: values[14],
+      });
+      return;
+    }
+
+    if (sql.includes("UPDATE upload_sessions") && sql.includes("status = 'finalized'")) {
+      const session = this.uploadSessions.get(String(values[1]));
+      if (session) {
+        session.status = "finalized";
+        session.expires_at = null;
+      }
+      return;
+    }
+
+    if (sql.includes("INSERT INTO upload_assets") && sql.includes("'finalized'")) {
+      this.finalizedUploadAssets.set(String(values[5]), {
+        id: values[0],
+        upload_session_id: values[5],
+        workspace_id: values[1],
+        actor_user_id: values[2],
+        scan_status: values[13],
+        storage_bucket: values[14],
+        storage_path: values[15],
+        status: "finalized",
+      });
+    }
+  }
+
   first(sql: string, values: unknown[]) {
+    if (sql.includes("FROM upload_sessions")) {
+      return this.uploadSessions.get(String(values[0])) ?? null;
+    }
+
+    if (sql.includes("FROM upload_assets") && sql.includes("upload_session_id = ?")) {
+      const asset = this.finalizedUploadAssets.get(String(values[0]));
+      if (!asset || asset.id !== values[1]) return null;
+      return asset;
+    }
+
     if (
       sql.includes("SELECT id, workspace_id") &&
       sql.includes("FROM projects")
@@ -297,6 +357,7 @@ class FakeD1Database {
       if (this.uploadAssetLookupError) throw this.uploadAssetLookupError;
       if (!this.uploadAssetLookupRow) return null;
       if (this.uploadAssetLookupRow.id !== values[0]) return null;
+      if (values.length === 1) return this.uploadAssetLookupRow;
       if (this.uploadAssetLookupRow.workspace_id !== values[1]) return null;
       if (this.uploadAssetLookupRow.storage_bucket !== values[2]) return null;
       if (this.uploadAssetLookupRow.storage_path !== values[3]) return null;
@@ -644,6 +705,33 @@ function mockProjectLookup(
   };
 }
 
+function setProjectImageAsset(
+  database: FakeD1Database,
+  input: {
+    assetId: string;
+    workspaceId: string;
+    projectId: string;
+    path: string;
+    estimateId?: string;
+    rowId?: string;
+  },
+) {
+  database.uploadAssetLookupRow = {
+    id: input.assetId,
+    workspace_id: input.workspaceId,
+    project_id: input.projectId,
+    estimate_id: input.estimateId ?? null,
+    target_entity_type: input.estimateId ? "estimate-row" : "project",
+    target_entity_id: input.rowId ?? input.projectId,
+    storage_bucket: "project-images",
+    storage_path: input.path,
+    thumbnail_path: input.path.replace(/\.webp$/, "-thumb.webp"),
+    content_type: "image/webp",
+    status: "finalized",
+    purge_state: "active",
+  };
+}
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -672,18 +760,20 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("ensureDefaultWorkspace()");
     expect(source).toContain("isWorkspaceEditorInD1");
     expect(source).not.toContain("createSupabaseServerClient");
-    expect(source).toContain("processUploadImageToWebp");
+    expect(source).toContain("createMaterialImageUploadService");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
     expect(source).toContain("scanStatus");
     expect(source).toContain("isOwnedUploadPath");
     expect(source).toContain("path.startsWith(`${workspaceId}/${userId}/`)");
     expect(source).toContain('!path.includes("..")');
-    expect(source).toContain("createComponentImageRouteUrl(path)");
+    expect(source).toContain("createComponentImageRouteUrl(result.path)");
     expect(source).toContain("parseComponentImageStoragePath");
     expect(source).not.toContain(".getPublicUrl(path)");
     expect(source).toContain("getCloudflareD1Database");
-    expect(source).toContain("recordUploadAsset(uploadMetadataDb");
+    expect(source).toContain("reserveUploadAsset(uploadMetadataDb");
+    expect(source).toContain("finalizeReservedUploadAsset(uploadMetadataDb");
+    expect(source).toContain("failReservedUploadAsset(uploadMetadataDb");
     expect(source).not.toContain("record_upload_asset");
   });
 
@@ -707,13 +797,15 @@ describe("sensitive API auth boundaries", () => {
 
   it("keeps project image uploads scoped to the editable target project workspace", () => {
     const source = read("src/app/api/projects/images/route.ts");
+    const service = read("src/lib/uploads/material-image-service.ts");
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("canEditProjectInD1");
-    expect(source).toContain("processUploadImageToWebp");
-    expect(source).toContain("uploadSessionId");
-    expect(source).toContain("assetId");
-    expect(source).toContain("scanStatus");
+    expect(source).toContain("createMaterialImageUploadService");
+    expect(service).toContain("processUploadImageToWebp");
+    expect(service).toContain("uploadSessionId");
+    expect(service).toContain("assetId");
+    expect(service).toContain("scanStatus");
     expect(source).toContain("PRE_BODY_PROJECT_IMAGE_ADMISSION_WORKSPACE_ID");
     expect(source).toContain("readProjectFromD1(uploadMetadataDb, projectId)");
     expect(source).toContain(
@@ -727,7 +819,8 @@ describe("sensitive API auth boundaries", () => {
   });
 
   it("keeps estimate row image uploads scoped to an editable project estimate instead of library managers", () => {
-    const source = read("src/app/api/estimate-row-images/route.ts");
+    const source = read("src/app/api/projects/images/route.ts");
+    const service = read("src/lib/uploads/material-image-service.ts");
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("canEditProjectInD1");
@@ -736,26 +829,30 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("workspaceId: project.workspace_id");
     expect(source).toContain("readEstimateInProjectFromD1(");
     expect(source).toContain("readEstimateRowItemInEstimateFromD1(");
-    expect(source).toContain("processUploadImageToWebp");
+    expect(source).toContain("createMaterialImageUploadService");
+    expect(service).toContain("processUploadImageToWebp");
     expect(source).not.toContain("is_workspace_editor");
     expect(source).not.toContain("createSupabaseServerClient");
     expect(source).not.toContain('.from("projects")');
     expect(source).not.toContain('.from("estimates")');
     expect(source).not.toContain('.from("estimate_row_items")');
-    expect(source).toContain("uploadSessionId");
-    expect(source).toContain("assetId");
+    expect(service).toContain("uploadSessionId");
+    expect(service).toContain("assetId");
     expect(source).toContain("imageAsset");
-    expect(source).toContain("scanStatus");
+    expect(service).toContain("scanStatus");
     expect(source).toContain("PRE_BODY_PROJECT_IMAGE_ADMISSION_WORKSPACE_ID");
     expect(source).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(source).toContain("PROJECT_IMAGE_PATH_SEGMENT");
-    expect(source).toContain("createProjectImageRouteUrl(path)");
+    expect(source).toContain("createProjectImageRouteUrl(result.assetId, \"image\")");
+    expect(source).toContain("readDurableProjectImageAsset(db, assetId)");
+    expect(source).toContain("canAccessEstimateInD1(");
+    expect(source).not.toContain('requestUrl.searchParams.get("path")');
     expect(source).toContain('surface: "project-image"');
     expect(source).toContain(
       "workspaceId: PRE_BODY_PROJECT_IMAGE_ADMISSION_WORKSPACE_ID",
     );
-    expect(source).toContain('targetEntityType: "estimate-row"');
-    expect(source).toContain("targetEntityId: rowItemId");
+    expect(source).toContain('targetEntityType = "estimate-row"');
+    expect(source).toContain("targetEntityId = rowItemId");
     expect(source).toContain("projectId,");
     expect(source).toContain("PROJECT_IMAGE_BUCKET");
     expect(source).not.toContain(
@@ -909,7 +1006,7 @@ describe("sensitive API auth boundaries", () => {
       });
       expect(storage.upload).toHaveBeenCalledOnce();
       expect(
-        d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/),
+        d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_sessions/),
       ).toHaveLength(0);
       expect(storage.remove).toHaveBeenCalledWith([
         expect.stringMatching(/^workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/),
@@ -966,7 +1063,7 @@ describe("sensitive API auth boundaries", () => {
       },
     );
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/),
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_sessions/),
     ).toHaveLength(1);
     expect(
       d1SqlStatements(storage.d1, /INSERT INTO upload_assets/),
@@ -1021,14 +1118,14 @@ describe("sensitive API auth boundaries", () => {
       }),
     );
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/),
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_sessions/),
     ).toHaveLength(1);
     expect(
       d1SqlStatements(storage.d1, /INSERT INTO upload_assets/),
     ).toHaveLength(1);
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_events/),
-    ).toHaveLength(1);
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_events/),
+    ).toHaveLength(2);
     expect(
       storage.d1.runStatements.flatMap((statement) => statement.values),
     ).toEqual(
@@ -1111,13 +1208,16 @@ describe("sensitive API auth boundaries", () => {
     const response = await POST(createFormRequest(formData));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const responseBody = await response.json() as Record<string, unknown>;
+    expect(responseBody).toMatchObject({
       bucket: "project-images",
+      path: expect.any(String),
+      thumbnailPath: expect.any(String),
       uploadSessionId: expect.any(String),
       assetId: expect.any(String),
       scanStatus: "not_required",
-      url: expect.stringContaining("/api/projects/images?path="),
-      thumbnailUrl: expect.stringContaining("/api/projects/images?path="),
+      url: expect.stringMatching(/^\/api\/projects\/images\?assetId=[0-9a-f-]+&variant=image$/),
+      thumbnailUrl: expect.stringMatching(/^\/api\/projects\/images\?assetId=[0-9a-f-]+&variant=thumbnail$/),
       contentType: "image/webp",
     });
     expect(storage.from).toHaveBeenCalledWith("project-images");
@@ -1134,14 +1234,14 @@ describe("sensitive API auth boundaries", () => {
       }),
     );
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/),
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_sessions/),
     ).toHaveLength(1);
     expect(
       d1SqlStatements(storage.d1, /INSERT INTO upload_assets/),
     ).toHaveLength(1);
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_events/),
-    ).toHaveLength(1);
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_events/),
+    ).toHaveLength(2);
     expect(
       storage.d1.runStatements.flatMap((statement) => statement.values),
     ).toEqual(
@@ -1175,15 +1275,9 @@ describe("sensitive API auth boundaries", () => {
     const response = await POST(createFormRequest(formData));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      bucket: "project-images",
-      path: expect.stringMatching(
-        /^shared-workspace\/user-1\/project-images\/project-1\/shared-cover-[0-9a-f-]+\.webp$/,
-      ),
-      thumbnailPath: expect.stringMatching(
-        /^shared-workspace\/user-1\/project-images\/project-1\/shared-cover-[0-9a-f-]+-thumb\.webp$/,
-      ),
-    });
+    const responseBody = await response.json() as Record<string, unknown>;
+    expect(responseBody.url).toEqual(expect.stringContaining("assetId="));
+    expect(responseBody).toMatchObject({ bucket: "project-images", path: expect.any(String), thumbnailPath: expect.any(String) });
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
     ).toHaveLength(1);
@@ -1238,39 +1332,38 @@ describe("sensitive API auth boundaries", () => {
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup(
       { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
-      { canEditProject: true, canEditEstimate: false },
+      { canEditProject: true, canEditEstimate: true },
     );
     const formData = new FormData();
     formData.set("projectId", "project-1");
     formData.set("estimateId", "estimate-1");
     formData.set("rowItemId", "row-1");
     formData.set("file", createPngFile("Reference.PNG"));
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     const response = await POST(createFormRequest(formData));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      bucket: "project-images",
+    const responseBody = await response.json() as Record<string, unknown>;
+    expect(responseBody).toMatchObject({
       uploadSessionId: expect.any(String),
       assetId: expect.any(String),
       scanStatus: "not_required",
-      path: expect.stringMatching(
-        /^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+\.webp$/,
-      ),
-      url: expect.stringContaining("/api/projects/images?path="),
+      url: expect.stringContaining("/api/projects/images?assetId="),
       imageAsset: {
         kind: "upload-asset",
         schemaVersion: 1,
-        bucket: "project-images",
-        url: expect.stringContaining("/api/projects/images?path="),
+        url: expect.stringContaining("/api/projects/images?assetId="),
         scanStatus: "not_required",
       },
     });
+    expect(responseBody).not.toHaveProperty("bucket");
+    expect(responseBody).not.toHaveProperty("path");
+    expect(responseBody).not.toHaveProperty("thumbnailPath");
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.upload).toHaveBeenCalledTimes(2);
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/),
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_sessions/),
     ).toHaveLength(1);
     expect(
       d1SqlStatements(storage.d1, /INSERT INTO upload_assets/),
@@ -1289,8 +1382,8 @@ describe("sensitive API auth boundaries", () => {
       "row-1",
     ]);
     expect(
-      d1SqlStatements(storage.d1, /INSERT INTO upload_events/),
-    ).toHaveLength(1);
+      d1SqlStatements(storage.d1, /INSERT (?:OR IGNORE )?INTO upload_events/),
+    ).toHaveLength(2);
     expect(
       storage.d1.runStatements.flatMap((statement) => statement.values),
     ).toEqual(
@@ -1320,12 +1413,7 @@ describe("sensitive API auth boundaries", () => {
         /FROM estimates\s+WHERE id = \?\s+AND project_id = \?/,
       ),
     ).toHaveLength(1);
-    expect(
-      d1PreparedStatements(
-        projectLookup.d1,
-        /SELECT 1 AS allowed[\s\S]*FROM projects project/,
-      ),
-    ).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /SELECT 1 AS allowed[\s\S]*FROM projects project/)).toHaveLength(0);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/),
     ).toHaveLength(1);
@@ -1345,17 +1433,15 @@ describe("sensitive API auth boundaries", () => {
     formData.set("estimateId", "estimate-1");
     formData.set("rowItemId", "row-1");
     formData.set("file", createPngFile("Shared Row.PNG"));
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     const response = await POST(createFormRequest(formData));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      bucket: "project-images",
-      path: expect.stringMatching(
-        /^shared-workspace\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/shared-row-[0-9a-f-]+\.webp$/,
-      ),
-    });
+    const responseBody = await response.json() as Record<string, unknown>;
+    expect(responseBody.url).toEqual(expect.stringContaining("assetId="));
+    expect(responseBody).not.toHaveProperty("bucket");
+    expect(responseBody).not.toHaveProperty("path");
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
     ).toHaveLength(1);
@@ -1431,7 +1517,7 @@ describe("sensitive API auth boundaries", () => {
 
     const response = await POST(createFormRequest(formData));
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       error: "Image processing is temporarily unavailable. Try again in a moment.",
     });
@@ -1510,7 +1596,7 @@ describe("sensitive API auth boundaries", () => {
   it("rejects estimate row image uploads before parsing bodies when pre-body admission is full", async () => {
     await exhaustProjectImagePreBodyAdmission();
     const request = createUnparsedFormRequest();
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     const response = await POST(request);
 
@@ -2638,17 +2724,19 @@ describe("sensitive API auth boundaries", () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const ownerUserId = "22222222-2222-4222-8222-222222222222";
     const projectId = "33333333-3333-4333-8333-333333333333";
+    const assetId = "55555555-5555-4555-8555-555555555555";
     const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup({
       id: projectId,
       workspace_id: workspaceId,
     });
+    setProjectImageAsset(projectLookup.d1, { assetId, workspaceId, projectId, path });
     const { GET } = await import("@/app/api/projects/images/route");
 
     const response = await GET(
       new Request(
-        `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`,
+        `http://localhost/api/projects/images?assetId=${assetId}&variant=image`,
       ),
     );
 
@@ -2666,21 +2754,23 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.download).toHaveBeenCalledWith(path);
   });
 
-  it("serves private project images for non-UUID Better Auth user id path segments", async () => {
+  it("serves private project images without exposing the Better Auth owner or storage path", async () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const ownerUserId = "OSqP1zB0TgLTAzeGFpHCFEfRM6nQ79pG";
     const projectId = "33333333-3333-4333-8333-333333333333";
+    const assetId = "55555555-5555-4555-8555-555555555556";
     const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup({
       id: projectId,
       workspace_id: workspaceId,
     });
+    setProjectImageAsset(projectLookup.d1, { assetId, workspaceId, projectId, path });
     const { GET } = await import("@/app/api/projects/images/route");
 
     const response = await GET(
       new Request(
-        `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`,
+        `http://localhost/api/projects/images?assetId=${assetId}&variant=image`,
       ),
     );
 
@@ -2702,6 +2792,7 @@ describe("sensitive API auth boundaries", () => {
     const ownerUserId = "22222222-2222-4222-8222-222222222222";
     const projectId = "33333333-3333-4333-8333-333333333333";
     const estimateId = "44444444-4444-4444-8444-444444444444";
+    const assetId = "55555555-5555-4555-8555-555555555557";
     const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/estimate-row-images/${estimateId}/image.webp`;
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup(
@@ -2709,11 +2800,12 @@ describe("sensitive API auth boundaries", () => {
       { canAccessProject: false, canAccessEstimate: true },
       { id: estimateId },
     );
+    setProjectImageAsset(projectLookup.d1, { assetId, workspaceId, projectId, estimateId, rowId: "row-1", path });
     const { GET } = await import("@/app/api/projects/images/route");
 
     const response = await GET(
       new Request(
-        `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`,
+        `http://localhost/api/projects/images?assetId=${assetId}&variant=image`,
       ),
     );
 
@@ -2728,7 +2820,7 @@ describe("sensitive API auth boundaries", () => {
     ).toHaveLength(1);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects project/),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/),
     ).toHaveLength(1);
@@ -2736,17 +2828,63 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.download).toHaveBeenCalledWith(path);
   });
 
+  it("uses distinct lifecycles for separate identical-image upload attempts", async () => {
+    mockStorageClient();
+    const { POST } = await import("@/app/api/component-library/images/route");
+    const upload = async (uploadAttemptId: string) => {
+      const formData = new FormData();
+      formData.set("file", createPngFile("Library Hero.PNG"));
+      formData.set("uploadAttemptId", uploadAttemptId);
+      const response = await POST(createFormRequest(formData));
+      expect(response.status).toBe(200);
+      return response.json() as Promise<{ assetId: string; path: string }>;
+    };
+
+    const first = await upload("11111111-1111-4111-8111-111111111111");
+    const second = await upload("22222222-2222-4222-8222-222222222222");
+
+    expect(second.assetId).not.toBe(first.assetId);
+    expect(second.path).not.toBe(first.path);
+  });
+
+  it("denies estimate-row assets outside the caller's exact estimate scope even with project access", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const estimateId = "44444444-4444-4444-8444-444444444444";
+    const assetId = "55555555-5555-4555-8555-555555555561";
+    const path = `${workspaceId}/owner/project-images/${projectId}/estimate-row-images/${estimateId}/image.webp`;
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup(
+      { id: projectId, workspace_id: workspaceId },
+      { canAccessProject: true, canAccessEstimate: false },
+      { id: estimateId, project_id: projectId },
+    );
+    setProjectImageAsset(projectLookup.d1, { assetId, workspaceId, projectId, estimateId, rowId: "row-1", path });
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(new Request(
+      `http://localhost/api/projects/images?assetId=${assetId}&variant=image`,
+    ));
+
+    expect(response.status).toBe(404);
+    expect(storage.download).not.toHaveBeenCalled();
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(0);
+  });
+
   it("revalidates project images only after authenticated D1 access", async () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const ownerUserId = "22222222-2222-4222-8222-222222222222";
     const projectId = "33333333-3333-4333-8333-333333333333";
+    const assetId = "55555555-5555-4555-8555-555555555558";
     const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
-    const url = `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`;
+    const url = `http://localhost/api/projects/images?assetId=${assetId}&variant=image`;
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup({
       id: projectId,
       workspace_id: workspaceId,
     });
+    setProjectImageAsset(projectLookup.d1, { assetId, workspaceId, projectId, path });
     const { GET } = await import("@/app/api/projects/images/route");
 
     const initialResponse = await GET(new Request(url));
@@ -2785,17 +2923,19 @@ describe("sensitive API auth boundaries", () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const ownerUserId = "22222222-2222-4222-8222-222222222222";
     const projectId = "33333333-3333-4333-8333-333333333333";
+    const assetId = "55555555-5555-4555-8555-555555555559";
     const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup(
       { id: projectId, workspace_id: workspaceId },
       { canAccessProject: false },
     );
+    setProjectImageAsset(projectLookup.d1, { assetId, workspaceId, projectId, path });
     const { GET } = await import("@/app/api/projects/images/route");
 
     const response = await GET(
       new Request(
-        `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`,
+        `http://localhost/api/projects/images?assetId=${assetId}&variant=image`,
       ),
     );
 
@@ -2840,6 +2980,7 @@ describe("sensitive API auth boundaries", () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const ownerUserId = "22222222-2222-4222-8222-222222222222";
     const projectId = "33333333-3333-4333-8333-333333333333";
+    const assetId = "55555555-5555-4555-8555-555555555560";
     const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
     const projectLookup = mockProjectLookup({
       id: projectId,
@@ -2851,7 +2992,7 @@ describe("sensitive API auth boundaries", () => {
 
     const response = await GET(
       new Request(
-        `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`,
+        `http://localhost/api/projects/images?assetId=${assetId}&variant=image`,
       ),
     );
 
@@ -2927,7 +3068,7 @@ describe("sensitive API auth boundaries", () => {
       new Error("NEXT_REDIRECT:/login"),
     );
     const request = createUnparsedFormRequest();
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     await expect(POST(request)).rejects.toThrow("NEXT_REDIRECT:/login");
 
@@ -2950,7 +3091,7 @@ describe("sensitive API auth boundaries", () => {
     formData.set("estimateId", "estimate-2");
     formData.set("rowItemId", "row-1");
     formData.set("file", file);
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     const response = await POST(createFormRequest(formData));
 
@@ -2987,7 +3128,7 @@ describe("sensitive API auth boundaries", () => {
     formData.set("estimateId", "estimate-1");
     formData.set("rowItemId", "row-1");
     formData.set("file", file);
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     const response = await POST(createFormRequest(formData));
 
@@ -3006,7 +3147,7 @@ describe("sensitive API auth boundaries", () => {
     ).toHaveLength(1);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM projects project/),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(
       d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/),
     ).toHaveLength(1);
@@ -3032,7 +3173,7 @@ describe("sensitive API auth boundaries", () => {
     formData.set("estimateId", "estimate-1");
     formData.set("rowItemId", "stale-row");
     formData.set("file", file);
-    const { POST } = await import("@/app/api/estimate-row-images/route");
+    const { POST } = await import("@/app/api/projects/images/route");
 
     const response = await POST(createFormRequest(formData));
 

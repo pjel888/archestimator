@@ -52,6 +52,7 @@ const PROJECT_COMPONENT_PROJECTION_COLUMNS = `
   row_items.description,
   row_items.supplier,
   row_items.supplier_id,
+  row_items.brand_id,
   row_items.unit,
   row_items.unit_cost,
   row_items.quantity,
@@ -104,6 +105,7 @@ export type ProjectComponentProjectionRow = {
   description: string;
   supplier: string;
   supplier_id: string | null;
+  brand_id: string | null;
   unit: string;
   unit_cost: number | string;
   quantity: number | string;
@@ -146,6 +148,7 @@ type ProjectComponentProjectionD1Row = {
   description: string | null;
   supplier: string | null;
   supplier_id: string | null;
+  brand_id: string | null;
   unit: string | null;
   unit_cost: number | string | null;
   quantity: number | string | null;
@@ -240,6 +243,7 @@ function fromD1ProjectComponentRow(row: ProjectComponentProjectionD1Row): Projec
     description: row.description ?? "",
     supplier: row.supplier ?? "",
     supplier_id: row.supplier_id,
+    brand_id: row.brand_id,
     unit: row.unit ?? "",
     unit_cost: row.unit_cost ?? 0,
     quantity: row.quantity ?? 0,
@@ -334,6 +338,8 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     ? sourceSnapshot.categoryPathIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     : undefined;
   const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
+  const brand = typeof sourceSnapshot.brand === "string" ? sourceSnapshot.brand : undefined;
+  const brandId = row.brand_id ?? (typeof sourceSnapshot.brandId === "string" ? sourceSnapshot.brandId : undefined);
   const estimateName = row.estimate_nodes?.estimates?.name;
   const estimateId = row.estimate_nodes?.estimates?.id;
   const nodeName = row.estimate_nodes?.name;
@@ -347,6 +353,8 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     description: row.description,
     supplier: row.supplier || "No supplier",
     supplierId: supplierId ?? undefined,
+    brand,
+    brandId: brandId ?? undefined,
     source: "project",
     unit: row.unit || "unit",
     itemCost,

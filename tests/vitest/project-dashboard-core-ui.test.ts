@@ -39,7 +39,7 @@ describe("project dashboard core UI governance", () => {
     expect(projectChromeAsync).toContain("getProjectTeamAccessHref(projectId)");
     expect(projectChromeAsync).toContain('data-project-team-access-link="true"');
     expect(projectChromeAsync).toContain("publicationSummary={publicationSummary}");
-    expect(projectChromeAsync).toContain("canOpenPublisherDrawer");
+    expect(projectChromeAsync).toContain("canOpenCommitmentTimeline");
     expect(projectChromeAsync).not.toContain("isPublisherEnabled()");
     expect(projectChromeAsync).not.toContain("if (!publisherEnabled)");
     expect(projectChromeAsync).not.toContain("<ProjectPublicationHeader");

@@ -14,6 +14,7 @@ import {
 } from "@/lib/client-portal/policy";
 import { checkClientPortalEvidenceUploadRateLimits } from "@/lib/client-portal/public-rate-limits";
 import { readBoundedFormData } from "@/lib/http/read-bounded-body";
+import { logAppError } from "@/lib/observability/logger";
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
@@ -26,6 +27,7 @@ import {
 import {
   failReservedUploadAsset,
   finalizeReservedUploadAsset,
+  renewReservedUploadCleanupLease,
   reserveUploadAsset,
 } from "@/lib/uploads/upload-records";
 
@@ -76,6 +78,7 @@ export type RecipientEvidenceByteUploadDependencies = {
   reserveUpload: typeof reserveUploadAsset;
   finalizeUpload: typeof finalizeReservedUploadAsset;
   failUpload: typeof failReservedUploadAsset;
+  renewCleanupLease: typeof renewReservedUploadCleanupLease;
   buildPendingEvidenceUploadStatement: typeof buildPendingEvidenceUploadStatement;
   createId: () => string;
   now: () => string;
@@ -248,6 +251,7 @@ const dependencies: RecipientEvidenceByteUploadDependencies = {
   reserveUpload: reserveUploadAsset,
   finalizeUpload: finalizeReservedUploadAsset,
   failUpload: failReservedUploadAsset,
+  renewCleanupLease: renewReservedUploadCleanupLease,
   buildPendingEvidenceUploadStatement,
   createId: randomUUID,
   now: () => new Date().toISOString(),
@@ -453,7 +457,7 @@ export async function handleRecipientEvidenceByteUpload(
       userId: actor.recipientId,
       fileName: uploadFileName,
       extension: isImage ? "webp" : MIME_EXTENSIONS[declaredMime],
-      targetEntityId: context.portal.project_id,
+      targetEntityId: exposure.requestVersionId,
     });
 
     let reservation: Awaited<ReturnType<typeof reserveUploadAsset>> | null = null;
@@ -485,6 +489,12 @@ export async function handleRecipientEvidenceByteUpload(
           ...normalizedImageMetadata,
         },
       });
+      if (reservation.reservationState === "finalized") {
+        return json({ status: "pending_scan" });
+      }
+      if (reservation.reservationState === "in_progress") {
+        return json({ error: "This evidence upload is already in progress." }, 409, { "Retry-After": "1" });
+      }
       storageProvider = await routeDependencies.createStorageProvider();
       storageAttempted = true;
       await storageProvider.uploadObject({
@@ -514,15 +524,40 @@ export async function handleRecipientEvidenceByteUpload(
       }
       if (!finalized) throw finalizationError;
     } catch {
-      if (reservation && !objectStored) {
-        if (storageAttempted && storageProvider) {
-          await storageProvider.removeObjects(policy.bucket, [objectPath]).catch(() => undefined);
+      if (reservation?.reservationState === "acquired" && !objectStored) {
+        let cleanupFenced = false;
+        try {
+          await routeDependencies.renewCleanupLease(context.database, reservation);
+          cleanupFenced = true;
+        } catch (error) {
+          logAppError(error, {
+            action: "fence_recipient_evidence_cleanup",
+            context: { uploadSessionId: reservation.uploadSessionId },
+            event: "recipient_evidence_cleanup_fence_rejected",
+          });
         }
-        await routeDependencies.failUpload(
-          context.database,
-          reservation,
-          "storage",
-        ).catch(() => undefined);
+        if (cleanupFenced) {
+          if (storageAttempted && storageProvider) {
+            try {
+              await storageProvider.removeObjects(policy.bucket, [objectPath]);
+            } catch (error) {
+              logAppError(error, {
+                action: "remove_failed_recipient_evidence_object",
+                context: { uploadSessionId: reservation.uploadSessionId },
+                event: "recipient_evidence_cleanup_failed",
+              });
+            }
+          }
+          try {
+            await routeDependencies.failUpload(context.database, reservation, "storage");
+          } catch (error) {
+            logAppError(error, {
+              action: "record_failed_recipient_evidence_upload",
+              context: { uploadSessionId: reservation.uploadSessionId },
+              event: "recipient_evidence_failure_record_failed",
+            });
+          }
+        }
       }
       return json({ error: "Evidence upload could not be finalized." }, 503);
     }

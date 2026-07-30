@@ -77,6 +77,16 @@ beforeAll(() => {
 
 describe("EstimateTabStrip", () => {
   beforeEach(() => {
+    vi.stubGlobal("matchMedia", vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
     actionMocks.createEstimateTab.mockReset();
     actionMocks.archiveEstimateTab.mockReset();
     actionMocks.deleteEstimateTab.mockReset();
@@ -87,6 +97,7 @@ describe("EstimateTabStrip", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("renders a WAI-ARIA tablist with the active estimate tab", () => {
@@ -109,6 +120,34 @@ describe("EstimateTabStrip", () => {
     // C3/Req 13: "New tab" button has been relocated to the middle-panel header
     // toolbar — it is no longer rendered inside the tab strip (or its tablist).
     expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
+  });
+
+  it("marks newly added tabs for entry animation", async () => {
+    const onTabChange = vi.fn();
+    const onTabsChange = vi.fn();
+    const { rerender } = render(
+      <EstimateTabStrip
+        tabs={fixtureTabs()}
+        activeTabId="tab-main"
+        projectId="project-1"
+        estimateId="estimate-1"
+        onTabChange={onTabChange}
+        onTabsChange={onTabsChange}
+      />,
+    );
+
+    rerender(
+      <EstimateTabStrip
+        tabs={[...fixtureTabs(), { id: "tab-new", name: "New", sortOrder: 2, isDefault: false }]}
+        activeTabId="tab-main"
+        projectId="project-1"
+        estimateId="estimate-1"
+        onTabChange={onTabChange}
+        onTabsChange={onTabsChange}
+      />,
+    );
+
+    await waitFor(() => expect(tabButton("tab-new")).toHaveClass("animate-in"));
   });
 
   it("matches the sidebar tab group surface and height contract", () => {

@@ -36,6 +36,7 @@ const estimateId = "77777777-7777-4777-8777-777777777719";
 const targetNodeId = "55555555-5555-4555-8555-555555555561";
 const cabinetRowId = "66666666-6666-4666-8666-666666666661";
 const sinkRowId = "66666666-6666-4666-8666-666666666662";
+const estimateTabId = "99999999-9999-4999-8999-999999999991";
 
 const cabinetRow: EstimateRowItem = {
   id: cabinetRowId,
@@ -109,6 +110,8 @@ function renderSheet(rows: EstimateRowItem[]) {
           nodes={nodes}
           projectId={projectId}
           estimateId={estimateId}
+          dataTabId={estimateTabId}
+          initialTabId={estimateTabId}
           renderSidebar={false}
         />
       </QueryClientProvider>

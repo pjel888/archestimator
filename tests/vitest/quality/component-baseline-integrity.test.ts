@@ -20,9 +20,10 @@ import {
 } from "../../../scripts/quality/validate-baseline-admission";
 
 const roots: string[] = [];
-const reportRaw = Buffer.from('{"success":true,"numTotalTests":0,"testResults":[]}');
+const reportRaw = Buffer.from('{"success":true,"numTotalTestSuites":0,"numPassedTestSuites":0,"numFailedTestSuites":0,"numPendingTestSuites":0,"numTotalTests":0,"numPassedTests":0,"numFailedTests":0,"numPendingTests":0,"numTodoTests":0,"testResults":[]}');
 const coverageValue = { total: 1, covered: 1, skipped: 0, pct: 100 };
-const coverageRaw = Buffer.from(JSON.stringify({ total: { statements: coverageValue, branches: coverageValue, functions: coverageValue, lines: coverageValue } }));
+const coverageMetrics = { statements: coverageValue, branches: coverageValue, functions: coverageValue, lines: coverageValue };
+const coverageRaw = Buffer.from(JSON.stringify({ total: coverageMetrics, "src/example.ts": coverageMetrics }));
 const candidateSha = "c".repeat(64);
 const candidatePath = "artifacts/quality/candidate.json";
 const candidateRecord: CandidateRecord = {
@@ -58,7 +59,7 @@ function retainedMeasurement() {
 function bindingFixture() {
   const inventoryRaw = Buffer.from(JSON.stringify({
     schema_version: 1,
-    admission: { phase: "admission", status: "review_pending" },
+    admission: { phase: "admission", status: "review_pending", bootstrap: true, author_ids: ["author"] },
     source: {
       command: retainedMeasurement().command,
       commit: retainedMeasurement().candidate.commit_sha,
@@ -85,6 +86,8 @@ function bindingFixture() {
       review_source: "local-agent",
       reviewer_identity_assurance: "asserted-local",
       author_identity_assurance: "asserted-local",
+      bootstrap: true,
+      predecessor_baseline_sha256: null,
     },
   }));
   return { inventoryRaw, validationRaw };
@@ -225,6 +228,8 @@ describe("canonical component baseline generation integrity", () => {
         review_source: "local-agent",
         reviewer_identity_assurance: "asserted-local",
         author_identity_assurance: "asserted-local",
+        bootstrap: false,
+        predecessor_baseline_sha256: "1".repeat(64),
       },
     }));
     expect(codes(validateCanonicalGenerationBindings({
@@ -247,6 +252,23 @@ describe("canonical component baseline generation integrity", () => {
       expectedInventorySha256: sha256(inventoryRaw),
       expectedValidationSha256: sha256(validationRaw),
     })).toEqual([]);
+  });
+
+  it("rejects a PASS validation whose bootstrap decision differs from the reviewed inventory", () => {
+    const fixture = bindingFixture();
+    const validation = JSON.parse(fixture.validationRaw.toString());
+    validation.data.bootstrap = false;
+    validation.data.predecessor_baseline_sha256 = "1".repeat(64);
+    const validationRaw = Buffer.from(JSON.stringify(validation));
+
+    expect(codes(validateCanonicalGenerationBindings({
+      inventoryRaw: fixture.inventoryRaw,
+      validationRaw,
+      reportRaw,
+      coverageRaw,
+      expectedInventorySha256: sha256(fixture.inventoryRaw),
+      expectedValidationSha256: sha256(validationRaw),
+    }))).toContain("GENERATION_ADMISSION_BINDING_MISMATCH");
   });
 
   it("rejects report and coverage bytes swapped after admission", () => {
@@ -287,6 +309,8 @@ describe("canonical component baseline generation integrity", () => {
         review_source: "local-agent",
         reviewer_identity_assurance: "asserted-local",
         author_identity_assurance: "asserted-local",
+        bootstrap: false,
+        predecessor_baseline_sha256: "1".repeat(64),
       },
     }));
     expect(codes(validateCanonicalGenerationBindings({
@@ -346,6 +370,8 @@ describe("canonical component baseline generation integrity", () => {
         review_source: "local-agent",
         reviewer_identity_assurance: "asserted-local",
         author_identity_assurance: "asserted-local",
+        bootstrap: true,
+        predecessor_baseline_sha256: null,
       },
     }));
     const qualityReview = `Decision: APPROVE\nInventory SHA-256: ${sha256(inventoryRaw)}\nCandidate Digest: ${retainedMeasurement().candidate.inner_sha256}\nReviewer: quality-reviewer\nReviewer Role: read-only\nSource: local-agent\nReviewer Identity Assurance: asserted-local\nAuthor Identity Assurance: asserted-local\n`;
@@ -402,6 +428,8 @@ describe("canonical component baseline generation integrity", () => {
         review_source: "local-agent",
         reviewer_identity_assurance: "asserted-local",
         author_identity_assurance: "asserted-local",
+        bootstrap: true,
+        predecessor_baseline_sha256: null,
       },
       suite: { test_files: [], total_tests: 0 },
       allowed_failures: [],
@@ -409,6 +437,16 @@ describe("canonical component baseline generation integrity", () => {
     };
     expect(codes(await validateCanonicalBaselineArtifacts(root, baseline))).toContain(
       "COMPONENT_BASELINE_SOURCE_INVENTORY_MISMATCH",
+    );
+    const substitutedCoverage = structuredClone(baseline);
+    for (const metrics of Object.values(substitutedCoverage.coverage)) {
+      for (const value of Object.values(metrics)) {
+        value.covered = 0;
+        value.pct = 0;
+      }
+    }
+    expect(codes(await validateCanonicalBaselineArtifacts(root, substitutedCoverage))).toContain(
+      "COMPONENT_BASELINE_EMBEDDED_COVERAGE_MISMATCH",
     );
     await writeFile(join(root, "quality/baselines/component/inventory.json"), "{}\n");
     await expect(validateCanonicalBaselineArtifacts(root, baseline)).resolves.toEqual(
@@ -427,6 +465,42 @@ describe("canonical component baseline generation integrity", () => {
       disallowedReviewers: ["author"],
     });
     expect(codes(result.findings)).toEqual(expect.arrayContaining(["REVIEW_DECISION", "REVIEW_SHA"]));
+  });
+
+  it("rejects duplicate, contradictory, or unknown review fields", () => {
+    const inventorySha = "1".repeat(64);
+    const approved = (reviewer: string) => `Decision: APPROVE\nInventory SHA-256: ${inventorySha}\nCandidate Digest: ${innerDigest}\nReviewer: ${reviewer}\nReviewer Role: read-only\nSource: local-agent\nReviewer Identity Assurance: asserted-local\nAuthor Identity Assurance: asserted-local\n`;
+    const result = validateReviewBuffers({
+      qualityRaw: `${approved("quality-reviewer")}Decision: REJECT\n`,
+      securityRaw: `${approved("security-reviewer")}Finding: none\n`,
+      inventorySha256: inventorySha,
+      candidateDigest: innerDigest,
+      disallowedReviewers: ["author"],
+    });
+
+    expect(codes(result.findings)).toEqual(expect.arrayContaining(["REVIEW_DECISION", "REVIEW_SHA"]));
+  });
+
+  it("rejects reviewer whitespace aliases", () => {
+    const inventorySha = "1".repeat(64);
+    const approved = (reviewer: string) => `Decision: APPROVE\nInventory SHA-256: ${inventorySha}\nCandidate Digest: ${innerDigest}\nReviewer: ${reviewer}\nReviewer Role: read-only\nSource: local-agent\nReviewer Identity Assurance: asserted-local\nAuthor Identity Assurance: asserted-local\n`;
+    const authorAlias = validateReviewBuffers({
+      qualityRaw: approved("author "),
+      securityRaw: approved("security-reviewer"),
+      inventorySha256: inventorySha,
+      candidateDigest: innerDigest,
+      disallowedReviewers: ["author"],
+    });
+    const duplicateAlias = validateReviewBuffers({
+      qualityRaw: approved("same-reviewer"),
+      securityRaw: approved("same-reviewer "),
+      inventorySha256: inventorySha,
+      candidateDigest: innerDigest,
+      disallowedReviewers: [],
+    });
+
+    expect(codes(authorAlias.findings)).toContain("REVIEW_DECISION");
+    expect(codes(duplicateAlias.findings)).toContain("REVIEW_DECISION");
   });
 
   it("requires honest local identity assurance in both exact review buffers", () => {

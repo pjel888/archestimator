@@ -152,6 +152,10 @@ function createDatabase() {
     "migrations/0117_onboarding_starter_mutation_fences.sql",
     "utf8",
   ));
+  sqlite.exec(`
+    ALTER TABLE cost_library_item_price_options ADD COLUMN brand_id TEXT;
+    ALTER TABLE cost_library_item_price_options ADD COLUMN brand TEXT NOT NULL DEFAULT '';
+  `);
   sqlite.prepare(`
     INSERT INTO workspaces (id, name, created_by, created_at, updated_at)
     VALUES (?, 'Workspace', ?, ?, ?)

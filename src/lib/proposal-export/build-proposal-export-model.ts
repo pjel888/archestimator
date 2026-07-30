@@ -1,5 +1,8 @@
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import { computeEstimateRowCostParts } from "@/lib/estimates/estimate-row-total";
+import { calculateVat } from "@/lib/commercial-terms/calculate-vat";
+import { evaluateAssemblyQuantityRule } from "@/lib/estimates/assembly-quantity-rule";
+import { resolveEffectiveContribution } from "@/lib/estimates/effective-contribution";
 import type {
   ProposalExportMetadata,
   ProposalExportModel,
@@ -63,6 +66,7 @@ function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
   const pricingSource = normalizeWhitespace(row.pricingSource);
   const pricingDate = normalizeWhitespace(row.pricingDate);
   const notes = normalizeWhitespace(row.notes);
+  const quotationReference = normalizeWhitespace(row.quotationReference);
 
   // `showSupplierInRemarks` gates internal pricing intelligence (supplier and pricing
   // source/date) together — applyAudiencePolicy forces it off for a client
@@ -74,6 +78,23 @@ function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
     if (pricingDate) remarks.push(`As of ${pricingDate}`);
   }
   if (notes) remarks.push(notes);
+  if (row.quotationRequirement === "required" || row.quotationStatus) {
+    const quotationStatus = row.quotationStatus
+      ? row.quotationStatus.replaceAll("_", " ")
+      : "not requested";
+    remarks.push(`Quotation: ${quotationStatus}${quotationReference ? ` (${quotationReference})` : ""}`);
+  }
+  if (row.commercialVatTreatment) {
+    const vatLabel = row.commercialVatTreatment === "inclusive"
+      ? "VAT INC"
+      : row.commercialVatTreatment === "exclusive"
+        ? "VAT EX"
+        : "VAT Exempt";
+    const vatRate = row.commercialVatTreatment === "exempt"
+      ? ""
+      : ` ${(row.commercialVatRateBps ?? 1200) / 100}%`;
+    remarks.push(`${vatLabel}${vatRate}`);
+  }
 
   return remarks.join(" | ");
 }
@@ -93,14 +114,15 @@ function normalizeSourceRow(
   flatRow: ProposalFlatSourceRow<EstimateRowItem>,
   settings: ProposalExportSettings,
   currencyCode: string,
+  quantityOverride?: number,
 ): ProposalNormalizedSourceRow {
   const sourceRow = flatRow.sourceRow;
-  const quantityBase = sourceRow.quantityBase ?? null;
+  const quantityBase = quantityOverride === undefined ? sourceRow.quantityBase ?? null : null;
   const quantityContingencyAmount = quantityBase === null ? null : sourceRow.quantityContingencyAmount ?? 0;
   const legacyAdjustmentPercentage = quantityBase === null ? sourceRow.contingencyPercentage ?? 0 : 0;
   const adjustmentPercentage = sourceRow.adjustmentPercentage ?? legacyAdjustmentPercentage;
   const calculation = computeEstimateRowCostParts({
-    quantity: sourceRow.quantity,
+    quantity: quantityOverride ?? sourceRow.quantity,
     quantity_base: quantityBase,
     quantity_contingency_amount: quantityContingencyAmount,
     unit_cost: sourceRow.itemCost,
@@ -120,6 +142,24 @@ function normalizeSourceRow(
   const contingencySubtotal = costParts.adjustmentMinorUnits / 100;
   const miscSubtotal = costParts.miscMinorUnits / 100;
   const costAmount = costParts.total;
+  const vatTreatment = sourceRow.commercialVatTreatment ?? null;
+  const vatRateBps = vatTreatment === null
+    ? null
+    : vatTreatment === "exempt"
+      ? 0
+      : sourceRow.commercialVatRateBps ?? 1200;
+  const vatCalculation = vatTreatment === null || vatRateBps === null
+    ? null
+    : calculateVat({
+        enteredMinorUnits: Math.round(costAmount * 100),
+        currencyCode,
+        currencyScale: 2,
+        terms: { treatment: vatTreatment, rateBps: vatRateBps },
+      });
+  if (vatCalculation && !vatCalculation.ok) {
+    throw new Error(`Cannot build proposal export model: invalid commercial ${vatCalculation.field}.`);
+  }
+  const vatValue = vatCalculation?.ok ? vatCalculation.value : null;
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
   // P3-T2: per-row scope from row metadata (else included).
   const scopeStatus: ProposalScopeStatus = normalizeScope(sourceRow.scopeStatus);
@@ -145,10 +185,156 @@ function normalizeSourceRow(
     contingencySubtotal,
     miscSubtotal,
     costAmount,
+    vatTreatment,
+    vatRateBps,
+    preVatAmount: vatValue ? vatValue.preVatMinorUnits / 100 : null,
+    vatAmount: vatValue ? vatValue.vatMinorUnits / 100 : null,
+    vatExemptAmount: vatValue ? vatValue.vatExemptMinorUnits / 100 : null,
+    totalWithVat: vatValue ? vatValue.grandTotalMinorUnits / 100 : null,
     remarks: buildRemarks(sourceRow, settings),
     scopeStatus,
     includedInTotal: scopeStatus === "included",
   };
+}
+
+type ProjectedAccessoryEdge = {
+  parentRowId: string;
+  childRowId: string;
+  isIncluded: boolean;
+  quantityRule: Record<string, unknown>;
+};
+
+function resolveEffectiveProposalRows(
+  flatRows: ProposalFlatSourceRow<EstimateRowItem>[],
+  settings: ProposalExportSettings,
+  currencyCode: string,
+) {
+  const flatRowById = new Map(flatRows.map((flatRow) => [flatRow.sourceRowId, flatRow]));
+  const baseRows = new Map(flatRows.map((flatRow) => [
+    flatRow.sourceRowId,
+    normalizeSourceRow(flatRow, settings, currencyCode),
+  ]));
+  const accessoryByChild = new Map<string, ProjectedAccessoryEdge>();
+
+  for (const flatRow of flatRows) {
+    for (const child of flatRow.sourceRow.accessoryChildren ?? []) {
+      accessoryByChild.set(child.childRowItemId, {
+        parentRowId: flatRow.sourceRowId,
+        childRowId: child.childRowItemId,
+        isIncluded: child.isIncluded,
+        quantityRule: child.quantityRule,
+      });
+    }
+  }
+  for (const flatRow of flatRows) {
+    const parent = flatRow.sourceRow.accessoryParent;
+    if (!parent) continue;
+    accessoryByChild.set(flatRow.sourceRowId, {
+      parentRowId: parent.parentRowItemId,
+      childRowId: flatRow.sourceRowId,
+      isIncluded: parent.isIncluded,
+      quantityRule: parent.quantityRule,
+    });
+  }
+
+  const effectiveRows = new Map<string, ProposalNormalizedSourceRow>();
+  const effectiveAccessoryInclusion = new Map<string, boolean>();
+  const resolving = new Set<string>();
+  const resolveAccessoryRow = (rowId: string): ProposalNormalizedSourceRow => {
+    const existing = effectiveRows.get(rowId);
+    if (existing) return existing;
+    if (resolving.has(rowId)) throw new Error(`Cannot build proposal export model: accessory cycle at ${rowId}.`);
+    const flatRow = flatRowById.get(rowId);
+    const baseRow = baseRows.get(rowId);
+    if (!flatRow || !baseRow) throw new Error(`Cannot build proposal export model: missing contribution row ${rowId}.`);
+    const accessory = accessoryByChild.get(rowId);
+    if (!accessory) {
+      effectiveAccessoryInclusion.set(rowId, true);
+      effectiveRows.set(rowId, baseRow);
+      return baseRow;
+    }
+
+    resolving.add(rowId);
+    const parent = resolveAccessoryRow(accessory.parentRowId);
+    const isIncluded = accessory.isIncluded
+      && effectiveAccessoryInclusion.get(accessory.parentRowId) !== false;
+    const quantity = isIncluded
+      ? evaluateAssemblyQuantityRule(accessory.quantityRule, { parentQuantity: parent.quantity })
+      : { ok: true as const, quantity: 0 };
+    if (!quantity.ok) {
+      throw new Error(`Cannot build proposal export model: invalid accessory ${quantity.error.path}.`);
+    }
+    const effectiveRow = normalizeSourceRow(flatRow, settings, currencyCode, quantity.quantity);
+    resolving.delete(rowId);
+    effectiveAccessoryInclusion.set(rowId, isIncluded);
+    effectiveRows.set(rowId, effectiveRow);
+    return effectiveRow;
+  };
+
+  for (const flatRow of flatRows) resolveAccessoryRow(flatRow.sourceRowId);
+
+  const alternativeGroups = new Map<string, NonNullable<EstimateRowItem["alternativeGroup"]>>();
+  const optionalItems = [];
+  for (const flatRow of flatRows) {
+    const alternative = flatRow.sourceRow.alternativeGroup;
+    if (alternative) alternativeGroups.set(alternative.id, alternative);
+    const optional = flatRow.sourceRow.optionalContribution;
+    if (optional) optionalItems.push({ rowId: flatRow.sourceRowId, included: optional.isIncluded });
+  }
+
+  const contribution = resolveEffectiveContribution({
+    rows: flatRows.map((flatRow) => {
+      const row = baseRows.get(flatRow.sourceRowId)!;
+      return {
+        rowId: flatRow.sourceRowId,
+        directMinorUnits: Math.round(row.costAmount * 100),
+        quantity: row.quantity,
+      };
+    }),
+    alternativeGroups: [...alternativeGroups.values()].map((group) => ({
+      groupId: group.id,
+      memberRowIds: group.memberRowItemIds,
+      selectedRowId: group.selectedRowItemId,
+    })),
+    optionalItems,
+    additiveEdges: [...accessoryByChild.values()].map((edge) => {
+      const row = effectiveRows.get(edge.childRowId)!;
+      return {
+        parentRowId: edge.parentRowId,
+        childRowId: edge.childRowId,
+        effectiveDirectMinorUnits: Math.round(row.costAmount * 100),
+        effectiveQuantity: row.quantity,
+      };
+    }),
+  });
+  if (!contribution.ok) {
+    throw new Error(`Cannot build proposal export model: invalid contribution ${contribution.code} (${contribution.subjectId}).`);
+  }
+
+  const contributionById = new Map(contribution.rows.map((row) => [row.rowId, row]));
+  return flatRows.map((flatRow) => {
+    const row = effectiveRows.get(flatRow.sourceRowId)!;
+    const effective = contributionById.get(flatRow.sourceRowId)!;
+    if (
+      effective.inclusionReason === "included"
+      && effectiveAccessoryInclusion.get(flatRow.sourceRowId) !== false
+    ) return row;
+    return {
+      ...row,
+      quantity: 0,
+      quantityBase: null,
+      quantityContingencyAmount: null,
+      materialSubtotal: 0,
+      contingencySubtotal: 0,
+      miscSubtotal: 0,
+      costAmount: 0,
+      preVatAmount: row.preVatAmount === null ? null : 0,
+      vatAmount: row.vatAmount === null ? null : 0,
+      vatExemptAmount: row.vatExemptAmount === null ? null : 0,
+      totalWithVat: row.totalWithVat === null ? null : 0,
+      includedInTotal: false,
+    };
+  });
 }
 
 function consolidationKey(row: ProposalNormalizedSourceRow) {
@@ -159,6 +345,8 @@ function consolidationKey(row: ProposalNormalizedSourceRow) {
     keyText(row.particulars),
     keyText(row.unit),
     row.materialUnitCost,
+    row.vatTreatment,
+    row.vatRateBps,
     keyText(row.remarks),
     row.scopeStatus,
     row.includedInTotal,
@@ -317,6 +505,10 @@ function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExport
         contingencySubtotal: roundMoney(totals.contingencySubtotal + row.contingencySubtotal),
         miscSubtotal: roundMoney(totals.miscSubtotal + row.miscSubtotal),
         grandTotal: roundMoney(totals.grandTotal + row.costAmount),
+        commercialPreVatAmount: roundMoney(totals.commercialPreVatAmount + (row.preVatAmount ?? 0)),
+        commercialVatAmount: roundMoney(totals.commercialVatAmount + (row.vatAmount ?? 0)),
+        commercialVatExemptAmount: roundMoney(totals.commercialVatExemptAmount + (row.vatExemptAmount ?? 0)),
+        commercialTotalWithVat: roundMoney(totals.commercialTotalWithVat + (row.totalWithVat ?? 0)),
       };
     },
     {
@@ -324,6 +516,10 @@ function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExport
       contingencySubtotal: 0,
       miscSubtotal: 0,
       grandTotal: 0,
+      commercialPreVatAmount: 0,
+      commercialVatAmount: 0,
+      commercialVatExemptAmount: 0,
+      commercialTotalWithVat: 0,
     },
   );
   const sheetAdjustmentAmount = resolveSheetAdjustment(base.grandTotal, settings);
@@ -376,9 +572,10 @@ export function consolidateProposalRows(
 ): ProposalExportRow[] {
   const groupedRows = new Map<string, ProposalExportRow>();
   const sourceAreaPathsByGroup = new Map<string, Set<string>>();
+  const effectiveRows = resolveEffectiveProposalRows(flatRows, settings, currencyCode);
 
-  for (const flatRow of flatRows) {
-    const normalizedRow = normalizeSourceRow(flatRow, settings, currencyCode);
+  for (const [index] of flatRows.entries()) {
+    const normalizedRow = effectiveRows[index]!;
     if (!settings.includeZeroRows && normalizedRow.quantity === 0 && normalizedRow.costAmount === 0) continue;
     if (!settings.includeExcludedRows && !normalizedRow.includedInTotal) continue;
 
@@ -404,6 +601,12 @@ export function consolidateProposalRows(
         contingencySubtotal: normalizedRow.contingencySubtotal,
         miscSubtotal: normalizedRow.miscSubtotal,
         costAmount: normalizedRow.costAmount,
+        vatTreatment: normalizedRow.vatTreatment,
+        vatRateBps: normalizedRow.vatRateBps,
+        preVatAmount: normalizedRow.preVatAmount,
+        vatAmount: normalizedRow.vatAmount,
+        vatExemptAmount: normalizedRow.vatExemptAmount,
+        totalWithVat: normalizedRow.totalWithVat,
         remarks: normalizedRow.remarks,
         scopeStatus: normalizedRow.scopeStatus,
         includedInTotal: normalizedRow.includedInTotal,
@@ -426,6 +629,18 @@ export function consolidateProposalRows(
     current.contingencySubtotal = roundMoney(current.contingencySubtotal + normalizedRow.contingencySubtotal);
     current.miscSubtotal = roundMoney(current.miscSubtotal + normalizedRow.miscSubtotal);
     current.costAmount = roundMoney(current.costAmount + normalizedRow.costAmount);
+    current.preVatAmount = current.preVatAmount === null || normalizedRow.preVatAmount === null
+      ? null
+      : roundMoney(current.preVatAmount + normalizedRow.preVatAmount);
+    current.vatAmount = current.vatAmount === null || normalizedRow.vatAmount === null
+      ? null
+      : roundMoney(current.vatAmount + normalizedRow.vatAmount);
+    current.vatExemptAmount = current.vatExemptAmount === null || normalizedRow.vatExemptAmount === null
+      ? null
+      : roundMoney(current.vatExemptAmount + normalizedRow.vatExemptAmount);
+    current.totalWithVat = current.totalWithVat === null || normalizedRow.totalWithVat === null
+      ? null
+      : roundMoney(current.totalWithVat + normalizedRow.totalWithVat);
     current.sourceRowIds.push(normalizedRow.sourceRowId);
     const sourceAreaPaths = sourceAreaPathsByGroup.get(key) ?? new Set(current.sourceAreaPaths);
     sourceAreaPathsByGroup.set(key, sourceAreaPaths);

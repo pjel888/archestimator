@@ -8,6 +8,7 @@ import {
   type RecipientEvidenceByteUploadDependencies,
 } from "@/app/api/share/[token]/requests/[publicRequestId]/evidence/_route-core";
 import { runtime } from "@/app/api/share/[token]/requests/[publicRequestId]/evidence/route";
+import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
 
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]);
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -150,6 +151,7 @@ function dependencies(
     reserveUpload: vi.fn(async () => ({
       uploadSessionId: "upload-session-1",
       assetId: "upload-asset-1",
+      reservationState: "acquired",
       scanStatus: "pending",
       bucket: "project-artifacts",
       path: "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
@@ -160,6 +162,7 @@ function dependencies(
       scanStatus: "pending" as const,
     })),
     failUpload: vi.fn(async () => undefined),
+    renewCleanupLease: vi.fn(async () => undefined),
     buildPendingEvidenceUploadStatement: vi.fn(() => ({}) as never),
     createId: vi.fn(() => "evidence-upload-1"),
     now: vi.fn(() => "2026-07-27T00:00:00.000Z"),
@@ -442,7 +445,7 @@ describe("recipient change-request evidence byte upload route", () => {
     expect(deps.buildObjectKey).toHaveBeenCalledWith(expect.objectContaining({
       contentSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       surface: "portal-request-evidence",
-      targetEntityId: "project-1",
+      targetEntityId: "request-version-1",
       userId: "recipient-1",
       workspaceId: "workspace-1",
     }));
@@ -534,6 +537,22 @@ describe("recipient change-request evidence byte upload route", () => {
     expect(normalizedBytes.includes(Buffer.from("Exif"))).toBe(false);
   });
 
+  it("isolates identical evidence bytes by request-version storage ownership", () => {
+    const shared = {
+      contentSha256: "a".repeat(64),
+      extension: "pdf",
+      fileName: "evidence.pdf",
+      surface: "portal-request-evidence" as const,
+      userId: "recipient-1",
+      workspaceId: "workspace-1",
+    };
+
+    const firstPath = buildUploadObjectKey({ ...shared, targetEntityId: "request-version-1" });
+    const secondPath = buildUploadObjectKey({ ...shared, targetEntityId: "request-version-2" });
+
+    expect(firstPath).not.toBe(secondPath);
+  });
+
   it("reserves in D1 before writing R2 and atomically finalizes the evidence relation", async () => {
     const order: string[] = [];
     const deps = dependencies({
@@ -542,6 +561,7 @@ describe("recipient change-request evidence byte upload route", () => {
         return {
           uploadSessionId: "upload-session-1",
           assetId: "upload-asset-1",
+          reservationState: "acquired",
           scanStatus: "pending",
           bucket: "project-artifacts",
           path: "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
@@ -594,6 +614,47 @@ describe("recipient change-request evidence byte upload route", () => {
     expect(response.status).toBe(503);
     expect(deps.createStorageProvider).not.toHaveBeenCalled();
     expect(deps.finalizeUpload).not.toHaveBeenCalled();
+  });
+
+  it("returns a finalized evidence replay without opening or deleting R2", async () => {
+    const deps = dependencies({
+      reserveUpload: vi.fn(async () => ({
+        uploadSessionId: "upload-session-1",
+        assetId: "upload-asset-1",
+        reservationState: "finalized",
+        scanStatus: "pending",
+        bucket: "project-artifacts",
+        path: "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
+      }) as never),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(uploadRequest(), "share-token", "public-request-1", deps);
+
+    expect(response.status).toBe(200);
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+    expect(deps.finalizeUpload).not.toHaveBeenCalled();
+    expect(deps.failUpload).not.toHaveBeenCalled();
+  });
+
+  it("rejects a concurrent evidence reservation without opening or deleting R2", async () => {
+    const deps = dependencies({
+      reserveUpload: vi.fn(async () => ({
+        uploadSessionId: "upload-session-1",
+        assetId: "upload-asset-1",
+        reservationState: "in_progress",
+        scanStatus: "pending",
+        bucket: "project-artifacts",
+        path: "workspace-1/recipient-1/project-artifacts/project-1/evidence.pdf",
+      }) as never),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(uploadRequest(), "share-token", "public-request-1", deps);
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("retry-after")).toBe("1");
+    expect(deps.createStorageProvider).not.toHaveBeenCalled();
+    expect(deps.finalizeUpload).not.toHaveBeenCalled();
+    expect(deps.failUpload).not.toHaveBeenCalled();
   });
 
   it("retries transient D1 finalization without rewriting or deleting R2", async () => {
@@ -676,5 +737,29 @@ describe("recipient change-request evidence byte upload route", () => {
       expect.objectContaining({ uploadSessionId: "upload-session-1" }),
       "storage",
     );
+  });
+
+  it("keeps a reacquired upload object when a stale cleanup claim is rejected", async () => {
+    const removeObjects = vi.fn(async () => undefined);
+    const deps = dependencies({
+      createStorageProvider: vi.fn(async () => ({
+        uploadObject: vi.fn(async () => { throw new Error("late stale failure"); }),
+        removeObjects,
+      }) as never),
+      renewCleanupLease: vi.fn(async () => {
+        throw new Error("upload cleanup claim guard failed");
+      }),
+    });
+
+    const response = await handleRecipientEvidenceByteUpload(
+      uploadRequest(),
+      "share-token",
+      "public-request-1",
+      deps,
+    );
+
+    expect(response.status).toBe(503);
+    expect(removeObjects).not.toHaveBeenCalled();
+    expect(deps.failUpload).not.toHaveBeenCalled();
   });
 });

@@ -43,6 +43,9 @@ class FakeD1Statement {
   }
 
   async run() {
+    if (this.sql.includes("beta_starter_mutation_leases")) {
+      return { success: true, meta: { changes: 1 } };
+    }
     throw new Error(`Unexpected D1 write: ${this.sql}`);
   }
 }
@@ -52,6 +55,10 @@ class FakeD1Database {
 
   prepare(sql: string) {
     return new FakeD1Statement(this, sql);
+  }
+
+  async batch(statements: FakeD1Statement[]) {
+    return Promise.all(statements.map((statement) => statement.run()));
   }
 
   first(sql: string, values: unknown[]) {

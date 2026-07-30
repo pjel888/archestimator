@@ -46,6 +46,11 @@ import type {
 } from "@/lib/estimates/estimate-tree-lazy";
 import type { EstimateTreeLoadLimitState } from "@/lib/estimates/types";
 import {
+  getEstimateTreeSubtotalPresentation,
+  getEstimateTreeTotalsAnnouncement,
+  useEstimateTreeTotals,
+} from "@/lib/estimates/estimate-tree-totals-store";
+import {
   CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
   type CreateEstimateTemplateFromNodeEventDetail,
 } from "./component-library/templates";
@@ -379,6 +384,8 @@ function buildEstimateTreeSelectionNodes(nodes: EstimateTreeNode[]): TreeSelecti
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes, loadLimitState, canEditEstimate = true, disableRouteSync = false, forceDesktopPanel = false }: EstimateSheetTreeProps) {
+  const liveTotals = useEstimateTreeTotals(estimateId, activeTabId);
+  const liveTotalsAnnouncement = getEstimateTreeTotalsAnnouncement(liveTotals);
   const surfaceVariant = useEstimateSurfaceVariant();
   const routeParams = useParams<{ nodeId?: string | string[] }>();
   const routeNodeIdParam = Array.isArray(routeParams?.nodeId) ? routeParams.nodeId[0] : routeParams?.nodeId;
@@ -1026,6 +1033,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     const node = (treeNode.data?.node as EstimateTreeNode | undefined) ?? findEstimateNode(localNodes, treeNode.id);
     if (!node) return null;
     const subtreeLoadState = treeNode.data?.subtreeLoadState as EstimateTreeSubtreeLoadState | undefined;
+    const subtotal = getEstimateTreeSubtotalPresentation(liveTotals, node.id, node.name);
 
     if (editingNodeId !== node.id) {
       return (
@@ -1034,10 +1042,31 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           node.templateLink ? "border-l-2 border-brand-orange/70 pl-1" : "",
         )}>
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          <span
+            className="inline-flex shrink-0 items-center gap-1 font-mono text-[9px] font-medium tabular-nums text-secondary"
+            aria-label={subtotal.ariaLabel}
+            data-estimate-tree-subtotal={node.id}
+            title={subtotal.title}
+          >
+            {subtotal.amountText ? (
+              <span aria-hidden="true">{subtotal.amountText}</span>
+            ) : subtotal.showSkeleton ? (
+              <span className="inline-block w-14 animate-pulse rounded-xs bg-surfaceMuted text-transparent" aria-hidden="true">
+                Loading
+              </span>
+            ) : (
+              <span aria-hidden="true">—</span>
+            )}
+            {subtotal.statusText ? (
+              <span className="font-sans text-[8px] font-medium uppercase tracking-wide text-tertiary" aria-hidden="true">
+                {subtotal.statusText}
+              </span>
+            ) : null}
+          </span>
           {node.templateLink?.isPrimaryRoot ? (
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-0.5 rounded-xs px-1 text-[8px] font-medium leading-3",
+                "inline-flex shrink-0 items-center gap-0.5 rounded-xs px-1 text-[9px] font-medium leading-3",
                 node.templateLink.linkState === "failed" ? "bg-dangerSoft text-danger" : "bg-brand-orange/10 text-brand-orange",
               )}
               title={`Linked to ${node.templateLink.templateName}; quantities and adjustments are project-specific.`}
@@ -1050,7 +1079,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                   : `Linked v${node.templateLink.appliedVersionNumber}`}
             </span>
           ) : node.templateLink?.isInstanceRoot ? (
-            <span className="shrink-0 text-[8px] font-medium leading-3 text-tertiary">
+            <span className="shrink-0 text-[9px] font-medium leading-3 text-tertiary">
               {node.templateLink.rootOrdinal}/{node.templateLink.rootCount}
             </span>
           ) : null}
@@ -1201,6 +1230,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     editingNodeId,
     editingNodeName,
     localNodes,
+    liveTotals,
     renamingNodeId,
     shouldIgnoreRenameBlur,
     updateRenameDraftName,
@@ -1308,6 +1338,9 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
               >
                 <output aria-live="polite" className="sr-only">
                   {templateLinkStatus.statusMessage}
+                </output>
+                <output aria-live="polite" aria-atomic="true" className="sr-only">
+                  {liveTotalsAnnouncement}
                 </output>
                 <ContextMenu onOpenChange={setContextMenuOpen}>
                   <ContextMenuTrigger asChild>

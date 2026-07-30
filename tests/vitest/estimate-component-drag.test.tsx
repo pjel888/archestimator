@@ -95,9 +95,6 @@ function uploadedImageAsset(url: string, assetId = "asset-1") {
     schemaVersion: 1,
     assetId,
     uploadSessionId: `${assetId}-session`,
-    bucket: "project-images",
-    path: `workspace-1/user-1/project-images/project-1/estimate-row-images/estimate-1/${assetId}.webp`,
-    thumbnailPath: `workspace-1/user-1/project-images/project-1/estimate-row-images/estimate-1/${assetId}-thumb.webp`,
     url,
     thumbnailUrl: `${url}?thumb=1`,
     contentType: "image/webp",
@@ -347,7 +344,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
     });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reference image" })).not.toBeInTheDocument());
 
     const rowCard = screen.getByLabelText("Project Component replaceable estimate component");
@@ -421,7 +418,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const file = new File(["image"], "reference.png", { type: "image/png" });
     fireEvent.change(uploadInput, { target: { files: [file] } });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" })));
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get("projectId")).toBe("project-1");
@@ -513,7 +510,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     fireEvent.change(within(dialog).getByLabelText("Upload reference image"), {
       target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
     });
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reference image" })).not.toBeInTheDocument());
 
     const rowCard = screen.getByLabelText("Project Component replaceable estimate component");
@@ -650,7 +647,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     expect(onExpressFieldCommit).not.toHaveBeenCalled();
 
     view.rerender(<EstimateMaterialCell {...props} expressDraftState={undefined} />);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(onExpressFieldCommit).toHaveBeenCalledWith({
       imageUrl: "https://assets.example.test/draft-reference.webp",
       imageAsset: uploadedImageAsset("https://assets.example.test/draft-reference.webp", "asset-draft"),
@@ -723,6 +720,67 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       imageUrl: "https://assets.example.test/retried-reference.webp",
       imageAsset: uploadedImageAsset("https://assets.example.test/retried-reference.webp", "asset-retried"),
     }));
+  });
+
+  it("reports success only after row persistence and retries the retained descriptor without re-uploading", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:reference-preview"),
+      revokeObjectURL: vi.fn(),
+    });
+    const uploadedUrl = "/api/projects/images?assetId=asset-saved&variant=image";
+    const descriptor = uploadedImageAsset(uploadedUrl, "asset-saved");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ url: uploadedUrl, imageAsset: descriptor }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const onExpressImageCommit = vi.fn()
+      .mockRejectedValueOnce(new Error("Row receipt was not committed."))
+      .mockResolvedValueOnce(undefined);
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      imageUrl: "",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    renderCell({
+      item,
+      editableRow: {
+        name: "Project Component",
+        description: item.description,
+        supplier: item.supplier,
+        unit: item.unit,
+        unitCost: String(item.itemCost),
+        quantity: String(item.quantity),
+        contingencyMode: "contingency",
+        contingencyPercentage: String(item.contingencyPercentage ?? 0),
+        miscCost: String(item.miscCost),
+        imageUrl: "",
+        sourceUrl: item.sourceUrl ?? "",
+      },
+      onExpressImageCommit,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add reference image for Project Component" }));
+    fireEvent.change(within(screen.getByRole("dialog", { name: "Reference image" })).getByLabelText("Upload reference image"), {
+      target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
+    });
+
+    const rowCard = screen.getByLabelText("Project Component replaceable estimate component");
+    expect(await within(rowCard).findByRole("alert")).toHaveTextContent("Row receipt was not committed.");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onExpressImageCommit).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(rowCard).getByRole("button", { name: "Retry upload" }));
+
+    await waitFor(() => expect(onExpressImageCommit).toHaveBeenCalledTimes(2));
+    expect(onExpressImageCommit).toHaveBeenLastCalledWith({ imageUrl: uploadedUrl, imageAsset: descriptor });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(within(rowCard).queryByRole("status")).not.toBeInTheDocument());
   });
 
   it("clears the failed upload preview when switching to a pasted URL", async () => {

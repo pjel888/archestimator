@@ -7,7 +7,9 @@ import type {
   D1Value,
 } from "@/lib/cloudflare/d1";
 import {
+  failReservedUploadAsset,
   finalizeReservedUploadAsset,
+  renewReservedUploadCleanupLease,
   reserveUploadAsset,
   type ReservedUploadAsset,
 } from "@/lib/uploads/upload-records";
@@ -26,7 +28,9 @@ class ReservationStatement<T = Record<string, unknown>> implements D1PreparedSta
   }
 
   async first<R = T>(): Promise<R | null> {
-    return this.sql.includes("FROM upload_sessions") ? this.database.session as R | null : null;
+    if (this.sql.includes("FROM upload_sessions")) return this.database.session as R | null;
+    if (this.sql.includes("FROM upload_assets")) return this.database.finalizedAsset as R | null;
+    return null;
   }
 
   async all<R = T>(): Promise<D1Result<R>> {
@@ -41,6 +45,7 @@ class ReservationStatement<T = Record<string, unknown>> implements D1PreparedSta
 class ReservationDatabase implements D1DatabaseLike {
   batches = 0;
   session: Record<string, unknown> | null = null;
+  finalizedAsset: Record<string, unknown> | null = null;
   statements: ReservationStatement[] = [];
 
   prepare<T = Record<string, unknown>>(sql: string): D1PreparedStatementLike<T> {
@@ -54,6 +59,29 @@ class ReservationDatabase implements D1DatabaseLike {
   ): Promise<D1Result<T>[]> {
     this.batches += 1;
     const insert = statements[0] as ReservationStatement;
+    if (insert.sql.includes("upload_reservation_claim_guard") || insert.sql.includes("upload_cleanup_claim_guard")) {
+      const persistedMetadata = typeof this.session?.metadata_json === "string"
+        ? JSON.parse(this.session.metadata_json) as Record<string, unknown>
+        : null;
+      const claimToken = insert.values.at(-1);
+      if (this.session?.status !== "reserved" || persistedMetadata?.uploadReservationClaim !== claimToken) {
+        throw new Error("upload reservation claim guard failed");
+      }
+      if (insert.sql.includes("upload_cleanup_claim_guard")) {
+        return statements.map(() => ({ success: true }));
+      }
+      if (statements.some((statement) => (statement as ReservationStatement).sql.includes("'failed'"))) {
+        this.session.status = "failed";
+      } else if (statements.some((statement) => (statement as ReservationStatement).sql.includes("INSERT INTO upload_assets"))) {
+        this.session.status = "finalized";
+        this.finalizedAsset = {
+          id: String((statements[2] as ReservationStatement).values[0]),
+          upload_session_id: String(this.session.id),
+          scan_status: "pending",
+        };
+      }
+      return statements.map(() => ({ success: true }));
+    }
     if (!this.session) {
       const values = insert.values;
       this.session = {
@@ -74,6 +102,26 @@ class ReservationDatabase implements D1DatabaseLike {
         metadata_json: values[13],
         created_at: values[14],
       };
+    }
+    const retry = statements[1] as ReservationStatement;
+    const retryValues = retry.values;
+    const persistedMetadata = typeof this.session?.metadata_json === "string"
+      ? JSON.parse(this.session.metadata_json) as Record<string, unknown>
+      : null;
+    const retryMetadata = typeof retryValues[1] === "string"
+      ? JSON.parse(retryValues[1]) as Record<string, unknown>
+      : null;
+    const retryable = this.session?.status === "failed"
+      || (this.session?.status === "reserved"
+        && typeof this.session.expires_at === "string"
+        && this.session.expires_at <= String(retryValues[5]));
+    if (this.session
+      && retryable
+      && persistedMetadata?.uploadIntentSha256 === retryValues[4]
+      && retryMetadata?.uploadIntentSha256 === retryValues[4]) {
+      this.session.status = "reserved";
+      this.session.expires_at = retryValues[0];
+      this.session.metadata_json = retryValues[1];
     }
     return statements.map(() => ({ success: true }));
   }
@@ -157,6 +205,8 @@ function reservation(): ReservedUploadAsset {
     uploadSessionId: "session-1",
     assetId: "asset-1",
     scanStatus: "pending",
+    claimToken: "claim-1",
+    reservationState: "acquired",
     workspaceId: "workspace-1",
     actorUserId: "recipient-1",
     surface: "portal-request-evidence",
@@ -185,14 +235,77 @@ describe("reserved upload finalization", () => {
     const first = await reserveUploadAsset(database, reservationInput(), { now });
     const replay = await reserveUploadAsset(database, reservationInput(), { now });
 
-    expect(replay).toEqual(first);
+    expect(first.reservationState).toBe("acquired");
+    expect(replay.reservationState).toBe("in_progress");
+    expect(replay.uploadSessionId).toBe(first.uploadSessionId);
+    expect(replay.assetId).toBe(first.assetId);
     expect(first.uploadSessionId).toMatch(/^[a-f0-9-]{36}$/);
     expect(first.assetId).toMatch(/^[a-f0-9-]{36}$/);
     expect(database.batches).toBe(2);
     expect(database.statements[0]?.sql).toContain("INSERT OR IGNORE INTO upload_sessions");
-    expect(database.statements[1]?.sql).toContain("INSERT OR IGNORE INTO upload_events");
+    expect(database.statements[1]?.sql).toContain("UPDATE upload_sessions");
+    expect(database.statements[2]?.sql).toContain("INSERT OR IGNORE INTO upload_events");
     expect(first.metadataJson).toContain("uploadIntentSha256");
     expect(first.metadataJson).not.toContain("portal-request-evidence:request-version-1");
+  });
+
+  it("reacquires the same failed upload intent with a fresh ownership claim", async () => {
+    const database = new ReservationDatabase();
+    const firstNow = new Date("2026-07-27T00:00:00.000Z");
+    const retryNow = new Date("2026-07-27T00:01:00.000Z");
+    const first = await reserveUploadAsset(database, reservationInput(), { now: firstNow });
+    database.session = { ...database.session, status: "failed" };
+
+    const retry = await reserveUploadAsset(database, reservationInput(), { now: retryNow });
+
+    expect(retry.reservationState).toBe("acquired");
+    expect(retry.uploadSessionId).toBe(first.uploadSessionId);
+    expect(retry.assetId).toBe(first.assetId);
+    expect(retry.expiresAt).toBe("2026-07-27T00:16:00.000Z");
+  });
+
+  it("rejects stale fail and finalize owners after an expired reservation is reacquired", async () => {
+    const database = new ReservationDatabase();
+    const first = await reserveUploadAsset(database, reservationInput(), {
+      now: new Date("2030-07-27T00:00:00.000Z"),
+      expiresAt: "2030-07-27T00:01:00.000Z",
+    });
+    const retry = await reserveUploadAsset(database, reservationInput(), {
+      now: new Date("2030-07-27T00:02:00.000Z"),
+      expiresAt: "2030-07-27T00:17:00.000Z",
+    });
+
+    expect(retry.claimToken).not.toBe(first.claimToken);
+    await expect(failReservedUploadAsset(database, first, "storage"))
+      .rejects.toThrow("upload reservation claim guard failed");
+    await expect(finalizeReservedUploadAsset(database, first))
+      .rejects.toThrow("upload reservation claim guard failed");
+    expect(database.session?.status).toBe("reserved");
+
+    await expect(finalizeReservedUploadAsset(database, retry)).resolves.toMatchObject({
+      assetId: retry.assetId,
+      uploadSessionId: retry.uploadSessionId,
+    });
+    expect(database.session?.status).toBe("finalized");
+    await expect(renewReservedUploadCleanupLease(database, first))
+      .rejects.toThrow("upload reservation claim guard failed");
+  });
+
+  it("returns an existing finalized asset without acquiring storage ownership", async () => {
+    const database = new ReservationDatabase();
+    const now = new Date("2026-07-27T00:00:00.000Z");
+    const first = await reserveUploadAsset(database, reservationInput(), { now });
+    database.session = { ...database.session, status: "finalized" };
+    database.finalizedAsset = {
+      id: first.assetId,
+      upload_session_id: first.uploadSessionId,
+      scan_status: "pending",
+    };
+
+    const replay = await reserveUploadAsset(database, reservationInput(), { now });
+
+    expect(replay.reservationState).toBe("finalized");
+    expect(replay.assetId).toBe(first.assetId);
   });
 
   it("rejects an idempotency replay when any persisted upload intent differs", async () => {
@@ -219,8 +332,9 @@ describe("reserved upload finalization", () => {
     });
 
     expect(database.batches).toHaveLength(2);
-    expect(database.batches[0][0].sql).toContain("status IN ('reserved', 'finalized')");
-    expect(database.batches[0][2].sql).toContain("INSERT OR IGNORE INTO upload_events");
+    expect(database.batches[0][0].sql).toContain("upload_reservation_claim_guard");
+    expect(database.batches[0][1].sql).toContain("uploadReservationClaim");
+    expect(database.batches[0][3].sql).toContain("INSERT OR IGNORE INTO upload_events");
   });
 
   it("reconciles a committed winner after an uncertain D1 batch error", async () => {

@@ -55,6 +55,15 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     pricingSource: overrides.pricingSource ?? "Supplier allowance — verify quote",
     pricingDate: overrides.pricingDate ?? "2026-05-23",
     notes: overrides.notes,
+    quotationRequirement: overrides.quotationRequirement,
+    quotationStatus: overrides.quotationStatus,
+    quotationReference: overrides.quotationReference,
+    commercialVatTreatment: overrides.commercialVatTreatment,
+    commercialVatRateBps: overrides.commercialVatRateBps,
+    alternativeGroup: overrides.alternativeGroup,
+    optionalContribution: overrides.optionalContribution,
+    accessoryParent: overrides.accessoryParent,
+    accessoryChildren: overrides.accessoryChildren,
     metadata: overrides.metadata,
     scopeStatus: overrides.scopeStatus,
   };
@@ -96,6 +105,165 @@ function treeWithBedrooms(rowsA: EstimateRowItem[], rowsB: EstimateRowItem[]): E
 }
 
 describe("proposal export model", () => {
+  it("exports quotation and VAT treatment without private attachment identity", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([row({
+        notes: "Supplier quotation received",
+        quotationRequirement: "required",
+        quotationStatus: "available",
+        quotationReference: "Q-104",
+        commercialVatTreatment: "inclusive",
+        commercialVatRateBps: 1200,
+      })], []),
+      settings: { audience: "client" },
+      generatedAt: "2026-07-30T00:00:00.000Z",
+    });
+
+    expect(model.proposalRows[0]?.remarks).toContain("Supplier quotation received");
+    expect(model.proposalRows[0]?.remarks).toContain("Quotation: available (Q-104)");
+    expect(model.proposalRows[0]?.remarks).toContain("VAT INC 12%");
+    expect(model.proposalRows[0]?.remarks).not.toContain("attachment");
+  });
+
+  it("calculates structured inclusive, exclusive, and exempt row VAT", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([
+        row({ id: "inc", itemCost: 112, commercialVatTreatment: "inclusive", commercialVatRateBps: 1200 }),
+        row({ id: "ex", itemCost: 100, commercialVatTreatment: "exclusive", commercialVatRateBps: 1200 }),
+        row({ id: "exempt", itemCost: 100, commercialVatTreatment: "exempt", commercialVatRateBps: 0 }),
+      ], []),
+      generatedAt: "2026-07-30T00:00:00.000Z",
+    });
+
+    expect(model.proposalRows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        vatTreatment: "inclusive",
+        preVatAmount: 100,
+        vatAmount: 12,
+        vatExemptAmount: 0,
+        totalWithVat: 112,
+      }),
+      expect.objectContaining({
+        vatTreatment: "exclusive",
+        preVatAmount: 100,
+        vatAmount: 12,
+        vatExemptAmount: 0,
+        totalWithVat: 112,
+      }),
+      expect.objectContaining({
+        vatTreatment: "exempt",
+        preVatAmount: 100,
+        vatAmount: 0,
+        vatExemptAmount: 100,
+        totalWithVat: 100,
+      }),
+    ]));
+    expect(model.totals).toMatchObject({
+      commercialPreVatAmount: 300,
+      commercialVatAmount: 24,
+      commercialVatExemptAmount: 100,
+      commercialTotalWithVat: 324,
+    });
+  });
+
+  it("matches canonical effective contribution for alternatives, optionals, and accessories", () => {
+    const alternativeGroup = {
+      id: "finish-options",
+      name: "Finish options",
+      selectedRowItemId: "alternative-b",
+      memberRowItemIds: ["alternative-a", "alternative-b"],
+      revision: 1,
+    };
+    const quantityRule = { schemaVersion: 1, kind: "per-parent", factor: 3 };
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([
+        row({ id: "alternative-a", itemCost: 100, alternativeGroup }),
+        row({ id: "alternative-b", itemCost: 80, alternativeGroup }),
+        row({ id: "optional", itemCost: 50, optionalContribution: { isIncluded: false, revision: 1 } }),
+        row({
+          id: "parent",
+          quantity: 2,
+          itemCost: 100,
+          accessoryChildren: [{
+            edgeId: "edge-1",
+            childRowItemId: "accessory",
+            mode: "required",
+            isIncluded: true,
+            quantityRule,
+            revision: 1,
+          }],
+        }),
+        row({
+          id: "accessory",
+          quantity: 1,
+          itemCost: 10,
+          accessoryParent: {
+            edgeId: "edge-1",
+            parentRowItemId: "parent",
+            mode: "required",
+            isIncluded: true,
+            quantityRule,
+            revision: 1,
+          },
+        }),
+      ], []),
+      generatedAt: "2026-07-30T00:00:00.000Z",
+    });
+
+    expect(model.proposalRows.flatMap((proposalRow) => proposalRow.sourceRowIds))
+      .toEqual(expect.arrayContaining(["alternative-b", "parent", "accessory"]));
+    expect(model.proposalRows.flatMap((proposalRow) => proposalRow.sourceRowIds))
+      .not.toEqual(expect.arrayContaining(["alternative-a", "optional"]));
+    expect(model.proposalRows.find((proposalRow) => proposalRow.sourceRowIds.includes("accessory")))
+      .toMatchObject({ quantity: 6, costAmount: 60 });
+    expect(model.totals.grandTotal).toBe(340);
+  });
+
+  it("keeps fixed-rule descendants excluded when an accessory ancestor is excluded", () => {
+    const excludedEdge = {
+      edgeId: "edge-excluded",
+      childRowItemId: "excluded-child",
+      mode: "optional" as const,
+      isIncluded: false,
+      quantityRule: { schemaVersion: 1, kind: "fixed", quantity: 2 },
+      revision: 1,
+    };
+    const descendantEdge = {
+      edgeId: "edge-descendant",
+      childRowItemId: "fixed-grandchild",
+      mode: "required" as const,
+      isIncluded: true,
+      quantityRule: { schemaVersion: 1, kind: "fixed", quantity: 3 },
+      revision: 1,
+    };
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([
+        row({ id: "root", quantity: 1, itemCost: 100, accessoryChildren: [excludedEdge] }),
+        row({
+          id: "excluded-child",
+          quantity: 1,
+          itemCost: 10,
+          accessoryParent: { ...excludedEdge, parentRowItemId: "root" },
+          accessoryChildren: [descendantEdge],
+        }),
+        row({
+          id: "fixed-grandchild",
+          quantity: 1,
+          itemCost: 10,
+          accessoryParent: { ...descendantEdge, parentRowItemId: "excluded-child" },
+        }),
+      ], []),
+      generatedAt: "2026-07-30T00:00:00.000Z",
+    });
+
+    expect(model.proposalRows.flatMap((proposalRow) => proposalRow.sourceRowIds)).toEqual(["root"]);
+    expect(model.totals.grandTotal).toBe(100);
+  });
+
   it("flattens only area row items and preserves area path traceability", () => {
     const nodes = treeWithBedrooms([row({ id: "bed-a-tile", quantity: 12 })], [row({ id: "bed-b-tile", quantity: 10 })]);
 

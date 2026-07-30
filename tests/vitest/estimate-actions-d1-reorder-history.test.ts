@@ -1710,6 +1710,80 @@ describe("typed estimate node and tab intents", () => {
     });
   });
 
+  it("projects the selected project variant brand into the row atomically", async () => {
+    const database = new FakeD1Database();
+    const priceOptions = [
+      {
+        id: "variant-1",
+        label: "Default",
+        brandId: "brand-1",
+        brand: "Acme",
+        variantDescription: "Standard cabinet",
+        unit: "lm",
+        unitCost: 100,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: "variant-2",
+        label: "Premium",
+        brandId: "brand-2",
+        brand: "Beta",
+        variantDescription: "Premium cabinet",
+        unit: "set",
+        unitCost: 250,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: false,
+      },
+    ];
+    const row = makeProjectComponentVariantRow({
+      id: "row-1",
+      selectedPriceOptionId: "variant-1",
+      description: "Standard cabinet",
+      unit: "lm",
+      unitCost: 100,
+      quantity: 1,
+      rowRevision: 1,
+      priceOptions,
+    });
+    row.brand_id = "brand-1";
+    row.source_snapshot_json = JSON.stringify({
+      ...readJsonRecord(row.source_snapshot_json),
+      brandId: "brand-1",
+      brand: "Acme",
+    });
+    database.rowItems.set("row-1", row);
+
+    const result = await captureRowUpdate(database, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: "row-1",
+      expectedRowRevision: 1,
+      componentMutationIntent: "variant-selection",
+      rowPatch: { sourceSnapshot: { priceOptionId: "variant-2" } },
+      correlationId: "project-variant-brand-selection",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.rowItems.get("row-1")?.brand_id).toBe("brand-2");
+    expect(readJsonRecord(database.rowItems.get("row-1")?.source_snapshot_json)).toMatchObject({
+      brandId: "brand-2",
+      brand: "Beta",
+      priceOptionId: "variant-2",
+      priceOptionLabel: "Premium",
+    });
+    expect(readJsonRecord(database.rowItems.get("row-1")?.metadata_json)).toMatchObject({
+      brandId: "brand-2",
+      priceOptionId: "variant-2",
+    });
+    expect(database.batchStatements.some((statement) => statement.sql.includes("estimate_row_revision_guard"))).toBe(true);
+  });
+
+
   it("persists project variant attachment ownership with the row graph and history batch", async () => {
     const database = new FakeD1Database();
     const attachmentId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";

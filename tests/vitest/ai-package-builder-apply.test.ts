@@ -226,8 +226,10 @@ function runForSql(fixture: Fixture, sql: string, values: unknown[]) {
       is_active: values[8],
       is_default: values[9],
       updated_at: values[10],
-      pricing_source: values[12],
-      metadata_json: values[13],
+      brand_id: values[11],
+      brand: values[12],
+      pricing_source: values[13],
+      metadata_json: values[14],
     });
     return;
   }
@@ -598,7 +600,7 @@ function makeLibraryComponentCreateDraft(): PackageBuilderDraft {
         description: "Standard bed frame for condo bedrooms.",
         category: "Furniture",
         supplier: "Bedroom Supplier",
-        brand: null,
+        brand: "Ask Brand",
         unit: "set",
         unitCost: 18_000,
         miscCost: 0,
@@ -650,6 +652,7 @@ describe("package-builder Apply", () => {
     expect(fixture.components).toHaveLength(1);
     expect(fixture.components[0]).toMatchObject({ category: "Furniture", library_folder_id: "folder-furniture" });
     expect(fixture.priceOptions).toHaveLength(1);
+    expect(fixture.priceOptions[0]).toMatchObject({ brand_id: null, brand: "Ask Brand" });
     expect(fixture.commands[0]).toMatchObject({ command_kind: "library_components_package", status: "completed" });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library");
   });

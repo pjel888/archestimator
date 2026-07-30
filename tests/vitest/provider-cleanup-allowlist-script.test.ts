@@ -134,6 +134,8 @@ describe("provider cleanup allowlist report script", () => {
     const run = runCli({
       OUTPUT_FILE: outputFile,
       MARKDOWN_FILE: markdownFile,
+      PROVIDER_CLEANUP_ROOT_DIR: dir,
+      PROVIDER_CLEANUP_SCAN_PATHS: ".",
       STRICT_PROVIDER_CLEANUP_EXIT: "0",
     });
 
@@ -152,6 +154,8 @@ describe("provider cleanup allowlist report script", () => {
     const run = runCli({
       OUTPUT_FILE: join(dir, "strict.json"),
       MARKDOWN_FILE: join(dir, "strict.md"),
+      PROVIDER_CLEANUP_ROOT_DIR: dir,
+      PROVIDER_CLEANUP_SCAN_PATHS: ".",
       STRICT_PROVIDER_CLEANUP_EXIT: "1",
     });
 

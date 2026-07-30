@@ -11,6 +11,7 @@ import { prepareHistoryEventInsert } from "@/lib/estimates/d1-intents/history-ev
 import { buildProjectPublicationRevisionForEstimate } from "@/lib/estimates/d1-intents/intent-context";
 import { runD1Batch, type D1IntentStatement } from "@/lib/estimates/d1-intents/database";
 import {
+  assertD1MutationStatementLimit,
   buildCommittedMutationReceiptStatement,
   createMutationRequestFingerprint,
   readCommittedMutationReceipt,
@@ -325,11 +326,42 @@ export async function deleteEstimateTemplateInstance(input: {
       values: [instance.id, instance.workspace_id, instance.template_id, instance.estimate_id, appliedVersionNumber, targetVersionNumber],
     },
     ...(history.statement && history.outboxStatement ? [history.statement, history.outboxStatement] : []),
+    {
+      sql: `DELETE FROM estimate_accessory_edges
+        WHERE parent_row_item_id IN (
+          SELECT estimate_row_item_id FROM estimate_template_instance_rows WHERE instance_id = ?
+        ) OR child_row_item_id IN (
+          SELECT estimate_row_item_id FROM estimate_template_instance_rows WHERE instance_id = ?
+        )`,
+      values: [instance.id, instance.id],
+    },
+    {
+      sql: `DELETE FROM estimate_optional_items
+        WHERE row_item_id IN (
+          SELECT estimate_row_item_id FROM estimate_template_instance_rows WHERE instance_id = ?
+        )`,
+      values: [instance.id],
+    },
+    {
+      sql: `DELETE FROM estimate_alternative_groups
+        WHERE selected_row_item_id IN (
+          SELECT estimate_row_item_id FROM estimate_template_instance_rows WHERE instance_id = ?
+        )`,
+      values: [instance.id],
+    },
+    {
+      sql: `DELETE FROM estimate_row_variant_selections
+        WHERE estimate_row_item_id IN (
+          SELECT estimate_row_item_id FROM estimate_template_instance_rows WHERE instance_id = ?
+        )`,
+      values: [instance.id],
+    },
     { sql: `${subtreeCte} DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (SELECT id FROM subtree)`, values: [rootIdsJson, instance.estimate_id, instance.estimate_id] },
     { sql: `${subtreeCte} DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (SELECT id FROM subtree)`, values: [rootIdsJson, instance.estimate_id, instance.estimate_id] },
     { sql: "DELETE FROM estimate_template_instances WHERE id = ? AND workspace_id = ? AND template_id = ?", values: [instance.id, instance.workspace_id, instance.template_id] },
     buildProjectPublicationRevisionForEstimate(instance.project_id, instance.workspace_id, instance.estimate_id),
   ];
+  assertD1MutationStatementLimit(statements.length);
   await runD1Batch(database, statements);
   revalidateInstanceSurfaces(instance);
   return { instanceId: instance.id, deletedRootIds: rootIds };
@@ -399,6 +431,38 @@ type MaterializedRowItemRow = {
   updated_at: string;
 };
 
+type MaterializedVariantSelectionRow = {
+  estimate_row_item_id: string;
+  selected_price_option_id: string;
+  selected_option_snapshot_json: string;
+};
+
+type MaterializedAlternativeGroupRow = {
+  id: string;
+  selected_row_item_id: string;
+  name: string;
+};
+
+type MaterializedAlternativeMemberRow = {
+  group_id: string;
+  row_item_id: string;
+  sort_order: number | string;
+};
+
+type MaterializedOptionalItemRow = {
+  row_item_id: string;
+  is_included: number | boolean;
+};
+
+type MaterializedAccessoryEdgeRow = {
+  id: string;
+  parent_row_item_id: string;
+  child_row_item_id: string;
+  mode: "required" | "optional";
+  is_included: number | boolean;
+  quantity_rule_json: string;
+};
+
 function parseJsonText(value: string | null, fallback: unknown) {
   if (!value) return fallback;
   try {
@@ -406,6 +470,201 @@ function parseJsonText(value: string | null, fallback: unknown) {
   } catch {
     return fallback;
   }
+}
+
+function buildMaterializedSidecarStatements(input: {
+  variants: MaterializedVariantSelectionRow[];
+  groups: MaterializedAlternativeGroupRow[];
+  members: MaterializedAlternativeMemberRow[];
+  optionalItems: MaterializedOptionalItemRow[];
+  edges: MaterializedAccessoryEdgeRow[];
+  rowIdBySource: ReadonlyMap<string, string>;
+  instance: InstanceActionRow;
+  actorUserId: string;
+  timestamp: string;
+}) {
+  const variants = input.variants.map((selection) => ({
+    rowId: input.rowIdBySource.get(selection.estimate_row_item_id),
+    optionId: selection.selected_price_option_id,
+    snapshot: parseJsonText(selection.selected_option_snapshot_json, {}),
+  }));
+  const groupIdBySource = new Map(input.groups.map((group) => [group.id, randomUUID()]));
+  const groups = input.groups.map((group) => ({
+    id: groupIdBySource.get(group.id),
+    selectedRowId: input.rowIdBySource.get(group.selected_row_item_id),
+    name: group.name,
+  }));
+  const members = input.members.map((member) => ({
+    groupId: groupIdBySource.get(member.group_id),
+    rowId: input.rowIdBySource.get(member.row_item_id),
+    sortOrder: Number(member.sort_order),
+  }));
+  const optionalItems = input.optionalItems.map((item) => ({
+    rowId: input.rowIdBySource.get(item.row_item_id),
+    isIncluded: item.is_included === true || item.is_included === 1,
+  }));
+  const edges = input.edges.map((edge) => ({
+    id: randomUUID(),
+    parentRowId: input.rowIdBySource.get(edge.parent_row_item_id),
+    childRowId: input.rowIdBySource.get(edge.child_row_item_id),
+    mode: edge.mode,
+    isIncluded: edge.is_included === true || edge.is_included === 1,
+    quantityRule: parseJsonText(edge.quantity_rule_json, {}),
+  }));
+  if ([...variants, ...groups, ...members, ...optionalItems, ...edges]
+    .some((entry) => Object.values(entry).some((value) => value === undefined))) {
+    throw new Error("Linked Template instance sidecar mapping is incomplete.");
+  }
+  const statements: D1IntentStatement[] = [];
+  if (variants.length > 0) statements.push({
+    sql: `INSERT INTO estimate_row_variant_selections (
+            estimate_row_item_id, estimate_id, workspace_id, selected_price_option_id,
+            selected_option_snapshot_json, selection_revision, selected_at, selected_by
+          ) SELECT json_extract(value, '$.rowId'), ?, ?, json_extract(value, '$.optionId'),
+                   json_extract(value, '$.snapshot'), 1, ?, ? FROM json_each(?)`,
+    values: [input.instance.estimate_id, input.instance.workspace_id, input.timestamp, input.actorUserId, JSON.stringify(variants)],
+  });
+  const requiresScope = groups.length > 0 || optionalItems.length > 0 || edges.length > 0;
+  if (!requiresScope) return statements;
+  statements.push({
+    sql: `UPDATE estimate_contribution_scopes
+          SET revision = revision + 1, updated_at = ?
+          WHERE workspace_id = ? AND project_id = ? AND estimate_id = ? AND estimate_tab_id = ?`,
+    values: [input.timestamp, input.instance.workspace_id, input.instance.project_id,
+      input.instance.estimate_id, input.instance.estimate_tab_id],
+  });
+  const scopeLookup = `(SELECT id FROM estimate_contribution_scopes
+    WHERE workspace_id = ? AND project_id = ? AND estimate_id = ? AND estimate_tab_id = ?)`;
+  const scopeValues: D1Value[] = [input.instance.workspace_id, input.instance.project_id,
+    input.instance.estimate_id, input.instance.estimate_tab_id];
+  if (groups.length > 0) statements.push({
+    sql: `INSERT INTO estimate_alternative_groups (
+            id, contribution_scope_id, selected_row_item_id, name, revision, created_at, updated_at
+          ) SELECT json_extract(value, '$.id'), ${scopeLookup}, json_extract(value, '$.selectedRowId'),
+                   json_extract(value, '$.name'), 1, ?, ? FROM json_each(?)`,
+    values: [...scopeValues, input.timestamp, input.timestamp, JSON.stringify(groups)],
+  });
+  if (members.length > 0) statements.push({
+    sql: `INSERT INTO estimate_alternative_members (
+            contribution_scope_id, group_id, row_item_id, sort_order, created_at
+          ) SELECT ${scopeLookup}, json_extract(value, '$.groupId'), json_extract(value, '$.rowId'),
+                   json_extract(value, '$.sortOrder'), ? FROM json_each(?)`,
+    values: [...scopeValues, input.timestamp, JSON.stringify(members)],
+  });
+  if (optionalItems.length > 0) statements.push({
+    sql: `INSERT INTO estimate_optional_items (
+            contribution_scope_id, row_item_id, is_included, revision, created_at, updated_at
+          ) SELECT ${scopeLookup}, json_extract(value, '$.rowId'), json_extract(value, '$.isIncluded'),
+                   1, ?, ? FROM json_each(?)`,
+    values: [...scopeValues, input.timestamp, input.timestamp, JSON.stringify(optionalItems)],
+  });
+  if (edges.length > 0) statements.push({
+    sql: `INSERT INTO estimate_accessory_edges (
+            id, contribution_scope_id, workspace_id, project_id, estimate_id, estimate_tab_id,
+            parent_row_item_id, child_row_item_id, mode, is_included, quantity_rule_json,
+            revision, created_by, updated_by, created_at, updated_at
+          ) SELECT json_extract(value, '$.id'), ${scopeLookup}, ?, ?, ?, ?,
+                   json_extract(value, '$.parentRowId'), json_extract(value, '$.childRowId'),
+                   json_extract(value, '$.mode'), json_extract(value, '$.isIncluded'),
+                   json_extract(value, '$.quantityRule'), 1, ?, ?, ?, ? FROM json_each(?)`,
+    values: [...scopeValues, input.instance.workspace_id, input.instance.project_id,
+      input.instance.estimate_id, input.instance.estimate_tab_id, input.actorUserId, input.actorUserId,
+      input.timestamp, input.timestamp, JSON.stringify(edges)],
+  });
+  return statements;
+}
+
+function buildMaterializedSidecarSourceGuard(input: {
+  sourceRowIds: string[];
+  variants: MaterializedVariantSelectionRow[];
+  groups: MaterializedAlternativeGroupRow[];
+  members: MaterializedAlternativeMemberRow[];
+  optionalItems: MaterializedOptionalItemRow[];
+  edges: MaterializedAccessoryEdgeRow[];
+}): D1IntentStatement {
+  return {
+    sql: `WITH source_rows(id) AS (SELECT value FROM json_each(?))
+      SELECT CASE WHEN
+        (SELECT COUNT(*) FROM estimate_row_variant_selections
+         WHERE estimate_row_item_id IN (SELECT id FROM source_rows)) = ?
+        AND (SELECT COUNT(*) FROM estimate_alternative_groups
+             WHERE selected_row_item_id IN (SELECT id FROM source_rows)) = ?
+        AND (SELECT COUNT(*) FROM estimate_alternative_members AS member
+             JOIN estimate_alternative_groups AS group_record ON group_record.id = member.group_id
+             WHERE group_record.selected_row_item_id IN (SELECT id FROM source_rows)
+               AND member.row_item_id IN (SELECT id FROM source_rows)) = ?
+        AND (SELECT COUNT(*) FROM estimate_optional_items
+             WHERE row_item_id IN (SELECT id FROM source_rows)) = ?
+        AND (SELECT COUNT(*) FROM estimate_accessory_edges
+             WHERE parent_row_item_id IN (SELECT id FROM source_rows)
+               AND child_row_item_id IN (SELECT id FROM source_rows)) = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) AS expected WHERE NOT EXISTS (
+            SELECT 1 FROM estimate_row_variant_selections AS current
+            WHERE current.estimate_row_item_id = json_extract(expected.value, '$.estimate_row_item_id')
+              AND current.selected_price_option_id = json_extract(expected.value, '$.selected_price_option_id')
+              AND json(current.selected_option_snapshot_json) = json(json_extract(expected.value, '$.selected_option_snapshot_json'))
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) AS expected WHERE NOT EXISTS (
+            SELECT 1 FROM estimate_alternative_groups AS current
+            WHERE current.id = json_extract(expected.value, '$.id')
+              AND current.selected_row_item_id = json_extract(expected.value, '$.selected_row_item_id')
+              AND current.name = json_extract(expected.value, '$.name')
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) AS expected WHERE NOT EXISTS (
+            SELECT 1 FROM estimate_alternative_members AS current
+            WHERE current.group_id = json_extract(expected.value, '$.group_id')
+              AND current.row_item_id = json_extract(expected.value, '$.row_item_id')
+              AND current.sort_order = json_extract(expected.value, '$.sort_order')
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) AS expected WHERE NOT EXISTS (
+            SELECT 1 FROM estimate_optional_items AS current
+            WHERE current.row_item_id = json_extract(expected.value, '$.row_item_id')
+              AND current.is_included = json_extract(expected.value, '$.is_included')
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM json_each(?) AS expected WHERE NOT EXISTS (
+            SELECT 1 FROM estimate_accessory_edges AS current
+            WHERE current.id = json_extract(expected.value, '$.id')
+              AND current.parent_row_item_id = json_extract(expected.value, '$.parent_row_item_id')
+              AND current.child_row_item_id = json_extract(expected.value, '$.child_row_item_id')
+              AND current.mode = json_extract(expected.value, '$.mode')
+              AND current.is_included = json_extract(expected.value, '$.is_included')
+              AND json(current.quantity_rule_json) = json(json_extract(expected.value, '$.quantity_rule_json'))
+          )
+        )
+      THEN 1 ELSE json('') END AS duplicate_materialized_sidecar_guard`,
+    values: [
+      JSON.stringify(input.sourceRowIds),
+      input.variants.length,
+      input.groups.length,
+      input.members.length,
+      input.optionalItems.length,
+      input.edges.length,
+      JSON.stringify(input.variants.map((selection) => ({
+        ...selection,
+        selected_option_snapshot_json: parseJsonText(selection.selected_option_snapshot_json, {}),
+      }))),
+      JSON.stringify(input.groups),
+      JSON.stringify(input.members.map((member) => ({ ...member, sort_order: Number(member.sort_order) }))),
+      JSON.stringify(input.optionalItems.map((item) => ({
+        ...item,
+        is_included: item.is_included === true || item.is_included === 1,
+      }))),
+      JSON.stringify(input.edges.map((edge) => ({
+        ...edge,
+        is_included: edge.is_included === true || edge.is_included === 1,
+        quantity_rule_json: parseJsonText(edge.quantity_rule_json, {}),
+      }))),
+    ],
+  };
 }
 
 async function duplicateMaterializedTemplateInstance(
@@ -435,7 +694,7 @@ async function duplicateMaterializedTemplateInstance(
   const replay = await readCommittedMutationReceipt(database, identity, parseResult);
   if (replay) return replay;
 
-  const [nodes, rows, sibling] = await Promise.all([
+  const [nodes, rows, sibling, variants, groups, members, optionalItems, edges] = await Promise.all([
     all<MaterializedNodeRow>(
       database,
       `SELECT node.id, node.parent_id, node.kind, node.name, node.sort_order,
@@ -469,6 +728,67 @@ async function duplicateMaterializedTemplateInstance(
        FROM estimate_nodes
        WHERE estimate_id = ? AND estimate_tab_id = ? AND parent_id = ?`,
       [instance.estimate_id, instance.estimate_tab_id, instance.target_parent_node_id],
+    ),
+    all<MaterializedVariantSelectionRow>(
+      database,
+      `SELECT selection.estimate_row_item_id, selection.selected_price_option_id,
+              selection.selected_option_snapshot_json
+       FROM estimate_row_variant_selections AS selection
+       JOIN estimate_template_instance_rows AS mapping
+         ON mapping.estimate_row_item_id = selection.estimate_row_item_id
+        AND mapping.estimate_id = selection.estimate_id
+        AND mapping.workspace_id = selection.workspace_id
+       WHERE mapping.instance_id = ?
+       ORDER BY selection.estimate_row_item_id ASC`,
+      [instance.id],
+    ),
+    all<MaterializedAlternativeGroupRow>(
+      database,
+      `SELECT group_record.id, group_record.selected_row_item_id, group_record.name
+       FROM estimate_alternative_groups AS group_record
+       JOIN estimate_template_instance_rows AS selected_mapping
+         ON selected_mapping.estimate_row_item_id = group_record.selected_row_item_id
+       WHERE selected_mapping.instance_id = ?
+       ORDER BY group_record.id ASC`,
+      [instance.id],
+    ),
+    all<MaterializedAlternativeMemberRow>(
+      database,
+      `SELECT member.group_id, member.row_item_id, member.sort_order
+       FROM estimate_alternative_members AS member
+       JOIN estimate_alternative_groups AS group_record ON group_record.id = member.group_id
+       JOIN estimate_template_instance_rows AS selected_mapping
+         ON selected_mapping.estimate_row_item_id = group_record.selected_row_item_id
+       JOIN estimate_template_instance_rows AS member_mapping
+         ON member_mapping.estimate_row_item_id = member.row_item_id
+        AND member_mapping.instance_id = selected_mapping.instance_id
+       WHERE selected_mapping.instance_id = ?
+       ORDER BY member.group_id ASC, member.sort_order ASC, member.row_item_id ASC`,
+      [instance.id],
+    ),
+    all<MaterializedOptionalItemRow>(
+      database,
+      `SELECT optional_item.row_item_id, optional_item.is_included
+       FROM estimate_optional_items AS optional_item
+       JOIN estimate_template_instance_rows AS mapping
+         ON mapping.estimate_row_item_id = optional_item.row_item_id
+       WHERE mapping.instance_id = ?
+       ORDER BY optional_item.row_item_id ASC`,
+      [instance.id],
+    ),
+    all<MaterializedAccessoryEdgeRow>(
+      database,
+      `SELECT edge.id, edge.parent_row_item_id, edge.child_row_item_id,
+              edge.mode, edge.is_included, edge.quantity_rule_json
+       FROM estimate_accessory_edges AS edge
+       JOIN estimate_template_instance_rows AS parent_mapping
+         ON parent_mapping.estimate_row_item_id = edge.parent_row_item_id
+       JOIN estimate_template_instance_rows AS child_mapping
+         ON child_mapping.estimate_row_item_id = edge.child_row_item_id
+        AND child_mapping.instance_id = parent_mapping.instance_id
+       WHERE parent_mapping.instance_id = ?
+       ORDER BY edge.id ASC`,
+      [instance.id],
     ),
   ]);
   if (nodes.length === 0) throw new Error("Linked Template instance content is unavailable.");
@@ -517,6 +837,18 @@ async function duplicateMaterializedTemplateInstance(
     updatedAt: row.updated_at,
   }));
   if (rowPayload.some((row) => !row.nodeId)) throw new Error("Linked Template row mapping is incomplete.");
+  const rowIdBySource = new Map(rowPayload.map((row) => [row.sourceId, row.id]));
+  const sidecarStatements = buildMaterializedSidecarStatements({
+    variants,
+    groups,
+    members,
+    optionalItems,
+    edges,
+    rowIdBySource,
+    instance,
+    actorUserId,
+    timestamp,
+  });
   const result = {
     status: "inserted" as const,
     insertedRootNodeIds: rootNodes.map((node) => nodeIdBySource.get(node.id)!),
@@ -558,6 +890,14 @@ async function duplicateMaterializedTemplateInstance(
       THEN 1 ELSE json('') END AS duplicate_materialized_template_guard`,
       values: [instance.id, instance.workspace_id, instance.estimate_id, JSON.stringify(nodePayload), instance.estimate_id, JSON.stringify(rowPayload), instance.estimate_id],
     },
+    buildMaterializedSidecarSourceGuard({
+      sourceRowIds: rows.map((row) => row.id),
+      variants,
+      groups,
+      members,
+      optionalItems,
+      edges,
+    }),
     {
       sql: `INSERT INTO estimate_nodes (
         id, estimate_id, estimate_tab_id, parent_id, kind, name,
@@ -591,6 +931,7 @@ async function duplicateMaterializedTemplateInstance(
       FROM json_each(?)`,
       values: [instance.estimate_id, timestamp, timestamp, JSON.stringify(rowPayload)],
     },
+    ...sidecarStatements,
     buildProjectPublicationRevisionForEstimate(instance.project_id, instance.workspace_id, instance.estimate_id),
     ...(history.statement && history.outboxStatement ? [history.statement, history.outboxStatement] : []),
     buildCommittedMutationReceiptStatement({
@@ -601,6 +942,7 @@ async function duplicateMaterializedTemplateInstance(
       timestamp,
     }),
   ];
+  assertD1MutationStatementLimit(statements.length);
   try {
     await runD1Batch(database, statements);
   } catch (error) {

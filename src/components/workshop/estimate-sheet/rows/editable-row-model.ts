@@ -21,8 +21,8 @@ export type EstimateRowImageAssetDescriptor = {
   schemaVersion: 1;
   assetId: string;
   uploadSessionId: string;
-  bucket: string;
-  path: string;
+  bucket?: string;
+  path?: string;
   thumbnailPath?: string | null;
   url?: string | null;
   thumbnailUrl?: string | null;
@@ -364,6 +364,7 @@ export function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
     priceOptionLabel: item.priceOptionLabel ?? null,
     imageUrl: item.imageUrl ?? "",
     sourceUrl: item.sourceUrl ?? "",
+    notes: item.notes ?? "",
   };
 }
 

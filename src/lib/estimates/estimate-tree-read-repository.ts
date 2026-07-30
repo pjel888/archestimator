@@ -1,6 +1,12 @@
 import "server-only";
 
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
+import {
+  clientSafeQuotationAttachment,
+  projectQuotationAttachment,
+  type ClientSafeQuotationAttachmentProjection,
+  type QuotationAttachmentCandidate,
+} from "@/lib/commercial-terms/quotation-policy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import {
   buildEstimateTreeSubtreePayload,
@@ -63,7 +69,9 @@ export type EstimateTreeRowItemQueryRow = {
   material: string;
   description: string;
   supplier: string;
+  brand_id: string | null;
   supplier_id: string | null;
+  notes?: string | null;
   unit: string;
   unit_cost: number;
   quantity: number;
@@ -81,6 +89,87 @@ export type EstimateTreeRowItemQueryRow = {
   source_snapshot: Json | null;
   metadata: Json;
   created_at: string;
+  commercial_override_treatment?: "inclusive" | "exclusive" | "exempt" | null;
+  commercial_override_rate_bps?: number | null;
+  commercial_selected_treatment?: "inclusive" | "exclusive" | "exempt" | null;
+  commercial_selected_rate_bps?: number | null;
+  commercial_terms_revision?: number | null;
+  quotation_requirement?: "not_required" | "required" | null;
+  quotation_status?: "not_requested" | "requested" | "available" | "unavailable" | null;
+  quotation_reference?: string | null;
+  quotation_attachment?: ClientSafeQuotationAttachmentProjection;
+  contribution_scope_id?: string | null;
+  contribution_revision?: number | null;
+  alternative_group?: EstimateRowItem["alternativeGroup"];
+  optional_contribution?: EstimateRowItem["optionalContribution"];
+  accessory_parent?: EstimateRowItem["accessoryParent"];
+  accessory_children?: EstimateRowItem["accessoryChildren"];
+};
+
+type EstimateTreeCommercialTermsQueryRow = {
+  row_id: string;
+  workspace_id: string;
+  project_id: string;
+  override_treatment: EstimateTreeRowItemQueryRow["commercial_override_treatment"];
+  override_rate_bps: number | null;
+  selected_option_treatment: EstimateTreeRowItemQueryRow["commercial_selected_treatment"];
+  selected_option_rate_bps: number | null;
+  terms_revision: number;
+  quotation_requirement: EstimateTreeRowItemQueryRow["quotation_requirement"];
+  quotation_status: EstimateTreeRowItemQueryRow["quotation_status"];
+  quotation_reference: string | null;
+  quotation_artifact_version_id: string | null;
+  version_workspace_id: string | null;
+  version_project_id: string | null;
+  version_artifact_id: string | null;
+  version_content_sha256: string | null;
+  artifact_id: string | null;
+  artifact_workspace_id: string | null;
+  artifact_project_id: string | null;
+  artifact_type: string | null;
+  artifact_status: string | null;
+  upload_workspace_id: string | null;
+  upload_project_id: string | null;
+  upload_surface: string | null;
+  upload_status: string | null;
+  upload_purge_state: string | null;
+  upload_content_type: string | null;
+  upload_checksum_sha256: string | null;
+  upload_scan_status: string | null;
+  scan_override_actor_user_id: string | null;
+  scan_override_reason: string | null;
+  scan_override_expires_at: string | null;
+  scan_override_checksum_sha256: string | null;
+};
+
+type EstimateAlternativeProjectionRow = {
+  row_item_id: string;
+  contribution_scope_id: string;
+  contribution_revision: number;
+  group_id: string;
+  group_name: string;
+  selected_row_item_id: string;
+  group_revision: number;
+};
+
+type EstimateOptionalProjectionRow = {
+  row_item_id: string;
+  contribution_scope_id: string;
+  contribution_revision: number;
+  is_included: boolean | number;
+  optional_revision: number;
+};
+
+type EstimateAccessoryProjectionRow = {
+  id: string;
+  contribution_scope_id: string;
+  contribution_revision: number;
+  parent_row_item_id: string;
+  child_row_item_id: string;
+  mode: "required" | "optional";
+  is_included: boolean | number;
+  quantity_rule_json: string;
+  edge_revision: number;
 };
 
 export type EstimateTreeLoadOptions = {
@@ -138,7 +227,7 @@ const ESTIMATE_TREE_ROW_NODE_BATCH_SIZE = 64;
 const LEGACY_MAIN_TAB_ID = "legacy-main";
 const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id, sort_order";
 const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
-  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot_json AS source_snapshot, metadata_json AS metadata, created_at";
+  "id, node_id, sort_order, material, description, supplier, brand_id, supplier_id, json_extract(source_snapshot_json, '$.notes') AS notes, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot_json AS source_snapshot, metadata_json AS metadata, created_at";
 
 function placeholders(valuesOrCount: number | readonly unknown[]) {
   const count = typeof valuesOrCount === "number" ? valuesOrCount : valuesOrCount.length;
@@ -227,6 +316,7 @@ function normalizeEstimateTreeRowItem(row: EstimateTreeRowItemQueryRow): Estimat
     ...row,
     node_id: row.node_id ?? "",
     supplier: row.supplier ?? "",
+    brand_id: row.brand_id ?? null,
     supplier_id: row.supplier_id ?? null,
     unit: row.unit ?? "",
     unit_cost: Number(row.unit_cost ?? 0),
@@ -247,6 +337,39 @@ function normalizeEstimateTreeRowItem(row: EstimateTreeRowItemQueryRow): Estimat
     source_snapshot: readD1Json(row.source_snapshot),
     metadata: readD1Json(row.metadata),
   };
+}
+
+function quotationAttachmentFromReadRow(
+  row: EstimateTreeCommercialTermsQueryRow,
+  now: string,
+): ClientSafeQuotationAttachmentProjection {
+  const candidate: QuotationAttachmentCandidate = {
+    linkedVersionId: row.quotation_artifact_version_id,
+    expectedWorkspaceId: row.workspace_id,
+    expectedProjectId: row.project_id,
+    versionWorkspaceId: row.version_workspace_id,
+    versionProjectId: row.version_project_id,
+    versionArtifactId: row.version_artifact_id,
+    versionContentSha256: row.version_content_sha256,
+    artifactId: row.artifact_id,
+    artifactWorkspaceId: row.artifact_workspace_id,
+    artifactProjectId: row.artifact_project_id,
+    artifactType: row.artifact_type,
+    artifactStatus: row.artifact_status,
+    uploadWorkspaceId: row.upload_workspace_id,
+    uploadProjectId: row.upload_project_id,
+    uploadSurface: row.upload_surface,
+    uploadStatus: row.upload_status,
+    uploadPurgeState: row.upload_purge_state,
+    uploadContentType: row.upload_content_type,
+    uploadChecksumSha256: row.upload_checksum_sha256,
+    uploadScanStatus: row.upload_scan_status,
+    scanOverrideActorUserId: row.scan_override_actor_user_id,
+    scanOverrideReason: row.scan_override_reason,
+    scanOverrideExpiresAt: row.scan_override_expires_at,
+    scanOverrideChecksumSha256: row.scan_override_checksum_sha256,
+  };
+  return clientSafeQuotationAttachment(projectQuotationAttachment(candidate, now));
 }
 
 async function readEstimateNodes(
@@ -298,7 +421,7 @@ async function readEstimateRows(
       filters.push(`node_id IN (${placeholders(nodeIds)})`);
       values.push(...nodeIds);
     }
-    return all<EstimateTreeRowItemQueryRow>(
+    const rows = await all<EstimateTreeRowItemQueryRow>(
       database,
       `SELECT ${ESTIMATE_TREE_ROW_ITEM_COLUMNS}
        FROM estimate_row_items
@@ -306,6 +429,152 @@ async function readEstimateRows(
        ORDER BY sort_order ASC, id ASC`,
       values,
     );
+    if (rows.length === 0) return rows;
+    try {
+      const rowIds = rows.map((row) => row.id);
+      const projectionNow = new Date().toISOString();
+      const [commercialRows, alternativeRows, optionalRows, accessoryRows] = await Promise.all([
+        all<EstimateTreeCommercialTermsQueryRow>(
+          database,
+          `SELECT terms.row_id, terms.workspace_id, terms.project_id,
+                terms.override_treatment, terms.override_rate_bps,
+                terms.selected_option_treatment, terms.selected_option_rate_bps,
+                terms.terms_revision, terms.quotation_requirement, terms.quotation_status,
+                terms.quotation_reference, terms.quotation_artifact_version_id,
+                version.workspace_id AS version_workspace_id,
+                version.project_id AS version_project_id,
+                version.artifact_id AS version_artifact_id,
+                version.content_sha256 AS version_content_sha256,
+                artifact.id AS artifact_id,
+                artifact.workspace_id AS artifact_workspace_id,
+                artifact.project_id AS artifact_project_id,
+                artifact.artifact_type,
+                artifact.status AS artifact_status,
+                asset.workspace_id AS upload_workspace_id,
+                asset.project_id AS upload_project_id,
+                asset.surface AS upload_surface,
+                asset.status AS upload_status,
+                asset.purge_state AS upload_purge_state,
+                asset.content_type AS upload_content_type,
+                asset.checksum_sha256 AS upload_checksum_sha256,
+                asset.scan_status AS upload_scan_status,
+                asset.scan_override_actor_user_id,
+                asset.scan_override_reason,
+                asset.scan_override_expires_at,
+                asset.scan_override_checksum_sha256
+         FROM estimate_row_commercial_terms AS terms
+         LEFT JOIN project_artifact_versions AS version
+           ON version.id = terms.quotation_artifact_version_id
+         LEFT JOIN project_artifacts AS artifact ON artifact.id = version.artifact_id
+         LEFT JOIN upload_assets AS asset ON asset.id = version.upload_asset_id
+         WHERE terms.row_id IN (${placeholders(rows)})`,
+          rowIds,
+        ),
+        all<EstimateAlternativeProjectionRow>(
+          database,
+          `SELECT member.row_item_id, scope.id AS contribution_scope_id,
+                  scope.revision AS contribution_revision, group_row.id AS group_id,
+                  group_row.name AS group_name, group_row.selected_row_item_id,
+                  group_row.revision AS group_revision
+           FROM estimate_alternative_members AS member
+           JOIN estimate_alternative_groups AS group_row ON group_row.id = member.group_id
+           JOIN estimate_contribution_scopes AS scope ON scope.id = member.contribution_scope_id
+           WHERE member.row_item_id IN (${placeholders(rowIds)})`,
+          rowIds,
+        ),
+        all<EstimateOptionalProjectionRow>(
+          database,
+          `SELECT optional_row.row_item_id, scope.id AS contribution_scope_id,
+                  scope.revision AS contribution_revision, optional_row.is_included,
+                  optional_row.revision AS optional_revision
+           FROM estimate_optional_items AS optional_row
+           JOIN estimate_contribution_scopes AS scope ON scope.id = optional_row.contribution_scope_id
+           WHERE optional_row.row_item_id IN (${placeholders(rowIds)})`,
+          rowIds,
+        ),
+        all<EstimateAccessoryProjectionRow>(
+          database,
+          `SELECT edge.id, edge.contribution_scope_id, scope.revision AS contribution_revision,
+                  edge.parent_row_item_id, edge.child_row_item_id, edge.mode,
+                  edge.is_included, edge.quantity_rule_json, edge.revision AS edge_revision
+           FROM estimate_accessory_edges AS edge
+           JOIN estimate_contribution_scopes AS scope ON scope.id = edge.contribution_scope_id
+           WHERE edge.parent_row_item_id IN (${placeholders(rowIds)})
+              OR edge.child_row_item_id IN (${placeholders(rowIds)})`,
+          [...rowIds, ...rowIds],
+        ),
+      ]);
+      const commercialByRowId = new Map(commercialRows.map((row) => [row.row_id, row]));
+      const alternativeMembersByGroupId = new Map<string, string[]>();
+      for (const row of alternativeRows) {
+        const members = alternativeMembersByGroupId.get(row.group_id) ?? [];
+        members.push(row.row_item_id);
+        alternativeMembersByGroupId.set(row.group_id, members);
+      }
+      const alternativeByRowId = new Map(alternativeRows.map((row) => [row.row_item_id, row]));
+      const optionalByRowId = new Map(optionalRows.map((row) => [row.row_item_id, row]));
+      const accessoryParentByRowId = new Map(accessoryRows.map((row) => [row.child_row_item_id, row]));
+      const accessoryChildrenByRowId = new Map<string, EstimateAccessoryProjectionRow[]>();
+      for (const edge of accessoryRows) {
+        const children = accessoryChildrenByRowId.get(edge.parent_row_item_id) ?? [];
+        children.push(edge);
+        accessoryChildrenByRowId.set(edge.parent_row_item_id, children);
+      }
+      return rows.map((row) => {
+        const commercial = commercialByRowId.get(row.id);
+        const alternative = alternativeByRowId.get(row.id);
+        const optional = optionalByRowId.get(row.id);
+        const accessoryParent = accessoryParentByRowId.get(row.id);
+        const accessoryChildren = accessoryChildrenByRowId.get(row.id);
+        const contribution = alternative ?? optional ?? accessoryParent ?? accessoryChildren?.[0];
+        return {
+          ...row,
+          ...(commercial ? {
+            commercial_override_treatment: commercial.override_treatment,
+            commercial_override_rate_bps: commercial.override_rate_bps,
+            commercial_selected_treatment: commercial.selected_option_treatment,
+            commercial_selected_rate_bps: commercial.selected_option_rate_bps,
+            commercial_terms_revision: commercial.terms_revision,
+            quotation_requirement: commercial.quotation_requirement,
+            quotation_status: commercial.quotation_status,
+            quotation_reference: commercial.quotation_reference,
+            quotation_attachment: quotationAttachmentFromReadRow(commercial, projectionNow),
+          } : {}),
+          contribution_scope_id: contribution?.contribution_scope_id ?? null,
+          contribution_revision: contribution?.contribution_revision ?? null,
+          alternative_group: alternative ? {
+            id: alternative.group_id,
+            name: alternative.group_name,
+            selectedRowItemId: alternative.selected_row_item_id,
+            memberRowItemIds: alternativeMembersByGroupId.get(alternative.group_id) ?? [row.id],
+            revision: Number(alternative.group_revision),
+          } : undefined,
+          optional_contribution: optional ? {
+            isIncluded: readD1Boolean(optional.is_included),
+            revision: Number(optional.optional_revision),
+          } : undefined,
+          accessory_parent: accessoryParent ? {
+            edgeId: accessoryParent.id,
+            parentRowItemId: accessoryParent.parent_row_item_id,
+            mode: accessoryParent.mode,
+            isIncluded: readD1Boolean(accessoryParent.is_included),
+            quantityRule: readJsonRecord(accessoryParent.quantity_rule_json),
+            revision: Number(accessoryParent.edge_revision),
+          } : undefined,
+          accessory_children: accessoryChildren?.map((edge) => ({
+            edgeId: edge.id,
+            childRowItemId: edge.child_row_item_id,
+            mode: edge.mode,
+            isIncluded: readD1Boolean(edge.is_included),
+            quantityRule: readJsonRecord(edge.quantity_rule_json),
+            revision: Number(edge.edge_revision),
+          })),
+        };
+      });
+    } catch (error) {
+      if (isMissingOptionalTable(error)) return rows;
+      throw error;
+    }
   }));
   const rows = batches.flat()
     .sort((left, right) => left.sort_order - right.sort_order || left.id.localeCompare(right.id));
@@ -501,6 +770,13 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const tags = Array.isArray(metadata.tags) ? metadata.tags.filter((tag): tag is string => typeof tag === "string") : undefined;
   const componentVersionNumber = typeof sourceSnapshot.componentVersionNumber === "number" ? sourceSnapshot.componentVersionNumber : undefined;
   const scopeStatus = typeof metadata.scopeStatus === "string" && metadata.scopeStatus.trim() ? metadata.scopeStatus : undefined;
+  const commercialVatTreatment = row.commercial_override_treatment ?? row.commercial_selected_treatment ?? undefined;
+  const commercialVatRateBps = row.commercial_override_rate_bps ?? row.commercial_selected_rate_bps ?? undefined;
+  const commercialVatSource = row.commercial_override_treatment
+    ? "row_override"
+    : row.commercial_selected_treatment
+      ? "captured_selected_option"
+      : undefined;
 
   return {
     id: row.id,
@@ -508,6 +784,25 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     material: row.material,
     scopeStatus,
     description: row.description,
+    notes: row.notes ?? undefined,
+    commercialVatTreatment,
+    commercialVatRateBps: commercialVatRateBps === undefined ? undefined : Number(commercialVatRateBps),
+    commercialVatSource,
+    commercialTermsRevision: row.commercial_terms_revision === null || row.commercial_terms_revision === undefined
+      ? undefined
+      : Number(row.commercial_terms_revision),
+    quotationRequirement: row.quotation_requirement ?? undefined,
+    quotationStatus: row.quotation_status ?? undefined,
+    quotationReference: row.quotation_reference ?? undefined,
+    quotationAttachment: row.quotation_attachment,
+    contributionScopeId: row.contribution_scope_id ?? undefined,
+    contributionRevision: row.contribution_revision === null || row.contribution_revision === undefined
+      ? undefined
+      : Number(row.contribution_revision),
+    alternativeGroup: row.alternative_group,
+    optionalContribution: row.optional_contribution,
+    accessoryParent: row.accessory_parent,
+    accessoryChildren: row.accessory_children,
     supplier: row.supplier || "No supplier",
     supplierId: supplierId ?? undefined,
     source: row.source_library_item_id && row.link_state !== "detached" && row.link_state !== "unlinked" ? "library" : "project",
@@ -530,7 +825,7 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     categoryPath,
     categoryPathIds,
     brand: typeof sourceSnapshot.brand === "string" ? sourceSnapshot.brand : undefined,
-    brandId: typeof sourceSnapshot.brandId === "string" ? sourceSnapshot.brandId : undefined,
+    brandId: row.brand_id ?? (typeof sourceSnapshot.brandId === "string" ? sourceSnapshot.brandId : undefined),
     discipline: row.discipline ?? undefined,
     designation: row.designation ?? undefined,
     tags,
@@ -693,18 +988,30 @@ export async function readLegacyEstimateTreeD1(
 ): Promise<EstimateTabTreePayloadD1> {
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const [rawNodes, rawRows, sheetAdjustment] = await Promise.all([
-    readEstimateNodes(database, estimate.id, { limit: maxNodeCount ? maxNodeCount + 1 : null }),
-    readEstimateRows(database, estimate.id, { limit: maxRowItemCount ? maxRowItemCount + 1 : null }),
-    readOptionalEstimateSheetAdjustment(database, estimate.id),
-  ]);
-  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
-  const templateLinks = await readEstimateTemplateLinkProjections(
-    database,
-    estimate.id,
-    limitedNodes.rows.map((node) => node.id),
+  const nodesAdjustmentPromise = traced("estimate.route.nodes-adjustment", () =>
+    Promise.all([
+      readEstimateNodes(database, estimate.id, { limit: maxNodeCount ? maxNodeCount + 1 : null }),
+      readOptionalEstimateSheetAdjustment(database, estimate.id),
+    ]),
   );
+  const rowsTemplateLinksPromise = traced("estimate.route.rows-template-links", async () => {
+    const rawRowsPromise = readEstimateRows(database, estimate.id, {
+      limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+    });
+    const [[rawNodes], rawRows] = await Promise.all([nodesAdjustmentPromise, rawRowsPromise]);
+    const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
+    const templateLinks = await readEstimateTemplateLinkProjections(
+      database,
+      estimate.id,
+      limitedNodes.rows.map((node) => node.id),
+    );
+    return { limitedNodes, rawRows, templateLinks };
+  });
+  const [[rawNodes, sheetAdjustment], { limitedNodes, rawRows, templateLinks }] = await Promise.all([
+    nodesAdjustmentPromise,
+    rowsTemplateLinksPromise,
+  ]);
+  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
     ? {
         maxNodeCount,
@@ -716,7 +1023,9 @@ export async function readLegacyEstimateTreeD1(
       }
     : undefined;
   const nodes = limitedNodes.rows;
-  const tree = buildEstimateTree(nodes, limitedRows.rows, templateLinks);
+  const tree = await traced("estimate.route.tree-build", async () =>
+    buildEstimateTree(nodes, limitedRows.rows, templateLinks),
+  );
   const selectedNodeId = preferredNodeId && rawNodes.some((node) => node.id === preferredNodeId)
     ? preferredNodeId
     : tree[0]?.id ?? null;
@@ -737,26 +1046,30 @@ export async function readEstimateTabTreePayloadD1(
 ): Promise<EstimateTabTreePayloadD1> {
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const [rawNodes, sheetAdjustment] = await Promise.all([
-    traced("estimate-tab-tree.nodes", () =>
-      readEstimateNodes(database, estimate.id, {
-        tabId,
-        limit: maxNodeCount ? maxNodeCount + 1 : null,
-      }),
-    ),
-    readOptionalEstimateSheetAdjustment(database, estimate.id),
-  ]);
+  const [rawNodes, sheetAdjustment] = await traced("estimate.route.nodes-adjustment", () =>
+    Promise.all([
+      traced("estimate-tab-tree.nodes", () =>
+        readEstimateNodes(database, estimate.id, {
+          tabId,
+          limit: maxNodeCount ? maxNodeCount + 1 : null,
+        }),
+      ),
+      readOptionalEstimateSheetAdjustment(database, estimate.id),
+    ]),
+  );
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
   const nodeIds = limitedNodes.rows.map((node) => node.id);
-  const [rawRows, templateLinks] = await Promise.all([
-    nodeIds.length > 0
-      ? readEstimateRows(database, estimate.id, {
-          nodeIds,
-          limit: maxRowItemCount ? maxRowItemCount + 1 : null,
-        })
-      : Promise.resolve([]),
-    readEstimateTemplateLinkProjections(database, estimate.id, nodeIds),
-  ]);
+  const [rawRows, templateLinks] = await traced("estimate.route.rows-template-links", () =>
+    Promise.all([
+      nodeIds.length > 0
+        ? readEstimateRows(database, estimate.id, {
+            nodeIds,
+            limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+          })
+        : Promise.resolve([]),
+      readEstimateTemplateLinkProjections(database, estimate.id, nodeIds),
+    ]),
+  );
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
     ? {
@@ -768,8 +1081,10 @@ export async function readEstimateTabTreePayloadD1(
         didExceedRowItemLimit: limitedRows.didExceedLimit,
       }
     : undefined;
-  const tree = await traced("estimate-tab-tree.build", async () =>
-    buildEstimateTree(limitedNodes.rows, limitedRows.rows, templateLinks),
+  const tree = await traced("estimate-tab-tree.build", () =>
+    traced("estimate.route.tree-build", async () =>
+      buildEstimateTree(limitedNodes.rows, limitedRows.rows, templateLinks),
+    ),
   );
   return {
     estimate: normalizeEstimateRecord(estimate),

@@ -48,7 +48,7 @@ describe("estimate sheet UNIT-003 truth contracts", () => {
     expect(intentSource).not.toContain("duplicateSourceRowId");
   });
 
-  it("keeps optimistic and authoritative rows in one fail-closed token-guarded store", () => {
+  it("keeps optimistic and authoritative rows in one fail-closed token-guarded store", async () => {
     const row: EstimateRowItem = {
       id: "row-commit-contract",
       material: "Cabinet",
@@ -133,6 +133,21 @@ describe("estimate sheet UNIT-003 truth contracts", () => {
     expect(store.getState().rowCommitStates[row.id]).toBeUndefined();
     expect(markDirty).toHaveBeenCalled();
     expect(markClean).toHaveBeenCalled();
+
+    let receiptSettled = false;
+    const receiptBackedCommit = store.getState()
+      .commitRowFieldsAwaited(row, { imageUrl: "/api/projects/images?assetId=asset-1&variant=image" })
+      .then(() => { receiptSettled = true; });
+    await Promise.resolve();
+    expect(receiptSettled).toBe(false);
+    lifecycles[2]?.committed({
+      [row.id]: {
+        ...committedRow,
+        imageUrl: "/api/projects/images?assetId=asset-1&variant=image",
+      },
+    });
+    await receiptBackedCommit;
+    expect(receiptSettled).toBe(true);
   });
 
   it("installs real adapters in layout order and replaces drilled row commit props with selectors", () => {

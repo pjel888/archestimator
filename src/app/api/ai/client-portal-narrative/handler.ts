@@ -128,6 +128,104 @@ function fallbackReasonFor(error: unknown): ClientPortalNarrativeResponse["fallb
   return "provider_error";
 }
 
+type ProviderBackedUserContext = AiRequestUserContext & { authMode: "better-auth"; workspaceId: string };
+
+type NarrativeGeneration = Pick<ClientPortalNarrativeResponse, "fallbackReason" | "model" | "provider" | "selection" | "source"> & {
+  usage: Record<string, number>;
+};
+
+async function readNarrativeRequest(request: Request) {
+  const sameOrigin = assertSameOrigin(request);
+  if (!sameOrigin.ok) return { errorResponse: response({ error: sameOrigin.message }, sameOrigin.status), parsed: null };
+  const body = await readBoundedJsonBody<unknown>(request, MAX_REQUEST_BODY_BYTES);
+  if (!body.ok) return { errorResponse: response({ error: body.error }, body.status), parsed: null };
+  try {
+    return { errorResponse: null, parsed: parseRequest(body.value) };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Narrative request is invalid.";
+    return { errorResponse: response({ error: message }, 400), parsed: null };
+  }
+}
+
+async function readNarrativeUserContext(deps: NarrativeHandlerDependencies) {
+  try {
+    const userContext = await deps.getUserContext();
+    return userContext && isProviderBackedAiUserContext(userContext) ? userContext : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readAvailableDraftContext(
+  deps: NarrativeHandlerDependencies,
+  parsed: NarrativeRequest,
+  userContext: ProviderBackedUserContext,
+) {
+  const draftContext = await deps.readDraftContext({ ...parsed, userContext }).catch(() => null);
+  if (!draftContext) return { draftContext: null, errorResponse: response({ error: "Issue draft was not found or is not available to this workspace." }, 404) };
+  if (draftContext.draft.draftRevision !== parsed.draftRevision) {
+    return { draftContext: null, errorResponse: response({ error: "Issue draft changed. Save the latest revision and generate again.", code: "stale_draft" }, 409) };
+  }
+  if (draftContext.draft.status !== "draft" && draftContext.draft.status !== "ready") {
+    return { draftContext: null, errorResponse: response({ error: "Issue draft can no longer receive a narrative.", code: "immutable_draft" }, 409) };
+  }
+  return { draftContext, errorResponse: null };
+}
+
+async function narrativeQuotaResponse(
+  deps: NarrativeHandlerDependencies,
+  request: Request,
+  userContext: ProviderBackedUserContext,
+) {
+  try {
+    const quota = await deps.checkQuota({ request, userContext });
+    if (quota.allowed) return null;
+    return NextResponse.json(
+      { error: quota.message },
+      { status: 429, headers: { ...noStoreHeaders, "Retry-After": String(quota.retryAfter) } },
+    );
+  } catch {
+    return response({ error: "AI narrative quota is unavailable." }, 503);
+  }
+}
+
+async function generateNarrative(
+  deps: NarrativeHandlerDependencies,
+  aiEnabled: boolean,
+  providerConfigured: boolean,
+  facts: ReturnType<typeof buildClientPortalNarrativeFacts>,
+): Promise<NarrativeGeneration> {
+  const deterministic: NarrativeGeneration = {
+    fallbackReason: aiEnabled ? null : "disabled",
+    model: "source-fact-renderer-v1",
+    provider: "deterministic",
+    selection: createDeterministicClientPortalNarrativeSelection(facts),
+    source: "deterministic",
+    usage: {},
+  };
+  if (!aiEnabled) return deterministic;
+  if (!providerConfigured) return { ...deterministic, fallbackReason: "unconfigured" };
+  try {
+    const result = await deps.provider.generate({ facts });
+    if (!result) throw new Error("Narrative provider returned no output.");
+    return {
+      fallbackReason: null,
+      model: result.model,
+      provider: result.provider,
+      selection: parseClientPortalNarrativeSelection(result.output, facts),
+      source: "ai",
+      usage: Object.fromEntries(Object.entries(result.usage ?? {}).filter((entry): entry is [string, number] => typeof entry[1] === "number")),
+    };
+  } catch (error) {
+    return {
+      ...deterministic,
+      fallbackReason: fallbackReasonFor(error),
+      model: deps.provider.model,
+      provider: deps.provider.name,
+    };
+  }
+}
+
 export async function handleClientPortalNarrativeRequest(
   request: Request,
   options: {
@@ -136,52 +234,19 @@ export async function handleClientPortalNarrativeRequest(
   },
 ) {
   const deps = { ...defaultDependencies, ...options.dependencies };
-  const sameOrigin = assertSameOrigin(request);
-  if (!sameOrigin.ok) return response({ error: sameOrigin.message }, sameOrigin.status);
-
-  const body = await readBoundedJsonBody<unknown>(request, MAX_REQUEST_BODY_BYTES);
-  if (!body.ok) return response({ error: body.error }, body.status);
-
-  let parsed: NarrativeRequest;
-  try {
-    parsed = parseRequest(body.value);
-  } catch (error) {
-    return response({ error: error instanceof Error ? error.message : "Narrative request is invalid." }, 400);
-  }
-
-  let userContext: AiRequestUserContext | null;
-  try {
-    userContext = await deps.getUserContext();
-  } catch {
-    return response({ error: "AI requires a signed-in account session." }, 401);
-  }
-  if (!userContext || !isProviderBackedAiUserContext(userContext)) {
-    return response({ error: "AI requires a signed-in account session." }, 401);
-  }
-
-  const draftContext = await deps.readDraftContext({ ...parsed, userContext }).catch(() => null);
-  if (!draftContext) return response({ error: "Issue draft was not found or is not available to this workspace." }, 404);
-  if (draftContext.draft.draftRevision !== parsed.draftRevision) {
-    return response({ error: "Issue draft changed. Save the latest revision and generate again.", code: "stale_draft" }, 409);
-  }
-  if (draftContext.draft.status !== "draft" && draftContext.draft.status !== "ready") {
-    return response({ error: "Issue draft can no longer receive a narrative.", code: "immutable_draft" }, 409);
-  }
+  const requestResult = await readNarrativeRequest(request);
+  if (!requestResult.parsed) return requestResult.errorResponse;
+  const parsed = requestResult.parsed;
+  const userContext = await readNarrativeUserContext(deps);
+  if (!userContext) return response({ error: "AI requires a signed-in account session." }, 401);
+  const draftResult = await readAvailableDraftContext(deps, parsed, userContext);
+  if (!draftResult.draftContext) return draftResult.errorResponse;
+  const draftContext = draftResult.draftContext;
 
   const providerConfigured = options.aiEnabled && deps.provider.hasApiKey();
   if (providerConfigured) {
-    let quota: DurableRateLimitResult;
-    try {
-      quota = await deps.checkQuota({ request, userContext });
-    } catch {
-      return response({ error: "AI narrative quota is unavailable." }, 503);
-    }
-    if (!quota.allowed) {
-      return NextResponse.json(
-        { error: quota.message },
-        { status: 429, headers: { ...noStoreHeaders, "Retry-After": String(quota.retryAfter) } },
-      );
-    }
+    const quotaResponse = await narrativeQuotaResponse(deps, request, userContext);
+    if (quotaResponse) return quotaResponse;
   }
 
   const changeSet = buildClientPortalNarrativeInput({ draft: draftContext.draft, sources: draftContext.sources });
@@ -189,31 +254,8 @@ export async function handleClientPortalNarrativeRequest(
   const inputFingerprint = buildClientPortalNarrativeInputFingerprint({ draftRevision: parsed.draftRevision, changeSet });
   const inputHash = sha256(canonicalSerializeClientPortalNarrative(changeSet));
   const runId = randomUUID();
-  let provider = "deterministic";
-  let model = "source-fact-renderer-v1";
-  let source: ClientPortalNarrativeResponse["source"] = "deterministic";
-  let fallbackReason: ClientPortalNarrativeResponse["fallbackReason"] = options.aiEnabled ? null : "disabled";
-  let usage: Record<string, number> = {};
-  let selection = createDeterministicClientPortalNarrativeSelection(facts);
-
-  if (options.aiEnabled && !providerConfigured) {
-    fallbackReason = "unconfigured";
-  } else if (options.aiEnabled) {
-    provider = deps.provider.name;
-    model = deps.provider.model;
-    try {
-      const result = await deps.provider.generate({ facts });
-      if (!result) throw new Error("Narrative provider returned no output.");
-      selection = parseClientPortalNarrativeSelection(result.output, facts);
-      provider = result.provider;
-      model = result.model;
-      source = "ai";
-      fallbackReason = null;
-      usage = Object.fromEntries(Object.entries(result.usage ?? {}).filter((entry): entry is [string, number] => typeof entry[1] === "number"));
-    } catch (error) {
-      fallbackReason = fallbackReasonFor(error);
-    }
-  }
+  const generation = await generateNarrative(deps, options.aiEnabled, providerConfigured, facts);
+  const { fallbackReason, model, provider, selection, source, usage } = generation;
 
   const narrative = renderClientPortalNarrative(facts, selection);
   const outputHash = sha256(canonicalSerializeClientPortalNarrative({ narrative, selection }));

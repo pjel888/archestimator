@@ -59,6 +59,7 @@ export type EditableRowStoreState = {
   syncTree: (tree: EstimateTreeNode[]) => void;
   stageRow: (item: EstimateRowItem, patch: Partial<EditableRowValue>) => void;
   commitRowFields: (item: EstimateRowItem, values: Partial<EditableRowValue>) => void;
+  commitRowFieldsAwaited: (item: EstimateRowItem, values: Partial<EditableRowValue>) => Promise<void>;
   commitSelectedVariant: (item: EstimateRowItem, option: SelectedVariantCommitInput) => void;
   requestMakeProjectSpecific: (item: EstimateRowItem) => void;
   commitMakeProjectSpecific: (item: EstimateRowItem) => void;
@@ -213,7 +214,11 @@ export function createEditableRowStore(initialRows: EditableRows, initialTree: E
       notifyDirtyState();
     };
 
-    const beginIntent = (intent: RowCommitIntent, mode: "commit" | "request") => {
+    const beginIntent = (
+      intent: RowCommitIntent,
+      mode: "commit" | "request",
+      completion?: { resolve: () => void; reject: (error: Error) => void },
+    ) => {
       const token = createCommitToken("commit");
       const affectedRowIds = new Set<string>([intent.rowId]);
       set((state) => ({
@@ -295,6 +300,7 @@ export function createEditableRowStore(initialRows: EditableRows, initialTree: E
             };
           });
           notifyDirtyState();
+          completion?.resolve();
         },
         rejected: (error, policy) => {
           set((state) => {
@@ -327,6 +333,7 @@ export function createEditableRowStore(initialRows: EditableRows, initialTree: E
             };
           });
           notifyDirtyState();
+          completion?.reject(error);
         },
         cancelled: () => {
           set((state) => {
@@ -351,6 +358,7 @@ export function createEditableRowStore(initialRows: EditableRows, initialTree: E
             };
           });
           notifyDirtyState();
+          completion?.reject(new Error("Row save was cancelled."));
         },
       };
 
@@ -440,6 +448,22 @@ export function createEditableRowStore(initialRows: EditableRows, initialTree: E
           retainDraft: true,
         });
         beginIntent(classifyRowCommitIntent(item, values), "commit");
+      },
+      commitRowFieldsAwaited: (item, values) => {
+        if (Object.keys(values).length === 0) {
+          settleNoop(item.id);
+          return Promise.resolve();
+        }
+        applyRowPatch(item, values, {
+          phase: "dirty",
+          error: null,
+          activeCommitToken: createCommitToken("draft"),
+          pendingIntent: null,
+          retainDraft: true,
+        });
+        return new Promise<void>((resolve, reject) => {
+          beginIntent(classifyRowCommitIntent(item, values), "commit", { resolve, reject });
+        });
       },
       commitSelectedVariant: (item, option) => {
         const intent = createSelectedVariantUpdateIntent(item, option);

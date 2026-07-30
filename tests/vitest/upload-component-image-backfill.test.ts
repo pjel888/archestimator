@@ -210,7 +210,7 @@ describe("component image backfill readiness", () => {
       const classifications = references.map(classifyUploadImageReference);
 
       expect(snapshot.estimates[0]?.rows.map((row) => row.imageUrl)).toEqual([
-        null,
+        undefined,
         "/component-thumbnails/cabinet.webp",
       ]);
       expect(classifications).toEqual([

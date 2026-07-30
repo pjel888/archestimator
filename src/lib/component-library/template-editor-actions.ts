@@ -14,6 +14,11 @@ import type { EstimateRowItem, EstimateRowLinkState } from "@/lib/estimates/type
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import { sanitizeEstimateRowPriceOptionsSnapshot } from "@/lib/estimates/source-snapshot-price-options";
 import { assertD1MutationStatementLimit } from "@/lib/estimates/mutation-receipts";
+import {
+  buildTemplateSidecarSourceGuard,
+  loadTemplateSidecars,
+  type TemplateSidecars,
+} from "@/lib/estimates/d1-intents/templates";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/types/json";
@@ -710,10 +715,13 @@ function buildTemplateEditorMutationStatements(input: {
     timestamp: input.timestamp,
     result: input.result,
   });
+  const nextVersionNumber = input.template.current_version_number + 1;
   return [
     linkedMutationStatements[0],
     ...input.statements,
-    ...linkedMutationStatements.slice(1),
+    linkedMutationStatements[1],
+    buildTemplateVersionSidecarRefreshStatement(input.template.id, nextVersionNumber),
+    ...linkedMutationStatements.slice(2),
     buildTemplateMutationTelemetryStatement({
       actorUserId: input.actorUserId,
       workspaceId: input.template.workspace_id,
@@ -730,6 +738,86 @@ function buildTemplateEditorMutationStatements(input: {
       timestamp: input.timestamp,
     }),
   ] satisfies TemplateMutationStatement[];
+}
+
+function buildTemplateVersionSidecarRefreshStatement(
+  templateId: string,
+  versionNumber: number,
+): TemplateMutationStatement {
+  return {
+    sql: `UPDATE estimate_template_versions
+      SET snapshot_json = json_set(
+        snapshot_json,
+        '$.sidecars',
+        json_object(
+          'variantSelections', json(COALESCE((
+            SELECT json_group_array(json(entry.payload)) FROM (
+              SELECT json_object(
+                'templateRowItemId', selection.template_row_item_id,
+                'selectedPriceOptionId', selection.selected_price_option_id,
+                'selectedOptionSnapshot', json(selection.selected_option_snapshot_json)
+              ) AS payload
+              FROM estimate_template_row_variant_selections AS selection
+              WHERE selection.template_id = ?
+              ORDER BY selection.template_row_item_id ASC
+            ) AS entry
+          ), '[]')),
+          'alternativeGroups', json(COALESCE((
+            SELECT json_group_array(json(entry.payload)) FROM (
+              SELECT json_object(
+                'id', group_record.id,
+                'selectedTemplateRowItemId', group_record.selected_template_row_item_id,
+                'name', group_record.name
+              ) AS payload
+              FROM estimate_template_alternative_groups AS group_record
+              WHERE group_record.template_id = ?
+              ORDER BY group_record.id ASC
+            ) AS entry
+          ), '[]')),
+          'alternativeMembers', json(COALESCE((
+            SELECT json_group_array(json(entry.payload)) FROM (
+              SELECT json_object(
+                'groupId', member.group_id,
+                'templateRowItemId', member.template_row_item_id,
+                'sortOrder', member.sort_order
+              ) AS payload
+              FROM estimate_template_alternative_members AS member
+              JOIN estimate_template_alternative_groups AS group_record ON group_record.id = member.group_id
+              WHERE group_record.template_id = ?
+              ORDER BY member.group_id ASC, member.sort_order ASC, member.template_row_item_id ASC
+            ) AS entry
+          ), '[]')),
+          'optionalItems', json(COALESCE((
+            SELECT json_group_array(json(entry.payload)) FROM (
+              SELECT json_object(
+                'templateRowItemId', optional_item.template_row_item_id,
+                'isIncluded', json(CASE optional_item.is_included WHEN 1 THEN 'true' ELSE 'false' END)
+              ) AS payload
+              FROM estimate_template_optional_items AS optional_item
+              WHERE optional_item.template_id = ?
+              ORDER BY optional_item.template_row_item_id ASC
+            ) AS entry
+          ), '[]')),
+          'accessoryEdges', json(COALESCE((
+            SELECT json_group_array(json(entry.payload)) FROM (
+              SELECT json_object(
+                'id', edge.id,
+                'parentTemplateRowItemId', edge.parent_template_row_item_id,
+                'childTemplateRowItemId', edge.child_template_row_item_id,
+                'mode', edge.mode,
+                'isIncluded', json(CASE edge.is_included WHEN 1 THEN 'true' ELSE 'false' END),
+                'quantityRule', json(edge.quantity_rule_json)
+              ) AS payload
+              FROM estimate_template_accessory_edges AS edge
+              WHERE edge.template_id = ?
+              ORDER BY edge.id ASC
+            ) AS entry
+          ), '[]'))
+        )
+      )
+      WHERE template_id = ? AND version_number = ?`,
+    values: [templateId, templateId, templateId, templateId, templateId, templateId, versionNumber],
+  };
 }
 
 function latestUpdatedAt(rows: Array<{ updated_at: string }>) {
@@ -918,6 +1006,118 @@ function templateRowItemInsertStatement(input: EstimateTemplateRowItem & { now: 
       input.now,
     ] as D1Value[],
   };
+}
+
+function buildTemplateSidecarCopyStatements(input: {
+  sidecars: TemplateSidecars;
+  rowIdBySource: ReadonlyMap<string, string>;
+  targetTemplateId: string;
+  workspaceId: string;
+  actorUserId: string;
+  now: string;
+}): TemplateMutationStatement[] {
+  const variants = input.sidecars.variantSelections.map((selection) => ({
+    rowId: input.rowIdBySource.get(selection.template_row_item_id),
+    optionId: selection.selected_price_option_id,
+    snapshot: parseJsonValue(selection.selected_option_snapshot_json, {}),
+  }));
+  const groupIdBySource = new Map(input.sidecars.alternativeGroups.map((group) => [group.id, randomUUID()]));
+  const groups = input.sidecars.alternativeGroups.map((group) => ({
+    id: groupIdBySource.get(group.id),
+    selectedRowId: input.rowIdBySource.get(group.selected_template_row_item_id),
+    name: group.name,
+  }));
+  const members = input.sidecars.alternativeMembers.map((member) => ({
+    groupId: groupIdBySource.get(member.group_id),
+    rowId: input.rowIdBySource.get(member.template_row_item_id),
+    sortOrder: Number(member.sort_order),
+  }));
+  const optionalItems = input.sidecars.optionalItems.map((item) => ({
+    rowId: input.rowIdBySource.get(item.template_row_item_id),
+    isIncluded: item.is_included === true || item.is_included === 1,
+  }));
+  const edges = input.sidecars.accessoryEdges.map((edge) => ({
+    id: randomUUID(),
+    parentRowId: input.rowIdBySource.get(edge.parent_template_row_item_id),
+    childRowId: input.rowIdBySource.get(edge.child_template_row_item_id),
+    mode: edge.mode,
+    isIncluded: edge.is_included === true || edge.is_included === 1,
+    quantityRule: parseJsonValue(edge.quantity_rule_json, {}),
+  }));
+  if ([...variants, ...groups, ...members, ...optionalItems, ...edges]
+    .some((entry) => Object.values(entry).some((value) => value === undefined))) {
+    throw new Error("The source Template sidecar mapping is incomplete.");
+  }
+  const statements: TemplateMutationStatement[] = [];
+  if (variants.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_template_row_variant_selections (
+              template_row_item_id, template_id, workspace_id, selected_price_option_id,
+              selected_option_snapshot_json, selection_revision, updated_at
+            )
+            SELECT json_extract(value, '$.rowId'), ?, ?, json_extract(value, '$.optionId'),
+                   json_extract(value, '$.snapshot'), 1, ?
+            FROM json_each(?)`,
+      values: [input.targetTemplateId, input.workspaceId, input.now, JSON.stringify(variants)],
+    });
+  }
+  if (groups.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_template_alternative_groups (
+              id, template_id, workspace_id, selected_template_row_item_id,
+              name, revision, created_at, updated_at
+            )
+            SELECT json_extract(value, '$.id'), ?, ?, json_extract(value, '$.selectedRowId'),
+                   json_extract(value, '$.name'), 1, ?, ?
+            FROM json_each(?)`,
+      values: [input.targetTemplateId, input.workspaceId, input.now, input.now, JSON.stringify(groups)],
+    });
+  }
+  if (members.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_template_alternative_members (
+              group_id, template_row_item_id, sort_order, created_at
+            )
+            SELECT json_extract(value, '$.groupId'), json_extract(value, '$.rowId'),
+                   json_extract(value, '$.sortOrder'), ?
+            FROM json_each(?)`,
+      values: [input.now, JSON.stringify(members)],
+    });
+  }
+  if (optionalItems.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_template_optional_items (
+              template_id, template_row_item_id, is_included, revision, created_at, updated_at
+            )
+            SELECT ?, json_extract(value, '$.rowId'), json_extract(value, '$.isIncluded'), 1, ?, ?
+            FROM json_each(?)`,
+      values: [input.targetTemplateId, input.now, input.now, JSON.stringify(optionalItems)],
+    });
+  }
+  if (edges.length > 0) {
+    statements.push({
+      sql: `INSERT INTO estimate_template_accessory_edges (
+              id, template_id, workspace_id, parent_template_row_item_id,
+              child_template_row_item_id, mode, is_included, quantity_rule_json,
+              revision, created_by, updated_by, created_at, updated_at
+            )
+            SELECT json_extract(value, '$.id'), ?, ?, json_extract(value, '$.parentRowId'),
+                   json_extract(value, '$.childRowId'), json_extract(value, '$.mode'),
+                   json_extract(value, '$.isIncluded'), json_extract(value, '$.quantityRule'),
+                   1, ?, ?, ?, ?
+            FROM json_each(?)`,
+      values: [
+        input.targetTemplateId,
+        input.workspaceId,
+        input.actorUserId,
+        input.actorUserId,
+        input.now,
+        input.now,
+        JSON.stringify(edges),
+      ],
+    });
+  }
+  return statements;
 }
 
 export async function renameLinkedEstimateTemplate(input: {
@@ -1227,6 +1427,18 @@ export async function deleteEstimateTemplateNode(input: {
     result,
     metadata: { rootNodeId: input.nodeId, deletedNodeCount: subtreeIds.length },
     statements: [
+      {
+        sql: `
+          DELETE FROM estimate_template_alternative_groups
+          WHERE template_id = ?
+            AND selected_template_row_item_id IN (
+              SELECT id FROM estimate_template_row_items
+              WHERE template_id = ?
+                AND template_node_id IN (${placeholders(subtreeIds)})
+            )
+        `,
+        values: [template.id, template.id, ...subtreeIds],
+      },
       {
         sql: `
           DELETE FROM estimate_template_row_items
@@ -1783,15 +1995,22 @@ export async function removeEstimateTemplateRowItem(input: {
     timestamp,
     result,
     metadata: { rowId: row.id },
-    statements: [{
-      sql: `
-      DELETE FROM estimate_template_row_items
-      WHERE id = ?
-        AND template_id = ?
-        AND updated_at = ?
-    `,
-      values: [row.id, template.id, row.updated_at],
-    }],
+    statements: [
+      {
+        sql: `DELETE FROM estimate_template_alternative_groups
+          WHERE template_id = ? AND selected_template_row_item_id = ?`,
+        values: [template.id, row.id],
+      },
+      {
+        sql: `
+        DELETE FROM estimate_template_row_items
+        WHERE id = ?
+          AND template_id = ?
+          AND updated_at = ?
+      `,
+        values: [row.id, template.id, row.updated_at],
+      },
+    ],
   });
   const committed = await commitTemplateMutation(
     database,
@@ -1905,9 +2124,12 @@ export async function insertTemplateIntoTemplate(input: {
     rowsToCopy = rowsToCopy.filter((row) => subtreeIds.has(row.template_node_id));
   }
   if (nodesToCopy.length === 0) throw new Error("The source template has no structure to insert.");
+  const copiedSourceRowIds = new Set(rowsToCopy.map((row) => row.id));
+  const sourceSidecars = await loadTemplateSidecars(database, [sourceTemplate.id], copiedSourceRowIds);
 
   const baseSortOrder = await nextSiblingSortOrder(database, input.targetTemplateId, input.targetNodeId);
   const idMap = new Map<string, string>(nodesToCopy.map((node) => [node.id, randomUUID()]));
+  const rowIdBySource = new Map(rowsToCopy.map((row) => [row.id, randomUUID()]));
   const now = nowIso();
   const nodeInserts = nodesToCopy.map((node, index) =>
     templateNodeInsertStatement({
@@ -1927,7 +2149,7 @@ export async function insertTemplateIntoTemplate(input: {
     if (!copiedNodeId) throw new Error("The source template row no longer has a matching node.");
     return templateRowItemInsertStatement({
       ...row,
-      id: randomUUID(),
+      id: rowIdBySource.get(row.id)!,
       template_id: input.targetTemplateId,
       template_node_id: copiedNodeId,
       pricing_provenance_origin: toDetachedTemplatePricingProvenance(row.pricing_provenance_origin),
@@ -1939,6 +2161,14 @@ export async function insertTemplateIntoTemplate(input: {
       updated_at: now,
       now,
     });
+  });
+  const sidecarInserts = buildTemplateSidecarCopyStatements({
+    sidecars: sourceSidecars,
+    rowIdBySource,
+    targetTemplateId: input.targetTemplateId,
+    workspaceId: workspace.id,
+    actorUserId: currentUser.userId,
+    now,
   });
 
   const sourceGuard: TemplateMutationStatement = {
@@ -1985,7 +2215,13 @@ export async function insertTemplateIntoTemplate(input: {
       insertedNodeCount: nodeInserts.length,
       insertedRowCount: rowInserts.length,
     },
-    statements: [sourceGuard, ...nodeInserts, ...rowInserts],
+    statements: [
+      sourceGuard,
+      buildTemplateSidecarSourceGuard(sourceSidecars, copiedSourceRowIds),
+      ...nodeInserts,
+      ...rowInserts,
+      ...sidecarInserts,
+    ],
   });
   const committed = await commitTemplateMutation(
     database,

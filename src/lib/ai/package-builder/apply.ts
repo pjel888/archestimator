@@ -1757,6 +1757,8 @@ function buildComponentCreatePayload({
     priceOptions: [
       {
         label: "Default",
+        brandId: null,
+        brand: componentCreate.brand,
         variantDescription: componentCreate.description,
         unit: componentCreate.unit,
         unitCost: componentCreate.unitCost,
@@ -1906,11 +1908,13 @@ async function applyComponentCreateDraft({
           is_default,
           updated_at,
           supplier_id,
+          brand_id,
+          brand,
           pricing_source,
           metadata_json,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)
       `,
       values: [
         priceOptionId,
@@ -1924,6 +1928,8 @@ async function applyComponentCreateDraft({
         priceOption.isActive ? 1 : 0,
         priceOption.isDefault ? 1 : 0,
         timestamp,
+        priceOption.brandId,
+        priceOption.brand,
         priceOption.pricingSource,
         priceOption.variantMetadata,
         timestamp,

@@ -250,6 +250,82 @@ describe("template-surface revalidation (U11)", () => {
   });
 });
 
+describe("catalogue governance revalidation", () => {
+  it("revalidates library routes after a replay-safe canonical entity mutation", async () => {
+    const database = createD1Fixture({ firstResults: [{ role: "member" }, null] });
+    const { createComponentCatalogueEntity } = await import("@/lib/component-library/actions");
+
+    await expect(createComponentCatalogueEntity({
+      entityKind: "brand",
+      intentId: "34343434-3434-4434-8434-343434343434",
+      name: "Canonical Brand",
+    })).resolves.toMatchObject({
+      replayed: false,
+      entity: { kind: "brand", name: "Canonical Brand", normalizedName: "canonical brand", revision: 1 },
+    });
+
+    expect(database.batch).toHaveBeenCalledTimes(1);
+    const statements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string }>;
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO component_brands"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO component_library_telemetry_events"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO estimate_mutation_receipts"))).toBe(true);
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library");
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library/components");
+  });
+
+  it("returns and revalidates direct and linked-template estimate impacts for a rename", async () => {
+    const database = createD1Fixture({
+      firstResults: [{ role: "member" }, {
+        id: COMPONENT_ID,
+        workspace_id: WORKSPACE_ID,
+        name: "Old Brand",
+        normalized_name: "old brand",
+        lifecycle_state: "active",
+        revision: 1,
+        archived_at: null,
+        archived_by: null,
+        merged_into_id: null,
+        created_by: "user-1",
+        updated_by: "user-1",
+        created_at: "2026-07-30T00:00:00.000Z",
+        updated_at: "2026-07-30T00:00:00.000Z",
+      }, null],
+      allResults: [[{
+        row_id: "row-1",
+        project_id: "project-direct",
+        estimate_id: "estimate-direct",
+        row_revision: 3,
+      }], [{
+        template_id: TEMPLATE_ID,
+        current_version_number: 4,
+        updated_at: "2026-07-30T00:00:00.000Z",
+      }], [{ project_id: "project-linked", estimate_id: "estimate-linked" }]],
+    });
+    const { renameComponentCatalogueEntity } = await import("@/lib/component-library/actions");
+
+    const result = await renameComponentCatalogueEntity({
+      entityKind: "brand",
+      entityId: COMPONENT_ID,
+      expectedRevision: 1,
+      intentId: "56565656-5656-4656-8656-565656565656",
+      name: "New Brand",
+    });
+
+    expect(result.affectedEstimates).toEqual([
+      { projectId: "project-direct", estimateId: "estimate-direct" },
+      { projectId: "project-linked", estimateId: "estimate-linked" },
+    ]);
+    const statements = database.batch.mock.calls[0]?.[0] as Array<{ sql: string }>;
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO estimate_sheet_events"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO activity_event_outbox"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("publication_source_revision"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO estimate_template_versions"))).toBe(true);
+    expect(statements.some((statement) => statement.sql.includes("INSERT INTO estimate_template_propagation_jobs"))).toBe(true);
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-direct/estimates/estimate-direct");
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-linked/estimates/estimate-linked");
+  });
+});
+
 describe("library component instance reconciliation", () => {
   it("atomically creates a component and returns its authoritative revision", async () => {
     vi.useFakeTimers();
@@ -520,7 +596,7 @@ describe("library component instance reconciliation", () => {
     const priceOptionInserts = batchStatements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"));
     expect(priceOptionInserts).toHaveLength(2);
     for (const priceOptionInsert of priceOptionInserts) {
-      const priceOptionMetadata = JSON.parse(String(priceOptionInsert.values[13])) as Record<string, unknown>;
+      const priceOptionMetadata = JSON.parse(String(priceOptionInsert.values[15])) as Record<string, unknown>;
       expect(priceOptionMetadata).toMatchObject({
         imageBucket: null,
         imagePath: null,

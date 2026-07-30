@@ -389,6 +389,9 @@ describe("upload cleanup job runner", () => {
       surface: "project-image",
       storage_bucket: "project-images",
       storage_path: `${WORKSPACE_ID}/${USER_ID}/project-images/66666666-6666-4666-8666-666666666666/expired.webp`,
+      metadata_json: JSON.stringify({
+        uploadThumbnailPath: `${WORKSPACE_ID}/${USER_ID}/project-images/66666666-6666-4666-8666-666666666666/expired-thumb.webp`,
+      }),
       status: "reserved",
       expires_at: "2026-06-25T00:00:00.000Z",
     }];
@@ -407,7 +410,7 @@ describe("upload cleanup job runner", () => {
       "2026-06-20T03:10:00.000Z",
       25,
     ]);
-    expect(sessionStatement?.sql).toContain("SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at");
+    expect(sessionStatement?.sql).toContain("SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, metadata_json, status, expires_at");
     expect(sessionStatement?.values).toEqual([
       "reserved",
       "failed",
@@ -431,6 +434,7 @@ describe("upload cleanup job runner", () => {
         assetId: "55555555-5555-4555-8555-555555555555",
         uploadAssetId: null,
         uploadSessionId: "55555555-5555-4555-8555-555555555555",
+        thumbnailPath: `${WORKSPACE_ID}/${USER_ID}/project-images/66666666-6666-4666-8666-666666666666/expired-thumb.webp`,
         status: "reserved",
       }),
     ]);

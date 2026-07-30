@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 const requireRuntime = createRequire(import.meta.url);
 const globalFreezeFlag = "client_portal_legacy_write_freeze";
 const scopedFreezeMigration = "migrations/0122_workspace_scoped_legacy_cutover_freeze.sql";
+const mappingOwnershipMigration = "migrations/0124_client_portal_legacy_mapping_ownership.sql";
 
 type LocalSqliteDatabase = {
   close(): void;
@@ -36,6 +37,43 @@ describe("legacy Client Portal cutover", () => {
     expect(migration).not.toContain("shared_link_events_cutover_freeze");
     expect(migration).not.toContain("client_portal_legacy_mappings_cutover_freeze");
     expect(migration).not.toContain("client_portals_cutover_freeze");
+  });
+
+  it("rejects legacy mappings that cross portal, project, or workspace ownership", () => {
+    const { DatabaseSync } = requireRuntime("node:sqlite") as { DatabaseSync: new (path: string) => LocalSqliteDatabase };
+    const database = new DatabaseSync(":memory:");
+    try {
+      database.exec(`
+        CREATE TABLE project_publications (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, project_id TEXT NOT NULL);
+        CREATE TABLE client_portals (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, project_id TEXT NOT NULL);
+        CREATE TABLE client_portal_issues (id TEXT PRIMARY KEY, portal_id TEXT NOT NULL);
+        CREATE TABLE client_portal_legacy_mappings (
+          legacy_publication_id TEXT PRIMARY KEY,
+          portal_id TEXT NOT NULL,
+          issue_id TEXT NOT NULL
+        );
+        INSERT INTO project_publications(id, workspace_id, project_id) VALUES ('publication-a', 'workspace-a', 'project-a');
+        INSERT INTO client_portals(id, workspace_id, project_id) VALUES
+          ('portal-a', 'workspace-a', 'project-a'),
+          ('portal-b', 'workspace-b', 'project-b');
+        INSERT INTO client_portal_issues(id, portal_id) VALUES
+          ('issue-a', 'portal-a'),
+          ('issue-b', 'portal-b');
+      `);
+      database.exec(readFileSync(resolve(process.cwd(), mappingOwnershipMigration), "utf8"));
+
+      expect(() => database.prepare(`INSERT INTO client_portal_legacy_mappings
+        (legacy_publication_id, portal_id, issue_id) VALUES (?, ?, ?)`)
+        .run("publication-a", "portal-a", "issue-a")).not.toThrow();
+      expect(() => database.prepare("UPDATE client_portal_legacy_mappings SET portal_id = ?, issue_id = ? WHERE legacy_publication_id = ?")
+        .run("portal-b", "issue-b", "publication-a")).toThrow(/ownership mismatch/i);
+      expect(() => database.prepare("DELETE FROM client_portal_legacy_mappings").run()).not.toThrow();
+      expect(() => database.prepare(`INSERT INTO client_portal_legacy_mappings
+        (legacy_publication_id, portal_id, issue_id) VALUES (?, ?, ?)`)
+        .run("publication-a", "portal-a", "issue-b")).toThrow(/ownership mismatch/i);
+    } finally {
+      database.close();
+    }
   });
 
   it("freezes workspace A while workspace B remains writable", () => {
@@ -171,7 +209,9 @@ describe("legacy Client Portal cutover", () => {
 
   it("finalizes only verified mappings and enables the workspace freeze", () => {
     const service = readFileSync(resolve(process.cwd(), "src/lib/client-portal/legacy-cutover-service.ts"), "utf8");
-    expect(service).toContain("migrateLegacyPublicationToClientPortal({ apply: true");
+    expect(service).toContain("apply: true,");
+    expect(service).toContain("expectedFingerprint !== preflight.inventory.fingerprint");
+    expect(service).toContain("preflight.unresolved.length > 0");
     expect(service).toContain("mapping.migration_status !== \"verified\"");
     expect(service).toContain("migration_status = 'cutover_complete'");
     expect(service).toContain("client_portal_legacy_workspace_cutovers");

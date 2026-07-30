@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import { canEditEstimateInD1, isWorkspaceEditorInD1, isWorkspaceMemberInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import {
@@ -105,6 +106,17 @@ import {
   type CreateCostLibraryComponentReceiptResult,
   type UpdateCostLibraryComponentReceiptResult,
 } from "./component-mutation-d1";
+import { executeCatalogueGovernanceMutationInD1 } from "./catalogue-governance-d1";
+import { reconcileTemplatePropagationJobs } from "./template-propagation-d1";
+import {
+  CatalogueGovernanceError,
+  type ArchiveCatalogueEntityCommand,
+  type CatalogueGovernanceCommand,
+  type CreateCatalogueEntityCommand,
+  type MergeCatalogueEntitiesCommand,
+  type RenameCatalogueEntityCommand,
+  type RestoreCatalogueEntityCommand,
+} from "./catalogue-governance";
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 type CurrentUserForD1 = Awaited<ReturnType<typeof requireCurrentUserContext>>;
@@ -209,6 +221,8 @@ export type ComponentPriceOptionInput = {
   sourceUrl?: string;
   notes?: string;
   supplierId?: string | null;
+  brandId?: string | null;
+  brand?: string | null;
   activeCostEntryId?: string | null;
   costEntries?: ComponentVariantCostEntryInput[];
   packageQuantity?: number | null;
@@ -889,6 +903,8 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     sourceUrl,
     notes: input.notes ?? "",
     supplierId: input.supplierId ?? null,
+    brandId: input.brandId?.trim() || null,
+    brand: readOptionalComponentText(input.brand, "Brand", QUICK_ADD_TEXT_LIMITS.brand),
     activeCostEntryId: input.activeCostEntryId?.trim() || costEntries.find((entry) => entry.isCurrent)?.clientId || null,
     costEntries,
     packageQuantity: input.packageQuantity ?? null,
@@ -1217,6 +1233,8 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   }
   const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({
     ...option,
+    brand: option.brand ?? component.brand,
+    brandId: option.brandId ?? component.brandId,
     unit: option.unit || component.unit,
   }));
   const mutation = await createCostLibraryComponentInD1(database, {
@@ -1363,6 +1381,8 @@ export async function updateCostLibraryComponentWithPriceOptions(itemId: string,
   }
   const priceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({
     ...option,
+    brand: option.brand ?? component.brand,
+    brandId: option.brandId ?? component.brandId,
     unit: option.unit || component.unit,
   }));
   const mutation = await updateCostLibraryComponentInD1(database, {
@@ -3341,4 +3361,73 @@ export async function searchLibraryOverview(input: { query: string }): Promise<L
       category: row.category,
     })),
   };
+}
+
+async function executeComponentCatalogueGovernanceAction(command: CatalogueGovernanceCommand) {
+  const [{ workspace }, currentUser] = await Promise.all([
+    ensureDefaultWorkspace(),
+    requireCurrentUserContext(),
+  ]);
+  const database = await requireComponentLibraryActionsD1Database();
+  try {
+    const result = await executeCatalogueGovernanceMutationInD1(database, {
+      workspaceId: workspace.id,
+      actorUserId: currentUser.userId,
+      isPlatformAdmin: isPlatformAdminRole(currentUser.role),
+    }, command);
+    if (command.kind === "rename" || command.kind === "merge") {
+      try {
+        await reconcileTemplatePropagationJobs(database, { limit: 25 });
+      } catch (error) {
+        console.warn("[catalogue-governance] Immediate template propagation failed; scheduled recovery remains active.", error);
+      }
+    }
+    for (const estimate of result.affectedEstimates ?? []) {
+      revalidatePath(`/workshop/projects/${estimate.projectId}/estimates/${estimate.estimateId}`);
+    }
+    revalidateLibraryRoutes();
+    return result;
+  } catch (error) {
+    if (
+      error instanceof CatalogueGovernanceError
+      && (error.code === "catalogue_governance_denied" || error.code === "catalogue_governance_admin_required")
+    ) {
+      recordLibraryEvent("authz_denied", {
+        workspaceId: workspace.id,
+        action: `catalogue_${command.kind}`,
+        violationCode: error.code,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function createComponentCatalogueEntity(
+  input: Omit<CreateCatalogueEntityCommand, "kind">,
+) {
+  return executeComponentCatalogueGovernanceAction({ ...input, kind: "create" });
+}
+
+export async function renameComponentCatalogueEntity(
+  input: Omit<RenameCatalogueEntityCommand, "kind">,
+) {
+  return executeComponentCatalogueGovernanceAction({ ...input, kind: "rename" });
+}
+
+export async function archiveComponentCatalogueEntity(
+  input: Omit<ArchiveCatalogueEntityCommand, "kind">,
+) {
+  return executeComponentCatalogueGovernanceAction({ ...input, kind: "archive" });
+}
+
+export async function restoreComponentCatalogueEntity(
+  input: Omit<RestoreCatalogueEntityCommand, "kind">,
+) {
+  return executeComponentCatalogueGovernanceAction({ ...input, kind: "restore" });
+}
+
+export async function mergeComponentCatalogueEntities(
+  input: Omit<MergeCatalogueEntitiesCommand, "kind">,
+) {
+  return executeComponentCatalogueGovernanceAction({ ...input, kind: "merge" });
 }

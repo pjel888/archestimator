@@ -72,6 +72,7 @@ export type EstimateRowMutationStatusMap = Record<string, EstimateRowMutationSta
 
 const ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE = "This row changed elsewhere. The sheet has been refreshed; review the latest row before saving again.";
 const ESTIMATE_ROW_OFFLINE_MESSAGE = "You appear to be offline. Row change kept locally; reconnect and try again.";
+const ESTIMATE_ROW_OPAQUE_SERVER_ERROR_MESSAGE = "Could not save this estimate change. Refresh the sheet and try again.";
 const ROW_MUTATION_NETWORK_MODE = "always" as const;
 const ESTIMATE_ROW_PENDING_ESCALATION_MS = 15_000;
 
@@ -111,12 +112,20 @@ function isAmbiguousDuplicateRowFailure(error: Error) {
   return /offline|network|fetch|timeout|timed out|connection|unknown/i.test(error.message);
 }
 
+function isOpaqueServerComponentsError(error: Error) {
+  return error.message.includes("An error occurred in the Server Components render.");
+}
+
 function toEstimateRowMutationError(error: Error, input?: { rowId?: string }): EstimateRowMutationError {
   const code = readMutationErrorCode(error);
   const staleDataConflict = code === ESTIMATE_ROW_REVISION_CONFLICT_CODE;
   return {
     rowId: input?.rowId,
-    message: staleDataConflict ? ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE : error.message || "Could not save the row change.",
+    message: staleDataConflict
+      ? ESTIMATE_ROW_REVISION_CONFLICT_MESSAGE
+      : isOpaqueServerComponentsError(error)
+        ? ESTIMATE_ROW_OPAQUE_SERVER_ERROR_MESSAGE
+        : error.message || "Could not save the row change.",
     code,
     retryable: true,
   };
@@ -600,6 +609,7 @@ export function useEstimateRowMutations(
   const rowOperationIdsRef = useRef<Record<string, number>>({});
   const estimateMutationBarrierRef = useRef<Promise<unknown>>(Promise.resolve());
   const rowMutationQueueTailsRef = useRef<Record<string, Promise<unknown>>>({});
+  const pendingRowCreationTailsRef = useRef<Record<string, Promise<unknown>>>({});
   const queuedRowMutationCountsRef = useRef<Record<string, number>>({});
   const escalatedPendingMutationKeysRef = useRef<Set<string>>(new Set());
   const duplicateInsertRevisionByMutationIdRef = useRef(new Map<string, number>());
@@ -1419,10 +1429,23 @@ export function useEstimateRowMutations(
     for (const rowId of queuedRowIds) {
       queuedRowMutationCountsRef.current[rowId] = (queuedRowMutationCountsRef.current[rowId] ?? 0) + 1;
     }
-    const queueDependencies = queuedRowIds.length > 0
+    const requiredCreationDependencies = new Set<Promise<unknown>>();
+    for (const rowId of queuedRowIds) {
+      const creationDependency = pendingRowCreationTailsRef.current[rowId];
+      if (creationDependency) requiredCreationDependencies.add(creationDependency);
+    }
+    const rowQueueDependencies = queuedRowIds.length > 0
       ? [estimateMutationBarrierRef.current, ...queuedRowIds.map((rowId) => rowMutationQueueTailsRef.current[rowId]).filter(Boolean)]
       : [estimateMutationBarrierRef.current, ...Object.values(rowMutationQueueTailsRef.current)];
-    const nextUpdate = Promise.all(queueDependencies.map((dependency) => dependency.catch(() => undefined))).then(run);
+    const queueDependencies = Array.from(new Set([
+      ...rowQueueDependencies,
+      ...requiredCreationDependencies,
+    ]));
+    const nextUpdate = Promise.all(queueDependencies.map((dependency) =>
+      requiredCreationDependencies.has(dependency)
+        ? dependency
+        : dependency.catch(() => undefined),
+    )).then(run);
     if (queuedRowIds.length > 0) {
       for (const rowId of queuedRowIds) rowMutationQueueTailsRef.current[rowId] = nextUpdate;
     } else {
@@ -1437,6 +1460,7 @@ export function useEstimateRowMutations(
       }
     };
     void nextUpdate.then(cleanup, cleanup);
+    return nextUpdate;
   }
 
   function enqueueRowUpdate(input: UpdateEstimateRowInput) {
@@ -1471,7 +1495,15 @@ export function useEstimateRowMutations(
     insertRow: (input: InsertEstimateRowInput) => {
       const duplicateSourceRowId = readDuplicateEstimateRowSourceId(input.libraryItem);
       const queuedRowIds = duplicateSourceRowId ? [duplicateSourceRowId, input.rowId] : [input.rowId];
-      return enqueueEstimateMutation(queuedRowIds, () => insertMutation.mutateAsync(withInsertMutationIdentity(input)));
+      const insert = enqueueEstimateMutation(queuedRowIds, () => insertMutation.mutateAsync(withInsertMutationIdentity(input)));
+      pendingRowCreationTailsRef.current[input.rowId] = insert;
+      const clearPendingCreation = () => {
+        if (pendingRowCreationTailsRef.current[input.rowId] === insert) {
+          delete pendingRowCreationTailsRef.current[input.rowId];
+        }
+      };
+      void insert.then(clearPendingCreation, clearPendingCreation);
+      return insert;
     },
     replaceRow: (input: ReplaceEstimateRowInput) => enqueueEstimateMutation([input.rowId], () => replaceMutation.mutateAsync(withMutationIdentity(input))),
     moveRows: (input: MoveEstimateRowsInput) => enqueueEstimateMutation([input.sourceRowId, input.targetRowId], () => moveMutation.mutateAsync(withMoveMutationIdentity(input))),

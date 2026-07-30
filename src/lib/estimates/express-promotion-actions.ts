@@ -186,6 +186,8 @@ function buildPromotionPriceOptions(row: PromotionSourceRow, timestamp: string) 
     }));
     return {
       ...option,
+      brandId: option.brandId ?? readText(sourceSnapshot.brandId),
+      brand: option.brand ?? readText(sourceSnapshot.brand),
       sourceId: option.id,
       id: optionIdBySourceId.get(option.id)!,
       isDefault: option.id === defaultSourceId,
@@ -213,6 +215,8 @@ function promotionPriceOptionMetadata(option: PromotionPriceOption) {
     sourceUrl: option.sourceUrl ?? null,
     notes: option.notes ?? "",
     supplierId: option.supplierId ?? null,
+    brandId: option.brandId ?? null,
+    brand: option.brand ?? null,
     activeCostEntryId: option.activeCostEntryId ?? null,
     packageQuantity: option.packageQuantity ?? null,
     packageUnit: option.packageUnit ?? null,
@@ -1191,11 +1195,13 @@ export async function promoteEstimateRowToLibraryComponent({
           is_default,
           updated_at,
           supplier_id,
+          brand_id,
+          brand,
           pricing_source,
           metadata_json,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       values: [
         priceOption.id,
@@ -1210,6 +1216,8 @@ export async function promoteEstimateRowToLibraryComponent({
         priceOption.isDefault ? 1 : 0,
         timestamp,
         priceOption.supplierId ?? row.supplier_id ?? null,
+        priceOption.brandId ?? null,
+        priceOption.brand ?? null,
         priceOption.pricingSource ?? null,
         jsonObject(promotionPriceOptionMetadata(priceOption)),
         timestamp,

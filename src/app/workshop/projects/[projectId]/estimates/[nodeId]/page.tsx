@@ -122,84 +122,99 @@ export default function ProjectEstimateNodePage({ params, searchParams }: Projec
 }
 
 async function EstimateRouteContent({ params, searchParams }: ProjectEstimateNodePageProps) {
-  const { projectId, nodeId } = await params;
-  assertRouteErrorSmoke({ routeLabel: "Estimate workspace", searchParams: await searchParams });
+  return withPerfTraceRequest("workshop.estimate-sheet", async () => {
+    const [resolvedParams, resolvedSearchParams] = await traced("estimate.route.params", () =>
+      Promise.all([params, searchParams]),
+    );
+    const { projectId, nodeId } = resolvedParams;
+    assertRouteErrorSmoke({ routeLabel: "Estimate workspace", searchParams: resolvedSearchParams });
 
-  // The component-library dataset stays lazy-loaded through a server action, so
-  // first paint is not gated on library queries.
-  const estimateTreeResult = await withPerfTraceRequest("workshop.estimate-sheet", () =>
-    traced("estimate-sheet.route-context", () => resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)),
-  );
-  const { project, estimate, selectedNodeId, tree, tab, tabs, canEditEstimate: prefetchedCanEditEstimate, loadLimitState, sheetAdjustment } = estimateTreeResult;
+    // The component-library dataset stays lazy-loaded through a server action, so
+    // first paint is not gated on library queries.
+    const estimateTreeResult = await traced("estimate.route.context", () =>
+      traced("estimate-sheet.route-context", () =>
+        resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS),
+      ),
+    );
+    const { project, estimate, selectedNodeId, tree, tab, tabs, canEditEstimate: prefetchedCanEditEstimate, loadLimitState, sheetAdjustment } = estimateTreeResult;
 
-  if (!project || !estimate) notFound();
-  const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([
-    prefetchedCanEditEstimate === true
-      ? Promise.resolve(true)
-      : traced("estimate-sheet.edit-capability", () => resolveEstimateEditCapability(estimate.id)),
-    traced("estimate-sheet.library-management-capability", () => resolveLibraryManagementCapability(project.workspace_id)),
-    traced("estimate-sheet.onboarding-snapshot", async () => {
-      try {
-        return await loadCurrentOnboardingEligibilitySnapshot();
-      } catch {
-        return null;
-      }
-    }),
-  ]);
-  const onboardingDatabase = onboardingSnapshot
-    ? await getCloudflareD1Database()
-    : null;
-  const tutorialBindingCurrent = Boolean(
-    onboardingSnapshot
-    && onboardingDatabase
-    && await getCurrentGuidedPracticeBindingForEstimate(onboardingDatabase, {
-      userId: onboardingSnapshot.userId,
-      workspaceId: project.workspace_id,
+    if (!project || !estimate) notFound();
+    const [[resolvedCanEditEstimate, canManageLibrary], onboardingSnapshot] = await Promise.all([
+      traced("estimate.route.capabilities", () =>
+        Promise.all([
+          prefetchedCanEditEstimate === true
+            ? Promise.resolve(true)
+            : traced("estimate-sheet.edit-capability", () => resolveEstimateEditCapability(estimate.id)),
+          traced("estimate-sheet.library-management-capability", () => resolveLibraryManagementCapability(project.workspace_id)),
+        ]),
+      ),
+      traced("estimate.route.onboarding", () =>
+        traced("estimate-sheet.onboarding-snapshot", async () => {
+          try {
+            return await loadCurrentOnboardingEligibilitySnapshot();
+          } catch {
+            return null;
+          }
+        }),
+      ),
+    ]);
+    const tutorialBindingCurrent = await traced("estimate.route.binding", async () => {
+      const onboardingDatabase = onboardingSnapshot
+        ? await getCloudflareD1Database()
+        : null;
+      return Boolean(
+        onboardingSnapshot
+        && onboardingDatabase
+        && await getCurrentGuidedPracticeBindingForEstimate(onboardingDatabase, {
+          userId: onboardingSnapshot.userId,
+          workspaceId: project.workspace_id,
+          projectId: project.id,
+          estimateId: estimate.id,
+        }),
+      );
+    });
+    const scopedOnboardingSnapshot = scopeOnboardingSnapshotToEstimate(
+      onboardingSnapshot,
+      {
+        workspaceId: project.workspace_id,
+        projectId: project.id,
+        estimateId: estimate.id,
+        nodeId: selectedNodeId,
+        canEditEstimate: resolvedCanEditEstimate,
+        tutorialBindingCurrent,
+      },
+    );
+
+    const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
+    const proposalExportMetadata = {
       projectId: project.id,
       estimateId: estimate.id,
-    }),
-  );
-  const scopedOnboardingSnapshot = scopeOnboardingSnapshotToEstimate(
-    onboardingSnapshot,
-    {
-      workspaceId: project.workspace_id,
-      projectId: project.id,
-      estimateId: estimate.id,
-      nodeId: selectedNodeId,
-      canEditEstimate: resolvedCanEditEstimate,
-      tutorialBindingCurrent,
-    },
-  );
+      projectName: project.name,
+      projectCode: project.project_code,
+      projectAddress: project.location,
+      estimateName: estimate.name,
+      estimateSheetCode: estimate.sheet_code,
+      versionLabel: estimateVersionLabel,
+      currency: estimate.currency_code || project.currency_code || "PHP",
+    };
 
-  const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
-  const proposalExportMetadata = {
-    projectId: project.id,
-    estimateId: estimate.id,
-    projectName: project.name,
-    projectCode: project.project_code,
-    projectAddress: project.location,
-    estimateName: estimate.name,
-    estimateSheetCode: estimate.sheet_code,
-    versionLabel: estimateVersionLabel,
-    currency: estimate.currency_code || project.currency_code || "PHP",
-  };
-
-  return (
-    <EstimateWorkspaceResolved
-      project={project}
-      estimate={estimate}
-      selectedNodeId={selectedNodeId}
-      tree={tree}
-      tab={tab}
-      tabs={tabs}
-      prefetchedCanEditEstimate={resolvedCanEditEstimate}
-      canManageLibrary={canManageLibrary}
-      onboardingSnapshot={scopedOnboardingSnapshot}
-      loadLimitState={loadLimitState}
-      sheetAdjustment={sheetAdjustment}
-      proposalExportMetadata={proposalExportMetadata}
-    />
-  );
+    return (
+      <EstimateWorkspaceResolved
+        project={project}
+        estimate={estimate}
+        selectedNodeId={selectedNodeId}
+        tree={tree}
+        tab={tab}
+        tabs={tabs}
+        prefetchedCanEditEstimate={resolvedCanEditEstimate}
+        canManageLibrary={canManageLibrary}
+        onboardingSnapshot={scopedOnboardingSnapshot}
+        loadLimitState={loadLimitState}
+        sheetAdjustment={sheetAdjustment}
+        proposalExportMetadata={proposalExportMetadata}
+      />
+    );
+  });
 }
 
 function EstimateWorkspaceResolved({

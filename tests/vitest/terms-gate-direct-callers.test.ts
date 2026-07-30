@@ -52,16 +52,14 @@ beforeEach(() => {
 
 describe("Terms gate direct protected callers", () => {
   it("fails closed before serving private project images when current Terms are unaccepted", async () => {
-    const workspaceId = "11111111-1111-4111-8111-111111111111";
-    const projectId = "33333333-3333-4333-8333-333333333333";
-    const path = `${workspaceId}/${userContext.userId}/project-images/${projectId}/image.webp`;
+    const assetId = "55555555-5555-4555-8555-555555555555";
     termsAcceptanceMocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValueOnce({
       requiresAcceptance: true,
     });
     const { GET } = await import("@/app/api/projects/images/route");
 
     const response = await GET(
-      new Request(`http://localhost/api/projects/images?path=${encodeURIComponent(path)}`),
+      new Request(`http://localhost/api/projects/images?assetId=${assetId}&variant=image`),
     );
 
     expect(response.status).toBe(404);

@@ -1540,7 +1540,7 @@ describe("estimate sheet library insertion persistence", () => {
       await insert.promise;
     });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
     expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       rowId: insertInput.rowId,

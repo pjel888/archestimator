@@ -1,3 +1,4 @@
+import { AdminLegacyCutoverPanel } from "@/components/admin/AdminLegacyCutoverPanel";
 import { AdminPage, AdminPageHeader, AdminSection } from "@/components/admin/AdminPage";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,7 +15,7 @@ const SEVERITY_TONE: Record<DataQualitySeverity, "neutral" | "warning" | "danger
 
 export const dynamic = "force-dynamic";
 
-// F6 (UNIT-007) Data quality — read-only findings. Repair (dry-run/apply) comes later.
+// F6 (UNIT-007) Data quality findings plus the isolated legacy cutover operator workflow.
 export default async function AdminDataQualityPage() {
   const findings = await runDataQualityChecks();
   const actionable = findings.filter(isFindingActionable);
@@ -25,7 +26,7 @@ export default async function AdminDataQualityPage() {
       <AdminPageHeader
         eyebrow="Admin"
         title="Data quality"
-        description="Read-only referential-integrity findings. Each check is isolated; a check that cannot run in this environment is skipped, not hidden. Repair (dry-run/apply) arrives in a later slice."
+        description="Read-only referential-integrity findings plus a separate, attributed legacy cutover workflow. Each check is isolated; unavailable checks are reported rather than hidden."
       />
 
       <AdminSection
@@ -52,6 +53,13 @@ export default async function AdminDataQualityPage() {
             </li>
           ))}
         </ul>
+      </AdminSection>
+
+      <AdminSection
+        title="Legacy Client Portal cutover"
+        description="Platform-admin operator control for workspace inventory, migration verification, and the final workspace-scoped write freeze. Always run the dry check first."
+      >
+        <AdminLegacyCutoverPanel />
       </AdminSection>
     </AdminPage>
   );

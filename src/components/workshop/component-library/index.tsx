@@ -65,6 +65,11 @@ import type {
 } from "@/lib/reusable-sources/types";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
+import type { CatalogueEntity } from "@/lib/component-library/catalogue-governance";
+import {
+  applyCatalogueEntityToOptions,
+  type CatalogueMasterOption,
+} from "../component-library-manager/CatalogueEntityManagerDialog";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
 import { estimateSurfaceClass } from "../estimate-surface-class";
@@ -890,6 +895,20 @@ function useEstimateRightSidebarContent({
   const surfaceVariant = useEstimateSurfaceVariant();
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const sourcesDrawerOpen = Boolean(mobileDrawerOpen && compactViewport);
+  const [catalogueSupplierOverride, setCatalogueSupplierOverride] = useState<{
+    source: CatalogueMasterOption[];
+    options: CatalogueMasterOption[];
+  } | null>(null);
+  const [catalogueBrandOverride, setCatalogueBrandOverride] = useState<{
+    source: CatalogueMasterOption[];
+    options: CatalogueMasterOption[];
+  } | null>(null);
+  const catalogueSuppliers = catalogueSupplierOverride?.source === suppliers
+    ? catalogueSupplierOverride.options
+    : suppliers;
+  const catalogueBrands = catalogueBrandOverride?.source === brands
+    ? catalogueBrandOverride.options
+    : brands;
   const effectiveProjectSources = enableReusableProjectSources ? projectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
   const effectiveVisibleLibraryTabs = useMemo(
     () => normalizeVisibleLibraryTabs(visibleTabs ?? (enableReusableProjectSources ? DEFAULT_LIBRARY_TREE_TABS : PUBLIC_LIBRARY_TREE_TABS)),
@@ -1261,8 +1280,8 @@ function useEstimateRightSidebarContent({
       );
       setExpandedNodeIdsByViewMode((current) => ({
         ...current,
-        default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", splitSidebarComponentItems(initialLibraryItems).libraryItems, stored.favoriteIds, stored.storedRecentIds, { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
-        brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", splitSidebarComponentItems(initialLibraryItems).libraryItems, stored.favoriteIds, stored.storedRecentIds, { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
+        default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", splitSidebarComponentItems(initialLibraryItems).libraryItems, stored.favoriteIds, stored.storedRecentIds, { categoryTree, suppliers: catalogueSuppliers, libraryFolders, pruneEmptyFolders: true })),
+        brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", splitSidebarComponentItems(initialLibraryItems).libraryItems, stored.favoriteIds, stored.storedRecentIds, { categoryTree, suppliers: catalogueSuppliers, brands: catalogueBrands, pruneEmptyFolders: true })),
       }));
     }
 
@@ -1354,7 +1373,7 @@ function useEstimateRightSidebarContent({
         ...current.default,
         ...getAllNodeIds(buildLibraryTreeWithComponentRows("categories", nextSplitItems.libraryItems, [], [], {
           categoryTree,
-          suppliers,
+          suppliers: catalogueSuppliers,
           libraryFolders,
           pruneEmptyFolders: true,
         })),
@@ -1373,7 +1392,7 @@ function useEstimateRightSidebarContent({
     setLocalLibraryFolders,
     setPreviewItemId,
     setProjectExpandedNodeIds,
-    suppliers,
+    catalogueSuppliers,
   ]);
 
   useEffect(() => {
@@ -1587,9 +1606,9 @@ function useEstimateRightSidebarContent({
     if (isTemplatesTab) return [];
     if (isProjectTab && projectTabUnavailable) return [];
     if (isProjectTab) return buildProjectComponentTree(projectComponentItems, { libraryFolders: effectiveLibraryFolders });
-    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands, libraryFolders: effectiveLibraryFolders, pruneEmptyFolders: true });
+    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers: catalogueSuppliers, brands: catalogueBrands, libraryFolders: effectiveLibraryFolders, pruneEmptyFolders: true });
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
-  }, [brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, effectiveLibraryFolders, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, projectComponentItems, projectTabUnavailable, recentIds, suppliers]);
+  }, [catalogueBrands, catalogueSuppliers, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, effectiveLibraryFolders, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, projectComponentItems, projectTabUnavailable, recentIds]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
@@ -2416,6 +2435,21 @@ function useEstimateRightSidebarContent({
     onLibraryDataChanged?.();
   }, [onLibraryDataChanged, setLastActionMessage, setLibraryItems, setPreviewItemId, setPreviewProjectSourceKey]);
 
+  const handleCatalogueEntityChanged = useCallback((entity: CatalogueEntity) => {
+    if (entity.kind === "supplier") {
+      setCatalogueSupplierOverride({
+        source: suppliers,
+        options: applyCatalogueEntityToOptions(catalogueSuppliers, entity),
+      });
+    } else {
+      setCatalogueBrandOverride({
+        source: brands,
+        options: applyCatalogueEntityToOptions(catalogueBrands, entity),
+      });
+    }
+    onLibraryDataChanged?.();
+  }, [brands, catalogueBrands, catalogueSuppliers, onLibraryDataChanged, suppliers]);
+
   const startEditComponent = useCallback((item: EstimateRowItem) => {
     const requestId = componentEditorRequestIdRef.current + 1;
     componentEditorRequestIdRef.current = requestId;
@@ -2720,7 +2754,7 @@ function useEstimateRightSidebarContent({
       entry.id === item.id ? { ...entry, libraryFolderId: nextFolderId } : entry
     )));
 
-    void componentFolderMoveCoordinatorRef.current.move({
+    return componentFolderMoveCoordinatorRef.current.move({
       componentId: item.id,
       currentConfirmedFolderId: previousFolderId,
       targetFolderId,
@@ -3381,8 +3415,8 @@ function useEstimateRightSidebarContent({
             open={addComponentOpen}
             folders={reusableLibraryFolders}
             categoryTree={categoryTree}
-            suppliers={suppliers}
-            brands={brands}
+            suppliers={catalogueSuppliers}
+            brands={catalogueBrands}
             libraryItems={reusableLibraryItems}
             selectedFolderId={componentModalItem?.libraryFolderId ?? addComponentFolderId}
             editingItem={componentModalItem}
@@ -3392,7 +3426,8 @@ function useEstimateRightSidebarContent({
             onOpenChange={handleComponentModalOpenChange}
             onComponentCreated={handleComponentCreated}
             onComponentUpdated={handleComponentUpdated}
-            catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-sidebar"}
+            onCatalogueEntityChanged={handleCatalogueEntityChanged}
+            onMoveComponentCategory={handleLibraryItemMove}
           />
         ) : null}
 

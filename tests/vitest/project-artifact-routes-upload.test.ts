@@ -47,11 +47,13 @@ function dependencies(): ProjectArtifactUploadDependencies {
       assetId: "asset-1",
       bucket: "project-artifacts",
       path: "workspace/project-artifacts/drawing.pdf",
+      reservationState: "acquired",
       scanStatus: "pending",
       uploadSessionId: "session-1",
     }) as never),
     finalizeUpload: vi.fn(async () => ({ assetId: "asset-1", scanStatus: "pending" as const, uploadSessionId: "session-1" })),
     failUpload: vi.fn(async () => undefined),
+    renewCleanupLease: vi.fn(async () => undefined),
   };
 }
 
@@ -107,6 +109,19 @@ describe("project artifact upload route", () => {
     expect(routeDependencies.readFormData).not.toHaveBeenCalled();
   });
 
+  it("rejects an oversized declared content length before authorization or body parsing", async () => {
+    const routeDependencies = dependencies();
+    const request = requestFor(pdfFile());
+    request.headers.set("content-length", String(26 * 1024 * 1024 + 1));
+
+    const response = await handleProjectArtifactUpload(request, projectId, routeDependencies);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({ error: "Project PDF must be 25 MB or smaller." });
+    expect(routeDependencies.resolveAccess).not.toHaveBeenCalled();
+    expect(routeDependencies.readFormData).not.toHaveBeenCalled();
+  });
+
   it("rejects an oversized multipart body before reservation or storage", async () => {
     const routeDependencies = dependencies();
     routeDependencies.readFormData = vi.fn(async () => ({
@@ -131,6 +146,7 @@ describe("project artifact upload route", () => {
         assetId: "asset-1",
         bucket: "project-artifacts",
         path: "workspace/project-artifacts/drawing.pdf",
+        reservationState: "acquired",
         scanStatus: "pending",
         uploadSessionId: "session-1",
       } as never;
@@ -174,7 +190,46 @@ describe("project artifact upload route", () => {
     expect(routeDependencies.failUpload).not.toHaveBeenCalled();
   });
 
-  it("preserves R2 bytes and the reserved lifecycle when D1 finalization stays unavailable", async () => {
+  it("returns a finalized idempotent replay without opening or deleting R2", async () => {
+    const routeDependencies = dependencies();
+    routeDependencies.reserveUpload = vi.fn(async () => ({
+      assetId: "asset-1",
+      bucket: "project-artifacts",
+      path: "workspace/project-artifacts/drawing.pdf",
+      reservationState: "finalized",
+      scanStatus: "pending",
+      uploadSessionId: "session-1",
+    }) as never);
+
+    const response = await handleProjectArtifactUpload(requestFor(pdfFile()), projectId, routeDependencies);
+
+    expect(response.status).toBe(200);
+    expect(routeDependencies.createStorageProvider).not.toHaveBeenCalled();
+    expect(routeDependencies.finalizeUpload).not.toHaveBeenCalled();
+    expect(routeDependencies.failUpload).not.toHaveBeenCalled();
+  });
+
+  it("rejects a concurrent reservation without opening or deleting R2", async () => {
+    const routeDependencies = dependencies();
+    routeDependencies.reserveUpload = vi.fn(async () => ({
+      assetId: "asset-1",
+      bucket: "project-artifacts",
+      path: "workspace/project-artifacts/drawing.pdf",
+      reservationState: "in_progress",
+      scanStatus: "pending",
+      uploadSessionId: "session-1",
+    }) as never);
+
+    const response = await handleProjectArtifactUpload(requestFor(pdfFile()), projectId, routeDependencies);
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get("retry-after")).toBe("1");
+    expect(routeDependencies.createStorageProvider).not.toHaveBeenCalled();
+    expect(routeDependencies.finalizeUpload).not.toHaveBeenCalled();
+    expect(routeDependencies.failUpload).not.toHaveBeenCalled();
+  });
+
+  it("preserves R2 bytes and releases the reservation when D1 finalization stays unavailable", async () => {
     const removeObjects = vi.fn(async () => undefined);
     const routeDependencies = dependencies();
     routeDependencies.createStorageProvider = vi.fn(async () => ({
@@ -189,9 +244,14 @@ describe("project artifact upload route", () => {
     const response = await handleProjectArtifactUpload(requestFor(pdfFile()), projectId, routeDependencies);
 
     expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ error: "Project PDF could not be stored." });
     expect(routeDependencies.finalizeUpload).toHaveBeenCalledTimes(2);
     expect(removeObjects).not.toHaveBeenCalled();
-    expect(routeDependencies.failUpload).not.toHaveBeenCalled();
+    expect(routeDependencies.failUpload).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ uploadSessionId: "session-1" }),
+      "finalization",
+    );
   });
 
   it("removes possible partial bytes and fails the reservation when storage fails", async () => {
@@ -206,6 +266,7 @@ describe("project artifact upload route", () => {
     const response = await handleProjectArtifactUpload(requestFor(pdfFile()), projectId, routeDependencies);
 
     expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: "Project PDF could not be stored." });
     expect(removeObjects).toHaveBeenCalledWith("project-artifacts", [
       "workspace/project-artifacts/drawing.pdf",
     ]);
@@ -214,5 +275,24 @@ describe("project artifact upload route", () => {
       expect.objectContaining({ uploadSessionId: "session-1" }),
       "storage",
     );
+  });
+
+  it("does not delete or fail a reacquired upload when the stale cleanup claim is rejected", async () => {
+    const removeObjects = vi.fn(async () => undefined);
+    const routeDependencies = dependencies();
+    routeDependencies.createStorageProvider = vi.fn(async () => ({
+      downloadObject: vi.fn(),
+      removeObjects,
+      uploadObject: vi.fn(async () => { throw new Error("late stale failure"); }),
+    }));
+    routeDependencies.renewCleanupLease = vi.fn(async () => {
+      throw new Error("upload cleanup claim guard failed");
+    });
+
+    const response = await handleProjectArtifactUpload(requestFor(pdfFile()), projectId, routeDependencies);
+
+    expect(response.status).toBe(500);
+    expect(removeObjects).not.toHaveBeenCalled();
+    expect(routeDependencies.failUpload).not.toHaveBeenCalled();
   });
 });

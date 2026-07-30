@@ -6,9 +6,9 @@ import type { SnapshotEstimateInput, SnapshotRowInput } from "@/lib/publication/
 export const CLIENT_PORTAL_QUANTITY_SCALE = 1_000_000;
 export const CLIENT_PORTAL_BASIS_POINT_SCALE = 100;
 
-export type ClientPortalIssueSourceScopeStatus = "included" | "excluded" | "allowance" | "alternate" | "informational";
+type ClientPortalIssueSourceScopeStatus = "included" | "excluded" | "allowance" | "alternate" | "informational";
 
-export type ClientPortalIssueSourceRowProjection = {
+type ClientPortalIssueSourceRowProjection = {
   adjustmentBasisPoints: number;
   canonicalRowHash: string;
   contingencyBasisPoints: number;
@@ -33,7 +33,7 @@ export type ClientPortalIssueSourceRowProjection = {
   unitCostMinorUnits: number;
 };
 
-export type ClientPortalIssueSourceNodeProjection = {
+type ClientPortalIssueSourceNodeProjection = {
   canonicalNodeHash: string;
   kind: "tab" | "group" | "area" | "category" | "subgroup" | "other";
   name: string;
@@ -44,7 +44,7 @@ export type ClientPortalIssueSourceNodeProjection = {
   sourceTabId: string | null;
 };
 
-export type ClientPortalIssueSourceEstimateProjection = {
+type ClientPortalIssueSourceEstimateProjection = {
   currencyCode: string;
   name: string;
   nodes: readonly ClientPortalIssueSourceNodeProjection[];

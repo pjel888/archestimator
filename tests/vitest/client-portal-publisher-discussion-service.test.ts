@@ -55,6 +55,22 @@ describe("publisher client portal discussions", () => {
     expect(statements.some((captured) => captured.values.includes("discussion.updated"))).toBe(true);
   });
 
+  it("does not move recipient-visible thread ordering for an internal note", async () => {
+    const { database, statements } = createDatabase();
+
+    await addClientPortalInternalNote({
+      actor,
+      body: "Confirm supplier before the next issue.",
+      database,
+      idempotencyKey: "note_private_1",
+      portalId: "portal_1",
+      threadId: "thread_1",
+    });
+
+    expect(statements.some((captured) => captured.sql.includes("visibility, created_at") && captured.sql.includes("'internal'"))).toBe(true);
+    expect(statements.some((captured) => captured.sql.includes("UPDATE client_portal_threads SET updated_at"))).toBe(false);
+  });
+
   it("notifies each active subscriber or mention once for an owner reply", async () => {
     const { database, statements } = createDatabase({
       activeMentionIds: ["recipient_2", "recipient_3"],

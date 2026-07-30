@@ -169,7 +169,7 @@ describe("Cloudflare Better Auth route gate helpers", () => {
 
   it("accepts a signed Better Auth cookie backed by a local D1 session fixture", async () => {
     const auth = await createFixtureAuth({
-      expiresAt: new Date("2026-07-30T00:00:00.000Z"),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
     const headers = await createSignedSessionHeaders("session-token-fixture");
 
@@ -192,7 +192,7 @@ describe("Cloudflare Better Auth route gate helpers", () => {
 
   it("fails closed for expired D1-backed Better Auth session fixtures", async () => {
     const auth = await createFixtureAuth({
-      expiresAt: new Date("2026-06-01T00:00:00.000Z"),
+      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
     });
     const headers = await createSignedSessionHeaders("session-token-fixture");
 

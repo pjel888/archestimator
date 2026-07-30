@@ -3471,15 +3471,136 @@ export function clearEstimateRouteContextProcessCache(projectId?: string) {
 }
 
 async function readEstimateNodeRouteContextD1FastPath(
-  _database: D1DatabaseLike,
+  database: D1DatabaseLike,
   projectId: string,
   routeSegment: string,
+  userContext: Awaited<ReturnType<typeof requireCurrentUserContext>>,
   options: LiveEstimateTreeLoadOptions,
 ): Promise<EstimateTabRouteContext | null> {
-  void projectId;
-  void routeSegment;
-  void options;
-  return null;
+  if (!isUuid(routeSegment)) return null;
+  const routeRow = await traced("estimate-route-context.fast-selected-node", () =>
+    traced("estimate.route.selected-node", () =>
+      first<{
+        node_id: string;
+        estimate_tab_id: string | null;
+        estimate_id: string;
+        estimate_project_id: string;
+        estimate_name: string;
+        estimate_sheet_code: string;
+        estimate_notes: string | null;
+        estimate_project_budget: number | null;
+        estimate_currency_code: string;
+        estimate_metadata: Json;
+        estimate_created_by: string | null;
+        estimate_created_at: string;
+        estimate_updated_at: string;
+        project_workspace_id: string;
+        project_created_by: string | null;
+        project_name: string;
+        project_client_name: string | null;
+        project_location: string | null;
+        project_code: string | null;
+        project_currency_code: string;
+        project_status: ProjectStatus;
+        project_metadata: Json;
+        project_created_at: string;
+        project_updated_at: string;
+        workspace_created_by: string | null;
+        workspace_name: string;
+        workspace_slug: string | null;
+        workspace_closed_at: string | null;
+        workspace_created_at: string;
+        workspace_updated_at: string;
+      }>(
+        database,
+        `SELECT node.id AS node_id, node.estimate_tab_id,
+                estimate.id AS estimate_id, estimate.project_id AS estimate_project_id,
+                estimate.name AS estimate_name, estimate.sheet_code AS estimate_sheet_code,
+                estimate.notes AS estimate_notes, estimate.project_budget AS estimate_project_budget,
+                estimate.currency_code AS estimate_currency_code, estimate.metadata AS estimate_metadata,
+                estimate.created_by AS estimate_created_by, estimate.created_at AS estimate_created_at,
+                estimate.updated_at AS estimate_updated_at,
+                project.workspace_id AS project_workspace_id, project.created_by AS project_created_by,
+                project.name AS project_name, project.client_name AS project_client_name,
+                project.location AS project_location, project.project_code,
+                project.currency_code AS project_currency_code, project.status AS project_status,
+                project.metadata AS project_metadata, project.created_at AS project_created_at,
+                project.updated_at AS project_updated_at,
+                workspace.created_by AS workspace_created_by, workspace.name AS workspace_name,
+                workspace.slug AS workspace_slug, workspace.closed_at AS workspace_closed_at,
+                workspace.created_at AS workspace_created_at, workspace.updated_at AS workspace_updated_at
+         FROM estimate_nodes node
+         INNER JOIN estimates estimate ON estimate.id = node.estimate_id
+         INNER JOIN projects project ON project.id = estimate.project_id
+         INNER JOIN workspaces workspace ON workspace.id = project.workspace_id
+         WHERE node.id = ?
+           AND estimate.project_id = ?
+         LIMIT 1`,
+        [routeSegment, projectId],
+      ),
+    ),
+  );
+  if (!routeRow?.estimate_tab_id) return null;
+  const workspace: WorkspaceRow = {
+    id: routeRow.project_workspace_id,
+    created_by: routeRow.workspace_created_by,
+    name: routeRow.workspace_name,
+    slug: routeRow.workspace_slug,
+    closed_at: routeRow.workspace_closed_at,
+    created_at: routeRow.workspace_created_at,
+    updated_at: routeRow.workspace_updated_at,
+  };
+  const project = normalizeProjectRow({
+    id: projectId,
+    workspace_id: routeRow.project_workspace_id,
+    created_by: routeRow.project_created_by,
+    name: routeRow.project_name,
+    client_name: routeRow.project_client_name,
+    location: routeRow.project_location,
+    project_code: routeRow.project_code,
+    currency_code: routeRow.project_currency_code,
+    status: routeRow.project_status,
+    metadata: routeRow.project_metadata,
+    created_at: routeRow.project_created_at,
+    updated_at: routeRow.project_updated_at,
+  });
+  const estimate = normalizeEstimateRow({
+    id: routeRow.estimate_id,
+    project_id: routeRow.estimate_project_id,
+    name: routeRow.estimate_name,
+    sheet_code: routeRow.estimate_sheet_code,
+    notes: routeRow.estimate_notes,
+    project_budget: routeRow.estimate_project_budget,
+    currency_code: routeRow.estimate_currency_code,
+    metadata: routeRow.estimate_metadata,
+    created_by: routeRow.estimate_created_by,
+    created_at: routeRow.estimate_created_at,
+    updated_at: routeRow.estimate_updated_at,
+  });
+  if (!await canAccessEstimateInD1(database, estimate.id, userContext)) return null;
+  const tabsPromise = traced("estimate-route-context.tabs-list", () =>
+    traced("estimate.route.tabs", () => readEstimateTabsD1(database, estimate.id)),
+  );
+  const treePayloadPromise = traced("estimate-route-context.tab-tree", () =>
+    readEstimateTabTreePayloadD1(database, estimate, routeRow.estimate_tab_id!, options),
+  );
+  const [tabs, treePayload] = await Promise.all([
+    tabsPromise,
+    treePayloadPromise,
+  ]);
+  const tab = tabs.find((candidate) => candidate.id === routeRow.estimate_tab_id) ?? null;
+  if (!tab) return null;
+  return {
+    workspace,
+    project,
+    estimate,
+    tab,
+    tabs,
+    selectedNodeId: routeRow.node_id,
+    tree: treePayload.tree,
+    sheetAdjustment: treePayload.sheetAdjustment,
+    loadLimitState: treePayload.loadLimitState,
+  };
 }
 
 export type LiveEstimateTabTree = EstimateTabTree;
@@ -3554,32 +3675,47 @@ export async function resolveEstimateTabRouteContext(
     return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
   }
 
-  const database = await traced("estimate-route-context.d1-client", () => requireWorkspaceRepositoryD1Database());
-  const userContext = await requireCurrentUserContext();
-  const fastRouteContext = await readEstimateNodeRouteContextD1FastPath(database, projectId, routeSegment, options);
-  if (fastRouteContext?.estimate && await canAccessEstimateInD1(database, fastRouteContext.estimate.id, userContext)) return fastRouteContext;
+  const database = await traced("estimate-route-context.d1-client", () =>
+    traced("estimate.route.d1", () => requireWorkspaceRepositoryD1Database()),
+  );
+  const userContext = await traced("estimate.route.current-user", () => requireCurrentUserContext());
+  const fastRouteContext = await readEstimateNodeRouteContextD1FastPath(database, projectId, routeSegment, userContext, options);
+  if (fastRouteContext?.estimate) return fastRouteContext;
 
   const selectedNode = await traced("estimate-route-context.selected-node", () =>
-    first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
-      database,
-      `SELECT node.id, node.estimate_id, node.estimate_tab_id
-       FROM estimate_nodes node
-       INNER JOIN estimates estimate ON estimate.id = node.estimate_id
-       WHERE node.id = ?
-         AND estimate.project_id = ?
-       LIMIT 1`,
-      [routeSegment, projectId],
+    traced("estimate.route.selected-node", () =>
+      first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
+        database,
+        `SELECT node.id, node.estimate_id, node.estimate_tab_id
+         FROM estimate_nodes node
+         INNER JOIN estimates estimate ON estimate.id = node.estimate_id
+         WHERE node.id = ?
+           AND estimate.project_id = ?
+         LIMIT 1`,
+        [routeSegment, projectId],
+      ),
     ),
   );
 
   const routeEstimateId = selectedNode?.estimate_id ?? (isUuid(routeSegment) ? routeSegment : null);
-  const { workspace, project } = routeEstimateId
-    ? await traced("estimate-route-context.project", () =>
-        getCurrentWorkspaceProjectForEstimate(projectId, routeEstimateId),
-      )
-    : await traced("estimate-route-context.project", () =>
-        getCurrentWorkspaceProject(projectId),
-      );
+  const routeAccess = await traced("estimate.route.project-estimate-access", async () => {
+    const { workspace, project } = routeEstimateId
+      ? await traced("estimate-route-context.project", () =>
+          getCurrentWorkspaceProjectForEstimate(projectId, routeEstimateId),
+        )
+      : await traced("estimate-route-context.project", () =>
+          getCurrentWorkspaceProject(projectId),
+        );
+    if (!project || !selectedNode?.estimate_tab_id) {
+      return { workspace, project, selectedEstimate: null, canAccessSelectedEstimate: false };
+    }
+    const selectedEstimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
+    const canAccessSelectedEstimate = selectedEstimate
+      ? await canAccessEstimateInD1(database, selectedEstimate.id, userContext)
+      : false;
+    return { workspace, project, selectedEstimate, canAccessSelectedEstimate };
+  });
+  const { workspace, project } = routeAccess;
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
   if (selectedNode?.estimate_tab_id) {
@@ -3587,9 +3723,9 @@ export async function resolveEstimateTabRouteContext(
     // parallel without a duplicate selected-tab lookup. The route node's
     // project-scoped join proves the estimate; the tab list remains the archived
     // / active-tab authority before we expose the tree to the page.
-    const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
+    const estimate = routeAccess.selectedEstimate;
     if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
-    if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    if (!routeAccess.canAccessSelectedEstimate) {
       return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
     }
     const selectedTabId = selectedNode.estimate_tab_id;
@@ -3597,7 +3733,9 @@ export async function resolveEstimateTabRouteContext(
       traced("estimate-route-context.tab-tree", () =>
         readEstimateTabTreePayloadD1(database, estimate, selectedTabId, options),
       ),
-      traced("estimate-route-context.tabs-list", () => readEstimateTabsD1(database, selectedNode.estimate_id)),
+      traced("estimate-route-context.tabs-list", () =>
+        traced("estimate.route.tabs", () => readEstimateTabsD1(database, selectedNode.estimate_id)),
+      ),
     ]);
     const selectedTab = tabs.find((candidate) => candidate.id === selectedTabId) ?? null;
     return {
@@ -3612,6 +3750,7 @@ export async function resolveEstimateTabRouteContext(
   }
 
   if (selectedNode) {
+    await traced("estimate.route.tabs", async () => undefined);
     const legacyResult = await traced("estimate-route-context.legacy-node-fallback", () =>
       getProjectEstimateTreeByNode(projectId, routeSegment),
     );
@@ -3630,7 +3769,7 @@ export async function resolveEstimateTabRouteContext(
     }
 
     const tabs = await traced("estimate-route-context.estimate-tabs-list", () =>
-      readEstimateTabsD1(database, resolvedEstimate.id),
+      traced("estimate.route.tabs", () => readEstimateTabsD1(database, resolvedEstimate.id)),
     );
     const defaultTab = tabs.find((candidate) => candidate.isDefault) ?? null;
     if (defaultTab) {

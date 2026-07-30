@@ -284,6 +284,8 @@ describe("promoteEstimateRowToLibraryComponent", () => {
           {
             id: defaultSourceOptionId,
             label: "Default",
+            brandId: "brand-default",
+            brand: "Default Brand",
             variantDescription: "Standard vanity",
             unit: "pc",
             unitCost: 1200,
@@ -305,6 +307,8 @@ describe("promoteEstimateRowToLibraryComponent", () => {
           {
             id: selectedSourceOptionId,
             label: "Option 2",
+            brandId: "brand-oak",
+            brand: "Oak Brand",
             sku: "VANITY-OAK",
             variantDescription: "Oak vanity",
             unit: "set",
@@ -402,6 +406,8 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     const selectedWrite = optionWrites.find((statement) => statement.values[3] === "Option 2");
     expect(defaultWrite?.values[9]).toBe(1);
     expect(selectedWrite?.values[9]).toBe(0);
+    expect(defaultWrite?.values.slice(12, 14)).toEqual(["brand-default", "Default Brand"]);
+    expect(selectedWrite?.values.slice(12, 14)).toEqual(["brand-oak", "Oak Brand"]);
     expect(defaultWrite?.values[0]).not.toBe(defaultSourceOptionId);
     expect(selectedWrite?.values[0]).not.toBe(selectedSourceOptionId);
     expect(result.activePriceOptionId).toBe(defaultWrite?.values[0]);
@@ -419,6 +425,8 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(persistedOptions.map((option) => option.label)).toEqual(["Default", "Option 2"]);
     expect(persistedOptions[1]).toMatchObject({
       id: selectedWrite?.values[0],
+      brandId: "brand-oak",
+      brand: "Oak Brand",
       sku: "VANITY-OAK",
       variantDescription: "Oak vanity",
       unit: "set",
@@ -429,7 +437,7 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(persistedOptions[1]).not.toHaveProperty("imagePath");
     expect(String(persistedOptions[1]?.thumbnailPath)).toContain("/api/component-library/images?path=");
     expect(persistedOptions[1]).not.toHaveProperty("attachments");
-    const selectedOptionMetadata = JSON.parse(String(selectedWrite?.values[13])) as Record<string, unknown>;
+    const selectedOptionMetadata = JSON.parse(String(selectedWrite?.values[15])) as Record<string, unknown>;
     expect(selectedOptionMetadata.attachments).toEqual([expect.objectContaining({
       bucket: "component-attachments",
       scanStatus: "pending",

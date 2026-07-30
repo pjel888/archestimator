@@ -382,6 +382,8 @@ describe("mutation runner configuration", () => {
     expect(stryker).toContain('"!src/**"');
     expect(stryker).toContain("break: 80");
     expect(vitest).toContain('"tests/vitest/**/*.test.{ts,tsx}"');
-    expect(vitest).toContain("...requiredTests");
+    expect(vitest).toContain("ARCHESTIMATOR_MUTATION_EXACT_TESTS");
+    expect(vitest).toContain("exactTests.length > 0");
+    expect(vitest).toContain("requiredTests.length > 0");
   });
 });

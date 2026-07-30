@@ -73,7 +73,7 @@ describe("estimate row table virtualization", () => {
     expect(headerRow.style.gridTemplateColumns).toBe(ESTIMATE_COLUMN_TEMPLATE);
     expect(bodyRow.style.gridTemplateColumns).toBe(ESTIMATE_COLUMN_TEMPLATE);
     expect(Array.from(headerRow.querySelectorAll("th")).map((header) => header.getAttribute("scope"))).toEqual(
-      Array.from({ length: 10 }, () => "col"),
+      Array.from({ length: 11 }, () => "col"),
     );
     expect(bodyRow).toHaveAttribute("data-estimate-row-id", "template-row-1");
     expect(bodyRow.querySelectorAll("[data-estimate-cell-index]").length).toBeGreaterThan(0);

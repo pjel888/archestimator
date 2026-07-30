@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { getCurrentUserContext } from "@/lib/auth/session";
-import { canAccessProjectInD1, canEditProjectInD1, readProjectFromD1 } from "@/lib/authz/d1-access";
+import { canAccessWholeProjectInD1, canEditProjectInD1, readProjectFromD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { readBoundedJsonBody } from "@/lib/http/read-bounded-body";
 import { isUuid } from "@/lib/ids";
@@ -96,7 +96,7 @@ export async function resolveInternalArtifactAccess(projectId: string, mode: "re
 
   const allowed = await (mode === "write"
     ? canEditProjectInD1(database, projectId, currentUser)
-    : canAccessProjectInD1(database, projectId, currentUser)).catch(() => false);
+    : canAccessWholeProjectInD1(database, projectId, currentUser)).catch(() => false);
   if (!allowed) return { ok: false as const, response: json({ error: "Project artifact access denied." }, 403) };
 
   return {

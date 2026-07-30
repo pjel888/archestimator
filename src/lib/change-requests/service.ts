@@ -571,6 +571,21 @@ export async function createChangeRequest(input: CreateChangeRequestInput) {
   return { request, exposure, replayed: false };
 }
 
+async function visibleRequestExposure(database: D1DatabaseLike, request: { id: string; originPortalId: string | null }) {
+  return request.originPortalId
+    ? readProjectChangeRequestExposureRecord({ database, portalId: request.originPortalId, requestId: request.id })
+    : null;
+}
+
+function requestExposureRouting(exposure: Awaited<ReturnType<typeof visibleRequestExposure>>, originPortalId: string | null) {
+  const visible = exposure?.status === "visible";
+  return {
+    exposurePortalId: visible ? exposure.portalId : null,
+    originPortalId: visible ? exposure.portalId : originPortalId,
+    publicRequestId: visible ? exposure.publicRequestId : null,
+  };
+}
+
 export async function amendChangeRequest(input: AmendChangeRequestInput) {
   const requestActor = actor(input.actor);
   const { request, scope } = await readRequiredRequest(input);
@@ -594,25 +609,20 @@ export async function amendChangeRequest(input: AmendChangeRequestInput) {
   if (!input.database.batch) {
     throw new ProjectChangeRequestError("project_change_request_batch_required", "Change request amendment requires an atomic D1 batch.");
   }
-  const exposure = request.originPortalId
-    ? await readProjectChangeRequestExposureRecord({
-        database: input.database,
-        portalId: request.originPortalId,
-        requestId: request.id,
-      })
-    : null;
+  const exposure = await visibleRequestExposure(input.database, request);
+  const exposureRouting = requestExposureRouting(exposure, request.originPortalId);
   const atomicStatements = atomicRequestStatements({
     actor: requestActor,
     database: input.database,
     eventId: versionId,
     eventType: "request.amended",
-    exposurePortalId: exposure?.status === "visible" ? exposure.portalId : null,
+    exposurePortalId: exposureRouting.exposurePortalId,
     idempotencyKey: `request.amended:${versionId}`,
     notifyOwner: true,
     now: isoTimestamp(input.now),
-    originPortalId: exposure?.status === "visible" ? exposure.portalId : request.originPortalId,
+    originPortalId: exposureRouting.originPortalId,
     projectId: scope.projectId,
-    publicRequestId: exposure?.status === "visible" ? exposure.publicRequestId : null,
+    publicRequestId: exposureRouting.publicRequestId,
     requestId: request.id,
     status: request.status,
     title: content.title,
@@ -681,25 +691,20 @@ async function performStateAction(input: StateActionInput & {
   if (!input.database.batch) {
     throw new ProjectChangeRequestError("project_change_request_batch_required", "Change request actions require an atomic D1 batch.");
   }
-  const exposure = request.originPortalId
-    ? await readProjectChangeRequestExposureRecord({
-        database: input.database,
-        portalId: request.originPortalId,
-        requestId: request.id,
-      })
-    : null;
+  const exposure = await visibleRequestExposure(input.database, request);
+  const exposureRouting = requestExposureRouting(exposure, request.originPortalId);
   const atomicStatements = atomicRequestStatements({
     actor: requestActor,
     database: input.database,
     eventId,
     eventType: `request.${input.action}`,
-    exposurePortalId: exposure?.status === "visible" ? exposure.portalId : null,
+    exposurePortalId: exposureRouting.exposurePortalId,
     idempotencyKey,
     notifyOwner: input.recipientOwned === true,
     now: isoTimestamp(input.now),
-    originPortalId: exposure?.status === "visible" ? exposure.portalId : request.originPortalId,
+    originPortalId: exposureRouting.originPortalId,
     projectId: scope.projectId,
-    publicRequestId: exposure?.status === "visible" ? exposure.publicRequestId : null,
+    publicRequestId: exposureRouting.publicRequestId,
     requestId: request.id,
     status: toStatus,
     title: request.currentVersion.title,

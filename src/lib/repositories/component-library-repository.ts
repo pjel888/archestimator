@@ -31,15 +31,35 @@ import { ensureDefaultWorkspace } from "./workspace-repository";
 
 export type ComponentLibrarySupplier = {
   id: string;
+  workspace_id?: string;
   name: string;
   normalized_name: string;
   sort_order: number;
+  lifecycle_state?: "active" | "archived";
+  revision?: number;
+  archived_at?: string | null;
+  archived_by?: string | null;
+  merged_into_id?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 export type ComponentLibraryBrand = {
   id: string;
+  workspace_id?: string;
   name: string;
   normalized_name: string;
   sort_order: number;
+  lifecycle_state?: "active" | "archived";
+  revision?: number;
+  archived_at?: string | null;
+  archived_by?: string | null;
+  merged_into_id?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 export type ComponentLibraryFolder = {
   id: string;
@@ -178,6 +198,8 @@ type ComponentPriceOptionRow = {
   source_url?: string | null;
   notes?: string | null;
   supplier_id: string | null;
+  brand_id?: string | null;
+  brand?: string | null;
   active_cost_entry_id?: string | null;
   package_quantity?: number | string | null;
   package_unit?: string | null;
@@ -611,10 +633,6 @@ function readOptionalSource(value: Json | undefined): EstimateRowItemSource | un
   return undefined;
 }
 
-function normalizeLibraryName(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
 function formatPeso(value: number) {
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 }).format(value);
 }
@@ -754,6 +772,8 @@ function normalizePriceOption(
     sourceUrl: sanitizeComponentSourceUrl(sourceUrl) ?? null,
     notes,
     supplierId: row.supplier_id,
+    brandId: row.brand_id ?? readString(metadata.brandId) ?? null,
+    brand: row.brand ?? readString(metadata.brand) ?? null,
     activeCostEntryId: row.active_cost_entry_id ?? readString(metadata.activeCostEntryId) ?? null,
     costEntries,
     packageQuantity: readNullableNumber(row.package_quantity ?? metadata.packageQuantity),
@@ -968,22 +988,7 @@ function buildComponentRowsLibraryDataset({
   const categoryTree = folderCategoryRows.length > 0
     ? buildComponentCategoryTreeFromRows(folderCategoryRows)
     : [];
-  const fallbackBrandMap = new Map<string, ComponentLibraryBrand>();
-  for (const row of itemRows) {
-    const brandName = row.brand?.trim();
-    if (!brandName) continue;
-    const normalizedName = normalizeLibraryName(brandName);
-    if (!normalizedName || fallbackBrandMap.has(normalizedName)) continue;
-    fallbackBrandMap.set(normalizedName, {
-      id: `brand:${normalizedName}`,
-      name: brandName,
-      normalized_name: normalizedName,
-      sort_order: fallbackBrandMap.size + 1,
-    });
-  }
-  const brands = persistedBrands.length > 0
-    ? persistedBrands
-    : [...fallbackBrandMap.values()].sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name));
+  const brands = persistedBrands;
 
   const costEntriesByPriceOptionId = new Map<string, ComponentVariantCostEntry[]>();
   for (const row of costEntryRows) {
@@ -1304,18 +1309,26 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
   const [suppliers, persistedBrands, libraryFolders, itemRows] = await Promise.all([
     all<ComponentLibrarySupplier>(
       database,
-      `SELECT id, name, normalized_name, sort_order
+      `SELECT id, workspace_id, name, normalized_name, sort_order,
+              lifecycle_state, revision, archived_at, archived_by, merged_into_id,
+              created_by, updated_by, created_at, updated_at
        FROM component_suppliers
        WHERE workspace_id = ?
-       ORDER BY sort_order ASC, name ASC`,
+         AND lifecycle_state <> 'merged'
+       ORDER BY CASE lifecycle_state WHEN 'active' THEN 0 ELSE 1 END,
+                sort_order ASC, name ASC`,
       [workspaceId],
     ),
     all<ComponentLibraryBrand>(
       database,
-      `SELECT id, name, normalized_name, sort_order
+      `SELECT id, workspace_id, name, normalized_name, sort_order,
+              lifecycle_state, revision, archived_at, archived_by, merged_into_id,
+              created_by, updated_by, created_at, updated_at
        FROM component_brands
        WHERE workspace_id = ?
-       ORDER BY sort_order ASC, name ASC`,
+         AND lifecycle_state <> 'merged'
+       ORDER BY CASE lifecycle_state WHEN 'active' THEN 0 ELSE 1 END,
+                sort_order ASC, name ASC`,
       [workspaceId],
     ),
     fetchLibraryFolders(database, workspaceId),

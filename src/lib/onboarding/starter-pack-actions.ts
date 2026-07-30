@@ -1309,9 +1309,9 @@ async function installComponent(
         INSERT INTO cost_library_item_price_options (
           id, workspace_id, item_id, label, unit, unit_cost, misc_cost,
           currency, is_active, is_default, updated_at, supplier_id,
-          pricing_source, metadata_json, created_at
+          brand_id, brand, pricing_source, metadata_json, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, 0, 'PHP', 1, ?, ?, NULL, 'DEMO_ILLUSTRATIVE', ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 'PHP', 1, ?, ?, NULL, NULL, COALESCE(?, ''), 'DEMO_ILLUSTRATIVE', ?, ?)
       `).bind(
         optionIds[index],
         context.workspaceId,
@@ -1321,6 +1321,7 @@ async function installComponent(
         variant.unitCost,
         variant.isDefault ? 1 : 0,
         timestamp,
+        component.brand,
         JSON.stringify({
           expiresOn: component.expiresOn,
           fictional: true,
@@ -1386,6 +1387,8 @@ async function installComponent(
         priceOptions: component.variants.map((variant, index) => ({
           id: optionIds[index],
           label: variant.label,
+          brandId: null,
+          brand: component.brand,
           unit: variant.unit,
           unitCost: variant.unitCost,
           isDefault: variant.isDefault,

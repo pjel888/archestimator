@@ -226,6 +226,10 @@ beforeEach(() => {
   for (const key of Object.keys(d1QueryCallCounts)) delete d1QueryCallCounts[key];
   d1Mocks.getCloudflareD1Database.mockResolvedValue({
     prepare: (sql: string) => new TimedD1Statement(sql),
+    batch: async (statements: TimedD1Statement[]) => statements.map((_statement, index) => ({
+      success: true,
+      meta: { changes: index === 1 ? 1 : 0 },
+    })),
   });
 });
 
@@ -308,9 +312,10 @@ describe("listCurrentWorkspaceProjects server query parallelism (Phase 1)", () =
     // Guard the entire query path structurally: the current app path has eight
     // sequential stages. Unlike a fixed millisecond ceiling, this fails on an extra
     // serial query before, between, or after the optimized waves without depending
-    // on host timer precision.
+    // on host timer precision. The starter-content mutation lease contributes
+    // one intentional serial boundary before these project-list query waves.
     const sequentialQueryDepth = maximumSequentialQueryDepth(queryLog);
-    expect(sequentialQueryDepth).toBeLessThanOrEqual(8);
+    expect(sequentialQueryDepth).toBeLessThanOrEqual(9);
 
     // Emit the measured numbers for the report (visible with --reporter=verbose / on failure).
     console.log(

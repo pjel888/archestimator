@@ -376,6 +376,218 @@ describe("estimate row mutation coordinator", () => {
     }));
   });
 
+  it("continues queued same-row edits after an existing-row update fails", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const firstUpdate = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem
+      .mockReturnValueOnce(firstUpdate.promise)
+      .mockResolvedValueOnce(makeCanonicalReplaceResult(cabinetRowId, {
+        ...cabinetRow,
+        quantity: 4,
+      }, 8));
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({ projectId, estimateId, rowId: cabinetRowId, quantity: 3 });
+      result.current.updateRow({ projectId, estimateId, rowId: cabinetRowId, quantity: 4 });
+    });
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      firstUpdate.reject(new Error("First update failed"));
+      await firstUpdate.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(2));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenLastCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      quantity: 4,
+      expectedRowRevision: cabinetRow.rowRevision,
+    }));
+    await waitFor(() => expect(result.current.hasPendingRowMutation([cabinetRowId])).toBe(false));
+    expect(findCachedRow(queryClient, cabinetRowId)).toEqual(expect.objectContaining({
+      quantity: 4,
+      rowRevision: 8,
+    }));
+  });
+
+  it("cancels rapid edits when their normal library row insert fails and permits a same-row retry", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const insert = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(insert.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: cabinetRowId,
+        libraryItem: cabinetRow,
+      });
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        quantity: 3,
+      });
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        quantity: 4,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      insert.reject(new Error("Insert failed"));
+      await insert.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(result.current.hasPendingRowMutation([cabinetRowId])).toBe(false));
+    expect(result.current.rowMutationError?.message).toBe("Insert failed");
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValueOnce(
+      makeCanonicalReplaceResult(cabinetRowId, cabinetRow, 1),
+    );
+    act(() => {
+      result.current.insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: cabinetRowId,
+        libraryItem: cabinetRow,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.hasPendingRowMutation([cabinetRowId])).toBe(false));
+  });
+
+  it("keeps the newest same-row creation dependency when inserts overlap", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    const firstInsert = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    const secondInsert = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.insertEstimateRowItemFromLibrary
+      .mockReturnValueOnce(firstInsert.promise)
+      .mockReturnValueOnce(secondInsert.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: cabinetRowId,
+        libraryItem: cabinetRow,
+      });
+      result.current.insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: cabinetRowId,
+        libraryItem: cabinetRow,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      firstInsert.resolve(makeCanonicalReplaceResult(cabinetRowId, cabinetRow, 1));
+      await firstInsert.promise;
+    });
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        quantity: 3,
+      });
+    });
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      secondInsert.reject(new Error("Second insert failed"));
+      await secondInsert.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(result.current.hasPendingRowMutation([cabinetRowId])).toBe(false));
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+  });
+
+  it("replaces opaque insert diagnostics with safe autosave recovery copy", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    actionMocks.insertEstimateRowItemFromLibrary.mockRejectedValueOnce(new Error(
+      "An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+    ));
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: secondCabinetRowId,
+        libraryItem: { ...cabinetRow, id: secondCabinetRowId },
+      });
+    });
+
+    await waitFor(() => expect(result.current.rowMutationError).not.toBeNull());
+    expect(result.current.rowMutationError?.message).toBe(
+      "Could not save this estimate change. Refresh the sheet and try again.",
+    );
+    expect(result.current.rowMutationError?.message).not.toMatch(/Server Components|digest/iu);
+  });
+
+  it("uses the generic recovery copy when a server error has no message", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);
+    actionMocks.updateEstimateRowItem.mockRejectedValueOnce(new Error(""));
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        quantity: 3,
+      });
+    });
+
+    await waitFor(() => expect(result.current.rowMutationError).not.toBeNull());
+    expect(result.current.rowMutationError?.message).toBe("Could not save the row change.");
+  });
+
   it("allows disjoint row mutations to run concurrently", async () => {
     const queryClient = makeQueryClient();
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nodesWithRow);

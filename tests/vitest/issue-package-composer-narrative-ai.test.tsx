@@ -108,7 +108,9 @@ describe("issue package composer AI narrative review", () => {
   it("keeps generated text separate until a human edits, reviews, and explicitly accepts it", async () => {
     render(<IssuePackageComposer portalId="portal_1" projectId="project_1" templateHasEstimateSection templateSectionIds={["section_1"]} unresolvedThreads={[]} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Generate source-backed draft" }));
+    const generateButton = await screen.findByRole("button", { name: "Generate source-backed draft" });
+    await waitFor(() => expect(generateButton).toBeEnabled());
+    fireEvent.click(generateButton);
     const reviewDraft = await screen.findByLabelText("AI-assisted narrative draft");
     expect(screen.getByLabelText("Final revision narrative")).toHaveValue("");
     expect(screen.getByRole("button", { name: "Use reviewed narrative" })).toBeDisabled();
@@ -128,7 +130,9 @@ describe("issue package composer AI narrative review", () => {
   it("invalidates an unaccepted generation when package facts change", async () => {
     render(<IssuePackageComposer portalId="portal_1" projectId="project_1" templateHasEstimateSection templateSectionIds={["section_1"]} unresolvedThreads={[]} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Generate source-backed draft" }));
+    const generateButton = await screen.findByRole("button", { name: "Generate source-backed draft" });
+    await waitFor(() => expect(generateButton).toBeEnabled());
+    fireEvent.click(generateButton);
     await screen.findByLabelText("AI-assisted narrative draft");
     fireEvent.change(screen.getByLabelText("Assumptions"), { target: { value: "New site assumption" } });
 
@@ -139,7 +143,9 @@ describe("issue package composer AI narrative review", () => {
   it("removes an accepted AI narrative when later package facts change", async () => {
     render(<IssuePackageComposer portalId="portal_1" projectId="project_1" templateHasEstimateSection templateSectionIds={["section_1"]} unresolvedThreads={[]} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Generate source-backed draft" }));
+    const generateButton = await screen.findByRole("button", { name: "Generate source-backed draft" });
+    await waitFor(() => expect(generateButton).toBeEnabled());
+    fireEvent.click(generateButton);
     await screen.findByLabelText("AI-assisted narrative draft");
     fireEvent.click(screen.getByText(/I reviewed this text/));
     fireEvent.click(screen.getByRole("button", { name: "Use reviewed narrative" }));

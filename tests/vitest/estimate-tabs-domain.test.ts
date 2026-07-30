@@ -68,7 +68,7 @@ describe("estimate tab repository compatibility wrappers", () => {
     // query instead of adding a blocking server tail.
     expect(routeSource).toContain("const estimateTabs = tabs ?? []");
     expect(routeSource).not.toContain("tab ? await getEstimateTabs(project.id, estimate.id) : []");
-    expect(routeSource).toContain("const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([");
+    expect(routeSource).toContain("const [[resolvedCanEditEstimate, canManageLibrary], onboardingSnapshot] = await Promise.all([");
     // Routing Page Optimization P26: selected-node route context may omit edit
     // capability, so the page resolves it in a named post-context phase before
     // enabling edit controls; server writes still use authoritative D1 checks.

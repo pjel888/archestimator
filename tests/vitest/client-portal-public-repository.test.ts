@@ -129,6 +129,49 @@ const recipient = {
   overrides: [],
 };
 
+function changeSetWithArtifactVersions(beforeVersion: unknown, afterVersion: unknown) {
+  return {
+    structured: {
+      schemaVersion: 1,
+      comparison: { capability: "full", limitationReason: null },
+      currencyCode: "PHP",
+      summary: {
+        previousTotalMinorUnits: 10_000,
+        currentTotalMinorUnits: 10_000,
+        totalDeltaMinorUnits: 0,
+        addedRows: 0,
+        removedRows: 0,
+        changedRows: 0,
+        movedRows: 0,
+        addedArtifacts: 0,
+        removedArtifacts: 0,
+        changedArtifacts: 1,
+        addressedRequests: [],
+      },
+      estimateChanges: [],
+      artifactChanges: [{
+        type: "changed",
+        publicId: `artifact_${"f".repeat(32)}`,
+        publicLabel: "Revised drawing",
+        changeTypes: ["version_changed"],
+        beforeVersion,
+        afterVersion,
+      }],
+      requestChanges: [],
+      narrativeChanges: {
+        assumptionChanges: [],
+        exclusionChanges: [],
+        unresolvedItemChanges: [],
+        requestedDecisionChange: null,
+        validityChange: null,
+      },
+    },
+    deterministicSummary: "The issued drawing was revised.",
+    finalNarrative: "Review the revised drawing.",
+    narrativeSource: "human",
+  };
+}
+
 beforeEach(() => {
   mocks.r2 = null;
   mocks.database = null;
@@ -285,6 +328,33 @@ describe("client portal public repository", () => {
     const rejected = await getClientPortalManifest(token, undefined, recipient);
 
     expect(rejected?.changeSet).toBeNull();
+  });
+
+  it("preserves a null artifact version in the public change set", async () => {
+    const changeSet = changeSetWithArtifactVersions(null, "Version 2");
+    issue.manifest_json = JSON.stringify({ project: { name: "Kitchen Remodel", code: "AE-100" }, changeSet });
+    mocks.database = new FakeD1Database({ sections: [] });
+
+    const manifest = await getClientPortalManifest(token, undefined, recipient);
+
+    expect(manifest?.changeSet?.structured.artifactChanges).toEqual([{
+      type: "changed",
+      publicId: `artifact_${"f".repeat(32)}`,
+      publicLabel: "Revised drawing",
+      changeTypes: ["version_changed"],
+      beforeVersion: null,
+      afterVersion: "Version 2",
+    }]);
+  });
+
+  it("rejects blank artifact version text instead of treating it as null", async () => {
+    const changeSet = changeSetWithArtifactVersions("   ", "Version 2");
+    issue.manifest_json = JSON.stringify({ project: { name: "Kitchen Remodel", code: "AE-100" }, changeSet });
+    mocks.database = new FakeD1Database({ sections: [] });
+
+    const manifest = await getClientPortalManifest(token, undefined, recipient);
+
+    expect(manifest?.changeSet).toBeNull();
   });
 
   it("reads and re-sanitizes the immutable D1 payload without exposing controlled fields", async () => {

@@ -104,6 +104,12 @@ import {
 import type { LibraryTreeNode } from "../component-library/tree/types";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
 import {
+  applyCatalogueEntityToOptions,
+  CatalogueEntityManagerDialog,
+  type CatalogueMasterOption,
+} from "./CatalogueEntityManagerDialog";
+import type { CatalogueEntity, CatalogueEntityKind } from "@/lib/component-library/catalogue-governance";
+import {
   ALL_COMPONENTS_FOLDER_ID,
   type ComponentViewMode,
   type CreateLibraryFolderHandler,
@@ -147,6 +153,8 @@ const COMPONENT_TOOLBAR_SELECT_TRIGGER_CLASS =
   "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
 const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode";
 const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
+const EMPTY_SUPPLIER_OPTIONS: ComponentLibrarySupplierOption[] = [];
+const EMPTY_COMPONENT_BRANDS: ComponentLibraryBrand[] = [];
 const LIBRARY_GLASS_DIVIDER_CLASS = "border-[color:var(--glass-border)]";
 const LIBRARY_GLASS_CONTROL_CLASS =
   "border-[color:var(--glass-border)] bg-white/60 hover:border-[color:var(--brand-orange)] hover:bg-white/75";
@@ -1631,6 +1639,7 @@ function ComponentLibrarySheet({
   selectedItemIds,
   inspectorItemId,
   onAddComponent,
+  onManageCatalogue,
   onArchiveSelected,
   onClearSelected,
   onSelectVisible,
@@ -1648,13 +1657,14 @@ function ComponentLibrarySheet({
   viewMode: ComponentViewMode;
   libraryItems: EstimateRowItem[];
   categoryTree: ComponentLibraryTaxonomyNode[];
-  suppliers: ComponentLibrarySupplierOption[];
-  brands: ComponentLibraryBrand[];
+  suppliers: CatalogueMasterOption[];
+  brands: CatalogueMasterOption[];
   status: SheetStatus;
   componentRowsLoadState?: ComponentRowsLoadState;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
+  onManageCatalogue: (kind: CatalogueEntityKind) => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
@@ -1868,6 +1878,16 @@ function ComponentLibrarySheet({
                   onClick: (event) => onAddComponent(event.currentTarget),
                   className: ADD_BUTTON_CLASSNAME,
                 },
+                {
+                  label: "Manage suppliers",
+                  icon: <Storefront size={16} weight="regular" aria-hidden="true" />,
+                  onClick: () => onManageCatalogue("supplier"),
+                },
+                {
+                  label: "Manage brands",
+                  icon: <Tag size={16} weight="regular" aria-hidden="true" />,
+                  onClick: () => onManageCatalogue("brand"),
+                },
               ]
             : []}
         />
@@ -2056,6 +2076,7 @@ function ComponentLibrarySheetPanel({
   selectedItemIds,
   inspectorItemId,
   onAddComponent,
+  onManageCatalogue,
   onArchiveSelected,
   onClearSelected,
   onSelectVisible,
@@ -2073,13 +2094,14 @@ function ComponentLibrarySheetPanel({
   viewMode: ComponentViewMode;
   libraryItems: EstimateRowItem[];
   categoryTree: ComponentLibraryTaxonomyNode[];
-  suppliers: ComponentLibrarySupplierOption[];
-  brands: ComponentLibraryBrand[];
+  suppliers: CatalogueMasterOption[];
+  brands: CatalogueMasterOption[];
   status: SheetStatus;
   componentRowsLoadState?: ComponentRowsLoadState;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
   onAddComponent: (trigger?: HTMLElement | null) => void;
+  onManageCatalogue: (kind: CatalogueEntityKind) => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
@@ -2107,6 +2129,7 @@ function ComponentLibrarySheetPanel({
         selectedItemIds={selectedItemIds}
         inspectorItemId={inspectorItemId}
         onAddComponent={onAddComponent}
+        onManageCatalogue={onManageCatalogue}
         onArchiveSelected={onArchiveSelected}
         onClearSelected={onClearSelected}
         onSelectVisible={onSelectVisible}
@@ -2123,8 +2146,8 @@ function ComponentLibrarySheetPanel({
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function ComponentLibraryManager({
   categoryTree = componentCategoryTree,
-  suppliers = [],
-  brands = [],
+  suppliers = EMPTY_SUPPLIER_OPTIONS,
+  brands = EMPTY_COMPONENT_BRANDS,
   libraryFolders,
   libraryItems = EMPTY_LIBRARY_ITEMS,
   workspaceId = "fallback-workspace",
@@ -2163,6 +2186,21 @@ export function ComponentLibraryManager({
   // (T4). No-ops when mounted bare (e.g. unit tests / surfaces without the shell).
   const syncLibraryItemsCache = onLibraryItemsMutated;
   const syncLibraryFoldersCache = onLibraryFoldersMutated;
+  const [catalogueSupplierOverride, setCatalogueSupplierOverride] = useState<{
+    source: CatalogueMasterOption[];
+    options: CatalogueMasterOption[];
+  } | null>(null);
+  const [catalogueBrandOverride, setCatalogueBrandOverride] = useState<{
+    source: CatalogueMasterOption[];
+    options: CatalogueMasterOption[];
+  } | null>(null);
+  const catalogueSuppliers = catalogueSupplierOverride?.source === suppliers
+    ? catalogueSupplierOverride.options
+    : suppliers;
+  const catalogueBrands = catalogueBrandOverride?.source === brands
+    ? catalogueBrandOverride.options
+    : brands;
+  const [catalogueManagerKind, setCatalogueManagerKind] = useState<CatalogueEntityKind | null>(null);
   const addButtonReturnRef = useRef<HTMLElement | null>(null);
   const folderTextPromptReturnRef = useRef<HTMLElement | null>(null);
   const quickAddSessionCounterRef = useRef(0);
@@ -2292,27 +2330,41 @@ export function ComponentLibraryManager({
     setSheetStatus({ state: "error", message: "Only workspace editors/admins can manage the library." });
   }
 
+  function handleCatalogueEntityChanged(entity: CatalogueEntity) {
+    if (entity.kind === "supplier") {
+      setCatalogueSupplierOverride({
+        source: suppliers,
+        options: applyCatalogueEntityToOptions(catalogueSuppliers, entity),
+      });
+    } else {
+      setCatalogueBrandOverride({
+        source: brands,
+        options: applyCatalogueEntityToOptions(catalogueBrands, entity),
+      });
+    }
+  }
+
   const folderNodes = useMemo(() => buildLibraryFolderTree(localFolders), [localFolders]);
   const firstFolderId = useMemo(() => getFirstFolderId(folderNodes), [folderNodes]);
 
   const supplierTree = useMemo(
-    () => buildLibraryTreeWithComponentRows("suppliers", localLibraryItems, [], [], { categoryTree, suppliers }),
-    [categoryTree, localLibraryItems, suppliers],
+    () => buildLibraryTreeWithComponentRows("suppliers", localLibraryItems, [], [], { categoryTree, suppliers: catalogueSuppliers }),
+    [catalogueSuppliers, categoryTree, localLibraryItems],
   );
   const brandTree = useMemo(
-    () => buildLibraryTreeWithComponentRows("brands", localLibraryItems, [], [], { categoryTree, suppliers, brands }),
-    [brands, categoryTree, localLibraryItems, suppliers],
+    () => buildLibraryTreeWithComponentRows("brands", localLibraryItems, [], [], { categoryTree, suppliers: catalogueSuppliers, brands: catalogueBrands }),
+    [catalogueBrands, catalogueSuppliers, categoryTree, localLibraryItems],
   );
   const selectedSupplierNode = useMemo(() => findNode(supplierTree, selectedSupplierNodeId) ?? supplierTree[0] ?? null, [selectedSupplierNodeId, supplierTree]);
   const selectedBrandNode = useMemo(() => findNode(brandTree, selectedBrandNodeId) ?? brandTree[0] ?? null, [brandTree, selectedBrandNodeId]);
   const selectedSupplierIdForModal = useMemo(() => {
     if (viewMode !== "suppliers" || selectedSupplierNodeId === "all-suppliers") return null;
-    return suppliers.find((supplier) => toSupplierTreeNodeId(supplier.id) === selectedSupplierNodeId)?.id ?? null;
-  }, [selectedSupplierNodeId, suppliers, viewMode]);
+    return catalogueSuppliers.find((supplier) => toSupplierTreeNodeId(supplier.id) === selectedSupplierNodeId)?.id ?? null;
+  }, [catalogueSuppliers, selectedSupplierNodeId, viewMode]);
   const selectedBrandIdForModal = useMemo(() => {
     if (viewMode !== "brand" || selectedBrandNodeId === "all-brands") return null;
-    return brands.find((brand) => toBrandTreeNodeId(brand.id) === selectedBrandNodeId)?.id ?? null;
-  }, [brands, selectedBrandNodeId, viewMode]);
+    return catalogueBrands.find((brand) => toBrandTreeNodeId(brand.id) === selectedBrandNodeId)?.id ?? null;
+  }, [catalogueBrands, selectedBrandNodeId, viewMode]);
   const selectedFolderNode = useMemo(() => (
     isAllComponentsFolderId(selectedFolderId) ? null : findFolderNode(folderNodes, selectedFolderId) ?? findFolderNode(folderNodes, firstFolderId)
   ), [firstFolderId, folderNodes, selectedFolderId]);
@@ -3026,13 +3078,14 @@ export function ComponentLibraryManager({
             viewMode={viewMode}
             libraryItems={localLibraryItems}
             categoryTree={categoryTree}
-            suppliers={suppliers}
-            brands={brands}
+            suppliers={catalogueSuppliers}
+            brands={catalogueBrands}
             status={sheetStatus}
             componentRowsLoadState={componentRowsLoadState}
             selectedItemIds={selectedItemIds}
             inspectorItemId={inspectorItemId}
             onAddComponent={openAddComponentModal}
+            onManageCatalogue={setCatalogueManagerKind}
             onArchiveSelected={openArchiveComponentPreview}
             onClearSelected={clearComponentSelection}
             onSelectVisible={selectVisibleComponents}
@@ -3099,8 +3152,8 @@ export function ComponentLibraryManager({
           open={addComponentOpen}
           folders={localFolders}
           categoryTree={categoryTree}
-          suppliers={suppliers}
-          brands={brands}
+          suppliers={catalogueSuppliers}
+          brands={catalogueBrands}
           libraryItems={localLibraryItems}
           selectedFolderId={effectiveSelectedFolderId}
           editingItem={componentModalItem}
@@ -3111,12 +3164,26 @@ export function ComponentLibraryManager({
           onOpenChange={setAddComponentOpenWithFocus}
           onComponentCreated={handleComponentCreated}
           onComponentUpdated={handleComponentEdited}
-          catalogueOptionsStorageScope={workspaceId}
+          canManageCatalogue={canManageLibrary}
+          onCatalogueEntityChanged={handleCatalogueEntityChanged}
+          onMoveComponentCategory={moveComponentToFolder}
           onCreateFolder={createFolder}
           onRenameFolder={renameFolder}
           onDeleteFolder={deleteFolder}
           reorderStatus={reorderStatus}
           treeMutationPending={isTreeMutationPending}
+        />
+      ) : null}
+      {catalogueManagerKind ? (
+        <CatalogueEntityManagerDialog
+          open
+          kind={catalogueManagerKind}
+          canManage={canManageLibrary}
+          entities={catalogueManagerKind === "supplier" ? catalogueSuppliers : catalogueBrands}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setCatalogueManagerKind(null);
+          }}
+          onEntityChanged={handleCatalogueEntityChanged}
         />
       ) : null}
       {canManageLibrary && deleteFolderTarget ? (

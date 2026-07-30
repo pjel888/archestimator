@@ -57,6 +57,30 @@ describe("ClientPortalShell", () => {
     expect(fetchMock.mock.calls[2]?.[0]).toBe(`/api/share/${token}/sections/section_1`);
   });
 
+  it("renders a deterministic unavailable state when an issued section cannot be fetched", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.endsWith("/summary")) return new Response(JSON.stringify(portalSummary()), { status: 200 });
+      if (url.endsWith("/manifest")) {
+        return new Response(JSON.stringify({
+          schemaVersion: 2,
+          portal: { id: "portal_1", name: "Client Review", status: "live" },
+          issue: { id: "issue_1", number: 1, versionLabel: "Issue 1", status: "issued", validThrough: null, contentHash: "x" },
+          project: { name: "Kitchen Remodel", code: "AE-100", currencyCode: "USD" },
+          recipient: null,
+          brand: {},
+          capabilities: ["portal:view", "section:view"],
+          sections: [{ id: "section_1", kind: "overview", title: "Overview", layoutMode: "wide", payloadHash: "x" }],
+        }), { status: 200 });
+      }
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ClientPortalShell token={token} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("This issued section is unavailable.");
+  });
+
   it("exposes component and row discussion targets for issued component instances", () => {
     const onDiscussTarget = vi.fn();
     const payload = buildClientPortalEstimateBrowserPayload({
@@ -144,6 +168,7 @@ describe("ClientPortalShell", () => {
 
     expect(await screen.findByRole("button", { name: "Discuss" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Decision" })).toBeInTheDocument();
+    expect(await screen.findByText("No client-visible details were issued for this section.")).toBeInTheDocument();
   });
 
   it("opens the commitment timeline first for verified timeline-capable recipients", async () => {

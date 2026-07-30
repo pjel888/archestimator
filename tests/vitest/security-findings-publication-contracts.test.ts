@@ -267,14 +267,15 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
     expect(projectImageRoute).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(projectImageRoute).toContain("export async function GET(request: Request)");
-    expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
+    expect(projectImageRoute).toContain('createProjectImageRouteUrl(result.assetId, "image")');
     expect(projectImageRoute).not.toContain(".getPublicUrl(path)");
     expect(projectActions).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(storageCleanup).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(publicationImageUrl).toContain('imageUrl.pathname === "/api/projects/images"');
     expect(publicationImageUrl).toContain("isSafeProjectImagePath(path)");
     expect(publicationImageUrl).toContain("if (!imageUrl || LOCAL_BROKERED_IMAGE_ROUTE_PATTERN.test(imageUrl)) return null");
-    expect(projectImageRoute).toContain('requestUrl.searchParams.get("path")');
+    expect(projectImageRoute).toContain('requestUrl.searchParams.get("assetId")');
+    expect(projectImageRoute).toContain("readDurableProjectImageAsset(db, assetId)");
     expect(projectImageRoute).toContain("parseProjectImageStoragePath");
     expect(nextConfig).not.toContain("/storage/v1/object/public/project-images/**");
     expect(privateProjectImageMigration).toContain("'project-images'");

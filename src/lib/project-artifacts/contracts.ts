@@ -26,18 +26,7 @@ export const PROJECT_ARTIFACT_VERSION_SOURCE_KINDS = [
 ] as const;
 export type ProjectArtifactVersionSourceKind = (typeof PROJECT_ARTIFACT_VERSION_SOURCE_KINDS)[number];
 
-export const PROJECT_ARTIFACT_AVAILABILITY_STATES = ["pending_scan", "available", "blocked", "withdrawn"] as const;
-export type ProjectArtifactAvailabilityState = (typeof PROJECT_ARTIFACT_AVAILABILITY_STATES)[number];
-
-export type ProjectArtifactVersionIdentity = {
-  artifactId: string;
-  versionId: string;
-  versionNumber: number;
-  contentSha256: string;
-};
-
-export const PROJECT_ARTIFACT_ACTOR_TYPES = ["internal_user", "recipient", "system"] as const;
-export type ProjectArtifactActorType = (typeof PROJECT_ARTIFACT_ACTOR_TYPES)[number];
+type ProjectArtifactActorType = "internal_user" | "recipient" | "system";
 
 export type ProjectArtifactActor = {
   id: string;

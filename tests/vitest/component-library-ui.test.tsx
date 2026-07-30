@@ -3,6 +3,7 @@ import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testi
 import userEvent from "@testing-library/user-event";
 import { useState, type ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
+import { CatalogueEntityManagerDialog } from "@/components/workshop/component-library-manager/CatalogueEntityManagerDialog";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
 import { NewTemplateModal } from "@/components/workshop/component-library/NewTemplateModal";
 import { PROJECT_SOURCE_DRAG_MIME_TYPE, type EstimateTemplate } from "@/components/workshop/component-library/templates";
@@ -14,9 +15,13 @@ import { estimateLibraryItems } from "./fixtures/estimate-library-items";
 
 const templateActionMocks = vi.hoisted(() => ({
   createLibraryFolder: vi.fn(),
+  archiveComponentCatalogueEntity: vi.fn(),
+  createComponentCatalogueEntity: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
+  renameComponentCatalogueEntity: vi.fn(),
   reorderLibraryFolders: vi.fn(),
+  restoreComponentCatalogueEntity: vi.fn(),
   createEstimateTemplate: vi.fn(),
   createEstimateTemplateFromEstimateTab: vi.fn(),
   createEstimateTemplateFromEstimateNode: vi.fn(),
@@ -47,9 +52,13 @@ vi.mock("@/components/ui/toast", () => ({
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
   createLibraryFolder: templateActionMocks.createLibraryFolder,
+  archiveComponentCatalogueEntity: templateActionMocks.archiveComponentCatalogueEntity,
+  createComponentCatalogueEntity: templateActionMocks.createComponentCatalogueEntity,
   executeBulkArchiveLibraryComponents: templateActionMocks.executeBulkArchiveLibraryComponents,
   renameLibraryFolder: templateActionMocks.renameLibraryFolder,
+  renameComponentCatalogueEntity: templateActionMocks.renameComponentCatalogueEntity,
   reorderLibraryFolders: templateActionMocks.reorderLibraryFolders,
+  restoreComponentCatalogueEntity: templateActionMocks.restoreComponentCatalogueEntity,
   createEstimateTemplate: templateActionMocks.createEstimateTemplate,
   createEstimateTemplateFromEstimateTab: templateActionMocks.createEstimateTemplateFromEstimateTab,
   createEstimateTemplateFromEstimateNode: templateActionMocks.createEstimateTemplateFromEstimateNode,
@@ -338,9 +347,13 @@ describe("component library UI", () => {
     window.localStorage.clear();
     useEstimateWorkshopDragState.setState({ activeDrag: null });
     templateActionMocks.createLibraryFolder.mockReset();
+    templateActionMocks.archiveComponentCatalogueEntity.mockReset();
+    templateActionMocks.createComponentCatalogueEntity.mockReset();
     templateActionMocks.executeBulkArchiveLibraryComponents.mockReset();
     templateActionMocks.renameLibraryFolder.mockReset();
+    templateActionMocks.renameComponentCatalogueEntity.mockReset();
     templateActionMocks.reorderLibraryFolders.mockReset();
+    templateActionMocks.restoreComponentCatalogueEntity.mockReset();
     templateActionMocks.createEstimateTemplate.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
@@ -362,6 +375,120 @@ describe("component library UI", () => {
     toastMocks.toast.mockReset();
     toastMocks.dismissToast.mockReset();
     toastMocks.clearToasts.mockReset();
+  });
+
+  it("manages canonical catalogue names with revision guards and announced results", async () => {
+    const onEntityChanged = vi.fn();
+    templateActionMocks.renameComponentCatalogueEntity.mockResolvedValue({
+      replayed: false,
+      entity: {
+        id: "brand-1",
+        workspaceId: "workspace-1",
+        kind: "brand",
+        name: "Renamed Brand",
+        normalizedName: "renamed brand",
+        lifecycleState: "active",
+        revision: 2,
+        archivedAt: null,
+        archivedBy: null,
+        mergedIntoId: null,
+        createdBy: "user-1",
+        updatedBy: "user-1",
+        createdAt: "2026-07-30T00:00:00.000Z",
+        updatedAt: "2026-07-30T00:01:00.000Z",
+      },
+    });
+    templateActionMocks.archiveComponentCatalogueEntity.mockResolvedValue({
+      replayed: false,
+      entity: {
+        id: "brand-1",
+        workspaceId: "workspace-1",
+        kind: "brand",
+        name: "Renamed Brand",
+        normalizedName: "renamed brand",
+        lifecycleState: "archived",
+        revision: 3,
+        archivedAt: "2026-07-30T00:02:00.000Z",
+        archivedBy: "user-1",
+        mergedIntoId: null,
+        createdBy: "user-1",
+        updatedBy: "user-1",
+        createdAt: "2026-07-30T00:00:00.000Z",
+        updatedAt: "2026-07-30T00:02:00.000Z",
+      },
+    });
+
+    render(
+      <CatalogueEntityManagerDialog
+        open
+        kind="brand"
+        canManage
+        entities={[{
+          id: "brand-1",
+          name: "Original Brand",
+          normalized_name: "original brand",
+          lifecycle_state: "active",
+          revision: 1,
+          sort_order: 1,
+        }]}
+        onOpenChange={vi.fn()}
+        onEntityChanged={onEntityChanged}
+      />,
+    );
+
+    const dialog = await screen.findByRole("dialog", { name: "Manage brands" });
+    await waitFor(() => expect(within(dialog).getByRole("searchbox", { name: "Search brands" })).toHaveFocus());
+    fireEvent.click(within(dialog).getByRole("button", { name: "Rename Original Brand" }));
+    const renameInput = within(dialog).getByLabelText("Brand name for Original Brand");
+    fireEvent.change(renameInput, { target: { value: "Renamed Brand" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save brand name" }));
+
+    await waitFor(() => expect(templateActionMocks.renameComponentCatalogueEntity).toHaveBeenCalledWith({
+      entityKind: "brand",
+      entityId: "brand-1",
+      expectedRevision: 1,
+      intentId: expect.any(String),
+      name: "Renamed Brand",
+    }));
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Brand renamed.");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Archive Renamed Brand" }));
+    await waitFor(() => expect(templateActionMocks.archiveComponentCatalogueEntity).toHaveBeenCalledWith({
+      entityKind: "brand",
+      entityId: "brand-1",
+      expectedRevision: 2,
+      intentId: expect.any(String),
+    }));
+    expect(onEntityChanged).toHaveBeenLastCalledWith(expect.objectContaining({
+      id: "brand-1",
+      lifecycleState: "archived",
+      revision: 3,
+    }));
+  });
+
+  it("keeps catalogue management visible but read-only without permission", async () => {
+    render(
+      <CatalogueEntityManagerDialog
+        open
+        kind="supplier"
+        canManage={false}
+        entities={[{
+          id: "supplier-1",
+          name: "Read-only Supplier",
+          normalized_name: "read-only supplier",
+          lifecycle_state: "active",
+          revision: 1,
+          sort_order: 1,
+        }]}
+        onOpenChange={vi.fn()}
+        onEntityChanged={vi.fn()}
+      />,
+    );
+
+    const dialog = await screen.findByRole("dialog", { name: "Manage suppliers" });
+    expect(within(dialog).getByRole("button", { name: "Create supplier" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Rename Read-only Supplier" })).toBeDisabled();
+    expect(within(dialog).getByText("Only workspace editors and admins can change catalogue masters.")).toBeInTheDocument();
   });
 
   afterEach(() => {
@@ -977,11 +1104,13 @@ describe("component library UI", () => {
     fireEvent.keyDown(folderNameInput, { key: "Enter" });
 
     await waitFor(() => expect(templateActionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Lighting", { placement: "top" }));
-    expect(screen.queryByRole("treeitem", { name: "Lighting" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
-    expect(toastMocks.toast).toHaveBeenCalledWith({
-      tone: "error",
-      message: "Could not create the folder. You may not have permission to manage library folders.",
+    await waitFor(() => {
+      expect(screen.queryByRole("treeitem", { name: "Lighting" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("textbox", { name: "Folder name" })).not.toBeInTheDocument();
+      expect(toastMocks.toast).toHaveBeenCalledWith({
+        tone: "error",
+        message: "Could not create the folder. You may not have permission to manage library folders.",
+      });
     });
   });
 

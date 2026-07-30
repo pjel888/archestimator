@@ -10,7 +10,7 @@ describe("shared link terminology", () => {
     expect(navigation).toContain('label: "Share"');
     expect(navigation).toContain("icon: ShareNetwork");
     expect(navigation).not.toContain('label: "Publisher"');
-    expect(publisherPage).toContain('title="Client links"');
+    expect(publisherPage).toContain('title="Commitment Center"');
     expect(tabs).toContain('mode === "tree" ? "Summary" : "Details"');
     expect(tabs).not.toContain('"Scope outline"');
     expect(tabs).not.toContain('"Line item table"');

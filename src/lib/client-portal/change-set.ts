@@ -1,12 +1,12 @@
-export const CLIENT_PORTAL_CHANGE_SET_SCHEMA_VERSION = 1 as const;
+const CLIENT_PORTAL_CHANGE_SET_SCHEMA_VERSION = 1 as const;
 export const CHANGE_SET_QUANTITY_SCALE = 1_000_000 as const;
 
-export type ComparisonCapability = "full" | "aggregate_only" | "unavailable";
-export type PrivateScopeStatus = "included" | "excluded" | "allowance" | "alternate" | "informational";
-export type PrivateLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
-export type RequestedDecision = "none" | "acknowledgement" | "formal";
-export type PrivateArtifactPurpose = "reference" | "review" | "approval" | "evidence" | "contract" | "drawing" | "supporting";
-export type PrivateRequestRelationship = "origin" | "addresses" | "supports" | "related";
+type ComparisonCapability = "full" | "aggregate_only" | "unavailable";
+type PrivateScopeStatus = "included" | "excluded" | "allowance" | "alternate" | "informational";
+type PrivateLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
+type RequestedDecision = "none" | "acknowledgement" | "formal";
+type PrivateArtifactPurpose = "reference" | "review" | "approval" | "evidence" | "contract" | "drawing" | "supporting";
+type PrivateRequestRelationship = "origin" | "addresses" | "supports" | "related";
 
 export type PrivateRowProjection = {
   sourceRowId: string;
@@ -34,7 +34,7 @@ export type PrivateRowProjection = {
   sortOrder: number;
 };
 
-export type PrivateNodeProjection = {
+type PrivateNodeProjection = {
   sourceNodeId: string;
   sourceTabId: string | null;
   parentSourceNodeId: string | null;
@@ -84,7 +84,7 @@ export type NarrativePolicyItem = {
   text: string;
 };
 
-export type PrivateNarrativePolicyProjection = {
+type PrivateNarrativePolicyProjection = {
   assumptions: NarrativePolicyItem[];
   exclusions: NarrativePolicyItem[];
   unresolvedItems: NarrativePolicyItem[];
@@ -107,16 +107,16 @@ export type ChangeSetComparison = {
   limitationReason?: string;
 };
 
-export type EstimateChangeType =
+type EstimateChangeType =
   | "estimate_added"
   | "estimate_removed"
   | "estimate_renamed"
   | "sheet_code_changed"
   | "estimate_total_changed";
 
-export type TreeChangeType = "node_added" | "node_removed" | "node_renamed" | "node_moved" | "node_reordered";
+type TreeChangeType = "node_added" | "node_removed" | "node_renamed" | "node_moved" | "node_reordered";
 
-export type RowChangeType =
+type RowChangeType =
   | "description_changed"
   | "designation_changed"
   | "discipline_changed"
@@ -132,7 +132,7 @@ export type RowChangeType =
   | "row_total_changed"
   | "row_moved";
 
-export type PrivateRowChange = {
+type PrivateRowChange = {
   type: "added" | "removed" | "changed";
   sourceEstimateId: string;
   sourceRowId: string;
@@ -148,7 +148,7 @@ export type PrivateRowChange = {
   deltaMinorUnits: number;
 };
 
-export type PrivateTreeChange = {
+type PrivateTreeChange = {
   type: "added" | "removed" | "changed";
   sourceEstimateId: string;
   sourceNodeId: string;
@@ -159,7 +159,7 @@ export type PrivateTreeChange = {
   after: PrivateNodeProjection | null;
 };
 
-export type PrivateEstimateChange = {
+type PrivateEstimateChange = {
   sourceEstimateId: string;
   publicId: string;
   publicLabel: string;
@@ -172,7 +172,7 @@ export type PrivateEstimateChange = {
   rowChanges: PrivateRowChange[];
 };
 
-export type ArtifactChangeType =
+type ArtifactChangeType =
   | "artifact_added"
   | "artifact_removed"
   | "version_changed"
@@ -181,7 +181,7 @@ export type ArtifactChangeType =
   | "comment_policy_changed"
   | "decision_relevance_changed";
 
-export type PrivateArtifactChange = {
+type PrivateArtifactChange = {
   type: "added" | "removed" | "changed";
   sourceArtifactId: string;
   publicId: string;
@@ -191,9 +191,9 @@ export type PrivateArtifactChange = {
   after: PrivateArtifactProjection | null;
 };
 
-export type RequestChangeType = "request_added" | "request_removed" | "version_changed" | "relationship_changed";
+type RequestChangeType = "request_added" | "request_removed" | "version_changed" | "relationship_changed";
 
-export type PrivateRequestChange = {
+type PrivateRequestChange = {
   type: "added" | "removed" | "changed";
   sourceRequestId: string;
   publicId: string;
@@ -204,14 +204,14 @@ export type PrivateRequestChange = {
   after: PrivateRequestProjection | null;
 };
 
-export type NarrativeItemChange = {
+type NarrativeItemChange = {
   type: "added" | "removed" | "changed" | "resolved";
   stableId?: string;
   before: string | null;
   after: string | null;
 };
 
-export type NarrativeChanges = {
+type NarrativeChanges = {
   assumptionChanges: NarrativeItemChange[];
   exclusionChanges: NarrativeItemChange[];
   unresolvedItemChanges: NarrativeItemChange[];
@@ -219,13 +219,13 @@ export type NarrativeChanges = {
   validityChange: { before: string | null; after: string | null } | null;
 };
 
-export type PublicNarrativeChanges = Omit<NarrativeChanges, "assumptionChanges" | "exclusionChanges" | "unresolvedItemChanges"> & {
+type PublicNarrativeChanges = Omit<NarrativeChanges, "assumptionChanges" | "exclusionChanges" | "unresolvedItemChanges"> & {
   assumptionChanges: Array<Omit<NarrativeItemChange, "stableId">>;
   exclusionChanges: Array<Omit<NarrativeItemChange, "stableId">>;
   unresolvedItemChanges: Array<Omit<NarrativeItemChange, "stableId">>;
 };
 
-export type ChangeSetSummary = {
+type ChangeSetSummary = {
   previousTotalMinorUnits: number | null;
   currentTotalMinorUnits: number;
   totalDeltaMinorUnits: number | null;
@@ -307,7 +307,7 @@ export type PublicClientPortalChangeSet = {
   narrativeChanges: NarrativeChanges;
 };
 
-export type PublicRowValue = {
+type PublicRowValue = {
   publicId: string;
   publicLabel: string;
   description: string;
@@ -889,7 +889,7 @@ function publicRowValue(row: PrivateRowProjection): PublicRowValue {
   };
 }
 
-export function createPublicSafeChangeSet(changeSet: PrivateClientPortalChangeSet): PublicClientPortalChangeSet {
+function createPublicSafeChangeSet(changeSet: PrivateClientPortalChangeSet): PublicClientPortalChangeSet {
   const publicNarrativeItems = (items: readonly NarrativeItemChange[]) => items.map(({ type, before, after }) => ({ type, before, after }));
   return {
     schemaVersion: changeSet.schemaVersion,
@@ -977,7 +977,7 @@ function joinFacts(facts: readonly string[]) {
   return `${facts.slice(0, -1).join(", ")}, and ${facts.at(-1)}`;
 }
 
-export function buildDeterministicChangeSummary(input: {
+function buildDeterministicChangeSummary(input: {
   issueLabel: string;
   changeSet: PrivateClientPortalChangeSet;
   current: PrivateIssueProjection;

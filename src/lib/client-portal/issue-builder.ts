@@ -155,7 +155,7 @@ export type ClientPortalIssuePackage = {
   unresolvedItems: readonly string[];
 };
 
-export type ClientPortalIssueChangeSet = {
+type ClientPortalIssueChangeSet = {
   aiProvenance?: {
     aiDraft: string;
     approvedAt: string;

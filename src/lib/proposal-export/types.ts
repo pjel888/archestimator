@@ -99,6 +99,12 @@ export type ProposalNormalizedSourceRow = {
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
+  vatTreatment: "inclusive" | "exclusive" | "exempt" | null;
+  vatRateBps: number | null;
+  preVatAmount: number | null;
+  vatAmount: number | null;
+  vatExemptAmount: number | null;
+  totalWithVat: number | null;
   remarks: string;
   scopeStatus: ProposalScopeStatus;
   includedInTotal: boolean;
@@ -136,6 +142,12 @@ export type ProposalExportRow = {
   contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
+  vatTreatment: "inclusive" | "exclusive" | "exempt" | null;
+  vatRateBps: number | null;
+  preVatAmount: number | null;
+  vatAmount: number | null;
+  vatExemptAmount: number | null;
+  totalWithVat: number | null;
   remarks: string;
   scopeStatus: ProposalScopeStatus;
   includedInTotal: boolean;
@@ -182,6 +194,10 @@ export type ProposalExportTotals = {
   projectContingencyAmount: number; // F-02: project-level contingency on adjusted Direct Cost.
   vatAmount: number; // VAT on (adjusted Direct Cost + project contingency).
   grandTotalWithTaxes: number; // adjusted Direct Cost + project contingency + VAT.
+  commercialPreVatAmount: number;
+  commercialVatAmount: number;
+  commercialVatExemptAmount: number;
+  commercialTotalWithVat: number;
 };
 
 export type ProposalExportModel = {

@@ -18,8 +18,10 @@ import {
 import {
   STARTER_EXAMPLES_GROUP_NAME,
   STARTER_PACK_VERSION,
+  STARTER_REFERENCE_SOURCES,
   STARTER_USER_ASSET_KEYS,
   STARTER_WORKSPACE_ASSET_KEYS,
+  type StarterReferenceId,
 } from "@/lib/onboarding/starter-pack";
 
 const requireRuntime = createRequire(import.meta.url);
@@ -28,6 +30,7 @@ const MEMBER_ID = "user-2";
 const OTHER_MEMBER_ID = "user-3";
 const WORKSPACE_ID = "workspace-1";
 const NOW = "2026-07-24T00:00:00.000Z";
+const PRIMARY_REFERENCE_ID: StarterReferenceId = "bir_vat";
 
 const mocks = vi.hoisted(() => ({
   database: null as D1DatabaseLike | null,
@@ -166,6 +169,10 @@ function createDatabase() {
     "migrations/0117_onboarding_starter_mutation_fences.sql",
     "utf8",
   ));
+  sqlite.exec(`
+    ALTER TABLE cost_library_item_price_options ADD COLUMN brand_id TEXT;
+    ALTER TABLE cost_library_item_price_options ADD COLUMN brand TEXT NOT NULL DEFAULT '';
+  `);
   sqlite.prepare(`
     INSERT INTO workspaces (id, name, created_by, created_at, updated_at)
     VALUES (?, 'Workspace', ?, ?, ?)
@@ -195,6 +202,10 @@ function activeClaimKeys(
 }
 
 describe("starter pack actions", () => {
+  it("keeps typed reference IDs aligned with the public source catalog", () => {
+    expect(STARTER_REFERENCE_SOURCES[PRIMARY_REFERENCE_ID].label).toContain("Value-Added Tax");
+  });
+
   let database: SqliteD1Database;
 
   beforeEach(() => {
@@ -297,6 +308,12 @@ describe("starter pack actions", () => {
       WHERE source_url IS NOT NULL
         AND json_extract(metadata_json, '$.taxTreatment.basis') = 'EX_VAT'
         AND json_array_length(json_extract(metadata_json, '$.referenceSources')) >= 2
+    `).get()).toEqual({ count: 7 });
+    expect(database.sqlite.prepare(`
+      SELECT COUNT(*) AS count
+      FROM cost_library_item_price_options option
+      INNER JOIN cost_library_items item ON item.id = option.item_id
+      WHERE option.brand_id IS item.brand_id AND option.brand = COALESCE(item.brand, '')
     `).get()).toEqual({ count: 7 });
     expect(database.sqlite.prepare(`
       SELECT COUNT(*) AS count

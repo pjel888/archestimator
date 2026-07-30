@@ -116,7 +116,7 @@ function internalActor(access: InternalAccess) {
   return { id: access.actor.id, type: "internal_user" as const };
 }
 
-export async function listInternalChangeRequests(input: {
+async function listInternalChangeRequests(input: {
   database: D1DatabaseLike;
   projectId: string;
   workspaceId: string;
@@ -181,18 +181,23 @@ export async function readInternalChangeRequestResponse(
   }
 }
 
+async function internalMutationInput(request: Request, projectId: string, routeDependencies: InternalChangeRequestDependencies) {
+  const access = await routeDependencies.resolveAccess(projectId, "write");
+  if (!access.ok) return { error: access.response, value: null };
+  const key = idempotencyKey(request);
+  if (!key) return { error: json({ error: "A valid Idempotency-Key header is required." }, 400), value: null };
+  const parsed = await body(request);
+  return "error" in parsed ? { error: parsed.error, value: null } : { error: null, value: { access, key, body: parsed.value } };
+}
+
 export async function createInternalChangeRequestResponse(
   request: Request,
   projectId: string,
   routeDependencies: InternalChangeRequestDependencies = dependencies,
 ) {
-  const access = await routeDependencies.resolveAccess(projectId, "write");
-  if (!access.ok) return access.response;
-  const key = idempotencyKey(request);
-  if (!key) return json({ error: "A valid Idempotency-Key header is required." }, 400);
-  const parsed = await body(request);
-  if ("error" in parsed) return parsed.error;
-  const value = parsed.value;
+  const mutation = await internalMutationInput(request, projectId, routeDependencies);
+  if (!mutation.value) return mutation.error;
+  const { access, body: value, key } = mutation.value;
   const source = sourceKind(value.sourceKind);
   if (!source) return json({ error: "Internal request source must be verbal, email, site, or other." }, 400);
   const identity = `${access.projectId}:${access.actor.id}:${key}`;
@@ -231,13 +236,9 @@ export async function actOnInternalChangeRequestResponse(
   requestId: string,
   routeDependencies: InternalChangeRequestDependencies = dependencies,
 ) {
-  const access = await routeDependencies.resolveAccess(projectId, "write");
-  if (!access.ok) return access.response;
-  const key = idempotencyKey(request);
-  if (!key) return json({ error: "A valid Idempotency-Key header is required." }, 400);
-  const parsed = await body(request);
-  if ("error" in parsed) return parsed.error;
-  const value = parsed.value;
+  const mutation = await internalMutationInput(request, projectId, routeDependencies);
+  if (!mutation.value) return mutation.error;
+  const { access, body: value, key } = mutation.value;
   const action = string(value.action);
   const base = {
     actor: internalActor(access),

@@ -45,6 +45,8 @@ type LibraryItemRow = {
   unit: string;
   unit_cost: number;
   misc_cost: number;
+  brand_id: string | null;
+  brand: string | null;
 };
 
 type LibraryOptionRow = {
@@ -54,6 +56,8 @@ type LibraryOptionRow = {
   unit: string;
   unit_cost: number;
   misc_cost: number;
+  brand_id: string | null;
+  brand: string;
   is_active: number;
   is_default: number;
   updated_at: string;
@@ -170,6 +174,8 @@ function libraryRows(
   input: { label: string; cost: number; version: number },
 ) {
   const updatedAt = "2026-07-15T00:00:00.000Z";
+  const brandId = id === SOURCE_LIBRARY_ID ? "brand-source" : "brand-target";
+  const brand = id === SOURCE_LIBRARY_ID ? "Source Brand" : "Target Brand";
   return {
     item: {
       id,
@@ -181,6 +187,8 @@ function libraryRows(
       unit: "box",
       unit_cost: input.cost,
       misc_cost: 25,
+      brand_id: brandId,
+      brand,
     } satisfies LibraryItemRow,
     option: {
       id: optionId,
@@ -189,6 +197,8 @@ function libraryRows(
       unit: "box",
       unit_cost: input.cost,
       misc_cost: 25,
+      brand_id: brandId,
+      brand,
       is_active: 1,
       is_default: 1,
       updated_at: updatedAt,
@@ -208,11 +218,15 @@ function libraryItem(
   optionId: string,
   input: { label: string; cost: number; version: number; material: string },
 ): EstimateRowItem {
+  const brandId = id === SOURCE_LIBRARY_ID ? "brand-source" : "brand-target";
+  const brand = id === SOURCE_LIBRARY_ID ? "Source Brand" : "Target Brand";
   return {
     id,
     material: input.material,
     description: `${input.material} description`,
     supplier: "Supplier",
+    brandId,
+    brand,
     source: "library",
     unit: "box",
     itemCost: input.cost,
@@ -271,6 +285,14 @@ function seedLibrary(database: IntentDatabase, id: string, optionId: string, inp
 
 function batchSql(database: IntentDatabase) {
   return database.batchStatements.map((statement) => statement.sql).join("\n");
+}
+
+function updateValue(statement: CapturedStatement, column: string) {
+  const assignments = statement.sql
+    .slice(statement.sql.indexOf(" SET ") + 5, statement.sql.indexOf(" WHERE "))
+    .split(",")
+    .map((assignment) => assignment.trim().split(" = ")[0]);
+  return statement.values[assignments.indexOf(column)];
 }
 
 describe("typed row Library freshness and component impact", () => {
@@ -369,6 +391,87 @@ describe("typed row Library freshness and component impact", () => {
     expect(batchSql(database)).toContain("library_source_guard");
     expect(batchSql(database)).toContain("UPDATE estimate_row_items");
     expect(batchSql(database)).toContain("INSERT INTO estimate_sheet_events");
+    const rowUpdate = database.batchStatements.find((statement) => statement.sql.includes("UPDATE estimate_row_items SET"));
+    expect(rowUpdate && updateValue(rowUpdate, "brand_id")).toBe("brand-source");
+  });
+
+  it("rejects client brand identity that disagrees with the persisted selected option", async () => {
+    const database = new IntentDatabase();
+    seedLibrary(database, SOURCE_LIBRARY_ID, SOURCE_OPTION_ID, { label: "Standard", cost: 2500, version: 7 });
+    database.rows.set(SOURCE_ROW_ID, estimateRow(SOURCE_ROW_ID, 4));
+    const source = {
+      ...libraryItem(SOURCE_LIBRARY_ID, SOURCE_OPTION_ID, {
+        label: "Standard",
+        cost: 2500,
+        version: 7,
+        material: "Porcelain tile",
+      }),
+      brandId: "malicious-brand",
+      brand: "Malicious Brand",
+    };
+
+    await expect(replaceEstimateRowItemWithHistory(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      correlationId: "abababab-abab-4bab-8bab-abababababab",
+      rowId: SOURCE_ROW_ID,
+      expectedRowRevision: 4,
+      replacementPayload: {
+        sourceLibraryItemId: SOURCE_LIBRARY_ID,
+        brandId: "malicious-brand",
+        sourceSnapshot: { brandId: "malicious-brand", brand: "Malicious Brand" },
+        metadata: { brandId: "malicious-brand" },
+      },
+      librarySource: source,
+    })).rejects.toThrow("Library variant pricing changed");
+
+    expect(database.batchCount).toBe(0);
+  });
+
+  it("guards a brandless selected option using its exact persisted blank label", async () => {
+    const database = new IntentDatabase();
+    seedLibrary(database, SOURCE_LIBRARY_ID, SOURCE_OPTION_ID, { label: "Standard", cost: 2500, version: 7 });
+    const item = database.libraryItems.get(SOURCE_LIBRARY_ID)!;
+    const option = database.libraryOptions.get(SOURCE_OPTION_ID)!;
+    item.brand_id = null;
+    item.brand = null;
+    option.brand_id = null;
+    option.brand = "";
+    database.rows.set(SOURCE_ROW_ID, estimateRow(SOURCE_ROW_ID, 4));
+    const source = {
+      ...libraryItem(SOURCE_LIBRARY_ID, SOURCE_OPTION_ID, {
+        label: "Standard",
+        cost: 2500,
+        version: 7,
+        material: "Unbranded tile",
+      }),
+      brandId: null,
+      brand: null,
+    };
+
+    await replaceEstimateRowItemWithHistory(database, actor, {
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      correlationId: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+      rowId: SOURCE_ROW_ID,
+      expectedRowRevision: 4,
+      replacementPayload: {
+        sourceLibraryItemId: SOURCE_LIBRARY_ID,
+        material: source.material,
+        description: source.description,
+        supplier: source.supplier,
+        unit: source.unit,
+        quantity: 1,
+        unitCost: source.itemCost,
+        miscCost: source.miscCost,
+        linkState: "linked-clean",
+      },
+      librarySource: source,
+    });
+
+    const optionGuard = database.batchStatements.find((statement) => statement.sql.includes("estimate_library_option_guard"));
+    expect(optionGuard?.values).toContain("");
+    expect(database.batchCount).toBe(1);
   });
 
   it("rejects stale Library data before preparing row or history writes", async () => {
@@ -428,7 +531,14 @@ describe("typed row Library freshness and component impact", () => {
     expect(libraryReads.filter((read) => read.sql.includes("FROM cost_library_item_variant_cost_entries"))).toHaveLength(2);
     expect(database.batchCount).toBe(1);
     expect(batchSql(database).match(/UPDATE estimate_row_items/g)).toHaveLength(2);
+    expect(batchSql(database).match(/estimate_library_source_guard/g)).toHaveLength(2);
+    expect(batchSql(database).match(/estimate_library_option_guard/g)).toHaveLength(2);
     expect(batchSql(database)).toContain("INSERT INTO estimate_sheet_events");
+    const rowUpdates = database.batchStatements.filter((statement) => statement.sql.includes("UPDATE estimate_row_items SET"));
+    expect(rowUpdates.map((statement) => updateValue(statement, "brand_id")).sort()).toEqual([
+      "brand-source",
+      "brand-target",
+    ]);
   });
 
   it("performs zero writes when the target component source has stale current cost", async () => {

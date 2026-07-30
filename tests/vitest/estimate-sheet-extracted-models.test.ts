@@ -13,6 +13,10 @@ import {
   reconcileAuthoritativeInsertedRoots,
 } from "@/components/workshop/estimate-sheet/template-insertion-model";
 import { getInitialEditableRow } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
+import {
+  replaceRowItemWithLibraryItem,
+  restoreEstimateRowItemAtLocation,
+} from "@/components/workshop/estimate-sheet/use-estimate-row-handlers";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 
 function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
@@ -55,6 +59,32 @@ function node(overrides: Partial<EstimateTreeNode> = {}): EstimateTreeNode {
 }
 
 describe("estimate sheet extracted models", () => {
+  it("restores a removed row at its nested location without disturbing sibling rows", () => {
+    const existingRow = row({ id: "existing-row" });
+    const restoredRow = row({ id: "restored-row" });
+    const tree = [node({
+      id: "root",
+      children: [node({ id: "target", estimateRowItems: [existingRow] })],
+    })];
+
+    const restored = restoreEstimateRowItemAtLocation(tree, {
+      nodeId: "target",
+      index: 1,
+      item: restoredRow,
+    });
+
+    expect(restored[0]?.children?.[0]?.estimateRowItems).toEqual([existingRow, restoredRow]);
+    expect(tree[0]?.children?.[0]?.estimateRowItems).toEqual([existingRow]);
+  });
+
+  it("normalizes a zero-quantity library replacement to one", () => {
+    const replacement = replaceRowItemWithLibraryItem("target-row", row({ quantity: 0 }));
+
+    expect(replacement.id).toBe("target-row");
+    expect(replacement.quantity).toBe(1);
+    expect(replacement.subTotal).toBe(100);
+  });
+
   it("keeps proposal export query params clean for default settings", () => {
     const params = new URLSearchParams();
     appendProposalExportSettingsParams(params, DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS);

@@ -9,7 +9,7 @@ class FakeWebSocket extends EventTarget {
   readyState = 0;
   readonly sent: string[] = [];
 
-  constructor(_url: string) {
+  constructor() {
     super();
     FakeWebSocket.instances.push(this);
   }
@@ -41,6 +41,20 @@ afterEach(() => {
 });
 
 describe("CollaborationRoomBrowserSocket authorization handshake", () => {
+  it("reports a socket channel error exactly once", () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const room =
+      createCloudflareCollaborationRoomClient().openRoom("project:project-1");
+    const statuses: string[] = [];
+
+    room.subscribe((status) => statuses.push(status));
+    const socket = FakeWebSocket.instances[0];
+    socket?.dispatchEvent(new Event("error"));
+    socket?.dispatchEvent(new Event("error"));
+
+    expect(statuses).toEqual(["CHANNEL_ERROR"]);
+  });
+
   it("does not report subscribed until the Durable Object acknowledges authorization", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     const room =

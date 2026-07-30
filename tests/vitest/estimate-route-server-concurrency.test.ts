@@ -58,14 +58,19 @@ describe("estimate node route server concurrency", () => {
   it("validates the critical route context before parallelizing noncritical capability loads", () => {
     const routeContentBody = readFunctionBody(estimateNodePageSource, "async function EstimateRouteContent");
 
-    expect(routeContentBody).toContain("const { projectId, nodeId } = await params;");
+    expect(routeContentBody).toContain("const [resolvedParams, resolvedSearchParams] = await traced(\"estimate.route.params\"");
+    expect(routeContentBody).toContain("const { projectId, nodeId } = resolvedParams;");
     expect(routeContentBody).toContain("assertRouteErrorSmoke");
     expect(routeContentBody).toContain('withPerfTraceRequest("workshop.estimate-sheet"');
+    expect(routeContentBody).toContain('traced("estimate.route.context"');
     expect(routeContentBody).toContain('traced("estimate-sheet.route-context"');
     expect(routeContentBody).toContain("resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
-    expect(routeContentBody).toContain("const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([");
-    expectBefore(routeContentBody, "if (!project || !estimate) notFound()", "const [resolvedCanEditEstimate, canManageLibrary, onboardingSnapshot] = await Promise.all([");
+    expect(routeContentBody).toContain("const [[resolvedCanEditEstimate, canManageLibrary], onboardingSnapshot] = await Promise.all([");
+    expectBefore(routeContentBody, "if (!project || !estimate) notFound()", "const [[resolvedCanEditEstimate, canManageLibrary], onboardingSnapshot] = await Promise.all([");
     expect(estimateNodePageSource).not.toContain('traced("estimate-sheet.current-user"');
+    expect(routeContentBody).toContain('traced("estimate.route.capabilities"');
+    expect(routeContentBody).toContain('traced("estimate.route.onboarding"');
+    expect(routeContentBody).toContain('traced("estimate.route.binding"');
     expect(routeContentBody).toContain('traced("estimate-sheet.library-management-capability"');
     expect(routeContentBody).toContain('traced("estimate-sheet.onboarding-snapshot"');
   });
@@ -104,6 +109,8 @@ describe("estimate node route server concurrency", () => {
     const bypassBranchIndex = layoutBody.indexOf("if (termsGateBypassed)");
 
     expect(workshopLayoutSource).toContain('import { getCurrentUserContext } from "@/lib/auth/session"');
+    expect(workshopLayoutSource).toContain('withPerfTraceRequest("workshop.estimate-layout"');
+    expect(workshopLayoutSource).toContain('traced("estimate.layout.auth", resolveAuthGate)');
     expect(layoutBody).toContain("shouldBypassTermsAcceptanceGate(requestPath)");
     expect(layoutBody).toContain("const currentUser = await getCurrentUserContext();");
     expect(protectedGateIndex).toBeGreaterThanOrEqual(0);

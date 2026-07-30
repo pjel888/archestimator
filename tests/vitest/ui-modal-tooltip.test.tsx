@@ -97,6 +97,22 @@ describe("shared modal and toolbar tooltip primitives", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
   });
 
+  it("moves forward Tab from focused dialog content to its first control", async () => {
+    render(
+      <Modal open title="Keyboard settings" initialFocus="content" onOpenChange={() => undefined}>
+        <button type="button">Save settings</button>
+      </Modal>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Keyboard settings" });
+    await waitFor(() => expect(dialog).toHaveFocus());
+    const closeButton = screen.getByRole("button", { name: "Close modal" });
+    vi.spyOn(closeButton, "getClientRects").mockReturnValue({ length: 1 } as DOMRectList);
+    fireEvent.keyDown(dialog, { key: "Tab" });
+
+    expect(closeButton).toHaveFocus();
+  });
+
   it("binds ControlField labels/help/errors without broad descendant traversal", () => {
     render(
       <>
@@ -194,7 +210,11 @@ describe("shared modal and toolbar tooltip primitives", () => {
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent("Review tooltip");
-    expect(screen.getByRole("button", { name: "Tooltip target" })).toHaveAccessibleDescription("Review tooltip");
+    const target = screen.getByRole("button", { name: "Tooltip target" });
+    expect(target).toHaveAccessibleDescription("Review tooltip");
+
+    fireEvent.blur(target);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 
   it("ports icon button tooltips outside clipped toolbar panels", async () => {

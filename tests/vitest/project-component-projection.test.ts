@@ -33,6 +33,7 @@ function row(overrides: Partial<ProjectComponentProjectionRow> = {}): ProjectCom
     description: "Custom vanity",
     supplier: "Local fabricator",
     supplier_id: null,
+    brand_id: null,
     unit: "lot",
     unit_cost: 1500,
     quantity: 1,
@@ -110,6 +111,22 @@ describe("project component projection", () => {
           instanceCount: 1,
         },
       },
+    });
+  });
+
+  it("preserves authoritative brand identity through the Project projection", () => {
+    const item = projectEstimateRowToLibraryItem(row({
+      brand_id: "11111111-1111-4111-8111-111111111111",
+      source_snapshot: {
+        brand: "Acme Materials",
+        brandId: "stale-brand-id",
+        pricingSource: "Project estimate row",
+      },
+    }), "project-1", "Casa Miguel");
+
+    expect(item).toMatchObject({
+      brand: "Acme Materials",
+      brandId: "11111111-1111-4111-8111-111111111111",
     });
   });
 

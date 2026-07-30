@@ -148,6 +148,24 @@ describe("client-portal narrative AI handler", () => {
     expect(aiProvider.generate).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["user context lookup fails", vi.fn().mockRejectedValue(new Error("session unavailable"))],
+    ["user context is not provider-backed", vi.fn().mockResolvedValue({ authMode: "legacy", userId: "owner_1" })],
+  ])("returns 401 when %s", async (_scenario, getUserContext) => {
+    const aiProvider = provider({});
+    const deps = dependencies(aiProvider, { getUserContext });
+
+    const response = await handleClientPortalNarrativeRequest(request(body()), {
+      aiEnabled: true,
+      dependencies: deps,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "AI requires a signed-in account session." });
+    expect(deps.readDraftContext).not.toHaveBeenCalled();
+    expect(aiProvider.generate).not.toHaveBeenCalled();
+  });
+
   it("blocks cross-origin, oversized, and quota-exhausted requests before provider use", async () => {
     const aiProvider = provider({});
     const crossOrigin = await handleClientPortalNarrativeRequest(

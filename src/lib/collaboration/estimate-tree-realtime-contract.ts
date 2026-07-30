@@ -90,3 +90,192 @@ export function isEstimateTreeRealtimeEvent(value: unknown): value is EstimateTr
       return false;
   }
 }
+
+export const ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION = 1;
+export const ESTIMATE_CONTRIBUTION_BROADCAST_EVENT = "contribution-update";
+
+const MAX_CONTRIBUTION_CHANGED_IDS = 250;
+const MAX_CONTRIBUTION_ID_LENGTH = 200;
+
+export type EstimateContributionRealtimeScope = {
+  estimateId: string;
+  tabId: string;
+  contributionScopeId: string;
+};
+
+export type EstimateContributionChangedIds = {
+  rowIds: string[];
+  groupIds: string[];
+  edgeIds: string[];
+};
+
+export type EstimateContributionRealtimeEvent = {
+  schemaVersion: typeof ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION;
+  type: "estimate_contribution.changed";
+  scope: EstimateContributionRealtimeScope;
+  scopeRevision: number;
+  changed: EstimateContributionChangedIds;
+  mutationId: string;
+  sentAt: string;
+};
+
+export type EstimateContributionBroadcastReceipt = {
+  delivery: "server_mutation" | "outbox_delivery";
+  changed: boolean;
+  scopeRevision: number;
+  mutationId: string;
+  changedRowIds?: readonly string[];
+  changedGroupIds?: readonly string[];
+  changedEdgeIds?: readonly string[];
+};
+
+export type EstimateContributionRealtimeDecision =
+  | { action: "apply"; event: EstimateContributionRealtimeEvent }
+  | {
+      action: "refetch";
+      reason: "revision_gap" | "schema_mismatch";
+      event?: EstimateContributionRealtimeEvent;
+    }
+  | { action: "ignore"; reason: "duplicate" | "cross_scope" | "unrelated" };
+
+function isBoundedIdentifier(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= MAX_CONTRIBUTION_ID_LENGTH;
+}
+
+function isBoundedIdentifierList(value: unknown): value is string[] {
+  return Array.isArray(value)
+    && value.length <= MAX_CONTRIBUTION_CHANGED_IDS
+    && value.every(isBoundedIdentifier)
+    && new Set(value).size === value.length;
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowedKeys: readonly string[]) {
+  return Object.keys(value).every((key) => allowedKeys.includes(key));
+}
+
+function isEstimateContributionScope(value: unknown): value is EstimateContributionRealtimeScope {
+  return isRecord(value)
+    && hasOnlyKeys(value, ["estimateId", "tabId", "contributionScopeId"])
+    && isBoundedIdentifier(value.estimateId)
+    && isBoundedIdentifier(value.tabId)
+    && isBoundedIdentifier(value.contributionScopeId);
+}
+
+function matchesEstimateContributionScope(
+  value: unknown,
+  expectedScope: EstimateContributionRealtimeScope,
+) {
+  return isEstimateContributionScope(value)
+    && value.estimateId === expectedScope.estimateId
+    && value.tabId === expectedScope.tabId
+    && value.contributionScopeId === expectedScope.contributionScopeId;
+}
+
+export function isEstimateContributionRealtimeEvent(
+  value: unknown,
+  expectedScope?: EstimateContributionRealtimeScope,
+): value is EstimateContributionRealtimeEvent {
+  if (!isRecord(value) || value.schemaVersion !== ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION) return false;
+  if (!hasOnlyKeys(value, ["schemaVersion", "type", "scope", "scopeRevision", "changed", "mutationId", "sentAt"])) return false;
+  if (value.type !== "estimate_contribution.changed" || !isEstimateContributionScope(value.scope)) return false;
+  if (expectedScope && !matchesEstimateContributionScope(value.scope, expectedScope)) return false;
+  if (!Number.isSafeInteger(value.scopeRevision) || (value.scopeRevision as number) < 1) return false;
+  if (!isBoundedIdentifier(value.mutationId) || typeof value.sentAt !== "string" || !Number.isFinite(Date.parse(value.sentAt))) return false;
+  if (!isRecord(value.changed)) return false;
+  if (!hasOnlyKeys(value.changed, ["rowIds", "groupIds", "edgeIds"])) return false;
+  if (!isBoundedIdentifierList(value.changed.rowIds)
+    || !isBoundedIdentifierList(value.changed.groupIds)
+    || !isBoundedIdentifierList(value.changed.edgeIds)) return false;
+  return value.changed.rowIds.length + value.changed.groupIds.length + value.changed.edgeIds.length > 0;
+}
+
+export function createEstimateContributionRealtimeEvent(
+  scope: EstimateContributionRealtimeScope,
+  receipt: EstimateContributionBroadcastReceipt,
+  sentAt = new Date().toISOString(),
+): EstimateContributionRealtimeEvent | null {
+  if (!receipt.changed || (receipt.delivery !== "server_mutation" && receipt.delivery !== "outbox_delivery")) return null;
+  const event: EstimateContributionRealtimeEvent = {
+    schemaVersion: ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION,
+    type: "estimate_contribution.changed",
+    scope,
+    scopeRevision: receipt.scopeRevision,
+    changed: {
+      rowIds: [...(receipt.changedRowIds ?? [])],
+      groupIds: [...(receipt.changedGroupIds ?? [])],
+      edgeIds: [...(receipt.changedEdgeIds ?? [])],
+    },
+    mutationId: receipt.mutationId,
+    sentAt,
+  };
+  return isEstimateContributionRealtimeEvent(event, scope) ? event : null;
+}
+
+function receiptIdentifiers(value: Record<string, unknown>) {
+  const rows = value.kind === "alternative_group_configured" ? value.rowItemIds
+    : value.kind === "optional_row_marked" || value.kind === "optional_row_unmarked" ? [value.rowItemId]
+      : value.kind === "alternative_group_removed" ? value.removedRowItemIds
+        : value.kind === "accessory_edge_created" || value.kind === "accessory_edge_updated"
+          ? [value.parentRowItemId, value.childRowItemId]
+          : value.changedRowItemIds;
+  const groups = value.kind === "alternative_group_configured" || value.kind === "alternative_group_removed"
+    ? [value.groupId]
+    : value.changedGroupIds;
+  const edges = value.kind === "accessory_edge_created"
+    || value.kind === "accessory_edge_updated"
+    || value.kind === "accessory_edge_deleted"
+    ? [value.edgeId]
+    : value.changedEdgeIds;
+  return { rows, groups, edges };
+}
+
+function identifiersAreCommitted(actual: string[], committed: unknown) {
+  if (actual.length === 0 && committed === undefined) return true;
+  return Array.isArray(committed)
+    && committed.every(isBoundedIdentifier)
+    && actual.every((identifier) => committed.includes(identifier));
+}
+
+export function matchesCommittedEstimateContributionReceipt(
+  event: EstimateContributionRealtimeEvent,
+  result: unknown,
+  currentScopeRevision: number,
+) {
+  if (!isRecord(result) || result.changed !== true) return false;
+  if (result.contributionScopeId !== event.scope.contributionScopeId) return false;
+  if (result.contributionRevision !== event.scopeRevision) return false;
+  if (!Number.isSafeInteger(currentScopeRevision) || currentScopeRevision < event.scopeRevision) return false;
+  const committed = receiptIdentifiers(result);
+  return identifiersAreCommitted(event.changed.rowIds, committed.rows)
+    && identifiersAreCommitted(event.changed.groupIds, committed.groups)
+    && identifiersAreCommitted(event.changed.edgeIds, committed.edges);
+}
+
+export function decideEstimateContributionRealtimeEvent({
+  payload,
+  expectedScope,
+  currentRevision,
+  seenMutationIds,
+}: {
+  payload: unknown;
+  expectedScope: EstimateContributionRealtimeScope;
+  currentRevision: number;
+  seenMutationIds?: ReadonlySet<string>;
+}): EstimateContributionRealtimeDecision {
+  if (!isRecord(payload) || payload.type !== "estimate_contribution.changed") {
+    return { action: "ignore", reason: "unrelated" };
+  }
+  if (!matchesEstimateContributionScope(payload.scope, expectedScope)) {
+    return { action: "ignore", reason: "cross_scope" };
+  }
+  if (!isEstimateContributionRealtimeEvent(payload, expectedScope)) {
+    return { action: "refetch", reason: "schema_mismatch" };
+  }
+  if (seenMutationIds?.has(payload.mutationId) || payload.scopeRevision <= currentRevision) {
+    return { action: "ignore", reason: "duplicate" };
+  }
+  if (payload.scopeRevision === currentRevision + 1) {
+    return { action: "apply", event: payload };
+  }
+  return { action: "refetch", reason: "revision_gap", event: payload };
+}

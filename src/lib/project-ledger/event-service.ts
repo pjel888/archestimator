@@ -16,7 +16,7 @@ import type {
 
 type JsonObject = Record<string, unknown>;
 
-export type ProjectCommitmentEventSource =
+type ProjectCommitmentEventSource =
   | { issueId: string; sourceType: "issue" }
   | { decisionId: string; sourceType: "decision" }
   | { baselineId: string; sourceType: "baseline" }
@@ -32,7 +32,7 @@ export type ProjectCommitmentEventSource =
     }
   | { legacyPublicationId: string; sourceType: "legacy_publication" };
 
-export type ProjectCommitmentEventActor = {
+type ProjectCommitmentEventActor = {
   actorId: string;
   actorType: ProjectCommitmentActorType;
   domainRoleSnapshot?: string | null;
@@ -40,7 +40,7 @@ export type ProjectCommitmentEventActor = {
   permissionRoleSnapshot?: string | null;
 };
 
-export type ProjectCommitmentEventExposureInput = {
+type ProjectCommitmentEventExposureInput = {
   exposedAt?: string;
   exposedByActor?: Pick<ProjectCommitmentEventActor, "actorId" | "actorType">;
   exposureKind: ProjectCommitmentExposureKind;
@@ -83,7 +83,7 @@ export type ProjectCommitmentEventWritePlan = {
   statements: D1PreparedStatementLike[];
 };
 
-export class ProjectCommitmentEventError extends Error {
+class ProjectCommitmentEventError extends Error {
   constructor(
     readonly code:
       | "project_commitment_event_batch_required"

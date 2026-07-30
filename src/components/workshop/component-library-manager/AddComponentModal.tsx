@@ -30,6 +30,7 @@ import {
 } from "@/components/workshop/component-unit-combobox-options";
 import {
   createCostLibraryComponent,
+  createComponentCatalogueEntity,
   findCurrentWorkspaceCostLibraryComponentDuplicate,
   updateCostLibraryComponentWithPriceOptions,
   type ComponentLifecycleState,
@@ -38,6 +39,11 @@ import {
   type LibraryComponentInstanceSyncResult,
 } from "@/lib/component-library/actions";
 import { resolveComponentCategory } from "@/lib/component-library/category-folders";
+import {
+  normalizeCatalogueDisplayName,
+  type CatalogueEntity,
+  type CatalogueEntityKind,
+} from "@/lib/component-library/catalogue-governance";
 import { formatVariantCode, formatVariantDropdownLabel } from "@/lib/component-library/variant-display";
 import {
   type LibraryFolderRecord,
@@ -49,19 +55,27 @@ import {
 } from "@/lib/component-library/unit-options";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { EstimateRowItem } from "@/lib/estimates/types";
-import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/types/json";
 import { cn } from "@/lib/ui/cn";
 import {
   uploadComponentAttachment,
   validateComponentAttachmentFile,
 } from "@/lib/uploads/component-attachment-client";
+import {
+  admitMaterialImageFile,
+  uploadOriginalMaterialImage,
+} from "@/lib/uploads/client-image-upload";
 import { postUploadFormData } from "@/lib/uploads/client-upload";
-import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
+import {
+  applyCatalogueEntityToOptions,
+  CatalogueEntityManagerDialog,
+  type CatalogueMasterOption,
+} from "./CatalogueEntityManagerDialog";
 import {
   type CreateLibraryFolderHandler,
   type ReorderStatus,
 } from "./library-folder-tree-shared";
+import type { ComponentFolderMoveOutcome } from "../component-library/component-folder-move-coordinator";
 
 type VariantImageDraft = {
   assetId?: string;
@@ -120,15 +134,12 @@ type ComponentDraft = {
   variants: VariantDraft[];
 };
 
-type CatalogueOptionKind = "supplier" | "brand";
-
-type LocalCatalogueOption = {
-  id: string;
-  label: string;
-  createdAt: string;
+type CatalogueCreationState = {
+  intentId: string;
+  name: string;
+  state: "pending" | "error";
+  message?: string;
 };
-
-type LocalCatalogueOptionsState = Record<CatalogueOptionKind, LocalCatalogueOption[]>;
 
 type ImageUploadState =
   | { state: "idle" }
@@ -156,8 +167,8 @@ type AddComponentModalProps = {
   open: boolean;
   folders: LibraryFolderRecord[];
   categoryTree: ComponentLibraryTaxonomyNode[];
-  suppliers: ComponentLibrarySupplierOption[];
-  brands: ComponentLibraryBrand[];
+  suppliers: CatalogueMasterOption[];
+  brands: CatalogueMasterOption[];
   libraryItems: EstimateRowItem[];
   selectedFolderId: string | null;
   selectedSupplierId?: string | null;
@@ -185,7 +196,12 @@ type AddComponentModalProps = {
   onDeleteFolder?: (folderId: string, currentName: string) => void;
   reorderStatus?: ReorderStatus;
   treeMutationPending?: boolean;
-  catalogueOptionsStorageScope: string;
+  canManageCatalogue?: boolean;
+  onCatalogueEntityChanged?: (entity: CatalogueEntity) => void;
+  onMoveComponentCategory?: (
+    item: EstimateRowItem,
+    targetCategoryId: string,
+  ) => Promise<ComponentFolderMoveOutcome | void> | ComponentFolderMoveOutcome | void;
 };
 
 export type ComponentUpdatePendingScope =
@@ -201,11 +217,7 @@ type PendingVariantRemoval = {
   replacementPriceOptionId: string;
 };
 
-const MAX_CLIENT_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
-const CLIENT_IMAGE_EDGE = 1600;
-const CLIENT_IMAGE_QUALITY = 0.82;
 const DEFAULT_VARIANT_LABEL = "Default";
-const ALLOWED_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const accountingNumberFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -240,121 +252,8 @@ const OPENDESIGN_RAIL_SHADOW_CLASS =
   "shadow-[10px_12px_24px_-19px_rgba(23,29,40,0.42),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
   "shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
-const LOCAL_CATALOGUE_OPTION_PREFIX = "local-catalogue-option";
-const ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX = "archestimator:add-component-catalogue-options";
-const LOCAL_CATALOGUE_OPTION_LIMIT = 80;
-const CATALOGUE_OPTION_KINDS: CatalogueOptionKind[] = ["supplier", "brand"];
-
 function toComboboxOptions(options: Array<{ id: string; name: string }>): CreatableComboboxOption[] {
   return options.map((option) => ({ id: option.id, label: option.name }));
-}
-
-function emptyLocalCatalogueOptionsState(): LocalCatalogueOptionsState {
-  return {
-    supplier: [],
-    brand: [],
-  };
-}
-
-function normalizeCatalogueOptionLabel(value: string): string {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function normalizeCatalogueOptionKey(value: string): string {
-  return normalizeCatalogueOptionLabel(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-
-function makeLocalCatalogueOption(kind: CatalogueOptionKind, value: string): LocalCatalogueOption | null {
-  const label = normalizeCatalogueOptionLabel(value);
-  const key = normalizeCatalogueOptionKey(label).replace(/\s+/g, "-");
-  if (!label || !key) return null;
-  return {
-    id: `${LOCAL_CATALOGUE_OPTION_PREFIX}:${kind}:${key}`,
-    label,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function isLocalCatalogueOptionId(id: string | null | undefined): id is string {
-  return Boolean(id?.startsWith(`${LOCAL_CATALOGUE_OPTION_PREFIX}:`));
-}
-
-function isLocalCatalogueComboboxOption(option: CreatableComboboxOption): boolean {
-  return isLocalCatalogueOptionId(option.id);
-}
-
-function getCatalogueOptionsStorageKey(scope: string): string {
-  const normalizedScope = scope.trim().replace(/[^a-zA-Z0-9_.:-]+/g, "-") || "blank-scope";
-  return `${ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX}:${normalizedScope}`;
-}
-
-function sanitizeLocalCatalogueOptionsState(value: unknown): LocalCatalogueOptionsState {
-  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
-  const next = emptyLocalCatalogueOptionsState();
-
-  for (const kind of CATALOGUE_OPTION_KINDS) {
-    const entries = Array.isArray(source[kind]) ? source[kind] : [];
-    const seen = new Set<string>();
-    for (const entry of entries) {
-      if (!entry || typeof entry !== "object") continue;
-      const record = entry as Record<string, unknown>;
-      const label = typeof record.label === "string" ? normalizeCatalogueOptionLabel(record.label) : "";
-      const key = normalizeCatalogueOptionKey(label);
-      if (!label || !key || seen.has(key)) continue;
-      const fallbackOption = makeLocalCatalogueOption(kind, label);
-      if (!fallbackOption) continue;
-      next[kind].push({
-        id: typeof record.id === "string" && isLocalCatalogueOptionId(record.id) ? record.id : fallbackOption.id,
-        label,
-        createdAt: typeof record.createdAt === "string" ? record.createdAt : fallbackOption.createdAt,
-      });
-      seen.add(key);
-    }
-    next[kind] = next[kind].slice(-LOCAL_CATALOGUE_OPTION_LIMIT);
-  }
-
-  return next;
-}
-
-function readLocalCatalogueOptionsState(storageKey: string): LocalCatalogueOptionsState {
-  if (typeof window === "undefined") return emptyLocalCatalogueOptionsState();
-  try {
-    const stored = window.localStorage.getItem(storageKey);
-    if (!stored) return emptyLocalCatalogueOptionsState();
-    return sanitizeLocalCatalogueOptionsState(JSON.parse(stored));
-  } catch {
-    return emptyLocalCatalogueOptionsState();
-  }
-}
-
-function writeLocalCatalogueOptionsState(storageKey: string, state: LocalCatalogueOptionsState) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(storageKey, JSON.stringify(sanitizeLocalCatalogueOptionsState(state)));
-}
-
-function toLocalCatalogueComboboxOptions(options: LocalCatalogueOption[]): CreatableComboboxOption[] {
-  return options.map((option) => ({ id: option.id, label: option.label }));
-}
-
-function mergeCatalogueComboboxOptions(
-  baseOptions: CreatableComboboxOption[],
-  localOptions: CreatableComboboxOption[],
-): CreatableComboboxOption[] {
-  const seen = new Set<string>();
-  const merged: CreatableComboboxOption[] = [];
-  for (const option of [...baseOptions, ...localOptions]) {
-    const key = normalizeCatalogueOptionKey(option.label);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(option);
-  }
-  return merged;
-}
-
-function findSelectedLocalCatalogueOptionId(value: string, options: CreatableComboboxOption[]): string | null {
-  const key = normalizeCatalogueOptionKey(value);
-  if (!key) return null;
-  return options.find((option) => normalizeCatalogueOptionKey(option.label) === key)?.id ?? null;
 }
 
 function today() {
@@ -682,8 +581,8 @@ function getInitialDraft({
   selectedFolderId: string | null;
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
-  suppliers: ComponentLibrarySupplierOption[];
-  brands: ComponentLibraryBrand[];
+  suppliers: CatalogueMasterOption[];
+  brands: CatalogueMasterOption[];
   editingItem?: EstimateRowItem | null;
 }): ComponentDraft {
   if (editingItem) {
@@ -804,35 +703,32 @@ function shouldBypassNextImageOptimization(src: string, previewSrc: string) {
   );
 }
 
-async function resizeImageForUpload(file: File): Promise<File> {
-  if (typeof document === "undefined" || typeof createImageBitmap === "undefined") return file;
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(1, CLIENT_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d", { alpha: true });
-    if (!context) return file;
-    context.drawImage(bitmap, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", CLIENT_IMAGE_QUALITY));
-    if (!blob) return file;
-    if (blob.size >= file.size && file.size <= 12 * 1024 * 1024) return file;
-    const safeStem = file.name.replace(/\.[^.]+$/, "") || "component-image";
-    return new File([blob], `${safeStem}.webp`, { type: "image/webp", lastModified: Date.now() });
-  } finally {
-    bitmap.close();
-  }
-}
-
 async function uploadComponentImage(file: File, target: { projectId?: string | null } = {}): Promise<UploadedComponentImage> {
+  const projectId = target.projectId?.trim() ?? "";
+  if (projectId) {
+    const { result } = await uploadOriginalMaterialImage({
+      endpoint: "/api/projects/images",
+      file,
+      fields: { projectId },
+    });
+    return {
+      bucket: result.bucket,
+      uploadSessionId: result.uploadSessionId,
+      assetId: result.assetId,
+      scanStatus: result.scanStatus,
+      url: result.url,
+      thumbnailUrl: result.thumbnailUrl,
+      path: result.path,
+      thumbnailPath: result.thumbnailPath,
+      width: result.width,
+      height: result.height,
+      originalBytes: result.originalBytes,
+      optimizedBytes: result.sizeBytes,
+    };
+  }
   const formData = new FormData();
   formData.set("file", file);
-  const projectId = target.projectId?.trim() ?? "";
-  if (projectId) formData.set("projectId", projectId);
-  return postUploadFormData<UploadedComponentImage>(projectId ? "/api/projects/images" : "/api/component-library/images", formData, {
+  return postUploadFormData<UploadedComponentImage>("/api/component-library/images", formData, {
     fallbackMessage: "Could not upload image.",
     timeoutMessage: "Image upload timed out. Try again.",
   });
@@ -894,7 +790,7 @@ function collectDraftAttachments(draft: ComponentDraft) {
 
 export function AddComponentModal(props: AddComponentModalProps) {
   if (!props.open) return null;
-  return <OpenAddComponentModal key={`${getCatalogueOptionsStorageKey(props.catalogueOptionsStorageScope)}:${props.editingItem?.id ?? "new"}`} {...props} />;
+  return <OpenAddComponentModal key={props.editingItem?.id ?? "new"} {...props} />;
 }
 
 function OpenAddComponentModal({
@@ -916,7 +812,9 @@ function OpenAddComponentModal({
   onComponentCreated,
   onComponentUpdated,
   onComponentUpdatePendingChange,
-  catalogueOptionsStorageScope,
+  canManageCatalogue = true,
+  onCatalogueEntityChanged,
+  onMoveComponentCategory,
 }: AddComponentModalProps) {
   const isEditing = Boolean(editingItem);
   const projectImageUploadId = componentEditScope === "project" ? imageUploadProjectId : null;
@@ -955,58 +853,113 @@ function OpenAddComponentModal({
   const [serverDuplicate, setServerDuplicate] = useState<CostLibraryComponentDuplicateMatch | null>(null);
   const [error, setError] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [catalogueSuppliers, setCatalogueSuppliers] = useState(suppliers);
+  const [catalogueBrands, setCatalogueBrands] = useState(brands);
+  const [catalogueCreation, setCatalogueCreation] = useState<Partial<Record<CatalogueEntityKind, CatalogueCreationState>>>({});
+  const [catalogueManagerKind, setCatalogueManagerKind] = useState<CatalogueEntityKind | null>(null);
+  const [categoryFolderId, setCategoryFolderId] = useState(editingItem?.libraryFolderId ?? selectedFolderId ?? "");
+  const [categoryMoveStatus, setCategoryMoveStatus] = useState<
+    | { state: "idle" }
+    | { state: "pending"; targetCategoryId: string }
+    | { state: "saved"; message: string }
+    | { state: "error"; message: string }
+  >({ state: "idle" });
   const [isPending, startTransition] = useTransition();
   const thumbnailInputId = useId();
   const variantThumbnailInputId = useId();
   const attachmentInputId = useId();
+  const categoryMoveControlId = useId();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
   const createIntentRef = useRef<{ payloadSignature: string; intentId: string } | null>(null);
   const updateIntentRef = useRef<{ payloadSignature: string; intentId: string } | null>(null);
   const initialDraftRef = useRef(draft);
+  const categoryMoveOptions = useMemo(() => folders
+    .map((folder) => ({
+      value: folder.id,
+      label: resolveComponentCategory(folders, folder.id, folder.name).categoryPath.join(" / "),
+    }))
+    .toSorted((left, right) => left.label.localeCompare(right.label)), [folders]);
+
+  function focusCategoryMoveControl() {
+    window.requestAnimationFrame(() => document.getElementById(categoryMoveControlId)?.focus());
+  }
+
+  async function moveComponentCategory(targetCategoryId: string) {
+    if (!editingItem || !onMoveComponentCategory || targetCategoryId === categoryFolderId) return;
+    if (!canManageCatalogue) {
+      setCategoryMoveStatus({ state: "error", message: "Only workspace editors/admins can move component categories." });
+      focusCategoryMoveControl();
+      return;
+    }
+    if (!categoryMoveOptions.some((option) => option.value === targetCategoryId)) {
+      setCategoryMoveStatus({ state: "error", message: "Choose a category from the current workspace." });
+      focusCategoryMoveControl();
+      return;
+    }
+
+    const previousCategoryId = categoryFolderId;
+    setCategoryFolderId(targetCategoryId);
+    setCategoryMoveStatus({ state: "pending", targetCategoryId });
+
+    try {
+      const outcome = await onMoveComponentCategory(
+        { ...editingItem, libraryFolderId: previousCategoryId || undefined },
+        targetCategoryId,
+      );
+      if (outcome?.type === "latest-failure" || outcome?.type === "stale-failure") {
+        setCategoryFolderId(outcome.authoritativeConfirmedFolderId ?? previousCategoryId);
+        setCategoryMoveStatus({
+          state: "error",
+          message: outcome.error instanceof Error ? outcome.error.message : "Could not move the component category.",
+        });
+        focusCategoryMoveControl();
+        return;
+      }
+
+      const categoryLabel = categoryMoveOptions.find((option) => option.value === targetCategoryId)?.label ?? "category";
+      setCategoryMoveStatus({ state: "saved", message: `Moved to ${categoryLabel}.` });
+    } catch (moveError) {
+      setCategoryFolderId(previousCategoryId);
+      setCategoryMoveStatus({
+        state: "error",
+        message: moveError instanceof Error ? moveError.message : "Could not move the component category.",
+      });
+      focusCategoryMoveControl();
+    }
+  }
   const duplicateCheckTimerRef = useRef<number | null>(null);
   const duplicateCheckRequestRef = useRef(0);
+  const supplierRetryRef = useRef<HTMLButtonElement>(null);
+  const brandRetryRef = useRef<HTMLButtonElement>(null);
   const draftRef = useRef(draft);
   const variantPreviewUrlsRef = useRef(variantPreviewUrls);
   const sharedPreviewUrlRef = useRef(sharedPreviewUrl);
-  const catalogueOptionsStorageKey = useMemo(
-    () => getCatalogueOptionsStorageKey(catalogueOptionsStorageScope),
-    [catalogueOptionsStorageScope],
-  );
   const persistedAttachmentIds = useMemo(
     () => new Set((editingItem?.priceOptions ?? []).flatMap((option) => (
       option.attachments ?? []
     ).map((attachment) => attachment.id))),
     [editingItem],
   );
-  const [localCatalogueOptions, setLocalCatalogueOptions] = useState<LocalCatalogueOptionsState>(
-    () => readLocalCatalogueOptionsState(catalogueOptionsStorageKey),
-  );
-
-  const baseBrandOptions = useMemo(() => toComboboxOptions(brands), [brands]);
-  const baseSupplierOptions = useMemo(() => toComboboxOptions(suppliers), [suppliers]);
-  const localBrandOptions = useMemo(
-    () => toLocalCatalogueComboboxOptions(localCatalogueOptions.brand),
-    [localCatalogueOptions.brand],
-  );
-  const localSupplierOptions = useMemo(
-    () => toLocalCatalogueComboboxOptions(localCatalogueOptions.supplier),
-    [localCatalogueOptions.supplier],
-  );
   const brandOptions = useMemo(
-    () => mergeCatalogueComboboxOptions(baseBrandOptions, localBrandOptions),
-    [baseBrandOptions, localBrandOptions],
+    () => toComboboxOptions(catalogueBrands.filter((brand) => brand.lifecycle_state !== "archived")),
+    [catalogueBrands],
   );
   const supplierOptions = useMemo(
-    () => mergeCatalogueComboboxOptions(baseSupplierOptions, localSupplierOptions),
-    [baseSupplierOptions, localSupplierOptions],
+    () => toComboboxOptions(catalogueSuppliers.filter((supplier) => supplier.lifecycle_state !== "archived")),
+    [catalogueSuppliers],
   );
-  const selectedBrand = brands.find((brand) => brand.id === draft.brandId);
-  const selectedSupplier = suppliers.find((supplier) => supplier.id === draft.supplierId);
-  const supplierValue = selectedSupplier?.name ?? draft.supplierName;
-  const brandValue = selectedBrand?.name ?? draft.brand;
-  const selectedSupplierOptionId = draft.supplierId || findSelectedLocalCatalogueOptionId(supplierValue, localSupplierOptions);
-  const selectedBrandOptionId = draft.brandId || findSelectedLocalCatalogueOptionId(brandValue, localBrandOptions);
+  const selectedBrand = catalogueBrands.find((brand) => brand.id === draft.brandId);
+  const selectedSupplier = catalogueSuppliers.find((supplier) => supplier.id === draft.supplierId);
+  const supplierValue = selectedSupplier
+    ? `${selectedSupplier.name}${selectedSupplier.lifecycle_state === "archived" ? " (archived)" : ""}`
+    : draft.supplierName;
+  const brandValue = selectedBrand
+    ? `${selectedBrand.name}${selectedBrand.lifecycle_state === "archived" ? " (archived)" : ""}`
+    : draft.brand;
+  const selectedSupplierOptionId = selectedSupplier?.lifecycle_state === "archived" ? null : draft.supplierId || null;
+  const selectedBrandOptionId = selectedBrand?.lifecycle_state === "archived" ? null : draft.brandId || null;
+  const catalogueBusy = Object.values(catalogueCreation).some((creation) => creation?.state === "pending");
   const defaultVariant = draft.variants.find((variant) => variant.isDefault) ?? draft.variants[0];
   const activeVariant = draft.variants.find((variant) => variant.id === activeVariantId) ?? defaultVariant ?? draft.variants[0];
   const visibleVariants = variantModeEnabled ? draft.variants : [];
@@ -1076,6 +1029,16 @@ function OpenAddComponentModal({
     : serverDuplicate ?? localPossibleDuplicate;
   const validation = useMemo(() => {
     const messages: string[] = Object.values(quickAddValidation.errors);
+    const unchangedLegacySupplier = Boolean(editingItem)
+      && normalizeDuplicateIdentityValue(draft.supplierName) === normalizeDuplicateIdentityValue(editingItem?.supplier);
+    const unchangedLegacyBrand = Boolean(editingItem)
+      && normalizeDuplicateIdentityValue(draft.brand) === normalizeDuplicateIdentityValue(editingItem?.brand);
+    if (draft.supplierName.trim() && !draft.supplierId && !unchangedLegacySupplier) {
+      messages.push("Choose or create a canonical supplier.");
+    }
+    if (draft.brand.trim() && !draft.brandId && !unchangedLegacyBrand) {
+      messages.push("Choose or create a canonical brand.");
+    }
     if (draft.variants.length === 0) messages.push("At least one variant is required.");
     if (draft.variants.filter((variant) => variant.isDefault).length !== 1) messages.push("Exactly one default variant is required.");
     for (const [index, variant] of draft.variants.entries()) {
@@ -1090,7 +1053,22 @@ function OpenAddComponentModal({
       }
     }
     return messages;
-  }, [draft.variants, quickAddValidation.errors]);
+  }, [draft.brand, draft.brandId, draft.supplierId, draft.supplierName, draft.variants, editingItem, quickAddValidation.errors]);
+
+  useEffect(() => setCatalogueSuppliers(suppliers), [suppliers]);
+
+  useEffect(() => setCatalogueBrands(brands), [brands]);
+
+  useEffect(() => {
+    const retryTarget = catalogueCreation.supplier?.state === "error"
+      ? supplierRetryRef.current
+      : catalogueCreation.brand?.state === "error"
+        ? brandRetryRef.current
+        : null;
+    if (!retryTarget) return;
+    const frameId = window.requestAnimationFrame(() => retryTarget.focus());
+    return () => window.cancelAnimationFrame(frameId);
+  }, [catalogueCreation.brand?.state, catalogueCreation.supplier?.state]);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -1103,10 +1081,6 @@ function OpenAddComponentModal({
   useEffect(() => {
     sharedPreviewUrlRef.current = sharedPreviewUrl;
   }, [sharedPreviewUrl]);
-
-  useEffect(() => {
-    writeLocalCatalogueOptionsState(catalogueOptionsStorageKey, localCatalogueOptions);
-  }, [catalogueOptionsStorageKey, localCatalogueOptions]);
 
   useEffect(() => {
     const focusFrame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
@@ -1157,44 +1131,47 @@ function OpenAddComponentModal({
     setDuplicateAcknowledged(true);
   }
 
-  function getBaseCatalogueOptions(kind: CatalogueOptionKind): CreatableComboboxOption[] {
-    if (kind === "supplier") return baseSupplierOptions;
-    return baseBrandOptions;
-  }
-
-  function rememberCatalogueOption(kind: CatalogueOptionKind, value: string): LocalCatalogueOption | null {
-    const option = makeLocalCatalogueOption(kind, value);
-    if (!option) return null;
-    const optionKey = normalizeCatalogueOptionKey(option.label);
-    setLocalCatalogueOptions((current) => {
-      if (getBaseCatalogueOptions(kind).some((baseOption) => normalizeCatalogueOptionKey(baseOption.label) === optionKey)) {
-        return current;
-      }
-      if (current[kind].some((localOption) => normalizeCatalogueOptionKey(localOption.label) === optionKey)) {
-        return current;
-      }
-      return {
-        ...current,
-        [kind]: [...current[kind], option].slice(-LOCAL_CATALOGUE_OPTION_LIMIT),
-      };
-    });
-    return option;
-  }
-
-  function deleteCatalogueOption(kind: CatalogueOptionKind, option: CreatableComboboxOption) {
-    if (!isLocalCatalogueComboboxOption(option)) return;
-    const optionKey = normalizeCatalogueOptionKey(option.label);
-    setLocalCatalogueOptions((current) => {
-      const nextOptions = current[kind].filter((localOption) => normalizeCatalogueOptionKey(localOption.label) !== optionKey);
-      if (nextOptions.length === current[kind].length) return current;
-      return { ...current, [kind]: nextOptions };
-    });
-
-    if (kind === "supplier" && !draft.supplierId && normalizeCatalogueOptionKey(draft.supplierName) === optionKey) {
-      updateQuickAddIdentity({ supplierId: "", supplierName: "" });
+  function applyCatalogueEntity(entity: CatalogueEntity) {
+    if (entity.kind === "supplier") {
+      setCatalogueSuppliers((current) => applyCatalogueEntityToOptions(current, entity));
+    } else {
+      setCatalogueBrands((current) => applyCatalogueEntityToOptions(current, entity));
     }
-    if (kind === "brand" && !draft.brandId && normalizeCatalogueOptionKey(draft.brand) === optionKey) {
-      updateQuickAddIdentity({ brandId: "", brand: "" });
+    onCatalogueEntityChanged?.(entity);
+  }
+
+  async function createCatalogueEntity(kind: CatalogueEntityKind, rawName: string) {
+    if (!canManageCatalogue) return;
+    const name = normalizeCatalogueDisplayName(rawName);
+    if (!name) return;
+    const retained = catalogueCreation[kind];
+    const intentId = retained?.name === name ? retained.intentId : crypto.randomUUID();
+    setCatalogueCreation((current) => ({
+      ...current,
+      [kind]: { intentId, name, state: "pending" },
+    }));
+    if (kind === "supplier") updateQuickAddIdentity({ supplierId: "", supplierName: name });
+    else updateQuickAddIdentity({ brandId: "", brand: name });
+
+    try {
+      const result = await createComponentCatalogueEntity({ entityKind: kind, intentId, name });
+      applyCatalogueEntity(result.entity);
+      setCatalogueCreation((current) => ({ ...current, [kind]: undefined }));
+      if (kind === "supplier") {
+        updateQuickAddIdentity({ supplierId: result.entity.id, supplierName: result.entity.name });
+      } else {
+        updateQuickAddIdentity({ brandId: result.entity.id, brand: result.entity.name });
+      }
+    } catch (creationError) {
+      setCatalogueCreation((current) => ({
+        ...current,
+        [kind]: {
+          intentId,
+          name,
+          state: "error",
+          message: creationError instanceof Error ? creationError.message : `Could not create this ${kind}.`,
+        },
+      }));
     }
   }
 
@@ -1208,8 +1185,8 @@ function OpenAddComponentModal({
       setDuplicateCheckReady(true);
       duplicateCheckTimerRef.current = null;
       const current = draftRef.current;
-      const supplier = suppliers.find((candidate) => candidate.id === current.supplierId)?.name ?? current.supplierName;
-      const brand = brands.find((candidate) => candidate.id === current.brandId)?.name ?? current.brand;
+      const supplier = catalogueSuppliers.find((candidate) => candidate.id === current.supplierId)?.name ?? current.supplierName;
+      const brand = catalogueBrands.find((candidate) => candidate.id === current.brandId)?.name ?? current.brand;
       void findCurrentWorkspaceCostLibraryComponentDuplicate({
         name: current.name,
         category: current.category,
@@ -1384,7 +1361,7 @@ function OpenAddComponentModal({
       description: fallbackVariant.description,
       category: draft.category.trim(),
       categoryNodeId: draft.categoryNodeId,
-      libraryFolderId: editingItem?.libraryFolderId ?? selectedFolderId,
+      libraryFolderId: categoryFolderId || null,
       supplier: selectedSupplier?.name ?? draft.supplierName,
       supplierId: draft.supplierId || null,
       brand: (selectedBrand?.name ?? draft.brand) || null,
@@ -1463,12 +1440,9 @@ function OpenAddComponentModal({
 
   async function handleThumbnailUpload(file: File) {
     const uploadVariant = activeVariant ?? makeVariantDraft(1);
-    if (file.type && !ALLOWED_UPLOAD_TYPES.has(file.type)) {
-      setImageUpload({ state: "error", message: "Use a JPG, PNG, WebP, or AVIF image." });
-      return;
-    }
-    if (file.size > MAX_CLIENT_SOURCE_IMAGE_BYTES) {
-      setImageUpload({ state: "error", message: "Choose an image under 20 MB." });
+    const admission = admitMaterialImageFile(file);
+    if (!admission.ok) {
+      setImageUpload({ state: "error", message: admission.error.message });
       return;
     }
 
@@ -1497,12 +1471,11 @@ function OpenAddComponentModal({
       }
     }
     markDirty();
-    setImageUpload({ state: "processing", message: "Optimizing image..." });
+    setImageUpload({ state: "processing", message: "Preparing image upload..." });
 
     try {
-      const uploadFile = await resizeImageForUpload(file).catch(() => file);
       setImageUpload({ state: "uploading", message: "Uploading image..." });
-      const uploadedImage = await uploadComponentImage(uploadFile, { projectId: projectImageUploadId });
+      const uploadedImage = await uploadComponentImage(file, { projectId: projectImageUploadId });
       if (!isUsableUploadResponse(uploadedImage)) throw new Error("Image upload response was incomplete.");
       const imageDraft = toVariantImageDraft(uploadedImage);
       if (draft.sharedImageForAllVariants) {
@@ -1599,20 +1572,38 @@ function OpenAddComponentModal({
   }
 
   function selectSupplier(change: CreatableComboboxChange) {
-    const createdOption = change.reason === "create" ? rememberCatalogueOption("supplier", change.label) : null;
-    const supplierId = change.id && !isLocalCatalogueOptionId(change.id) ? change.id : "";
+    if (catalogueCreation.supplier?.state === "pending") return;
+    if (change.reason === "create") {
+      void createCatalogueEntity("supplier", change.label);
+      return;
+    }
+    setCatalogueCreation((current) => ({ ...current, supplier: undefined }));
+    const normalizedName = normalizeCatalogueDisplayName(change.label).toLocaleLowerCase();
+    const matchedSupplier = catalogueSuppliers.find((supplier) => (
+      supplier.lifecycle_state !== "archived"
+      && normalizeCatalogueDisplayName(supplier.name).toLocaleLowerCase() === normalizedName
+    ));
     updateQuickAddIdentity({
-      supplierId,
-      supplierName: change.reason === "input" ? change.label : normalizeCatalogueOptionLabel(createdOption?.label ?? change.label),
+      supplierId: change.id ?? matchedSupplier?.id ?? "",
+      supplierName: change.reason === "input" ? change.label : normalizeCatalogueDisplayName(change.label),
     });
   }
 
   function selectBrand(change: CreatableComboboxChange) {
-    const createdOption = change.reason === "create" ? rememberCatalogueOption("brand", change.label) : null;
-    const brandId = change.id && !isLocalCatalogueOptionId(change.id) ? change.id : "";
+    if (catalogueCreation.brand?.state === "pending") return;
+    if (change.reason === "create") {
+      void createCatalogueEntity("brand", change.label);
+      return;
+    }
+    setCatalogueCreation((current) => ({ ...current, brand: undefined }));
+    const normalizedName = normalizeCatalogueDisplayName(change.label).toLocaleLowerCase();
+    const matchedBrand = catalogueBrands.find((brand) => (
+      brand.lifecycle_state !== "archived"
+      && normalizeCatalogueDisplayName(brand.name).toLocaleLowerCase() === normalizedName
+    ));
     updateQuickAddIdentity({
-      brandId,
-      brand: change.reason === "input" ? change.label : normalizeCatalogueOptionLabel(createdOption?.label ?? change.label),
+      brandId: change.id ?? matchedBrand?.id ?? "",
+      brand: change.reason === "input" ? change.label : normalizeCatalogueDisplayName(change.label),
     });
   }
 
@@ -1718,6 +1709,10 @@ function OpenAddComponentModal({
 
   function submit() {
     setSubmitAttempted(true);
+    if (catalogueBusy) {
+      setError("Wait for catalogue creation to finish before saving this component.");
+      return;
+    }
     if (imageBusy || attachmentBusy) {
       setError(`Wait for uploads to finish before ${isEditing ? "saving" : "adding"} this component.`);
       return;
@@ -1809,7 +1804,11 @@ function OpenAddComponentModal({
 
   const showValidationErrors = submitAttempted && validation.length > 0;
   const visibleValidationErrors: Partial<typeof quickAddValidation.errors> = showValidationErrors ? quickAddValidation.errors : {};
-  const componentStatus = error || (showValidationErrors ? `Complete the required fields before ${isEditing ? "saving" : "adding"} this component.` : "");
+  const supplierCatalogueError = catalogueCreation.supplier?.state === "error" ? catalogueCreation.supplier.message : undefined;
+  const brandCatalogueError = catalogueCreation.brand?.state === "error" ? catalogueCreation.brand.message : undefined;
+  const componentStatus = error
+    || (catalogueBusy ? "Creating catalogue entry..." : "")
+    || (showValidationErrors ? `Complete the required fields before ${isEditing ? "saving" : "adding"} this component.` : "");
   const unitLabel = getUnitDisplayLabel(activeVariant?.unit ?? "") || activeVariant?.unit || "unit";
   const showMainCostSection = !variantModeEnabled;
 
@@ -1982,49 +1981,130 @@ function OpenAddComponentModal({
                     <ControlField as="div" label="Direct category" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                       <ControlInput
                         aria-label="Direct category"
-                        value={resolveComponentCategory(folders, editingItem?.libraryFolderId ?? selectedFolderId, draft.category).categoryPath.join(" / ")}
+                        value={resolveComponentCategory(folders, categoryFolderId || null, draft.category).categoryPath.join(" / ")}
                         readOnly
                         aria-readonly="true"
                         className={OPENDESIGN_INPUT_CLASS}
                       />
                     </ControlField>
-                    <ControlField as="div" label="Supplier" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.supplier}>
-                      <CreatableCombobox
-                        ariaLabel="Supplier"
-                        value={supplierValue}
-                        selectedId={selectedSupplierOptionId}
-                        options={supplierOptions}
-                        placeholder="Search suppliers"
-                        emptyLabel="No suppliers yet"
-                        createLabel={(value) => `Add supplier "${value}"`}
-                        invalid={Boolean(visibleValidationErrors.supplier)}
-                        inputClassName={OPENDESIGN_INPUT_CLASS}
-                        onChange={selectSupplier}
-                        isOptionDeletable={isLocalCatalogueComboboxOption}
-                        onDeleteOption={(option) => deleteCatalogueOption("supplier", option)}
-                        getDeleteOptionLabel={(option) => `Delete supplier "${option.label}"`}
-                        showClearButton={false}
-                        showDropdownIndicator
-                      />
+                    {isEditing && onMoveComponentCategory ? (
+                      <ControlField
+                        as="div"
+                        label="Move to category"
+                        labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}
+                        errorText={categoryMoveStatus.state === "error" ? categoryMoveStatus.message : undefined}
+                        helperText={categoryMoveStatus.state === "saved" ? categoryMoveStatus.message : undefined}
+                        reserveHelperSpace
+                      >
+                        <DropdownSelect
+                          id={categoryMoveControlId}
+                          aria-label="Move component to category"
+                          options={categoryMoveOptions}
+                          value={categoryFolderId}
+                          placeholder="Choose a category"
+                          disabled={!canManageCatalogue || categoryMoveOptions.length === 0}
+                          ariaDisabled={categoryMoveStatus.state === "pending"}
+                          onValueChange={(targetCategoryId) => void moveComponentCategory(targetCategoryId)}
+                          variant="boxed"
+                          className={OPENDESIGN_INPUT_CLASS}
+                          data-testid="component-category-move-control"
+                        />
+                        {categoryMoveStatus.state === "pending" ? (
+                          <span role="status" className="text-[10px] text-secondary">Moving component category...</span>
+                        ) : null}
+                      </ControlField>
+                    ) : null}
+                    <ControlField as="div" label="Supplier" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={supplierCatalogueError ?? visibleValidationErrors.supplier}>
+                      <div className="grid gap-1">
+                        <div className="flex min-w-0 gap-1">
+                          <CreatableCombobox
+                            ariaLabel="Supplier"
+                            value={supplierValue}
+                            selectedId={selectedSupplierOptionId}
+                            options={supplierOptions}
+                            placeholder="Search suppliers"
+                            emptyLabel="No active suppliers"
+                            createLabel={(value) => `Add supplier "${value}"`}
+                            invalid={Boolean(supplierCatalogueError ?? visibleValidationErrors.supplier)}
+                            allowCreate={canManageCatalogue && catalogueCreation.supplier?.state !== "pending"}
+                            inputClassName={OPENDESIGN_INPUT_CLASS}
+                            onChange={selectSupplier}
+                            showClearButton={false}
+                            showDropdownIndicator
+                            className="min-w-0 flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            disabled={!canManageCatalogue || catalogueCreation.supplier?.state === "pending"}
+                            onClick={() => setCatalogueManagerKind("supplier")}
+                            className="min-w-0 shrink-0 px-2"
+                          >
+                            Manage
+                          </Button>
+                        </div>
+                        {catalogueCreation.supplier?.state === "pending" ? (
+                          <span role="status" className="text-[10px] text-secondary">Creating supplier...</span>
+                        ) : supplierCatalogueError ? (
+                          <Button
+                            ref={supplierRetryRef}
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            className="w-fit min-w-0 px-2"
+                            onClick={() => void createCatalogueEntity("supplier", catalogueCreation.supplier?.name ?? supplierValue)}
+                          >
+                            Retry supplier creation
+                          </Button>
+                        ) : null}
+                      </div>
                     </ControlField>
-                    <ControlField as="div" label="Brand" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.brand}>
-                      <CreatableCombobox
-                        ariaLabel="Brand"
-                        value={brandValue}
-                        selectedId={selectedBrandOptionId}
-                        options={brandOptions}
-                        placeholder="Search brands"
-                        emptyLabel="No brands yet"
-                        createLabel={(value) => `Add brand "${value}"`}
-                        invalid={Boolean(visibleValidationErrors.brand)}
-                        inputClassName={OPENDESIGN_INPUT_CLASS}
-                        onChange={selectBrand}
-                        isOptionDeletable={isLocalCatalogueComboboxOption}
-                        onDeleteOption={(option) => deleteCatalogueOption("brand", option)}
-                        getDeleteOptionLabel={(option) => `Delete brand "${option.label}"`}
-                        showClearButton={false}
-                        showDropdownIndicator
-                      />
+                    <ControlField as="div" label="Brand" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={brandCatalogueError ?? visibleValidationErrors.brand}>
+                      <div className="grid gap-1">
+                        <div className="flex min-w-0 gap-1">
+                          <CreatableCombobox
+                            ariaLabel="Brand"
+                            value={brandValue}
+                            selectedId={selectedBrandOptionId}
+                            options={brandOptions}
+                            placeholder="Search brands"
+                            emptyLabel="No active brands"
+                            createLabel={(value) => `Add brand "${value}"`}
+                            invalid={Boolean(brandCatalogueError ?? visibleValidationErrors.brand)}
+                            allowCreate={canManageCatalogue && catalogueCreation.brand?.state !== "pending"}
+                            inputClassName={OPENDESIGN_INPUT_CLASS}
+                            onChange={selectBrand}
+                            showClearButton={false}
+                            showDropdownIndicator
+                            className="min-w-0 flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            disabled={!canManageCatalogue || catalogueCreation.brand?.state === "pending"}
+                            onClick={() => setCatalogueManagerKind("brand")}
+                            className="min-w-0 shrink-0 px-2"
+                          >
+                            Manage
+                          </Button>
+                        </div>
+                        {catalogueCreation.brand?.state === "pending" ? (
+                          <span role="status" className="text-[10px] text-secondary">Creating brand...</span>
+                        ) : brandCatalogueError ? (
+                          <Button
+                            ref={brandRetryRef}
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            className="w-fit min-w-0 px-2"
+                            onClick={() => void createCatalogueEntity("brand", catalogueCreation.brand?.name ?? brandValue)}
+                          >
+                            Retry brand creation
+                          </Button>
+                        ) : null}
+                      </div>
                     </ControlField>
                     {possibleDuplicate ? (
                       <output className="flex min-h-8 items-center justify-between gap-2 rounded-[6px] bg-warningSoft/50 px-2 text-[10px] font-medium text-ink">
@@ -2166,7 +2246,7 @@ function OpenAddComponentModal({
               variant="brand"
               size="sm"
               onClick={submit}
-              disabled={isPending || imageBusy || attachmentBusy}
+              disabled={isPending || imageBusy || attachmentBusy || catalogueBusy}
               className="h-8 min-h-0 min-w-0 rounded-[3px] border border-[#c63804] bg-[#F24405] px-2 py-0 text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_10px_18px_-14px_rgba(198,56,4,0.78)] hover:bg-[#F24405] hover:brightness-[0.94] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-55"
             >
               {isPending ? (isEditing ? "Saving..." : "Adding...") : imageBusy || attachmentBusy ? "Uploading..." : isEditing ? "Save Component" : "Add Component"}
@@ -2600,6 +2680,26 @@ function OpenAddComponentModal({
           </aside>
         </div>
       </Modal>
+      {catalogueManagerKind ? (
+        <CatalogueEntityManagerDialog
+          open
+          kind={catalogueManagerKind}
+          canManage={canManageCatalogue}
+          entities={catalogueManagerKind === "supplier" ? catalogueSuppliers : catalogueBrands}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setCatalogueManagerKind(null);
+          }}
+          onEntityChanged={(entity) => {
+            applyCatalogueEntity(entity);
+            if (entity.kind === "supplier" && draft.supplierId === entity.id) {
+              updateQuickAddIdentity({ supplierName: entity.name });
+            }
+            if (entity.kind === "brand" && draft.brandId === entity.id) {
+              updateQuickAddIdentity({ brand: entity.name });
+            }
+          }}
+        />
+      ) : null}
       <Modal
         open={Boolean(pendingVariantRemoval)}
         onOpenChange={(nextOpen) => {
@@ -2683,7 +2783,7 @@ function OpenAddComponentModal({
               size="sm"
               className="w-full sm:w-auto"
               onClick={submitFromCloseDialog}
-              disabled={isPending || imageBusy || attachmentBusy}
+              disabled={isPending || imageBusy || attachmentBusy || catalogueBusy}
             >
               Add Component
             </Button>

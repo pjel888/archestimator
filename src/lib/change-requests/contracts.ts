@@ -21,7 +21,7 @@ export const PROJECT_CHANGE_REQUEST_TARGET_KINDS = [
   "location",
   "other",
 ] as const;
-export type ProjectChangeRequestTargetKind = (typeof PROJECT_CHANGE_REQUEST_TARGET_KINDS)[number];
+type ProjectChangeRequestTargetKind = (typeof PROJECT_CHANGE_REQUEST_TARGET_KINDS)[number];
 
 export const PROJECT_CHANGE_REQUEST_ARTIFACT_RELATIONSHIPS = [
   "evidence",
@@ -31,12 +31,12 @@ export const PROJECT_CHANGE_REQUEST_ARTIFACT_RELATIONSHIPS = [
   "correspondence",
   "supporting_document",
 ] as const;
-export type ProjectChangeRequestArtifactRelationship = (typeof PROJECT_CHANGE_REQUEST_ARTIFACT_RELATIONSHIPS)[number];
+type ProjectChangeRequestArtifactRelationship = (typeof PROJECT_CHANGE_REQUEST_ARTIFACT_RELATIONSHIPS)[number];
 
 export const PROJECT_CHANGE_REQUEST_ACTOR_TYPES = ["internal_user", "recipient", "system"] as const;
-export type ProjectChangeRequestActorType = (typeof PROJECT_CHANGE_REQUEST_ACTOR_TYPES)[number];
+type ProjectChangeRequestActorType = (typeof PROJECT_CHANGE_REQUEST_ACTOR_TYPES)[number];
 
-export type ProjectChangeRequestVersionIdentity = {
+type ProjectChangeRequestVersionIdentity = {
   requestId: string;
   versionId: string;
   versionNumber: number;

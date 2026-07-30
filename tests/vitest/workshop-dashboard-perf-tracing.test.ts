@@ -6,6 +6,7 @@ import {
   traced,
   withPerfTraceRequest,
 } from "@/lib/perf/server-timing";
+import { ESTIMATE_LOADING_ROUTE_STAGE_NAMES } from "@/lib/perf/estimate-loading-stages";
 
 describe("workshop dashboard perf tracing", () => {
   afterEach(() => {
@@ -53,5 +54,21 @@ describe("workshop dashboard perf tracing", () => {
 
     expect(result).toBeNull();
     expect(log).not.toHaveBeenCalled();
+  });
+
+  it("correlates the fixed estimate route stages without dynamic labels", async () => {
+    vi.stubEnv("PERF_TRACE", "1");
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const snapshot = await withPerfTraceRequest("workshop.estimate-sheet", async () => {
+      for (const stage of ESTIMATE_LOADING_ROUTE_STAGE_NAMES) {
+        await traced(stage, async () => undefined);
+      }
+      return getCurrentPerfTraceSnapshot();
+    });
+
+    expect(snapshot?.scope).toBe("workshop.estimate-sheet");
+    expect(snapshot?.timings.map((timing) => timing.label)).toEqual(ESTIMATE_LOADING_ROUTE_STAGE_NAMES);
+    expect(snapshot?.requestId).toMatch(/^wsh_[a-z0-9]+$/);
   });
 });

@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode, type SetStateAction } from "react";
-import { FunnelSimple, SidebarSimple, StackPlus, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { FunnelSimple, SidebarSimple, StackPlus, Tabs as TabsIcon, X } from "@phosphor-icons/react/dist/ssr";
 
-import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +33,7 @@ import { isUuid } from "@/lib/ids";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
+import { useEstimateContributionBroadcast } from "@/hooks/use-estimate-contribution-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
@@ -45,6 +45,7 @@ import {
   type EstimateSheetVersionControlData,
 } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
+import type { EstimateContributionBroadcastReceipt } from "@/lib/collaboration/estimate-tree-realtime-contract";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import { getProjectComponentIdentity, isExpressComponentRow } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -61,6 +62,7 @@ import type { Json } from "@/lib/types/json";
 import type { OnboardingEligibilitySnapshot } from "@/lib/onboarding/flow-types";
 import { useToast } from "@/components/ui/toast";
 import { createModalLifecyclePublisher } from "@/components/ui/overlays/modal-lifecycle";
+import { EstimateContributionBulkToolbar } from "./estimate-sheet/EstimateContributionBulkToolbar";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
 // Interaction-gated overlay: only mounts when its `open` prop is true, so it
@@ -117,6 +119,14 @@ const ProposalExportPreviewDialog = dynamic(
   { ssr: false },
 );
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeLoadLimitState } from "@/lib/estimates/types";
+import {
+  buildEffectiveEstimateTreeTotals,
+  clearEstimateTreeTotals,
+  getEstimateTreeTotalsCompleteness,
+  publishEstimateTreeTotals,
+  resolveEstimateTreeTotalsMutationState,
+  type EstimateTreeTotalsDataState,
+} from "@/lib/estimates/estimate-tree-totals-store";
 import { EstimateSheetLearningRail } from "./EstimateSheetLearningRail";
 import {
   DEFAULT_ACTIVITY_FILTERS,
@@ -193,6 +203,18 @@ import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-br
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
+
+function findContributionRealtimeScope(nodes: EstimateTreeNode[]): { id: string; revision: number } | null {
+  for (const node of nodes) {
+    const scopedRow = node.estimateRowItems?.find((item) => item.contributionScopeId);
+    if (scopedRow?.contributionScopeId) {
+      return { id: scopedRow.contributionScopeId, revision: scopedRow.contributionRevision ?? 1 };
+    }
+    const nestedScope = findContributionRealtimeScope(node.children ?? []);
+    if (nestedScope) return nestedScope;
+  }
+  return null;
+}
 
 function resolveRetainedProjectSourceInsertIntent(
   retainedIntents: Map<string, string>,
@@ -1644,6 +1666,28 @@ export function EstimateSheetContent({
       void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
     }
   });
+  const refetchContributionProjection = useStableCallback(() => {
+    void activeTreeQuery.refetch();
+  });
+  const contributionRealtimeScope = useMemo(
+    () => findContributionRealtimeScope(estimateTree),
+    [estimateTree],
+  );
+  const { broadcastContributionChange } = useEstimateContributionBroadcast({
+    estimateId,
+    tabId: dataTabId,
+    contributionScopeId: contributionRealtimeScope?.id,
+    scopeRevision: contributionRealtimeScope?.revision ?? 0,
+    enabled: Boolean(dataTabId),
+    onRealtimeDecision: refetchContributionProjection,
+  });
+  const handleContributionChanged = useStableCallback((
+    receipt?: EstimateContributionBroadcastReceipt,
+    contributionScopeId?: string,
+  ) => {
+    if (receipt) broadcastContributionChange(receipt, contributionScopeId);
+    refetchContributionProjection();
+  });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
     if (proposalExportMetadata) return proposalExportMetadata;
@@ -1836,6 +1880,9 @@ export function EstimateSheetContent({
   }, [setBulkSelectedRowIds]);
   const clearRowSelection = useCallback(() => setBulkSelectedRowIds(new Set()), [setBulkSelectedRowIds]);
   const bulkSelectedRowCount = bulkSelectedRowIds.size;
+  const bulkSelectedItems = useMemo(() => [...bulkSelectedRowIds]
+    .map((rowId) => findEstimateRowItem(estimateTree, rowId))
+    .filter((item): item is EstimateRowItem => Boolean(item)), [bulkSelectedRowIds, estimateTree]);
   // P6 single-node model: a row OR a template/subtree inserts directly into ANY
   // selected node — no kind gate, no ancestor-group resolution, no area-wrap.
   const insertTargetNodeId = selectedNode?.id ?? "";
@@ -1844,8 +1891,94 @@ export function EstimateSheetContent({
   const canInsertTemplateIntoSelectedNode = Boolean(templateTargetParentNode);
   const insertionTargetLabel = selectedNode?.name ?? "selected area";
   const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected area";
+  const estimateEditableRows = useStore(editableRowStore, (state) => state.rows);
   const estimateNodeTotals = useStore(editableRowStore, (state) => state.nodeTotals);
   const projectTotal = useStore(editableRowStore, (state) => state.projectTotal);
+  const estimateTotalsRevision = useStore(editableRowStore, (state) => state.revision);
+  const rowCommitStates = useStore(editableRowStore, (state) => state.rowCommitStates);
+  const externalMutationStatuses = useStore(editableRowStore, (state) => state.externalMutationStatuses);
+  const componentSyncPendingRowIds = useStore(editableRowStore, (state) => state.componentSyncPendingRowIds);
+  const estimateTotalsCompleteness = useMemo(
+    () => getEstimateTreeTotalsCompleteness(estimateTree, activeLoadLimitState),
+    [activeLoadLimitState, estimateTree],
+  );
+  const effectiveEstimateTotals = useMemo(() => {
+    return buildEffectiveEstimateTreeTotals(estimateTree, (row, quantityOverride) => {
+      const quantity = quantityOverride
+        ?? parseNonNegativeEditableNumber(estimateEditableRows[row.id]?.quantity ?? String(row.quantity));
+      const rowsForAmount = quantityOverride === undefined
+        ? estimateEditableRows
+        : {
+          ...estimateEditableRows,
+          [row.id]: {
+            ...estimateEditableRows[row.id],
+            quantity: String(quantityOverride),
+          },
+        };
+      return {
+        amount: computeEditableRowTotal(row, rowsForAmount),
+        quantity,
+      };
+    });
+  }, [estimateEditableRows, estimateTree]);
+  const estimateTotalsMutationState = useMemo(() => {
+    const commitStates = Object.values(rowCommitStates);
+    const externalStatuses = Object.values(externalMutationStatuses);
+    return resolveEstimateTreeTotalsMutationState({
+      hasOptimistic: commitStates.some((state) => state.phase === "dirty" || state.phase === "awaiting-confirmation"),
+      hasPending: commitStates.some((state) => state.phase === "pending")
+        || externalStatuses.some((status) => status.phase === "pending")
+        || componentSyncPendingRowIds.size > 0,
+      hasRejectedRetained: commitStates.some((state) => state.phase === "failed" && state.retainDraft),
+      hasRolledBack: commitStates.some((state) => state.phase === "failed" && !state.retainDraft)
+        || externalStatuses.some((status) => status.phase === "failed"),
+    });
+  }, [componentSyncPendingRowIds, externalMutationStatuses, rowCommitStates]);
+  const estimateTotalsDataState: EstimateTreeTotalsDataState = !effectiveEstimateTotals.ok
+    ? "unavailable"
+    : activeTreeQuery.isError
+    ? estimateTree.length > 0 ? "stale-error" : "unavailable"
+    : activeTreeQuery.isFetching && estimateTree.length === 0
+      ? "loading"
+      : activeTreeQuery.isFetching
+        ? "updating"
+        : estimateTotalsCompleteness.nodes === "partial" || estimateTotalsCompleteness.rows === "partial"
+          ? "partial"
+          : "ready";
+  useEffect(() => {
+    if (!estimateId) return;
+    publishEstimateTreeTotals({
+      estimateId,
+      tabId: dataTabId,
+      currencyCode: proposalExportMetadata?.currency ?? null,
+      nodeTotals: effectiveEstimateTotals.ok ? effectiveEstimateTotals.nodeTotals : new Map(),
+      projectTotal: effectiveEstimateTotals.ok ? effectiveEstimateTotals.projectTotal : Number.NaN,
+      dataState: estimateTotalsDataState,
+      mutationState: estimateTotalsMutationState,
+      completeness: estimateTotalsCompleteness,
+      safeErrorCode: !effectiveEstimateTotals.ok
+        ? effectiveEstimateTotals.safeErrorCode
+        : activeTreeQuery.isError ? "tree-update-failed" : null,
+      revision: estimateTotalsRevision,
+    });
+  }, [
+    activeTreeQuery.isError,
+    dataTabId,
+    effectiveEstimateTotals,
+    estimateId,
+    estimateNodeTotals,
+    estimateTotalsCompleteness,
+    estimateTotalsDataState,
+    estimateTotalsMutationState,
+    estimateTotalsRevision,
+    proposalExportMetadata?.currency,
+  ]);
+  useEffect(() => {
+    if (!estimateId) return;
+    return () => {
+      clearEstimateTreeTotals(estimateId, dataTabId);
+    };
+  }, [dataTabId, estimateId]);
   const displayedNodeTotals = useMemo(() => {
     if (!displayedSheetNode) return EMPTY_NODE_TOTALS;
     if (displayedSheetNode === selectedNode) return estimateNodeTotals;
@@ -2609,6 +2742,8 @@ export function EstimateSheetContent({
     if (intent.kind === "selected-variant-update" && isLinkedLibraryComponentRow(intent.item)) {
       const replacementItem: EstimateRowItem = {
         ...intent.item,
+        brand: intent.values.brand ?? intent.item.brand,
+        brandId: intent.values.brandId ?? undefined,
         description: intent.values.description ?? intent.item.description,
         unit: intent.values.unit ?? intent.item.unit,
         itemCost: parseNonNegativeEditableNumber(intent.values.unitCost ?? String(intent.item.itemCost)),
@@ -3138,7 +3273,6 @@ export function EstimateSheetContent({
             await updateComponentFromEditor(item, instanceSync, context);
           }}
           onComponentUpdatePendingChange={handleComponentEditorPendingChange}
-          catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-component-editor"}
         />
       ) : null}
       {rowComponentPicker ? (
@@ -3651,6 +3785,7 @@ export function EstimateSheetContent({
                         supplierOptions={resolvedSupplierOptions}
                         projectId={projectId}
                         estimateId={estimateId}
+                        estimateTabId={dataTabId}
                         onInsertLibraryItem={insertLibraryItem}
                         onInsertTemplates={insertTemplatesIntoParentById}
                         onInsertTemplateNode={insertTemplateNodeIntoParentById}
@@ -3674,6 +3809,7 @@ export function EstimateSheetContent({
                         selectedRowIds={bulkSelectedRowIds}
                         onToggleRowSelection={toggleRowSelection}
                         onToggleRowsSelection={toggleRowsSelection}
+                        onContributionChanged={handleContributionChanged}
                         columnResize={estimateColumnResizeConfig}
                         nodeTotals={displayedNodeTotals}
                         totalsIncomplete={isActiveTreePartial}
@@ -3682,23 +3818,15 @@ export function EstimateSheetContent({
                   </EditableRowStoreContext.Provider>
                 ) : null}
               </div>
-              {canEditEstimate ? (
-                <BulkActionToolbar
-                  placement="bottom-dock"
-                  dockTo="container"
-                  selectedCount={bulkSelectedRowCount}
-                  selectedLabel={bulkSelectedRowCount === 1 ? "row selected" : "rows selected"}
+              {canEditEstimate && projectId && estimateId && dataTabId ? (
+                <EstimateContributionBulkToolbar
+                  selectedItems={bulkSelectedItems}
+                  projectId={projectId}
+                  estimateId={estimateId}
+                  estimateTabId={dataTabId}
                   onClear={clearRowSelection}
-                  actions={[
-                    {
-                      label: "Delete selected rows",
-                      ariaLabel: "Delete selected rows",
-                      title: "Deletes selected rows immediately. Use Undo after saving to restore them.",
-                      icon: <Trash size={16} weight="regular" />,
-                      variant: "danger",
-                      onClick: deleteSelectedRows,
-                    },
-                  ]}
+                  onDeleteSelected={deleteSelectedRows}
+                  onContributionChanged={handleContributionChanged}
                 />
               ) : null}
             </div>

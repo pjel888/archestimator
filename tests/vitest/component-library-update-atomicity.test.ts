@@ -51,6 +51,8 @@ const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
 const COMPONENT_ID = "44444444-4444-4444-8444-444444444444";
 const PRICE_OPTION_ID = "55555555-5555-4555-8555-555555555555";
+const BRAND_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const OPTION_BRAND_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const COST_ENTRY_ID = "66666666-6666-4666-8666-666666666666";
 const ROW_ID = "77777777-7777-4777-8777-777777777777";
 const ACTOR_ID = "88888888-8888-4888-8888-888888888888";
@@ -162,12 +164,22 @@ function seedDatabase(database: SqliteDatabase) {
     VALUES (?, ?, 'Estimate', ?, ?, ?)
   `).run(ESTIMATE_ID, PROJECT_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
   database.prepare(`
+    INSERT INTO component_brands (
+      id, workspace_id, name, normalized_name, created_at, updated_at, created_by
+    ) VALUES (?, ?, 'Acme', 'acme', ?, ?, ?)
+  `).run(BRAND_ID, WORKSPACE_ID, ORIGINAL_TIME, ORIGINAL_TIME, ACTOR_ID);
+  database.prepare(`
+    INSERT INTO component_brands (
+      id, workspace_id, name, normalized_name, created_at, updated_at, created_by
+    ) VALUES (?, ?, 'Beta', 'beta', ?, ?, ?)
+  `).run(OPTION_BRAND_ID, WORKSPACE_ID, ORIGINAL_TIME, ORIGINAL_TIME, ACTOR_ID);
+  database.prepare(`
     INSERT INTO cost_library_items (
       id, workspace_id, name, description, category, library_folder_id, unit, unit_cost, misc_cost,
-      current_version_number, active_price_option_id, lifecycle_state, metadata_json,
+      current_version_number, active_price_option_id, lifecycle_state, metadata_json, brand_id, brand,
       created_by, created_at, updated_at
-    ) VALUES (?, ?, 'Original component', 'Original description', 'Flooring', ?, 'box', 100, 0, 1, ?, 'available', '{}', ?, ?, ?)
-  `).run(COMPONENT_ID, WORKSPACE_ID, DEFAULT_FOLDER_ID, PRICE_OPTION_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
+    ) VALUES (?, ?, 'Original component', 'Original description', 'Flooring', ?, 'box', 100, 0, 1, ?, 'available', '{}', ?, 'Acme', ?, ?, ?)
+  `).run(COMPONENT_ID, WORKSPACE_ID, DEFAULT_FOLDER_ID, PRICE_OPTION_ID, BRAND_ID, ACTOR_ID, ORIGINAL_TIME, ORIGINAL_TIME);
   database.prepare(`
     INSERT INTO cost_library_item_price_options (
       id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,
@@ -220,6 +232,8 @@ function updateInput() {
     name: "Updated component",
     description: "Updated description",
     category: "Flooring",
+    brand: "Acme",
+    brandId: BRAND_ID,
     supplier: "Supplier A",
     unit: "box",
     lifecycleState: "available" as const,
@@ -237,6 +251,8 @@ function updateInput() {
       currency: "PHP",
       pricingSource: "Supplier A",
       pricingDate: "2026-07-15",
+      brand: "Beta",
+      brandId: OPTION_BRAND_ID,
       activeCostEntryId: COST_ENTRY_ID,
       costEntries: [{
         id: COST_ENTRY_ID,
@@ -349,6 +365,12 @@ describe("component update atomic D1 contract", () => {
     expect(scalar(activeDatabase.sqlite, "SELECT COUNT(*) AS value FROM activity_event_outbox")).toBe(1);
     expect(scalar(activeDatabase.sqlite, "SELECT COUNT(*) AS value FROM estimate_mutation_receipts")).toBe(1);
     expect(activeDatabase.sqlite.prepare("SELECT publication_source_revision AS value FROM projects WHERE id = ?").get(PROJECT_ID)?.value).toBe(1);
+    expect(activeDatabase.sqlite.prepare("SELECT brand_id, brand FROM cost_library_item_price_options WHERE id = ?").get(PRICE_OPTION_ID))
+      .toEqual({ brand_id: OPTION_BRAND_ID, brand: "Beta" });
+    expect(activeDatabase.sqlite.prepare("SELECT brand_id, source_snapshot_json FROM estimate_row_items WHERE id = ?").get(ROW_ID))
+      .toMatchObject({ brand_id: OPTION_BRAND_ID });
+    expect(JSON.parse(String(activeDatabase.sqlite.prepare("SELECT source_snapshot_json FROM estimate_row_items WHERE id = ?").get(ROW_ID)?.source_snapshot_json)))
+      .toMatchObject({ brandId: OPTION_BRAND_ID, brand: "Beta" });
     const event = activeDatabase.sqlite.prepare("SELECT event_type, payload FROM estimate_sheet_events").get();
     expect(event?.event_type).toBe("library_component_rows_synced");
     expect(JSON.parse(String(event?.payload))).toMatchObject({

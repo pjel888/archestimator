@@ -64,18 +64,74 @@ afterEach(() => {
 
 describe("ProjectTimelineClient", () => {
   it("keeps commitment actions and raw audit access together", () => {
-    render(<ProjectTimelineClient initialData={data} projectId="project-1" projectName="Riverside" />);
+    const { container } = render(<ProjectTimelineClient initialData={data} projectId="project-1" projectName="Riverside" />);
 
-    expect(screen.getByRole("heading", { name: "Riverside timeline" })).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass("h-full", "min-h-0", "overflow-y-auto");
+    expect(screen.getByRole("heading", { name: "Timeline" })).toBeInTheDocument();
+    expect(screen.getByText("Project commitments · Riverside")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Commitment timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Commitment history" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("button", { name: "Scroll timeline toward newer events" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Scroll timeline toward earlier events" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Compose issue" })).toHaveAttribute("href", "/workshop/projects/project-1/client-portals/compose");
     expect(screen.getAllByRole("link", { name: "Raw Activity" })[0]).toHaveAttribute("href", "/workshop/projects/project-1/activity");
     expect(screen.getByText(/Root request CR-004/)).toBeInTheDocument();
     expect(screen.getByText("Client visible")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Scope" })).toHaveValue("");
+    fireEvent.click(screen.getByRole("combobox", { name: "Scope" }));
     expect(screen.getByRole("option", { name: "All project activity" })).toBeInTheDocument();
     expect(screen.getByText("1/1")).toBeInTheDocument();
     expect(screen.getByText("Morgan Client")).toBeInTheDocument();
     expect(screen.getByText("Explicitly carried in the current issue")).toBeInTheDocument();
+  });
+
+  it("supports keyboard and button navigation across the horizontal history", () => {
+    const navigationData = {
+      ...data,
+      events: [
+        data.events[0],
+        { ...data.events[0], id: "event-0", occurredAt: "2026-07-26T02:00:00.000Z", title: "Issue 1 accepted" },
+      ],
+    };
+    render(<ProjectTimelineClient initialData={navigationData} projectId="project-1" projectName="Riverside" />);
+
+    const timeline = screen.getByRole("region", { name: "Commitment history" });
+    const scrollTo = vi.fn();
+    Object.defineProperties(timeline, {
+      clientWidth: { configurable: true, value: 320 },
+      scrollLeft: { configurable: true, value: 0, writable: true },
+      scrollTo: { configurable: true, value: scrollTo },
+      scrollWidth: { configurable: true, value: 1_280 },
+    });
+    const cards = screen.getAllByRole("article").map((article) => article.closest("[data-timeline-event]") as HTMLElement);
+    Object.defineProperty(cards[0], "offsetLeft", { configurable: true, value: 0 });
+    Object.defineProperty(cards[1], "offsetLeft", { configurable: true, value: 336 });
+    fireEvent.scroll(timeline);
+    expect(screen.getByRole("button", { name: "Scroll timeline toward newer events" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Latest" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Scroll timeline toward earlier events" })).not.toBeDisabled();
+
+    fireEvent.keyDown(timeline, { key: "ArrowRight" });
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 336 });
+
+    Object.defineProperty(timeline, "scrollLeft", { configurable: true, value: 336, writable: true });
+    fireEvent.keyDown(timeline, { key: "ArrowLeft" });
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 0 });
+
+    fireEvent.keyDown(timeline, { key: "Home" });
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 0 });
+
+    fireEvent.keyDown(timeline, { key: "End" });
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 1_280 });
+
+    Object.defineProperty(timeline, "scrollLeft", { configurable: true, value: 960, writable: true });
+    fireEvent.scroll(timeline);
+    expect(screen.getByRole("button", { name: "Scroll timeline toward newer events" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Latest" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Scroll timeline toward earlier events" })).toBeDisabled();
+
+    fireEvent.keyDown(screen.getAllByRole("link", { name: "Open event" })[0], { key: "ArrowRight" });
+    expect(scrollTo).toHaveBeenLastCalledWith({ left: 1_280 });
   });
 
   it("ignores an older portal response that resolves after the latest selection", async () => {
@@ -88,8 +144,10 @@ describe("ProjectTimelineClient", () => {
     render(<ProjectTimelineClient initialData={data} projectId="project-1" projectName="Riverside" />);
 
     const scope = screen.getByRole("combobox", { name: "Scope" });
-    fireEvent.change(scope, { target: { value: "portal-1" } });
-    fireEvent.change(scope, { target: { value: "portal-2" } });
+    fireEvent.click(scope);
+    fireEvent.click(screen.getByRole("option", { name: "Client · primary" }));
+    fireEvent.click(scope);
+    fireEvent.click(screen.getByRole("option", { name: "Contractor" }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     second.resolve(response(pageFor("portal-2", "Contractor response")));
@@ -101,5 +159,20 @@ describe("ProjectTimelineClient", () => {
     });
     expect(screen.queryByText("Stale client response")).not.toBeInTheDocument();
     expect(screen.getByText("Contractor response")).toBeInTheDocument();
+  });
+
+  it("returns to the latest event after replacing the filtered timeline", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => response(pageFor("portal-2", "Contractor response"))));
+    render(<ProjectTimelineClient initialData={data} projectId="project-1" projectName="Riverside" />);
+    const timeline = screen.getByRole("region", { name: "Commitment history" });
+    const scrollTo = vi.fn();
+    Object.defineProperty(timeline, "scrollTo", { configurable: true, value: scrollTo });
+
+    const scope = screen.getByRole("combobox", { name: "Scope" });
+    fireEvent.click(scope);
+    fireEvent.click(screen.getByRole("option", { name: "Contractor" }));
+
+    expect(await screen.findByText("Contractor response")).toBeInTheDocument();
+    expect(scrollTo).toHaveBeenCalledWith({ left: 0 });
   });
 });

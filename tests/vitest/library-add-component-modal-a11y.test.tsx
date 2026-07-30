@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { useState, type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 
 import { AddComponentModal } from "@/components/workshop/component-library-manager/AddComponentModal";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -8,8 +8,12 @@ import type { LibraryFolderRecord } from "@/lib/component-library/library-folder
 import type { EstimateRowItem } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
+  archiveComponentCatalogueEntity: vi.fn(),
+  createComponentCatalogueEntity: vi.fn(),
   createCostLibraryComponent: vi.fn(),
   findCurrentWorkspaceCostLibraryComponentDuplicate: vi.fn(),
+  renameComponentCatalogueEntity: vi.fn(),
+  restoreComponentCatalogueEntity: vi.fn(),
   saveCostLibraryComponentDraft: vi.fn(),
   updateCostLibraryComponentWithPriceOptions: vi.fn(),
 }));
@@ -39,6 +43,15 @@ const folders: LibraryFolderRecord[] = [
     name: "Hardware",
     sort_order: 10,
     source_category_node_id: "cat-hardware",
+    folder_kind: "custom",
+  },
+  {
+    id: "folder-lighting",
+    workspace_id: "workspace-1",
+    parent_id: null,
+    name: "Lighting",
+    sort_order: 20,
+    source_category_node_id: "cat-lighting",
     folder_kind: "custom",
   },
 ];
@@ -75,8 +88,6 @@ const brandDuplicateRows: EstimateRowItem[] = [
     brand: "Hinge Co",
   },
 ];
-const catalogueOptionsStoragePrefix = "archestimator:add-component-catalogue-options";
-
 function makeAddModalProps(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
   return {
     open: true,
@@ -86,7 +97,6 @@ function makeAddModalProps(overrides: Partial<ComponentProps<typeof AddComponent
     brands: [{ id: "brand-hinge", name: "Hinge Co", normalized_name: "hinge co", sort_order: 1 }],
     libraryItems: [],
     selectedFolderId: null,
-    catalogueOptionsStorageScope: "catalogue-options-default-test-scope",
     onOpenChange: vi.fn(),
     onComponentCreated: vi.fn(),
     expectedComponentImpactFingerprint: "component-impact-fingerprint",
@@ -123,36 +133,6 @@ function makeEditingItem(overrides: Partial<EstimateRowItem> = {}): EstimateRowI
   };
 }
 
-function StatefulAddModalHarness({ modalProps }: { modalProps: ComponentProps<typeof AddComponentModal> }) {
-  const [open, setOpen] = useState(modalProps.open);
-
-  return (
-    <>
-      <button type="button" onClick={() => setOpen(true)}>
-        Open add component
-      </button>
-      <AddComponentModal
-        {...modalProps}
-        open={open}
-        onOpenChange={(nextOpen) => {
-          modalProps.onOpenChange(nextOpen);
-          setOpen(nextOpen);
-        }}
-      />
-    </>
-  );
-}
-
-function renderStatefulAddModal(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
-  const props = makeAddModalProps({
-    catalogueOptionsStorageScope: "catalogue-options-test-scope",
-    ...overrides,
-  });
-
-  render(<StatefulAddModalHarness modalProps={props} />);
-  return props;
-}
-
 async function getAddDialog() {
   return screen.findByRole("dialog", { name: "Add Component" }, { timeout: 10_000 });
 }
@@ -171,20 +151,6 @@ async function createCatalogueOption(
   const kind = fieldName.toLowerCase();
   fireEvent.change(input, { target: { value } });
   fireEvent.click(await screen.findByRole("option", { name: `Add ${kind} "${value}"` }));
-  await waitFor(() => expect(input).toHaveValue(value));
-  return input;
-}
-
-async function pickCatalogueOption(
-  dialog: HTMLElement,
-  fieldName: "Supplier" | "Brand",
-  value: string,
-  searchValue = value,
-) {
-  const form = within(dialog).getByRole("form", { name: "Quick add component" });
-  const input = within(form).getByRole("combobox", { name: fieldName });
-  fireEvent.change(input, { target: { value: searchValue } });
-  fireEvent.click(await screen.findByRole("option", { name: value }));
   await waitFor(() => expect(input).toHaveValue(value));
   return input;
 }
@@ -218,6 +184,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     actionMocks.findCurrentWorkspaceCostLibraryComponentDuplicate.mockReset().mockResolvedValue(null);
+    actionMocks.createComponentCatalogueEntity.mockReset();
     actionMocks.createCostLibraryComponent.mockResolvedValue({
       itemId: "component-created",
       activePriceOptionId: "price-created",
@@ -416,122 +383,219 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(within(form).getByRole("textbox", { name: "Direct category" })).toHaveValue("Hardware");
   });
 
-  it("persists added catalogue options after discarding the component draft", async () => {
-    renderStatefulAddModal({ catalogueOptionsStorageScope: "catalogue-options-persist-test" });
-    let dialog = await getAddDialog();
+  it("moves an edited component by canonical category ID and preserves the moved category on save", async () => {
+    let resolveMove: ((value: {
+      type: "latest-success";
+      attemptedTargetFolderId: string;
+      authoritativeConfirmedFolderId: string;
+      optimisticAction: "keep";
+    }) => void) | undefined;
+    const onMoveComponentCategory = vi.fn(() => new Promise<{
+      type: "latest-success";
+      attemptedTargetFolderId: string;
+      authoritativeConfirmedFolderId: string;
+      optimisticAction: "keep";
+    }>((resolve) => {
+      resolveMove = resolve;
+    }));
+    renderAddModal({
+      editingItem: makeEditingItem({ libraryFolderId: "folder-hardware" }),
+      onComponentUpdated: vi.fn(),
+      onMoveComponentCategory,
+    });
+    const dialog = await getEditDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const directCategory = within(form).getByRole("textbox", { name: "Direct category" });
+    const moveControl = within(form).getByRole("combobox", { name: "Move component to category" });
+
+    expect(directCategory).toHaveAttribute("aria-readonly", "true");
+    expect(directCategory).toHaveValue("Hardware");
+    fireEvent.click(moveControl);
+    fireEvent.click(await screen.findByRole("option", { name: "Lighting" }));
+
+    expect(onMoveComponentCategory).toHaveBeenCalledWith(
+      expect.objectContaining({ libraryFolderId: "folder-hardware" }),
+      "folder-lighting",
+    );
+    expect(directCategory).toHaveValue("Lighting");
+    expect(moveControl).toHaveAttribute("aria-disabled", "true");
+    expect(within(form).getByRole("status")).toHaveTextContent("Moving component category");
+
+    resolveMove?.({
+      type: "latest-success",
+      attemptedTargetFolderId: "folder-lighting",
+      authoritativeConfirmedFolderId: "folder-lighting",
+      optimisticAction: "keep",
+    });
+    await screen.findByText("Moved to Lighting.");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+    await waitFor(() => expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateCostLibraryComponentWithPriceOptions).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ libraryFolderId: "folder-lighting" }),
+    );
+  });
+
+  it("rolls back a failed category move and restores focus to the labeled move control", async () => {
+    const onMoveComponentCategory = vi.fn().mockResolvedValue({
+      type: "latest-failure",
+      attemptedTargetFolderId: "folder-lighting",
+      authoritativeConfirmedFolderId: "folder-hardware",
+      optimisticAction: "rollback",
+      error: new Error("Category move failed"),
+    });
+    renderAddModal({
+      editingItem: makeEditingItem({ libraryFolderId: "folder-hardware" }),
+      onComponentUpdated: vi.fn(),
+      onMoveComponentCategory,
+    });
+    const dialog = await getEditDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const directCategory = within(form).getByRole("textbox", { name: "Direct category" });
+    const moveControl = within(form).getByRole("combobox", { name: "Move component to category" });
+
+    fireEvent.click(moveControl);
+    fireEvent.click(await screen.findByRole("option", { name: "Lighting" }));
+
+    await within(form).findByRole("alert");
+    expect(within(form).getByRole("alert")).toHaveTextContent("Category move failed");
+    expect(directCategory).toHaveValue("Hardware");
+    await waitFor(() => expect(moveControl).toHaveFocus());
+  });
+
+  it("disables category moves without catalogue management permission", async () => {
+    const onMoveComponentCategory = vi.fn();
+    renderAddModal({
+      editingItem: makeEditingItem({ libraryFolderId: "folder-hardware" }),
+      onComponentUpdated: vi.fn(),
+      canManageCatalogue: false,
+      onMoveComponentCategory,
+    });
+    const dialog = await getEditDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const moveControl = within(form).getByRole("combobox", { name: "Move component to category" });
+
+    expect(moveControl).toBeDisabled();
+    fireEvent.click(moveControl);
+    expect(onMoveComponentCategory).not.toHaveBeenCalled();
+  });
+
+  it("commits server-returned catalogue IDs into the component payload", async () => {
+    actionMocks.createComponentCatalogueEntity
+      .mockResolvedValueOnce({
+        replayed: false,
+        entity: {
+          id: "supplier-saved",
+          workspaceId: "workspace-1",
+          kind: "supplier",
+          name: "Saved Supplier Co",
+          normalizedName: "saved supplier co",
+          lifecycleState: "active",
+          revision: 1,
+          archivedAt: null,
+          archivedBy: null,
+          mergedIntoId: null,
+          createdBy: "user-1",
+          updatedBy: "user-1",
+          createdAt: "2026-07-30T00:00:00.000Z",
+          updatedAt: "2026-07-30T00:00:00.000Z",
+        },
+      })
+      .mockResolvedValueOnce({
+        replayed: false,
+        entity: {
+          id: "brand-saved",
+          workspaceId: "workspace-1",
+          kind: "brand",
+          name: "Saved Brand Line",
+          normalizedName: "saved brand line",
+          lifecycleState: "active",
+          revision: 1,
+          archivedAt: null,
+          archivedBy: null,
+          mergedIntoId: null,
+          createdBy: "user-1",
+          updatedBy: "user-1",
+          createdAt: "2026-07-30T00:00:00.000Z",
+          updatedAt: "2026-07-30T00:00:00.000Z",
+        },
+      });
+    renderAddModal({ selectedFolderId: "folder-hardware" });
+    const dialog = await getAddDialog();
 
     await createCatalogueOption(dialog, "Supplier", "Saved Supplier Co");
     await createCatalogueOption(dialog, "Brand", "Saved Brand Line");
-
-    fireEvent.click(screen.getByRole("button", { name: "Close add component modal" }));
-    const discardDialog = await screen.findByRole("dialog", { name: "Discard unsaved component?" });
-    fireEvent.click(within(discardDialog).getByRole("button", { name: "Discard changes" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Open add component" }));
-    dialog = await getAddDialog();
-
-    await pickCatalogueOption(dialog, "Supplier", "Saved Supplier Co", "Saved Supplier");
-    await pickCatalogueOption(dialog, "Brand", "Saved Brand Line", "Saved Brand");
-  });
-
-  it("deletes user-added catalogue options from the right side of each dropdown", async () => {
-    renderStatefulAddModal({ catalogueOptionsStorageScope: "catalogue-options-delete-test" });
-    const dialog = await getAddDialog();
-
-    await createCatalogueOption(dialog, "Supplier", "Delete Me Supplier");
-    await createCatalogueOption(dialog, "Brand", "Delete Me Brand");
-
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
-    const scenarios = [
-      ["Supplier", "supplier", "Delete Me Supplier"],
-      ["Brand", "brand", "Delete Me Brand"],
-    ] as const;
+    fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Door Stop" } });
+    fireEvent.change(within(form).getByLabelText("Unit cost"), { target: { value: "123.456" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
 
-    for (const [fieldName, kind, value] of scenarios) {
-      const input = within(form).getByRole("combobox", { name: fieldName });
-      fireEvent.change(input, { target: { value: "" } });
-      fireEvent.change(input, { target: { value } });
-      expect(await screen.findByRole("option", { name: value })).toBeInTheDocument();
-
-      fireEvent.click(await screen.findByRole("button", { name: `Delete ${kind} "${value}"` }));
-      await waitFor(() => expect(input).toHaveValue(""));
-
-      fireEvent.change(input, { target: { value } });
-      await waitFor(() => expect(screen.queryByRole("option", { name: value })).not.toBeInTheDocument());
-      expect(await screen.findByRole("option", { name: `Add ${kind} "${value}"` })).toBeInTheDocument();
-    }
-
-    const supplier = within(form).getByRole("combobox", { name: "Supplier" });
-    fireEvent.change(supplier, { target: { value: "Acme" } });
-    expect(await screen.findByRole("option", { name: "Acme" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: 'Delete supplier "Acme"' })).not.toBeInTheDocument();
-  });
-
-  it("sanitizes malformed stored catalogue options before rendering dropdown choices", async () => {
-    const scope = "catalogue-options-malformed-test";
-    window.localStorage.setItem(`${catalogueOptionsStoragePrefix}:${scope}`, JSON.stringify({
-      category: [
-        { id: 42, label: "  Odd   Category  " },
-        { id: "local-catalogue-option:category:duplicate", label: "Odd Category" },
-        { id: "local-catalogue-option:category:blank", label: "   " },
-      ],
-      supplier: "not-an-array",
-      brand: [
-        { id: "local-catalogue-option:brand:old-brand", label: " Old Brand " },
-      ],
+    await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));
+    expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(expect.objectContaining({
+      supplierId: "supplier-saved",
+      brandId: "brand-saved",
     }));
-
-    renderStatefulAddModal({ catalogueOptionsStorageScope: scope });
-    const dialog = await getAddDialog();
-    const form = within(dialog).getByRole("form", { name: "Quick add component" });
-
-    expect(within(form).queryByRole("combobox", { name: "Category" })).not.toBeInTheDocument();
-    expect(within(form).getByRole("textbox", { name: "Direct category" })).toHaveValue("Uncategorized");
-
-    const supplier = within(form).getByRole("combobox", { name: "Supplier" });
-    fireEvent.change(supplier, { target: { value: "not-an-array" } });
-    expect(screen.queryByRole("option", { name: "not-an-array" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("option", { name: 'Add supplier "not-an-array"' })).toBeInTheDocument();
-
-    const brand = within(form).getByRole("combobox", { name: "Brand" });
-    fireEvent.change(brand, { target: { value: "Old Brand" } });
-    expect(await screen.findByRole("option", { name: "Old Brand" })).toBeInTheDocument();
+    expect(window.localStorage.getItem("archestimator-component-catalogue")).toBeNull();
   });
 
-  it("keeps saved catalogue options isolated when the storage scope changes", async () => {
-    const scopeA = "catalogue-options-scope-a";
-    const scopeB = "catalogue-options-scope-b";
-    window.localStorage.setItem(`${catalogueOptionsStoragePrefix}:${scopeB}`, JSON.stringify({
-      supplier: [
-        {
-          id: "local-catalogue-option:supplier:scope-b-supplier",
-          label: "Scope B Supplier",
-          createdAt: "2026-07-06T00:00:00.000Z",
+  it("preserves a failed catalogue name and replays the same intent on Retry", async () => {
+    actionMocks.createComponentCatalogueEntity
+      .mockRejectedValueOnce(new Error("Catalogue service unavailable"))
+      .mockResolvedValueOnce({
+        replayed: true,
+        entity: {
+          id: "supplier-retried",
+          workspaceId: "workspace-1",
+          kind: "supplier",
+          name: "Retry Supplier",
+          normalizedName: "retry supplier",
+          lifecycleState: "active",
+          revision: 1,
+          archivedAt: null,
+          archivedBy: null,
+          mergedIntoId: null,
+          createdBy: "user-1",
+          updatedBy: "user-1",
+          createdAt: "2026-07-30T00:00:00.000Z",
+          updatedAt: "2026-07-30T00:00:00.000Z",
         },
-      ],
-      brand: [],
+      });
+    renderAddModal();
+    const dialog = await getAddDialog();
+    const supplier = await createCatalogueOption(dialog, "Supplier", "Retry Supplier");
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Catalogue service unavailable");
+    expect(supplier).toHaveValue("Retry Supplier");
+    const firstIntent = actionMocks.createComponentCatalogueEntity.mock.calls[0]?.[0].intentId;
+    fireEvent.click(within(dialog).getByRole("button", { name: "Retry supplier creation" }));
+
+    await waitFor(() => expect(actionMocks.createComponentCatalogueEntity).toHaveBeenCalledTimes(2));
+    expect(actionMocks.createComponentCatalogueEntity.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      entityKind: "supplier",
+      intentId: firstIntent,
+      name: "Retry Supplier",
     }));
+    await waitFor(() => expect(supplier).toHaveValue("Retry Supplier"));
+  });
 
-    const { rerender } = render(<AddComponentModal {...makeAddModalProps({ catalogueOptionsStorageScope: scopeA })} />);
-    let dialog = await getAddDialog();
+  it("shows an archived linked master without offering it for a new selection", async () => {
+    renderAddModal({
+      editingItem: makeEditingItem({ supplierId: "supplier-archived", supplier: "Legacy Supplier" }),
+      suppliers: [{
+        id: "supplier-archived",
+        name: "Legacy Supplier",
+        sort_order: 1,
+        lifecycle_state: "archived",
+        revision: 2,
+      }],
+    });
+    const dialog = await getEditDialog();
+    const supplier = within(dialog).getByRole("combobox", { name: "Supplier" });
 
-    await createCatalogueOption(dialog, "Supplier", "Scope A Supplier");
-    expect(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeA}`)).toContain("Scope A Supplier");
-
-    rerender(<AddComponentModal {...makeAddModalProps({ catalogueOptionsStorageScope: scopeB })} />);
-    dialog = await getAddDialog();
-
-    const form = within(dialog).getByRole("form", { name: "Quick add component" });
-    const supplier = within(form).getByRole("combobox", { name: "Supplier" });
-    fireEvent.change(supplier, { target: { value: "Scope B" } });
-    expect(await screen.findByRole("option", { name: "Scope B Supplier" })).toBeInTheDocument();
-
-    const storedScopeB = JSON.parse(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeB}`) ?? "{}");
-    expect(storedScopeB.supplier).toEqual([
-      expect.objectContaining({ label: "Scope B Supplier" }),
-    ]);
-    expect(JSON.stringify(storedScopeB)).not.toContain("Scope A Supplier");
+    expect(supplier).toHaveValue("Legacy Supplier (archived)");
+    fireEvent.focus(supplier);
+    expect(screen.queryByRole("option", { name: "Legacy Supplier (archived)" })).not.toBeInTheDocument();
   });
 
   it("submits the canonical component graph payload", async () => {
@@ -1179,17 +1243,28 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
   it("uploads edit-mode thumbnails through the project image route when a project id is provided", async () => {
     const projectImageProjectId = "22222222-2222-4222-8222-222222222222";
-    const thumbnailUrl = "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo-thumb.webp";
+    const thumbnailUrl = "/api/projects/images?assetId=asset-1&variant=thumbnail";
     const onComponentUpdated = vi.fn();
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      assetId: "asset-1",
+      uploadSessionId: "session-1",
       bucket: "project-images",
       path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo.webp",
       thumbnailPath: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo-thumb.webp",
-      url: "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo.webp",
+      url: "/api/projects/images?assetId=asset-1&variant=image",
       thumbnailUrl,
+      fileName: "pergo.png",
       originalBytes: 16,
+      originalContentType: "image/png",
+      sizeBytes: 12,
       optimizedBytes: 12,
       contentType: "image/webp",
+      width: 1200,
+      height: 900,
+      thumbnailWidth: 512,
+      thumbnailHeight: 384,
+      checksumSha256: "a".repeat(64),
+      scanStatus: "not_required",
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

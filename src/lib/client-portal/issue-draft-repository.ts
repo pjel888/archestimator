@@ -178,22 +178,36 @@ function parseObject(value: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
+const NARRATIVE_SELECTION_CATEGORIES = ["summary", "included", "excluded", "unresolved", "warnings"] as const;
+const NARRATIVE_STRING_FIELDS = ["aiDraft", "approvedAt", "approvedBy", "generatedAt", "inputFingerprint", "inputHash", "model", "outputHash", "provider", "runId"] as const;
+
+function narrativeSelection(value: unknown): ClientPortalNarrativeProvenance["selection"] {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    throw new Error("Invalid issue draft narrative provenance selection.");
+  }
+  const selected = value as Record<string, unknown>;
+  const invalid = NARRATIVE_SELECTION_CATEGORIES.some((category) => {
+    const identifiers = selected[category];
+    return !Array.isArray(identifiers) || identifiers.some((identifier) => typeof identifier !== "string");
+  });
+  if (invalid) throw new Error("Invalid issue draft narrative provenance selection.");
+  return Object.fromEntries(
+    NARRATIVE_SELECTION_CATEGORIES.map((category) => [category, [...selected[category] as string[]]]),
+  ) as ClientPortalNarrativeProvenance["selection"];
+}
+
+function narrativeStringFields(record: Record<string, unknown>) {
+  const invalid = NARRATIVE_STRING_FIELDS.some((field) => typeof record[field] !== "string" || !(record[field] as string).trim());
+  if (invalid) throw new Error("Invalid issue draft narrative provenance.");
+}
+
 function parseNarrativeProvenance(value: string | null): ClientPortalNarrativeProvenance | null {
   if (value === null) return null;
   const parsed = JSON.parse(value) as unknown;
   if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("Invalid issue draft narrative provenance.");
   const record = parsed as Record<string, unknown>;
-  const selection = record.selection;
-  const categories = ["summary", "included", "excluded", "unresolved", "warnings"] as const;
-  if (!selection || Array.isArray(selection) || typeof selection !== "object") throw new Error("Invalid issue draft narrative provenance selection.");
-  const selected = selection as Record<string, unknown>;
-  if (categories.some((category) => !Array.isArray(selected[category]) || (selected[category] as unknown[]).some((id) => typeof id !== "string"))) {
-    throw new Error("Invalid issue draft narrative provenance selection.");
-  }
-  const stringFields = ["aiDraft", "approvedAt", "approvedBy", "generatedAt", "inputFingerprint", "inputHash", "model", "outputHash", "provider", "runId"] as const;
-  if (stringFields.some((field) => typeof record[field] !== "string" || !(record[field] as string).trim()) || !Number.isSafeInteger(record.schemaVersion) || Number(record.schemaVersion) < 1) {
-    throw new Error("Invalid issue draft narrative provenance.");
-  }
+  narrativeStringFields(record);
+  if (!Number.isSafeInteger(record.schemaVersion) || Number(record.schemaVersion) < 1) throw new Error("Invalid issue draft narrative provenance.");
   return {
     aiDraft: record.aiDraft as string,
     approvedAt: record.approvedAt as string,
@@ -206,7 +220,7 @@ function parseNarrativeProvenance(value: string | null): ClientPortalNarrativePr
     provider: record.provider as string,
     runId: record.runId as string,
     schemaVersion: Number(record.schemaVersion),
-    selection: Object.fromEntries(categories.map((category) => [category, [...selected[category] as string[]]])) as ClientPortalNarrativeProvenance["selection"],
+    selection: narrativeSelection(record.selection),
   };
 }
 
@@ -421,69 +435,48 @@ function selectionGuardValues(input: ReplaceIssueDraftInput): D1Value[] {
   return [input.draftId, input.workspaceId, input.projectId, input.portalId, input.expectedRevision];
 }
 
-export async function replaceIssueDraft(
-  database: D1DatabaseLike,
-  input: ReplaceIssueDraftInput,
-): Promise<boolean> {
-  if (!database.batch) throw new Error("D1 batch support is required for issue draft updates.");
-  const statements: D1PreparedStatementLike[] = [
-    selectionDelete(database, "client_portal_issue_draft_estimates", input),
-    selectionDelete(database, "client_portal_issue_draft_artifacts", input),
-    selectionDelete(database, "client_portal_issue_draft_requests", input),
-  ];
+function estimateSelectionStatement(database: D1DatabaseLike, input: ReplaceIssueDraftInput, estimate: ReplaceIssueDraftInput["estimates"][number]) {
+  return database.prepare(
+    `INSERT INTO client_portal_issue_draft_estimates (draft_id, estimate_id, sort_order, included)
+     SELECT ?, ?, ?, ?
+     WHERE ${mutableDraftExistsSql("draft")}`,
+  ).bind(input.draftId, estimate.estimateId, estimate.sortOrder, estimate.included ? 1 : 0, ...selectionGuardValues(input));
+}
 
-  for (const estimate of input.estimates) {
-    statements.push(database.prepare(
-      `INSERT INTO client_portal_issue_draft_estimates (draft_id, estimate_id, sort_order, included)
-       SELECT ?, ?, ?, ?
-       WHERE ${mutableDraftExistsSql("draft")}`,
-    ).bind(
-      input.draftId,
-      estimate.estimateId,
-      estimate.sortOrder,
-      estimate.included ? 1 : 0,
-      ...selectionGuardValues(input),
-    ));
-  }
-  for (const artifact of input.artifacts) {
-    statements.push(database.prepare(
-      `INSERT INTO client_portal_issue_draft_artifacts (
-         draft_id, artifact_version_id, purpose, commentable, downloadable,
-         decision_relevant, sort_order, display_title, description
-       )
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
-       WHERE ${mutableDraftExistsSql("draft")}`,
-    ).bind(
-      input.draftId,
-      artifact.artifactVersionId,
-      artifact.purpose,
-      artifact.commentable ? 1 : 0,
-      artifact.downloadable ? 1 : 0,
-      artifact.decisionRelevant ? 1 : 0,
-      artifact.sortOrder,
-      artifact.displayTitle,
-      artifact.description,
-      ...selectionGuardValues(input),
-    ));
-  }
-  for (const request of input.requests) {
-    statements.push(database.prepare(
-      `INSERT INTO client_portal_issue_draft_requests (
-         draft_id, request_id, request_version_id, relationship, sort_order
-       )
-       SELECT ?, ?, ?, ?, ?
-       WHERE ${mutableDraftExistsSql("draft")}`,
-    ).bind(
-      input.draftId,
-      request.requestId,
-      request.requestVersionId,
-      request.relationship,
-      request.sortOrder,
-      ...selectionGuardValues(input),
-    ));
-  }
+function artifactSelectionStatement(database: D1DatabaseLike, input: ReplaceIssueDraftInput, artifact: ReplaceIssueDraftInput["artifacts"][number]) {
+  return database.prepare(
+    `INSERT INTO client_portal_issue_draft_artifacts (
+       draft_id, artifact_version_id, purpose, commentable, downloadable,
+       decision_relevant, sort_order, display_title, description
+     )
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE ${mutableDraftExistsSql("draft")}`,
+  ).bind(
+    input.draftId,
+    artifact.artifactVersionId,
+    artifact.purpose,
+    artifact.commentable ? 1 : 0,
+    artifact.downloadable ? 1 : 0,
+    artifact.decisionRelevant ? 1 : 0,
+    artifact.sortOrder,
+    artifact.displayTitle,
+    artifact.description,
+    ...selectionGuardValues(input),
+  );
+}
 
-  statements.push(database.prepare(
+function requestSelectionStatement(database: D1DatabaseLike, input: ReplaceIssueDraftInput, request: ReplaceIssueDraftInput["requests"][number]) {
+  return database.prepare(
+    `INSERT INTO client_portal_issue_draft_requests (
+       draft_id, request_id, request_version_id, relationship, sort_order
+     )
+     SELECT ?, ?, ?, ?, ?
+     WHERE ${mutableDraftExistsSql("draft")}`,
+  ).bind(input.draftId, request.requestId, request.requestVersionId, request.relationship, request.sortOrder, ...selectionGuardValues(input));
+}
+
+function updateDraftStatement(database: D1DatabaseLike, input: ReplaceIssueDraftInput) {
+  return database.prepare(
     `UPDATE client_portal_issue_drafts
      SET status = 'draft', draft_revision = draft_revision + 1,
          issue_kind = ?, version_label = ?, based_on_issue_id = ?,
@@ -514,7 +507,23 @@ export async function replaceIssueDraft(
     input.projectId,
     input.portalId,
     input.expectedRevision,
-  ));
+  );
+}
+
+export async function replaceIssueDraft(
+  database: D1DatabaseLike,
+  input: ReplaceIssueDraftInput,
+): Promise<boolean> {
+  if (!database.batch) throw new Error("D1 batch support is required for issue draft updates.");
+  const statements: D1PreparedStatementLike[] = [
+    selectionDelete(database, "client_portal_issue_draft_estimates", input),
+    selectionDelete(database, "client_portal_issue_draft_artifacts", input),
+    selectionDelete(database, "client_portal_issue_draft_requests", input),
+    ...input.estimates.map((estimate) => estimateSelectionStatement(database, input, estimate)),
+    ...input.artifacts.map((artifact) => artifactSelectionStatement(database, input, artifact)),
+    ...input.requests.map((request) => requestSelectionStatement(database, input, request)),
+    updateDraftStatement(database, input),
+  ];
 
   const results = await database.batch(statements);
   return (results.at(-1)?.meta?.changes ?? 0) === 1;

@@ -18,8 +18,11 @@ function expectBefore(source: string, before: string, after: string) {
 describe("estimate_node_route_context repository fast path", () => {
   it("uses the D1 fast-path hook before the selected-node fallback and has no provider RPC", () => {
     expect(repositorySource).toContain("async function readEstimateNodeRouteContextD1FastPath");
+    expect(repositorySource).toContain("INNER JOIN workspaces workspace ON workspace.id = project.workspace_id");
+    expect(repositorySource).toContain("const [tabs, treePayload] = await Promise.all");
     expect(repositorySource).toContain("const fastRouteContext = await readEstimateNodeRouteContextD1FastPath");
-    expect(repositorySource).toContain("if (fastRouteContext?.estimate && await canAccessEstimateInD1(database, fastRouteContext.estimate.id, userContext)) return fastRouteContext;");
+    expect(repositorySource).toContain("if (!await canAccessEstimateInD1(database, estimate.id, userContext)) return null;");
+    expect(repositorySource).toContain("if (fastRouteContext?.estimate) return fastRouteContext;");
     expect(repositorySource).not.toContain(".rpc(");
     expect(repositorySource).not.toContain("readSupabaseAuthStorageKey");
     expect(repositorySource).not.toContain("parseEstimateNodeRouteContextRpcPayload");

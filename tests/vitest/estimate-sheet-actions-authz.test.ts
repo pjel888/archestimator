@@ -18,6 +18,8 @@ const libraryItem = {
   material: "Express component",
   description: "Express description",
   supplier: "Supplier",
+  brand: "Beta",
+  brandId: "99999999-cccc-4ccc-8ccc-999999999999",
   source: "library",
   unit: "unit",
   itemCost: 125,
@@ -814,6 +816,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       expectedRowRevision: 1,
       replacementPayload: expect.objectContaining({
         sourceLibraryItemId: libraryItem.id,
+        brandId: libraryItem.brandId,
         material: libraryItem.material,
         linkState: "linked-clean",
       }),

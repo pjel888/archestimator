@@ -108,7 +108,7 @@ export type RowComponentPickerState = {
   opener: HTMLElement | null;
 };
 
-type EstimateRowItemLocation = {
+export type EstimateRowItemLocation = {
   nodeId: string;
   index: number;
   item: EstimateRowItem;
@@ -251,7 +251,7 @@ function findEstimateRowItemLocation(nodes: EstimateTreeNode[], rowItemId: strin
   return null;
 }
 
-function restoreEstimateRowItemAtLocation(nodes: EstimateTreeNode[], location: EstimateRowItemLocation, item = location.item): EstimateTreeNode[] {
+export function restoreEstimateRowItemAtLocation(nodes: EstimateTreeNode[], location: EstimateRowItemLocation, item = location.item): EstimateTreeNode[] {
   return nodes.map((node) => {
     if (node.id === location.nodeId) {
       const currentItems = node.estimateRowItems ?? [];
@@ -315,7 +315,7 @@ function getClearedEstimateRowMetadata(metadata: EstimateRowItem["metadata"]): E
   };
 }
 
-function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateRowItem): EstimateRowItem {
+export function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateRowItem): EstimateRowItem {
   const normalizedLibraryItem = { ...libraryItem, quantity: libraryItem.quantity || 1 };
   const amounts = getEditableRowAmounts(normalizedLibraryItem, getInitialEditableRow(normalizedLibraryItem));
   return {

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { mapBaselineSummary } from "@/lib/client-portal/baseline-summary";
 import {
   PROJECT_COMMITMENT_EVENT_SOURCE_TYPES,
   type ProjectCommitmentEventSourceType,
@@ -190,40 +191,62 @@ function eventHref(projectId: string, row: EventRow) {
   return `${root}/timeline?event=${encodeURIComponent(row.id)}`;
 }
 
-export async function readProjectTimelinePage(input: {
-  cursor?: string | null;
-  database?: D1DatabaseLike;
-  filters?: ProjectTimelineFilters;
-  limit?: number;
-  projectId: string;
-}): Promise<ProjectTimelinePage> {
-  const database = input.database ?? await getCloudflareD1Database();
-  if (!database) throw new Error("Project timeline is unavailable.");
-  const portals = await all<PortalRow>(database, `
+type PortalSelection = {
+  currentStatePortal: PortalRow | null;
+  selectedPortal: PortalRow | null;
+};
+
+type TimelineStateRows = {
+  baseline: BaselineRow | null;
+  currentIssue: IssueRow | null;
+  latestOfficialEvent: LatestEventRow | null;
+};
+
+type TimelineCountRows = {
+  activeFiles: { total: number } | null;
+  openRequests: { total: number } | null;
+  totalEvents: { total: number } | null;
+  waitingDiscussions: { total: number } | null;
+};
+
+async function listProjectPortals(database: D1DatabaseLike, projectId: string) {
+  return all<PortalRow>(database, `
     SELECT id, name, status, audience_kind, is_primary, current_issue_id
     FROM client_portals
     WHERE project_id = ? AND status <> 'archived'
     ORDER BY is_primary DESC, name COLLATE NOCASE ASC, id ASC
-  `, [input.projectId]);
-  const requestedPortalId = input.filters?.portalId?.trim() || null;
+  `, [projectId]);
+}
+
+function selectPortalContext(portals: PortalRow[], requestedPortalId: string | null): PortalSelection {
   const selectedPortal = requestedPortalId
     ? portals.find((portal) => portal.id === requestedPortalId) ?? null
     : null;
-  const currentStatePortal = selectedPortal
-    ?? portals.find((portal) => Boolean(portal.is_primary))
-    ?? portals[0]
-    ?? null;
+  return {
+    selectedPortal,
+    currentStatePortal: selectedPortal
+      ?? portals.find((portal) => Boolean(portal.is_primary))
+      ?? portals[0]
+      ?? null,
+  };
+}
+
+function buildEventQuery(input: {
+  cursor?: string | null;
+  filters?: ProjectTimelineFilters;
+  projectId: string;
+  selectedPortal: PortalRow | null;
+}) {
   const sourceTypes = (input.filters?.sourceTypes ?? []).filter((sourceType) =>
     PROJECT_COMMITMENT_EVENT_SOURCE_TYPES.includes(sourceType),
   );
   const parsedCursor = decodeCursor(input.cursor);
   if (input.cursor && !parsedCursor) throw new Error("Project timeline cursor is invalid.");
-  const limit = Math.max(1, Math.min(50, Math.trunc(input.limit ?? 20)));
   const where = ["event.project_id = ?"];
   const values: D1Value[] = [input.projectId];
-  if (selectedPortal) {
+  if (input.selectedPortal) {
     where.push("event.origin_portal_id = ?");
-    values.push(selectedPortal.id);
+    values.push(input.selectedPortal.id);
   }
   if (sourceTypes.length > 0) {
     where.push(`event.source_type IN (${sourceTypes.map(() => "?").join(", ")})`);
@@ -233,32 +256,45 @@ export async function readProjectTimelinePage(input: {
     where.push("(event.occurred_at < ? OR (event.occurred_at = ? AND event.id < ?))");
     values.push(parsedCursor.occurredAt, parsedCursor.occurredAt, parsedCursor.id);
   }
+  return { values, where };
+}
 
-  const eventScope = selectedPortal ? "AND origin_portal_id = ?" : "";
-  const eventScopeValues: D1Value[] = selectedPortal ? [selectedPortal.id] : [];
-  const currentStateScopeValues: D1Value[] = currentStatePortal ? [currentStatePortal.id] : [];
-  const [rows, baseline, currentIssue, latestOfficialEvent, counts] = await Promise.all([
-    all<EventRow>(database, `
-      SELECT event.id, event.event_type, event.source_type, event.source_id, event.source_version_id,
-             event.origin_portal_id, portal.name AS origin_portal_name,
-             event.root_request_id, root_request.request_code AS root_request_code,
-             root_version.title AS root_request_title,
-             event.actor_type, event.actor_name_snapshot, event.actor_domain_role_snapshot,
-             event.actor_permission_role_snapshot, event.title, event.summary,
-             event.internal_metadata_json, event.occurred_at,
-             count(exposure.portal_id) AS exposure_count,
-             group_concat(DISTINCT exposure.status) AS exposure_statuses
-      FROM project_commitment_events event
-      LEFT JOIN client_portals portal ON portal.id = event.origin_portal_id
-      LEFT JOIN project_change_requests root_request ON root_request.id = event.root_request_id
-      LEFT JOIN project_change_request_versions root_version ON root_version.id = root_request.current_version_id
-      LEFT JOIN client_portal_event_exposures exposure ON exposure.event_id = event.id
-      WHERE ${where.join(" AND ")}
-      GROUP BY event.id
-      ORDER BY event.occurred_at DESC, event.id DESC
-      LIMIT ?
-    `, [...values, limit + 1]),
-    currentStatePortal ? first<BaselineRow>(database, `
+async function readEventRows(input: {
+  database: D1DatabaseLike;
+  limit: number;
+  values: D1Value[];
+  where: string[];
+}) {
+  return all<EventRow>(input.database, `
+    SELECT event.id, event.event_type, event.source_type, event.source_id, event.source_version_id,
+           event.origin_portal_id, portal.name AS origin_portal_name,
+           event.root_request_id, root_request.request_code AS root_request_code,
+           root_version.title AS root_request_title,
+           event.actor_type, event.actor_name_snapshot, event.actor_domain_role_snapshot,
+           event.actor_permission_role_snapshot, event.title, event.summary,
+           event.internal_metadata_json, event.occurred_at,
+           count(exposure.portal_id) AS exposure_count,
+           group_concat(DISTINCT exposure.status) AS exposure_statuses
+    FROM project_commitment_events event
+    LEFT JOIN client_portals portal ON portal.id = event.origin_portal_id
+    LEFT JOIN project_change_requests root_request ON root_request.id = event.root_request_id
+    LEFT JOIN project_change_request_versions root_version ON root_version.id = root_request.current_version_id
+    LEFT JOIN client_portal_event_exposures exposure ON exposure.event_id = event.id
+    WHERE ${input.where.join(" AND ")}
+    GROUP BY event.id
+    ORDER BY event.occurred_at DESC, event.id DESC
+    LIMIT ?
+  `, [...input.values, input.limit + 1]);
+}
+
+async function readTimelineState(
+  database: D1DatabaseLike,
+  projectId: string,
+  portal: PortalRow | null,
+): Promise<TimelineStateRows> {
+  if (!portal) return { baseline: null, currentIssue: null, latestOfficialEvent: null };
+  const [baseline, currentIssue, latestOfficialEvent] = await Promise.all([
+    first<BaselineRow>(database, `
       SELECT baseline.baseline_number, baseline.total_minor_units, baseline.currency_code,
              baseline.established_at, issue.issue_number, issue.version_label,
              COALESCE(CAST(json_extract(issue.decision_policy_snapshot_json, '$.requiredApprovals') AS INTEGER), 0) AS required_approvals,
@@ -272,8 +308,8 @@ export async function readProjectTimelinePage(input: {
       JOIN client_portal_issues issue ON issue.id = baseline.issue_id
       WHERE baseline.portal_id = ? AND baseline.status = 'active'
       LIMIT 1
-    `, [currentStatePortal.id]) : Promise.resolve(null),
-    currentStatePortal ? first<IssueRow>(database, `
+    `, [portal.id]),
+    first<IssueRow>(database, `
       SELECT issue.issue_number, issue.version_label, issue.status, issue.issued_at,
              issue.total_cost, issue.currency_code,
              COALESCE(json_array_length(draft.unresolved_items_json), 0) AS unresolved_item_count
@@ -281,118 +317,194 @@ export async function readProjectTimelinePage(input: {
       LEFT JOIN client_portal_issue_drafts draft ON draft.id = issue.draft_id
       WHERE issue.id = ? AND issue.portal_id = ?
       LIMIT 1
-    `, [currentStatePortal.current_issue_id ?? "", currentStatePortal.id]) : Promise.resolve(null),
-    currentStatePortal ? first<LatestEventRow>(database, `
+    `, [portal.current_issue_id ?? "", portal.id]),
+    first<LatestEventRow>(database, `
       SELECT event_type, title, occurred_at
       FROM project_commitment_events
       WHERE project_id = ? AND origin_portal_id = ?
       ORDER BY occurred_at DESC, id DESC
       LIMIT 1
-    `, [input.projectId, currentStatePortal.id]) : Promise.resolve(null),
-    Promise.all([
-      first<{ total: number }>(database, `
-        SELECT count(*) AS total FROM project_commitment_events
-        WHERE project_id = ? ${eventScope}
-      `, [input.projectId, ...eventScopeValues]),
-      first<{ total: number }>(database, `
-        SELECT count(*) AS total FROM project_change_requests
-        WHERE project_id = ?
-          ${currentStatePortal ? "AND origin_portal_id = ?" : ""}
-          AND status IN ('submitted', 'acknowledged', 'under_assessment', 'proposal_issued')
-      `, [input.projectId, ...currentStateScopeValues]),
-      first<{ total: number }>(database, `
-        SELECT count(*) AS total FROM project_artifacts
-        WHERE project_id = ? AND status = 'active'
-      `, [input.projectId]),
-      first<{ total: number }>(database, `
-        SELECT count(*) AS total
-        FROM client_portal_threads thread
-        JOIN client_portals portal ON portal.id = thread.portal_id
-        WHERE portal.project_id = ?
-          ${currentStatePortal ? "AND thread.portal_id = ?" : ""}
-          AND thread.status IN ('open', 'requires_revalidation')
-          AND thread.waiting_state = 'waiting_on_owner'
-      `, [input.projectId, ...currentStateScopeValues]),
-    ]),
+    `, [projectId, portal.id]),
+  ]);
+  return { baseline, currentIssue, latestOfficialEvent };
+}
+
+async function readTimelineCounts(
+  database: D1DatabaseLike,
+  projectId: string,
+  selectedPortal: PortalRow | null,
+  currentStatePortal: PortalRow | null,
+): Promise<TimelineCountRows> {
+  const eventScope = selectedPortal ? "AND origin_portal_id = ?" : "";
+  const eventScopeValues: D1Value[] = selectedPortal ? [selectedPortal.id] : [];
+  const stateScope = currentStatePortal ? "AND origin_portal_id = ?" : "";
+  const threadScope = currentStatePortal ? "AND thread.portal_id = ?" : "";
+  const stateScopeValues: D1Value[] = currentStatePortal ? [currentStatePortal.id] : [];
+  const [totalEvents, openRequests, activeFiles, waitingDiscussions] = await Promise.all([
+    first<{ total: number }>(database, `
+      SELECT count(*) AS total FROM project_commitment_events
+      WHERE project_id = ? ${eventScope}
+    `, [projectId, ...eventScopeValues]),
+    first<{ total: number }>(database, `
+      SELECT count(*) AS total FROM project_change_requests
+      WHERE project_id = ? ${stateScope}
+        AND status IN ('submitted', 'acknowledged', 'under_assessment', 'proposal_issued')
+    `, [projectId, ...stateScopeValues]),
+    first<{ total: number }>(database, `
+      SELECT count(*) AS total FROM project_artifacts
+      WHERE project_id = ? AND status = 'active'
+    `, [projectId]),
+    first<{ total: number }>(database, `
+      SELECT count(*) AS total
+      FROM client_portal_threads thread
+      JOIN client_portals portal ON portal.id = thread.portal_id
+      WHERE portal.project_id = ? ${threadScope}
+        AND thread.status IN ('open', 'requires_revalidation')
+        AND thread.waiting_state = 'waiting_on_owner'
+    `, [projectId, ...stateScopeValues]),
+  ]);
+  return { activeFiles, openRequests, totalEvents, waitingDiscussions };
+}
+
+function mapActiveBaseline(baseline: BaselineRow | null): ProjectTimelinePage["context"]["activeBaseline"] {
+  if (!baseline) return null;
+  const summary = mapBaselineSummary(baseline);
+  if (!summary) return null;
+  return {
+    approvals: {
+      approved: Number(baseline.approved_approvals ?? 0),
+      names: baseline.approver_names?.split("||").filter(Boolean) ?? [],
+      required: Number(baseline.required_approvals ?? 0),
+    },
+    ...summary,
+  };
+}
+
+function mapCurrentIssue(currentIssue: IssueRow | null): ProjectTimelinePage["context"]["currentIssue"] {
+  if (!currentIssue) return null;
+  return {
+    currencyCode: currentIssue.currency_code,
+    issueNumber: Number(currentIssue.issue_number),
+    issuedAt: currentIssue.issued_at,
+    status: currentIssue.status,
+    total: Number(currentIssue.total_cost),
+    unresolvedItems: Number(currentIssue.unresolved_item_count ?? 0),
+    versionLabel: currentIssue.version_label,
+  };
+}
+
+function mapLatestOfficialEvent(
+  latestOfficialEvent: LatestEventRow | null,
+): ProjectTimelinePage["context"]["latestOfficialEvent"] {
+  if (!latestOfficialEvent) return null;
+  return {
+    eventType: latestOfficialEvent.event_type,
+    occurredAt: latestOfficialEvent.occurred_at,
+    title: latestOfficialEvent.title,
+  };
+}
+
+function mapCurrentPortal(portal: PortalRow | null): ProjectTimelinePage["context"]["currentPortal"] {
+  if (!portal) return null;
+  return {
+    id: portal.id,
+    isPrimary: Boolean(portal.is_primary),
+    name: portal.name,
+  };
+}
+
+function mapPortals(portals: PortalRow[]): ProjectTimelinePage["context"]["portals"] {
+  return portals.map((portal) => ({
+    audienceKind: portal.audience_kind,
+    id: portal.id,
+    isPrimary: Boolean(portal.is_primary),
+    name: portal.name,
+    status: portal.status,
+  }));
+}
+
+function mapTimelineContext(input: {
+  counts: TimelineCountRows;
+  currentStatePortal: PortalRow | null;
+  portals: PortalRow[];
+  selectedPortal: PortalRow | null;
+  state: TimelineStateRows;
+}): ProjectTimelinePage["context"] {
+  const { baseline, currentIssue, latestOfficialEvent } = input.state;
+  return {
+    activeBaseline: mapActiveBaseline(baseline),
+    counts: {
+      activeFiles: Number(input.counts.activeFiles?.total ?? 0),
+      openRequests: Number(input.counts.openRequests?.total ?? 0),
+      totalEvents: Number(input.counts.totalEvents?.total ?? 0),
+      waitingDiscussions: Number(input.counts.waitingDiscussions?.total ?? 0),
+    },
+    currentPortal: mapCurrentPortal(input.currentStatePortal),
+    currentIssue: mapCurrentIssue(currentIssue),
+    latestOfficialEvent: mapLatestOfficialEvent(latestOfficialEvent),
+    portals: mapPortals(input.portals),
+    selectedPortalId: input.selectedPortal?.id ?? null,
+  };
+}
+
+function mapTimelineEvent(projectId: string, row: EventRow): ProjectTimelinePage["events"][number] {
+  return {
+    actor: {
+      domainRole: row.actor_domain_role_snapshot,
+      name: row.actor_name_snapshot,
+      permissionRole: row.actor_permission_role_snapshot,
+      type: row.actor_type,
+    },
+    eventType: row.event_type,
+    exposure: {
+      count: Number(row.exposure_count ?? 0),
+      statuses: row.exposure_statuses?.split(",").filter(Boolean) ?? [],
+    },
+    href: eventHref(projectId, row),
+    id: row.id,
+    metadata: record(row.internal_metadata_json),
+    occurredAt: row.occurred_at,
+    portal: row.origin_portal_id && row.origin_portal_name
+      ? { id: row.origin_portal_id, name: row.origin_portal_name }
+      : null,
+    rootRequest: row.root_request_id && row.root_request_code
+      ? { code: row.root_request_code, id: row.root_request_id, title: row.root_request_title }
+      : null,
+    source: { id: row.source_id, type: row.source_type, versionId: row.source_version_id },
+    summary: row.summary,
+    title: row.title,
+  };
+}
+
+export async function readProjectTimelinePage(input: {
+  cursor?: string | null;
+  database?: D1DatabaseLike;
+  filters?: ProjectTimelineFilters;
+  limit?: number;
+  projectId: string;
+}): Promise<ProjectTimelinePage> {
+  const database = input.database ?? await getCloudflareD1Database();
+  if (!database) throw new Error("Project timeline is unavailable.");
+  const portals = await listProjectPortals(database, input.projectId);
+  const requestedPortalId = input.filters?.portalId?.trim() || null;
+  const { currentStatePortal, selectedPortal } = selectPortalContext(portals, requestedPortalId);
+  const limit = Math.max(1, Math.min(50, Math.trunc(input.limit ?? 20)));
+  const query = buildEventQuery({
+    cursor: input.cursor,
+    filters: input.filters,
+    projectId: input.projectId,
+    selectedPortal,
+  });
+  const [rows, state, counts] = await Promise.all([
+    readEventRows({ database, limit, ...query }),
+    readTimelineState(database, input.projectId, currentStatePortal),
+    readTimelineCounts(database, input.projectId, selectedPortal, currentStatePortal),
   ]);
   const pageRows = rows.slice(0, limit);
-  const [totalEvents, openRequests, activeFiles, waitingDiscussions] = counts;
 
   return {
-    context: {
-      activeBaseline: baseline ? {
-        approvals: {
-          approved: Number(baseline.approved_approvals ?? 0),
-          names: baseline.approver_names?.split("||").filter(Boolean) ?? [],
-          required: Number(baseline.required_approvals ?? 0),
-        },
-        baselineNumber: Number(baseline.baseline_number),
-        currencyCode: baseline.currency_code,
-        establishedAt: baseline.established_at,
-        issueNumber: Number(baseline.issue_number),
-        totalMinorUnits: Number(baseline.total_minor_units),
-        versionLabel: baseline.version_label,
-      } : null,
-      counts: {
-        activeFiles: Number(activeFiles?.total ?? 0),
-        openRequests: Number(openRequests?.total ?? 0),
-        totalEvents: Number(totalEvents?.total ?? 0),
-        waitingDiscussions: Number(waitingDiscussions?.total ?? 0),
-      },
-      currentPortal: currentStatePortal ? {
-        id: currentStatePortal.id,
-        isPrimary: Boolean(currentStatePortal.is_primary),
-        name: currentStatePortal.name,
-      } : null,
-      currentIssue: currentIssue ? {
-        currencyCode: currentIssue.currency_code,
-        issueNumber: Number(currentIssue.issue_number),
-        issuedAt: currentIssue.issued_at,
-        status: currentIssue.status,
-        total: Number(currentIssue.total_cost),
-        unresolvedItems: Number(currentIssue.unresolved_item_count ?? 0),
-        versionLabel: currentIssue.version_label,
-      } : null,
-      latestOfficialEvent: latestOfficialEvent ? {
-        eventType: latestOfficialEvent.event_type,
-        occurredAt: latestOfficialEvent.occurred_at,
-        title: latestOfficialEvent.title,
-      } : null,
-      portals: portals.map((portal) => ({
-        audienceKind: portal.audience_kind,
-        id: portal.id,
-        isPrimary: Boolean(portal.is_primary),
-        name: portal.name,
-        status: portal.status,
-      })),
-      selectedPortalId: selectedPortal?.id ?? null,
-    },
-    events: pageRows.map((row) => ({
-      actor: {
-        domainRole: row.actor_domain_role_snapshot,
-        name: row.actor_name_snapshot,
-        permissionRole: row.actor_permission_role_snapshot,
-        type: row.actor_type,
-      },
-      eventType: row.event_type,
-      exposure: {
-        count: Number(row.exposure_count ?? 0),
-        statuses: row.exposure_statuses?.split(",").filter(Boolean) ?? [],
-      },
-      href: eventHref(input.projectId, row),
-      id: row.id,
-      metadata: record(row.internal_metadata_json),
-      occurredAt: row.occurred_at,
-      portal: row.origin_portal_id && row.origin_portal_name
-        ? { id: row.origin_portal_id, name: row.origin_portal_name }
-        : null,
-      rootRequest: row.root_request_id && row.root_request_code
-        ? { code: row.root_request_code, id: row.root_request_id, title: row.root_request_title }
-        : null,
-      source: { id: row.source_id, type: row.source_type, versionId: row.source_version_id },
-      summary: row.summary,
-      title: row.title,
-    })),
+    context: mapTimelineContext({ counts, currentStatePortal, portals, selectedPortal, state }),
+    events: pageRows.map((row) => mapTimelineEvent(input.projectId, row)),
     hasMore: rows.length > limit,
     nextCursor: rows.length > limit ? encodeCursor(pageRows.at(-1)) : null,
   };

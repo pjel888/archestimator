@@ -12,6 +12,7 @@ import {
 import { isProtectedRouteGateSatisfied } from "@/lib/auth/protected-route-gate";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
+import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import {
   buildTermsAcceptanceRedirectPath,
   shouldBypassTermsAcceptanceGate,
@@ -48,24 +49,35 @@ function buildWorkshopLoginRedirectPath(requestPath: string) {
 export default async function WorkshopLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();
   const requestPath = headerList.get(AUTH_REQUEST_PATH_HEADER) ?? TERMS_GATE_FALLBACK_NEXT;
-  const termsGateBypassed = shouldBypassTermsAcceptanceGate(requestPath);
+  const resolveAuthGate = async () => {
+    const termsGateBypassed = shouldBypassTermsAcceptanceGate(requestPath);
 
-  if (isProtectedRouteGateSatisfied(headerList, { termsRequired: !termsGateBypassed })) {
+    if (isProtectedRouteGateSatisfied(headerList, { termsRequired: !termsGateBypassed })) {
+      return withWorkshopChrome(children);
+    }
+
+    // Terms acceptance route: authenticated but must not mount workshop chrome.
+    if (termsGateBypassed) {
+      return children;
+    }
+
+    const currentUser = await getCurrentUserContext();
+    if (!currentUser) redirect(buildWorkshopLoginRedirectPath(requestPath));
+
+    const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(currentUser.userId);
+    if (acceptanceStatus.requiresAcceptance) {
+      redirect(buildTermsAcceptanceRedirectPath(requestPath));
+    }
+
     return withWorkshopChrome(children);
+  };
+
+  const requestPathname = requestPath.split("?", 1)[0] ?? requestPath;
+  if (!/^\/workshop\/projects\/[^/]+\/estimates\/[^/]+\/?$/.test(requestPathname)) {
+    return resolveAuthGate();
   }
 
-  // Terms acceptance route: authenticated but must not mount workshop chrome.
-  if (termsGateBypassed) {
-    return children;
-  }
-
-  const currentUser = await getCurrentUserContext();
-  if (!currentUser) redirect(buildWorkshopLoginRedirectPath(requestPath));
-
-  const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(currentUser.userId);
-  if (acceptanceStatus.requiresAcceptance) {
-    redirect(buildTermsAcceptanceRedirectPath(requestPath));
-  }
-
-  return withWorkshopChrome(children);
+  return withPerfTraceRequest("workshop.estimate-layout", () =>
+    traced("estimate.layout.auth", resolveAuthGate),
+  );
 }

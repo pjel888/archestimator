@@ -43,6 +43,7 @@ export function uploadProjectImage(file: File, projectId: string, onProgress: (p
     const formData = new FormData();
     formData.set("file", file);
     formData.set("projectId", projectId);
+    formData.set("uploadAttemptId", crypto.randomUUID());
 
     const request = new XMLHttpRequest();
     request.open("POST", "/api/projects/images");
