@@ -1,34 +1,34 @@
-export type DirectRowContribution = {
+type DirectRowContribution = {
   rowId: string;
   directMinorUnits: number;
   quantity: number;
 };
 
-export type AlternativeGroup = {
+type AlternativeGroup = {
   groupId: string;
   memberRowIds: readonly string[];
   selectedRowId: string;
 };
 
-export type OptionalItem = {
+type OptionalItem = {
   rowId: string;
   included: boolean;
 };
 
-export type EvaluatedAdditiveEdge = {
+type EvaluatedAdditiveEdge = {
   parentRowId: string;
   childRowId: string;
   effectiveDirectMinorUnits: number;
   effectiveQuantity: number;
 };
 
-export type ContributionInclusionReason =
+type ContributionInclusionReason =
   | "included"
   | "alternative_not_selected"
   | "optional_excluded"
   | "ancestor_excluded";
 
-export type EffectiveRowContribution = {
+type EffectiveRowContribution = {
   rowId: string;
   rootRowId: string;
   effectiveDirectMinorUnits: number;
@@ -37,7 +37,7 @@ export type EffectiveRowContribution = {
   inclusionReason: ContributionInclusionReason;
 };
 
-export type EffectiveContributionErrorCode =
+type EffectiveContributionErrorCode =
   | "duplicate_row"
   | "invalid_amount"
   | "invalid_quantity"

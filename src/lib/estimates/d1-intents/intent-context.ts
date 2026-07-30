@@ -31,6 +31,14 @@ export type EstimateMutationIntentContext = EstimateIntentContext & {
   requestFingerprint: string;
 };
 
+type EstimateMutationIntentInput = {
+  projectId: string;
+  estimateId: string;
+  correlationId: string;
+  commandKind: string;
+  request: unknown;
+};
+
 function readReceiptResult(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Estimate mutation receipt result must be an object.");
@@ -120,13 +128,7 @@ export async function assertEstimateEditIntent(
 export async function prepareEstimateMutationIntent<T>(
   database: D1DatabaseLike,
   actor: EstimateD1Actor,
-  input: {
-    projectId: string;
-    estimateId: string;
-    correlationId: string;
-    commandKind: string;
-    request: unknown;
-  },
+  input: EstimateMutationIntentInput,
 ): Promise<{ context: EstimateMutationIntentContext; committedResult: T | null }> {
   const trustedActor = requireActor(actor, "Estimate edit access denied.");
   await assertEstimateEditIntent(database, trustedActor, input.estimateId);
@@ -147,6 +149,21 @@ export async function prepareEstimateMutationIntent<T>(
     (value) => readReceiptResult(value) as T,
   );
   return { context, committedResult };
+}
+
+export async function prepareParsedEstimateMutationIntent<T>(
+  database: D1DatabaseLike,
+  actor: EstimateD1Actor,
+  input: EstimateMutationIntentInput,
+  parseCommittedResult: (value: unknown) => T,
+): Promise<{ context: EstimateMutationIntentContext; committedResult: T | null }> {
+  const prepared = await prepareEstimateMutationIntent<unknown>(database, actor, input);
+  return {
+    context: prepared.context,
+    committedResult: prepared.committedResult === null
+      ? null
+      : parseCommittedResult(prepared.committedResult),
+  };
 }
 
 export async function readConcurrentEstimateMutationReceipt<T>(

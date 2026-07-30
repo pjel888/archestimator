@@ -755,7 +755,7 @@ export function buildTemplateSidecarSourceGuard(
   };
 }
 
-export function buildTemplateVersionSidecars(sidecars: TemplateSidecars) {
+function buildTemplateVersionSidecars(sidecars: TemplateSidecars) {
   return {
     variantSelections: sidecars.variantSelections.map((selection) => ({
       templateRowItemId: selection.template_row_item_id,

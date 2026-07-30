@@ -13,7 +13,7 @@ export type AssemblyGraphRow = AssemblyGraphScope & {
   sortOrder: number;
 };
 
-export type AssemblyEdgeMode = "required" | "optional";
+type AssemblyEdgeMode = "required" | "optional";
 
 export type AssemblyGraphEdge = {
   edgeId: string;
@@ -25,7 +25,7 @@ export type AssemblyGraphEdge = {
   revision: number;
 };
 
-export type AssemblyGraphNode = {
+type AssemblyGraphNode = {
   rowId: string;
   rootRowId: string;
   parentRowId: string | null;
@@ -34,7 +34,7 @@ export type AssemblyGraphNode = {
   edgePathIncluded: boolean;
 };
 
-export type ValidAssemblyGraph = {
+type ValidAssemblyGraph = {
   scope: AssemblyGraphScope;
   rows: readonly AssemblyGraphRow[];
   edges: readonly AssemblyGraphEdge[];
@@ -42,7 +42,7 @@ export type ValidAssemblyGraph = {
   orderedNodes: readonly AssemblyGraphNode[];
 };
 
-export type AssemblyGraphErrorCode =
+type AssemblyGraphErrorCode =
   | "invalid_scope"
   | "duplicate_row"
   | "invalid_row"

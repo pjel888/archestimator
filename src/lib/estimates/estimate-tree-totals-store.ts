@@ -6,7 +6,7 @@ import { evaluateAssemblyQuantityRule } from "@/lib/estimates/assembly-quantity-
 import { resolveEffectiveContribution } from "@/lib/estimates/effective-contribution";
 import type { EstimateRowItem, EstimateTreeLoadLimitState, EstimateTreeNode } from "@/lib/estimates/types";
 
-export const LEGACY_ESTIMATE_TREE_TOTALS_TAB_ID = "legacy-main";
+const LEGACY_ESTIMATE_TREE_TOTALS_TAB_ID = "legacy-main";
 
 export type EstimateTreeTotalsDataState =
   | "loading"
@@ -23,7 +23,7 @@ export type EstimateTreeTotalsMutationState =
   | "rejected-retained"
   | "rolled-back";
 
-export type EstimateTreeTotalsCompletenessReason =
+type EstimateTreeTotalsCompletenessReason =
   | "node-limit"
   | "row-limit"
   | "subarea-not-loaded"
@@ -104,7 +104,7 @@ const EMPTY_TOTALS = createTotalsLookup(new Map());
 const snapshots = new Map<string, SnapshotEntry>();
 const listeners = new Map<string, Set<() => void>>();
 
-export function normalizeEstimateTreeTotalsTabId(tabId?: string | null) {
+function normalizeEstimateTreeTotalsTabId(tabId?: string | null) {
   return tabId?.trim() || LEGACY_ESTIMATE_TREE_TOTALS_TAB_ID;
 }
 

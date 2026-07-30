@@ -1,16 +1,16 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
-import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import { assertD1MutationStatementLimit, MutationIntentConflictError } from "@/lib/estimates/mutation-receipts";
 
 import { serializeAssemblyQuantityRule, type AssemblyQuantityRule } from "./assembly-quantity-rule";
 import { prepareHistoryEventInsert } from "./d1-intents/history-events";
+import { prepareStatement } from "./d1-intents/database";
+import { buildGuardedReceiptStatement as buildGuardedMutationReceiptStatement } from "./d1-intents/guarded-receipt";
 import {
   buildProjectPublicationRevisionForEstimate,
-  prepareEstimateMutationIntent,
+  prepareParsedEstimateMutationIntent,
   readConcurrentEstimateMutationReceipt,
   type EstimateD1Actor,
   type EstimateMutationIntentContext,
@@ -21,7 +21,7 @@ const UPDATE_ACCESSORY_EDGE_COMMAND = "material_assembly.update_accessory_edge";
 const DELETE_ACCESSORY_EDGE_COMMAND = "material_assembly.delete_accessory_edge";
 const BULK_ASSEMBLY_COMMAND = "material_assembly.bulk_apply";
 
-export type MaterialAssemblyEdgeMode = "required" | "optional";
+type MaterialAssemblyEdgeMode = "required" | "optional";
 
 export type MaterialAssemblyMutationErrorCode =
   | "invalid_input"
@@ -42,7 +42,7 @@ export class MaterialAssemblyMutationError extends Error {
   }
 }
 
-export type MaterialAssemblyEdgeSnapshot = {
+type MaterialAssemblyEdgeSnapshot = {
   edgeId: string;
   contributionScopeId: string;
   parentRowItemId: string;
@@ -186,25 +186,6 @@ function guardedTimestamp(now: string, requestFingerprint: string) {
   return `${now.slice(0, -1)}${suffix}Z`;
 }
 
-function d1Value(value: unknown): D1Value {
-  if (
-    value === null
-    || typeof value === "string"
-    || typeof value === "number"
-    || typeof value === "boolean"
-    || value instanceof ArrayBuffer
-  ) return value;
-  if (value === undefined) return null;
-  return JSON.stringify(value);
-}
-
-function prepare(
-  database: D1DatabaseLike,
-  statement: { sql: string; values?: readonly unknown[] },
-): D1PreparedStatementLike {
-  return database.prepare(statement.sql).bind(...(statement.values ?? []).map(d1Value));
-}
-
 function readBoolean(value: number | boolean) {
   return value === true || value === 1;
 }
@@ -282,48 +263,55 @@ function isReceiptBase(value: { edgeId?: unknown; contributionScopeId?: unknown;
     && Number.isSafeInteger(value.contributionRevision);
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+function isBulkReceipt(result: Record<string, unknown>) {
+  return result.kind === "material_assembly_bulk_applied"
+    && typeof result.contributionScopeId === "string"
+    && Number.isSafeInteger(result.contributionRevision)
+    && typeof result.changed === "boolean"
+    && isStringArray(result.changedRowItemIds)
+    && isStringArray(result.changedGroupIds)
+    && isStringArray(result.changedEdgeIds);
+}
+
+function isEdgeReceipt(result: Record<string, unknown>) {
+  return isReceiptBase(result)
+    && typeof result.parentRowItemId === "string"
+    && typeof result.childRowItemId === "string"
+    && (result.mode === "required" || result.mode === "optional")
+    && typeof result.isIncluded === "boolean"
+    && Number.isSafeInteger(result.edgeRevision)
+    && serializeAssemblyQuantityRule(result.quantityRule).ok;
+}
+
+function isCreatedEdgeReceipt(result: Record<string, unknown>) {
+  return result.kind === "accessory_edge_created" && isEdgeReceipt(result);
+}
+
+function isUpdatedEdgeReceipt(result: Record<string, unknown>) {
+  return result.kind === "accessory_edge_updated"
+    && isEdgeReceipt(result)
+    && typeof result.changed === "boolean";
+}
+
+function isDeletedEdgeReceipt(result: Record<string, unknown>) {
+  return result.kind === "accessory_edge_deleted" && isReceiptBase(result);
+}
+
+function isMaterialAssemblyReceipt(result: Record<string, unknown>) {
+  return [isBulkReceipt, isDeletedEdgeReceipt, isCreatedEdgeReceipt, isUpdatedEdgeReceipt]
+    .some((validate) => validate(result));
+}
+
 function readReceiptResult(value: unknown): MaterialAssemblyReceiptResult {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new MaterialAssemblyMutationError("persistence_unavailable", "The committed material-assembly receipt is invalid.");
   }
-  const result = value as Partial<MaterialAssemblyReceiptResult>;
-  if (result.kind === "material_assembly_bulk_applied") {
-    if (
-      typeof result.contributionScopeId === "string"
-      && Number.isSafeInteger(result.contributionRevision)
-      && typeof result.changed === "boolean"
-      && Array.isArray(result.changedRowItemIds)
-      && result.changedRowItemIds.every((entry) => typeof entry === "string")
-      && Array.isArray(result.changedGroupIds)
-      && result.changedGroupIds.every((entry) => typeof entry === "string")
-      && Array.isArray(result.changedEdgeIds)
-      && result.changedEdgeIds.every((entry) => typeof entry === "string")
-    ) return result as Omit<ApplyMaterialAssemblyBulkResult, "replayed">;
-  }
-  if (result.kind === "accessory_edge_deleted") {
-    if (isReceiptBase(result)) return result as Omit<DeleteMaterialAssemblyEdgeResult, "replayed">;
-  } else if (result.kind === "accessory_edge_created") {
-    if (
-      isReceiptBase(result)
-      && typeof result.parentRowItemId === "string"
-      && typeof result.childRowItemId === "string"
-      && (result.mode === "required" || result.mode === "optional")
-      && typeof result.isIncluded === "boolean"
-      && Number.isSafeInteger(result.edgeRevision)
-      && serializeAssemblyQuantityRule(result.quantityRule).ok
-    ) return result as Omit<CreateMaterialAssemblyEdgeResult, "replayed">;
-  } else if (result.kind === "accessory_edge_updated") {
-    if (
-      isReceiptBase(result)
-      && typeof result.parentRowItemId === "string"
-      && typeof result.childRowItemId === "string"
-      && (result.mode === "required" || result.mode === "optional")
-      && typeof result.isIncluded === "boolean"
-      && Number.isSafeInteger(result.edgeRevision)
-      && serializeAssemblyQuantityRule(result.quantityRule).ok
-      && typeof result.changed === "boolean"
-    ) return result as Omit<UpdateMaterialAssemblyEdgeResult, "replayed">;
-  }
+  const result = value as Partial<MaterialAssemblyReceiptResult> & Record<string, unknown>;
+  if (isMaterialAssemblyReceipt(result)) return result as MaterialAssemblyReceiptResult;
   throw new MaterialAssemblyMutationError("persistence_unavailable", "The committed material-assembly receipt is invalid.");
 }
 
@@ -350,17 +338,13 @@ async function prepareIntent<T extends MaterialAssemblyReceiptResult>(
   },
 ) {
   try {
-    const prepared = await prepareEstimateMutationIntent<T>(database, actor, {
+    return await prepareParsedEstimateMutationIntent<T>(database, actor, {
       projectId: input.projectId,
       estimateId: input.estimateId,
       correlationId: input.intentId,
       commandKind: input.commandKind,
       request: input.request,
-    });
-    return {
-      context: prepared.context,
-      committedResult: prepared.committedResult ? readReceiptResult(prepared.committedResult) as T : null,
-    };
+    }, (value) => readReceiptResult(value) as T);
   } catch (error) {
     mapIntentError(error);
   }
@@ -375,34 +359,10 @@ function buildGuardedReceiptStatement(input: {
   guardValues: readonly D1Value[];
   resourceType?: "estimate_accessory_edge" | "estimate_contribution_scope";
 }) {
-  return {
-    sql: `
-      INSERT INTO estimate_mutation_receipts (
-        id, workspace_id, command_kind, intent_id, actor_user_id,
-        resource_type, resource_id, request_fingerprint, status,
-        result_json, created_at, updated_at
-      )
-      VALUES (
-        ?, ?, ?, ?,
-        (SELECT ? WHERE EXISTS (${input.guardSql})),
-        ?, ?, ?, 'committed', ?, ?, ?
-      )
-    `,
-    values: [
-      randomUUID(),
-      input.context.workspaceId,
-      input.context.commandKind,
-      input.context.intentId,
-      input.context.actorUserId,
-      ...input.guardValues,
-      input.resourceType ?? "estimate_accessory_edge",
-      input.resourceId,
-      input.context.requestFingerprint,
-      JSON.stringify(input.result),
-      input.timestamp,
-      input.timestamp,
-    ] satisfies D1Value[],
-  };
+  return buildGuardedMutationReceiptStatement({
+    ...input,
+    resourceType: input.resourceType ?? "estimate_accessory_edge",
+  });
 }
 
 async function readConcurrentReceipt<T extends MaterialAssemblyReceiptResult>(
@@ -557,7 +517,7 @@ async function commitBatch(input: {
   try {
     await runRequiredD1Batch(
       input.database,
-      input.statements.map((statement) => prepare(input.database, statement)),
+      input.statements.map((statement) => prepareStatement(input.database, statement)),
       "Material assembly changes could not be saved.",
     );
   } catch (error) {

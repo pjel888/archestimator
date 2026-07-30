@@ -27,10 +27,17 @@ function normalizeD1Value(value: unknown): D1Value {
   return JSON.stringify(value);
 }
 
-function prepareStatement(database: D1DatabaseLike, statement: D1IntentStatement) {
+export function prepareStatement(database: D1DatabaseLike, statement: D1IntentStatement) {
   return database
     .prepare(statement.sql)
     .bind(...(statement.values ?? []).map(normalizeD1Value));
+}
+
+export function guardedD1Timestamp(now: string, requestFingerprint: string) {
+  const suffix = (BigInt(`0x${requestFingerprint.slice(0, 16)}`) % BigInt("1000000000000"))
+    .toString()
+    .padStart(12, "0");
+  return `${now.slice(0, -1)}${suffix}Z`;
 }
 
 export async function requireEstimateD1Database(): Promise<D1DatabaseLike> {

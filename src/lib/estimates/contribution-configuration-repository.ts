@@ -1,15 +1,15 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
-import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import { assertD1MutationStatementLimit, MutationIntentConflictError } from "@/lib/estimates/mutation-receipts";
 
 import { prepareHistoryEventInsert } from "./d1-intents/history-events";
+import { guardedD1Timestamp, prepareStatement } from "./d1-intents/database";
+import { buildGuardedReceiptStatement } from "./d1-intents/guarded-receipt";
 import {
   buildProjectPublicationRevisionForEstimate,
-  prepareEstimateMutationIntent,
+  prepareParsedEstimateMutationIntent,
   readConcurrentEstimateMutationReceipt,
   type EstimateD1Actor,
   type EstimateMutationIntentContext,
@@ -223,32 +223,6 @@ function normalizedTimestamp(value: string | undefined) {
   return date.toISOString();
 }
 
-function guardedTimestamp(now: string, requestFingerprint: string) {
-  const suffix = (BigInt(`0x${requestFingerprint.slice(0, 16)}`) % BigInt("1000000000000"))
-    .toString()
-    .padStart(12, "0");
-  return `${now.slice(0, -1)}${suffix}Z`;
-}
-
-function d1Value(value: unknown): D1Value {
-  if (
-    value === null
-    || typeof value === "string"
-    || typeof value === "number"
-    || typeof value === "boolean"
-    || value instanceof ArrayBuffer
-  ) return value;
-  if (value === undefined) return null;
-  return JSON.stringify(value);
-}
-
-function prepare(
-  database: D1DatabaseLike,
-  statement: { sql: string; values?: readonly unknown[] },
-): D1PreparedStatementLike {
-  return database.prepare(statement.sql).bind(...(statement.values ?? []).map(d1Value));
-}
-
 function readBoolean(value: number | boolean | null) {
   return value === true || value === 1;
 }
@@ -288,55 +262,74 @@ function parseStringArray(value: string, label: string) {
   throw new ContributionConfigurationError("persistence_unavailable", `${label} is invalid.`);
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+function hasValidReceiptBase(result: Record<string, unknown>) {
+  return typeof result.contributionScopeId === "string"
+    && Number.isSafeInteger(result.contributionRevision)
+    && typeof result.changed === "boolean";
+}
+
+function isAlternativeGroupReceipt(result: Record<string, unknown>) {
+  return result.kind === "alternative_group_configured"
+    && typeof result.groupId === "string"
+    && typeof result.name === "string"
+    && isStringArray(result.rowItemIds)
+    && typeof result.selectedRowItemId === "string"
+    && Number.isSafeInteger(result.groupRevision);
+}
+
+function isMarkedOptionalReceipt(result: Record<string, unknown>) {
+  return result.kind === "optional_row_marked"
+    && typeof result.rowItemId === "string"
+    && typeof result.isIncluded === "boolean"
+    && Number.isSafeInteger(result.optionalRevision);
+}
+
+function isUnmarkedOptionalReceipt(result: Record<string, unknown>) {
+  return result.kind === "optional_row_unmarked"
+    && typeof result.rowItemId === "string"
+    && result.optionalRevision === null
+    && result.changed === true;
+}
+
+function isRemovedAlternativeGroupReceipt(result: Record<string, unknown>) {
+  return result.kind === "alternative_group_removed"
+    && typeof result.groupId === "string"
+    && isStringArray(result.removedRowItemIds)
+    && result.groupRevision === null
+    && result.changed === true;
+}
+
+function isBulkConfigurationReceipt(result: Record<string, unknown>) {
+  return result.kind === "contribution_configuration_bulk_applied"
+    && isStringArray(result.changedRowItemIds)
+    && isStringArray(result.changedGroupIds)
+    && result.changed === true;
+}
+
+function isContributionReceipt(result: Record<string, unknown>) {
+  return [
+    (value: Record<string, unknown>) => value.kind === "contribution_scope_ensured",
+    isAlternativeGroupReceipt,
+    isMarkedOptionalReceipt,
+    isUnmarkedOptionalReceipt,
+    isRemovedAlternativeGroupReceipt,
+    isBulkConfigurationReceipt,
+  ].some((validate) => validate(result));
+}
+
 function readReceiptResult(value: unknown): ReceiptResult {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new ContributionConfigurationError("persistence_unavailable", "The committed contribution-configuration receipt is invalid.");
   }
   const result = value as Partial<ReceiptResult> & Record<string, unknown>;
-  const validBase = typeof result.contributionScopeId === "string"
-    && Number.isSafeInteger(result.contributionRevision)
-    && typeof result.changed === "boolean";
-  if (!validBase) {
+  if (!hasValidReceiptBase(result)) {
     throw new ContributionConfigurationError("persistence_unavailable", "The committed contribution-configuration receipt is invalid.");
   }
-  if (result.kind === "contribution_scope_ensured") return result as Omit<EnsureEstimateContributionScopeResult, "replayed">;
-  if (
-    result.kind === "alternative_group_configured"
-    && typeof result.groupId === "string"
-    && typeof result.name === "string"
-    && Array.isArray(result.rowItemIds)
-    && result.rowItemIds.every((entry) => typeof entry === "string")
-    && typeof result.selectedRowItemId === "string"
-    && Number.isSafeInteger(result.groupRevision)
-  ) return result as Omit<EstimateAlternativeGroupConfigurationResult, "replayed">;
-  if (
-    result.kind === "optional_row_marked"
-    && typeof result.rowItemId === "string"
-    && typeof result.isIncluded === "boolean"
-    && Number.isSafeInteger(result.optionalRevision)
-  ) return result as Omit<MarkEstimateContributionRowOptionalResult, "replayed">;
-  if (
-    result.kind === "optional_row_unmarked"
-    && typeof result.rowItemId === "string"
-    && result.optionalRevision === null
-    && result.changed === true
-  ) return result as Omit<UnmarkEstimateContributionRowOptionalResult, "replayed">;
-  if (
-    result.kind === "alternative_group_removed"
-    && typeof result.groupId === "string"
-    && Array.isArray(result.removedRowItemIds)
-    && result.removedRowItemIds.every((entry) => typeof entry === "string")
-    && result.groupRevision === null
-    && result.changed === true
-  ) return result as Omit<RemoveEstimateAlternativeGroupResult, "replayed">;
-  if (
-    result.kind === "contribution_configuration_bulk_applied"
-    && Array.isArray(result.changedRowItemIds)
-    && result.changedRowItemIds.every((entry) => typeof entry === "string")
-    && Array.isArray(result.changedGroupIds)
-    && result.changedGroupIds.every((entry) => typeof entry === "string")
-    && result.changed === true
-  ) return result as Omit<ApplyEstimateContributionConfigurationBulkResult, "replayed">;
+  if (isContributionReceipt(result)) return result as ReceiptResult;
   throw new ContributionConfigurationError("persistence_unavailable", "The committed contribution-configuration receipt is invalid.");
 }
 
@@ -363,50 +356,16 @@ async function prepareIntent<T extends ReceiptResult>(
   },
 ) {
   try {
-    const prepared = await prepareEstimateMutationIntent<T>(database, actor, {
+    return await prepareParsedEstimateMutationIntent<T>(database, actor, {
       projectId: input.projectId,
       estimateId: input.estimateId,
       correlationId: input.intentId,
       commandKind: input.commandKind,
       request: input.request,
-    });
-    return {
-      context: prepared.context,
-      committedResult: prepared.committedResult ? readReceiptResult(prepared.committedResult) as T : null,
-    };
+    }, (value) => readReceiptResult(value) as T);
   } catch (error) {
     mapIntentError(error);
   }
-}
-
-function buildGuardedReceiptStatement(input: {
-  context: EstimateMutationIntentContext;
-  resourceType: "estimate_contribution_scope" | "estimate_alternative_group" | "estimate_optional_item";
-  resourceId: string;
-  result: ReceiptResult;
-  timestamp: string;
-  guardSql: string;
-  guardValues: readonly D1Value[];
-}) {
-  return {
-    sql: `
-      INSERT INTO estimate_mutation_receipts (
-        id, workspace_id, command_kind, intent_id, actor_user_id,
-        resource_type, resource_id, request_fingerprint, status,
-        result_json, created_at, updated_at
-      )
-      VALUES (
-        ?, ?, ?, ?,
-        (SELECT ? WHERE EXISTS (${input.guardSql})),
-        ?, ?, ?, 'committed', ?, ?, ?
-      )
-    `,
-    values: [
-      randomUUID(), input.context.workspaceId, input.context.commandKind, input.context.intentId,
-      input.context.actorUserId, ...input.guardValues, input.resourceType, input.resourceId,
-      input.context.requestFingerprint, JSON.stringify(input.result), input.timestamp, input.timestamp,
-    ] satisfies D1Value[],
-  };
 }
 
 async function commitBatch(input: {
@@ -418,7 +377,7 @@ async function commitBatch(input: {
   try {
     await runRequiredD1Batch(
       input.database,
-      input.statements.map((statement) => prepare(input.database, statement)),
+      input.statements.map((statement) => prepareStatement(input.database, statement)),
       "Contribution configuration could not be saved.",
     );
   } catch (error) {
@@ -739,7 +698,7 @@ export async function createOrReplaceEstimateAlternativeGroup(
     changed,
   };
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const guardSql = `
     SELECT 1 FROM estimate_alternative_groups AS group_row
     JOIN estimate_contribution_scopes AS scope ON scope.id = group_row.contribution_scope_id
@@ -968,7 +927,7 @@ export async function markEstimateContributionRowOptional(
     isIncluded: input.isIncluded, optionalRevision, contributionRevision, changed,
   };
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const guardSql = `
     SELECT 1 FROM estimate_optional_items AS optional_row
     JOIN estimate_contribution_scopes AS scope ON scope.id = optional_row.contribution_scope_id
@@ -1106,7 +1065,7 @@ export async function unmarkEstimateContributionRowOptional(
     optionalRevision: null, contributionRevision: expectedContributionRevision + 1, changed: true,
   };
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const receipt = buildGuardedReceiptStatement({
     context: prepared.context, resourceType: "estimate_optional_item", resourceId: rowItemId,
     result, timestamp: now,
@@ -1203,7 +1162,7 @@ export async function removeEstimateAlternativeGroup(
     removedRowItemIds, groupRevision: null, contributionRevision: expectedContributionRevision + 1, changed: true,
   };
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const receipt = buildGuardedReceiptStatement({
     context: prepared.context, resourceType: "estimate_alternative_group", resourceId: groupId,
     result, timestamp: now,
@@ -1339,7 +1298,7 @@ export async function applyEstimateContributionConfigurationBulk(
   const guardRevision = Number(scope?.revision ?? 1);
   const contributionRevision = guardRevision + 1;
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const changedRowItemIds = operation.kind === "configure_alternatives"
     ? operation.rowItemIds
     : operation.rows.map((row) => row.rowItemId);

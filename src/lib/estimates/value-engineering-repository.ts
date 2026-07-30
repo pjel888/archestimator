@@ -1,15 +1,15 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
-import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
+import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
 import { assertD1MutationStatementLimit, MutationIntentConflictError } from "@/lib/estimates/mutation-receipts";
 
 import { prepareHistoryEventInsert } from "./d1-intents/history-events";
+import { guardedD1Timestamp, prepareStatement } from "./d1-intents/database";
+import { buildGuardedReceiptStatement } from "./d1-intents/guarded-receipt";
 import {
   buildProjectPublicationRevisionForEstimate,
-  prepareEstimateMutationIntent,
+  prepareParsedEstimateMutationIntent,
   readConcurrentEstimateMutationReceipt,
   type EstimateD1Actor,
   type EstimateMutationIntentContext,
@@ -127,62 +127,38 @@ function normalizedTimestamp(value: string | undefined) {
   return date.toISOString();
 }
 
-function guardedTimestamp(now: string, requestFingerprint: string) {
-  const suffix = (BigInt(`0x${requestFingerprint.slice(0, 16)}`) % BigInt("1000000000000"))
-    .toString()
-    .padStart(12, "0");
-  return `${now.slice(0, -1)}${suffix}Z`;
-}
-
-function d1Value(value: unknown): D1Value {
-  if (
-    value === null
-    || typeof value === "string"
-    || typeof value === "number"
-    || typeof value === "boolean"
-    || value instanceof ArrayBuffer
-  ) return value;
-  if (value === undefined) return null;
-  return JSON.stringify(value);
-}
-
-function prepare(
-  database: D1DatabaseLike,
-  statement: { sql: string; values?: readonly unknown[] },
-): D1PreparedStatementLike {
-  return database.prepare(statement.sql).bind(...(statement.values ?? []).map(d1Value));
-}
-
 function readBoolean(value: number | boolean) {
   return value === true || value === 1;
+}
+
+function isAlternativeReceipt(result: Record<string, unknown>) {
+  return result.kind === "alternative_selection"
+    && typeof result.contributionScopeId === "string"
+    && typeof result.groupId === "string"
+    && typeof result.selectedRowItemId === "string"
+    && Number.isSafeInteger(result.groupRevision)
+    && Number.isSafeInteger(result.contributionRevision)
+    && typeof result.changed === "boolean";
+}
+
+function isOptionalInclusionReceipt(result: Record<string, unknown>) {
+  return result.kind === "optional_inclusion"
+    && typeof result.contributionScopeId === "string"
+    && typeof result.rowItemId === "string"
+    && typeof result.isIncluded === "boolean"
+    && Number.isSafeInteger(result.optionalRevision)
+    && Number.isSafeInteger(result.contributionRevision)
+    && typeof result.changed === "boolean";
 }
 
 function readReceiptResult(value: unknown): ReceiptResult {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new ValueEngineeringMutationError("persistence_unavailable", "The committed value-engineering receipt is invalid.");
   }
-  const result = value as Partial<ReceiptResult>;
-  if (result.kind === "alternative_selection") {
-    if (
-      typeof result.contributionScopeId !== "string"
-      || typeof result.groupId !== "string"
-      || typeof result.selectedRowItemId !== "string"
-      || !Number.isSafeInteger(result.groupRevision)
-      || !Number.isSafeInteger(result.contributionRevision)
-      || typeof result.changed !== "boolean"
-    ) throw new ValueEngineeringMutationError("persistence_unavailable", "The committed value-engineering receipt is invalid.");
-    return result as AlternativeReceiptResult;
-  }
-  if (
-    result.kind !== "optional_inclusion"
-    || typeof result.contributionScopeId !== "string"
-    || typeof result.rowItemId !== "string"
-    || typeof result.isIncluded !== "boolean"
-    || !Number.isSafeInteger(result.optionalRevision)
-    || !Number.isSafeInteger(result.contributionRevision)
-    || typeof result.changed !== "boolean"
-  ) throw new ValueEngineeringMutationError("persistence_unavailable", "The committed value-engineering receipt is invalid.");
-  return result as OptionalInclusionReceiptResult;
+  const result = value as Partial<ReceiptResult> & Record<string, unknown>;
+  if (isAlternativeReceipt(result)) return result as AlternativeReceiptResult;
+  if (isOptionalInclusionReceipt(result)) return result as OptionalInclusionReceiptResult;
+  throw new ValueEngineeringMutationError("persistence_unavailable", "The committed value-engineering receipt is invalid.");
 }
 
 function mapIntentError(error: unknown): never {
@@ -208,59 +184,16 @@ async function prepareIntent<T extends ReceiptResult>(
   },
 ) {
   try {
-    const prepared = await prepareEstimateMutationIntent<T>(database, actor, {
+    return await prepareParsedEstimateMutationIntent<T>(database, actor, {
       projectId: input.projectId,
       estimateId: input.estimateId,
       correlationId: input.intentId,
       commandKind: input.commandKind,
       request: input.request,
-    });
-    return {
-      context: prepared.context,
-      committedResult: prepared.committedResult ? readReceiptResult(prepared.committedResult) as T : null,
-    };
+    }, (value) => readReceiptResult(value) as T);
   } catch (error) {
     mapIntentError(error);
   }
-}
-
-function buildGuardedReceiptStatement(input: {
-  context: EstimateMutationIntentContext;
-  resourceType: "estimate_alternative_group" | "estimate_optional_item";
-  resourceId: string;
-  result: ReceiptResult;
-  timestamp: string;
-  guardSql: string;
-  guardValues: readonly D1Value[];
-}) {
-  return {
-    sql: `
-      INSERT INTO estimate_mutation_receipts (
-        id, workspace_id, command_kind, intent_id, actor_user_id,
-        resource_type, resource_id, request_fingerprint, status,
-        result_json, created_at, updated_at
-      )
-      VALUES (
-        ?, ?, ?, ?,
-        (SELECT ? WHERE EXISTS (${input.guardSql})),
-        ?, ?, ?, 'committed', ?, ?, ?
-      )
-    `,
-    values: [
-      randomUUID(),
-      input.context.workspaceId,
-      input.context.commandKind,
-      input.context.intentId,
-      input.context.actorUserId,
-      ...input.guardValues,
-      input.resourceType,
-      input.resourceId,
-      input.context.requestFingerprint,
-      JSON.stringify(input.result),
-      input.timestamp,
-      input.timestamp,
-    ] satisfies D1Value[],
-  };
 }
 
 async function readConcurrentReceipt<T extends ReceiptResult>(
@@ -371,7 +304,7 @@ async function commitBatch(input: {
   try {
     await runRequiredD1Batch(
       input.database,
-      input.statements.map((statement) => prepare(input.database, statement)),
+      input.statements.map((statement) => prepareStatement(input.database, statement)),
       "Value-engineering changes could not be saved.",
     );
   } catch (error) {
@@ -439,7 +372,7 @@ export async function selectValueEngineeringAlternative(
     changed,
   };
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const guardSql = `
     SELECT 1
     FROM estimate_alternative_groups AS group_row
@@ -611,7 +544,7 @@ export async function setValueEngineeringOptionalInclusion(
     changed,
   };
   const now = normalizedTimestamp(input.now);
-  const marker = guardedTimestamp(now, prepared.context.requestFingerprint);
+  const marker = guardedD1Timestamp(now, prepared.context.requestFingerprint);
   const guardSql = `
     SELECT 1
     FROM estimate_optional_items AS optional_row

@@ -311,29 +311,49 @@ function normalizeEstimateTreeNodeRow(row: EstimateTreeNodeQueryRow): EstimateTr
   };
 }
 
-function normalizeEstimateTreeRowItem(row: EstimateTreeRowItemQueryRow): EstimateTreeRowItemQueryRow {
+function nullableD1Number(value: number | string | null | undefined) {
+  return value === null || value === undefined ? null : Number(value);
+}
+
+function normalizedEstimateTreeRowLinks(row: EstimateTreeRowItemQueryRow) {
   return {
-    ...row,
     node_id: row.node_id ?? "",
-    supplier: row.supplier ?? "",
     brand_id: row.brand_id ?? null,
     supplier_id: row.supplier_id ?? null,
+    category_node_id: row.category_node_id ?? null,
+    source_library_item_id: row.source_library_item_id ?? null,
+    link_state: row.link_state ?? "unlinked",
+  };
+}
+
+function normalizedEstimateTreeRowText(row: EstimateTreeRowItemQueryRow) {
+  return {
+    supplier: row.supplier ?? "",
     unit: row.unit ?? "",
+    discipline: row.discipline ?? "",
+    designation: row.designation ?? "",
+  };
+}
+
+function normalizedEstimateTreeRowNumbers(row: EstimateTreeRowItemQueryRow) {
+  return {
     unit_cost: Number(row.unit_cost ?? 0),
     quantity: Number(row.quantity ?? 0),
-    quantity_base: row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base),
-    quantity_contingency_amount: row.quantity_contingency_amount === null || row.quantity_contingency_amount === undefined
-      ? null
-      : Number(row.quantity_contingency_amount),
+    quantity_base: nullableD1Number(row.quantity_base),
+    quantity_contingency_amount: nullableD1Number(row.quantity_contingency_amount),
     contingency_percentage: Number(row.contingency_percentage ?? 0),
     adjustment_percentage: Number(row.adjustment_percentage ?? 0),
     misc_cost: Number(row.misc_cost ?? 0),
     row_revision: Number(row.row_revision ?? 0),
-    category_node_id: row.category_node_id ?? null,
-    discipline: row.discipline ?? "",
-    designation: row.designation ?? "",
-    source_library_item_id: row.source_library_item_id ?? null,
-    link_state: row.link_state ?? "unlinked",
+  };
+}
+
+function normalizeEstimateTreeRowItem(row: EstimateTreeRowItemQueryRow): EstimateTreeRowItemQueryRow {
+  return {
+    ...row,
+    ...normalizedEstimateTreeRowLinks(row),
+    ...normalizedEstimateTreeRowText(row),
+    ...normalizedEstimateTreeRowNumbers(row),
     source_snapshot: readD1Json(row.source_snapshot),
     metadata: readD1Json(row.metadata),
   };

@@ -1,13 +1,13 @@
-export const ASSEMBLY_QUANTITY_RULE_VERSION = 1 as const;
+const ASSEMBLY_QUANTITY_RULE_VERSION = 1 as const;
 export const MAX_ASSEMBLY_QUANTITY_AST_DEPTH = 8;
 export const MAX_ASSEMBLY_QUANTITY_AST_NODES = 32;
-export const MAX_ASSEMBLY_QUANTITY_OPERAND = 1_000_000_000;
-export const MAX_ASSEMBLY_QUANTITY_RESULT = 9_000_000_000;
-export const ASSEMBLY_QUANTITY_DECIMAL_PLACES = 6;
+const MAX_ASSEMBLY_QUANTITY_OPERAND = 1_000_000_000;
+const MAX_ASSEMBLY_QUANTITY_RESULT = 9_000_000_000;
+const ASSEMBLY_QUANTITY_DECIMAL_PLACES = 6;
 
-export type AssemblyAreaUnit = "m2" | "ft2";
-export type AssemblyLengthUnit = "m" | "ft";
-export type AssemblyQuantityVariable = "parentQuantity" | "area" | "edgeLength";
+type AssemblyAreaUnit = "m2" | "ft2";
+type AssemblyLengthUnit = "m" | "ft";
+type AssemblyQuantityVariable = "parentQuantity" | "area" | "edgeLength";
 
 export type AssemblyQuantityExpression =
   | { type: "literal"; value: number }
@@ -37,7 +37,7 @@ export type AssemblyQuantityRuleContext = {
   edgeLength?: { value: number; unit: AssemblyLengthUnit };
 };
 
-export type AssemblyQuantityRuleErrorCode =
+type AssemblyQuantityRuleErrorCode =
   | "invalid_rule"
   | "unsupported_version"
   | "unsupported_kind"

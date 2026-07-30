@@ -91,6 +91,7 @@ export function buildCommittedMutationReceiptStatement(input: MutationReceiptIde
   resourceId?: string | null;
   result: unknown;
   timestamp: string;
+  guard?: { sql: string; values: readonly D1Value[] };
 }): MutationReceiptStatement {
   const resultJson = JSON.stringify(input.result);
   if (new TextEncoder().encode(resultJson).byteLength > MUTATION_RECEIPT_RESULT_MAX_BYTES) {
@@ -103,7 +104,7 @@ export function buildCommittedMutationReceiptStatement(input: MutationReceiptIde
         resource_type, resource_id, request_fingerprint, status,
         result_json, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'committed', ?, ?, ?)
+      VALUES (?, ?, ?, ?, ${input.guard ? `(SELECT ? WHERE EXISTS (${input.guard.sql}))` : "?"}, ?, ?, ?, 'committed', ?, ?, ?)
     `,
     values: [
       randomUUID(),
@@ -111,6 +112,7 @@ export function buildCommittedMutationReceiptStatement(input: MutationReceiptIde
       input.commandKind,
       input.intentId,
       input.actorUserId,
+      ...(input.guard?.values ?? []),
       input.resourceType,
       input.resourceId ?? null,
       input.requestFingerprint,
