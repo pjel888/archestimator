@@ -103,4 +103,3 @@ describe("commercial VAT arithmetic", () => {
     });
   });
 });
-
