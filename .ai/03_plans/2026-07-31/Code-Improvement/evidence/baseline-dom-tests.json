@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "kind": "vitest-baseline-summary",
+  "command": "bun run test:dom -- --reporter=json --outputFile=.tmp/code-improvement-vitest.json",
+  "baseline_head": "93d5124d268a1b6016f63f8a8e5e69e118630d13",
+  "success": true,
+  "total_test_suites": 2140,
+  "passed_test_suites": 2140,
+  "failed_test_suites": 0,
+  "pending_test_suites": 0,
+  "total_tests": 6775,
+  "passed_tests": 6775,
+  "failed_tests": 0,
+  "pending_tests": 0,
+  "todo_tests": 0,
+  "start_time_epoch_ms": 1785468867331,
+  "end_time_epoch_ms": 1785470769004.9456,
+  "duration_ms": 1901673.9455566406,
+  "receipt_sha256": "977317c35d2835c5165980b7f7259535fce2afded1ac088d48d45913d14e42ab",
+  "receipt_path": ".tmp/code-improvement-vitest.json",
+  "claim_limit": "This green baseline proves the existing DOM suite at the recorded revision only. It does not cover the missing edge cases enumerated in 01-AUDIT-REGISTER.md."
+}

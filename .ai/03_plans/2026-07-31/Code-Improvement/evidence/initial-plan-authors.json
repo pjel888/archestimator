@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "baseline": "93d5124d268a1b6016f63f8a8e5e69e118630d13",
+  "scope": "initial Code-Improvement plan-pack candidate",
+  "author_ids": [
+    "codex-lead",
+    "codex-planning-collaborator"
+  ],
+  "derivation": "Stable local role identities for agents that directly authored or integrated initial candidate bytes; read-only reviewers are excluded.",
+  "carry_forward": "Every cumulative candidate-author receipt must contain this complete set plus every later writer identity."
+}
