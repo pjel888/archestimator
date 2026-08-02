@@ -1,35 +1,16 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-const targetedProjects = new Set(["chromium", "iphone-se", "pixel-8-chrome"]);
-
-function captureBrowserErrors(page: Page) {
-  const unexpectedErrors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") {
-      unexpectedErrors.push(`console: ${message.text()}`);
-    }
-  });
-  page.on("pageerror", (error) => {
-    unexpectedErrors.push(`pageerror: ${error.message}`);
-  });
-  return unexpectedErrors;
-}
+import { captureBrowserErrors } from "./browser-errors";
 
 test.describe("Kimi3d quality smoke", () => {
-  test.beforeEach(({}, testInfo) => {
-    test.skip(
-      !targetedProjects.has(testInfo.project.name),
-      "Targeted desktop and mobile quality projects only.",
-    );
-  });
-
   test("renders its main content without browser errors or horizontal overflow", async ({
     page,
+    browserName,
   }) => {
-    const unexpectedErrors = captureBrowserErrors(page);
+    const browserErrors = captureBrowserErrors(page, browserName);
     await page.emulateMedia({ reducedMotion: "reduce" });
     const response = await page.goto("/kimi3d", {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
     });
 
     expect(response?.status()).toBe(200);
@@ -44,6 +25,9 @@ test.describe("Kimi3d quality smoke", () => {
       viewport: document.documentElement.clientWidth,
     }));
     expect(widths.content).toBeLessThanOrEqual(widths.viewport + 1);
-    expect(unexpectedErrors).toEqual([]);
+    expect(
+      browserErrors.unexpectedErrors,
+      `Expected diagnostics: ${browserErrors.expectedDiagnostics.join("\n")}`,
+    ).toEqual([]);
   });
 });

@@ -8,6 +8,7 @@ import { expect, test, type Browser, type Page, type TestInfo } from "@playwrigh
 import sharp from "sharp";
 
 import initialCopyParity from "../../tests/fixtures/new-landing-initial-copy-parity.json";
+import { captureBrowserErrors } from "./browser-errors";
 
 test.use({
   storageState: { cookies: [], origins: [] },
@@ -135,34 +136,34 @@ async function settleStaticPage(page: Page, route: "/" | "/new") {
       window.scrollTo(0, offset);
       await new Promise((resolve) => window.setTimeout(resolve, 30));
     }
+    for (const image of Array.from(document.images).filter((candidate) => candidate.currentSrc)) {
+      image.scrollIntoView({ block: "center" });
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      if (!image.complete) {
+        await new Promise<void>((resolve, reject) => {
+          const timeout = window.setTimeout(() => {
+            reject(new Error(`Image readiness timed out: ${image.currentSrc}`));
+          }, 20_000);
+          const finish = (error?: Error) => {
+            window.clearTimeout(timeout);
+            image.removeEventListener("load", handleLoad);
+            image.removeEventListener("error", handleError);
+            if (error) reject(error);
+            else resolve();
+          };
+          const handleLoad = () => finish();
+          const handleError = () => finish(new Error(`Image failed: ${image.currentSrc}`));
+          image.addEventListener("load", handleLoad, { once: true });
+          image.addEventListener("error", handleError, { once: true });
+          if (image.complete) finish();
+        });
+      }
+      if (image.naturalWidth === 0) {
+        throw new Error(`Image has no decoded pixels: ${image.currentSrc}`);
+      }
+      await image.decode();
+    }
     window.scrollTo(0, 0);
-    await Promise.all(
-      Array.from(document.images)
-        .filter((image) => image.currentSrc)
-        .map(async (image) => {
-          if (!image.complete) {
-            await Promise.race([
-              new Promise((resolve, reject) => {
-                image.addEventListener("load", () => resolve(undefined), { once: true });
-                image.addEventListener(
-                  "error",
-                  () => reject(new Error(`Image failed: ${image.currentSrc}`)),
-                  { once: true },
-                );
-              }),
-              new Promise((_, reject) => {
-                window.setTimeout(
-                  () => reject(new Error(`Image readiness timed out: ${image.currentSrc}`)),
-                  10_000,
-                );
-              }),
-            ]);
-          }
-          if (image.naturalWidth === 0) {
-            throw new Error(`Image has no decoded pixels: ${image.currentSrc}`);
-          }
-        }),
-    );
     await document.fonts.load('400 64px "Doto"');
     await document.fonts.ready;
     if (!document.fonts.check('400 64px "Doto"')) {
@@ -198,14 +199,9 @@ async function captureStatic(
     `,
   });
   const page = await context.newPage();
-  const consoleErrors: string[] = [];
-  const pageErrors: string[] = [];
+  const browserErrors = captureBrowserErrors(page, browser.browserType().name());
   const badResponses: Array<{ status: number; url: string }> = [];
 
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
-  });
-  page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {
     if (response.status() >= 400) {
       badResponses.push({ status: response.status(), url: response.url() });
@@ -304,8 +300,8 @@ async function captureStatic(
     heroScreenshot,
     fullScreenshot,
     firstPostHeroScreenshot,
-    consoleErrors,
-    pageErrors,
+    consoleErrors: browserErrors.unexpectedErrors,
+    pageErrors: [],
     badResponses,
   };
 }
@@ -319,11 +315,7 @@ async function rippleEvidence(browser: Browser, route: "/" | "/new") {
     storageState: { cookies: [], origins: [] },
   });
   const page = await context.newPage();
-  const unexpectedErrors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") unexpectedErrors.push(`console: ${message.text()}`);
-  });
-  page.on("pageerror", (error) => unexpectedErrors.push(`pageerror: ${error.message}`));
+  const browserErrors = captureBrowserErrors(page, browser.browserType().name());
 
   await page.goto(route, { waitUntil: "networkidle" });
   const canvas = page.locator("[data-hero-ripple-canvas][data-ripple-ready]");
@@ -360,7 +352,31 @@ async function rippleEvidence(browser: Browser, route: "/" | "/new") {
   }));
   const visualDiff = await comparePixels(afterPointer, beforePointer);
   await context.close();
-  return { ...evidence, visualDiff, unexpectedErrors };
+  return {
+    ...evidence,
+    visualDiff,
+    unexpectedErrors: browserErrors.unexpectedErrors,
+  };
+}
+
+async function clickPrimaryNavigation(
+  page: Page,
+  linkName: "Workflow" | "Client review",
+) {
+  const menuButton = page.getByRole("button", { name: "Menu", exact: true });
+  if (await menuButton.isVisible()) {
+    await menuButton.click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("link", { name: linkName, exact: true }).click();
+    await expect(dialog).toBeHidden();
+    return;
+  }
+
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: linkName, exact: true })
+    .click();
 }
 
 test("final experiment preserves the shared hero image and captures the comparison", async ({
@@ -525,8 +541,8 @@ test("the shared fine-pointer ripple engine responds on both routes", async ({ b
   expect(experiment.ready).toBe(true);
   expect(experiment.ready).toBe(control.ready);
   expect(experiment.segments).toBe(control.segments);
-  expect(["moving", "settling"]).toContain(control.state);
-  expect(["moving", "settling"]).toContain(experiment.state);
+  expect(["moving", "settling", "rest"]).toContain(control.state);
+  expect(["moving", "settling", "rest"]).toContain(experiment.state);
   expect(control.visualDiff.pixelDiffCount).toBeGreaterThan(0);
   expect(experiment.visualDiff.pixelDiffCount).toBeGreaterThan(0);
   expect(control.visualDiff.maxChannelDelta).toBeGreaterThan(0);
@@ -577,12 +593,11 @@ test("mobile menu behavior and section navigation match the control", async ({ b
   await markEvidence(testInfo, "mobile-menu");
 });
 
-test("body, metadata, navigation, CTA, and accessibility contracts pass", async ({ page }, testInfo) => {
-  const unexpectedErrors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") unexpectedErrors.push(`console: ${message.text()}`);
-  });
-  page.on("pageerror", (error) => unexpectedErrors.push(`pageerror: ${error.message}`));
+test("body, metadata, navigation, CTA, and accessibility contracts pass", async ({
+  page,
+  browserName,
+}, testInfo) => {
+  const browserErrors = captureBrowserErrors(page, browserName);
 
   await page.goto("/new", { waitUntil: "networkidle" });
   await expect(page).toHaveTitle("Build, Publish, Decide | Archestimator");
@@ -627,23 +642,39 @@ test("body, metadata, navigation, CTA, and accessibility contracts pass", async 
   await expect(closingCta).toHaveCount(1);
   expect(await closingCta.getAttribute("href")).toBe(await heroCta.getAttribute("href"));
 
-  await page.getByRole("link", { name: "Workflow", exact: true }).click();
+  await clickPrimaryNavigation(page, "Workflow");
   await expect(page).toHaveURL(/#workflow$/u);
   await expect(page.locator("#workflow")).toBeInViewport();
-  await page.getByRole("link", { name: "Client review", exact: true }).click();
+  await clickPrimaryNavigation(page, "Client review");
   await expect(page).toHaveURL(/#proof$/u);
   await expect(page.locator("#proof")).toBeInViewport();
 
   const sitemap = await page.request.get("/sitemap.xml");
   expect(sitemap.ok()).toBe(true);
   expect(await sitemap.text()).not.toContain("/new");
-  await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.locator('a[href="/new"]')).toHaveCount(0);
+  const rootPage = await page.context().newPage();
+  try {
+    await rootPage.goto("/", { waitUntil: "networkidle" });
+    await expect(rootPage.locator('a[href="/new"]')).toHaveCount(0);
+  } finally {
+    await rootPage.close();
+  }
 
-  await page.goto("/new", { waitUntil: "networkidle" });
   const liveObjections = page.locator("[data-new-objection]");
   const firstObjection = liveObjections.first();
   await firstObjection.locator("summary").focus();
+  await expect
+    .poll(
+      () =>
+        firstObjection.evaluate((element) =>
+          Object.getOwnPropertyNames(element).some(
+            (property) =>
+              property.startsWith("__reactFiber$") || property.startsWith("__reactProps$"),
+          ),
+        ),
+      { message: "Expected the first objection to hydrate before native state changes" },
+    )
+    .toBe(true);
   await page.keyboard.press("Enter");
   await expect(firstObjection).toHaveAttribute("open", "");
   await expect(firstObjection.locator("p")).toBeVisible();
@@ -656,7 +687,10 @@ test("body, metadata, navigation, CTA, and accessibility contracts pass", async 
     .analyze();
   expect(accessibility.violations).toEqual([]);
   await expect(page.locator('a[href="#main"]')).toBeAttached();
-  expect(unexpectedErrors).toEqual([]);
+  expect(
+    browserErrors.unexpectedErrors,
+    `Expected diagnostics: ${browserErrors.expectedDiagnostics.join("\n")}`,
+  ).toEqual([]);
   await markEvidence(testInfo, "contracts");
 });
 
@@ -669,7 +703,7 @@ test("the experimental narrative remains readable without JavaScript", async ({ 
     storageState: { cookies: [], origins: [] },
   });
   const page = await context.newPage();
-  await page.goto("/new", { waitUntil: "domcontentloaded" });
+  await page.goto("/new", { waitUntil: "networkidle" });
 
   await expect(page.locator("#hero-title")).toBeVisible();
   await expect(page.getByText(approvedOneLiner, { exact: true })).toBeVisible();

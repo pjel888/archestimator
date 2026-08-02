@@ -9,6 +9,9 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   test: {
+    browser: {
+      connectTimeout: 180_000,
+    },
     projects: [
       {
         extends: true,
@@ -17,6 +20,7 @@ export default defineConfig({
           name: "storybook",
           browser: {
             enabled: true,
+            fileParallelism: false,
             headless: true,
             provider: playwright({}),
             instances: [{ browser: "chromium" }],

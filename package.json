@@ -165,7 +165,7 @@
     "test:dom:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "bun scripts/quality/run-evidence-command.ts --artifact artifacts/quality/e2e-smoke.json --evidence-id test:e2e:smoke -- playwright test e2e/quality --project=chromium",
-    "test:e2e:matrix": "bun scripts/quality/run-evidence-command.ts --artifact artifacts/quality/e2e-matrix.json --evidence-id test:e2e:matrix -- env ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX=1 playwright test e2e/quality",
+    "test:e2e:matrix": "bun scripts/quality/run-evidence-command.ts --artifact artifacts/quality/e2e-matrix.json --evidence-id test:e2e:matrix -- env ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX=1 playwright test e2e/quality --workers=1",
     "test:mutation:changed": "bun scripts/quality/run-mutation.ts --scope changed",
     "test:mutation:critical": "bun scripts/quality/run-mutation.ts --scope critical",
     "test:mutation:full": "bun scripts/quality/run-mutation.ts --scope full",
