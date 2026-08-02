@@ -349,4 +349,112 @@ describe("contribution configuration repository", () => {
         name: ContributionConfigurationError.name,
       }));
   });
+
+  it("validates every command-specific committed receipt before replay", async () => {
+    const cases = [
+      {
+        receipt: {
+          kind: "alternative_group_configured",
+          contributionScopeId: "scope-1",
+          groupId: "group-1",
+          name: "Floor finishes",
+          rowItemIds: ["row-1", "row-2"],
+          selectedRowItemId: "row-2",
+          groupRevision: 2,
+          contributionRevision: 6,
+          changed: true,
+        },
+        run: (database: D1DatabaseLike) => createOrReplaceEstimateAlternativeGroup({
+          database,
+          ...base,
+          groupId: "group-1",
+          name: "Floor finishes",
+          rowItemIds: ["row-1", "row-2"],
+          selectedRowItemId: "row-2",
+          expectedGroupRevision: 1,
+          expectedContributionRevision: 5,
+        }),
+      },
+      {
+        receipt: {
+          kind: "optional_row_marked",
+          contributionScopeId: "scope-1",
+          rowItemId: "row-1",
+          isIncluded: false,
+          optionalRevision: 2,
+          contributionRevision: 6,
+          changed: true,
+        },
+        run: (database: D1DatabaseLike) => markEstimateContributionRowOptional({
+          database,
+          ...base,
+          rowItemId: "row-1",
+          isIncluded: false,
+          expectedOptionalRevision: 1,
+          expectedContributionRevision: 5,
+        }),
+      },
+      {
+        receipt: {
+          kind: "optional_row_unmarked",
+          contributionScopeId: "scope-1",
+          rowItemId: "row-1",
+          optionalRevision: null,
+          contributionRevision: 6,
+          changed: true,
+        },
+        run: (database: D1DatabaseLike) => unmarkEstimateContributionRowOptional({
+          database,
+          ...base,
+          rowItemId: "row-1",
+          expectedOptionalRevision: 1,
+          expectedContributionRevision: 5,
+        }),
+      },
+      {
+        receipt: {
+          kind: "alternative_group_removed",
+          contributionScopeId: "scope-1",
+          groupId: "group-1",
+          removedRowItemIds: ["row-1", "row-2"],
+          groupRevision: null,
+          contributionRevision: 6,
+          changed: true,
+        },
+        run: (database: D1DatabaseLike) => removeEstimateAlternativeGroup({
+          database,
+          ...base,
+          groupId: "group-1",
+          expectedGroupRevision: 1,
+          expectedContributionRevision: 5,
+        }),
+      },
+      {
+        receipt: {
+          kind: "contribution_configuration_bulk_applied",
+          contributionScopeId: "scope-1",
+          contributionRevision: 6,
+          changed: true,
+          changedRowItemIds: ["row-1"],
+          changedGroupIds: [],
+        },
+        run: (database: D1DatabaseLike) => applyEstimateContributionConfigurationBulk({
+          database,
+          ...base,
+          expectedContributionRevision: 5,
+          operation: {
+            kind: "mark_optional",
+            rows: [{ rowItemId: "row-1", isIncluded: true, expectedOptionalRevision: null }],
+          },
+        }),
+      },
+    ] as const;
+
+    for (const { receipt, run } of cases) {
+      mocks.prepareEstimateMutationIntent.mockResolvedValueOnce({ context: {}, committedResult: receipt });
+      const replay = createDatabase();
+      await expect(run(replay.database)).resolves.toEqual({ ...receipt, replayed: true });
+      expect(replay.batches).toHaveLength(0);
+    }
+  });
 });

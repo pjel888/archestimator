@@ -6,6 +6,7 @@ import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import {
   buildEstimateTree,
+  isEstimateTabsSchemaMissing,
   readEstimateTabTreePayloadD1,
   type EstimateTreeNodeQueryRow,
   type EstimateTreeRowItemQueryRow,
@@ -47,6 +48,13 @@ function row(
 }
 
 describe("workspace repository estimate tree projection", () => {
+  it("recognizes every supported missing estimate-tab schema shape", () => {
+    expect(isEstimateTabsSchemaMissing(new Error("no such table: estimate_tabs"))).toBe(true);
+    expect(isEstimateTabsSchemaMissing({ message: "no such column: estimate_tab_id" })).toBe(true);
+    expect(isEstimateTabsSchemaMissing({ message: "no such column: archived_at" })).toBe(true);
+    expect(isEstimateTabsSchemaMissing(null)).toBe(false);
+  });
+
   it("keeps group nodes visible when building the estimate tree", () => {
     const tree = buildEstimateTree(
       [

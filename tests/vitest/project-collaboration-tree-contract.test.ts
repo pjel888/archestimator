@@ -88,5 +88,9 @@ describe("estimate tree realtime v2 contract", () => {
       nodeId: "area-1",
       mergeStrategy: "merge-unknown",
     } as unknown as Partial<EstimateTreeRealtimeEvent>))).toBe(false);
+
+    expect(isEstimateTreeRealtimeEvent(baseEvent({
+      type: "estimate_tree.unknown",
+    } as unknown as Partial<EstimateTreeRealtimeEvent>))).toBe(false);
   });
 });

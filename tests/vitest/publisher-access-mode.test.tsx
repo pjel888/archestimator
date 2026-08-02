@@ -403,8 +403,14 @@ describe("PublisherProjectMembersPanel", () => {
       expect(collaborationActions.resendProjectInviteEmail).toHaveBeenCalledWith({ invitationId: "invite-1" }),
     );
 
-    await user.click(screen.getByRole("button", { name: "Cancel invite for pending@example.test" }));
-    const dialog = screen.getByRole("alertdialog", { name: "Cancel invite for pending@example.test?" });
+    const cancelInviteButton = screen.getByRole("button", {
+      name: "Cancel invite for pending@example.test",
+    });
+    await waitFor(() => expect(cancelInviteButton).toBeEnabled());
+    await user.click(cancelInviteButton);
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Cancel invite for pending@example.test?",
+    });
     await user.click(within(dialog).getByRole("button", { name: "Cancel invite" }));
     await waitFor(() =>
       expect(collaborationActions.revokeCollaborationInvitation).toHaveBeenCalledWith({ invitationId: "invite-1" }),

@@ -43,6 +43,15 @@ describe("CollaborationRoom authorization", () => {
   const roomName = "project:33333333-3333-4333-8333-333333333333";
   const secret = "room-secret";
 
+  it("rejects malformed JSON without throwing", async () => {
+    const socket = createSocket();
+    const { room } = createRoom([socket]);
+
+    await room.webSocketMessage(socket, "{");
+
+    expect(socket.__sent).toContainEqual({ type: "error", code: "invalid_json" });
+  });
+
   it("rejects broadcast messages before the socket is authorized", async () => {
     const sender = createSocket();
     const peer = createSocket();

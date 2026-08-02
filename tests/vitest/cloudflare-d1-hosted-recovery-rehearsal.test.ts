@@ -235,4 +235,51 @@ describe("Cloudflare D1 hosted recovery executor", () => {
     expect(report.blockers[0]).toMatch(/^provider-command-failed-d1-execute-/);
     expect(commands.slice(-2).map((args) => args.slice(0, 2).join(" "))).toEqual(["d1 delete", "d1 list"]);
   });
+
+  it("fails closed when disposable-target cleanup itself fails", () => {
+    const original = process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE;
+    process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = "1";
+    try {
+      const report = executeCloudflareD1HostedRecoveryRehearsal({
+        ...validInputs,
+        mode: "hosted",
+        identity: { ...validInputs.identity!, sourceDatabaseId: "bound-source" },
+      }, {
+        boundSourceDatabaseId: "bound-source",
+        run: ({ args }) => {
+          if (args[1] === "export") {
+            const output = args[args.indexOf("--output") + 1]!;
+            writeFileSync(output, 'INSERT INTO "feature_flags" ("id") VALUES ("fixture-feature-flag");');
+          }
+          if (args[0] === "d1" && args[1] === "delete") {
+            return { status: 1, stdout: "", stderr: "simulated cleanup failure" };
+          }
+          return {
+            status: 0,
+            stdout: args[0] === "deploy"
+              ? "https://archestimator-recovery-test.workers.dev"
+              : args[1] === "list"
+                ? JSON.stringify([{ name: validInputs.identity!.targetDatabaseName, uuid: "disposable-id" }])
+                : "{}",
+            stderr: "",
+          };
+        },
+        probe: () => true,
+        integrityProof: () => ({
+          schema: true,
+          application: true,
+          authorization: true,
+          session: true,
+          corporateIntegrity: true,
+          corporateOnlyDenied: true,
+        }),
+      });
+
+      expect(report.succeeded).toBe(false);
+      expect(report.cleanupVerified).toBe(false);
+      expect(report.blockers).toContain("cleanup-command-failed");
+    } finally {
+      process.env.ARCHESTIMATOR_HOSTED_RECOVERY_EXECUTE = original;
+    }
+  });
 });

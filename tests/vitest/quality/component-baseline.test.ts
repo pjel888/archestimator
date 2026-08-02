@@ -248,10 +248,16 @@ interface FixtureOptions {
   bootstrap?: boolean;
   changed?: boolean;
   coveragePct?: number;
+  coverageSourceChanged?: boolean;
+  coverageTotal?: number;
   existingBaselineCoveragePct?: number;
+  existingBaselineCoverageTotal?: number;
   failed?: boolean;
   forgedExistingBaselineCoveragePct?: number;
+  invalidExistingBaselineCoverageHash?: boolean;
+  invalidExistingBaselineCoveragePath?: boolean;
   malformedExistingBaseline?: boolean;
+  missingExistingBaselineCoverage?: boolean;
   profile?: CandidateRecord["profile"];
   promote?: boolean;
   proposeFailure?: boolean;
@@ -270,8 +276,14 @@ async function writeFixturePredecessor(
   }
   if (options.bootstrap) return;
   const existingBaselineCoveragePct = options.existingBaselineCoveragePct ?? 100;
+  const existingBaselineCoverageTotal = options.existingBaselineCoverageTotal ?? 100;
   const baseline = fixtureExistingBaseline();
-  const sourceBaselineCoverageValue = { total: 100, covered: existingBaselineCoveragePct, skipped: 0, pct: existingBaselineCoveragePct };
+  const sourceBaselineCoverageValue = {
+    total: existingBaselineCoverageTotal,
+    covered: existingBaselineCoveragePct,
+    skipped: 0,
+    pct: Math.floor((existingBaselineCoveragePct / existingBaselineCoverageTotal) * 10_000) / 100,
+  };
   const sourceBaselineCoverageMetrics = {
     statements: sourceBaselineCoverageValue,
     branches: sourceBaselineCoverageValue,
@@ -279,7 +291,12 @@ async function writeFixturePredecessor(
     lines: sourceBaselineCoverageValue,
   };
   const embeddedBaselineCoveragePct = options.forgedExistingBaselineCoveragePct ?? existingBaselineCoveragePct;
-  const embeddedBaselineCoverageValue = { total: 100, covered: embeddedBaselineCoveragePct, skipped: 0, pct: embeddedBaselineCoveragePct };
+  const embeddedBaselineCoverageValue = {
+    total: existingBaselineCoverageTotal,
+    covered: embeddedBaselineCoveragePct,
+    skipped: 0,
+    pct: Math.floor((embeddedBaselineCoveragePct / existingBaselineCoverageTotal) * 10_000) / 100,
+  };
   const embeddedBaselineCoverageMetrics = {
     statements: embeddedBaselineCoverageValue,
     branches: embeddedBaselineCoverageValue,
@@ -289,13 +306,33 @@ async function writeFixturePredecessor(
   baseline.suite = { test_files: ["tests/vitest/view.test.tsx"], total_tests: 1 };
   baseline.allowed_failures = [];
   baseline.coverage = { total: embeddedBaselineCoverageMetrics, "src/example.ts": embeddedBaselineCoverageMetrics };
+  if (options.coverageSourceChanged) {
+    baseline.source.candidate.record.changed_files = [{
+      path: "src/example.ts",
+      sha256: sha256("before\n"),
+      line_ending_neutral_sha256: sha256("before\n"),
+      deleted: false,
+      sources: ["unstaged"],
+    }];
+    const digest = candidateDigest(baseline.source.candidate.record);
+    baseline.source.candidate.digest = digest;
+    baseline.source.measurement.candidate_digest = digest;
+    baseline.admission.candidate_digest = digest;
+  }
   baseline.admission.bootstrap = true;
   baseline.admission.predecessor_baseline_sha256 = null;
   baseline.source.report_sha256 = sha256(reportText);
   const predecessorCoverageText = JSON.stringify({ total: sourceBaselineCoverageMetrics, [join(root, "src/example.ts")]: sourceBaselineCoverageMetrics });
-  baseline.source.coverage_sha256 = sha256(predecessorCoverageText);
+  if (options.invalidExistingBaselineCoveragePath) {
+    baseline.source.coverage = "quality/baselines/component/noncanonical-coverage.json";
+  }
+  baseline.source.coverage_sha256 = options.invalidExistingBaselineCoverageHash
+    ? "0".repeat(64)
+    : sha256(predecessorCoverageText);
   await writeFile(join(root, reportPath), reportText);
-  await writeFile(join(root, coveragePath), predecessorCoverageText);
+  if (!options.missingExistingBaselineCoverage) {
+    await writeFile(join(root, coveragePath), predecessorCoverageText);
+  }
   await writeFile(join(root, "quality/baseline.json"), `${JSON.stringify(baseline, null, 2)}\n`);
 }
 
@@ -315,7 +352,13 @@ function buildFixtureCandidateArtifacts(
     commit_sha: headCommit,
     comparison_base: { input_ref: headCommit, resolved_sha: headCommit },
     profile: options.profile ?? "Q2_CRITICAL_CHANGE_GATE",
-    changed_files: changed ? [{ path: changedPath, sha256: sha256("after\n"), deleted: false, sources: ["unstaged"] }] : [],
+    changed_files: changed ? [{
+      path: changedPath,
+      sha256: sha256("after\n"),
+      line_ending_neutral_sha256: sha256("after\n"),
+      deleted: false,
+      sources: ["unstaged"],
+    }] : [],
     affected_capabilities: [],
   };
   const candidateText = JSON.stringify({
@@ -356,6 +399,19 @@ function buildFixtureCandidateArtifacts(
   return { candidateText, measurementEnvelope, measurementText };
 }
 
+async function promoteFixtureEvidence(
+  root: string,
+  options: FixtureOptions,
+  reportPath: string,
+  coveragePath: string,
+  measuredReportPath: string,
+  measuredCoveragePath: string,
+): Promise<void> {
+  if (options.promote === false) return;
+  await writeFile(join(root, reportPath), await readFile(join(root, measuredReportPath)));
+  await writeFile(join(root, coveragePath), await readFile(join(root, measuredCoveragePath)));
+}
+
 async function writeFixture(options: FixtureOptions = {}): Promise<{ root: string; inventoryPath: string; inventory: BaselineInventory; candidatePath: string; measurementPath: string; measuredReportPath: string; measuredCoveragePath: string; changedPath: string }> {
   const root = await mkdtemp(join(tmpdir(), "arch-baseline-"));
   runGit(root, ["init", "--quiet"]);
@@ -367,11 +423,19 @@ async function writeFixture(options: FixtureOptions = {}): Promise<{ root: strin
   const measuredCoveragePath = "artifacts/coverage/component-baseline/coverage-summary.json";
   const candidatePath = "artifacts/quality/candidate-checkpoints/measurement-input.json";
   const measurementPath = "artifacts/quality/component-baseline-measurement/measurement.json";
-  const changedPath = "scripts/quality/validate-baseline-admission.ts";
+  const changedPath = options.coverageSourceChanged
+    ? "src/example.ts"
+    : "scripts/quality/validate-baseline-admission.ts";
   const reportStatus = options.failed ? "failed" : "passed";
   const reportText = JSON.stringify(report(reportStatus, join(root, "tests/vitest/view.test.tsx")));
   const coveragePct = options.coveragePct ?? 100;
-  const coverageValue = { total: 100, covered: coveragePct, skipped: 0, pct: coveragePct };
+  const coverageTotal = options.coverageTotal ?? 100;
+  const coverageValue = {
+    total: coverageTotal,
+    covered: coveragePct,
+    skipped: 0,
+    pct: Math.floor((coveragePct / coverageTotal) * 10_000) / 100,
+  };
   const coverageMetrics = { statements: coverageValue, branches: coverageValue, functions: coverageValue, lines: coverageValue };
   const coverageText = JSON.stringify({ total: coverageMetrics, [join(root, "src/example.ts")]: coverageMetrics });
   for (const path of [reportPath, coveragePath, measuredReportPath, measuredCoveragePath, candidatePath, measurementPath, changedPath, "quality/reviews/component-baseline-quality.md", "quality/reviews/component-baseline-security.md", "quality/component-evidence-map.json", "quality/critical-capabilities.json"]) await mkdir(dirname(join(root, path)), { recursive: true });
@@ -393,10 +457,7 @@ async function writeFixture(options: FixtureOptions = {}): Promise<{ root: strin
   );
   await writeFile(join(root, candidatePath), candidateText);
   await writeFile(join(root, measurementPath), measurementText);
-  if (options.promote !== false) {
-    await writeFile(join(root, reportPath), await readFile(join(root, measuredReportPath)));
-    await writeFile(join(root, coveragePath), await readFile(join(root, measuredCoveragePath)));
-  }
+  await promoteFixtureEvidence(root, options, reportPath, coveragePath, measuredReportPath, measuredCoveragePath);
   const inventoryInput = input({
     report: report(reportStatus, join(root, "tests/vitest/view.test.tsx")), root, phase: "admission", reportPath, reportSha256: sha256(reportText),
     coveragePath, coverageSha256: sha256(coverageText), candidatePath, candidateSha256: sha256(candidateText), commit: headCommit,
@@ -463,12 +524,122 @@ describe("component baseline admission validation", () => {
     expect(result.data).toMatchObject({ bootstrap: false, predecessor_baseline_sha256: expect.stringMatching(/^[a-f0-9]{64}$/u) });
   });
 
+  it("ignores commit replacement refs when reading the predecessor baseline", async () => {
+    const fixture = await writeFixture();
+    try {
+      const head = runGit(fixture.root, ["rev-parse", "HEAD"]);
+      const replacementBlob = spawnSync("git", ["hash-object", "-w", "--stdin"], {
+        cwd: fixture.root,
+        encoding: "utf8",
+        input: "{malformed predecessor\n",
+      });
+      expect(replacementBlob.status, replacementBlob.stderr).toBe(0);
+      const replacementIndex = join(fixture.root, ".git", "replacement-test-index");
+      const replacementEnvironment = { ...process.env, GIT_INDEX_FILE: replacementIndex };
+      for (const args of [
+        ["read-tree", head],
+        ["update-index", "--cacheinfo", "100644", replacementBlob.stdout.trim(), "quality/baseline.json"],
+      ]) {
+        const run = spawnSync("git", args, { cwd: fixture.root, encoding: "utf8", env: replacementEnvironment });
+        expect(run.status, run.stderr).toBe(0);
+      }
+      const replacementTree = spawnSync("git", ["write-tree"], {
+        cwd: fixture.root,
+        encoding: "utf8",
+        env: replacementEnvironment,
+      });
+      expect(replacementTree.status, replacementTree.stderr).toBe(0);
+      const replacementCommit = spawnSync("git", ["commit-tree", replacementTree.stdout.trim()], {
+        cwd: fixture.root,
+        encoding: "utf8",
+        input: "replacement commit\n",
+      });
+      expect(replacementCommit.status, replacementCommit.stderr).toBe(0);
+      runGit(fixture.root, ["replace", head, replacementCommit.stdout.trim()]);
+
+      const result = await validateBaselineAdmission({ root: fixture.root, inventoryPath: fixture.inventoryPath, phase: "admission", disallowedReviewers: ["author"], now: Date.parse(generatedAt) });
+
+      expect(result.findings).toEqual([]);
+      expect(result.data.predecessor_baseline_sha256).toBe(sha256(await readFile(join(fixture.root, "quality/baseline.json"))));
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores blob replacement refs when reading the predecessor baseline", async () => {
+    const fixture = await writeFixture();
+    try {
+      const head = runGit(fixture.root, ["rev-parse", "HEAD"]);
+      const baselineBlob = runGit(fixture.root, ["rev-parse", `${head}:quality/baseline.json`]);
+      const replacementBlob = spawnSync("git", ["hash-object", "-w", "--stdin"], {
+        cwd: fixture.root,
+        encoding: "utf8",
+        input: "{malformed predecessor\n",
+      });
+      expect(replacementBlob.status, replacementBlob.stderr).toBe(0);
+      runGit(fixture.root, ["replace", baselineBlob, replacementBlob.stdout.trim()]);
+
+      const result = await validateBaselineAdmission({ root: fixture.root, inventoryPath: fixture.inventoryPath, phase: "admission", disallowedReviewers: ["author"], now: Date.parse(generatedAt) });
+
+      expect(result.findings).toEqual([]);
+      expect(result.data.predecessor_baseline_sha256).toBe(sha256(await readFile(join(fixture.root, "quality/baseline.json"))));
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects admission when measured coverage regresses from the existing canonical baseline", async () => {
     const fixture = await writeFixture({ coveragePct: 99, existingBaselineCoveragePct: 100 });
 
     const result = await validateBaselineAdmission({ root: fixture.root, inventoryPath: fixture.inventoryPath, phase: "admission", disallowedReviewers: ["author"], now: Date.parse(generatedAt) });
 
     expect(result.findings.map((finding) => finding.code)).toContain("COMPONENT_COVERAGE_REGRESSION");
+  });
+
+  it("rejects successor admission when changed-source raw coverage shrinks its denominator", async () => {
+    const fixture = await writeFixture({
+      coveragePct: 79,
+      coverageSourceChanged: true,
+      coverageTotal: 99,
+      existingBaselineCoveragePct: 80,
+      existingBaselineCoverageTotal: 100,
+    });
+
+    const result = await validateBaselineAdmission({
+      root: fixture.root,
+      inventoryPath: fixture.inventoryPath,
+      phase: "admission",
+      disallowedReviewers: ["author"],
+      now: Date.parse(generatedAt),
+    });
+
+    expect(result.findings.map((finding) => finding.code)).not.toContain("COMPONENT_COVERAGE_REGRESSION");
+    expect(result.findings.map((finding) => finding.code)).toContain(
+      "COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION",
+    );
+  });
+
+  it.each([
+    ["equal", 100, 80],
+    ["growing", 101, 81],
+  ] as const)("admits %s changed-source successor denominators", async (_label, coverageTotal, coveragePct) => {
+    const fixture = await writeFixture({
+      coveragePct,
+      coverageSourceChanged: true,
+      coverageTotal,
+      existingBaselineCoveragePct: 80,
+      existingBaselineCoverageTotal: 100,
+    });
+
+    const result = await validateBaselineAdmission({
+      root: fixture.root,
+      inventoryPath: fixture.inventoryPath,
+      phase: "admission",
+      disallowedReviewers: ["author"],
+      now: Date.parse(generatedAt),
+    });
+
+    expect(result.findings).toEqual([]);
   });
 
   it("fails closed when the existing canonical baseline is malformed", async () => {
@@ -485,6 +656,29 @@ describe("component baseline admission validation", () => {
     const result = await validateBaselineAdmission({ root: fixture.root, inventoryPath: fixture.inventoryPath, phase: "admission", disallowedReviewers: ["author"], now: Date.parse(generatedAt) });
 
     expect(result.findings.map((finding) => finding.code)).toContain("BASELINE_ADMISSION_EXISTING_BASELINE_MALFORMED");
+  });
+
+  it.each([
+    ["noncanonical", { invalidExistingBaselineCoveragePath: true }],
+    ["missing", { missingExistingBaselineCoverage: true }],
+    ["hash-mismatched", { invalidExistingBaselineCoverageHash: true }],
+  ] as const)("rejects %s immutable predecessor coverage evidence", async (_label, options) => {
+    const fixture = await writeFixture(options);
+
+    const result = await validateBaselineAdmission({ root: fixture.root, inventoryPath: fixture.inventoryPath, phase: "admission", disallowedReviewers: ["author"], now: Date.parse(generatedAt) });
+
+    expect(result.findings.map((finding) => finding.code)).toContain("BASELINE_ADMISSION_EXISTING_BASELINE_MALFORMED");
+  });
+
+  it("rejects bootstrap declarations after a predecessor baseline exists", async () => {
+    const fixture = await writeFixture();
+    fixture.inventory.admission.bootstrap = true;
+    await writeFile(fixture.inventoryPath, `${JSON.stringify(fixture.inventory, null, 2)}\n`);
+    await writeReviews(fixture.root, fixture.inventoryPath, fixture.inventory);
+
+    const result = await validateBaselineAdmission({ root: fixture.root, inventoryPath: fixture.inventoryPath, phase: "admission", disallowedReviewers: ["author"], allowBootstrap: true, now: Date.parse(generatedAt) });
+
+    expect(result.findings.map((finding) => finding.code)).toContain("BASELINE_ADMISSION_BOOTSTRAP_DECLARATION_MISMATCH");
   });
 
   it("fails closed when an established comparison-base baseline is deleted", async () => {
@@ -619,6 +813,8 @@ describe("component baseline admission validation", () => {
   it("rejects malformed Q2 candidate comparison-base, profile, and source provenance", async () => {
     const fixture = await writeFixture();
     const candidate = JSON.parse(await readFile(join(fixture.root, fixture.candidatePath), "utf8"));
+    const validCandidate = structuredClone(candidate);
+    const validFile = validCandidate.data.record.changed_files[0];
     candidate.data.record.comparison_base.input_ref = "";
     candidate.data.record.profile = "Q1_CHANGE_GATE";
     candidate.data.record.changed_files[0].sources = ["copied"];
@@ -633,6 +829,33 @@ describe("component baseline admission validation", () => {
       "CANDIDATE_PROFILE_MISMATCH",
       "CANDIDATE_SOURCE_MALFORMED",
     ]));
+
+    for (const malformedFile of [
+      null,
+      { ...validFile, path: "" },
+      { ...validFile, sha256: "invalid" },
+      { ...validFile, deleted: "false" },
+      { ...validFile, line_ending_neutral_sha256: "invalid" },
+      { ...validFile, deleted: true, line_ending_neutral_sha256: "f".repeat(64) },
+      { ...validFile, sources: [] },
+      { ...validFile, sources: ["unstaged", "unstaged"] },
+    ]) {
+      const malformedCandidate = structuredClone(validCandidate);
+      malformedCandidate.data.record.changed_files = [malformedFile];
+      const malformedText = JSON.stringify(malformedCandidate);
+      await writeFile(join(fixture.root, fixture.candidatePath), malformedText);
+      fixture.inventory.source.candidate_sha256 = sha256(malformedText);
+      await writeFile(fixture.inventoryPath, `${JSON.stringify(fixture.inventory, null, 2)}\n`);
+      await writeReviews(fixture.root, fixture.inventoryPath, fixture.inventory);
+      const malformedResult = await validateBaselineAdmission({
+        root: fixture.root,
+        inventoryPath: fixture.inventoryPath,
+        phase: "admission",
+        disallowedReviewers: ["author"],
+        now: Date.parse(generatedAt),
+      });
+      expect(malformedResult.findings.map((finding) => finding.code)).toContain("CANDIDATE_SOURCE_MALFORMED");
+    }
   });
 
   it("preserves whole-file candidate hash binding outside the embedded record", async () => {
@@ -970,6 +1193,40 @@ describe("component baseline admission validation", () => {
     ], { cwd: process.cwd(), encoding: "utf8" });
     expect(generate.status).toBe(1);
     expect(generate.stdout).toContain("GENERATION_ADMISSION_RECOMPUTE_FAILED");
+  });
+
+  it("rejects a forged PASS that hides successor denominator shrink", async () => {
+    const fixture = await writeFixture({
+      coveragePct: 79,
+      coverageSourceChanged: true,
+      coverageTotal: 99,
+      existingBaselineCoveragePct: 80,
+      existingBaselineCoverageTotal: 100,
+    });
+    const admissionPath = join(fixture.root, "quality/baselines/component/admission.json");
+    const validate = spawnSync("bun", [
+      baselineAdmissionCli, "--root", fixture.root,
+      "--inventory", "quality/baselines/component/inventory.json", "--phase", "admission",
+      "--disallowed-reviewers", "author", "--output", "quality/baselines/component/admission.json",
+    ], { cwd: process.cwd(), encoding: "utf8" });
+    expect(validate.status).toBe(1);
+    expect(validate.stdout).toContain("COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION");
+    const forged = JSON.parse(await readFile(admissionPath, "utf8"));
+    forged.status = "PASS";
+    forged.findings = [];
+    await writeFile(admissionPath, `${JSON.stringify(forged, null, 2)}\n`);
+    const output = join(fixture.root, "artifacts/quality/baseline.generated.json");
+
+    const generate = spawnSync("bun", [
+      componentBaselineCli, "generate", "--root", fixture.root,
+      "--inventory", "quality/baselines/component/inventory.json",
+      "--validation", "quality/baselines/component/admission.json",
+      "--output", output,
+    ], { cwd: process.cwd(), encoding: "utf8" });
+
+    expect(generate.status).toBe(1);
+    expect(generate.stdout).toContain("GENERATION_ADMISSION_RECOMPUTE_FAILED");
+    await expect(readFile(output)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("rejects a forged PASS that substitutes authors to hide self-review", async () => {

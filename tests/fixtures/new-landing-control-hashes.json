@@ -21,7 +21,7 @@
     { "path": "src/app/kimi3d/_components/cta-link.tsx", "sha256": "5adcee1aa67cc5053a436febb267e1fa85a817c0878556b24e9873b4278f445c", "bytes": 1749 },
     { "path": "src/app/kimi3d/_components/hero-ambition-text.tsx", "sha256": "0efa402d42772fcc6541eb2f7dc6e5c37d90ffbb7d51958b9bebc5e08c4382e9", "bytes": 2809 },
     { "path": "src/app/kimi3d/_components/hero-audience-roles.tsx", "sha256": "69c03c1a2a4ab69394152cc5c96271e1c26aedbae7ed641d966ebbd0a532fa13", "bytes": 3002 },
-    { "path": "src/app/kimi3d/_components/hero-voxel-ripple-enhancement.tsx", "sha256": "02a57065cb5c36c052fa97e14c4395c1d72d86b32028d51e985863f8d6c194dd", "bytes": 37439 },
+    { "path": "src/app/kimi3d/_components/hero-voxel-ripple-enhancement.tsx", "sha256": "ee62573ede64008daa335496938539d70cb23c5517d3460b99b112024e647b69", "bytes": 37500 },
     { "path": "src/app/kimi3d/_components/hero-voxel-ripple-image.tsx", "sha256": "144edd4c705b9401705f1848cea6c3817f3bd75c6093af6120731ef32a40ed42", "bytes": 3209 },
     { "path": "src/app/kimi3d/_components/hero-workspace-proof.tsx", "sha256": "a977d8dfad2fd045302d9a5e85484b5bcbeb4ee1995ee89a0feb809801e5f2f1", "bytes": 28128 },
     { "path": "src/app/kimi3d/_components/kimi-landing-page.tsx", "sha256": "f712d31d7e0d069e937b51359b1443b0b2d9297106d46839c4cc56d529f8717c", "bytes": 10734 },

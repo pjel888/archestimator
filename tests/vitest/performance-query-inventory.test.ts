@@ -50,4 +50,9 @@ describe("performance query inventory", () => {
     );
     expect(summarizeBuckets(report.references).every((bucket) => bucket.referenceCount > 0)).toBe(true);
   });
+
+  it("fails closed when every requested inventory root is missing", () => {
+    expect(() => buildInventoryReport(["tests/fixtures/missing-performance-query-inventory-root"]))
+      .toThrow("No database table/RPC references found for query inventory.");
+  });
 });

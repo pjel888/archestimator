@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,6 +12,7 @@ import {
   selectStrictComponentTests,
   validateComponentBaseline,
   validateComponentProfileSelection,
+  validateSuccessorCoverageDenominators,
   type ComponentBaseline,
   type ComponentEvidenceMap,
   type CoverageSummary,
@@ -167,9 +168,9 @@ function hiddenUncoveredReduction(): CoverageSummary {
   const current = coverage(80);
   const statements = {
     total: 99,
-    covered: 80,
+    covered: 79,
     skipped: 0,
-    pct: 80.8,
+    pct: 79.79,
   };
   current.total.statements = statements;
   current["src/example.ts"]!.statements = statements;
@@ -371,24 +372,113 @@ describe("component failure normalization and ratchet", () => {
     expect(compareComponentRatchet(report("passed"), coverage(81), baseline, root)).toEqual([]);
   });
 
-  it("allows covered-statement denominator jitter without masking uncovered debt", () => {
+  it("anchors unchanged-source shrink to the baseline denominator", () => {
     const baseline = admittedBaseline();
-    const jitter = coverage(80);
-    const jitterValue = { total: 99, covered: 79, skipped: 0, pct: 79.79 };
-    jitter.total.statements = jitterValue;
-    jitter["src/example.ts"]!.statements = jitterValue;
-    expect(compareComponentRatchet(report("passed"), jitter, baseline, root)).toEqual([]);
+    const coveredLoss = hiddenUncoveredReduction();
+    expect(compareComponentRatchet(report("passed"), coveredLoss, baseline, root)).toEqual([{
+      code: "COMPONENT_COVERAGE_REGRESSION",
+      message: "src/example.ts statements effective uncovered count 21 is worse than baseline 20",
+      path: "src/example.ts",
+    }]);
 
-    const hiddenUncovered = coverage(80);
-    const hiddenValue = { total: 99, covered: 80, skipped: 0, pct: 80.8 };
-    hiddenUncovered.total.statements = hiddenValue;
-    hiddenUncovered["src/example.ts"]!.statements = hiddenValue;
-    expect(compareComponentRatchet(report("passed"), hiddenUncovered, baseline, root).map((finding) => finding.code))
-      .toContain("COMPONENT_COVERAGE_REGRESSION");
+    for (const covered of [80, 81]) {
+      const current = coverage(80);
+      const value = { total: 99, covered, skipped: 0, pct: Math.floor((covered / 99) * 10_000) / 100 };
+      current.total.statements = value;
+      current["src/example.ts"]!.statements = value;
+      expect(compareComponentRatchet(report("passed"), current, baseline, root)).toEqual([]);
+    }
   });
 
   it("allows denominator shrink only when candidate-bound source bytes changed", () => {
     const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-source-"));
+    const sourcePath = resolve(repositoryRoot, "src/example.ts");
+    mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
+    writeFileSync(sourcePath, "baseline bytes\n");
+    try {
+      const baseline = admittedBaseline();
+      baseline.source.candidate.record.changed_files = [{
+        path: "src/example.ts",
+        sha256: sha256(readFileSync(sourcePath)),
+        line_ending_neutral_sha256: sha256(readFileSync(sourcePath)),
+        deleted: false,
+        sources: ["unstaged"],
+      }];
+      bindBaselineCandidate(baseline);
+      const currentReport = passedReportForRoot(repositoryRoot);
+
+      expect(
+        compareComponentRatchet(currentReport, hiddenUncoveredReduction(), baseline, repositoryRoot)
+          .map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
+
+      writeFileSync(sourcePath, "changed bytes\n");
+      expect(
+        compareComponentRatchet(currentReport, hiddenUncoveredReduction(), baseline, repositoryRoot),
+      ).toEqual([]);
+      expect(
+        validateSuccessorCoverageDenominators(hiddenUncoveredReduction(), baseline.coverage),
+      ).toEqual([{
+        code: "COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION",
+        message: "src/example.ts statements total 99 is below predecessor 100",
+        path: "src/example.ts",
+      }]);
+
+      const worsened = hiddenUncoveredReduction();
+      const worsenedValue = { total: 99, covered: 78, skipped: 0, pct: 78.78 };
+      worsened.total.statements = worsenedValue;
+      worsened["src/example.ts"]!.statements = worsenedValue;
+      expect(compareComponentRatchet(currentReport, worsened, baseline, repositoryRoot).map((finding) => finding.code))
+        .toContain("COMPONENT_COVERAGE_REGRESSION");
+    } finally {
+      rmSync(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores aggregate-only denominator changes when admitting a successor", () => {
+    const predecessor = coverage(80);
+    const current = structuredClone(predecessor);
+    for (const metric of ["statements", "branches", "functions", "lines"] as const) {
+      current.total[metric] = { total: 99, covered: 79, skipped: 0, pct: 79.79 };
+    }
+
+    expect(validateSuccessorCoverageDenominators(current, predecessor)).toEqual([]);
+  });
+
+  it("fails closed for candidate-bound line-ending-only differences", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-candidate-line-endings-"));
+    const sourcePath = resolve(repositoryRoot, "src/example.ts");
+    mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
+    writeFileSync(sourcePath, "baseline bytes\n");
+    try {
+      const baseline = admittedBaseline();
+      baseline.source.candidate.record.changed_files = [{
+        path: "src/example.ts",
+        sha256: sha256(readFileSync(sourcePath)),
+        line_ending_neutral_sha256: sha256(readFileSync(sourcePath)),
+        deleted: false,
+        sources: ["unstaged"],
+      }];
+      bindBaselineCandidate(baseline);
+      const currentReport = passedReportForRoot(repositoryRoot);
+
+      writeFileSync(sourcePath, "baseline bytes\r\n");
+      expect(
+        compareComponentRatchet(currentReport, hiddenUncoveredReduction(), baseline, repositoryRoot)
+          .map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
+
+      writeFileSync(sourcePath, "changed bytes\r\n");
+      expect(
+        compareComponentRatchet(currentReport, hiddenUncoveredReduction(), baseline, repositoryRoot),
+      ).toEqual([]);
+    } finally {
+      rmSync(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when candidate-bound neutral source evidence is absent", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-candidate-legacy-"));
     const sourcePath = resolve(repositoryRoot, "src/example.ts");
     mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
     writeFileSync(sourcePath, "baseline bytes\n");
@@ -410,10 +500,45 @@ describe("component failure normalization and ratchet", () => {
 
       writeFileSync(sourcePath, "changed bytes\n");
       expect(
-        compareComponentRatchet(currentReport, hiddenUncoveredReduction(), baseline, repositoryRoot),
-      ).toEqual([]);
+        compareComponentRatchet(currentReport, hiddenUncoveredReduction(), baseline, repositoryRoot)
+          .map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
     } finally {
       rmSync(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when candidate-bound source traverses a linked directory", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-candidate-ancestor-link-"));
+    const outsideRoot = mkdtempSync(join(tmpdir(), "component-ratchet-candidate-ancestor-outside-"));
+    const sourceDirectory = resolve(repositoryRoot, "src");
+    const sourcePath = resolve(outsideRoot, "example.ts");
+    writeFileSync(sourcePath, "baseline bytes\n");
+    symlinkSync(outsideRoot, sourceDirectory, process.platform === "win32" ? "junction" : "dir");
+    try {
+      const baseline = admittedBaseline();
+      baseline.source.candidate.record.changed_files = [{
+        path: "src/example.ts",
+        sha256: sha256(readFileSync(sourcePath)),
+        line_ending_neutral_sha256: sha256(readFileSync(sourcePath)),
+        deleted: false,
+        sources: ["unstaged"],
+      }];
+      bindBaselineCandidate(baseline);
+      writeFileSync(sourcePath, "changed outside bytes\n");
+
+      expect(
+        compareComponentRatchet(
+          passedReportForRoot(repositoryRoot),
+          hiddenUncoveredReduction(),
+          baseline,
+          repositoryRoot,
+        ).map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
+    } finally {
+      rmSync(sourceDirectory, { recursive: true, force: true });
+      rmSync(repositoryRoot, { recursive: true, force: true });
+      rmSync(outsideRoot, { recursive: true, force: true });
     }
   });
 
@@ -462,7 +587,232 @@ describe("component failure normalization and ratchet", () => {
     }
   });
 
-  it("fails closed for clean-filter-only line ending differences", () => {
+  it("fails closed when immutable Git source evidence is missing or unavailable", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-git-missing-"));
+    const sourcePath = resolve(repositoryRoot, "src/example.ts");
+    mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
+    writeFileSync(resolve(repositoryRoot, "README.md"), "baseline\n");
+    try {
+      execFileSync("git", ["init"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.email", "component@example.com"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.name", "Component Gate"], { cwd: repositoryRoot });
+      execFileSync("git", ["add", "README.md"], { cwd: repositoryRoot });
+      execFileSync("git", ["commit", "-m", "baseline"], { cwd: repositoryRoot });
+      const baselineCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }).trim();
+      writeFileSync(sourcePath, "current bytes\n");
+
+      for (const commitSha of [baselineCommit, "f".repeat(40)]) {
+        const baseline = admittedBaseline();
+        baseline.source.candidate.record.commit_sha = commitSha;
+        baseline.source.measurement.candidate_commit = commitSha;
+        bindBaselineCandidate(baseline);
+        expect(
+          compareComponentRatchet(
+            passedReportForRoot(repositoryRoot),
+            hiddenUncoveredReduction(),
+            baseline,
+            repositoryRoot,
+          ).map((finding) => finding.code),
+        ).toContain("COMPONENT_COVERAGE_REGRESSION");
+      }
+    } finally {
+      rmSync(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when an immutable Git tree references a missing blob", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-git-missing-blob-"));
+    const sourcePath = resolve(repositoryRoot, "src/example.ts");
+    mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
+    writeFileSync(sourcePath, "current bytes\n");
+    try {
+      execFileSync("git", ["init"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.email", "component@example.com"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.name", "Component Gate"], { cwd: repositoryRoot });
+      const missingObjectId = "1".repeat(40);
+      execFileSync(
+        "git",
+        ["update-index", "--add", "--info-only", "--cacheinfo", "100644", missingObjectId, "src/example.ts"],
+        { cwd: repositoryRoot },
+      );
+      const tree = execFileSync("git", ["write-tree", "--missing-ok"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }).trim();
+      const baselineCommit = execFileSync("git", ["commit-tree", tree], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+        input: "missing blob baseline\n",
+      }).trim();
+
+      const baseline = admittedBaseline();
+      baseline.source.candidate.record.commit_sha = baselineCommit;
+      baseline.source.measurement.candidate_commit = baselineCommit;
+      bindBaselineCandidate(baseline);
+      expect(
+        compareComponentRatchet(
+          passedReportForRoot(repositoryRoot),
+          hiddenUncoveredReduction(),
+          baseline,
+          repositoryRoot,
+        ).map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
+    } finally {
+      rmSync(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["commit", "blob"] as const)(
+    "fails closed for mutable Git %s replacement refs",
+    (replacementKind) => {
+      const repositoryRoot = mkdtempSync(join(tmpdir(), `component-ratchet-${replacementKind}-replace-`));
+      const sourcePath = resolve(repositoryRoot, "src/example.ts");
+      mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
+      writeFileSync(sourcePath, "committed bytes\n");
+      try {
+        execFileSync("git", ["init"], { cwd: repositoryRoot });
+        execFileSync("git", ["config", "user.email", "component@example.com"], { cwd: repositoryRoot });
+        execFileSync("git", ["config", "user.name", "Component Gate"], { cwd: repositoryRoot });
+        execFileSync("git", ["add", "src/example.ts"], { cwd: repositoryRoot });
+        execFileSync("git", ["commit", "-m", "baseline"], { cwd: repositoryRoot });
+        const baselineCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+          cwd: repositoryRoot,
+          encoding: "utf8",
+        }).trim();
+        const baselineBlob = execFileSync("git", ["rev-parse", `${baselineCommit}:src/example.ts`], {
+          cwd: repositoryRoot,
+          encoding: "utf8",
+        }).trim();
+
+        writeFileSync(sourcePath, "replacement bytes\n");
+        execFileSync("git", ["add", "src/example.ts"], { cwd: repositoryRoot });
+        execFileSync("git", ["commit", "-m", "replacement"], { cwd: repositoryRoot });
+        const replacementCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+          cwd: repositoryRoot,
+          encoding: "utf8",
+        }).trim();
+        const replacementBlob = execFileSync("git", ["rev-parse", `${replacementCommit}:src/example.ts`], {
+          cwd: repositoryRoot,
+          encoding: "utf8",
+        }).trim();
+        execFileSync(
+          "git",
+          [
+            "replace",
+            replacementKind === "commit" ? baselineCommit : baselineBlob,
+            replacementKind === "commit" ? replacementCommit : replacementBlob,
+          ],
+          { cwd: repositoryRoot },
+        );
+        writeFileSync(sourcePath, "committed bytes\n");
+
+        const baseline = admittedBaseline();
+        baseline.source.candidate.record.commit_sha = baselineCommit;
+        baseline.source.measurement.candidate_commit = baselineCommit;
+        bindBaselineCandidate(baseline);
+
+        expect(
+          compareComponentRatchet(
+            passedReportForRoot(repositoryRoot),
+            hiddenUncoveredReduction(),
+            baseline,
+            repositoryRoot,
+          ).map((finding) => finding.code),
+        ).toContain("COMPONENT_COVERAGE_REGRESSION");
+      } finally {
+        rmSync(repositoryRoot, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("fails closed when an admitted candidate-absent path is a Git symlink", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-git-symlink-"));
+    const sourcePath = resolve(repositoryRoot, "src/example.ts");
+    mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
+    writeFileSync(sourcePath, "outside.ts");
+    try {
+      execFileSync("git", ["init"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.email", "component@example.com"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.name", "Component Gate"], { cwd: repositoryRoot });
+      const objectId = execFileSync("git", ["hash-object", "-w", "src/example.ts"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }).trim();
+      execFileSync("git", ["update-index", "--add", "--cacheinfo", "120000", objectId, "src/example.ts"], {
+        cwd: repositoryRoot,
+      });
+      execFileSync("git", ["commit", "-m", "baseline symlink"], { cwd: repositoryRoot });
+      const commitSha = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }).trim();
+      writeFileSync(sourcePath, "changed target bytes\n");
+
+      const baseline = admittedBaseline();
+      baseline.source.candidate.record.commit_sha = commitSha;
+      baseline.source.measurement.candidate_commit = commitSha;
+      bindBaselineCandidate(baseline);
+
+      expect(
+        compareComponentRatchet(
+          passedReportForRoot(repositoryRoot),
+          hiddenUncoveredReduction(),
+          baseline,
+          repositoryRoot,
+        ).map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
+    } finally {
+      rmSync(repositoryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a candidate-absent path traverses a symlinked directory", () => {
+    const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-ancestor-symlink-"));
+    const outsideRoot = mkdtempSync(join(tmpdir(), "component-ratchet-outside-"));
+    const sourceDirectory = resolve(repositoryRoot, "src");
+    const sourcePath = resolve(sourceDirectory, "example.ts");
+    mkdirSync(sourceDirectory, { recursive: true });
+    writeFileSync(sourcePath, "committed bytes\n");
+    try {
+      execFileSync("git", ["init"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.email", "component@example.com"], { cwd: repositoryRoot });
+      execFileSync("git", ["config", "user.name", "Component Gate"], { cwd: repositoryRoot });
+      execFileSync("git", ["add", "src/example.ts"], { cwd: repositoryRoot });
+      execFileSync("git", ["commit", "-m", "baseline file"], { cwd: repositoryRoot });
+      const commitSha = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }).trim();
+
+      rmSync(sourceDirectory, { recursive: true, force: true });
+      writeFileSync(resolve(outsideRoot, "example.ts"), "changed outside bytes\n");
+      symlinkSync(outsideRoot, sourceDirectory, process.platform === "win32" ? "junction" : "dir");
+      expect(readFileSync(sourcePath, "utf8")).toBe("changed outside bytes\n");
+
+      const baseline = admittedBaseline();
+      baseline.source.candidate.record.commit_sha = commitSha;
+      baseline.source.measurement.candidate_commit = commitSha;
+      bindBaselineCandidate(baseline);
+
+      expect(
+        compareComponentRatchet(
+          passedReportForRoot(repositoryRoot),
+          hiddenUncoveredReduction(),
+          baseline,
+          repositoryRoot,
+        ).map((finding) => finding.code),
+      ).toContain("COMPONENT_COVERAGE_REGRESSION");
+    } finally {
+      rmSync(sourceDirectory, { recursive: true, force: true });
+      rmSync(repositoryRoot, { recursive: true, force: true });
+      rmSync(outsideRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed for clean-filter and mutable-config-only line ending differences", () => {
     const repositoryRoot = mkdtempSync(join(tmpdir(), "component-ratchet-autocrlf-"));
     const sourcePath = resolve(repositoryRoot, "src/example.ts");
     mkdirSync(resolve(repositoryRoot, "src"), { recursive: true });
@@ -491,6 +841,13 @@ describe("component failure normalization and ratchet", () => {
         encoding: "utf8",
       }).trim();
       expect(currentObjectId).toBe(admittedObjectId);
+      execFileSync("git", ["config", "core.autocrlf", "false"], { cwd: repositoryRoot });
+      const configDriftObjectId = execFileSync(
+        "git",
+        ["hash-object", "--path=src/example.ts", "--", "src/example.ts"],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      ).trim();
+      expect(configDriftObjectId).not.toBe(admittedObjectId);
 
       const baseline = admittedBaseline();
       baseline.source.candidate.record.commit_sha = commitSha;
@@ -504,6 +861,16 @@ describe("component failure normalization and ratchet", () => {
           repositoryRoot,
         ).map((finding) => finding.code),
       ).toContain("COMPONENT_COVERAGE_REGRESSION");
+
+      writeFileSync(sourcePath, "changed bytes\r\n");
+      expect(
+        compareComponentRatchet(
+          passedReportForRoot(repositoryRoot),
+          hiddenUncoveredReduction(),
+          baseline,
+          repositoryRoot,
+        ),
+      ).toEqual([]);
     } finally {
       rmSync(repositoryRoot, { recursive: true, force: true });
     }

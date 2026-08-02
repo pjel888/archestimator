@@ -231,6 +231,130 @@ describe("canonical component baseline generation integrity", () => {
     );
   });
 
+  it("fails closed across established predecessor evidence defects", async () => {
+    for (const scenario of [
+      { label: "missing predecessor", predecessor: null, expectedHash: null, expectedCode: "COMPONENT_BASELINE_PREDECESSOR_MISSING" },
+      {
+        label: "hash mismatch",
+        predecessor: { source: { coverage: "quality/baselines/component/coverage-summary.json" } },
+        expectedHash: "0".repeat(64),
+        expectedCode: "COMPONENT_BASELINE_PREDECESSOR_HASH_MISMATCH",
+      },
+      {
+        label: "noncanonical coverage",
+        predecessor: { source: { coverage: "artifacts/coverage.json" } },
+        expectedHash: null,
+        expectedCode: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID",
+      },
+      {
+        label: "missing coverage",
+        predecessor: { source: { coverage: "quality/baselines/component/coverage-summary.json" } },
+        expectedHash: null,
+        expectedCode: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID",
+      },
+      {
+        label: "embedded coverage mismatch",
+        predecessor: {
+          source: {
+            coverage: "quality/baselines/component/coverage-summary.json",
+            coverage_sha256: sha256(coverageRaw),
+          },
+          coverage: {},
+        },
+        expectedHash: null,
+        expectedCode: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID",
+        commitCoverage: true,
+      },
+    ]) {
+      const { root, comparisonBase: seedCommit } = await createGitFixtureRoot();
+      let comparisonBase = seedCommit;
+      let predecessorRaw: string | null = null;
+      if (scenario.predecessor !== null) {
+        predecessorRaw = `${JSON.stringify(scenario.predecessor)}\n`;
+        await mkdir(join(root, "quality/baselines/component"), { recursive: true });
+        await writeFile(join(root, "quality/baseline.json"), predecessorRaw);
+        if (scenario.commitCoverage) {
+          await writeFile(join(root, "quality/baselines/component/coverage-summary.json"), coverageRaw);
+        }
+        runGit(root, ["add", "quality"]);
+        runGit(root, ["commit", "-m", scenario.label]);
+        comparisonBase = runGit(root, ["rev-parse", "HEAD"]);
+      }
+
+      await mkdir(join(root, "artifacts"), { recursive: true });
+      await writeFile(join(root, "artifacts/current-report.json"), reportRaw);
+      await writeFile(join(root, "artifacts/current-coverage.json"), coverageRaw);
+      const baseline = {
+        source: {
+          candidate: { record: { comparison_base: { input_ref: "main", resolved_sha: comparisonBase } } },
+          report: "artifacts/current-report.json",
+          coverage: "artifacts/current-coverage.json",
+        },
+        admission: {
+          bootstrap: false,
+          predecessor_baseline_sha256: scenario.expectedHash ?? (predecessorRaw === null ? null : sha256(predecessorRaw)),
+        },
+      } as unknown as ComponentBaseline;
+
+      expect(codes(await validateImmutablePredecessorAdmission(root, baseline)), scenario.label)
+        .toContain(scenario.expectedCode);
+    }
+  });
+
+  it("rejects a materialized successor whose per-file denominator shrank", async () => {
+    const { root, comparisonBase: seedCommit } = await createGitFixtureRoot();
+    const predecessorValue = { total: 100, covered: 80, skipped: 0, pct: 80 };
+    const predecessorMetrics = {
+      statements: predecessorValue,
+      branches: predecessorValue,
+      functions: predecessorValue,
+      lines: predecessorValue,
+    };
+    const predecessorCoverage = { total: predecessorMetrics, "src/example.ts": predecessorMetrics };
+    const predecessorCoverageRaw = Buffer.from(JSON.stringify(predecessorCoverage));
+    const predecessor = {
+      source: {
+        coverage: "quality/baselines/component/coverage-summary.json",
+        coverage_sha256: sha256(predecessorCoverageRaw),
+        candidate: { record: { comparison_base: { input_ref: "main", resolved_sha: seedCommit } } },
+      },
+      coverage: predecessorCoverage,
+    } as unknown as ComponentBaseline;
+    const predecessorRaw = `${JSON.stringify(predecessor)}\n`;
+    await mkdir(join(root, "quality/baselines/component"), { recursive: true });
+    await writeFile(join(root, "quality/baseline.json"), predecessorRaw);
+    await writeFile(join(root, "quality/baselines/component/coverage-summary.json"), predecessorCoverageRaw);
+    runGit(root, ["add", "quality"]);
+    runGit(root, ["commit", "-m", "admit predecessor"]);
+    const comparisonBase = runGit(root, ["rev-parse", "HEAD"]);
+    const successorValue = { total: 99, covered: 79, skipped: 0, pct: 79.79 };
+    const successorMetrics = {
+      statements: successorValue,
+      branches: successorValue,
+      functions: successorValue,
+      lines: successorValue,
+    };
+    const successorCoverage = { total: successorMetrics, "src/example.ts": successorMetrics };
+    await mkdir(join(root, "artifacts"), { recursive: true });
+    await writeFile(join(root, "artifacts/current-report.json"), reportRaw);
+    await writeFile(join(root, "artifacts/current-coverage.json"), JSON.stringify(successorCoverage));
+    const successor = {
+      source: {
+        candidate: { record: { comparison_base: { input_ref: "main", resolved_sha: comparisonBase } } },
+        report: "artifacts/current-report.json",
+        coverage: "artifacts/current-coverage.json",
+      },
+      admission: {
+        bootstrap: false,
+        predecessor_baseline_sha256: sha256(predecessorRaw),
+      },
+    } as unknown as ComponentBaseline;
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, successor))).toContain(
+      "COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION",
+    );
+  });
+
   it("excludes only the six canonical evidence outputs from candidate provenance", () => {
     expect([...canonicalBaselineEvidencePaths].sort()).toEqual([
       "quality/baselines/component/admission.json",

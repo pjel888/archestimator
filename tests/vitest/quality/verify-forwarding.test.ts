@@ -23,6 +23,17 @@ function gitCandidateFiles(root: string): string[] {
 }
 
 describe("Q2 verify forwarding", () => {
+  it("gives complete component gates more time without relaxing other commands", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../../../scripts/quality/verify.ts"),
+      "utf8",
+    );
+    expect(source).toContain("const defaultCommandTimeoutMs = 30 * 60_000;");
+    expect(source).toContain("const componentCommandTimeoutMs = 60 * 60_000;");
+    expect(source).toContain('command.startsWith("bun run test:component:")');
+    expect(source).toContain("timeout,");
+  });
+
   it("rejects a caller-selected profiles file before executing classification", () => {
     const root = resolve(import.meta.dirname, "../../..");
     const fixture = mkdtempSync(resolve(tmpdir(), "verify-profiles-override-"));
@@ -79,8 +90,10 @@ describe("Q2 verify forwarding", () => {
   it("fails the real verify CLI before executing any profile job", () => {
     const root = resolve(import.meta.dirname, "../../..");
     const verifyCli = resolve(import.meta.dirname, "../../../scripts/quality/verify.ts");
-    const output = resolve(mkdtempSync(resolve(tmpdir(), "verify-forwarding-")), "result.json");
-    const aggregateOutput = resolve(output, "..", "aggregate.json");
+    const fixture = mkdtempSync(resolve(tmpdir(), "verify-forwarding-"));
+    const output = resolve(fixture, "result.json");
+    const aggregateOutput = resolve(fixture, "aggregate.json");
+    const classification = resolve(fixture, "classification.json");
     const run = spawnSync(
       "bun",
       [
@@ -88,6 +101,7 @@ describe("Q2 verify forwarding", () => {
         "--base", "HEAD",
         "--profile", "Q2_CRITICAL_CHANGE_GATE",
         "--reviews", "artifacts/quality/q.json",
+        "--classification", classification,
         "--output", output,
         "--aggregate-output", aggregateOutput,
       ],
@@ -102,6 +116,7 @@ describe("Q2 verify forwarding", () => {
     expect(result.data.command_results[0]).toMatchObject({
       command: "bun run quality:classify",
       job: "quality / classify",
+      artifact: { path: classification },
     });
   });
 

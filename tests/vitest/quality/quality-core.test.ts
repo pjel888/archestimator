@@ -148,6 +148,55 @@ describe("anti-bypass", () => {
     ).toContain("BUSINESS_LOGIC_EXCLUSION");
   });
 
+  it("rejects every supported coverage-ignore directive in instrumented source", () => {
+    const directives = [
+      "/* istanbul ignore if */",
+      "/* istanbul ignore else */",
+      "/* istanbul ignore next */",
+      "/* istanbul ignore file */",
+      "/* c8 ignore start */",
+      "/* c8 ignore stop */",
+      "// v8 ignore next 3",
+      "// node:coverage ignore next",
+    ];
+
+    for (const directive of directives) {
+      expect(scanAntiBypass([{ path: "src/example.ts", text: directive }])).toEqual([{
+        code: "COVERAGE_IGNORE_HINT",
+        message: "src/example.ts contains a coverage-ignore directive",
+        path: "src/example.ts",
+      }]);
+    }
+
+    for (const source of [
+      'const marker = "c8 ignore start";',
+      "const marker = `node:coverage ignore stop`;",
+    ]) {
+      expect(scanAntiBypass([{ path: "src/example.ts", text: source }])).toEqual([{
+        code: "COVERAGE_IGNORE_HINT",
+        message: "src/example.ts contains a coverage-ignore directive",
+        path: "src/example.ts",
+      }]);
+    }
+
+    expect(scanAntiBypass([{
+      path: "tests/vitest/example.test.ts",
+      text: "/* c8 ignore next */",
+    }])).toEqual([]);
+    expect(scanAntiBypass([{
+      path: "src/example.stories.tsx",
+      text: "/* c8 ignore next */",
+    }])).toEqual([]);
+    expect(scanAntiBypass([{
+      path: "src/example.md",
+      text: "/* c8 ignore next */",
+    }])).toEqual([]);
+    expect(scanAntiBypass([{
+      path: "src/example.ts",
+      text: 'const documentation = "c8 ignore next";',
+    }])).toEqual([]);
+  });
+
   it("rejects expired and agent-authored waivers", () => {
     const findings = validateWaiver({
       author_type: "agent",

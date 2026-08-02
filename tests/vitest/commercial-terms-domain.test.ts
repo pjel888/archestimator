@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  QUOTATION_REQUIREMENTS,
+  QUOTATION_STATUSES,
+  VAT_TREATMENTS,
+} from "@/lib/commercial-terms/contracts";
 import { resolveCommercialTerms } from "@/lib/commercial-terms/resolve-commercial-terms";
 
 const projectDefault = { treatment: "exclusive", rateBps: 1_200 } as const;
 
 describe("commercial terms resolution", () => {
+  it("keeps runtime enum contracts immutable", () => {
+    expect(Object.isFrozen(VAT_TREATMENTS)).toBe(true);
+    expect(Object.isFrozen(QUOTATION_REQUIREMENTS)).toBe(true);
+    expect(Object.isFrozen(QUOTATION_STATUSES)).toBe(true);
+  });
+
   it("uses complete pairs in row, captured option, estimate, project order", () => {
     const capturedSelectedOption = {
       treatment: "inclusive",

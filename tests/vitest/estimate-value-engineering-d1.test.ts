@@ -302,4 +302,51 @@ describe("value-engineering D1 repository", () => {
       name: ValueEngineeringMutationError.name,
     }));
   });
+
+  it("validates optional receipts and recovers a concurrent committed result", async () => {
+    const committed = {
+      kind: "optional_inclusion" as const,
+      contributionScopeId: "scope-1",
+      rowItemId: "row-optional",
+      isIncluded: true,
+      optionalRevision: 3,
+      contributionRevision: 7,
+      changed: true,
+    };
+    const input = {
+      actor,
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      estimateTabId: "tab-1",
+      contributionScopeId: "scope-1",
+      rowItemId: "row-optional",
+      isIncluded: true,
+      expectedOptionalRevision: 2,
+      expectedContributionRevision: 6,
+      intentId: "intent-1",
+    };
+
+    mocks.prepareEstimateMutationIntent.mockResolvedValueOnce({ context, committedResult: committed });
+    const replay = createDatabase();
+    await expect(setValueEngineeringOptionalInclusion({ database: replay.database, ...input }))
+      .resolves.toEqual({ ...committed, replayed: true });
+    expect(replay.batches).toHaveLength(0);
+
+    mocks.prepareEstimateMutationIntent.mockResolvedValueOnce({
+      context: { ...context, commandKind: "value_engineering.set_optional_inclusion" },
+      committedResult: null,
+    });
+    mocks.readConcurrentEstimateMutationReceipt.mockResolvedValueOnce(committed);
+    const concurrent = createDatabase({
+      optional: { optional_revision: 2, is_included: 0, contribution_revision: 6 },
+    });
+    concurrent.database.batch = vi.fn().mockRejectedValue(new Error("concurrent write"));
+
+    await expect(setValueEngineeringOptionalInclusion({ database: concurrent.database, ...input }))
+      .resolves.toEqual({ ...committed, replayed: true });
+    expect(mocks.readConcurrentEstimateMutationReceipt).toHaveBeenCalledWith(
+      concurrent.database,
+      expect.objectContaining({ intentId: "intent-1" }),
+    );
+  });
 });

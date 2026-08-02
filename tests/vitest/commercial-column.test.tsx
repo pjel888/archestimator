@@ -81,4 +81,21 @@ describe("CommercialCell", () => {
     expect(screen.getByLabelText("Remarks for WPC plank")).toHaveValue("Server value");
     expect(screen.getByLabelText("Quotation reference for WPC plank")).toHaveValue("Q-105");
   });
+
+  it("keeps empty uncontrolled fields on distinct React keys", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(<CommercialCell
+      rowLabel="WPC plank"
+      value={{ ...value, remarks: "", quotationReference: "" }}
+      onRemarksCommit={vi.fn()}
+      onCommercialChange={vi.fn()}
+    />);
+
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Encountered two children with the same key"),
+      expect.anything(),
+    );
+    consoleError.mockRestore();
+  });
 });

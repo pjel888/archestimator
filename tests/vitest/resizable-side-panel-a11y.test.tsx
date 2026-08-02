@@ -111,6 +111,14 @@ describe("ResizableSidePanel accessibility", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Library drawer" })).not.toBeInTheDocument());
     await waitFor(() => expect(trigger).toHaveFocus());
     expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(trigger);
+    const reopenedDrawer = await screen.findByRole("dialog", { name: "Library drawer" });
+    const backdrop = reopenedDrawer.parentElement;
+    expect(backdrop).not.toBeNull();
+    fireEvent.mouseDown(backdrop!);
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Library drawer" })).not.toBeInTheDocument());
   });
 
   it("lets product surfaces opt out of the generic compact drawer", () => {

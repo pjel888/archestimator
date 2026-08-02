@@ -330,4 +330,113 @@ describe("material assembly repository", () => {
     expect(fixture.statements).toHaveLength(0);
     expect(mocks.batch).not.toHaveBeenCalled();
   });
+
+  it("validates edge and bulk receipts before replay", async () => {
+    const edgeReceipt = {
+      edgeId: base.edgeId,
+      contributionScopeId: base.contributionScopeId,
+      parentRowItemId: base.parentRowItemId,
+      childRowItemId: base.childRowItemId,
+      mode: base.mode,
+      isIncluded: base.isIncluded,
+      quantityRule: base.quantityRule,
+      edgeRevision: 2,
+      contributionRevision: 5,
+    };
+    const cases = [
+      {
+        receipt: { kind: "accessory_edge_created", ...edgeReceipt },
+        run: (database: D1DatabaseLike) => createMaterialAssemblyEdge({ ...base, database, expectedContributionRevision: 4 }),
+      },
+      {
+        receipt: { kind: "accessory_edge_updated", ...edgeReceipt, changed: false },
+        run: (database: D1DatabaseLike) => updateMaterialAssemblyEdge({
+          ...base,
+          database,
+          expectedEdgeRevision: 2,
+          expectedContributionRevision: 4,
+        }),
+      },
+      {
+        receipt: {
+          kind: "material_assembly_bulk_applied",
+          contributionScopeId: base.contributionScopeId,
+          contributionRevision: 5,
+          changed: true,
+          changedRowItemIds: [base.parentRowItemId, base.childRowItemId],
+          changedGroupIds: [],
+          changedEdgeIds: [base.edgeId],
+        },
+        run: (database: D1DatabaseLike) => applyMaterialAssemblyBulk({
+          actor,
+          contributionScopeId: base.contributionScopeId,
+          database,
+          estimateId: base.estimateId,
+          estimateTabId: base.estimateTabId,
+          expectedContributionRevision: 4,
+          intentId: base.intentId,
+          projectId: base.projectId,
+          operation: {
+            kind: "configure_accessories",
+            edges: [{ ...base, expectedEdgeRevision: null }],
+          },
+        }),
+      },
+    ] as const;
+
+    for (const { receipt, run } of cases) {
+      const fixture = database({});
+      mocks.prepareIntent.mockResolvedValueOnce({ context, committedResult: receipt });
+      await expect(run(fixture.db)).resolves.toEqual({ ...receipt, replayed: true });
+      expect(fixture.statements).toHaveLength(0);
+      expect(mocks.batch).not.toHaveBeenCalled();
+    }
+  });
+
+  it("recovers the exact concurrent receipt after a failed batch", async () => {
+    const fixture = database({ endpoint: { contribution_revision: 3 } });
+    const committed = {
+      kind: "accessory_edge_created" as const,
+      edgeId: base.edgeId,
+      contributionScopeId: base.contributionScopeId,
+      parentRowItemId: base.parentRowItemId,
+      childRowItemId: base.childRowItemId,
+      mode: base.mode,
+      isIncluded: base.isIncluded,
+      quantityRule: base.quantityRule,
+      edgeRevision: 1,
+      contributionRevision: 4,
+    };
+    mocks.batch.mockRejectedValueOnce(new Error("concurrent write"));
+    mocks.concurrentReceipt.mockResolvedValueOnce(committed);
+
+    await expect(createMaterialAssemblyEdge({
+      ...base,
+      database: fixture.db,
+      expectedContributionRevision: 3,
+    })).resolves.toEqual({ ...committed, replayed: true });
+    expect(mocks.concurrentReceipt).toHaveBeenCalledWith(fixture.db, context);
+  });
+
+  it("maps intent authorization denial before reading assembly state", async () => {
+    const fixture = database({});
+    mocks.prepareIntent.mockRejectedValueOnce(new Error("Estimate edit access denied."));
+
+    await expect(deleteMaterialAssemblyEdge({
+      actor,
+      contributionScopeId: base.contributionScopeId,
+      database: fixture.db,
+      edgeId: base.edgeId,
+      estimateId: base.estimateId,
+      estimateTabId: base.estimateTabId,
+      expectedContributionRevision: 4,
+      expectedEdgeRevision: 2,
+      intentId: base.intentId,
+      projectId: base.projectId,
+    })).rejects.toEqual(expect.objectContaining({
+      code: "not_authorized",
+      name: MaterialAssemblyMutationError.name,
+    }));
+    expect(fixture.statements).toHaveLength(0);
+  });
 });

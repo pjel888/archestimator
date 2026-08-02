@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createEstimateContributionRealtimeEvent,
+  decideEstimateContributionRealtimeEvent,
   ESTIMATE_CONTRIBUTION_BROADCAST_EVENT,
   ESTIMATE_CONTRIBUTION_REALTIME_CONTRACT_VERSION,
+  matchesCommittedEstimateContributionReceipt,
   type EstimateContributionBroadcastReceipt,
   type EstimateContributionRealtimeEvent,
   type EstimateContributionRealtimeScope,
@@ -187,6 +189,38 @@ describe("useEstimateContributionBroadcast", () => {
 });
 
 describe("estimate contribution realtime contract", () => {
+  it("ignores unrelated payloads before validating contribution scope", () => {
+    expect(decideEstimateContributionRealtimeEvent({
+      payload: null,
+      expectedScope: scope,
+      currentRevision: 4,
+    })).toEqual({ action: "ignore", reason: "unrelated" });
+    expect(decideEstimateContributionRealtimeEvent({
+      payload: { type: "another.event" },
+      expectedScope: scope,
+      currentRevision: 4,
+    })).toEqual({ action: "ignore", reason: "unrelated" });
+  });
+
+  it.each(["accessory_edge_created", "accessory_edge_updated"])(
+    "matches committed row and edge identifiers for %s receipts",
+    (kind) => {
+      const committedEvent = event(5, `mutation-${kind}`, {
+        changed: { rowIds: ["row-parent", "row-child"], groupIds: [], edgeIds: ["edge-1"] },
+      });
+
+      expect(matchesCommittedEstimateContributionReceipt(committedEvent, {
+        changed: true,
+        contributionScopeId: scope.contributionScopeId,
+        contributionRevision: 5,
+        kind,
+        parentRowItemId: "row-parent",
+        childRowItemId: "row-child",
+        edgeId: "edge-1",
+      }, 5)).toBe(true);
+    },
+  );
+
   it("rejects duplicate identifiers, empty changes, and extra value-bearing fields", () => {
     const receipt: EstimateContributionBroadcastReceipt = {
       delivery: "server_mutation",

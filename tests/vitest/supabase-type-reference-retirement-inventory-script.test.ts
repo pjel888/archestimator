@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSupabaseTypeReferenceRetirementInventory,
   renderSupabaseTypeReferenceRetirementMarkdown,
+  writeSupabaseTypeReferenceRetirementInventoryArtifacts,
 } from "@/../scripts/generate-supabase-type-reference-retirement-inventory";
 
 function writeFixture(root: string, path: string, text: string) {
@@ -90,19 +91,27 @@ describe("Supabase type-reference retirement inventory script", () => {
     const dir = mkdtempSync(join(tmpdir(), "supabase-type-reference-output-"));
     const outputFile = join(dir, "report.json");
     const markdownFile = join(dir, "report.md");
-
-    const run = runCli({
-      OUTPUT_FILE: outputFile,
-      MARKDOWN_FILE: markdownFile,
-      STRICT_TYPE_REFERENCE_EXIT: "0",
+    writeFixture(
+      dir,
+      "tests/vitest/negative-guard.test.ts",
+      'expect(source).not.toContain("@/lib/supabase/types");\n',
+    );
+    const report = buildSupabaseTypeReferenceRetirementInventory({
+      generatedAt: "2026-07-04T00:00:00.000Z",
+      rootDir: dir,
+      scanPaths: ["tests"],
     });
 
-    expect(run.status).toBe(0);
-    expect(run.stderr).toBe("");
+    writeSupabaseTypeReferenceRetirementInventoryArtifacts({
+      report,
+      outputFile,
+      markdownFile,
+    });
 
-    const report = JSON.parse(readFileSync(outputFile, "utf8"));
+    const writtenReport = JSON.parse(readFileSync(outputFile, "utf8"));
     const markdown = readFileSync(markdownFile, "utf8");
-    expect(report.mode).toBe("supabase-type-reference-retirement-inventory");
+    expect(writtenReport).toEqual(report);
+    expect(writtenReport.mode).toBe("supabase-type-reference-retirement-inventory");
     expect(markdown).toContain("Supabase type-reference retirement inventory");
     expect(renderSupabaseTypeReferenceRetirementMarkdown(report)).toContain(
       "Supabase type-reference retirement inventory",
