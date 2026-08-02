@@ -36,7 +36,9 @@ Small (~1 hour).
 `UX-SHARE-001`, `UX-SHARE-002`
 
 ## existing_plan_links
-Infosec OWASP owns share hardening; this unit owns only the *lockout UX copy* and *touch-target* consequence.
+`.ai/03_plans/2026-07-31/Code-Improvement/` owns current share hardening;
+Infosec OWASP is the historical predecessor. This unit owns only the *lockout
+UX copy* and *touch-target* consequence.
 
 ## goal
 - A locked-out recipient sees a minutes-remaining countdown and auto-recovery.
@@ -55,7 +57,8 @@ Infosec OWASP owns share hardening; this unit owns only the *lockout UX copy* an
 None.
 
 ## non_goals
-- Changes to the lockout threshold or rate-limit policy (Infosec-owned).
+- Changes to the lockout threshold or rate-limit policy (owned by
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec scope).
 
 ## implementation_sequence
 1. On 429, parse `Retry-After` from the response and store seconds-remaining in state.

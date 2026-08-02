@@ -1,12 +1,17 @@
 # PACK-MANIFEST — Archestimator Whole-Repo InfoSec + OWASP Audit Plan Pack
 
-Owns artifact roles and topic ownership. Mirrors `plan-pack.json` `artifacts[]`.
+> **Historical provenance only.** This non-runnable predecessor is superseded by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`. It preserves audit evidence and
+> original release/provider boundaries without claiming remediation implementation.
+
+Owns artifact roles and topic ownership inside this retired folder. Mirrors
+`plan-pack.json` `artifacts[]`.
 
 ## Artifacts and roles
 
 | ID | Role | Path | Owner | Purpose |
 |---|---|---|---|---|
-| `ART-001` | canonical-execution | `00-PLAN.md` | Lead | Normative execution artifact (must agree with `plan-pack.json` on `next_unit`, status, scope) |
+| `ART-001` | canonical-execution | `00-PLAN.md` | Lead | Canonical historical pack record; not current repository execution authority |
 | `ART-002` | narrative | `README.md` | Lead | Short index page |
 | `ART-003` | narrative | `01-AUDIT-IDENTITY-AND-COVERAGE.md` | Lead | Audit identity, provenance, inventory, coverage |
 | `ART-004` | narrative | `02-ARCHITECTURE-THREAT-MODEL-AND-ATTACK-SURFACE.md` | Lead | Threat model, trust boundaries, attack surface |
@@ -50,23 +55,28 @@ All artifacts in this pack are owned by the **Lead** (the audit agent). Subagent
 
 | Requirement | Criterion | Evidence | Unit | Status |
 |---|---|---|---|---|
-| `SEC-001` (revocation ≤60s) | `AC-001` | `EVID-001` | `UNIT-001` | OPEN (READY, not executed) |
-| `SEC-002` (worker-edge) | `AC-002` | `EVID-002` | `UNIT-002`, `UNIT-003` | OPEN |
-| `SEC-003` (email boundary) | `AC-003` | `EVID-003` | `UNIT-004` | OPEN |
-| `SEC-004` (upload scan+bind) | `AC-004` | `EVID-004` | `UNIT-005`, `UNIT-006`, `UNIT-007` | OPEN |
-| `SEC-005` (finalize integrity) | `AC-005` | `EVID-005` | `UNIT-006` | OPEN |
-| `SEC-006` (cron redaction+PII) | `AC-006` | `EVID-006` | `UNIT-010` | OPEN |
-| `SEC-007` (CI gates, AUX) | `AC-007` | `EVID-007` | `UNIT-012` | OPEN |
-| `SEC-008` (queue signing) | `AC-008` | `EVID-008` | `UNIT-008` | OPEN |
-| `SEC-009` (browser hardening) | `AC-009` | `EVID-009` | `UNIT-009` | OPEN |
-| `SEC-010` (retention registry) | `AC-010` | `EVID-010` | `UNIT-011` | OPEN |
-| `SEC-011` (historical reconciliation) | `AC-011` | `EVID-011` | (no unit — evidence only) | PASS |
+| `SEC-001` (revocation ≤60s) | `AC-001` | `EVID-001` | `UNIT-001` | SUPERSEDED; implementation not claimed |
+| `SEC-002` (worker-edge) | `AC-002` | `EVID-002` | `UNIT-002`, `UNIT-003` | SUPERSEDED; implementation not claimed |
+| `SEC-003` (email boundary) | `AC-003` | `EVID-003` | `UNIT-004` | SUPERSEDED; implementation not claimed |
+| `SEC-004` (upload scan+bind) | `AC-004` | `EVID-004` | `UNIT-005`, `UNIT-006`, `UNIT-007` | SUPERSEDED; implementation not claimed |
+| `SEC-005` (finalize integrity) | `AC-005` | `EVID-005` | `UNIT-006` | SUPERSEDED; implementation not claimed |
+| `SEC-006` (cron redaction+PII) | `AC-006` | `EVID-006` | `UNIT-010` | SUPERSEDED; implementation not claimed |
+| `SEC-007` (CI gates, AUX) | `AC-007` | `EVID-007` | `UNIT-012` | SUPERSEDED; implementation not claimed |
+| `SEC-008` (queue signing) | `AC-008` | `EVID-008` | `UNIT-008` | SUPERSEDED; implementation not claimed |
+| `SEC-009` (browser hardening) | `AC-009` | `EVID-009` | `UNIT-009` | SUPERSEDED; implementation not claimed |
+| `SEC-010` (retention registry) | `AC-010` | `EVID-010` | `UNIT-011` | SUPERSEDED; implementation not claimed |
+| `SEC-011` (historical reconciliation) | `AC-011` | `EVID-011` | (no unit — evidence only) | Historical audit evidence preserved |
 
-All criteria are `OPEN` (the criterion-level `BOUNDARY` status is not used because the pack is `PLAN_ONLY` and no unit has executed yet; each criterion is `OPEN` pending its unit). The pack's `release_status = BOUNDARY` (matching `00-PLAN.md` §2 and `plan-pack.json`): four active `AUTH-*` authorization boundaries bound *hosted-evidence claims*; none block the local remediation edits in any unit. `implementation_status = NOT_STARTED` because no unit has executed.
+All 13 units are decision-backed `SUPERSEDED` by `DEC-AUTO-007`; no criterion is
+promoted and `implementation_status = NOT_STARTED` remains truthful. The pack's
+`release_status = BOUNDARY` and four active `AUTH-*` records are preserved, so
+retirement does not imply hosted, GitHub, scanner, deployment, or provider proof.
 
 ## Hash policy
 
-Per the validator contract, every artifact's `sha256` in `plan-pack.json` is computed over the file's actual bytes. The validator enforces reciprocity. Run `bun run validate:plan-pack --write .ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack` to refresh hashes after any artifact edit.
+Per the validator contract, every artifact's `sha256` in `plan-pack.json` is
+computed over normalized text bytes. The validator enforces reciprocity. Validate
+this retired pack with `bun run validate:plan-pack -- .ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack`.
 
 ## Reading order
 

@@ -1,9 +1,13 @@
 # 005 — Component-Attachment Bind Requires Clean Scan + Scanner Wiring Decision
 
+> **Historical provenance only.** `UNIT-005` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-UPLOAD-001`, `SEC-UPLOAD-002`.
 
 ## unit_id
-`UNIT-005` · **status:** `READY` · **priority:** P0 (first-alpha functionality + security) · **effort:** S–M · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** scanner-wiring path requires `AUTH-003`.
+`UNIT-005` · **status:** `SUPERSEDED` · **priority:** P0 (first-alpha functionality + security) · **effort:** S–M · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** scanner-wiring path requires `AUTH-003`.
 
 ## requirements / findings
 - Requirements: `SEC-004`.
@@ -94,5 +98,6 @@ Coordinate with `UNIT-006` (finalize magic-byte + checksum) — both touch uploa
 ## completion_signal
 All three acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any other unit.
+## historical_next_unit_on_success
+The original proposal allowed any other unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

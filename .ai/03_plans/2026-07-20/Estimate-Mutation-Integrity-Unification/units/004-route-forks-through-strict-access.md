@@ -1,5 +1,9 @@
 # UNIT-004 — Route forks through assertEstimateEditIntent (strict access)
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Route the forks that half-fork the access layer (calling the non-strict
@@ -10,7 +14,7 @@ on denial rather than returning a boolean the caller must remember to check.
 
 ## Status
 
-`READY` · depends on: `UNIT-002` · requirement: `DATA-004` · risks: `RISK-004`
+`SUPERSEDED` · historical dependency: `UNIT-002` · requirement: `DATA-004` · risks: `RISK-004`
 
 ## Why this matters
 

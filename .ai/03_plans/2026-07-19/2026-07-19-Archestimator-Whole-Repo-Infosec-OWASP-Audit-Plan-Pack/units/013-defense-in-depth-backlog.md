@@ -1,9 +1,13 @@
 # 013 — Defense-in-Depth Backlog (Latent Data-Layer, Realtime, Worker-Edge, Browser, AI)
 
+> **Historical provenance only.** `UNIT-013` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes the folded Low/Medium-Latent findings: `SEC-AUTH-001`, `SEC-AUTHZ-001`, `SEC-AUTH-003`, `SEC-COLLAB-001`, `SEC-COLLAB-002`, `SEC-COLLAB-004`, `SEC-COLLAB-005`, `SEC-COLLAB-006`, `SEC-COLLAB-007`, `SEC-WORKER-004`, `SEC-WORKER-005`, `SEC-SHARE-001`, `SEC-SHARE-002`, `SEC-OPS-005`, `SEC-OPS-006`, `SEC-BROWSER-002`, `SEC-BROWSER-007`, `SEC-AI-001`, `SEC-AI-002`.
 
 ## unit_id
-`UNIT-013` · **status:** `READY` · **priority:** P3 · **effort:** M–L (multi-surface) · **implementation_risk:** LOW (each sub-fix is independent and small) · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
+`UNIT-013` · **status:** `SUPERSEDED` · **priority:** P3 · **effort:** M–L (multi-surface) · **implementation_risk:** LOW (each sub-fix is independent and small) · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
 
 ## requirements / findings
 - Requirements: `SEC-001` (residual hardening beyond `UNIT-001`), `SEC-006`, `SEC-009`, `SEC-010`.
@@ -101,5 +105,6 @@ Coordinate across PRs to avoid merge conflicts on `collaboration-room.ts`.
 ## completion_signal
 When all 19 sub-fixes are landed and evidenced. `DONE`.
 
-## next_unit_on_success
-Pack completion (`implementation_status` advances toward `COMPLETE`).
+## historical_next_unit_on_success
+The original proposal ended the pack after this unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

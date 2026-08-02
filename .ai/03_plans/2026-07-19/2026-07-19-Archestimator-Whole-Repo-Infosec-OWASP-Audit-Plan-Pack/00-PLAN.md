@@ -1,6 +1,9 @@
 # 00-PLAN — Archestimator Whole-Repo InfoSec + OWASP Audit
 
-> Canonical normative execution artifact. `plan-pack.json` owns machine-readable truth; this owns human-readable truth. They must agree on `next_unit`, status, and scope.
+> **Historical provenance only.** This predecessor is non-runnable and is
+> superseded by `.ai/03_plans/2026-07-31/Code-Improvement/`. `plan-pack.json`
+> owns the retired pack's machine-readable state; this file is its human-readable
+> historical record. No remediation implementation is claimed here.
 
 ## 1. Pack metadata and baseline
 
@@ -11,27 +14,33 @@
 | `schema_version` | `1.0` |
 | `profile` | `high-blast-radius` |
 | `package_action_ceiling` | `IMPLEMENT_LOCAL` |
-| `last_observed_run_scope` | `PLAN_ONLY` (audit + plan only; remediation units are `READY`, not executed) |
+| `last_observed_run_scope` | `PLAN_ONLY` (audit + plan only; remediation units were not executed) |
 | Baseline HEAD | `7f9a484b42b0d951f219e3c4ce1bfbb4364e8847` (2026-07-19T09:44:40+08:00) |
 | Final observed HEAD | `963bb1f25` — drifted during the audit via concurrent commits (366 files changed), **none** in audited source paths; every file:line citation re-verified valid against the final tree. See `08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md` §8.4 for the full drift reconciliation. |
 | Post-audit repo HEAD (at improvement time) | `5e2d4adea` — further drift after the audit touched only 7 landing-page files under `src/components/landing-new/`; **no cited audited path changed** (`git diff --name-only 7f9a484b4..5e2d4adea \| grep -E '^(src/\|worker.ts\|wrangler.jsonc\|next.config.ts\|migrations/)'` confirms only landing-page components). |
 | Working-tree status at audit | Pre-existing modified/untracked files in `.ai/` and `.agents/README.md`; none in audited source paths. Concurrent `2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/` work preserved untouched. |
 | Audit mode | Read-only `PLAN_ONLY`. No product source edits, no migrations, no builds-as-tests, no browser automation, no scanners that execute untrusted code, no hosted probes, no provider mutation. |
 
-## 2. Current status tuple and exact `next_unit`
+## 2. Retired status tuple and successor authority
 
 ```
-package_status        = IMPLEMENTATION_READY
+package_status        = NOT_READY
 implementation_status = NOT_STARTED
 release_status        = BOUNDARY        (active AUTH-001/002/003/004 for hosted-evidence claims)
-plan_lifecycle        = ACTIVE
-terminal_status       = ACTIVE
-next_unit             = UNIT-001   (realtime token revocation — closes SEC-COLLAB-003, the only High)
+plan_lifecycle        = N/A
+terminal_status       = CANCELLED       (retired execution authority; not an implementation claim)
+next_unit             = null
 ```
 
-`release_status = BOUNDARY` reflects four active `AUTH-*` authorization boundaries that bound *hosted-evidence claims* (`AUTH-001` GitHub state, `AUTH-002` Cloudflare state, `AUTH-003` real-scanner wiring, `AUTH-004` deploy verification). **None** of these boundaries block the local remediation edits in any unit; they bound only the hosted-state claim that can be made after each local edit lands. All 13 units are `READY` and locally executable without crossing any `AUTH-*` boundary.
+`release_status = BOUNDARY` deliberately preserves the four original `AUTH-*`
+release/provider boundaries (`AUTH-001` GitHub state, `AUTH-002` Cloudflare
+state, `AUTH-003` real-scanner wiring, `AUTH-004` deploy verification). Retirement
+does not resolve them or upgrade any hosted-evidence claim.
 
-`UNIT-001` is `READY`, in `SLICE-001`, depends on no other unit, owns an exact file/symbol target, and is immediately executable from current evidence without rediscovery.
+`DEC-AUTO-007` marks all 13 units `SUPERSEDED`, clears `ready_slices`, and sets
+`next_unit = null` without claiming that any remediation was implemented. The
+only current execution authority is
+`.ai/03_plans/2026-07-31/Code-Improvement/`.
 
 ## 3. Outcome and stop condition
 
@@ -42,7 +51,7 @@ next_unit             = UNIT-001   (realtime token revocation — closes SEC-COL
 - the tracked-file coverage ledger is closed (`unclassified_tracked_paths = 0`);
 - every Critical/High accepted finding has an independent adversarial challenge (`08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md`);
 - every accepted finding maps to a remediation unit or an existing active plan (`04-FINDINGS-REGISTER.md` × `units/`);
-- the dependency-ordered unit DAG is acyclic and exposes exactly one `next_unit`;
+- the original dependency-ordered unit DAG is acyclic and recorded for provenance;
 - `bun run validate:plan-pack` passes;
 - the requirement-to-evidence audit (`PACK-MANIFEST.md`) closes.
 
@@ -67,7 +76,9 @@ Whole-repository, read-only, current-HEAD security audit of `archestimator` cove
 
 - **Not a hosted penetration-test proof.** No live exploitation, DAST, fuzzing, load testing, or browser-driven security QA was performed. Findings are `CURRENT_SOURCE_CONFIRMED` / `CALL_FLOW_CONFIRMED` / `STATIC_PATTERN_ONLY` / `HYPOTHESIS` — never `RUNTIME_MEASURED` or `HOSTED_CONFIRMED`.
 - **Not an OWASP/ASVS certification.** No "ASVS Level 2 certified" or "OWASP compliant" claim is made. The crosswalk in `05-OWASP-ASVS-API-AI-CROSSWALK.md` is a coverage map; every category ends in `VERIFIED_NO_ACCEPTED_FINDING`, `ACCEPTED_FINDING`, `PARTIALLY_VERIFIED`, `NOT_APPLICABLE`, or `EVIDENCE_BLOCKED`.
-- **Not authority to implement remediations.** This pack plans; it does not implement. Each unit is `READY` and requires separate execution authorization (and any `TEST_TASK` requires explicit current-task user authorization per the Validation Matrix).
+- **Not authority to implement remediations.** This pack did not implement any
+  unit. Every unit is now `SUPERSEDED`; current dispositions and execution live
+  only in `.ai/03_plans/2026-07-31/Code-Improvement/`.
 - **Not a mutation of** product source, migrations, dependencies, provider config, GitHub settings, or deployment state. Only this plan-pack folder and its own artifacts were created.
 - **Not exhaustive line-by-line review of** generated/binary content, `node_modules`, `.next`, `.open-next`, opaque media, or Git internals. Those were classified and excluded per master prompt §4.2.
 - **No re-audit of historical Supabase controls.** June 1 audit findings were reconciled as lineage (see §14 and `03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md`); Supabase RLS / SECURITY DEFINER / Postgres policies are not current controls and were not re-verified as such.
@@ -181,9 +192,18 @@ See `plan-pack.json` `requirements[]`. The pack defines the following CORE requi
 - `DEC-AUTO-001` — Severities are calibrated against the master prompt §14 (Critical = practical unauth/low-priv RCE / cross-tenant compromise / admin takeover / mass exposure; High = auth bypass / cross-tenant R/W / significant escalation / public-token bypass / reachable high-impact injection). Informational findings are not promoted to actionable units. **Active.**
 - `DEC-AUTO-002` — Several sweep candidates were merged into single units by coherent root cause (email boundary; worker-edge seam; scan-and-bind invariant). One unit per sweep finding was rejected as ceremony. **Active.**
 - `DEC-AUTO-003` — The historical June 1 audit's Supabase/RLS findings are dispositioned as `OBSOLETE_PROVIDER`. New findings on the Cloudflare D1 architecture are `NEW_SCOPE_NOT_PREVIOUSLY_AUDITED`. **Active.**
-- `DEC-AUTO-004` — Pack is `PLAN_ONLY` (`last_observed_run_scope=PLAN_ONLY`, `package_action_ceiling=IMPLEMENT_LOCAL`); remediation units are `READY` but not executed; this is consistent with the master prompt §1.3 (no implementation authorization under this prompt). **Active.**
-- `DEC-AUTO-005` — `next_unit = UNIT-001` because it is the only accepted High, it is dependency-free, and it has the smallest coherent fix (DO-SQLite revocation list + ≤60s TTL). **Active.**
+- `DEC-AUTO-004` — The original pack was `PLAN_ONLY`
+  (`last_observed_run_scope=PLAN_ONLY`, `package_action_ceiling=IMPLEMENT_LOCAL`);
+  remediation units were not executed. Retained as historical audit provenance.
+- `DEC-AUTO-005` — The original plan selected `UNIT-001` first because it was
+  the only accepted High and dependency-free. `DEC-AUTO-007` supersedes that
+  sequencing decision.
 - `DEC-AUTO-006` — `SEC-007` (CI) is `AUXILIARY`: an alpha product can ship without enforced CI, but first-external-user launch should restore it. Recorded as a launch-readiness concern, not a hard implementation blocker for the CORE security remediations. **Active.**
+- `DEC-AUTO-007` — Retire this predecessor as historical provenance. All 13
+  units are `SUPERSEDED` without implementation claims; `package_status=NOT_READY`,
+  `plan_lifecycle=N/A`, `next_unit=null`, and `ready_slices=[]`. Current-source
+  ownership transfers to `.ai/03_plans/2026-07-31/Code-Improvement/` while the
+  original release/provider boundaries remain recorded. **Active.**
 
 ## 12. Authorization boundaries
 
@@ -239,9 +259,12 @@ Per `.ai/08_prompts/000_Planning Prompts/Frontier-Applicability-Gates.md`, the g
 | 3 | `UNIT-012` | Re-enable CI gates (ci.yml + codeql.yml + dependency-review.yml + dependabot.yml) and configure branch protection | Medium (`SEC-CI-001/002`) — **AUXILIARY** | — |
 | 3 | `UNIT-013` | Close latent data-layer authz gaps: support-conversations repository + realtime presence schema validation | Medium (`SEC-AUTHZ-001`, `SEC-COLLAB-004`, `SEC-COLLAB-007`) | — |
 
-The DAG is acyclic (verified by validator). `SLICE-001 = [UNIT-001]` (only unit with no dependencies AND READY).
+The original DAG is acyclic. Retirement removes every ready slice; all 13 units
+are `SUPERSEDED` and `next_unit = null`.
 
-**Note on wave ordering:** waves group by remediation risk and dependency; any unit may be executed independently if its dependencies are met. The wave numbers are not blocking gates — they are sequencing guidance.
+**Historical note on wave ordering:** the waves preserve the original remediation
+proposal only. They are not executable sequencing guidance; use
+`.ai/03_plans/2026-07-31/Code-Improvement/` for current work.
 
 ## 16. Evidence / test strategy
 
@@ -274,21 +297,19 @@ No `TEST_TASK` is authorized by this pack.
 
 ## 18. Resume / recovery state
 
-If interrupted, a fresh executor can resume from:
-
-1. This `00-PLAN.md` (canonical truth).
-2. `plan-pack.json` (machine-readable truth).
-3. `04-FINDINGS-REGISTER.md` (findings source).
-4. `units/UNIT-001-*.md` (next executable unit).
-5. `08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md` (severity calibration reasoning).
-
-No shared mutable state outside this folder is touched. The pack is fully self-contained.
+Execution must not resume from this predecessor. Use
+`.ai/03_plans/2026-07-31/Code-Improvement/` for current-source dispositions and
+sequencing. This folder remains self-contained historical audit provenance, and
+its raw evidence is preserved.
 
 ## 19. Requirement-to-evidence completion audit
 
 (See `PACK-MANIFEST.md`.)
 
-Every CORE requirement traces: requirement → criterion → evidence → unit. The validator enforces reciprocity (`plan-pack.json` references resolve bidirectionally). The coverage ledger closes (`unclassified_tracked_paths = 0`). Every Critical/High has independent challenge evidence (`08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md`). Every accepted finding maps to a unit or an existing active plan (`04-FINDINGS-REGISTER.md` × `units/`).
+Every original CORE requirement retains its historical requirement → criterion →
+evidence → unit trace. The validator enforces reciprocity, and the raw audit
+coverage remains preserved. Retirement does not prove any remediation: all 13
+units are `SUPERSEDED`, and the successor pack owns current-source disposition.
 
 ## 20. Reading order
 

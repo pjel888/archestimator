@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, posix, relative, resolve, sep } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -1406,13 +1407,48 @@ function readImmutableGitFile(root: string, commitSha: string, path: string): st
   return null;
 }
 
-function baselineExistsInCurrentHead(root: string): boolean {
-  const history = spawnSync("git", ["log", "-1", "--format=%H", "--diff-filter=A", "HEAD", "--", "quality/baseline.json"], {
+function readGitOutput(root: string, args: string[], failureMessage: string): string {
+  const result = spawnSync("git", args, {
     cwd: root,
     encoding: "utf8",
   });
-  if (history.error || history.status !== 0) throw history.error ?? new Error("Current HEAD baseline lineage is unavailable");
-  return Boolean(history.stdout.trim());
+  if (result.error || result.status !== 0) {
+    throw result.error ?? new Error(failureMessage);
+  }
+  return result.stdout.trim();
+}
+
+function baselineMatchesOnlyTrackedBootstrapAdmission(root: string): boolean {
+  const baselinePath = "quality/baseline.json";
+  const pathCommits = readGitOutput(
+    root,
+    ["log", "--format=%H", "HEAD", "--", baselinePath],
+    "Current HEAD baseline history is unavailable",
+  ).split(/\r?\n/u).filter(Boolean);
+  const additions = readGitOutput(
+    root,
+    ["log", "--format=%H", "--diff-filter=A", "HEAD", "--", baselinePath],
+    "Current HEAD baseline additions are unavailable",
+  ).split(/\r?\n/u).filter(Boolean);
+  if (pathCommits.length !== 1 || additions.length !== 1 || pathCommits[0] !== additions[0]) {
+    return false;
+  }
+  const firstTrackedBlob = readGitOutput(
+    root,
+    ["rev-parse", `${additions[0]}:${baselinePath}`],
+    "First tracked baseline blob is unavailable",
+  );
+  const headBlob = readGitOutput(
+    root,
+    ["rev-parse", `HEAD:${baselinePath}`],
+    "Current HEAD baseline blob is unavailable",
+  );
+  const worktreeBlob = readGitOutput(
+    root,
+    ["hash-object", "--", baselinePath],
+    "Current worktree baseline blob is unavailable",
+  );
+  return firstTrackedBlob === headBlob && headBlob === worktreeBlob;
 }
 
 function validateBootstrapPredecessor(
@@ -1422,7 +1458,7 @@ function validateBootstrapPredecessor(
 ): QualityFinding[] {
   const valid = predecessorRaw === null &&
     baseline.admission.predecessor_baseline_sha256 === null &&
-    !baselineExistsInCurrentHead(root);
+    baselineMatchesOnlyTrackedBootstrapAdmission(root);
   return valid ? [] : [{
     code: "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
     message: "Bootstrap baseline conflicts with immutable baseline history or a predecessor binding",
@@ -1456,7 +1492,7 @@ function validateEstablishedPredecessor(
   return compareComponentRatchet(report, coverage, predecessor, root);
 }
 
-async function validateImmutablePredecessorAdmission(root: string, baseline: ComponentBaseline): Promise<QualityFinding[]> {
+export async function validateImmutablePredecessorAdmission(root: string, baseline: ComponentBaseline): Promise<QualityFinding[]> {
   try {
     const comparisonBaseSha = baseline.source.candidate.record.comparison_base.resolved_sha;
     const predecessorRaw = readImmutableGitFile(root, comparisonBaseSha, "quality/baseline.json");
@@ -1765,6 +1801,8 @@ function findComponentTestCountRegression(
 function findComponentCoverageRegressions(
   coverage: CoverageSummary,
   baselineCoverage: CoverageSummary,
+  baseline: ComponentBaseline,
+  root: string,
 ): QualityFinding[] {
   const malformed = validateComponentCoverageSummary(coverage);
   if (malformed.length > 0 || validateComponentCoverageSummary(baselineCoverage).length > 0) return malformed.length > 0 ? malformed : [{
@@ -1772,17 +1810,86 @@ function findComponentCoverageRegressions(
     message: "Component baseline coverage is malformed",
   }];
   const files = new Set([...Object.keys(baselineCoverage), ...Object.keys(coverage)]);
-  return [...files].sort().flatMap((file) => componentCoverageFileRegressions(file, coverage[file], baselineCoverage[file]));
+  return [...files].sort().flatMap((file) => componentCoverageFileRegressions(
+    file,
+    coverage[file],
+    baselineCoverage[file],
+    componentSourceChangedSinceBaseline(file, baseline, root),
+  ));
 }
 
 function componentCoverageFileRegressions(
   file: string,
   currentMetrics: CoverageMetrics | undefined,
   baselineMetrics: CoverageMetrics | undefined,
+  sourceChangedSinceBaseline: boolean,
 ): QualityFinding[] {
   if (!currentMetrics) return [{ code: "COMPONENT_COVERAGE_FILE_MISSING", message: `Coverage no longer reports ${file}`, path: file }];
   if (!baselineMetrics) return coverageMetrics.flatMap((metric) => newCoverageFileMetricRegression(file, metric, currentMetrics[metric]));
-  return coverageMetrics.flatMap((metric) => existingCoverageFileMetricRegression(file, metric, currentMetrics[metric], baselineMetrics[metric]));
+  return coverageMetrics.flatMap((metric) => existingCoverageFileMetricRegression(
+    file,
+    metric,
+    currentMetrics[metric],
+    baselineMetrics[metric],
+    sourceChangedSinceBaseline,
+  ));
+}
+
+function readGitObjectId(root: string, args: string[]): string | null {
+  try {
+    const objectId = readGitOutput(root, args, "Git object ID is unavailable").toLowerCase();
+    if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u.test(objectId)) return null;
+    return objectId;
+  } catch {
+    return null;
+  }
+}
+
+function cleanFilteredSourceChangedSinceCommit(
+  root: string,
+  commitSha: string,
+  normalizedPath: string,
+): boolean {
+  const admittedObjectId = readGitObjectId(
+    root,
+    ["rev-parse", "--verify", `${commitSha}:${normalizedPath}`],
+  );
+  if (!admittedObjectId) return false;
+  const currentObjectId = readGitObjectId(
+    root,
+    ["hash-object", `--path=${normalizedPath}`, "--", normalizedPath],
+  );
+  return currentObjectId !== null && currentObjectId !== admittedObjectId;
+}
+
+function componentSourceChangedSinceBaseline(
+  file: string,
+  baseline: ComponentBaseline,
+  root: string,
+): boolean {
+  if (file === "total") return false;
+  let normalizedPath: string;
+  try {
+    normalizedPath = normalizeRepositoryEvidencePath(file, root, "Coverage path");
+  } catch {
+    return false;
+  }
+  const admittedFile = baseline.source.candidate.record.changed_files.find(
+    (candidateFile) => candidateFile.path === normalizedPath,
+  );
+  if (admittedFile) {
+    if (admittedFile.deleted) return false;
+    try {
+      return sha256(readFileSync(resolve(root, normalizedPath))) !== admittedFile.sha256;
+    } catch {
+      return false;
+    }
+  }
+  return cleanFilteredSourceChangedSinceCommit(
+    root,
+    baseline.source.candidate.record.commit_sha,
+    normalizedPath,
+  );
 }
 
 function newCoverageFileMetricRegression(file: string, metric: CoverageMetric, current: CoverageValue): QualityFinding[] {
@@ -1800,11 +1907,15 @@ function existingCoverageFileMetricRegression(
   metric: CoverageMetric,
   current: CoverageValue,
   baseline: CoverageValue,
+  sourceChangedSinceBaseline: boolean,
 ): QualityFinding[] {
   const currentUncovered = current.total - current.covered;
   const baselineUncovered = baseline.total - baseline.covered;
   const uncoveredRegressed = currentUncovered > baselineUncovered;
-  const unsafeDenominatorShrink = file !== "total" && current.total < baseline.total && currentUncovered !== baselineUncovered;
+  const unsafeDenominatorShrink = file !== "total" &&
+    current.total < baseline.total &&
+    currentUncovered !== baselineUncovered &&
+    !sourceChangedSinceBaseline;
   if (!uncoveredRegressed && !unsafeDenominatorShrink) return [];
   return [{
     code: "COMPONENT_COVERAGE_REGRESSION",
@@ -1833,7 +1944,7 @@ export function compareComponentRatchet(
     ...findRemovedComponentTestFiles(normalized.testFiles, baseline.suite.test_files),
   );
   findings.push(...findComponentTestCountRegression(report, baseline.suite.total_tests));
-  findings.push(...findComponentCoverageRegressions(coverage, baseline.coverage));
+  findings.push(...findComponentCoverageRegressions(coverage, baseline.coverage, baseline, root));
   return findings;
 }
 

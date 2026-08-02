@@ -12,8 +12,10 @@ parity, hosted authentication, storage lifecycle, queues/DLQs, cron, Durable
 Objects, email, observability, backup/restore readiness, incident response,
 release provenance, and fix-forward recovery.
 
-This is **not** another code-quality, performance, or Infosec audit. Those are
-owned by the Quality Master and Infosec OWASP packs and cross-referenced here.
+This is **not** another code-quality, performance, or security audit. Current
+ownership for those surfaces is
+`.ai/03_plans/2026-07-31/Code-Improvement/`; the retired July 19 Quality Master
+and Infosec OWASP references here are historical provenance.
 
 The central question:
 
@@ -58,7 +60,8 @@ The central question:
   Email, crons).
 - Every operator-facing release, recovery, and operations surface.
 - Evidence-layer classification for every claim (REPO_LOCAL → EVIDENCE_BLOCKED).
-- Cross-reference to existing active packs (no duplicate owners).
+- Cross-reference to current owners and historical predecessor records (no
+  duplicate owners).
 
 ### Non-goals
 
@@ -66,12 +69,16 @@ The central question:
 - Active migration changes.
 - Dependency or runtime config changes.
 - Provider state mutations.
-- Generic security audit (owned by Infosec OWASP).
-- Performance or code-quality audit (owned by Quality Master).
+- Generic security audit (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`).
+- Performance or code-quality audit (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`).
 - Public self-service release gates (controlled beta only).
-- CI activation (Infosec UNIT-012).
-- CI truthful-claims engineering (Quality Master UNIT-002).
-- workers_dev:false remediation (Infosec UNIT-002).
+- CI activation (current authority: `.ai/03_plans/2026-07-31/Code-Improvement/`;
+  historical Infosec `UNIT-012`).
+- CI truthful-claims engineering (current authority:
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality Master
+  `UNIT-002`).
+- `workers_dev:false` remediation (current authority:
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec `UNIT-002`).
 
 ## Baseline and evidence limits
 
@@ -85,10 +92,11 @@ The central question:
 
 ## Existing-pack reconciliation
 
-Per `artifacts/existing-pack-overlap.json`: 21 candidates considered; 14
+At the 2026-07-19 audit baseline, `artifacts/existing-pack-overlap.json`
+recorded 21 candidates considered; 14
 `NEW_OWNER_HERE`; 3 `CROSS_REFERENCE_ACTIVE_PACK`; 3 `ALREADY_IMPLEMENTED`;
 1 `DEFERRED_TO_NAMED_STAGE_OR_OWNER`; 0 `HISTORICAL_ONLY`. No accepted
-requirement or unit has two active owners. (Candidate IDs in the overlap
+requirement or unit had two active owners. (Candidate IDs in the overlap
 matrix are a separate reconciliation namespace from the findings-register
 IDs; see the matrix schema note.)
 
@@ -96,12 +104,16 @@ Key dispositions:
 
 - D1 PITR *enablement* → MVP-Startup UNIT-004. Hosted D1 recovery *proof*
   gap → this pack UNIT-001.
-- CI *truthful claims* → Quality Master UNIT-002. CI *activation* → Infosec
-  UNIT-012. Operator release-gate *ritual* → this pack UNIT-006.
-- Email *CRLF/HTML chokepoint* → Infosec UNIT-004. Email *DNS topology* →
-  this pack UNIT-004.
-- Realtime token *revocation logic* → Infosec UNIT-001. Hosted DO *storage
-  ops + quarantine runbook* → this pack UNIT-005.
+- CI *truthful claims* and *activation* →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality Master
+  `UNIT-002` and Infosec `UNIT-012`). Operator release-gate *ritual* → this
+  pack UNIT-006.
+- Email *CRLF/HTML chokepoint* →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec `UNIT-004`).
+  Email *DNS topology* → this pack UNIT-004.
+- Realtime token *revocation logic* →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec `UNIT-001`).
+  Hosted DO *storage ops + quarantine runbook* → this pack UNIT-005.
 
 ## Requirements (CORE unless noted)
 
@@ -220,8 +232,8 @@ NO_GO items. The DAG is acyclic.
   runbook today; risk is bounded for controlled beta (small cohort) but
   escalates for public beta.
 - `RISK-004` (MITIGATED) — workers.dev secondary origin reachable; partial
-  mitigation via canonical-host redirect; full remediation owned by Infosec
-  UNIT-002.
+  mitigation via canonical-host redirect; full remediation belongs to
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec `UNIT-002`).
 - `RISK-005` (ACCEPTED) — CI disabled; for controlled beta, release-gate
   ritual substitutes; not a blocker.
 
@@ -258,7 +270,8 @@ This pack reaches `ACHIEVED` when:
 - D1 recovery has an honest local-versus-hosted verdict (post UNIT-001).
 - Each queue, cron, Durable Object, auth, email, and observability domain has
   failure and recovery coverage.
-- Infosec and Quality Master findings are cross-referenced, not duplicated.
+- Current Code Improvement ownership and historical Infosec/Quality Master
+  findings are cross-referenced, not duplicated.
 - Controlled-beta release status is explicit (GO recorded in release receipt).
 - Every NO_GO item maps to one owner/unit or exact external boundary.
 - One exact next unit is ready.

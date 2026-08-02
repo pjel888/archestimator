@@ -20,7 +20,8 @@ HEAD `b2a934919`, plus a validator-conformant, implementation-ready plan pack
 for every accepted finding.
 
 It is **not**:
-- a security audit (Infosec OWASP owns; cross-referenced);
+- a security audit (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`;
+  historical Infosec OWASP references retained);
 - a numeric / financial-truth audit (Commercial Estimate-Truth owns);
 - a visual redesign or cosmetic backlog;
 - a hosted/production proof.

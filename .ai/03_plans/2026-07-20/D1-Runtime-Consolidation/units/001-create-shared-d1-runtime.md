@@ -1,5 +1,9 @@
 # UNIT-001 — Create `src/lib/cloudflare/d1-runtime.ts` shared module
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation and refuted by successor `DEC-AUTO-007` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Create the single shared D1 runtime module that promotes `d1-intents/database.ts`'s
@@ -9,7 +13,7 @@ change in this unit — it only adds the module.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `DATA-001` · risks: (none)
+`SUPERSEDED` · historical dependency: (none) · requirement: `DATA-001` · risks: (none)
 
 ## Why this matters
 

@@ -1,20 +1,28 @@
 # Archestimator Whole-Repository InfoSec + OWASP Audit Plan Pack
 
-> **Read [`00-PLAN.md`](./00-PLAN.md) first.** It is the canonical execution artifact. This README is a short index only — not an executive summary.
+> **Historical provenance only.** This predecessor is non-runnable and is
+> superseded by `.ai/03_plans/2026-07-31/Code-Improvement/`. No remediation
+> implementation is claimed by this pack. [`00-PLAN.md`](./00-PLAN.md) remains
+> the canonical record inside this retired folder, not current execution authority.
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / BOUNDARY / ACTIVE / ACTIVE`
+`NOT_READY / NOT_STARTED / BOUNDARY / N/A / CANCELLED`
 
 - **Baseline HEAD:** `7f9a484b42b0d951f219e3c4ce1bfbb4364e8847` (2026-07-19)
 - **Suite version:** `2026-07-12`
 - **Profile:** `high-blast-radius`
-- **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` — remediation units await separate execution authorization)
-- **Exact next unit:** `UNIT-001` (realtime token revocation — closes the single accepted `High`, `SEC-COLLAB-003`)
+- **Historical action ceiling:** `IMPLEMENT_LOCAL` under the original `PLAN_ONLY` audit; this retired pack is not runnable
+- **Exact next unit:** `null`; all 13 predecessor units are `SUPERSEDED` by `DEC-AUTO-007`
+- **Current successor:** `.ai/03_plans/2026-07-31/Code-Improvement/`
 
 ## What this pack is
 
-A read-only, evidence-driven, adversarial whole-repository security audit of `archestimator` at HEAD `7f9a484b4`, plus a validator-conformant, implementation-ready plan pack for every accepted finding.
+A historical record of the read-only, evidence-driven, adversarial
+whole-repository security audit of `archestimator` at HEAD `7f9a484b4` and its
+original remediation proposals. The audit evidence is preserved; current-source
+dispositions and any implementation sequencing belong to
+`.ai/03_plans/2026-07-31/Code-Improvement/`.
 
 It is **not**:
 
@@ -43,7 +51,7 @@ See [`04-FINDINGS-REGISTER.md`](./04-FINDINGS-REGISTER.md) and `artifacts/findin
 
 ## Reading order
 
-1. [`00-PLAN.md`](./00-PLAN.md) — normative execution artifact
+1. [`00-PLAN.md`](./00-PLAN.md) — canonical historical pack record
 2. [`01-AUDIT-IDENTITY-AND-COVERAGE.md`](./01-AUDIT-IDENTITY-AND-COVERAGE.md)
 3. [`02-ARCHITECTURE-THREAT-MODEL-AND-ATTACK-SURFACE.md`](./02-ARCHITECTURE-THREAT-MODEL-AND-ATTACK-SURFACE.md)
 4. [`03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md`](./03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md)

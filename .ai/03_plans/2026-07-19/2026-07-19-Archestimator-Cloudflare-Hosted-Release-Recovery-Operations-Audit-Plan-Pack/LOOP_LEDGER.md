@@ -53,8 +53,8 @@ Append-only audit event log. One writer (the lead). Entries are immutable; corre
 ### E-0003 — Footprint and existing-pack reconciliation (2026-07-19T06:37Z UTC)
 - Read `wrangler.jsonc` end-to-end (133 lines). Captured in
   `artifacts/provider-inventory.json`.
-- Read `2026-07-18-MVP-Startup-Readiness-Audit`,
-  `2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack`,
+- Read `2026-07-18-MVP-Startup-Readiness-Audit` and the now-historical
+  `2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack` and
   `2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack`.
 - Drafted overlap/disposition matrix in
   `artifacts/existing-pack-overlap.json`. Every candidate ends in exactly one
@@ -69,8 +69,10 @@ Append-only audit event log. One writer (the lead). Entries are immutable; corre
   - **MX routes via Namecheap eforward (`registrar-servers.com`), NOT Cloudflare
     Email Routing** — see finding `OPS-EMAIL-001`.
   - SPF authorizes Namecheap only; DMARC `p=none`; no DKIM published.
-  - `workers.dev` secondary origin live and reachable (308→apex) — confirms
-    Infosec `SEC-WORKER-002` is live. Cross-reference, not duplicate.
+  - `workers.dev` secondary origin live and reachable (308→apex) — confirmed
+    the then-live Infosec `SEC-WORKER-002` finding. Historical cross-reference,
+    not duplicate; current authority is
+    `.ai/03_plans/2026-07-31/Code-Improvement/`.
   - `/api/auth/get-session` returns `null` for no-cookie request (fail-closed).
   - `/api/health` returns deterministic JSON contract.
   - `/admin` and `/workshop` 307→`/login?next=…`.
@@ -96,7 +98,8 @@ Append-only audit event log. One writer (the lead). Entries are immutable; corre
 - Confirmed D1 migration count = 84 files (`0001`..`0092`).
 - Confirmed `generate-cloudflare-d1-restore-rehearsal.ts` emits
   `localOnly: true / providerBacked: false`.
-- Confirmed empty-cron-event concern (Quality Master UNIT-028) is **resolved**:
+- Confirmed the historical Quality Master UNIT-028 empty-cron-event concern is
+  **resolved**:
   every cron branch writes exactly one `cron_run_events` row.
 
 ### E-0007 — Script side-effect inventory (2026-07-19T07:xxZ UTC)
@@ -106,7 +109,9 @@ Append-only audit event log. One writer (the lead). Entries are immutable; corre
 ### E-0008 — Findings register freeze (2026-07-19T07:xxZ UTC)
 - Findings captured in `artifacts/findings.json` and `04-FINDINGS-REGISTER.md`.
 - Every Critical/High candidate received an adversarial challenge pass.
-- Cross-reference dispositions applied (Infosec / Quality Master / MVP-Startup).
+- Historical cross-reference dispositions applied (Infosec / Quality Master /
+  MVP-Startup); current code-improvement authority is
+  `.ai/03_plans/2026-07-31/Code-Improvement/`.
 
 ### E-0009 — Plan-pack artifact authoring (2026-07-19T07:xxZ UTC)
 - Authored `README.md`, `00-PLAN.md`, `plan-pack.json`, `PACK-MANIFEST.md`,

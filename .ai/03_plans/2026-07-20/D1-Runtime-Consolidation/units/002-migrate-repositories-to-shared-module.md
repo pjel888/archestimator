@@ -1,5 +1,9 @@
 # UNIT-002 — Migrate ~10 repository/intent files to the shared D1 runtime
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation and refuted by successor `DEC-AUTO-007` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Replace the local `placeholders`/`bindValues`/`all`/`first`/`readD1Json`/
@@ -8,7 +12,7 @@ Replace the local `placeholders`/`bindValues`/`all`/`first`/`readD1Json`/
 
 ## Status
 
-`READY` · depends on: `UNIT-001` · requirement: `DATA-001` · risks: `RISK-001`
+`SUPERSEDED` · historical dependency: `UNIT-001` · requirement: `DATA-001` · risks: `RISK-001`
 
 ## Why this matters
 

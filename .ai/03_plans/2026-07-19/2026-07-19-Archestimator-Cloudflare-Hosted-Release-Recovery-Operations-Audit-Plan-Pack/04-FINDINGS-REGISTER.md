@@ -110,8 +110,10 @@ and are **not** findings, so they do not appear in the count.
   mis-set or client_id/secret are missing.
 - **Source/config trace**: `src/lib/auth/better-auth-cloudflare.ts:234-246`;
   `src/lib/auth/cloudflare-better-auth-runtime.ts:82-103`.
-- **Existing-pack disposition**: NEW_OWNER_HERE (Infosec owns token security;
-  Quality Master owns session-read coalescing; neither owns hosted round-trip).
+- **Existing-pack disposition**: NEW_OWNER_HERE (current token-security and
+  session-read ownership is `.ai/03_plans/2026-07-31/Code-Improvement/`;
+  historical predecessors were Infosec and Quality Master; this pack alone
+  owns the hosted round-trip).
 - **Severity**: High. **Confidence**: HIGH.
 - **Smallest remediation**: With a real test account, drive
   login → callback → `/workshop`; confirm hosted secrets.
@@ -153,7 +155,7 @@ and are **not** findings, so they do not appear in the count.
 | OPS-D1-PARITY-006 | O-03 | Hosted D1 migration parity + schema fingerprint unverified | UNIT-007 |
 | OPS-EMAIL-MX-007 | O-10 | MX routes via Namecheap not Cloudflare; topology inconsistent | UNIT-004 |
 | OPS-EMAIL-DNS-008 | O-10 | DMARC p=none; no DKIM; SPF narrow | UNIT-004 |
-| OPS-WORKERS-DEV-009 | O-01/O-02 | workers.dev reachable; partial mitigation (cross-ref Infosec UNIT-002) | UNIT-006 |
+| OPS-WORKERS-DEV-009 | O-01/O-02 | workers.dev reachable; partial mitigation (current owner `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec UNIT-002) | UNIT-006 |
 | OPS-CRON-ALERT-010 | O-07/O-11 | Cron-failure / missed-run hosted alert not wired | UNIT-002 |
 | OPS-OBS-RETENTION-011 | O-11 | Hosted Workers Logs retention not pinned | UNIT-002 |
 | OPS-QUEUE-DLQ-012 | O-06 | Live DLQ depth + replay contract undefined | UNIT-005 |
@@ -161,8 +163,10 @@ and are **not** findings, so they do not appear in the count.
 | OPS-R2-LIFECYCLE-014 | O-05 | Hosted R2 inventory + cleanup execution unverified | UNIT-005 |
 
 All 10 Medium findings are distinct accepted findings. `OPS-WORKERS-DEV-009`
-is `CROSS_REFERENCE_ACTIVE_PACK` for *remediation ownership* (Infosec UNIT-002)
-but is still a finding *discovered here* (hosted reachability evidence), so it
+was `CROSS_REFERENCE_ACTIVE_PACK` at the audit baseline for *remediation
+ownership* (historical Infosec UNIT-002); current ownership is
+`.ai/03_plans/2026-07-31/Code-Improvement/`. It is still a finding *discovered
+here* (hosted reachability evidence), so it
 counts once in the Medium total. No finding is double-counted across severity
 bands.
 
@@ -170,9 +174,9 @@ bands.
 
 | ID | Domain | Title | Disposition |
 |---|---|---|---|
-| OPS-RETENTION-015 | O-11 | Retention cadence + coverage unverified (cross-ref Infosec UNIT-011) | UNIT-007 |
-| OPS-CRON-UNMATCHED-016 | O-07 | 30 3 * * * records unmatched-cron noise (cosmetic) | DEFERRED_TO_NAMED_STAGE_OR_OWNER (Quality Master) |
-| OPS-CRON-FIVE-MIN-017 | O-07 | 5-min cron writes one event row correctly | ALREADY_IMPLEMENTED (Quality Master UNIT-028 resolved) |
+| OPS-RETENTION-015 | O-11 | Retention cadence + coverage unverified (current owner `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec UNIT-011) | UNIT-007 |
+| OPS-CRON-UNMATCHED-016 | O-07 | 30 3 * * * records unmatched-cron noise (cosmetic) | DEFERRED_TO_NAMED_STAGE_OR_OWNER (historical Quality Master); current authority `.ai/03_plans/2026-07-31/Code-Improvement/` |
+| OPS-CRON-FIVE-MIN-017 | O-07 | 5-min cron writes one event row correctly | ALREADY_IMPLEMENTED (historical Quality Master UNIT-028 resolution) |
 
 `OPS-D1-RESTORE-005A` (`localOnly:true / providerBacked:false`) is recorded in
 `artifacts/existing-pack-overlap.json` as `ALREADY_IMPLEMENTED` *context*
@@ -183,7 +187,7 @@ is not a live finding and is intentionally excluded from the count.
 
 | Candidate | Reason | Disposition |
 |---|---|---|
-| OPS-DEPLOY-CI-AUTO | Out of scope; CI activation owned by Infosec UNIT-012 | CROSS_REFERENCE_ACTIVE_PACK |
+| OPS-DEPLOY-CI-AUTO | Out of scope; CI activation belongs to `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec UNIT-012) | CROSS_REFERENCE_ACTIVE_PACK (historical disposition; current successor above) |
 | OPS-CRON-CONCURRENCY-LOCK | Refuted; cron is single-instance per trigger + idempotent via state columns | REFUTED_OR_UNREACHABLE |
 | OPS-QUEUE-VISIBILITY-TIMEOUT | Refuted; defaults adequate; per-message idempotency exists | REFUTED_OR_UNREACHABLE |
 

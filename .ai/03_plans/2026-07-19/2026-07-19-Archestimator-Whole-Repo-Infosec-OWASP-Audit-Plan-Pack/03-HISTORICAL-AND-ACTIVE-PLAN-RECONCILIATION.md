@@ -1,5 +1,9 @@
 # 03 — Historical and Active Plan Reconciliation
 
+> **Historical audit provenance.** “Active” below describes the July 19 audit
+> baseline only. Current execution authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`; this predecessor is non-runnable.
+
 Per master prompt §5, every historical security finding/recommendation and every security-relevant active plan was re-checked against current source at HEAD `7f9a484b4`. **No historical severity, recommendation, or verdict was copied.** Each row reconstructs the current code path and independently confirms, overturns, or marks obsolete.
 
 Lineage matrix is in `artifacts/historical-reconciliation.csv`; this document is the human-readable summary.

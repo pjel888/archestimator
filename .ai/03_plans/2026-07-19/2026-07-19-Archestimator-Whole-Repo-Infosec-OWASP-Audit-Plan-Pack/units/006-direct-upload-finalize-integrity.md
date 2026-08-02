@@ -1,9 +1,13 @@
 # 006 — Direct-Upload Finalize: Re-validate Magic Bytes + Verify Content Checksum
 
+> **Historical provenance only.** `UNIT-006` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-UPLOAD-003`, `SEC-UPLOAD-004`.
 
 ## unit_id
-`UNIT-006` · **status:** `READY` · **priority:** P2 · **effort:** M · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
+`UNIT-006` · **status:** `SUPERSEDED` · **priority:** P2 · **effort:** M · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
 
 ## requirements / findings
 - Requirements: `SEC-004`.
@@ -84,5 +88,6 @@ Coordinate with `UNIT-005` (both touch upload paths; different files).
 ## completion_signal
 All three acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any other unit.
+## historical_next_unit_on_success
+The original proposal allowed any other unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

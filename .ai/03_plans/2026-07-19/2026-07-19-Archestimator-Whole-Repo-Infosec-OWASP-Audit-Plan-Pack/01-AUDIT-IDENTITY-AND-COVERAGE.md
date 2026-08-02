@@ -1,5 +1,9 @@
 # 01 — Audit Identity and Coverage
 
+> **Historical audit provenance.** Current execution authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`; this record does not claim that
+> any predecessor remediation unit was implemented.
+
 ## 1.1 Audit identity
 
 | Field | Value |

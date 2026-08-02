@@ -1,5 +1,10 @@
 # UNIT-002 — Closed-beta fail-closed gate (REJECTED — implemented independently)
 
+> **Historical provenance only — do not execute.** This unit remains
+> `SUPERSEDED` without an implementation claim by this pack. The landed current
+> source is revalidated by successor `UNIT-028` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Status
 
 `SUPERSEDED` · depends on: (none) · requirement: `SEC-002` (REJECTED) · risks: none

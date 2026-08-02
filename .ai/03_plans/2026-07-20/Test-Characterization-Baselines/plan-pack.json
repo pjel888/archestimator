@@ -5,14 +5,14 @@
   "profile": "standard",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
-  "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T23:45:00.000Z",
+  "terminal_status": "CANCELLED",
+  "updated_at": "2026-08-01T05:28:17.889Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
     "scoped_status_sha256": "31b622ebd002f0f946cc022dc50593869f63518931086b3230c9f261a3913213",
@@ -29,25 +29,25 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "31b622ebd002f0f946cc022dc50593869f63518931086b3230c9f261a3913213"
+      "sha256": "af1be9403ce821444bd867465517775b332f1638143b4ca351a58a8fad2058e2"
     },
     {
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "a320bd0ddb14a9c501e6d6dd4a8a8b15a211b7ee2a4323ff06cef46d660e6ced"
+      "sha256": "6ca918ff4ad23fc0f738de3e2d940215ee34ac9ff8d0e0e8c6ead9df32c981fa"
     },
     {
       "id": "ART-003",
       "role": "unit",
       "path": "units/001-estimate-sheet-characterization.md",
-      "sha256": "3187448f6529f32594962404de6297b1eaa0b3168a801a0d3d5e9253efef952a"
+      "sha256": "589cc64bc28a7add4269878a423ed19f052804b52c2af70dc37fd61b521c5f60"
     },
     {
       "id": "ART-004",
       "role": "unit",
       "path": "units/002-d1-intents-rows-sql-suite.md",
-      "sha256": "26058e2dc11bbceb6a1f8f5d07444dea284a4ebee8ab5f2c881a0be008bb7c2c"
+      "sha256": "3df075afd29219e49e525885e42f8030ce5894c6cabd4882ae68d920d87c3bda"
     }
   ],
   "sources": [
@@ -195,7 +195,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/001-estimate-sheet-characterization.md",
       "depends_on": [],
       "requirement_ids": [
@@ -211,7 +211,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/002-d1-intents-rows-sql-suite.md",
       "depends_on": [],
       "requirement_ids": [
@@ -225,7 +225,18 @@
       ]
     }
   ],
-  "decisions": [],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002"
+      ],
+      "rationale": "The 2026-07-31 Code-Improvement successor is the sole current execution authority. Both characterization units are landed-current-source dispositions revalidated by successor UNIT-028. This predecessor is retired as historical provenance, both units are SUPERSEDED, and no implementation is claimed here."
+    }
+  ],
   "authorization_boundaries": [],
   "evidence_index": [
     {
@@ -238,7 +249,7 @@
         "TEST-001"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "3187448f6529f32594962404de6297b1eaa0b3168a801a0d3d5e9253efef952a",
+      "sha256": "589cc64bc28a7add4269878a423ed19f052804b52c2af70dc37fd61b521c5f60",
       "valid_until": null
     },
     {
@@ -251,18 +262,10 @@
         "TEST-002"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "26058e2dc11bbceb6a1f8f5d07444dea284a4ebee8ab5f2c881a0be008bb7c2c",
+      "sha256": "3df075afd29219e49e525885e42f8030ce5894c6cabd4882ae68d920d87c3bda",
       "valid_until": null
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002"
-      ]
-    }
-  ],
-  "manifest_sha256": "dfa90965b9aca4a30313fffcd58dab5f2308e85fdf93156e60de47ee87d4e558"
+  "ready_slices": [],
+  "manifest_sha256": "fee66fe7ea582e92627e339c1afce3db8831c87abdc880782ce35d4640f5da64"
 }

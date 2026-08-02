@@ -1,9 +1,13 @@
 # 009 — Browser Hardening: Invite no-store + Share CSP nonce pipeline + Request-derived Secure flag
 
+> **Historical provenance only.** `UNIT-009` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-BROWSER-001`, `SEC-BROWSER-003`, `SEC-BROWSER-005`.
 
 ## unit_id
-`UNIT-009` · **status:** `READY` · **priority:** P1 (before external `/share` and `/invite` traffic) · **effort:** M (the nonce pipeline is the bulk) · **implementation_risk:** MEDIUM (CSP change can break client scripts if nonces aren't threaded) · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
+`UNIT-009` · **status:** `SUPERSEDED` · **priority:** P1 (before external `/share` and `/invite` traffic) · **effort:** M (the nonce pipeline is the bulk) · **implementation_risk:** MEDIUM (CSP change can break client scripts if nonces aren't threaded) · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
 
 ## requirements / findings
 - Requirements: `SEC-009`.
@@ -95,5 +99,6 @@ None.
 ## completion_signal
 All four acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any other unit.
+## historical_next_unit_on_success
+The original proposal allowed any other unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

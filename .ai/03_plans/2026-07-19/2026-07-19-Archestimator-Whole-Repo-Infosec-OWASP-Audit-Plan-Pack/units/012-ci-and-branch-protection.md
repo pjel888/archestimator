@@ -1,9 +1,13 @@
 # 012 — Re-enable CI Gates + Configure Branch Protection (AUXILIARY)
 
+> **Historical provenance only.** `UNIT-012` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-CI-001`, `SEC-CI-002`, `SEC-SUPPLY-001`. **AUXILIARY** requirement `SEC-007`.
 
 ## unit_id
-`UNIT-012` · **status:** `READY` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** requires `AUTH-001` (GitHub branch protection).
+`UNIT-012` · **status:** `SUPERSEDED` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** requires `AUTH-001` (GitHub branch protection).
 
 ## requirements / findings
 - Requirements: `SEC-007` (AUXILIARY).
@@ -92,5 +96,6 @@ Coordinate with Philip on which checks are required (operator decision).
 ## completion_signal
 All applicable acceptance criteria evidenced (criterion 4 requires `AUTH-001`). Local criteria `DONE` when workflows are moved + script is fixed.
 
-## next_unit_on_success
-`UNIT-013` (or pack completion if `UNIT-013` done).
+## historical_next_unit_on_success
+The original proposal selected `UNIT-013`. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

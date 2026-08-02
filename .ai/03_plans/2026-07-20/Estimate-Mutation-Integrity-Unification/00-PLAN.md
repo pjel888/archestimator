@@ -1,19 +1,20 @@
-# Estimate Mutation Integrity Unification — Canonical Execution Plan
+# Estimate Mutation Integrity Unification — Historical Predecessor Plan
 
-> Canonical execution artifact for routing the estimate/component write-path
-> forks through the **already-existing** shared integrity primitives in the
-> `d1-intents/` family. Reframed after a deep code-tree trace (2026-07-21)
-> revealed the primitives are not missing — they are being bypassed.
+> **Historical provenance only — do not execute.** This predecessor was
+> superseded without implementation by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`, the sole current execution
+> authority. Current source has landed the relevant integrity work; successor
+> `UNIT-028` owns revalidation. The original trace remains below as evidence.
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`NOT_READY / NOT_STARTED / NOT_EVALUATED / N/A / CANCELLED`
 
 - **Baseline HEAD:** `b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab` (2026-07-20)
 - **Suite version:** `2026-07-12`
 - **Profile:** `high-blast-radius` (money-integrity layer; touches every estimate write path)
-- **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` at authoring; implementation awaits separate execution authorization AND the completion of prerequisite packs B + C)
-- **Exact next unit:** `UNIT-001` (close the `activity_event_outbox` hole — route the 5 forks that hand-roll the history INSERT through `prepareHistoryEventInsert`)
+- **Action ceiling:** `IMPLEMENT_LOCAL` (historical boundary only; this pack has no runnable unit)
+- **Exact next unit:** none; continue only in `.ai/03_plans/2026-07-31/Code-Improvement/`
 
 ## 1. Outcome and intent
 
@@ -106,10 +107,10 @@ already exists."
   (separate direction option). The D1 runtime consolidation (Pack C —
   prerequisite). The test baselines (Pack B — prerequisite). Any change to the
   UI layer. **Do NOT extract new primitives** — the trace confirmed they exist.
-- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, the
-  `archestimator-estimate-mutation-integrity` skill, this pack.
-- **Owner:** lead single-agent. The integrity layer is tightly coupled; no
-  parallel writers on the primitives module or `rows.ts`.
+- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, and
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; this pack is historical only.
+- **Owner:** none; all four predecessor units are `SUPERSEDED` and successor
+  `UNIT-028` owns current-source revalidation.
 - **Test authorization:** `NOT_REQUIRED` default, BUT Pack B's UNIT-002
   (`d1-intents/rows.ts` SQL characterization suite) is a **hard prerequisite**
   and must be VERIFIED before UNIT-001 starts. The characterization suite is the
@@ -156,7 +157,7 @@ recommended: it is the smallest, most localized, and closes a real user-visible
 bug (activity-feed items going missing). UNIT-002/003/004 can run in any order
 after UNIT-001.
 
-**Hard prerequisites from other packs:**
+**Historical prerequisites from other packs (non-runnable):**
 - Pack B UNIT-002 VERIFIED (the SQL characterization net) — confirms the
   canonical path's generated SQL stays identical when forks change around it.
 - Pack C UNIT-001 + UNIT-002 VERIFIED (the shared D1 runtime) — the forks'

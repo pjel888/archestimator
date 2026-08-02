@@ -1,11 +1,16 @@
 # Canonical Unit Catalog
 
+> **Historical catalog — not runnable.** Every unit in this predecessor is
+> `SUPERSEDED` without an implementation claim. Current disposition and any
+> runnable work belong to `.ai/03_plans/2026-07-31/Code-Improvement/`. The unit
+> descriptions below are preserved as provenance only.
+
 ## How To Use This Catalog
 
-Each unit is a complete bounded assignment. Source IDs point to
+Each unit was a proposed bounded assignment. Source IDs point to
 `AUDIT-AND-DISPOSITION.md`; the byte-preserved predecessor document remains
 available under `source-snapshots/` for deeper historical evidence. Current
-source and this catalog override stale implementation directions in snapshots.
+source and the successor override all implementation directions in this catalog.
 
 For every unit, run GitNexus impact before editing any symbol. `Static` means
 scoped source/diff, type/LSP, lint, validator, dry-run, or local query evidence.

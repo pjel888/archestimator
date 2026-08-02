@@ -68,8 +68,11 @@ None.
 None.
 
 ## non_goals
-- Adding single-use token / spent-jti tracking (Infosec concern; belongs to Infosec OWASP pack).
-- Adding a CI guard for the `"use server"` async contract (`UX-BUILD-002`, deferred to Quality Master).
+- Adding single-use token / spent-jti tracking (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec concern).
+- Adding a CI guard for the `"use server"` async contract (`UX-BUILD-002`,
+  deferred to `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality
+  Master handoff).
 - Refactoring the action-inbox repository.
 
 ## implementation_sequence

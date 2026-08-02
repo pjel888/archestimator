@@ -1,5 +1,9 @@
 # UNIT-004 — Use timing-safe bearer comparison in proof routers
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Replace the non-timing-safe `===` bearer-secret comparison in seven internal
@@ -9,7 +13,7 @@ side-channel is a real secret-recovery risk.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `SEC-004` · risks: (none)
+`SUPERSEDED` · historical dependency: (none) · requirement: `SEC-004` · risks: (none)
 
 ## Why this matters
 

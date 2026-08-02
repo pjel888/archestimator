@@ -1,8 +1,13 @@
 # 06 — Remediation Roadmap and Security Gates
 
+> **Historical provenance only.** All 13 units are `SUPERSEDED`; this roadmap is
+> non-runnable. Current execution authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## 6.1 Wave plan (dependency-ordered)
 
-Waves group by remediation risk and dependency. Any unit may be executed independently if its dependencies are met. Wave numbers are sequencing guidance, not blocking gates.
+Waves preserve the original remediation ordering for provenance. They are not
+current sequencing guidance and no unit may be executed from this predecessor.
 
 ### Wave 0 — Immediate containment / prerequisite truth
 
@@ -10,7 +15,7 @@ Waves group by remediation risk and dependency. Any unit may be executed indepen
 
 - Closes the single accepted High (`SEC-COLLAB-003`).
 - No dependencies; smallest coherent fix; uses already-provisioned DO SQLite storage.
-- `next_unit` on the pack.
+- Historical first unit only; the retired pack now has `next_unit = null`.
 - Acceptance: after revoking a member, an attempt to reconnect with the old HMAC token within 60s is rejected by `authorizeSocket`. (TEST_PROPOSAL `MVP_CRITICAL_INVARIANT` — not authorized by this pack.)
 
 ### Wave 1 — Identity, access control, worker-edge seam
@@ -52,7 +57,8 @@ UNIT-012 (Wave 3, no deps) — AUXILIARY
 UNIT-013 (Wave 3, no deps)
 ```
 
-All 13 units have empty `depends_on` — the security remediations are independent and can be parallelized across executors. The `next_unit = UNIT-001` choice is by severity (only High) and minimum coherent fix size.
+All 13 units retain their original empty `depends_on` arrays as provenance, but
+each is now `SUPERSEDED`; `ready_slices=[]` and `next_unit=null`.
 
 ## 6.3 Security gates
 

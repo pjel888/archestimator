@@ -23,19 +23,19 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "4f346881cf84a3975ada8d8e70a97dd8e3d7cae6af34d73b0f7b7f46476c6fc8"
+      "sha256": "ba06eecfe8006efcac9569024ad66dda0f301d495799dccedcecb531477ff8b1"
     },
     {
       "id": "ART-002",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "01a99c07ec25fd2d7d439196e15d983a7ec7a9a8133c56e7fe21e98d6b9d8598"
+      "sha256": "7b2020bb1e4407cee2bad84442c410de3e3b7fc19a25c0d28ffc04478aa03001"
     },
     {
       "id": "ART-003",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "6de00b457cdb6e0686b6b18de0a35cf90b4fd85667a928b6f692cc487557282c"
+      "sha256": "462a57e729ca71afe38cafced68feb7c497db9c9d646817f805a1add6822f129"
     },
     {
       "id": "ART-004",
@@ -53,7 +53,7 @@
       "id": "ART-006",
       "role": "unit",
       "path": "units/001-action-inbox-async-server-actions.md",
-      "sha256": "fcbe4ef102649f099b5a125ad80aa000766da0d011bed48407bacc614223d844"
+      "sha256": "d031f5cbac9d68de56b8bf35683a27f93ef29da01c53dda1f0b86b99216aca85"
     },
     {
       "id": "ART-007",
@@ -95,7 +95,7 @@
       "id": "ART-013",
       "role": "unit",
       "path": "units/008-magic-link-and-session-expiry-copy.md",
-      "sha256": "c775e162a1a55f353033c583d9c6e717de8db8aa1eaa07035c0b5b4c85fb2e2c"
+      "sha256": "6970fc9c7cf91a1b1bbdee1ea36064dc0b2f37cc7c83b71c4046fae17de9e295"
     },
     {
       "id": "ART-014",
@@ -113,7 +113,7 @@
       "id": "ART-016",
       "role": "unit",
       "path": "units/011-share-password-ux.md",
-      "sha256": "1baba0aebc56f012487e2f00b9d1cd3c2bfbe8c8d2dc4749211230fb5545a9f7"
+      "sha256": "fcd3f74227fa63f5669480c78ec6c5d332676629c09caa545869d16ee47c8d40"
     },
     {
       "id": "ART-017",
@@ -149,7 +149,7 @@
       "id": "ART-022",
       "role": "evidence",
       "path": "artifacts/audit-events.jsonl",
-      "sha256": "9f6505543db954b491f53fd792cc7669bb332efbf8e63457c1cecb350b02f29a"
+      "sha256": "c4b03f31c345ef4e84c2acc9cfc118078b63ed64be9ac6560c28df2e91edd208"
     },
     {
       "id": "ART-023",
@@ -203,7 +203,7 @@
       "id": "ART-031",
       "role": "evidence",
       "path": "artifacts/commands-run.log",
-      "sha256": "0af86e60830289c1e121a77e1c54ec8dad2fc67ac74cfa9545b9f8610de7a9f1"
+      "sha256": "8c40c345fc27ecbd8ebb4796cf33040081841ef611ab305fff7ad90356f7beaf"
     },
     {
       "id": "ART-032",
@@ -1271,5 +1271,5 @@
     "CLOSED_BETA_ACCESS_ENABLED env value changes",
     "Re-run of /tmp/ux-audit.mjs after UNIT-001 (would unblock BROWSER_CONFIRMED evidence)"
   ],
-  "manifest_sha256": "34c451b4bbf7379bf830d4b0d8c197424e797a1fb798aa28146516f58b596395"
+  "manifest_sha256": "78957a118415cf3fca206287e0521c6fd4f5209a422fc234e29fb5cd0552d22a"
 }

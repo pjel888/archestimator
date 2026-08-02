@@ -10,14 +10,16 @@ runs at the documented cadence with the expected table coverage.
 
 - `OPS-D1-PARITY-006` (Medium) — hosted migration parity unverified
 - `OPS-RETENTION-015` (Low) — retention cadence + coverage unverified at hosted layer
-- `OPS-CRON-UNMATCHED-016` (Low) — 30 3 * * * cosmetic noise (deferred to Quality Master)
+- `OPS-CRON-UNMATCHED-016` (Low) — 30 3 * * * cosmetic noise (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality Master)
 - `OPS-CRON-FIVE-MIN-017` (Informational) — empty-cron-event concern resolved
 - `REQ-008` (CORE)
 
 ## Dependencies
 
 - AUTH-001 resolution
-- Infosec UNIT-011 (retention registry coverage) — cross-ref
+- `.ai/03_plans/2026-07-31/Code-Improvement/` retention-registry disposition
+  (historical Infosec UNIT-011) — cross-reference
 
 ## Owned paths / resources
 
@@ -28,7 +30,8 @@ runs at the documented cadence with the expected table coverage.
 
 - Applying pending migrations (separate operator action)
 - Schema redesign
-- Retention registry coverage itself (Infosec UNIT-011)
+- Retention registry coverage itself (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec UNIT-011)
 - Cron-handler logic (resolved)
 
 ## Implementation boundary
@@ -44,14 +47,16 @@ Operator-driven actions:
 5. Inspect recent `cron_run_events` for the `retention-pass:30 3 * * *` cron:
    confirm nightly execution at expected UTC time.
 6. Inspect `data_retention_events` for recent purge activity.
-7. After Infosec UNIT-011 lands (retention registry coverage), re-confirm
+7. After `.ai/03_plans/2026-07-31/Code-Improvement/` resolves retention
+   registry coverage (historical Infosec UNIT-011), re-confirm
    coverage includes every PII/security event table.
 8. Update `d1-migration-parity.json`: hosted applied state transitions from
    `EVIDENCE_BLOCKED` to `HOSTED_CONFIRMED`.
 9. Update `release-gate.json`: resolve `GATE-DEPLOY-PROOF-008` (migration head
    matches).
-10. Defer the `30 3` cosmetic-noise issue to Quality Master (not operator-
-    facing); record the deferral in `existing-pack-overlap.json`.
+10. Defer the `30 3` cosmetic-noise issue to
+    `.ai/03_plans/2026-07-31/Code-Improvement/` (not operator-facing); retain
+    the historical Quality Master deferral in `existing-pack-overlap.json`.
 
 ## Invariants
 

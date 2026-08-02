@@ -1,12 +1,15 @@
 # Archestimator Code Improvement Plan Pack
 
-Status: `CONDITIONALLY_READY`; implementation has not started.
+Status: `CONDITIONALLY_READY`; `UNIT-000` is staged as `VERIFIED` for its
+replacement exact-candidate Q2 cycle after the component coverage-ratchet
+repairs. `UNIT-024` is `READY` but remains product-work gated until that fresh
+Q2 cycle passes.
 
-This pack is the current-source successor candidate for whole-repository
+This pack is the current-source successor and sole runnable authority for whole-repository
 correctness, security, performance, architecture, CRUD-lifecycle, test,
 quality-infrastructure, and maintainability work at baseline commit
-`93d5124d268a1b6016f63f8a8e5e69e118630d13`. It becomes the single runnable
-authority only after `UNIT-000` reconciles predecessor manifests.
+`93d5124d268a1b6016f63f8a8e5e69e118630d13`; `UNIT-000` reconciled and retired
+the predecessor manifests without claiming their implementation.
 
 ## Authority
 
@@ -29,6 +32,8 @@ with the Cloudflare/D1 runtime.
 - `03-VERIFICATION-MATRIX.md` - exact commands, receipts, and numeric thresholds
 - `evidence/initial-plan-authors.json` - immutable seed roster for cumulative
   candidate-author independence checks
+- `evidence/unit-000-predecessor-dispositions.json` - exact predecessor-unit
+  retirement ledger with raw-evidence bindings
 - `plan-pack.json` - machine-readable traceability manifest
 
 ## Execution Rule
@@ -47,12 +52,13 @@ Durable decision/disposition JSON stays in this pack. Generated test, browser,
 candidate, author, review, quality, and GitNexus receipts use the ignored
 `.tmp/code-improvement` root so proof cannot change the candidate it binds.
 
-The sole initial target is `UNIT-000`: repair the confirmed bootstrap-baseline
-lineage defect, then reconcile predecessor authority. Product units remain
-planned until its candidate-bound Q2 receipts pass. The first product-code target is then
-`UNIT-007`, the confirmed realtime post-revocation authorization defect. Quick
-correctness units may proceed in parallel only when their file ownership does
-not overlap.
+`UNIT-000` repaired the confirmed bootstrap-baseline lineage defects, ancestor
+link traversal, and Git replacement-object bypass, and reconciled predecessor
+authority, including the non-runnable security supplement. The current target
+is the replacement exact-candidate Q2 cycle for `UNIT-000`; after it passes,
+`UNIT-024` becomes the current security-supplement intake and scanner viability
+decision. Independent correctness units may proceed in parallel afterward only
+when their file ownership does not overlap.
 
 ## Completion Rule
 

@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.0",
+  "captured_at": "2026-08-01T16:01:50.451Z",
+  "private_evidence_root": "%LOCALAPPDATA%\\CodexSecurity\\archestimator\\2026-08-01-full-audit",
+  "cloud": {
+    "finding_count": 200,
+    "status_counts": {
+      "new": 200
+    },
+    "severity_counts": {
+      "high": 14,
+      "medium": 80,
+      "low": 33,
+      "informational": 73
+    },
+    "patch_counts": {
+      "available": 43,
+      "unavailable": 157
+    },
+    "source_sha256": "1f609590acd7edd1597bbb59d2a0ae96ecef3cd302a68828fecf29833f1c99f0"
+  },
+  "github": {
+    "captured_at": "2026-08-01T15:41:17.684Z",
+    "record_count": 21,
+    "open_count": 19,
+    "closed_count": 2,
+    "merged_count": 0,
+    "missing_numbers": [],
+    "open_numbers": [124, 125, 126, 127, 128, 129, 138, 140, 141, 142, 143, 144, 145, 146, 149, 150, 151, 152, 153],
+    "closed_supersessions": [147, 148],
+    "records": [
+      {"number": 124, "state": "OPEN", "head_sha": "5c3588dad7adcc35633314e8a0704be26b4667cf", "updated_at": "2026-07-20T05:54:00Z"},
+      {"number": 125, "state": "OPEN", "head_sha": "077e64c6ccf4a10f7b3a22d00278eb2c000d5a86", "updated_at": "2026-07-20T05:54:29Z"},
+      {"number": 126, "state": "OPEN", "head_sha": "cd034d2906070f71c151755bdf5c309fbb2ca451", "updated_at": "2026-07-20T05:49:14Z"},
+      {"number": 127, "state": "OPEN", "head_sha": "508f7125670bdeedd0682df6e4c07ca7f4466005", "updated_at": "2026-07-20T05:55:14Z"},
+      {"number": 128, "state": "OPEN", "head_sha": "7dd2f6dcfe853068a32bfae53a56dc50646d19df", "updated_at": "2026-07-20T05:57:09Z"},
+      {"number": 129, "state": "OPEN", "head_sha": "b51b19d2724eceb4ef1e3745cbff88f36fe96489", "updated_at": "2026-07-20T05:49:45Z"},
+      {"number": 138, "state": "OPEN", "head_sha": "4be9ad6e462d0fc2728b2e42a097469ef6425578", "updated_at": "2026-07-22T10:37:49Z"},
+      {"number": 140, "state": "OPEN", "head_sha": "b1d15b04b894692aa6d84f45f1c756976fd87ab5", "updated_at": "2026-07-22T10:45:12Z"},
+      {"number": 141, "state": "OPEN", "head_sha": "cbc4f7b891a2ce84edda6ad3ab6a4a645ee6b651", "updated_at": "2026-07-24T06:53:13Z"},
+      {"number": 142, "state": "OPEN", "head_sha": "b10106c03c83234406f9ee666b577b7fa86cb723", "updated_at": "2026-07-25T00:22:42Z"},
+      {"number": 143, "state": "OPEN", "head_sha": "57660a60f3531b8890097b9e78888fca5740a6ac", "updated_at": "2026-07-25T00:22:52Z"},
+      {"number": 144, "state": "OPEN", "head_sha": "11d8ad48d120bf3e0978945ea856ec055ba6895e", "updated_at": "2026-07-25T00:22:56Z"},
+      {"number": 145, "state": "OPEN", "head_sha": "eb6699b60fbe5ab04a54c5cce8f9a85fb9b44b64", "updated_at": "2026-07-26T05:58:46Z"},
+      {"number": 146, "state": "OPEN", "head_sha": "0855c661769f3042f59e959a4163e2c2aea33edb", "updated_at": "2026-07-26T05:58:57Z"},
+      {"number": 147, "state": "CLOSED", "head_sha": "5dbe2dcce96fc06a3f09f39da2ba0d30af8721bf", "updated_at": "2026-07-27T01:12:00Z", "superseded_by": 153},
+      {"number": 148, "state": "CLOSED", "head_sha": "c6684a8b59498bf6ff13d0ed30fc778ce58376fc", "updated_at": "2026-07-26T09:13:33Z", "superseded_by": 152},
+      {"number": 149, "state": "OPEN", "head_sha": "61c6b85747d239494f7df2b79c9aae304b9fcdb2", "updated_at": "2026-07-25T00:24:41Z"},
+      {"number": 150, "state": "OPEN", "head_sha": "872b4f351a738447599ecca454e412f3cdb326e3", "updated_at": "2026-07-25T00:24:54Z"},
+      {"number": 151, "state": "OPEN", "head_sha": "95da3942328d1ec5aa19f35172080b47f9d71003", "updated_at": "2026-07-25T00:25:03Z"},
+      {"number": 152, "state": "OPEN", "head_sha": "d54ffe21760517d51723e720f86368043b4791e1", "updated_at": "2026-07-27T06:06:43Z"},
+      {"number": 153, "state": "OPEN", "head_sha": "34dffaf4e64b88039720ee615ef735dfb16fab5d", "updated_at": "2026-07-27T06:06:18Z"}
+    ],
+    "hosted_controls": {
+      "dependabot_open_alerts": 0,
+      "secret_scanning_alerts_http_status": 404,
+      "code_scanning_alerts_http_status": 403,
+      "main_branch_protection_http_status": 403,
+      "rulesets_http_status": 403,
+      "interpretation": "Unavailable responses are boundaries, not proof of hosted control state."
+    },
+    "raw_inventory_sha256": "05ca8d41671e0fa2d8661a0a00fccb2234e64ee02630c52039b037e918046d0d"
+  },
+  "standard_scan": {
+    "scan_id": "c5db6c63-3829-4a6a-9e4b-3db953abe2e7",
+    "revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+    "coverage": "complete",
+    "paths_reviewed": 13379,
+    "finding_counts": {
+      "medium": 4,
+      "low": 5
+    },
+    "artifact_status": "completed",
+    "history_status": "failed",
+    "history_failure": "Codex session event exceeds the 1 MiB safety limit.",
+    "manifest_sha256": "1a4e564471946263e85700fc8bba9275c6e204d092e72602ee707035c520189b",
+    "coverage_sha256": "ea585a678e5fb233df122a7a49f594eb8be0884fc97992fe93ab6ac4b673adbe",
+    "findings_sha256": "24f83556f9ce72b6b21a0c0f0807bee1ab20c5d1a2169c6e21cdb1d890302048"
+  },
+  "working_tree_scan": {
+    "scan_id": "a39abbbc-3d25-49fd-a1a5-8d94d9be53ed",
+    "revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+    "coverage": "complete",
+    "finding_count": 0,
+    "status": "complete",
+    "warning": "Working-tree contents changed while the scan was running; results were saved for the original snapshot.",
+    "manifest_sha256": "0b17506f3553da24eed3e9c272e1697fa949ea94e8a8111e87041466cdddba1d",
+    "coverage_sha256": "8fbc82a90a4e9f39eda242c8fbb0e01406a778e2d1858bb5be909caaa15e4722",
+    "findings_sha256": "dac82ad699e0ffe0d73a4dbeff56dcf442d365bec3bc9a34b53ee2bca487ea11",
+    "report_sha256": "947dfde0314a255b66babd9aab97eef5c4df939664c2415c87381d46692fae4b"
+  },
+  "committed_diff_scan": {
+    "base": "origin/main",
+    "head": "HEAD",
+    "base_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+    "head_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+    "changed_file_count": 0,
+    "status": "failed_to_seal_empty_diff",
+    "failure": "scan.target.snapshotDigest: expected a non-empty string",
+    "log_sha256": "0b0ff673248a062341175a1299e1632bfe63c5c510f87d3fc72285d6f93ec9a3"
+  },
+  "deep_scan": {
+    "status": "tool_failed",
+    "mode": "deep",
+    "path_group_count": 18,
+    "output_name": "deep-security-critical-01",
+    "scan_id": "43f4f352-0c22-4e8f-a130-4a8c656eaa69",
+    "files_reported_at_failure": 2922,
+    "failure": "Deep discovery workers did not create the required draft scan-manifest.json, findings.json, and coverage.json artifacts.",
+    "root_cause": "Codex worker file change failed; deterministic artifact validation could not resolve output/seed_research.md.",
+    "log_sha256": "d62f905f48908ab65a4ae1147b26f6e1a41e80f9a0cf5c51f6dbd8ceb3ed68c6",
+    "fallback": {
+      "target": "Isolated 46-file high-risk source mirror",
+      "dry_run": "pass",
+      "status": "stopped_after_same_failure_recurred",
+      "attempt_prompts_observed": 10,
+      "output_files_created": 0,
+      "log_sha256": "6d7e177fb9ddd96080d8c38a5b0172fcfd6f3654b75a0b7f519798d3b3bc0af4"
+    },
+    "result_usable_for_findings": false
+  },
+  "agentshield_scan": {
+    "package_version": "1.4.0",
+    "cli_version": "1.5.0",
+    "package_integrity": "sha512-R98OO1Ujyk2lezDLb+iQmMhF6FwTJCHajy3G4FCB6x7wkSTqR9f8+eAelC5KDzYDsGSbc0sOZvjXOOPRBtMpDg==",
+    "target": ".claude",
+    "status": "complete",
+    "fixes_applied": false,
+    "repository_status_unchanged": true,
+    "files_scanned": 18,
+    "grade": "B",
+    "numeric_score": 89,
+    "finding_counts": {
+      "high": 3,
+      "medium": 2,
+      "low": 1
+    },
+    "advanced_checks": {
+      "tainted_flows": 0,
+      "injection_payloads_total": 70,
+      "injection_payloads_blocked": 70,
+      "sandbox_hooks_executed": 0,
+      "sandbox_risk_findings": 0,
+      "supply_chain_packages_checked": 0,
+      "supply_chain_risky_packages": 0,
+      "opus_run": false,
+      "opus_reason": "ANTHROPIC_API_KEY was not present."
+    },
+    "stdout_sha256": "e570c8b78ab874ac4dede1b243415367de1dc1b79e7838ddd722ce0882774eb9",
+    "log_sha256": "770268deb6965c0b567c3442ab10f936be87556167605f20be9a728fd7654054"
+  },
+  "saved_scan_operations": {
+    "show": {
+      "working_tree_log_sha256": "560e47d5f167d5899131c56c4739b2296ba87dff886a6b743199444777ca8208",
+      "standard_failed_record_log_sha256": "517ac04a801f045eaa1c755bb9524032cc96bfeb743218d02a80fc61287c41ac",
+      "deep_failed_record_log_sha256": "425c57fc33fb3e902df759d2724c2b00e701e2d2d1eb0d0b5fd7eea1c37c643b"
+    },
+    "compare": {
+      "status": "unavailable",
+      "reason": "Only the working-tree record completed saved-history ingestion.",
+      "log_sha256": "d5c48b1e28233d56a4758c207092be3e2f3ec6c89bbb231f9d05db5b1c63710f"
+    },
+    "match_pair": {
+      "status": "unavailable",
+      "reason": "Only completed saved records can be matched.",
+      "log_sha256": "67bad4f34fab29d79d87f31c956942d7c710dad9feb6d80913fa5df9253c2877"
+    },
+    "match_all": {
+      "status": "complete",
+      "completed_scan_count": 1,
+      "pair_count": 0,
+      "match_count": 0,
+      "log_sha256": "f592af003c70deef946a39ce47aace93a2546268ea721c0b4bf38e03017956f3"
+    },
+    "working_tree_exports": {
+      "json_sha256": "dac82ad699e0ffe0d73a4dbeff56dcf442d365bec3bc9a34b53ee2bca487ea11",
+      "csv_sha256": "286f907758cf66ed41f0e7376b8f2242f51030c16cdee5d2acc50d525e024b8f",
+      "sarif_sha256": "177f31dd98cc27fa461d0ef4bd534d82f8945a6cf9caf48bce27e0b74d1b41a2"
+    }
+  },
+  "focused_validations": [
+    {
+      "id": "VAL-001",
+      "target": "CSF-001",
+      "result": "SUPPRESSED",
+      "severity": "not_applicable",
+      "evidence": "Codex Security validate traced the preliminary permissive gate through commitCommercialMutation to prepareEstimateMutationIntent and assertEstimateEditIntent; the downstream canonical strict D1 authorization denies an excluded editor before the write batch. The earlier temporary proof used a mocked intent boundary and did not preserve the real authorization chain.",
+      "validation_log_sha256": "f53b2642e3f8f48e7c64ab10699e58ed9083d3b45c0dc450c36669ec6a8961b1"
+    },
+    {
+      "id": "VAL-002",
+      "target": "LOCAL-public-activity-recipient-identity",
+      "result": "CONFIRMED",
+      "severity": "medium",
+      "evidence": "Codex Security validate confirmed that a bearer-link viewer without a verified recipient session receives another recipient's display name in the serialized public activity title; the existing focused Vitest explicitly asserts that behavior.",
+      "validation_log_sha256": "f53b2642e3f8f48e7c64ab10699e58ed9083d3b45c0dc450c36669ec6a8961b1"
+    }
+  ],
+  "limitations": [
+    "Local evidence does not prove deployed Cloudflare, GitHub, DNS, WAF, branch-protection, or secret-scanning state.",
+    "Standard-scan artifacts completed but the workbench record did not ingest findings because of the 1 MiB session-event safety limit.",
+    "The working-tree scan is authoritative only for its sealed starting snapshot.",
+    "Deep mode produced no sealable finding or coverage artifacts after a full run and an isolated targeted fallback; it is a tool limitation, not a zero-finding result.",
+    "Saved-scan match and compare could not produce a pair because only one record completed history ingestion; artifact-level correlation is required.",
+    "AgentShield Opus analysis was not run because its separate provider credential was absent; this is an optional-tool limitation, not a clean result."
+  ]
+}

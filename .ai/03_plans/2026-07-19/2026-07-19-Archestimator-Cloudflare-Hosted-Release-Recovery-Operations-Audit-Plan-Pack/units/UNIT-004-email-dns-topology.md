@@ -25,8 +25,11 @@ surface during controlled beta.
 
 ## Non-goals
 
-- Email boundary CRLF/HTML chokepoint (Infosec UNIT-004)
-- Email queue delivery contract (Quality Master UNIT-024/055-057)
+- Email boundary CRLF/HTML chokepoint (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec UNIT-004)
+- Email queue delivery contract (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality Master
+  UNIT-024/055-057)
 - Inbound `email()` Worker handler — only if Option A chosen
 
 ## Implementation boundary

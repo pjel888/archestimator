@@ -1,0 +1,220 @@
+{
+  "schemaVersion": "client-feedback-source-audit.v1",
+  "generatedAt": "2026-08-01T06:37:21.332Z",
+  "sourceRevision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+  "auditScope": "local source, focused tests, archived closeout evidence, and code-intelligence probes",
+  "conclusion": {
+    "resolved": 6,
+    "partial": 5,
+    "unresolved": 1,
+    "implementationComplete": false
+  },
+  "clientComments": [
+    {
+      "id": "REQ-001",
+      "topic": "Native font size",
+      "status": "resolved-revalidate",
+      "decisiveEvidence": [
+        "src/app/globals.css defines the increased estimate-sheet role scale",
+        "e2e/workshop-readability-accessibility.spec.ts previously passed 3/3 at browser 100% zoom"
+      ],
+      "remainingWork": "Keep the scale and re-run readability, zoom, overflow, keyboard, and contrast proof after the integrated changes."
+    },
+    {
+      "id": "REQ-002",
+      "topic": "Page load takes a couple of seconds",
+      "status": "unresolved",
+      "decisiveEvidence": [
+        "The prior local small-fixture p95 first-interactive observation was about 4.9 seconds",
+        "e2e/estimate-loading-performance.spec.ts fails before collection because it imports a CLI module containing import.meta.main",
+        "buildEstimateLoadingArtifact validates completeness and correlation but does not compare results with numeric budgets",
+        "The authenticated route-transition smoke currently permits 10 seconds, while the bundle checker applies one 350 KB route threshold and does not enforce the roadmap total-JS gate",
+        ".ai/01_roadmap/27-performance-budget-and-regression-gates.md now supplies canonical closed-beta normal and representative hard-refresh p95 gates plus a single-sample max-stall ceiling"
+      ],
+      "remainingWork": "Repair the import boundary; bind authenticated run-scoped D1 fixtures to completed Next production and OpenNext builds; replace loose transition/bundle thresholds with digest-bound canonical assertions; enforce hard-refresh, row-interaction, route, and bundle gates; capture a retained red baseline; optimize measured contributors; and prove both runtimes."
+    },
+    {
+      "id": "REQ-003",
+      "topic": "Change V-1 to V-2/V-3",
+      "status": "resolved-revalidate",
+      "decisiveEvidence": [
+        "MaterialVariantControl is rendered for linked and project/express rows",
+        "variant selection mutations already update the active price option"
+      ],
+      "remainingWork": "Re-run create/name/select/reload/export coverage in the integrated journey."
+    },
+    {
+      "id": "REQ-004",
+      "topic": "Brand and supplier master lists",
+      "status": "partial",
+      "decisiveEvidence": [
+        "Canonical component_brands/component_suppliers governance and create actions exist",
+        "Page 001 CreatableCombobox currently commits labels and ignores the selected/created entity id",
+        "Fallback label options use synthetic brand:<slug>/supplier:<slug> ids that must never be persisted as canonical UUIDs"
+      ],
+      "remainingWork": "Add canonical-versus-fallback option provenance and make select/create/clear, permission, retry, unrelated edits, and ID persistence atomic."
+    },
+    {
+      "id": "REQ-005",
+      "topic": "Error after adding a material",
+      "status": "resolved-revalidate",
+      "decisiveEvidence": [
+        "The estimate row mutation coordinator retains failed drafts with retry/delete recovery",
+        "Focused insertion tests passed in the prior audit"
+      ],
+      "remainingWork": "Re-run add/retry/reload and stale-revision cases in the client journey because the original screenshot is unavailable."
+    },
+    {
+      "id": "REQ-006",
+      "topic": "Page 001 image upload fails while Edit Component succeeds",
+      "status": "resolved-revalidate",
+      "decisiveEvidence": [
+        "Both entry points use the shared private upload lifecycle and source-specific scope",
+        "Focused upload contract/client/service tests passed in the prior audit"
+      ],
+      "remainingWork": "Prove success, abort, retry, wrong MIME, oversize, auth denial, and persisted readback from both UI entry points."
+    },
+    {
+      "id": "REQ-007",
+      "topic": "Brand name does not sync in PROJECT tab",
+      "status": "partial",
+      "decisiveEvidence": [
+        "EditableRowValue and persistence handlers support brandId/supplierId",
+        "Page 001 currently drops the combobox id",
+        "Catalogue rename/merge governance already rewrites matching estimate labels inside the workspace",
+        "PROJECT projection carries canonical IDs plus denormalized fallback labels"
+      ],
+      "remainingWork": "Persist and preserve canonical IDs through every editable-row merge/materialization path, characterize existing rename/merge propagation, and repair query convergence; add a projection join only if that characterization fails."
+    },
+    {
+      "id": "REQ-008",
+      "topic": "Direct Category is uneditable",
+      "status": "partial",
+      "decisiveEvidence": [
+        "Direct Category is intentionally derived/read-only",
+        "AddComponentModal already supports an explicit Move to category callback",
+        "The Page 001 modal caller does not pass that callback or catalogue-management permission",
+        "Promotion already accepts libraryFolderId for project-only rows but replay results do not expose or verify the authoritative folder"
+      ],
+      "remainingWork": "Wire linked moves and project promotion through the existing outcome contract, add authoritative folder-bound replay/conflict semantics, and retain derived display rather than free text."
+    },
+    {
+      "id": "REQ-009",
+      "topic": "Accessories under a main material",
+      "status": "partial",
+      "decisiveEvidence": [
+        "Assembly graph, quantity rules, D1 persistence, realtime actions, and effective-contribution rollups exist",
+        "The bulk toolbar can attach required/optional accessories",
+        "The table remains flat and shows only A/A# badges, so the relationship and assembly total are not discoverable"
+      ],
+      "remainingWork": "Render stable parent/child hierarchy, effective quantities, inclusion state, and a non-double-counted assembly rollup."
+    },
+    {
+      "id": "REQ-010",
+      "topic": "Value-engineering option toggle and total sync",
+      "status": "partial",
+      "decisiveEvidence": [
+        "Alternative groups and optional rows already mutate and feed tree/proposal totals",
+        "Rows expose a compact selection button",
+        "There is no dedicated comparison/summary surface showing option costs and deltas"
+      ],
+      "remainingWork": "Add a summary model and accessible comparison surface that reuses the canonical contribution engine and existing mutations."
+    },
+    {
+      "id": "REQ-011",
+      "topic": "Subtotal per main area",
+      "status": "resolved-revalidate",
+      "decisiveEvidence": [
+        "Estimate tree totals include direct rows, descendants, alternatives, optionals, and accessories",
+        "Area headers expose subtotal and partial-load state",
+        "Focused tree subtotal tests passed in the prior audit"
+      ],
+      "remainingWork": "Re-run live update, partial-load, alternate/accessory, and reload parity coverage."
+    },
+    {
+      "id": "REQ-012",
+      "topic": "Remarks, quotation, VAT inclusive/exclusive",
+      "status": "resolved-revalidate",
+      "decisiveEvidence": [
+        "The Commercial column persists remarks, quotation status/link, and VAT treatment",
+        "Commercial terms and proposal projection tests passed in the prior audit"
+      ],
+      "remainingWork": "Re-run input, validation, permissions, reload, and proposal export parity in the integrated journey."
+    }
+  ],
+  "priorFocusedEvidence": {
+    "vitest": {
+      "files": 36,
+      "tests": 369,
+      "result": "pass"
+    },
+    "readabilityPlaywright": {
+      "tests": 3,
+      "result": "pass"
+    },
+    "d1Migrations": {
+      "count": 124,
+      "result": "pass"
+    },
+    "estimateLoadingPlaywright": {
+      "result": "fail-before-collection",
+      "failure": "SyntaxError: Cannot use import.meta outside a module"
+    },
+    "warnings": [
+      "Some UI tests emitted duplicate empty React key warnings",
+      "Some UI tests emitted missing act(...) warnings"
+    ]
+  },
+  "gitNexus": {
+    "repository": "archestimator",
+    "indexRevision": "93d5124d268a1b6016f63f8a8e5e69e118630d13",
+    "headRevision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+    "freshness": "one documentation-only commit behind HEAD",
+    "queryResult": "no ranked results because the indexed FTS surface is unavailable",
+    "impactTargets": [
+      "resolveEstimateTabRouteContext",
+      "AddComponentModal",
+      "EstimateSheetContent",
+      "EstimateContributionBulkToolbar",
+      "EstimateRowItemsTable",
+      "resolveEffectiveContribution",
+      "validateAssemblyGraph",
+      "projectEstimateRowToLibraryItem"
+    ],
+    "impactResult": "UNKNOWN: targets not resolved by the current MCP index",
+    "reindexAttempt": "bun run graph:reindex was refused by the repository guard because the local GitNexus runner contains registry-resolved fallback logic",
+    "fallback": "current-source callers, tests, D1 queries, and execution paths are authoritative until the MCP index is safely refreshed"
+  },
+  "sourceBlastRadius": {
+    "risk": "high",
+    "reason": "shared estimate editor, persisted catalogue identity, effective totals, uploads, project projection, and authenticated route performance are cross-cutting critical paths",
+    "knownCallers": {
+      "resolveEstimateTabRouteContext": [
+        "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+        "focused route/repository tests"
+      ],
+      "AddComponentModal": [
+        "src/components/workshop/EstimateSheetContent.tsx",
+        "component library manager and browse surfaces",
+        "component-library tests"
+      ],
+      "EstimateRowItemsTable": [
+        "src/components/workshop/estimate-sheet/rows/branch.tsx",
+        "row table, virtualization, cost, and accessibility tests"
+      ],
+      "resolveEffectiveContribution": [
+        "src/lib/estimates/estimate-tree-totals-store.ts",
+        "proposal/export contribution projection",
+        "contribution domain tests"
+      ],
+      "projectEstimateRowToLibraryItem": [
+        "project component projection composer",
+        "project projection unit and D1 tests"
+      ]
+    }
+  },
+  "council": {
+    "triggered": false,
+    "reason": "Four independent requirements, source, evidence, and orchestration challenges found no irreconcilable product decision; remaining choices follow current domain invariants and canonical policy."
+  }
+}

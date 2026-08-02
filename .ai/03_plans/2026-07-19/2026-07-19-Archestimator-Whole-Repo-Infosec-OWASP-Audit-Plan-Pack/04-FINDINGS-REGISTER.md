@@ -1,5 +1,9 @@
 # 04 — Findings Register
 
+> **Historical audit provenance.** Current-source dispositions and execution
+> authority belong to `.ai/03_plans/2026-07-31/Code-Improvement/`. This register
+> preserves July 19 evidence and does not claim remediation implementation.
+
 Canonical human-readable source. `artifacts/findings.json` is the machine-readable mirror. Severity is calibrated per master prompt §14 and reconciled against the independent adversarial verifier (`08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md`).
 
 Severity counts (post-adjudication): **Critical 0 · High 1 · Medium 26 · Low/Informational 11 (+ ~29 informational no-unit) · Rejected/Refuted/Duplicate 3 (+ 2 sweep candidates downgraded to Low/Informational during overcall assessment)**. These counts are reconciled to `artifacts/findings.json` `findings[]` (authoritative) and `severity_counts` (now derived from the array).

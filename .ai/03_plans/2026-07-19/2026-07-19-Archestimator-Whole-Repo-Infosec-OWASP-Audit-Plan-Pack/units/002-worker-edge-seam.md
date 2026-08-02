@@ -1,9 +1,13 @@
 # 002 — Worker-Edge Seam: Disable `workers_dev` for Production + Internal Route Guard
 
+> **Historical provenance only.** `UNIT-002` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-WORKER-002`, `SEC-OPS-001`.
 
 ## unit_id
-`UNIT-002` · **status:** `READY` · **priority:** P1 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** requires `AUTH-004` (deploy) for hosted verification only.
+`UNIT-002` · **status:** `SUPERSEDED` · **priority:** P1 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** requires `AUTH-004` (deploy) for hosted verification only.
 
 ## requirements / findings / existing_plan_links
 - Requirements: `SEC-002`.
@@ -95,5 +99,6 @@ Single-writer on `worker.ts` and `wrangler.jsonc` — coordinate with any concur
 ## completion_signal
 All six acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any of `UNIT-003` through `UNIT-013`.
+## historical_next_unit_on_success
+The original proposal allowed `UNIT-003` through `UNIT-013`. The retired pack
+now has `next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

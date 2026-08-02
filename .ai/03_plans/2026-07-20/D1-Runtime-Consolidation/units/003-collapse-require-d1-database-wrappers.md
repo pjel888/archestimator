@@ -1,5 +1,9 @@
 # UNIT-003 — Collapse 20 `requireXD1Database` wrappers to one canonical
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation and refuted by successor `DEC-AUTO-007` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Replace the 20 private `async function requireXD1Database()` wrappers around
@@ -8,7 +12,7 @@ Replace the 20 private `async function requireXD1Database()` wrappers around
 
 ## Status
 
-`READY` · depends on: `UNIT-001` · requirement: `DATA-002` · risks: `RISK-002`
+`SUPERSEDED` · historical dependency: `UNIT-001` · requirement: `DATA-002` · risks: `RISK-002`
 
 ## Why this matters
 

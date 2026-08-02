@@ -1,5 +1,9 @@
 # UNIT-006 — Make AI package-builder Apply row+event writes atomic
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Wrap the five (data-mutation, history-event) statement pairs in the AI
@@ -9,7 +13,7 @@ and a permanently lost audit trail.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `DATA-002` · risks: `RISK-003`
+`SUPERSEDED` · historical dependency: (none) · requirement: `DATA-002` · risks: `RISK-003`
 
 ## Why this matters
 

@@ -1,5 +1,9 @@
 # UNIT-003 — Route forks through buildProjectPublicationRevisionFor*
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Route the forks that bump `publication_source_revision` inline
@@ -11,7 +15,7 @@ side-effect of the UPDATE.
 
 ## Status
 
-`READY` · depends on: `UNIT-001` · requirement: `DATA-003` · risks: `RISK-003`
+`SUPERSEDED` · historical dependency: `UNIT-001` · requirement: `DATA-003` · risks: `RISK-003`
 
 ## Why this matters
 

@@ -1,5 +1,9 @@
 # 02 — Architecture, Threat Model, and Attack Surface
 
+> **Historical audit provenance.** Current execution authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`; this record preserves the July 19
+> threat model and does not claim remediation implementation.
+
 Grounded in current source at HEAD `7f9a484b4`. Line references are to current files.
 
 ## 2.1 System topology

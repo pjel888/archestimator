@@ -1,5 +1,9 @@
 # UNIT-005 — Stop flipping link state to linked-overridden on benign edits
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Stop silently downgrading a library-linked estimate row's `linkState` from
@@ -9,7 +13,7 @@ patch actually changes a library-derived field.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `DATA-001` · risks: `RISK-002`
+`SUPERSEDED` · historical dependency: (none) · requirement: `DATA-001` · risks: `RISK-002`
 
 ## Why this matters
 

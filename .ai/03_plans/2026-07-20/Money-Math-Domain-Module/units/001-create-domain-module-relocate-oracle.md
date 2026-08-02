@@ -1,5 +1,9 @@
 # UNIT-001 — Create `src/lib/estimates/domain/` and relocate the oracle
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation and refuted by successor `DEC-AUTO-008` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`; the pure oracle remains in place.
+
 ## Goal
 
 Create the neutral leaf domain module `src/lib/estimates/domain/` and relocate
@@ -9,7 +13,7 @@ becomes a thin adapter delegating to the oracle. No callers change in this unit.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `DATA-001` · risks: (none)
+`SUPERSEDED` · historical dependency: (none) · requirement: `DATA-001` · risks: (none)
 
 ## Why this matters
 

@@ -1,5 +1,9 @@
 # UNIT-007 — Record cron-run event on upload-job queue batch failure
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Add a `.catch` to the Worker `queue()` handler so a batch-level failure in the
@@ -9,7 +13,7 @@ observability.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `OPS-001` · risks: (none)
+`SUPERSEDED` · historical dependency: (none) · requirement: `OPS-001` · risks: (none)
 
 ## Why this matters
 

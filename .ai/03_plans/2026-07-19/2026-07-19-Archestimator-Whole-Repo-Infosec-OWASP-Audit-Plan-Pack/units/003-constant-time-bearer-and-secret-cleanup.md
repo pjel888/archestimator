@@ -1,9 +1,13 @@
 # 003 — Constant-Time Bearer Compares + Collapse Legacy Realtime-Token Secret Fallback
 
+> **Historical provenance only.** `UNIT-003` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-CRYPTO-001`, `SEC-CRYPTO-002`, `SEC-CRYPTO-003`.
 
 ## unit_id
-`UNIT-003` · **status:** `READY` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
+`UNIT-003` · **status:** `SUPERSEDED` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
 
 ## requirements / findings
 - Requirements: `SEC-002`.
@@ -88,5 +92,6 @@ None.
 ## completion_signal
 All four acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any other unit.
+## historical_next_unit_on_success
+The original proposal allowed any other unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

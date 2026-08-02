@@ -90,7 +90,7 @@ Dependency-free; ready to start.
 | `LOCAL_OPENNEXT_PREVIEW` | not run (not needed for hosted audit) |
 | `PREVIEW_PROVIDER` | not run (AUTH-001 blocks preview restore drill; deferred to UNIT-001) |
 | `HOSTED_PRODUCTION_READ_ONLY` | apex + www + workers.dev DNS + HTTPS probes; `/api/auth/get-session`, `/api/health`, `/admin`, `/workshop`, `/login`, `/robots.txt`, `/sitemap.xml` route behavior; security headers; cache headers; x-request-id propagation |
-| `GITHUB_HOSTED` | not inspected (cross-ref Infosec AUTH-001) |
+| `GITHUB_HOSTED` | not inspected (historical Infosec AUTH-001 boundary; current authority `.ai/03_plans/2026-07-31/Code-Improvement/`) |
 | `OPERATOR_MANUAL` | pending — UNIT-001..007 define the operator continuation |
 | `EXTERNAL_VENDOR` | Cloudflare D1 docs (referenced, not reproduced) |
 | `EVIDENCE_BLOCKED` | wrangler auth-gated readback (deployment SHA, D1 info/backups, R2 listing, queue depth, DO storage, secret names, Workers Logs retention); see AUTH-001 |
@@ -108,17 +108,14 @@ Dependency-free; ready to start.
 - GitHub settings change / CI activation / paid add-on / account change /
   unrelated Cloudflare projects
 
-## Active-pack cross-references
+## Current and historical cross-references
 
 - **MVP-Startup-Readiness-Audit** — owns D1 PITR *enablement* (UNIT-004);
   this audit owns the hosted-evidence gap (UNIT-001).
-- **Quality-Master-Plan-Pack** — owns CI *truthful claims* (UNIT-002),
-  queue/upload topology (UNIT-019/022/024), session-read coalescing (UNIT-035),
-  5-min cron no-op fix (UNIT-028 resolved). This audit cross-references all.
-- **Infosec-OWASP-Audit-Plan-Pack** — owns every `SEC-*` remediation
-  (UNIT-001 realtime revoke; UNIT-002 workers_dev:false; UNIT-004 email
-  chokepoint; UNIT-008 queue HMAC; UNIT-010 cron redaction; UNIT-011 retention
-  registry; UNIT-012 CI activation). This audit contributes hosted evidence
+- `.ai/03_plans/2026-07-31/Code-Improvement/` — current owner for the
+  code-quality and security surfaces. Historical predecessor pointers retained
+  here are Quality Master UNIT-002/019/022/024/028/035 and Infosec
+  UNIT-001/002/004/008/010/011/012. This audit contributes hosted evidence
   where applicable and does not duplicate remediation.
 
 ## Blocked provider / operator evidence

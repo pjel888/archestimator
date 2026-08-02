@@ -5,14 +5,14 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T16:36:41.569Z",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
+  "updated_at": "2026-08-01T05:20:24.262Z",
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -30,19 +30,19 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "d2d989020b5ce972eaacc347882375b69c1d9580815b40c5f3ee75decfc49472"
+      "sha256": "388dd69a285c8996215f92a9b5e64a2f1b7efe284b3ed71ca3e36984c2345e9e"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "a390d70c2e6ee48c4bda4c10a09498ff5985282a94854707cbcdaffa463029a1"
+      "sha256": "8b32c1efcad2299b0f4bfad096740570ddb56c50d2ad43d3b684fc2c0c29f1f2"
     },
     {
       "id": "ART-003",
       "role": "unit-catalog",
       "path": "UNIT-CATALOG.md",
-      "sha256": "9ef416cafdf37680d02f290931480348dab699134efca06d4d80ed82045e1958"
+      "sha256": "bed3362525208efdba237ab25f814bdc1f90d3aa564cf397238923dd8697f873"
     },
     {
       "id": "ART-004",
@@ -54,13 +54,13 @@
       "id": "ART-005",
       "role": "operations",
       "path": "EXECUTION-GUIDE.md",
-      "sha256": "b45733781c145d09258660105daf2be97ecec5f69725d56122be0452f56b611d"
+      "sha256": "a2b85257427a3e99d483bae2575a45f2c92df6b9481a666cc1caa10c1ff474b8"
     },
     {
       "id": "ART-006",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "701a11a6dc5c399b97d0a40210d2375ef94c7e8bd8bf40ce6289d495f503da3f"
+      "sha256": "bfef3ee3399934738dc40e307512609f3045613482382dba55a5a72f5a782a72"
     },
     {
       "id": "ART-007",
@@ -625,7 +625,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -640,7 +640,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -653,7 +653,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -666,7 +666,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -679,7 +679,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -692,7 +692,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -705,7 +705,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -718,7 +718,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -731,7 +731,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -744,7 +744,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -757,7 +757,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -770,7 +770,7 @@
     },
     {
       "id": "UNIT-012",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -783,7 +783,7 @@
     },
     {
       "id": "UNIT-013",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -796,7 +796,7 @@
     },
     {
       "id": "UNIT-014",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -811,7 +811,7 @@
     },
     {
       "id": "UNIT-015",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -826,7 +826,7 @@
     },
     {
       "id": "UNIT-016",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -839,7 +839,7 @@
     },
     {
       "id": "UNIT-017",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -852,7 +852,7 @@
     },
     {
       "id": "UNIT-018",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -865,7 +865,7 @@
     },
     {
       "id": "UNIT-019",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -878,7 +878,7 @@
     },
     {
       "id": "UNIT-020",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-019"
@@ -893,7 +893,7 @@
     },
     {
       "id": "UNIT-021",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -906,7 +906,7 @@
     },
     {
       "id": "UNIT-022",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-012",
@@ -926,7 +926,7 @@
     },
     {
       "id": "UNIT-023",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-016"
@@ -943,7 +943,7 @@
     },
     {
       "id": "UNIT-024",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -958,7 +958,7 @@
     },
     {
       "id": "UNIT-025",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -971,7 +971,7 @@
     },
     {
       "id": "UNIT-026",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -984,7 +984,7 @@
     },
     {
       "id": "UNIT-027",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-026"
@@ -999,7 +999,7 @@
     },
     {
       "id": "UNIT-028",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1012,7 +1012,7 @@
     },
     {
       "id": "UNIT-029",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1025,7 +1025,7 @@
     },
     {
       "id": "UNIT-030",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1039,7 +1039,7 @@
     },
     {
       "id": "UNIT-031",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1052,7 +1052,7 @@
     },
     {
       "id": "UNIT-032",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1065,7 +1065,7 @@
     },
     {
       "id": "UNIT-033",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1080,7 +1080,7 @@
     },
     {
       "id": "UNIT-034",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1093,7 +1093,7 @@
     },
     {
       "id": "UNIT-035",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1108,7 +1108,7 @@
     },
     {
       "id": "UNIT-036",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1121,7 +1121,7 @@
     },
     {
       "id": "UNIT-037",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1134,7 +1134,7 @@
     },
     {
       "id": "UNIT-038",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-001"
@@ -1151,7 +1151,7 @@
     },
     {
       "id": "UNIT-039",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1164,7 +1164,7 @@
     },
     {
       "id": "UNIT-040",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1177,7 +1177,7 @@
     },
     {
       "id": "UNIT-041",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1190,7 +1190,7 @@
     },
     {
       "id": "UNIT-042",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1203,7 +1203,7 @@
     },
     {
       "id": "UNIT-043",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1218,7 +1218,7 @@
     },
     {
       "id": "UNIT-044",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1233,7 +1233,7 @@
     },
     {
       "id": "UNIT-045",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-003",
@@ -1251,7 +1251,7 @@
     },
     {
       "id": "UNIT-046",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1264,7 +1264,7 @@
     },
     {
       "id": "UNIT-047",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1277,7 +1277,7 @@
     },
     {
       "id": "UNIT-048",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-007",
@@ -1344,7 +1344,7 @@
     },
     {
       "id": "UNIT-051",
-      "status": "BLOCKED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1359,7 +1359,7 @@
     },
     {
       "id": "UNIT-052",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-022"
@@ -1376,7 +1376,7 @@
     },
     {
       "id": "UNIT-053",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-052"
@@ -1393,7 +1393,7 @@
     },
     {
       "id": "UNIT-054",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-053"
@@ -1410,7 +1410,7 @@
     },
     {
       "id": "UNIT-055",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1427,7 +1427,7 @@
     },
     {
       "id": "UNIT-056",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-055"
@@ -1444,7 +1444,7 @@
     },
     {
       "id": "UNIT-057",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-056"
@@ -1461,7 +1461,7 @@
     },
     {
       "id": "UNIT-058",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-042"
@@ -1476,7 +1476,7 @@
     },
     {
       "id": "UNIT-059",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-042"
@@ -1491,7 +1491,7 @@
     },
     {
       "id": "UNIT-060",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-042"
@@ -1506,7 +1506,7 @@
     },
     {
       "id": "UNIT-061",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-043"
@@ -1523,7 +1523,7 @@
     },
     {
       "id": "UNIT-062",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-043"
@@ -1540,7 +1540,7 @@
     },
     {
       "id": "UNIT-063",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-043"
@@ -1557,7 +1557,7 @@
     },
     {
       "id": "UNIT-064",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-043"
@@ -1574,7 +1574,7 @@
     },
     {
       "id": "UNIT-065",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-044"
@@ -1591,7 +1591,7 @@
     },
     {
       "id": "UNIT-066",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-065"
@@ -1608,7 +1608,7 @@
     },
     {
       "id": "UNIT-067",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "UNIT-CATALOG.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1710,7 +1710,7 @@
       "id": "EVID-001",
       "status": "PLANNED",
       "artifact_path": "LOOP_LEDGER.md",
-      "sha256": "701a11a6dc5c399b97d0a40210d2375ef94c7e8bd8bf40ce6289d495f503da3f",
+      "sha256": "bfef3ee3399934738dc40e307512609f3045613482382dba55a5a72f5a782a72",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -1826,93 +1826,8 @@
       "valid_until": null
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "status": "READY",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006"
-      ]
-    },
-    {
-      "id": "SLICE-002",
-      "status": "READY",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "unit_ids": [
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011",
-        "UNIT-012",
-        "UNIT-013",
-        "UNIT-016"
-      ]
-    },
-    {
-      "id": "SLICE-003",
-      "status": "READY",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "unit_ids": [
-        "UNIT-002",
-        "UNIT-014",
-        "UNIT-015",
-        "UNIT-017",
-        "UNIT-018",
-        "UNIT-025",
-        "UNIT-028",
-        "UNIT-029"
-      ]
-    },
-    {
-      "id": "SLICE-004",
-      "status": "READY",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "unit_ids": [
-        "UNIT-026",
-        "UNIT-030",
-        "UNIT-031"
-      ]
-    },
-    {
-      "id": "SLICE-005",
-      "status": "READY",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "unit_ids": [
-        "UNIT-019",
-        "UNIT-021",
-        "UNIT-032",
-        "UNIT-033",
-        "UNIT-034",
-        "UNIT-035",
-        "UNIT-036",
-        "UNIT-037",
-        "UNIT-039",
-        "UNIT-040",
-        "UNIT-041",
-        "UNIT-067"
-      ]
-    },
-    {
-      "id": "SLICE-006",
-      "status": "READY",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "unit_ids": [
-        "UNIT-024",
-        "UNIT-042",
-        "UNIT-043",
-        "UNIT-044",
-        "UNIT-046",
-        "UNIT-047"
-      ]
-    }
-  ],
-  "manifest_sha256": "0d76207260c399cc306829de0a7d925708e8cb3e3b17e24a65bcaa1da20f1d38",
+  "ready_slices": [],
+  "manifest_sha256": "c96e9d1fa6d27b8def8cbd4ad77af5868870b83923a57753d3482e9582975cbc",
   "transition_contract": {
     "version": "quality-master-outcome-transitions.v1",
     "receipt_artifact": "LOOP_LEDGER.md",

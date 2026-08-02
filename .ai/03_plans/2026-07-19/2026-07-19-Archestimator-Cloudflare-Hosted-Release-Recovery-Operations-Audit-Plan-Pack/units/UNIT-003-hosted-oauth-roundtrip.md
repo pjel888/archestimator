@@ -22,8 +22,11 @@ cookie set → `/workshop` loads.
 
 ## Non-goals
 
-- Token/session security design (Infosec)
-- Session-read coalescing (Quality Master UNIT-035)
+- Token/session security design (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec)
+- Session-read coalescing (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality Master
+  UNIT-035)
 - Magic-link path (depends on O-10 readiness)
 - Client libraries or UI changes
 

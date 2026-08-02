@@ -32,7 +32,8 @@ and three CTA systems fragment the discovery journey (`UX-CTA-001`).
   validator-conformant plan pack; do NOT implement remediation in product code.
 - **Scope:** nine mandatory journeys (J-01..J-09), seven personas, the full UX
   state matrix, the existing-pack overlap matrix, and the founder-rescue ledger.
-- **Exclusions:** security conclusions (Infosec OWASP owns them), numeric
+- **Exclusions:** security conclusions (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec OWASP), numeric
   financial truth (Commercial Estimate-Truth owns it), cosmetic preferences,
   hosted/production proof.
 - **Authority:** `AGENTS.md`, current source, `.ai/00_system`, this prompt.
@@ -51,7 +52,8 @@ and three CTA systems fragment the discovery journey (`UX-CTA-001`).
 
 **Non-goals:**
 - Implementing any remediation (pack is `PLAN_ONLY`).
-- Security audit (Infosec OWASP owns; cross-referenced).
+- Security audit (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`;
+  historical Infosec OWASP references retained).
 - Numeric / persistence / financial truth audit (Commercial Estimate-Truth).
 - Visual redesign or cosmetic backlog.
 - Hosted / production proof.
@@ -90,10 +92,11 @@ See `artifacts/existing-pack-overlap-matrix.md` for the full matrix. Summary:
 - **MVP Startup Readiness Audit** — cross-referenced for guided-sample
   sequencing (UX-ACTIVATE-002) and branded-export feature (UX-EXPORT-001).
   This pack owns only the journey-level UX surfaces, not the engineering units.
-- **Quality Master** — cross-referenced for the future CI guard for the
-  `"use server"` async contract (UX-BUILD-002, deferred).
-- **Infosec OWASP** — security conclusions on auth/share are NOT here. Only
-  UX-owned copy consequences (UX-MAGIC-001, UX-SHARE-001) are in scope.
+- `.ai/03_plans/2026-07-31/Code-Improvement/` — current owner of the future CI
+  guard for the `"use server"` async contract (UX-BUILD-002, deferred) and of
+  security conclusions on auth/share. Historical predecessor pointers are the
+  Quality Master and Infosec OWASP packs. Only UX-owned copy consequences
+  (UX-MAGIC-001, UX-SHARE-001) are in scope here.
 
 Zero accepted requirements or units have two active owners.
 
@@ -195,7 +198,9 @@ Recommended execution order by priority:
   class ceiling stays below the master prompt's preference. Owned by re-running
   the audit harness post-UNIT-001.
 - **RISK-002:** `OPEN` — `UX-BUILD-002` (no CI guard for the `"use server"`
-  async contract) means the break could recur. Deferred to Quality Master.
+  async contract) means the break could recur. Deferred to
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality Master
+  handoff).
 - **RISK-003:** `MITIGATED` — Three severity downgrades from the second-pass
   challenge narrowed impact but did not refute the underlying defects.
 

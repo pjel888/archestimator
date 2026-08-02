@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,6 +13,7 @@ import {
 import {
   validateCanonicalBaselineArtifacts,
   validateCanonicalGenerationBindings,
+  validateImmutablePredecessorAdmission,
   type ComponentBaseline,
 } from "../../../scripts/quality/component-core";
 import {
@@ -97,11 +99,138 @@ function codes(findings: Array<{ code: string }>): string[] {
   return findings.map((finding) => finding.code);
 }
 
+function runGit(root: string, args: string[]): string {
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  if (result.error || result.status !== 0) {
+    throw result.error ?? new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  }
+  return result.stdout.trim();
+}
+
+async function createGitFixtureRoot(): Promise<{ root: string; comparisonBase: string }> {
+  const root = await mkdtemp(join(tmpdir(), "component-baseline-lineage-"));
+  roots.push(root);
+  runGit(root, ["init", "--initial-branch=main"]);
+  runGit(root, ["config", "user.email", "quality-fixture@example.invalid"]);
+  runGit(root, ["config", "user.name", "Quality Fixture"]);
+  runGit(root, ["config", "core.autocrlf", "false"]);
+  await writeFile(join(root, "seed.txt"), "seed\n");
+  runGit(root, ["add", "seed.txt"]);
+  runGit(root, ["commit", "-m", "seed comparison base"]);
+  return { root, comparisonBase: runGit(root, ["rev-parse", "HEAD"]) };
+}
+
+function bootstrapLineageFixture(comparisonBase: string): ComponentBaseline {
+  return {
+    source: {
+      candidate: {
+        record: {
+          comparison_base: { input_ref: "main", resolved_sha: comparisonBase },
+        },
+      },
+    },
+    admission: {
+      bootstrap: true,
+      predecessor_baseline_sha256: null,
+    },
+  } as unknown as ComponentBaseline;
+}
+
+async function writeBootstrapBaseline(root: string, baseline: ComponentBaseline): Promise<void> {
+  const path = join(root, "quality/baseline.json");
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(baseline, null, 2)}\n`);
+}
+
+async function commitBootstrapBaseline(root: string, baseline: ComponentBaseline, message: string): Promise<void> {
+  await writeBootstrapBaseline(root, baseline);
+  runGit(root, ["add", "quality/baseline.json"]);
+  runGit(root, ["commit", "-m", message]);
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 describe("canonical component baseline generation integrity", () => {
+  it("accepts the byte-identical first bootstrap after its comparison base", async () => {
+    const { root, comparisonBase } = await createGitFixtureRoot();
+    const baseline = bootstrapLineageFixture(comparisonBase);
+    await commitBootstrapBaseline(root, baseline, "admit first bootstrap");
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, baseline))).not.toContain(
+      "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
+    );
+  });
+
+  it("fails closed when the tracked bootstrap is missing from the worktree", async () => {
+    const { root, comparisonBase } = await createGitFixtureRoot();
+    const baseline = bootstrapLineageFixture(comparisonBase);
+    await commitBootstrapBaseline(root, baseline, "admit first bootstrap");
+    await rm(join(root, "quality/baseline.json"));
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, baseline))).toContain(
+      "COMPONENT_BASELINE_PREDECESSOR_VALIDATION_FAILED",
+    );
+  });
+
+  it("rejects modified bootstrap content after the first admission", async () => {
+    const { root, comparisonBase } = await createGitFixtureRoot();
+    const baseline = bootstrapLineageFixture(comparisonBase);
+    await commitBootstrapBaseline(root, baseline, "admit first bootstrap");
+    const modified = structuredClone(baseline);
+    modified.source.candidate.record.comparison_base.input_ref = "modified";
+    await writeBootstrapBaseline(root, modified);
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, modified))).toContain(
+      "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
+    );
+  });
+
+  it("rejects bootstrap deletion and reintroduction", async () => {
+    const { root, comparisonBase } = await createGitFixtureRoot();
+    const baseline = bootstrapLineageFixture(comparisonBase);
+    await commitBootstrapBaseline(root, baseline, "admit first bootstrap");
+    runGit(root, ["rm", "quality/baseline.json"]);
+    runGit(root, ["commit", "-m", "delete bootstrap"]);
+    await commitBootstrapBaseline(root, baseline, "reintroduce bootstrap");
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, baseline))).toContain(
+      "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
+    );
+  });
+
+  it("rejects a bootstrap comparison-base rollback", async () => {
+    const { root, comparisonBase: originalBase } = await createGitFixtureRoot();
+    await writeFile(join(root, "advance.txt"), "advance\n");
+    runGit(root, ["add", "advance.txt"]);
+    runGit(root, ["commit", "-m", "advance comparison base"]);
+    const admittedBase = runGit(root, ["rev-parse", "HEAD"]);
+    const baseline = bootstrapLineageFixture(admittedBase);
+    await commitBootstrapBaseline(root, baseline, "admit first bootstrap");
+    const rolledBack = bootstrapLineageFixture(originalBase);
+    await writeBootstrapBaseline(root, rolledBack);
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, rolledBack))).toContain(
+      "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
+    );
+  });
+
+  it("rejects a second bootstrap after established baseline history", async () => {
+    const { root, comparisonBase } = await createGitFixtureRoot();
+    const baseline = bootstrapLineageFixture(comparisonBase);
+    await commitBootstrapBaseline(root, baseline, "admit first bootstrap");
+    const established = structuredClone(baseline);
+    established.admission.bootstrap = false;
+    established.admission.predecessor_baseline_sha256 = "1".repeat(64);
+    await commitBootstrapBaseline(root, established, "admit established baseline");
+    await commitBootstrapBaseline(root, baseline, "attempt second bootstrap");
+
+    expect(codes(await validateImmutablePredecessorAdmission(root, baseline))).toContain(
+      "COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID",
+    );
+  });
+
   it("excludes only the six canonical evidence outputs from candidate provenance", () => {
     expect([...canonicalBaselineEvidencePaths].sort()).toEqual([
       "quality/baselines/component/admission.json",
@@ -514,5 +643,21 @@ describe("canonical component baseline generation integrity", () => {
       disallowedReviewers: ["author"],
     });
     expect(codes(result.findings)).toEqual(expect.arrayContaining(["REVIEW_SOURCE", "AUTHOR_IDENTITY_ASSURANCE"]));
+  });
+
+  it("keeps UNIT-000 disposition evidence tracked, candidate-bound, and fail-closed", async () => {
+    const matrix = await readFile(
+      join(process.cwd(), ".ai/03_plans/2026-07-31/Code-Improvement/03-VERIFICATION-MATRIX.md"),
+      "utf8",
+    );
+    const authorityContract = matrix.split("## Plan-State Evidence")[1] ?? "";
+
+    expect(authorityContract).toContain("unit-000-untracked-hardlink-");
+    expect(authorityContract).toContain("git ls-files --error-unmatch");
+    expect(authorityContract).toContain("$ignoreStatus -ne 1");
+    expect(authorityContract).toContain("Disposition evidence must be tracked candidate content");
+    expect(authorityContract).toContain("$candidateEntry[0].sha256 -ne $observedEvidenceSha");
+    expect(authorityContract).toContain("Predecessor evidence became untracked during UNIT-000 Q2 verification");
+    expect(authorityContract).toContain("[IO.FileAttributes]::ReparsePoint");
   });
 });

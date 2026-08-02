@@ -1,5 +1,9 @@
 # 08 — Second-Pass Challenge and Drift Reconciliation
 
+> **Historical audit provenance.** Current-source dispositions and execution
+> authority belong to `.ai/03_plans/2026-07-31/Code-Improvement/`. This document
+> preserves the July 19 challenge record and does not claim remediation.
+
 This document records the independent adversarial verifier's verdicts (PASS 8 of the master prompt), the lead's reconciliation, and the drift reconciliation (PASS 11).
 
 ## 8.1 Independent adversarial verifier — verdicts

@@ -5,14 +5,14 @@
   "profile": "standard",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
-  "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-20T23:45:00.000Z",
+  "terminal_status": "CANCELLED",
+  "updated_at": "2026-08-01T05:28:17.889Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
     "scoped_status_sha256": "6a2297c5669b20bbc734afc5eb5ef979ae2cb92370962b8433e843824ae689b1",
@@ -30,31 +30,31 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "6a2297c5669b20bbc734afc5eb5ef979ae2cb92370962b8433e843824ae689b1"
+      "sha256": "87aa7b92ebbdb68b17de0e55d5e5458fcaf85b43a679fb2c6a6a738629f5a763"
     },
     {
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "33dce5aed0181b34726d92fb3806ca82017528f19b3181a09145ecfb0b9307d3"
+      "sha256": "23978e24b544ea8d6c78ee8aadd7f58830f4bf4d7060508237968625999deaaa"
     },
     {
       "id": "ART-003",
       "role": "unit",
       "path": "units/001-create-shared-d1-runtime.md",
-      "sha256": "e7a724ea701241a0af964bdc0c6294c3b180d76341be9c6118c74c7d83bfb76b"
+      "sha256": "cc33c96ec819c0fa77fce72f842feec5cbc963b2d830760da62565b31b024ead"
     },
     {
       "id": "ART-004",
       "role": "unit",
       "path": "units/002-migrate-repositories-to-shared-module.md",
-      "sha256": "8045719b8bca75e1acfb68651b114bb64ec3f3ba7675f8b44f61e7328fdc27c7"
+      "sha256": "38e04f5cc82ba6b66ccb6bce60669c2ed8f9c065a517386f2205379d16db5ea4"
     },
     {
       "id": "ART-005",
       "role": "unit",
       "path": "units/003-collapse-require-d1-database-wrappers.md",
-      "sha256": "bf8985e6bd55cdb4206f687ddda4e3cfa35a25b0560aeaf9ca2e2af0f4adcb19"
+      "sha256": "df33c9b89799017eb3d8ac4534feebdd86655249a6f2ad7190dfd753823f5927"
     }
   ],
   "sources": [
@@ -177,7 +177,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/001-create-shared-d1-runtime.md",
       "depends_on": [],
       "requirement_ids": [
@@ -192,7 +192,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/002-migrate-repositories-to-shared-module.md",
       "depends_on": [
         "UNIT-001"
@@ -209,7 +209,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/003-collapse-require-d1-database-wrappers.md",
       "depends_on": [
         "UNIT-001"
@@ -225,7 +225,19 @@
       ]
     }
   ],
-  "decisions": [],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003"
+      ],
+      "rationale": "The 2026-07-31 Code-Improvement successor is the sole current execution authority. Current source and successor DEC-AUTO-007 refute all three units: D1 acquisition is already centralized while domain query and codec semantics are intentionally distinct, so the proposed broad d1-runtime.ts module, compatibility aliases, and mass migration are rejected. This predecessor is retired as historical provenance and no implementation is claimed here."
+    }
+  ],
   "authorization_boundaries": [],
   "evidence_index": [
     {
@@ -237,7 +249,7 @@
         "AC-001"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "e7a724ea701241a0af964bdc0c6294c3b180d76341be9c6118c74c7d83bfb76b",
+      "sha256": "cc33c96ec819c0fa77fce72f842feec5cbc963b2d830760da62565b31b024ead",
       "valid_until": null
     },
     {
@@ -249,7 +261,7 @@
         "AC-001"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "8045719b8bca75e1acfb68651b114bb64ec3f3ba7675f8b44f61e7328fdc27c7",
+      "sha256": "38e04f5cc82ba6b66ccb6bce60669c2ed8f9c065a517386f2205379d16db5ea4",
       "valid_until": null
     },
     {
@@ -261,17 +273,10 @@
         "AC-002"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "bf8985e6bd55cdb4206f687ddda4e3cfa35a25b0560aeaf9ca2e2af0f4adcb19",
+      "sha256": "df33c9b89799017eb3d8ac4534feebdd86655249a6f2ad7190dfd753823f5927",
       "valid_until": null
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001"
-      ]
-    }
-  ],
-  "manifest_sha256": "176af1e8dae3fcdec313f054855563db4405504fae025bfb3a3ebb115c2033da"
+  "ready_slices": [],
+  "manifest_sha256": "1566476d044e9bc3579087deda65c2704b68ba22a500600e06444a76422b36de"
 }

@@ -1,19 +1,20 @@
-# D1 Runtime Consolidation — Canonical Execution Plan
+# D1 Runtime Consolidation — Historical Predecessor Plan
 
-> Canonical execution artifact for promoting the shared D1 query/runtime module
-> and collapsing ~20 copy-pasted helper sets + 20 `requireXD1Database` wrappers
-> onto it. The highest-hygiene-ROI architecture move in the repo; prerequisite
-> to Pack D's integrity unification.
+> **Historical provenance only — do not execute.** This predecessor was
+> superseded without implementation by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`, the sole current execution
+> authority. Successor `DEC-AUTO-007` rejects the broad runtime relocation and
+> mass-migration design; the original analysis remains below as source evidence.
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`NOT_READY / NOT_STARTED / NOT_EVALUATED / N/A / CANCELLED`
 
 - **Baseline HEAD:** `b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab` (2026-07-20)
 - **Suite version:** `2026-07-12`
 - **Profile:** `standard` (one new shared module + mechanical migration of ~10 repo files + deletion of 20 wrappers)
-- **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` at authoring)
-- **Exact next unit:** `UNIT-001` (create the shared `d1-runtime.ts` module — no callers changed yet)
+- **Action ceiling:** `IMPLEMENT_LOCAL` (historical boundary only; this pack has no runnable unit)
+- **Exact next unit:** none; continue only in `.ai/03_plans/2026-07-31/Code-Improvement/`
 
 ## 1. Outcome and intent
 
@@ -62,9 +63,10 @@ tracing or read-replica switch would land.
 - **Exclusions:** Pack D's `MutationIntent` extraction. Pack B's test baselines.
   Any change to the SQL itself or the business logic. The floating-point total
   fix (audit finding #8) — separate concern.
-- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, this pack.
-- **Owner:** lead single-agent. Files are coupled through the shared module;
-  serial migration, no parallel writers on `d1-runtime.ts`.
+- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, and
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; this pack is historical only.
+- **Owner:** none; all three predecessor units are `SUPERSEDED` under successor
+  `DEC-AUTO-007`.
 - **Test authorization:** `NOT_REQUIRED`. The migration is mechanical; type-check
   is the gate. (Pack B's UNIT-002 characterizes `rows.ts` if a deeper net is
   wanted, but it is not a hard prerequisite here because this pack does not

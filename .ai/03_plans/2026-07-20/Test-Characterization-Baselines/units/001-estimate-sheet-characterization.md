@@ -1,5 +1,10 @@
 # UNIT-001 — EstimateSheetContent characterization harness
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Current-source characterization coverage is
+> revalidated by successor `UNIT-028` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Add a whole-component integration test that renders `EstimateSheetContent` with
@@ -10,7 +15,7 @@ option) tractable.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `UX-001` · risks: `RISK-001`, `RISK-002`
+`SUPERSEDED` · historical dependency: (none) · requirement: `UX-001` · risks: `RISK-001`, `RISK-002`
 
 ## Why this matters
 

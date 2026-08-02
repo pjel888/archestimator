@@ -5,14 +5,16 @@
 Convert the release-gate definition (`artifacts/release-gate.json`) into an
 operator-executed ritual that runs before each cohort wave, captures the
 deployed Worker SHA, and produces an auditable release receipt. This is the
-operator-facing counterpart to the engineering CI work owned by Quality Master
-UNIT-002 and Infosec UNIT-012.
+operator-facing counterpart to the engineering CI work now owned by
+`.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality Master UNIT-002
+and Infosec UNIT-012).
 
 ## Source findings / requirements
 
 - `OPS-RELEASE-GATE-004` (High) — release-gate ritual not yet executed
 - `OPS-DEPLOY-005` (Medium) — hosted deployment provenance unverified
-- `OPS-WORKERS-DEV-009` (Medium) — cross-ref Infosec UNIT-002
+- `OPS-WORKERS-DEV-009` (Medium) — cross-reference
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec UNIT-002)
 - `REQ-006` (CORE)
 - `REQ-007` (CORE)
 
@@ -29,10 +31,14 @@ UNIT-002 and Infosec UNIT-012.
 
 ## Non-goals
 
-- CI activation (Infosec UNIT-012)
-- CI truthful-claims engineering (Quality Master UNIT-002)
+- CI activation (current authority `.ai/03_plans/2026-07-31/Code-Improvement/`;
+  historical Infosec UNIT-012)
+- CI truthful-claims engineering (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality Master
+  UNIT-002)
 - Public self-service release gates (this is controlled-beta only)
-- `workers_dev:false` remediation (Infosec UNIT-002)
+- `workers_dev:false` remediation (current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec UNIT-002)
 
 ## Implementation boundary
 

@@ -5,14 +5,14 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "N/A",
-  "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-21T00:30:00.000Z",
+  "terminal_status": "CANCELLED",
+  "updated_at": "2026-08-01T05:28:17.889Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
     "scoped_status_sha256": "e4b916ac992b551acd33442f58b590b8c30597e7109b4c9921a0dd123b61d6ee",
@@ -32,13 +32,13 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "e4b916ac992b551acd33442f58b590b8c30597e7109b4c9921a0dd123b61d6ee"
+      "sha256": "f4fd8afb0f5958a10cb75a4659e0eb5f36ea7396f4e6622684198b4f87d0ae09"
     },
     {
       "id": "ART-002",
       "role": "manifest",
       "path": "README.md",
-      "sha256": "6c9810b50c30f01b1d42bfe333655f3ea5fc62a0326e076add81370afffe7423"
+      "sha256": "4dea2f9ee55d028d1216215510832fd9fd4a176eeea04f15093b3a0857f93a42"
     },
     {
       "id": "ART-003",
@@ -50,25 +50,25 @@
       "id": "ART-004",
       "role": "unit",
       "path": "units/001-outbox-hole-prepare-history-event-insert.md",
-      "sha256": "140ba84b36faf65b738905c4c9b4e0d67deeae96b7cff11994d6ce3f8066922d"
+      "sha256": "f1d0f8f128711a422364e4bfb44a9f61f8e6e570d47c33f597590b6f89c7a558"
     },
     {
       "id": "ART-005",
       "role": "unit",
       "path": "units/002-route-forks-through-intent-receipt.md",
-      "sha256": "af2849bfcd8f6f2124364d3b610e347d0491aff0bc27de627d3eb4ef6e9c8da9"
+      "sha256": "d306bb4f6d34de43d9769c3f7e51c56334e254d831b43c42dbef0843a91e5b0a"
     },
     {
       "id": "ART-006",
       "role": "unit",
       "path": "units/003-route-forks-through-revision-guard.md",
-      "sha256": "17b39d647362f719505bdcca4c5206ce0c16a3b10f30098882c9261a87671c08"
+      "sha256": "33f955b10e1c6e53e2956bf8b9e96a4dfc195b9de729a831591e1b144eb113f0"
     },
     {
       "id": "ART-007",
       "role": "unit",
       "path": "units/004-route-forks-through-strict-access.md",
-      "sha256": "416039c6b8ccade6c4844f7ea8a1c1a236c645f947dcc2b3e42514affc4e2b5d"
+      "sha256": "585ff5830a24acacc90b31eaefe2e0982f57aea37391952cb6ab73247c53d467"
     }
   ],
   "sources": [
@@ -264,7 +264,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/001-outbox-hole-prepare-history-event-insert.md",
       "depends_on": [],
       "requirement_ids": [
@@ -279,7 +279,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/002-route-forks-through-intent-receipt.md",
       "depends_on": [
         "UNIT-001"
@@ -296,7 +296,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/003-route-forks-through-revision-guard.md",
       "depends_on": [
         "UNIT-001"
@@ -313,7 +313,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/004-route-forks-through-strict-access.md",
       "depends_on": [
         "UNIT-002"
@@ -345,6 +345,18 @@
         "UNIT-004"
       ],
       "rationale": "Pack D reframed on 2026-07-21 after a deep code-tree trace established that the shared integrity primitives already exist in the d1-intents/ family (database.ts, history-events.ts, intent-context.ts, access.ts) plus mutation-receipts.ts and project-component-attachment-retention.ts. The v1 framing (extract MutationIntent primitives from rows.ts) was wrong: rows.ts is a consumer, not the source. The v2 work routes the 9 forked write paths through the existing primitives. The single biggest integrity hole discovered is the activity_event_outbox row silently dropped by 5 forks that hand-roll the estimate_sheet_events INSERT — UNIT-001 closes it first. The v1 unit files (extraction-from-rows framing) were deleted; the v2 units (001 outbox, 002 intent/receipt, 003 revision guard, 004 strict access) address the real gaps. See references/primitive-map.md for the full primitive surface and fork gap matrix."
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004"
+      ],
+      "rationale": "The 2026-07-31 Code-Improvement successor is the sole current execution authority. All four predecessor units are landed-current-source dispositions revalidated by successor UNIT-028. This predecessor is retired as historical provenance, every unit is SUPERSEDED, and no implementation is claimed here."
     }
   ],
   "authorization_boundaries": [],
@@ -358,7 +370,7 @@
         "AC-001"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "140ba84b36faf65b738905c4c9b4e0d67deeae96b7cff11994d6ce3f8066922d",
+      "sha256": "f1d0f8f128711a422364e4bfb44a9f61f8e6e570d47c33f597590b6f89c7a558",
       "valid_until": null
     },
     {
@@ -370,7 +382,7 @@
         "AC-002"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "af2849bfcd8f6f2124364d3b610e347d0491aff0bc27de627d3eb4ef6e9c8da9",
+      "sha256": "d306bb4f6d34de43d9769c3f7e51c56334e254d831b43c42dbef0843a91e5b0a",
       "valid_until": null
     },
     {
@@ -382,7 +394,7 @@
         "AC-003"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "17b39d647362f719505bdcca4c5206ce0c16a3b10f30098882c9261a87671c08",
+      "sha256": "33f955b10e1c6e53e2956bf8b9e96a4dfc195b9de729a831591e1b144eb113f0",
       "valid_until": null
     },
     {
@@ -394,17 +406,10 @@
         "AC-004"
       ],
       "source_revision": "b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab",
-      "sha256": "416039c6b8ccade6c4844f7ea8a1c1a236c645f947dcc2b3e42514affc4e2b5d",
+      "sha256": "585ff5830a24acacc90b31eaefe2e0982f57aea37391952cb6ab73247c53d467",
       "valid_until": null
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001"
-      ]
-    }
-  ],
-  "manifest_sha256": "f6683f1536cfe1d7a76937c9efe78c606d04425765116d99358be1e0991d19cd"
+  "ready_slices": [],
+  "manifest_sha256": "cd5ce15d771e23d4df4069d214dc385e4fe0aa746cd2aa285066705a412b0572"
 }

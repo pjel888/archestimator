@@ -1,20 +1,21 @@
-# Money-Math Domain Module — Canonical Execution Plan
+# Money-Math Domain Module — Historical Predecessor Plan
 
-> Canonical execution artifact for relocating the canonical money-math oracle
-> into a neutral leaf domain module, consolidating the 11 divergent currency
-> formatters, and routing the float-based computation surfaces through the
-> canonical oracle. Resolves ARCH-08 (repositories depend upward on the legacy
-> float wrapper) and the 4 surfaces where users see float-derived totals.
+> **Historical provenance only — do not execute.** This predecessor was
+> superseded without implementation by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`, the sole current execution
+> authority. Successor `DEC-AUTO-008` rejects the directory relocation and
+> blanket formatter consolidation; successor `UNIT-029` absorbs only the
+> confirmed external aggregate subset of UNIT-002.
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`NOT_READY / NOT_STARTED / NOT_EVALUATED / N/A / CANCELLED`
 
 - **Baseline HEAD:** `b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab` (2026-07-20)
 - **Suite version:** `2026-07-12`
 - **Profile:** `standard` (money-math domain; touches display surfaces and 4 read repositories)
-- **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` at authoring)
-- **Exact next unit:** `UNIT-001` (create the neutral domain module + relocate the oracle — no callers changed yet)
+- **Action ceiling:** `IMPLEMENT_LOCAL` (historical boundary only; this pack has no runnable unit)
+- **Exact next unit:** none; continue only in `.ai/03_plans/2026-07-31/Code-Improvement/`
 
 ## 1. Outcome and intent
 
@@ -71,8 +72,9 @@ already has a `currency_code`).
 - **Exclusions:** Pack C (D1 runtime — independent). Pack D (integrity —
   independent). Any change to the proposal-export or publication paths (they
   already use the oracle correctly). UI layout changes.
-- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, this pack.
-- **Owner:** lead single-agent. The money-math layer is leaf; serial migration.
+- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, and
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; this pack is historical only.
+- **Owner:** none; no unit in this predecessor is runnable.
 - **Test authorization:** `NOT_REQUIRED`. The pure-math tests
   (`estimate-row-total.test.ts`, `calculation-output-parity.test.ts`) are the
   regression net and should stay green without modification.

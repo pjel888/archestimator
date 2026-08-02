@@ -69,6 +69,18 @@ Each layer of the application has a budget. No single goal card may cause any la
 | `/workshop/projects/[id]/estimates/[id]` | <150KB gzipped total | Transition < 100ms | — | Lazy tree + sheet; inline only after load |
 | `/login` | <30KB gzipped | LCP < 1.5s | <40KB gzipped | No heavy deps; Turnstile async |
 
+### Closed-Beta Estimate First-Editable Budgets
+
+These authenticated, controlled-local gates close the client-reported intermittent estimate-loading delay. They supplement the workshop transition and row-interaction budgets above; they do not claim hosted-provider latency.
+
+| Measurement cell | Beta gate |
+|---|---:|
+| Warm hard refresh, normal 50-row estimate, first editable control | p95 < 2,000ms |
+| Warm hard refresh, representative 500-row estimate, first editable control | p95 < 2,500ms |
+| Either warm hard-refresh cell, single-sample stall ceiling | max < 3,000ms |
+
+Use at least 20 valid samples after two uncounted warmups, retain every failure and timeout, and apply no outlier trimming. A cell fails when either its p95 or max gate fails. OpenNext local preview is the deployment-runtime gate; Next production must pass as a compatibility differential on the same fixture and measurement settings.
+
 ### Module-Level Budgets
 
 | Module | Budget (gzipped) | Load Strategy | Must Not Impact |

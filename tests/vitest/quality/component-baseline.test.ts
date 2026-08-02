@@ -866,6 +866,9 @@ describe("component baseline admission validation", () => {
     });
     await rm(join(fixture.root, fixture.candidatePath));
     await rm(join(fixture.root, fixture.measurementPath));
+    await writeFile(join(fixture.root, "quality/baseline.json"), `${JSON.stringify(baseline, null, 2)}\n`);
+    runGit(fixture.root, ["add", "quality/baseline.json"]);
+    runGit(fixture.root, ["commit", "--quiet", "-m", "admit bootstrap baseline"]);
     expect(await validateCanonicalBaselineArtifacts(fixture.root, baseline)).toEqual([]);
     expect((await validateCanonicalBaselineArtifacts(fixture.root, { ...baseline, unexpected: true }))
       .map((finding) => finding.code)).toContain("COMPONENT_BASELINE_SCHEMA_INVALID");

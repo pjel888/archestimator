@@ -1,19 +1,20 @@
-# Quick Correctness And Security Wins — Canonical Execution Plan
+# Quick Correctness And Security Wins — Historical Predecessor Plan
 
-> This is the canonical execution artifact. `plan-pack.json` is the
-> machine-readable mirror. `units/` holds the per-finding implementation detail.
-> Each unit is self-contained: an executor with zero session context can read
-> `00-PLAN.md` + the unit file and implement it.
+> **Historical provenance only — do not execute.** This predecessor was
+> superseded without implementation by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`, the sole current execution
+> authority. The original analysis and implementation designs remain below as
+> source evidence, not runnable instructions.
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`NOT_READY / NOT_STARTED / NOT_EVALUATED / N/A / CANCELLED`
 
 - **Baseline HEAD:** `b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab` (2026-07-20)
 - **Suite version:** `2026-07-12`
 - **Profile:** `focused` (seven independent small-scope correctness/security fixes; one rejected after reconcile)
-- **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` at authoring; implementation awaits separate execution authorization)
-- **Exact next unit:** `UNIT-001` (Client Portal re-verification lockout — highest user impact, no dependencies)
+- **Action ceiling:** `IMPLEMENT_LOCAL` (historical boundary only; this pack has no runnable unit)
+- **Exact next unit:** none; continue only in `.ai/03_plans/2026-07-31/Code-Improvement/`
 
 ## 1. Outcome and intent
 
@@ -55,10 +56,11 @@ The seven findings, ordered by user impact:
 
 ## 2. Task Contract
 
-- **Objective:** implement the seven fixes as seven independent units. Six
-  remain active; UNIT-002 was rejected during Improve-Plan reconcile
-  (DEC-AUTO-001) because the in-tree implementation supersedes it. Each active
-  unit is self-contained and ships its own verification.
+- **Historical objective:** the predecessor proposed seven independent fixes.
+  All seven units are now `SUPERSEDED` without an implementation claim. The
+  successor absorbs UNIT-001 as `UNIT-002`, UNIT-003 as `UNIT-012`, and treats
+  UNIT-002 plus UNIT-004 through UNIT-007 as landed current source to be
+  revalidated by successor `UNIT-028`.
 - **Scope:** the specific files named in each active unit's "Owned paths"
   section. No broad architectural change; no migration of the parallel write
   paths (that is Pack D).
@@ -66,9 +68,9 @@ The seven findings, ordered by user impact:
   consolidation (#14/#15), the God-component decomposition (#12), and the test
   baselines (#20/#21) — those live in packs B, C, D. Do not expand scope into
   them.
-- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, this pack.
-- **Owner:** lead single-agent. Units are independent; no parallel writers on
-  shared files.
+- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, and
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; this pack is historical only.
+- **Owner:** none; no unit in this predecessor is runnable.
 - **Test authorization:** `NOT_REQUIRED` by default per the User Test
   Authorization Gate. Each unit records its evidence path. Type-check and lint
   are non-test verification and run by default.
@@ -114,10 +116,9 @@ The seven findings, ordered by user impact:
 
 ## 5. Dependency order
 
-All units are independent (no inter-unit dependencies). UNIT-002 is SUPERSEDED;
-the remaining six are READY. Suggested order by user impact: UNIT-001 (lockout),
-UNIT-003 (password), UNIT-004 (timing), UNIT-005 (link state), UNIT-006
-(atomicity), UNIT-007 (observability). Any order validates.
+All seven predecessor units are `SUPERSEDED` and this pack has no execution
+order. The successor ledger preserves the original independent-unit shape and
+owns any current implementation or revalidation work.
 
 ## 6. Risks
 

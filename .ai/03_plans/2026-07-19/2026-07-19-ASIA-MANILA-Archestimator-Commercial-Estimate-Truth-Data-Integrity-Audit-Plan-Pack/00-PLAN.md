@@ -15,8 +15,9 @@ validator-conformant plan pack that:
   partial writes, stale optimistic state, variant loss, import/export
   information loss, and recovery failures;
 - files newly proven root causes with one explicit owner each;
-- cross-references existing MVP, Quality Master, and Infosec packs instead
-  of duplicating them;
+- cross-references the existing MVP pack and the current Code Improvement
+  successor instead of duplicating them; retired Quality Master and Infosec
+  references remain historical provenance;
 - exposes exactly one canonical next unit and passes the plan-pack validator.
 
 The central question:
@@ -65,8 +66,9 @@ In scope:
   semantics.
 
 Out of scope (explicit non-goals):
-- another generic security audit (Infosec owns);
-- code-quality review (Quality Master owns);
+- another generic security audit (owned by
+  `.ai/03_plans/2026-07-31/Code-Improvement/`);
+- code-quality review (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`);
 - another generic database review;
 - product remediation (units only plan; implementation requires separate
   authorization);
@@ -96,14 +98,20 @@ one of: NEW_OWNER_HERE, CROSS_REFERENCE_ACTIVE_PACK, ALREADY_IMPLEMENTED,
 REFUTED_OR_UNREACHABLE, DEFERRED, EVIDENCE_BLOCKED, HISTORICAL_ONLY.
 
 Headline cross-references:
-- F-02 → Quality Master UNIT-014 (READY, HIGH).
-- F-09 → partial Quality Master UNIT-015 (CRITICAL, READY) — same theme
+- F-02 → `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality
+  Master UNIT-014, then READY/HIGH).
+- F-09 → `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality
+  Master UNIT-015, then CRITICAL/READY) — same theme
   (atomicity), materially different fix surface (graph envelope vs batch
   gate). Both kept.
 - Library import / variant accommodation / contractor profile → MVP
   UNIT-005/006/010.
-- Variant-reference repair on linked template rows → Quality Master UNIT-001.
-- Cross-tenant commercial-data authorization → Infosec UNIT-001..UNIT-013.
+- Variant-reference repair on linked template rows →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality Master
+  UNIT-001).
+- Cross-tenant commercial-data authorization →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec
+  UNIT-001..UNIT-013).
 
 No accepted requirement or unit has two active owners.
 
@@ -131,16 +139,18 @@ No accepted requirement or unit has two active owners.
   read-only exploration lanes, one adversarial challenge pass). Reason:
   tightly coupled synthesis; no native subagent runtime configured for this
   task.
-- **DEC-AUTO-002:** Cross-reference F-02 to Quality Master UNIT-014 rather
-  than duplicate the legacy-float routing unit. Reason: identical fix
-  surface; this pack provides the runtime drift evidence.
+- **DEC-AUTO-002:** Cross-reference F-02 to
+  `.ai/03_plans/2026-07-31/Code-Improvement/`, retaining historical Quality
+  Master UNIT-014 as provenance rather than duplicating the legacy-float
+  routing unit. Reason: identical fix surface; this pack provides the runtime
+  drift evidence.
 - **DEC-AUTO-003:** Keep F-04 as a separate finding from F-02. Reason: F-02
   owns the per-row legacy helper; F-04 owns consumer-site aggregate sums
   that would still drift even if F-02 were fixed.
-- **DEC-AUTO-004:** Keep F-09 as a separate finding from Quality Master
-  UNIT-015. Reason: UNIT-015 owns the `database.batch()` fail-before-write
-  gate; F-09 owns the graph-level envelope across 4 batches. Different fix
-  surfaces.
+- **DEC-AUTO-004:** Keep F-09 as a separate finding from the current successor
+  disposition at `.ai/03_plans/2026-07-31/Code-Improvement/`. Historical
+  Quality Master UNIT-015 owned the `database.batch()` fail-before-write gate;
+  F-09 owns the graph-level envelope across 4 batches. Different fix surfaces.
 - **DEC-AUTO-005:** File F-05 (AI Copilot divergence) at MEDIUM severity
   even though four divergent formula copies were found. Reason: surface is
   feature-flagged and pre-release; no production data affected.
@@ -267,8 +277,9 @@ The canonical next unit is **UNIT-001**.
 This pack enters `ARCHIVE_READY` when:
 - UNIT-001 has landed (the broken oracle is fixed) — protects the canonical
   math going forward;
-- the cross-referenced units in MVP / Quality Master / Infosec that own
-  F-02, F-09's per-batch gate, library import, variant BOQ export,
+- the cross-referenced units in MVP and
+  `.ai/03_plans/2026-07-31/Code-Improvement/` that own F-02, F-09's per-batch
+  gate, library import, variant BOQ export,
   contractor profile, variant-reference repair, and cross-tenant
   authorization have landed OR are tracked in their respective packs;
 - the remaining NEW_OWNER_HERE units (F-03, F-04, F-05, F-06, F-07, F-08,

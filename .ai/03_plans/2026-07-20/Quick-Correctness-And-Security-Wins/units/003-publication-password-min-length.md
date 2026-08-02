@@ -1,5 +1,9 @@
 # UNIT-003 — Raise publication password minimum length
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here and absorbed by successor `UNIT-012` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Raise the publication/share password minimum length from 4 to 10 and add a
@@ -8,7 +12,7 @@ and pricing are not offline-brute-forceable in minutes.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `SEC-003` · risks: (none)
+`SUPERSEDED` · historical dependency: (none) · requirement: `SEC-003` · risks: (none)
 
 ## Why this matters
 

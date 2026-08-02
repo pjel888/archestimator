@@ -1,21 +1,28 @@
 # Archestimator Whole-Repo Quality Master Implementation Plan
 
-## 1. Execution Contract
+> **Historical predecessor — not runnable.** This plan was superseded without
+> implementation by `.ai/03_plans/2026-07-31/Code-Improvement/`. All 67 units
+> are `SUPERSEDED`, `next_unit` is `null`, and no ready slices remain. Later
+> execution language is preserved only as provenance and grants no authority to
+> implement, deploy, provision providers, or cross an external boundary.
 
-This is the only runnable artifact produced by consolidating the three absorbed
-2026-07-18 audit packs. Current source and repository `AGENTS.md` remain higher
-authority. `UNIT-CATALOG.md` supplies the exact per-unit path, change, evidence,
-and test decision.
+## 1. Historical Execution Contract
+
+This was the runnable artifact produced by consolidating the three absorbed
+2026-07-18 audit packs. It is now historical provenance only. Current source,
+repository `AGENTS.md`, and the exact successor above govern any future work.
+`UNIT-CATALOG.md` retains the former per-unit proposal without claiming delivery.
 
 **Baseline:** `7f9a484b42b0d951f219e3c4ce1bfbb4364e8847`
 **Run scope:** `PLAN_ONLY`
 **Implementation:** `NOT_STARTED`
-**Next unit:** `UNIT-001`
-**Package readiness:** `CONDITIONALLY_READY`
+**Next unit:** `null`
+**Package readiness:** `NOT_READY`
+**Lifecycle:** `N/A`
 
-The package is conditional because several source proposals require current
-measurement, a policy decision, or an external/user-gated proof before code is
-justified. That is not a blocker for the dependency-ready local units.
+The package is not ready because execution authority moved to the successor.
+No unit in this predecessor is `READY` or `IN_PROGRESS`; supersession does not
+mean the proposed implementation occurred.
 
 ## 2. Consolidation Decisions
 
@@ -83,9 +90,8 @@ UNIT-043 ─► UNIT-061 + UNIT-062 + UNIT-063 + UNIT-064
 UNIT-044 ─► UNIT-065 ─► UNIT-066
 ```
 
-All dependency-free local units are `READY` in the manifest and exposed through
-six disjoint ownership slices. `READY` means eligible for ownership, not safe to
-edit concurrently without the path check in `EXECUTION-GUIDE.md`.
+The graph below records the former dependency proposal. It exposes no current
+work: every unit is `SUPERSEDED` and the former ownership slices are removed.
 
 ## 5. Execution Waves
 
@@ -112,10 +118,8 @@ edit concurrently without the path check in `EXECUTION-GUIDE.md`.
 | `UNIT-017` | Reduce agent adapters to canonical stubs | CORE | — | LOW |
 | `UNIT-018` | Repair D1 performance tooling and current-stack docs | CORE | — | LOW |
 
-`UNIT-001` remains `next_unit` because it is a confirmed correctness gap in a
-live component propagation path. Every other dependency-free row in this wave
-is also machine-readable `READY`; disjoint paths may run in parallel after the
-leader records ownership.
+`UNIT-001` was the former `next_unit`. It is now `SUPERSEDED` with every other
+unit in this pack; use the successor for current-source disposition and work.
 
 ### Wave 2 — queues and uploads
 
@@ -204,15 +208,13 @@ its preferred source deletion requires maintained test-file cleanup. None of
 these units authorizes browser rollout, hosted changes, new paid providers, or
 broad product expansion.
 
-## 6. Outcome Gates And Authorization Boundaries
+## 6. Historical Outcome Gates And Authorization Boundaries
 
 `plan-pack.json#outcome_transitions` and `#readiness_rules` are the executable
-state-transition contract. An executor must apply a named receipt outcome and
-its exact mutations before recomputing readiness; `depends_on` completion alone
-must never advance a conditionally gated unit. Transition application is
-order-independent: `SUPERSEDED` dominates `BLOCKED`, reapplying an achieved
-target is a no-op, and a later weaker transition cannot reactivate or downgrade
-a terminally superseded branch.
+record of the former state-transition contract. They are retained for provenance
+and must not be applied to reactivate this pack. Under the former contract,
+`depends_on` completion alone could not advance a conditionally gated unit, and
+`SUPERSEDED` dominated weaker states.
 
 - `UNIT-019`: `KEEP_HTTP` unlocks `UNIT-020`; `KEEP_QUEUE_NATIVE` supersedes
   `UNIT-020` with a receipt; `DELETE` supersedes `UNIT-020`, `UNIT-022`, and
@@ -227,16 +229,14 @@ a terminally superseded branch.
   stopped until the user explicitly requests that task. Safe source/docs review
   may still complete before the boundary.
 
-The manifest reports `release_status: BOUNDARY` because those continuations are
-real, while keeping every safe dependency-free local prerequisite `READY`.
-Resolving an authorization boundary does not automatically reactivate blocked
-units. The executor must regenerate the affected manifest transitions against
-current source and prerequisite receipts, record a boundary-resolution receipt,
-refresh hashes, and revalidate the pack before any blocked unit becomes `READY`.
+The manifest retains `release_status: BOUNDARY` because the external/provider
+limits recorded here remain truthful historical boundaries. They do not make
+this predecessor runnable. No boundary resolution can reactivate a unit here;
+current work must be reconciled and owned by the successor.
 
-## 7. Parallel Ownership Model
+## 7. Former Parallel Ownership Model
 
-The six manifest ready slices are:
+The former six ready slices were:
 
 - **Correctness:** `UNIT-001`, `UNIT-003` through `UNIT-006`.
 - **Security:** `UNIT-007` through `UNIT-013`, plus `UNIT-016`.
@@ -248,12 +248,12 @@ The six manifest ready slices are:
 - **Contracts/maintenance:** `UNIT-024`, `UNIT-042` through `UNIT-044`,
   `UNIT-046`, `UNIT-047`.
 
-The leader may reorder independent units for dirty-worktree ownership, but may
-not bypass dependency edges or execute source-snapshot plans in parallel.
+These slices are retained only to explain the former proposal. They are absent
+from the manifest and must not be assigned or executed.
 
-## 8. Evidence And Test Contract
+## 8. Former Evidence And Test Contract
 
-Every unit requires:
+The former plan required each unit to produce:
 
 1. current-source premise confirmation;
 2. upstream GitNexus impact before editing each symbol;
@@ -280,9 +280,10 @@ Product tests are `TEST_PROPOSAL` unless the user explicitly creates a
 consistency pack. It is not a runnable unit until a user-authorized test task
 allows test-file edits.
 
-## 9. Closeout
+## 9. Historical Closeout
 
-The master reaches `ACHIEVED` only when:
+This predecessor did not reach `ACHIEVED`; implementation remained
+`NOT_STARTED`. The original closeout target was:
 
 - every CORE unit is `VERIFIED` or evidence-rejected with a current receipt;
 - every AUXILIARY/DIRECTION unit is `VERIFIED`, `SUPERSEDED`, or explicitly

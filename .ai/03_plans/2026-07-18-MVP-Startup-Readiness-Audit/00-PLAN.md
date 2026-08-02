@@ -314,15 +314,16 @@ If execution is interrupted, resume from `LOOP_LEDGER.md`:
 
 ## 12. Cross-Reference Map (avoid duplication with sibling audits)
 
-Current engineering dispositions live in
-`.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/AUDIT-AND-DISPOSITION.md`.
+Current engineering execution authority is
+`.ai/03_plans/2026-07-31/Code-Improvement/`. Legacy Quality Master identifiers
+below are historical provenance and do not assign current ownership.
 
-| Topic | Owner pack | This pack's relationship |
+| Topic | Historical record / current owner | This pack's relationship |
 | --- | --- | --- |
-| Row-total divergence (F-01) | Quality master `CONSISTENCY-001` | Reverified already implemented; UNIT-013 is superseded. |
-| Closed-beta enforcement (F-09) | Quality master `CONSISTENCY-009` / `UNIT-036` | Trust latent risk; evidence-gated outside this pack. |
-| Library bulk-import spike | Quality master `IMPROVE-031` | This pack's UNIT-005/006 are the canonical owner; the old spike is duplicate. |
-| Onboarding checklist (F-08) | Quality master `CONSISTENCY-008` | Refuted; this pack's UNIT-003 owns the broader activation decision. |
-| Performance / loading | Quality master performance dispositions | Cited for first-load behavior; not duplicated. |
-| Cost-intelligence layer spike | Quality master `IMPROVE-030` / `UNIT-050` | `SUPERSEDED/DEFERRED_NO_ACTIVE_OWNER`; reopen only after quality-master `UNIT-014=VERIFIED` and creation of a new named cost-intelligence plan pack. This MVP pack is not the owner. |
-| AEC classification decision | Quality master `IMPROVE-032` | Refuted because the toy classifier has no production callers. |
+| Row-total divergence (F-01) | Historical Quality Master `CONSISTENCY-001`; current authority: `.ai/03_plans/2026-07-31/Code-Improvement/` | Reverified already implemented; UNIT-013 is superseded. |
+| Closed-beta enforcement (F-09) | Historical Quality Master `CONSISTENCY-009` / `UNIT-036`; current authority: `.ai/03_plans/2026-07-31/Code-Improvement/` | Trust latent risk; evidence-gated outside this pack. |
+| Library bulk-import spike | Historical Quality Master `IMPROVE-031`; current owner: this pack UNIT-005/006 | This pack's UNIT-005/006 are the canonical owner; the old spike is duplicate. |
+| Onboarding checklist (F-08) | Historical Quality Master `CONSISTENCY-008`; current owner: this pack UNIT-003 | Refuted; this pack's UNIT-003 owns the broader activation decision. |
+| Performance / loading | Historical Quality Master performance dispositions; current authority: `.ai/03_plans/2026-07-31/Code-Improvement/` | Cited for first-load behavior; not duplicated. |
+| Cost-intelligence layer spike | Historical Quality Master `IMPROVE-030` / `UNIT-050`; current authority: `.ai/03_plans/2026-07-31/Code-Improvement/` | `SUPERSEDED/DEFERRED_NO_ACTIVE_OWNER`; reopen only through a current-source successor decision and a new named cost-intelligence plan pack. This MVP pack is not the owner. |
+| AEC classification decision | Historical Quality Master `IMPROVE-032`; current authority: `.ai/03_plans/2026-07-31/Code-Improvement/` | Refuted because the toy classifier has no production callers. |

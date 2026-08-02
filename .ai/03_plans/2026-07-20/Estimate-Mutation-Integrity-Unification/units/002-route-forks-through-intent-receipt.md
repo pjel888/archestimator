@@ -1,5 +1,9 @@
 # UNIT-002 — Route forks through prepareEstimateMutationIntent + receipt
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Route the forks that skip the intent/receipt/fingerprint flow
@@ -10,7 +14,7 @@ replay and request-fingerprint conflict detection.
 
 ## Status
 
-`READY` · depends on: `UNIT-001`, Pack A UNIT-006 · requirement: `DATA-002` · risks: `RISK-002`
+`SUPERSEDED` · historical dependency: `UNIT-001`, Pack A UNIT-006 · requirement: `DATA-002` · risks: `RISK-002`
 
 ## Why this matters
 

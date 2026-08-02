@@ -1,5 +1,9 @@
 # UNIT-001 — Close the activity_event_outbox hole
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Its landed current-source behavior is revalidated
+> by successor `UNIT-028` in `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Route the 5 forked write paths that hand-roll the `estimate_sheet_events`
@@ -11,7 +15,7 @@ activity feed.
 
 ## Status
 
-`READY` · depends on: Pack B UNIT-002 (characterization net) · requirement: `DATA-001` · risks: `RISK-001`
+`SUPERSEDED` · historical dependency: Pack B UNIT-002 · requirement: `DATA-001` · risks: `RISK-001`
 
 ## Why this matters
 

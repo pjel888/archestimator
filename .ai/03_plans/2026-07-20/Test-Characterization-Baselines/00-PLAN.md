@@ -1,18 +1,20 @@
-# Test Characterization Baselines — Canonical Execution Plan
+# Test Characterization Baselines — Historical Predecessor Plan
 
-> Canonical execution artifact for the two test-baseline units that unblock the
-> estimate-sheet decomposition (Pack D prerequisite) and the integrity-layer
-> unification.
+> **Historical provenance only — do not execute.** This predecessor was
+> superseded without implementation by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`, the sole current execution
+> authority. Its original characterization designs remain below as source
+> evidence.
 
 ## Status tuple
 
-`IMPLEMENTATION_READY / NOT_STARTED / NOT_EVALUATED / N/A / ACTIVE`
+`NOT_READY / NOT_STARTED / NOT_EVALUATED / N/A / CANCELLED`
 
 - **Baseline HEAD:** `b8ec0edf3a144bcb49c2b5971a168ed30aecf2ab` (2026-07-20)
 - **Suite version:** `2026-07-12`
 - **Profile:** `standard` (two characterization harnesses that pin behavior before refactor)
-- **Action ceiling:** `IMPLEMENT_LOCAL` (pack is `PLAN_ONLY` at authoring)
-- **Exact next unit:** `UNIT-001` (EstimateSheetContent characterization)
+- **Action ceiling:** `IMPLEMENT_LOCAL` (historical boundary only; this pack has no runnable unit)
+- **Exact next unit:** none; continue only in `.ai/03_plans/2026-07-31/Code-Improvement/`
 
 ## 1. Outcome and intent
 
@@ -35,8 +37,9 @@ This pack adds two characterization harnesses:
    `{sql, values}` for each exported intent builder across edge fixtures, plus
    golden assertions on `totalDeltaMinorUnits` for insert/duplicate/restore.
 
-Both units are prerequisites — Pack D's plans cite them as the safety net that
-makes the big refactor tractable.
+Historically both units were prerequisites. Current source has landed their
+characterization coverage; successor `UNIT-028` owns revalidation. Neither
+predecessor unit is runnable.
 
 ## 2. Task Contract
 
@@ -45,8 +48,9 @@ makes the big refactor tractable.
 - **Scope:** new test files under `tests/vitest/`. No production source edits.
 - **Exclusions:** any production refactor (that is Pack D). Perf-suite
   restructuring (PERF-01 in the audit) is out of scope.
-- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, this pack.
-- **Owner:** lead single-agent.
+- **Authority:** `AGENTS.md`, current source, `.ai/00_system`, and
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; this pack is historical only.
+- **Owner:** none; no unit in this predecessor is runnable.
 - **Test authorization:** these units ARE tests, so the User Test Authorization
   Gate is `TEST_TASK` for this pack specifically — the user's request to plan
   these baselines authorizes writing and running them. Outside this pack, the

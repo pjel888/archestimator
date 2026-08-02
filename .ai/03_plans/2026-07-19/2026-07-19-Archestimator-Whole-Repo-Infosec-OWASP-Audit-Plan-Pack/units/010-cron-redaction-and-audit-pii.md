@@ -1,9 +1,13 @@
 # 010 — Worker Cron Redaction + Admin Audit PII Hashing
 
+> **Historical provenance only.** `UNIT-010` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-LOG-001`, `SEC-LOG-002`, `SEC-LOG-003`, `SEC-OPS-007`, `SEC-PRIV-001`.
 
 ## unit_id
-`UNIT-010` · **status:** `READY` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
+`UNIT-010` · **status:** `SUPERSEDED` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
 
 ## requirements / findings
 - Requirements: `SEC-006`.
@@ -92,5 +96,6 @@ Coordinate with any concurrent admin UI work.
 ## completion_signal
 All four acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-`UNIT-011` (retention registry — natural complement).
+## historical_next_unit_on_success
+The original proposal selected `UNIT-011`. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

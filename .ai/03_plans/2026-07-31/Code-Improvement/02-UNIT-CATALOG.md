@@ -1,9 +1,10 @@
 # Implementation Unit Catalog
 
-Initial package state: `CONDITIONALLY_READY`. `UNIT-000` is the sole ready unit.
-Product units remain `PLANNED` until predecessor authority is reconciled and this
-manifest is refreshed. Every unit starts with current-source reconciliation and
-GitNexus upstream impact for each symbol to be edited.
+Current package state: `CONDITIONALLY_READY`. `UNIT-000` is staged as verified
+for its replacement exact-candidate Q2 cycle; `UNIT-024` is the sole ready
+successor but remains product-work gated until that Q2 receipt passes. Every
+unit starts with current-source reconciliation and GitNexus upstream impact for
+each symbol to be edited.
 
 Tests are part of the owning unit. Exact commands, report paths, and thresholds
 are in `03-VERIFICATION-MATRIX.md`.
@@ -11,7 +12,10 @@ are in `03-VERIFICATION-MATRIX.md`.
 ## Dependency Graph
 
 ```text
-UNIT-000 -> all product, decision, and closeout units
+UNIT-000 -> UNIT-024
+UNIT-024 -> UNIT-001 + UNIT-002 + UNIT-003 + UNIT-005 + UNIT-006 + UNIT-007
+UNIT-024 -> UNIT-011 + UNIT-013 + UNIT-014 + UNIT-015 + UNIT-018
+UNIT-024 -> UNIT-022 + UNIT-023 + UNIT-027 + UNIT-029
 UNIT-002 -> UNIT-004 -> UNIT-012
 UNIT-007 -> UNIT-008
 UNIT-007 + UNIT-011 -> UNIT-010
@@ -20,9 +24,13 @@ UNIT-013 -> UNIT-026
 UNIT-015 -> UNIT-016 + UNIT-017
 UNIT-018 -> UNIT-019
 UNIT-006 -> UNIT-021
-UNIT-001..UNIT-019 + UNIT-021..UNIT-024 + UNIT-027 -> UNIT-028
+UNIT-001..UNIT-019 + UNIT-021..UNIT-024 + UNIT-027 + UNIT-029 -> UNIT-028
 UNIT-028 -> UNIT-020
 ```
+
+The direct `UNIT-024` edges are a global admission barrier. No product-source or
+later decision unit can become dependency-ready before the supplement admission
+receipt verifies.
 
 `UNIT-025` and `UNIT-026` are conditional implementation branches. Their
 decision units must emit a machine-readable decision receipt with
@@ -58,7 +66,7 @@ closeout and follows the `TECH_BLOCKED` path.
 
 ## `UNIT-000` - Execution authority and quality-baseline reconciliation
 
-Status: `READY`  
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `QA-001`  
 Depends on: none
@@ -77,7 +85,9 @@ for this inventory.
 Quality contract:
 
 - `scripts/quality/component-core.ts`
+- `tests/vitest/quality/component-baseline.test.ts`
 - `tests/vitest/quality/component-baseline-integrity.test.ts`
+- `tests/vitest/quality/component-gate.test.ts`
 - `quality/baseline.json`
 - `quality/baselines/component/admission.json`
 - `quality/baselines/component/inventory.json`
@@ -91,6 +101,17 @@ Current successor controls:
 - `.ai/03_plans/2026-07-31/Code-Improvement/03-VERIFICATION-MATRIX.md`
 - `.ai/03_plans/2026-07-31/Code-Improvement/plan-pack.json`
 - `.ai/03_plans/2026-07-31/Code-Improvement/evidence/initial-plan-authors.json`
+
+Current non-runnable security supplement controls:
+
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/README.md`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/00-PLAN.md`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/01-FINDINGS-AND-OVERLAP-RECONCILIATION.md`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/02-IMPLEMENTATION-UNITS.md`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/03-VERIFICATION-AND-REVIEWS.md`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/evidence/codex-security-findings.json`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/evidence/codex-security-scan-summary.json`
+- `.ai/03_plans/2026-08-01/Codex-Security-Delta-Remediation-Plan-Pack/plan-pack.json`
 
 July 19 whole-repository predecessor controls:
 
@@ -162,13 +183,23 @@ assign current execution ownership remain byte-preserved.
    baseline remains valid after its introduction when the immutable comparison
    base has no predecessor. Reject modified bootstrap content,
    deletion/reintroduction, comparison-base rollback, and a second bootstrap
-   after established history; leave established predecessor/hash/ratchet
-   validation unchanged and do not rewrite the admitted baseline to appease the
-   faulty validator.
-2. Extend `tests/vitest/quality/component-baseline-integrity.test.ts` with
+   after established history; leave established predecessor/hash validation
+   unchanged and do not rewrite the admitted baseline to appease the faulty
+   validator.
+2. Keep coverage-denominator shrink fail-closed by anchoring unchanged per-file
+   totals to the greater of current and admitted totals, so disappeared coverage
+   points remain uncovered debt. Candidate-bound source bytes may prove that the
+   covered file changed after admission and use the raw current denominator;
+   deleted, missing, invalid-path, or unavailable source-change evidence cannot
+   claim that exception. Aggregate totals remain raw, and a shrunken raw
+   denominator is never admitted as a successor baseline. Extend
+   `tests/vitest/quality/component-gate.test.ts` for both candidate-listed and
+   admitted-commit paths.
+3. Extend `tests/vitest/quality/component-baseline.test.ts` and
+   `tests/vitest/quality/component-baseline-integrity.test.ts` with
    repository-history fixtures proving both sides of that contract, then require
    `bun run quality:contracts` to return zero findings.
-3. Create
+4. Create
    `.ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-000-predecessor-dispositions.json`
    with exactly one row for every unit in both July 19 manifests and all five
    July 20 manifests. Each row contains `predecessor_manifest`,
@@ -180,19 +211,22 @@ assign current execution ownership remain byte-preserved.
    `source_revision`; nonexistent, escaping, `.tmp`, or mismatched evidence is
    invalid. A still-current predecessor unit missing from this catalog must be
    added here before its predecessor becomes non-runnable.
-4. Make absorbed predecessor manifests validator-valid but non-runnable:
+   `REFUTED_CURRENT_SOURCE` also covers a predecessor design or requirement whose
+   applicability is disproven by current source under `DEC-AUTO-007` through
+   `DEC-AUTO-009`; it never means the predecessor was implemented.
+5. Make absorbed predecessor manifests validator-valid but non-runnable:
    `package_status=NOT_READY`, `plan_lifecycle=N/A`, `next_unit=null`, empty
    `ready_slices`, and zero `READY`/`IN_PROGRESS` units. Preserve truthful
    `NOT_STARTED`/`INCOMPLETE` implementation state; use decision-backed
    `SUPERSEDED` per unit rather than claiming implementation.
-5. Rewrite every listed prose ownership/index reference to this exact path,
+6. Rewrite every listed prose ownership/index reference to this exact path,
    `.ai/03_plans/2026-07-31/Code-Improvement/`, or label it historical.
-6. Revalidate every touched manifest and this pack.
-7. Before the final freeze, atomically stage this pack's post-unit state:
+7. Revalidate every touched manifest and this pack.
+8. Before the final freeze, atomically stage this pack's post-unit state:
    `UNIT-000=VERIFIED`, `implementation_status=IN_PROGRESS`,
    `last_observed_run_scope=IMPLEMENT_LOCAL`, a dependency-ready `next_unit`,
    and ready slices containing only dependency-ready units; then reseal.
-8. Freeze that post-transition candidate. Activate product work only after the
+9. Freeze that post-transition candidate. Activate product work only after the
    normalized authority receipt proves an exact predecessor-unit disposition
    set, `PASS` for every touched pack validator, this pack as the only runnable
    whole-repository authority, every targeted July 20 manifest as non-runnable,
@@ -205,10 +239,10 @@ assign current execution ownership remain byte-preserved.
 
 ## `UNIT-001` - Commercial and proposal truth integrity
 
-Status: `PLANNED`  
+Status: `PLANNED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-001`, `COR-002`, `COR-008`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -237,7 +271,7 @@ identity.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-003`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -263,7 +297,7 @@ reaches the intended portal.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-004`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -320,7 +354,7 @@ use a versioned explicit adapter, not implicit Client Portal payload reuse.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-006`, `COR-009`, `SEC-012`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -347,7 +381,7 @@ make bounded progress without leaking rows.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-007`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -373,7 +407,7 @@ an inactive/missing selection; replay and stale revision remain idempotent.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `SEC-001`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -495,7 +529,7 @@ closed; local config drift checks pass. Hosted reachability and rotation remain
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `SEC-009`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -516,24 +550,26 @@ suppress one another; poison rejection/dead-letter telemetry is redacted.
 
 ---
 
-## `UNIT-012` - Browser token, share-state, CSP, and cache boundary
+## `UNIT-012` - Browser token, share-state, password, CSP, and cache boundary
 
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
-Findings: `SEC-010`  
+Findings: `SEC-010`, `SEC-014`
 Depends on: `UNIT-002`, `UNIT-004`
 
 ### Target
 
 Apply no-store to bearer routes, derive Secure cookies from validated request
 context, reduce share-state enumeration, and make Worker caching explicitly
-bounded and non-personalized.
+bounded and non-personalized. Raise the intake floor for newly set publication
+passwords without invalidating existing hashes.
 
 ### Primary files
 
 - `next.config.ts`
 - applicable Next 16 request/proxy/header modules
 - `src/lib/publication/security.ts`
+- `src/lib/publication/actions.ts`
 - `src/app/api/share/[token]/route.ts`
 - invite/public portal routes
 - `src/lib/cloudflare/worker-route-optimizations.ts`
@@ -542,7 +578,10 @@ bounded and non-personalized.
 
 Token pages are `private, no-store`; HTTPS cookies are Secure while approved
 local HTTP remains usable; unavailable share states expose no unnecessary
-distinction; personalized responses never use shared isolate cache.
+distinction; personalized responses never use shared isolate cache. Newly set
+publication passwords require at least ten normalized characters and two of
+lowercase, uppercase, or digit; existing shorter hashes continue to verify until
+they are replaced or cleared.
 
 Nonce CSP proceeds only after local Next 16 documentation and browser
 characterization prove a viable route. Otherwise the branch remains explicitly
@@ -555,7 +594,7 @@ open; mechanical fixes still land.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `SEC-011` decision gate  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -588,7 +627,7 @@ decision unit.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `SEC-013`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -615,7 +654,7 @@ legal-hold policy; export/erasure and immutable-event behavior remain explicit.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `PERF-001`, `ARCH-001`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -699,7 +738,7 @@ characterization fixtures; no broader tenant/workspace read is introduced.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `PERF-004`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -751,7 +790,7 @@ Status: `PLANNED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: terminal reconciliation only  
 Depends on: `UNIT-001` through `UNIT-019`, plus `UNIT-021` through `UNIT-024`
-and `UNIT-027` through `UNIT-028`
+and `UNIT-027` through `UNIT-029`
 
 ### Target
 
@@ -776,6 +815,28 @@ test, integrated Q2 gate, and independent reviews pass. The closeout test
 recomputes decision-receipt schema, candidate evidence hashes, immutable
 baseline, lifecycle-activated dependency closure, and terminal effects against
 the exact post-`UNIT-020` candidate.
+
+Closeout also writes
+`.ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-020-codex-security-supplement-closeout.json`,
+binds it to the `UNIT-024` admission receipt and final candidate, proves every
+admitted mapping has terminal evidence, and transitions the supplement to a
+validator-valid absorbed terminal state: all supplement units `VERIFIED`, all
+criteria/tests/gates/risks terminal, implementation `COMPLETE`, package
+`IMPLEMENTATION_READY`, terminal `ACHIEVED`, lifecycle `ARCHIVE_READY`, no next
+unit or ready slice, and release `BOUNDARY` only when its exact GitHub authority
+record remains active.
+
+The closeout receipt contains exactly 221 `mapping_results`, one for each
+admitted finding or PR. Every result repeats the immutable admission outcome and
+owner, records the owner's actual terminal status, names an outcome-compatible
+terminal disposition, and carries at least one candidate-bound evidence leaf.
+Implementation and active-target outcomes require a `VERIFIED` owner;
+no-current-delta outcomes require a `VERIFIED` owner plus explicit no-change
+evidence; hosted-boundary outcomes bind the supplement's exact authorization
+record and prove whether it remains active, was resolved, or was superseded.
+Every leaf and decision file is repository-contained, non-ignored, Git-tracked,
+free of reparse traversal, and rechecked by identical hash in the frozen
+integrated candidate before browser or reviewer evidence may begin.
 
 ---
 
@@ -809,7 +870,7 @@ modal; duplicate mappings are deleted; accessibility and browser behavior hold.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `PERF-005`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -833,7 +894,7 @@ failed, retry-at, attempt-count, and tenant-isolation results.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `PERF-007`  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -855,23 +916,36 @@ covers each changed surface.
 
 ---
 
-## `UNIT-024` - Malware-scanner viability decision
+## `UNIT-024` - Security-supplement intake and malware-scanner viability
 
-Status: `PLANNED`  
+Status: `READY`
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
-Findings: scanner/provider decision gate for `SEC-006`  
+Findings: Codex Security delta reconciliation and scanner/provider decision gate
+for `SEC-006`
 Depends on: `UNIT-000`
 
 ### Target
 
-Determine whether current ClamD infrastructure can provide authoritative clean
-classification inside the bound runtime, or whether a new external/provider
-boundary is required.
+Before any product-source work, execute the August 1 supplement's `UNIT-001`
+intake checklist, map all 200 cloud rows and 21 security PR records into exact
+current units or evidence-backed no-change dispositions, and preserve the
+supplement as non-runnable. Then determine whether current ClamD infrastructure
+can provide authoritative clean classification inside the bound runtime, or
+whether a new external/provider boundary is required.
 
 ### Outputs and acceptance
 
 - durable decision receipt:
   `.ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-024-scanner-viability-decision.json`;
+- durable admission receipt:
+  `.ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-024-codex-security-supplement-disposition.json`;
+- the admission receipt binds the supplement package/manifest hash and current
+  candidate, contains exactly 200 unique `CSF-*` mappings and 21 unique PR
+  mappings, names one current target unit or evidence-backed no-change outcome
+  per record, and reports zero missing, duplicate-owner, or unowned records;
+- every accepted delta is added to an existing or deliberately created unit in
+  this pack before that unit starts; the supplement remains `NOT_READY`, with
+  no next unit or ready slice;
 - current scanner binding/network/deployment topology and failure modes;
 - EICAR, clean fixture, unavailable, timeout, and oversize proof;
 - `AUTHORITATIVE_PROVIDER_VIABLE` makes this decision `VERIFIED` and transitions
@@ -885,7 +959,9 @@ boundary is required.
   permits `TECH_BLOCKED` only after no runnable local work remains;
 - no policy-only result is accepted as malware-clean.
 
-No paid scanner or new unbound resource is authorized by this decision unit.
+No product-source work may begin until the admission receipt and sole-runnable
+authority check pass. No paid scanner or new unbound resource is authorized by
+this decision unit.
 
 ---
 
@@ -944,7 +1020,7 @@ skipped, marked `SUPERSEDED`, or treated as accepted risk.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: investigation-only component, native portal, and tab archive states  
-Depends on: `UNIT-000`
+Depends on: `UNIT-000`, `UNIT-024`
 
 ### Target
 
@@ -973,20 +1049,21 @@ a fourth lifecycle state. Symmetry alone is not a product requirement.
 
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
-Findings: `CLEAN-001`, `DOC-001`  
+Findings: `CLEAN-001`, `CLEAN-002`, `DOC-001`
 Depends on: `UNIT-001` through `UNIT-019`, plus `UNIT-021` through `UNIT-024`
-and `UNIT-027`
+and `UNIT-027`, plus `UNIT-029`
 
 ### Target
 
 Complete every safe deletion, maintained-architecture correction, and
-predecessor-status reconciliation before either successful closeout or a
+predecessor-authority drift revalidation before either successful closeout or a
 technical terminal. This work never waits on `UNIT-025`, `UNIT-026`, or
 `GATE-020`.
 
 ### Primary files
 
 - orphaned Client Portal decision action/service
+- orphaned `NeatWireframeBackground` component, dependency, lock entry, and patch
 - any helper proven unused by source/test import scans
 - `.ai/06_specs/deep/architecture-overview.md`
 - predecessor status ledgers and their inbound active-policy references
@@ -1001,6 +1078,37 @@ contradictory active authority remains. The focused test, current-pack and
 touched-predecessor validators, explicit policy scan, GitNexus change detection,
 and candidate-bound Q2+ reviews pass. `TECH_BLOCKED` is forbidden unless this
 unit is `VERIFIED`.
+
+---
+
+## `UNIT-029` - Canonical external row-total aggregation
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `COR-010`
+Depends on: `UNIT-000`, `UNIT-024`
+
+### Target
+
+Make workspace/project-sheet summaries and project chart options aggregate the
+same independently rounded canonical minor-unit row totals used by sheet,
+publication, and export truth. Keep the existing pure oracle in place and remove
+the float compatibility wrapper only when no current source caller remains.
+
+### Primary files
+
+- `src/lib/estimates/estimate-row-total.ts`
+- `src/lib/repositories/workspace-repository.ts`
+- `src/lib/repositories/project-estimate-sheets-repository.ts`
+- `src/lib/repositories/project-charts-repository.ts`
+- adjacent estimate summary/chart calculation tests
+
+### Acceptance
+
+Every external aggregate uses canonical row cost parts/minor units; two `0.335`
+rows aggregate to `0.68`, not `0.67`; quantity-base, contingency, adjustment,
+misc, archived/scope, invalid-input, and currency behavior match the canonical
+oracle; repository source has zero callers of `computeEstimateRowLineTotal`.
 
 ## Handoff Receipt
 

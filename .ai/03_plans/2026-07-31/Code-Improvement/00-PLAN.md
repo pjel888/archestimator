@@ -5,7 +5,7 @@ Baseline: `93d5124d268a1b6016f63f8a8e5e69e118630d13`
 Profile: `high-blast-radius` plan; every unit is Q2-or-higher  
 Action ceiling: `IMPLEMENT_LOCAL`  
 Package status: `CONDITIONALLY_READY`  
-Canonical next unit: `UNIT-000`
+Canonical next unit: `UNIT-024`
 
 ## 1. Target Result
 
@@ -67,11 +67,12 @@ and already mitigated, so it was not promoted to a current defect. Installed
 dependency audit returned no High/Critical advisory. The full DOM suite baseline
 passed 2,140 suites and 6,775 tests; its machine-readable summary is
 `evidence/baseline-dom-tests.json`. That green baseline does not cover the
-missing edge cases enumerated in the audit register. A separate
-`bun run quality:contracts` probe fails only on
-`COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID`: the validator checks current
-`HEAD` history instead of the immutable comparison base. `QA-001` and
-`UNIT-000` own that prerequisite; no Q-profile is claimed green before repair.
+missing edge cases enumerated in the audit register. The initial separate
+`bun run quality:contracts` probe failed only on
+`COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID`: the baseline validator confused
+the admitted first tracked baseline with a later bootstrap. `QA-001` and
+`UNIT-000` own the repaired immutable-lineage contract and its candidate-bound
+Q2 evidence; the planning-time failure is retained as the red receipt.
 
 ## 4. RALPLAN-DR Decision Summary
 
@@ -97,7 +98,7 @@ missing edge cases enumerated in the audit register. A separate
 #### Option A - Current-source consolidated successor pack
 
 Recheck inherited findings, retire stale ones, group active defects by invariant,
-and execute a 29-unit decision-gated dependency graph.
+and execute a 30-unit decision-gated dependency graph.
 
 Advantages:
 
@@ -143,7 +144,7 @@ Decision: rejected as incomplete.
 
 ### Strongest counterargument
 
-A 29-unit program can become a second backlog rather than an executable plan.
+A 30-unit program can become a second backlog rather than an executable plan.
 The answer is not to merge unrelated work. The mitigation is one canonical next
 unit, self-contained evidence per unit, dependency-closed slices, direct
 current-source file lists, and a finish rule that retires or verifies every
@@ -166,7 +167,9 @@ Acceptance:
 - publication never reports `sent` when delivery-state persistence failed;
 - concurrent support replay has no duplicate conversation side effects;
 - template variant references remain valid after component variant mutation;
-- proposal preview cache/signature changes whenever any quantity sidecar changes.
+- proposal preview cache/signature changes whenever any quantity sidecar changes;
+- repository summaries and charts aggregate independently rounded canonical row
+  totals rather than float-derived compatibility totals.
 
 ### `REQ-002` - Security boundaries
 
@@ -188,6 +191,9 @@ Acceptance:
 - token-bearing responses are non-cacheable, cookies follow validated request
   security, share-state oracles are reduced, and isolate caches cannot cross
   user contexts;
+- newly set publication/share passwords require at least ten normalized
+  characters and two of lowercase, uppercase, or digit, while existing shorter
+  hashes remain verifiable until their owner replaces or clears them;
 - session material follows the Better Auth compatibility decision and security
   telemetry follows least exposure and complete retention coverage; an
   incompatible token migration remains truthfully blocked, not assumed solved.
@@ -280,8 +286,8 @@ Acceptance:
   are deleted;
 - `.ai/06_specs/deep/architecture-overview.md` reflects the current
   Cloudflare/D1 runtime or is retired;
-- July 19 pack findings are marked current, superseded, refuted, boundary-only,
-  or absorbed in this pack;
+- every July 19 and targeted July 20 predecessor unit receives an exact current
+  disposition during `UNIT-000`; `UNIT-028` revalidates drift only;
 - final source and documentation scans contain no contradictory active policy.
 
 ## 6. Architecture Deepening Decisions
@@ -304,7 +310,8 @@ than reimplemented.
 
 1. `UNIT-000` repair quality-baseline lineage, then retire duplicate runnable
    predecessor authority
-2. `UNIT-024` decide authoritative scanner viability
+2. `UNIT-024` absorb the Codex Security supplement, then decide authoritative
+   scanner viability
 3. `UNIT-013` decide Better Auth session-token compatibility
 4. `UNIT-027` decide archive lifecycle policy
 
@@ -321,29 +328,30 @@ than reimplemented.
 13. `UNIT-005` support replay, actor binding, and visible paging
 14. `UNIT-006` component/template referential integrity
 15. `UNIT-026` conditional session-token-at-rest migration
+16. `UNIT-029` canonical external row-total aggregation
 
 ### Phase B - Operational and privacy hardening
 
-16. `UNIT-011` authenticated queue envelope and dedupe identity
-17. `UNIT-010` operational endpoint/origin isolation
-18. `UNIT-012` browser/share/cache boundary
-19. `UNIT-014` operational logging, minimization, and retention
+17. `UNIT-011` authenticated queue envelope and dedupe identity
+18. `UNIT-010` operational endpoint/origin isolation
+19. `UNIT-012` browser/share/cache/password-intake boundary
+20. `UNIT-014` operational logging, minimization, and retention
 
 ### Phase C - Bounded data paths and deep modules
 
-20. `UNIT-015` workspace context/onboarding seam
-21. `UNIT-016` paged project catalogue
-22. `UNIT-017` AI evidence snapshot and parallel reads
-23. `UNIT-018` restore replay batch read
-24. `UNIT-019` estimate display projection model
-25. `UNIT-021` component editor domain model
-26. `UNIT-022` set-wise activity outbox
-27. `UNIT-023` scoped TanStack Query subscriptions
+21. `UNIT-015` workspace context/onboarding seam
+22. `UNIT-016` paged project catalogue
+23. `UNIT-017` AI evidence snapshot and parallel reads
+24. `UNIT-018` restore replay batch read
+25. `UNIT-019` estimate display projection model
+26. `UNIT-021` component editor domain model
+27. `UNIT-022` set-wise activity outbox
+28. `UNIT-023` scoped TanStack Query subscriptions
 
 ### Phase D - Reconciliation and deletion
 
-28. `UNIT-028` safe dead-code deletion, architecture docs, and predecessor reconciliation
-29. `UNIT-020` final ledger and terminal-state closeout
+29. `UNIT-028` safe dead-code deletion, architecture docs, and predecessor-drift revalidation
+30. `UNIT-020` final ledger and terminal-state closeout
 
 Dependencies in `02-UNIT-CATALOG.md` are authoritative. `UNIT-000` is the sole
 initial ready slice. Conditional units are activated only by their decision
@@ -507,8 +515,9 @@ Early warning:
 
 Mitigation:
 
-- `UNIT-000` freezes the predecessor disposition map; `UNIT-028` reconciles its
-  safe authority/deletion work, `UNIT-020` closes the terminal ledger, and the
+- `UNIT-000` freezes the exhaustive predecessor disposition map and makes every
+  predecessor non-runnable; `UNIT-028` revalidates authority drift while doing
+  safe deletion/documentation work, `UNIT-020` closes the terminal ledger, and the
   lead rechecks current source before every unit.
 
 ## 10. Decisions and Boundaries
@@ -535,11 +544,23 @@ Assumptions under active validation:
   durable adapter rather than sharing payload semantics implicitly.
 - `DEC-AUTO-004`: component, portal, and tab archive gaps remain
   investigation-only until `UNIT-027` proves lifecycle intent.
-- `DEC-AUTO-005`: `UNIT-024` alone activates, supersedes, or blocks `UNIT-025`
-  using the named scanner outcomes and conditional transition protocol in
-  `02-UNIT-CATALOG.md`.
+- `DEC-AUTO-005`: `UNIT-024` first absorbs the non-runnable Codex Security
+  supplement into exact units with a complete 200-finding/21-PR receipt, then
+  alone activates, supersedes, or blocks `UNIT-025` using the named scanner
+  outcomes and conditional transition protocol in `02-UNIT-CATALOG.md`.
 - `DEC-AUTO-006`: `UNIT-013` alone activates or blocks `UNIT-026` using the
   named Better Auth compatibility outcomes; accepted risk is not completion.
+- `DEC-AUTO-007`: retain `src/lib/cloudflare/d1.ts` as D1 acquisition authority
+  and keep query/codec semantics domain-owned. Reject a broad `d1-runtime.ts`,
+  compatibility aliases, and mass migration absent a current shared invariant.
+- `DEC-AUTO-008`: retain the canonical money oracle at
+  `src/lib/estimates/estimate-row-total.ts`; `UNIT-029` migrates confirmed live
+  aggregate callers. Reject directory relocation and blanket formatter
+  consolidation because neither is required to repair the current defect.
+- `DEC-AUTO-009`: predecessor measurement, UX, and architecture hypotheses are
+  not current requirements without a confirmed defect or invariant. Their
+  `REFUTED_CURRENT_SOURCE` rows preserve evidence and reopen triggers rather than
+  claiming implementation or erasing provenance.
 - `AUTH-001`: deployment, provider mutation/readback, GitHub ruleset mutation,
   credential rotation, paid services, irreversible data loss, and out-of-scope
   systems require explicit authorization. Local implementation and local proof
@@ -553,7 +574,7 @@ Recommended implementation topology, always capped by current host pressure:
   final claims;
 - security specialist: `UNIT-007` through `UNIT-014`, plus `UNIT-024` through
   `UNIT-026`;
-- correctness/data specialist: `UNIT-001` through `UNIT-006`;
+- correctness/data specialist: `UNIT-001` through `UNIT-006`, plus `UNIT-029`;
 - performance/architecture specialist: `UNIT-015` through `UNIT-023`;
 - test engineer: independent evidence review after each Q2 unit;
 - final code reviewer and architect: independent completion review.

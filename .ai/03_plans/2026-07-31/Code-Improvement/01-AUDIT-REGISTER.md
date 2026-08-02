@@ -145,6 +145,18 @@ evidence.
   visible content.
 - Owner: `UNIT-005`
 
+### `COR-010` - External estimate aggregates use float compatibility totals
+
+- Priority: P1 data integrity
+- Evidence: `src/lib/repositories/workspace-repository.ts:3220`,
+  `src/lib/repositories/project-estimate-sheets-repository.ts:221`, and
+  `src/lib/repositories/project-charts-repository.ts:132` aggregate
+  `computeEstimateRowLineTotal`, while canonical row truth independently rounds
+  cost parts into minor units in `src/lib/estimates/estimate-row-total.ts:199`.
+- Failure: two rows whose canonical rounded total is `0.34` can display as a
+  `0.67` aggregate instead of `0.68`, diverging from sheet/export truth.
+- Owner: `UNIT-029`
+
 ## 4. Confirmed Security and Privacy Findings
 
 ### `SEC-001` - Realtime revocation does not survive reconnect
@@ -273,6 +285,18 @@ evidence.
 - Impact: sensitive details persist in logs/D1/backups beyond minimal purpose.
 - Owner: `UNIT-014`
 
+### `SEC-014` - New publication passwords admit four-character secrets
+
+- Severity: Medium
+- Evidence: `src/lib/publication/security.ts:146` sets
+  `MIN_PUBLICATION_PASSWORD_LENGTH = 4`; the password gates client names,
+  project locations, line items, and pricing. Verification is already
+  rate-limited and timing-safe, but intake supplies little entropy.
+- Impact: a newly chosen weak share secret provides an avoidably small online
+  guessing space. Existing stored hashes must remain verifiable because the
+  intake rule is not a forced credential migration.
+- Owner: `UNIT-012`
+
 ## 5. Confirmed Performance Findings
 
 ### `PERF-001` - Workspace reads hide onboarding I/O
@@ -368,6 +392,13 @@ evidence.
 - Action: delete, do not invent recompute behavior.
 - Owner: `UNIT-028`
 
+### `CLEAN-002` - Landing Neat background and dependency are orphaned
+
+- Evidence: `src/components/landing/NeatWireframeBackground.tsx` is the sole
+  production importer of `@firecms/neat`, and no source imports that component.
+- Action: delete the component, dependency, lock entry, and local patch together.
+- Owner: `UNIT-028`
+
 ### `DOC-001` - Deep architecture overview describes the retired runtime
 
 - Evidence: `.ai/06_specs/deep/architecture-overview.md` describes
@@ -380,13 +411,15 @@ evidence.
 ### `QA-001` - Bootstrap baseline lineage rejects its admitted tracked baseline
 
 - Priority: P1 quality infrastructure
-- Evidence: `scripts/quality/component-core.ts:1409` treats any addition of
-  `quality/baseline.json` anywhere in current `HEAD` history as incompatible with
+- Baseline evidence: the pack-baseline implementation of
+  `validateBootstrapPredecessor` treated the first addition of
+  `quality/baseline.json` in current `HEAD` history as incompatible with
   bootstrap admission. The admitted baseline at `quality/baseline.json:2859` is
   correctly marked bootstrap because its immutable comparison base
   `214fd2af3564c6c90d6bb46a7f2f7bd19faa811d` has no predecessor baseline.
-  `bun run quality:contracts` now returns
-  `COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID`.
+- Red evidence: the initial `bun run quality:contracts` receipt returned
+  `COMPONENT_BASELINE_BOOTSTRAP_LINEAGE_INVALID`; `UNIT-000` retains that receipt
+  and proves the repaired contract against repository-history fixtures.
 - Failure: once the first bootstrap baseline is committed, every Q-profile stops
   at contract validation before behavior evidence can run.
 - Required shape: accept the byte-identical first admitted baseline after its
@@ -450,9 +483,26 @@ a lifecycle transition merely to make the matrix symmetrical.
 | Security `UNIT-013` - flat defense-in-depth backlog | Retired as an execution unit; only reverified current subfindings appear in `UNIT-005` through `UNIT-014` |
 
 The targeted July 20 packs are narrower predecessors, not parallel authorities.
-`UNIT-028` must record their exact final status before any terminal, especially
-Quick Correctness, D1 Runtime Consolidation, Estimate Mutation Integrity, and
-Money Math, so already-landed work is not reopened.
+`UNIT-000` records every exact unit disposition and makes all five packs
+non-runnable. `UNIT-028` later revalidates only authority drift and does not own
+the initial transition.
+
+| Targeted predecessor | Current disposition |
+| --- | --- |
+| Quick Correctness `UNIT-001` | Absorbed by `UNIT-002` |
+| Quick Correctness `UNIT-002`, `UNIT-004` through `UNIT-007` | Landed current source; revalidated by `UNIT-028` |
+| Quick Correctness `UNIT-003` | Absorbed by `UNIT-012` as `SEC-014` |
+| Test Characterization `UNIT-001` and `UNIT-002` | Landed current source; revalidated by `UNIT-028` |
+| D1 Runtime `UNIT-001` through `UNIT-003` | Refuted by current source and `DEC-AUTO-007`; acquisition is already centralized while domain semantics are intentionally distinct |
+| Estimate Mutation `UNIT-001` through `UNIT-004` | Landed current source; revalidated by `UNIT-028` |
+| Money Math `UNIT-001` | Refuted by `DEC-AUTO-008`; the existing pure oracle needs no relocation |
+| Money Math `UNIT-002` | Confirmed aggregate subset absorbed by `UNIT-029`; the quantity-free AI draft subclaim is not promoted |
+| Money Math `UNIT-003` | Refuted by `DEC-AUTO-008`; formatter contracts intentionally differ |
+
+Within the `UNIT-000` ledger, `REFUTED_CURRENT_SOURCE` includes a predecessor
+design or requirement whose applicability is disproven by current source. It
+does not imply that every observed duplicate or measurement was absent, and it
+retains the historical evidence and reopen condition under `DEC-AUTO-009`.
 
 ## 9. Test and Evidence Gaps
 

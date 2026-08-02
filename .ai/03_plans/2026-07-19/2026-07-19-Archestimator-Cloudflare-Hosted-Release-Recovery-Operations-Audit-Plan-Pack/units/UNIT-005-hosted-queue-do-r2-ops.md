@@ -28,10 +28,14 @@ a documented inspection cadence.
 
 ## Non-goals
 
-- Queue topology (Quality Master UNIT-019/024)
-- Queue message signing (Infosec UNIT-008)
-- DO revocation logic (Infosec UNIT-001)
-- Upload security invariants (Infosec UNIT-005-007)
+- Queue topology (historical Quality Master UNIT-019/024; current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`)
+- Queue message signing (historical Infosec UNIT-008; current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`)
+- DO revocation logic (historical Infosec UNIT-001; current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`)
+- Upload security invariants (historical Infosec UNIT-005-007; current
+  authority `.ai/03_plans/2026-07-31/Code-Improvement/`)
 
 ## Implementation boundary
 

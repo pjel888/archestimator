@@ -1,9 +1,13 @@
 # 007 — Upload-Scan Per-Object Byte Ceiling + `failed_permanent` After N Transient Failures
 
+> **Historical provenance only.** `UNIT-007` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-UPLOAD-005`, `SEC-OPS-003`.
 
 ## unit_id
-`UNIT-007` · **status:** `READY` · **priority:** P3 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
+`UNIT-007` · **status:** `SUPERSEDED` · **priority:** P3 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED`.
 
 ## requirements / findings
 - Requirements: `SEC-004`.
@@ -84,5 +88,6 @@ None.
 ## completion_signal
 All three acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any other unit.
+## historical_next_unit_on_success
+The original proposal allowed any other unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

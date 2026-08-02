@@ -1,0 +1,1949 @@
+{
+  "candidate_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+  "dispositions": [
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-006",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-003",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-004",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-001",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-005",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-006",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-005",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-007",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-008",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-009",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-010",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-011",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-012",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-013",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-014",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-015",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-016",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-008",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-017",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-018",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-019",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-010",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-020",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-010",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-021",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-024",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-022",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-023",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-024",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-004",
+        "UNIT-011",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-025",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-018",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-026",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-027",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-028",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-029",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-022",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-030",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-023",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-031",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-032",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-033",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-008",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-034",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-035",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-013",
+        "UNIT-026",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-036",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-037",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-038",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-039",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-040",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-012",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-041",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-012",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-042",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-043",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-044",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-015",
+        "UNIT-016",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-045",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-019",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-046",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-047",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-048",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-012",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-049",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-050",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-051",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-052",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-053",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-054",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-055",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-004",
+        "UNIT-011",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-056",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-004",
+        "UNIT-011",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-057",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-004",
+        "UNIT-011",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-058",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-059",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-060",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-061",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-062",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-063",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-064",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-065",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-015",
+        "UNIT-016",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-066",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-015",
+        "UNIT-016",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-067",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-007",
+        "UNIT-008",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-010",
+        "AUTH-001",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-003",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-008",
+        "UNIT-010",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-004",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-005",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-006",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-007",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-009",
+        "UNIT-024",
+        "UNIT-025",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-008",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-011",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-009",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-012",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-010",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-014",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-011",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-014",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-012",
+      "disposition": "AUTH_BOUNDARY",
+      "target_ids": [
+        "AUTH-001",
+        "EVID-009"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Whole-Repo-Infosec-OWASP-Audit-Plan-Pack/plan-pack.json",
+      "predecessor_unit_id": "UNIT-013",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-009",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011",
+        "UNIT-012",
+        "UNIT-013",
+        "UNIT-014",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-002",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-003",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-012",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-004",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-005",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-006",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Quick-Correctness-And-Security-Wins/plan-pack.json",
+      "predecessor_unit_id": "UNIT-007",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Test-Characterization-Baselines/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Test-Characterization-Baselines/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/D1-Runtime-Consolidation/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-007",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/D1-Runtime-Consolidation/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-007",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/D1-Runtime-Consolidation/plan-pack.json",
+      "predecessor_unit_id": "UNIT-003",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-007",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Estimate-Mutation-Integrity-Unification/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Estimate-Mutation-Integrity-Unification/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Estimate-Mutation-Integrity-Unification/plan-pack.json",
+      "predecessor_unit_id": "UNIT-003",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Estimate-Mutation-Integrity-Unification/plan-pack.json",
+      "predecessor_unit_id": "UNIT-004",
+      "disposition": "LANDED_CURRENT_SOURCE",
+      "target_ids": [
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Money-Math-Domain-Module/plan-pack.json",
+      "predecessor_unit_id": "UNIT-001",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-008",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Money-Math-Domain-Module/plan-pack.json",
+      "predecessor_unit_id": "UNIT-002",
+      "disposition": "ABSORBED_CURRENT_UNIT",
+      "target_ids": [
+        "UNIT-029",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/02-UNIT-CATALOG.md",
+          "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    },
+    {
+      "predecessor_manifest": ".ai/03_plans/2026-07-20/Money-Math-Domain-Module/plan-pack.json",
+      "predecessor_unit_id": "UNIT-003",
+      "disposition": "REFUTED_CURRENT_SOURCE",
+      "target_ids": [
+        "DEC-AUTO-008",
+        "UNIT-028",
+        "EVID-007"
+      ],
+      "evidence_paths": [
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/00-PLAN.md",
+          "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        },
+        {
+          "path": ".ai/03_plans/2026-07-31/Code-Improvement/01-AUDIT-REGISTER.md",
+          "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc",
+          "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038"
+        }
+      ]
+    }
+  ]
+}

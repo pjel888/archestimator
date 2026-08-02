@@ -22,8 +22,8 @@
     "worker.ts handler signature change",
     "Cloudflare D1 backup/PITR semantics change",
     "operator resolution of AUTH-001 (wrangler login)",
-    "Infosec UNIT-001/002/004/008/010/011/012 landing",
-    "Quality Master UNIT-002/019/022/024/028/035 landing"
+    ".ai/03_plans/2026-07-31/Code-Improvement/ disposition or implementation of historical Infosec UNIT-001/002/004/008/010/011/012",
+    ".ai/03_plans/2026-07-31/Code-Improvement/ disposition or implementation of historical Quality Master UNIT-002/019/022/024/028/035"
   ],
   "canonical_execution_artifact": "00-PLAN.md",
   "title": "Archestimator Cloudflare Hosted-Release / Recovery / Operations Audit Plan Pack",
@@ -34,25 +34,25 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "88f20ae73c9ff6377c6d8accafb51b155af50ea14914b087b5de795679f2c037"
+      "sha256": "abd1eb2bc21efe98b18b95b0c5d6239de8cd5a5549a91edc710c20edcbc9b79d"
     },
     {
       "id": "ART-002",
       "role": "index",
       "path": "README.md",
-      "sha256": "8eebda20c78f98b6d756d039071e1cc54330cdb4b5f479562d7a1da7d5bab5fd"
+      "sha256": "3fd25f9ce4c32cd26fbe3022a85d78509590a4d43de9a4aa126417b9893f30c8"
     },
     {
       "id": "ART-003",
       "role": "findings-register",
       "path": "04-FINDINGS-REGISTER.md",
-      "sha256": "dbcbbaad74c7115a823e47bdfb3e42f977dc6c9dfa079915db729884ba653896"
+      "sha256": "929cfd8c52ffdc0e112d86db496bef9ceee1169cbed34fbd29761c9138b5cb62"
     },
     {
       "id": "ART-004",
       "role": "audit-ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "b5a8058e1b763f78629ee3edc5b0b9d09d3aa5eefab553335649e365307cb249"
+      "sha256": "f7cc32e28c8018491216e7f4df69f6443cc371aefdbfb3b0738f01914a702629"
     },
     {
       "id": "ART-005",
@@ -70,37 +70,37 @@
       "id": "ART-007",
       "role": "unit",
       "path": "units/UNIT-002-observability-alert-delivery.md",
-      "sha256": "0237129fc435a8a071ae8e6f129cbdd9354e346b168102b39c7ae4e8faaa2d15"
+      "sha256": "4565903451f89d529b6b88454f66fc4f041b0504302e55de04921901148c035f"
     },
     {
       "id": "ART-008",
       "role": "unit",
       "path": "units/UNIT-003-hosted-oauth-roundtrip.md",
-      "sha256": "1b5ed9fbdace27a71d9ce151c336849e7b85227f2ef194f7f68335363c7f6ed0"
+      "sha256": "d6568d07dfba0af4e6f0d2c27a07995437e530015a2f013e804354c71a9f00e3"
     },
     {
       "id": "ART-009",
       "role": "unit",
       "path": "units/UNIT-004-email-dns-topology.md",
-      "sha256": "6d75dd3e72bf9a0f7b48445cfde46bea937890c5fc5027a8f6486d2c41e5df18"
+      "sha256": "a675ab5cc171615791db5aafab0a322dfc1d203ed4db48ae3a4a82f7de6f4c96"
     },
     {
       "id": "ART-010",
       "role": "unit",
       "path": "units/UNIT-005-hosted-queue-do-r2-ops.md",
-      "sha256": "d48dbe0c959c5f144a0954c09697a57fb19a077882cc76765afa17ef8efd98ca"
+      "sha256": "e1521839fb45c8c00d68f3e0e3151fc0f593c02685c21b437d32f58ff597ef11"
     },
     {
       "id": "ART-011",
       "role": "unit",
       "path": "units/UNIT-006-release-gate-ritual.md",
-      "sha256": "242fc56a7f55fe0ae18fa50c1e837f198127466c975535e02409165bb3c96ff0"
+      "sha256": "64327d298f9dcf5c5c956c34f6c1ffa3da7a7ef62cc17a0953c5ff219db8e590"
     },
     {
       "id": "ART-012",
       "role": "unit",
       "path": "units/UNIT-007-d1-parity-retention.md",
-      "sha256": "251d969a2142d7866c5775bdb5f05fa0e4086f7cd846a9e0d7d3370659ce5005"
+      "sha256": "2883489cbc9e61f0f5f5547d30fb1602659f24d2403386e21a936d66490a74e0"
     },
     {
       "id": "ART-013",
@@ -357,7 +357,7 @@
       "affected_ids": [
         "REQ-006"
       ],
-      "statement": "Quality Master UNIT-002 and Infosec UNIT-012 remain the owners of CI truthful-claims and CI activation respectively; this pack's release-gate ritual substitutes for CI enforcement during controlled beta and does not duplicate their work."
+      "statement": ".ai/03_plans/2026-07-31/Code-Improvement/ is the current owner of CI truthful-claims and CI activation; historical predecessor pointers are Quality Master UNIT-002 and Infosec UNIT-012. This pack's release-gate ritual substitutes for CI enforcement during controlled beta and does not duplicate that work."
     },
     {
       "id": "ASSUMP-003",
@@ -423,7 +423,7 @@
       "criterion_ids": [
         "AC-007"
       ],
-      "statement": "workers.dev secondary origin reachable; partial mitigation via canonical-host redirect; full remediation owned by Infosec UNIT-002."
+      "statement": "workers.dev secondary origin reachable; partial mitigation via canonical-host redirect; full remediation belongs to .ai/03_plans/2026-07-31/Code-Improvement/ (historical Infosec UNIT-002)."
     },
     {
       "id": "RISK-005",
@@ -988,5 +988,5 @@
       "claim": "84 migrations reconciled in source (REPO_LOCAL); hosted applied state EVIDENCE_BLOCKED. Will become HOSTED_CONFIRMED when UNIT-007 runs wrangler d1 migrations list --remote."
     }
   ],
-  "manifest_sha256": "b6004e2b37caab7056a02c84612651b7f9e5ba50788eed6f4ea16cdfb8237585"
+  "manifest_sha256": "2b354c26245164c5949dbabc872b0d99a1ba6c4f9c9567fa945b1a4e99d78b33"
 }

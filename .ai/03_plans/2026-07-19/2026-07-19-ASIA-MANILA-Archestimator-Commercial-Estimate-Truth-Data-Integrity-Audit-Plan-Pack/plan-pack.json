@@ -30,31 +30,31 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "e22edfda6aaaefb44131eadb400ea7ea6fe3a8d41fc75d03ca825e553b707447"
+      "sha256": "02662f7db22da7f1c50eab8ca77e086865ad5f40d26bdc09ffc51610040c9937"
     },
     {
       "id": "ART-002",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "92525be8b07e95647165b625aa389d7346c6173bae63974a754305ae0a5c7121"
+      "sha256": "5c666fe2cda27ee962b2170485b9669b8a62277b9da933c3fe36a58ab330160e"
     },
     {
       "id": "ART-003",
       "role": "unit-catalog",
       "path": "UNIT-CATALOG.md",
-      "sha256": "b88ba458cbc179cd5b0d60efd86b013f43a21c67188642228e25f89163097226"
+      "sha256": "61e7e0774c7627b41245e3173b93a6e824ba3523c9329341b37a208dfc7a773b"
     },
     {
       "id": "ART-004",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "77e233ab04a952f1dcd9917142ea032aa2c41e6c65cd86af3e5acada53a340e1"
+      "sha256": "8fffbcb3db1625f1cace7f39131cfa6e1af2ecc43b3937b193389da9abf6a70e"
     },
     {
       "id": "ART-005",
       "role": "recovery",
       "path": "LOOP_LEDGER.md",
-      "sha256": "923977ec92d24f6ab084eaea905fbab66f3a82a1a451fc893e8a62648863f8b3"
+      "sha256": "7eb229f6be04d63b0b308780789f7d77b875276903ad911e228bdc80aeedde17"
     },
     {
       "id": "ART-006",
@@ -162,7 +162,7 @@
       "id": "ART-023",
       "role": "evidence-log",
       "path": "artifacts/commands-run.log",
-      "sha256": "d5b6bbf310e743674ccb4b42e31fd3b6c7118d5ea54df6134c547e942e69b43c"
+      "sha256": "fdd87013e3e0ea946986fc7416d2912d79ecc6cc1ad9b6dc0cbfbcf796853ab9"
     },
     {
       "id": "ART-024",
@@ -423,7 +423,7 @@
       "affected_ids": [
         "REQ-002"
       ],
-      "statement": "Existing packs (MVP UNIT-005/006/010, Quality Master UNIT-001/004/014/015/025/029/034/067, Infosec UNIT-001..013) own their respective surfaces and will land their fixes; this pack only cross-references them."
+      "statement": "MVP UNIT-005/006/010 and .ai/03_plans/2026-07-31/Code-Improvement/ own their respective current surfaces; historical predecessor pointers are Quality Master UNIT-001/004/014/015/025/029/034/067 and Infosec UNIT-001..013. This pack only cross-references that work."
     },
     {
       "id": "ASSUMP-003",
@@ -988,5 +988,5 @@
       ]
     }
   ],
-  "manifest_sha256": "7b67d258b134e29f7696fcadf2eec62a6a630266b15e71c1e6311d901f117ecc"
+  "manifest_sha256": "9a952b805bec13779e7dabc84af427e3f060ab4ff3d0bf76c79228f8f4f08d8e"
 }

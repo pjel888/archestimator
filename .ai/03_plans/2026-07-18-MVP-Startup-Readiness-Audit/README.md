@@ -83,14 +83,16 @@ Three other audit packs exist for the same date. This audit is distinct in lens
 and does not duplicate their findings; it cites them where engineering defects
 have startup-side consequences.
 
-- `.ai/03_plans/2026-07-19-Archestimator-Whole-Repo-Quality-Master-Plan-Pack/`
-  is now the engineering authority for all three sibling audits. Its
-  `AUDIT-AND-DISPOSITION.md` re-audits all 85 source IDs, records
+- `.ai/03_plans/2026-07-31/Code-Improvement/` is the current engineering
+  authority for whole-repository code improvement. The retired July 19 quality
+  master's `AUDIT-AND-DISPOSITION.md` remains historical provenance: it
+  re-audits all 85 source IDs, records
   `CONSISTENCY-001` row-total divergence as already implemented, keeps
   `CONSISTENCY-009` closed-beta enforcement evidence-gated, refutes the stale
   onboarding claim, and routes performance/loading plus library-import context
-  to their current owners. The original audit text remains available only under
-  the master's immutable source snapshots and recorded archive destinations.
+  through its audit-time dispositions. The original audit text remains
+  available only under the predecessor's immutable source snapshots and
+  recorded archive destinations.
 
 These three audits are engineering lenses. This audit is the
 startup/ICP/pricing/beta-ops/learning lens: who is the user, what loop must

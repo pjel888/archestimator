@@ -14,7 +14,8 @@
 A commercial-truth and data-integrity audit across the full Archestimator
 estimating lifecycle, plus a validator-conformant plan pack owning the
 **newly proven cross-surface divergences** while cross-referencing the
-existing MVP / Quality Master / Infosec packs for everything already owned.
+existing MVP pack and `.ai/03_plans/2026-07-31/Code-Improvement/` for current
+ownership. Quality Master and Infosec references are historical provenance.
 
 ## Commercial-truth verdict
 
@@ -96,17 +97,22 @@ model. Parity holds today via `Math.round` coincidence (filed as F-08 latent
 risk). `fullCalcOnLoad="1"` set. Evidence class:
 `LOCAL_RUNTIME_CONFIRMED`. Artifact: `artifacts/xlsx-inspection/result.json`.
 
-## Active-pack cross-references
+## Current and historical cross-references
 
 This pack **does not** duplicate existing ownership. See
 `artifacts/existing-pack-overlap.json` for the full matrix.
 
-- F-02 → Quality Master UNIT-014 (legacy money-total oracle routing).
+- F-02 → `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality
+  Master UNIT-014 for legacy money-total oracle routing).
 - Library CSV/XLSX import → MVP UNIT-005.
 - Variant accommodation in BOQ export → MVP UNIT-006.
 - Contractor profile + branded export → MVP UNIT-010.
-- Variant-reference repair on linked template rows → Quality Master UNIT-001.
-- Cross-tenant commercial-data authorization → Infosec UNIT-001..UNIT-013.
+- Variant-reference repair on linked template rows →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality Master
+  UNIT-001).
+- Cross-tenant commercial-data authorization →
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Infosec
+  UNIT-001..UNIT-013).
 
 ## Authorization
 

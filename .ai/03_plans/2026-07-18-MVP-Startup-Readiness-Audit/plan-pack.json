@@ -23,7 +23,7 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "0a0f9d23d9f6e8e40421c014c70a52d8038684d1cc5708997a1db31fe8a9ad92"
+      "sha256": "c81711064aa6a439f065d17e043ffa241725a436a3723f05ff6db22b1b79caba"
     },
     {
       "id": "ART-002",
@@ -35,7 +35,7 @@
       "id": "ART-003",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "8e87047add42fdcb523b040492d33c685858e2c125979efdf2690f295f978435"
+      "sha256": "688498026913032118ff8fbbbbdcbe6f430b1f2b84cee54f55d7f8f85f7d1832"
     },
     {
       "id": "ART-004",
@@ -143,7 +143,7 @@
       "id": "ART-021",
       "role": "unit",
       "path": "013-external-row-total-divergence.md",
-      "sha256": "5adbab36888a03c5ab5f94c62a94031423837085378b9d9467028f3863c76a5a"
+      "sha256": "036f5d52a5cbed1827daac6265198d1edb642bc87ea616aa3171496475b76b53"
     }
   ],
   "sources": [
@@ -1213,7 +1213,7 @@
       "id": "EVID-013",
       "status": "COLLECTED",
       "artifact_path": "013-external-row-total-divergence.md",
-      "sha256": "5adbab36888a03c5ab5f94c62a94031423837085378b9d9467028f3863c76a5a",
+      "sha256": "036f5d52a5cbed1827daac6265198d1edb642bc87ea616aa3171496475b76b53",
       "claim_ids": [
         "UNIT-013",
         "AC-016"
@@ -1227,5 +1227,5 @@
     "findings-reverified-against-newer-source",
     "cohort-recruitment-begins"
   ],
-  "manifest_sha256": "67ef99c515af0bf9351d00f55008d1847a82ae19b46916163a54a040d4c8f4b6"
+  "manifest_sha256": "c7a9bd3a2c538ca9c9296dbd0a59a66dbf207c4b1609569e4fb39e0e8980c5ff"
 }

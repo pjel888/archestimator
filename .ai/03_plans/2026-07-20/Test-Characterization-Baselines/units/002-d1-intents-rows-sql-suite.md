@@ -1,5 +1,10 @@
 # UNIT-002 — d1-intents/rows.ts intent/SQL generation suite
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Current-source characterization coverage is
+> revalidated by successor `UNIT-028` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Add a direct unit suite that asserts the generated `{sql, values}` for each
@@ -10,7 +15,7 @@ primitives has a regression net.
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `DATA-001` · risks: `RISK-003`
+`SUPERSEDED` · historical dependency: (none) · requirement: `DATA-001` · risks: `RISK-003`
 
 ## Why this matters
 

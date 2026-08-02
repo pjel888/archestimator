@@ -36,7 +36,9 @@ Small-Medium (~2-3 hours). Branch error mapping + add one banner.
 `UX-MAGIC-001`, `UX-SESSION-001`
 
 ## existing_plan_links
-Infosec OWASP owns security conclusions on auth; this unit owns only the *usability copy* consequence.
+`.ai/03_plans/2026-07-31/Code-Improvement/` owns current security conclusions
+on auth; Infosec OWASP is the historical predecessor. This unit owns only the
+*usability copy* consequence.
 
 ## goal
 - A user with an expired / already-used / wrong-browser magic link sees a distinct, actionable message.
@@ -55,7 +57,8 @@ Infosec OWASP owns security conclusions on auth; this unit owns only the *usabil
 None.
 
 ## non_goals
-- Auth/security invariant changes (Infosec-owned).
+- Auth/security invariant changes (owned by
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec scope).
 - A new session-management system.
 
 ## implementation_sequence

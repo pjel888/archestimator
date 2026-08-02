@@ -1,6 +1,12 @@
 # Execution Guide
 
-## Recommended Mode
+> **Historical only — do not execute.** This guide belongs to a predecessor
+> superseded without implementation by
+> `.ai/03_plans/2026-07-31/Code-Improvement/`. All 67 predecessor units are
+> `SUPERSEDED`; there is no next unit or ready slice. The instructions below
+> document the former operating model and grant no current authority.
+
+## Former Recommended Mode
 
 Use one leader-owned implementation run with a persistent goal and bounded
 native subagents. In OMX CLI this corresponds to a Team execution surface with
@@ -11,7 +17,7 @@ The leader owns integration, the unit ledger, GitNexus reconciliation, and the
 final completion claim. Child agents own only explicit, non-overlapping paths
 for one bounded unit or evidence slice.
 
-## Start Contract
+## Former Start Contract
 
 Before selecting a unit:
 
@@ -23,7 +29,7 @@ Before selecting a unit:
    active lane.
 6. Reread every shared file immediately before editing.
 
-## Per-Unit Contract
+## Former Per-Unit Contract
 
 Each executor must:
 
@@ -52,7 +58,7 @@ Each executor must:
 Source snapshots are evidence only. When a canonical unit conflicts with a
 snapshot, the canonical unit wins.
 
-## Verification Policy
+## Former Verification Policy
 
 The default product-test mode is `NOT_REQUIRED`. Use source inspection,
 GitNexus, TypeScript/LSP evidence, lint/static checks, SQL dry runs, and narrow
@@ -66,7 +72,7 @@ command but does not authorize execution.
 Documentation and plan-pack validators are static contracts and may run when
 their artifacts change.
 
-## Parallelism Rules
+## Former Parallelism Rules
 
 - Parallelize only units with satisfied dependencies and disjoint owned paths.
 - Security/auth, queue semantics, shared provider boundaries, and component
@@ -80,11 +86,9 @@ their artifacts change.
 - Ready slices advertise eligible ownership only; the leader still serializes
   shared paths and opens at most one writer per file.
 
-## Stop And Resume
+## Historical Stop State
 
-After each unit, mark its status and evidence in `LOOP_LEDGER.md`, recalculate
-dependency readiness, and set `plan-pack.json#next_unit` to the lowest ready
-unit. Stop only when all core units are verified and every auxiliary or decision
-unit is verified, rejected with current evidence, or explicitly deferred outside
-this pack. Archive this master only after final static validation and inbound
-reference repair.
+Do not resume this pack or recalculate predecessor readiness. Its manifest is
+fixed at `NOT_READY` / `NOT_STARTED` / `N/A`, with `next_unit: null`, empty
+`ready_slices`, and every unit `SUPERSEDED`. Follow the exact successor path
+above for current execution and evidence requirements.

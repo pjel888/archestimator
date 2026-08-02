@@ -26,8 +26,10 @@ token valid, and each of S-01..S-07 scenarios produces a delivered payload.
 
 - Application-level scaffolding (already exists; not in scope)
 - Alert scenario catalog changes (`ALERT_SCENARIOS` S-01..S-07)
-- Cron-handler logic (resolved by Quality Master UNIT-028)
-- Cron redaction (Infosec UNIT-010)
+- Cron-handler logic (historically resolved by Quality Master UNIT-028; current
+  authority `.ai/03_plans/2026-07-31/Code-Improvement/`)
+- Cron redaction (historical Infosec UNIT-010; current authority
+  `.ai/03_plans/2026-07-31/Code-Improvement/`)
 
 ## Implementation boundary
 

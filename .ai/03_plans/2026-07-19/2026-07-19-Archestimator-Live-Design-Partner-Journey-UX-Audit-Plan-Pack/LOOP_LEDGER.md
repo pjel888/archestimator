@@ -21,8 +21,10 @@ Append-only audit event log for this plan pack.
 - Playwright 1.61.1, Chromium 1228 available locally.
 - Inspected `playwright.config.ts`: testDir `./e2e`, default project Chromium,
   matrix opt-in via `ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX=1`.
-- Reconciled three active plan packs via parallel Explore subagents (MVP
-  Startup Readiness, Quality Master, Infosec OWASP). No duplicate owners found.
+- Reconciled three then-active plan packs via parallel Explore subagents (MVP
+  Startup Readiness, Quality Master, Infosec OWASP). This is historical audit
+  provenance; current code-improvement authority is
+  `.ai/03_plans/2026-07-31/Code-Improvement/`. No duplicate owners were found.
 
 ## 2026-07-19T14:50 +08:00 — CRITICAL finding discovered
 

@@ -116,7 +116,8 @@ UNIT-014 (F-10 currency expand+centralize)[NEW — council upheld Critic's expan
   - `src/lib/estimates/d1-intents/estimate-records.ts:222, 247` (write).
   - new graph-level receipt statement (write).
 - **Non-goals:** do NOT change the per-batch atomicity gates owned by
-  Quality Master UNIT-015. Do NOT change the per-row receipt semantics.
+  `.ai/03_plans/2026-07-31/Code-Improvement/` (historical Quality Master
+  UNIT-015). Do NOT change the per-row receipt semantics.
 - **Implementation boundary:** either (a) collect all 4 (or 2) steps'
   statements into a single `runPreparedD1Batch` call with a graph-level
   receipt, or (b) add a reconciler scan that detects estimates with
@@ -149,8 +150,9 @@ UNIT-014 (F-10 currency expand+centralize)[NEW — council upheld Critic's expan
   - `src/lib/client-portal/estimate-browser.ts:117-157` (write).
   - `src/components/workshop/estimate-sheet/rows/editable-row-model.ts:396-424` (write — node totals).
 - **Non-goals:** do NOT change the per-row legacy float helper (owned by
-  Quality Master UNIT-014). Do NOT change the publication snapshot integer
-  sum (already canonical).
+  `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Quality Master
+  UNIT-014). Do NOT change the publication snapshot integer sum (already
+  canonical).
 - **Implementation boundary:** where `rowTotalMinorUnits` is available
   (snapshot, client portal), aggregate it and divide once at the boundary;
   where only the float is available (editable model), expose minor units from
@@ -252,7 +254,8 @@ UNIT-014 (F-10 currency expand+centralize)[NEW — council upheld Critic's expan
 - **Owned paths/resources:**
   - `src/lib/ai/package-builder/{draft,schemas,apply,read-tools}.ts` (write).
 - **Non-goals:** do NOT change AI feature-flag posture or quota behavior
-  (Infosec owns SEC-AI-001/002).
+  (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec
+  SEC-AI-001/002).
 - **Implementation boundary:** replace each local row-total copy with a call
   to `computeEstimateRowCostParts`; reconcile the four fallback rules.
 - **Invariants to preserve:** AI draft shape; proposal-row count.
@@ -404,7 +407,8 @@ UNIT-014 (F-10 currency expand+centralize)[NEW — council upheld Critic's expan
 - **Non-goals:** do NOT change the XLSX Summary block layout. Do NOT remove
   the direct basis (keep both; the direct basis is still useful for
   per-section display). Do NOT touch the publication token/rotation machinery
-  (owned by Infosec).
+  (owned by `.ai/03_plans/2026-07-31/Code-Improvement/`; historical Infosec
+  scope).
 - **Implementation boundary:**
   1. Extend `buildProjectPublicationSnapshot` to compute and attach a
      `finalProposal: { directMinorUnits, sheetAdjustmentMinorUnits,
@@ -523,19 +527,21 @@ UNIT-014 (F-10 currency expand+centralize)[NEW — council upheld Critic's expan
 ## Cross-reference units (NO implementation ownership in this pack)
 
 These findings are filed here for traceability but the fix is owned by
-another active pack. Do not implement here.
+another current pack. Current code-improvement ownership is
+`.ai/03_plans/2026-07-31/Code-Improvement/`; Quality Master and Infosec unit IDs
+below are explicitly historical predecessor pointers. Do not implement here.
 
 | Finding | Owner | Owner unit |
 |---|---|---|
-| F-02 — legacy float row total in estimate list/dashboard/charts | Quality Master | UNIT-014 (READY, HIGH) |
+| F-02 — legacy float row total in estimate list/dashboard/charts | Code Improvement successor (historical Quality Master) | Historical UNIT-014 (then READY, HIGH) |
 | Library CSV/XLSX import gap | MVP | UNIT-005 |
 | Variant accommodation in BOQ export | MVP | UNIT-006 |
 | Contractor profile + branded export | MVP | UNIT-010 |
-| Variant-reference repair on linked template rows | Quality Master | UNIT-001 |
-| Proposal preview identity (contingency) | Quality Master | UNIT-004 |
-| D1 batch atomicity gate | Quality Master | UNIT-015 (CRITICAL) |
-| Restore-replay row reads | Quality Master | UNIT-025 |
-| Activity outbox set-wise reconcile | Quality Master | UNIT-029 |
-| XLSX body-copy / compression perf | Quality Master | UNIT-034 / UNIT-067 |
-| Sign-out state cleanup | Quality Master | UNIT-005 |
-| Cross-tenant commercial-data authorization | Infosec | UNIT-001..UNIT-013 |
+| Variant-reference repair on linked template rows | Code Improvement successor (historical Quality Master) | Historical UNIT-001 |
+| Proposal preview identity (contingency) | Code Improvement successor (historical Quality Master) | Historical UNIT-004 |
+| D1 batch atomicity gate | Code Improvement successor (historical Quality Master) | Historical UNIT-015 (then CRITICAL) |
+| Restore-replay row reads | Code Improvement successor (historical Quality Master) | Historical UNIT-025 |
+| Activity outbox set-wise reconcile | Code Improvement successor (historical Quality Master) | Historical UNIT-029 |
+| XLSX body-copy / compression perf | Code Improvement successor (historical Quality Master) | Historical UNIT-034 / UNIT-067 |
+| Sign-out state cleanup | Code Improvement successor (historical Quality Master) | Historical UNIT-005 |
+| Cross-tenant commercial-data authorization | Code Improvement successor (historical Infosec) | Historical UNIT-001..UNIT-013 |

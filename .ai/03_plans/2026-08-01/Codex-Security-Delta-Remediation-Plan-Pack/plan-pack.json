@@ -1,0 +1,1304 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-12",
+  "package_id": "PLAN-2026-08-01-codex-security-delta-remediation",
+  "title": "Codex Security Delta Remediation",
+  "profile": "high-blast-radius",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "PLAN_ONLY",
+  "package_status": "NOT_READY",
+  "implementation_status": "NOT_STARTED",
+  "release_status": "BOUNDARY",
+  "plan_lifecycle": "ACTIVE",
+  "terminal_status": "ACTIVE",
+  "updated_at": "2026-08-01T16:36:56.816Z",
+  "canonical_execution_artifact": "00-PLAN.md",
+  "next_unit": null,
+  "baseline": {
+    "head": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope_definition_artifact": "00-PLAN.md",
+    "inherited_dirty_policy": "excluded-and-preserved"
+  },
+  "stale_triggers": [
+    "baseline HEAD or shared-worktree security paths change",
+    "cloud finding count, content, status, patch availability, or configured scan changes",
+    "security pull request head SHA, merge state, changed paths, or supersession changes",
+    "the July 31 whole-repository Code-Improvement authority changes",
+    "wrangler.jsonc bindings, migrations, lockfiles, auth adapters, or security workflows change",
+    "Codex Security, quality policy, validation matrix, or Plan Pack schema changes",
+    "the final fixed-candidate fingerprint changes after UNIT-007 starts"
+  ],
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "012f883a8983e1e13924ff4c7bee0ac8c67f0f7a5434d6fee98f02f45e3e7cf9"
+    },
+    {
+      "id": "ART-002",
+      "role": "canonical-execution",
+      "path": "00-PLAN.md",
+      "sha256": "c966ff28dd891075b589dd37359fbb046d2b5dfee0c206c7176c516e1751017c"
+    },
+    {
+      "id": "ART-003",
+      "role": "finding-reconciliation",
+      "path": "01-FINDINGS-AND-OVERLAP-RECONCILIATION.md",
+      "sha256": "efd702a4bba4ff1289644e041ea6e943e923a026c97b19804e7459c66903fc8e"
+    },
+    {
+      "id": "ART-004",
+      "role": "implementation-units",
+      "path": "02-IMPLEMENTATION-UNITS.md",
+      "sha256": "1dd815d326ed7c51ae49e62adcdd92dbd60a588719644c45045e6f2da4511249"
+    },
+    {
+      "id": "ART-005",
+      "role": "verification-matrix",
+      "path": "03-VERIFICATION-AND-REVIEWS.md",
+      "sha256": "fa79e3fd0a043c8b0d0bb228593569f749d851234d2499399c59db369254457f"
+    },
+    {
+      "id": "ART-006",
+      "role": "scan-evidence",
+      "path": "evidence/codex-security-scan-summary.json",
+      "sha256": "e3ab8368be83721b9ec7f354eabebb0b73e8dcbe8b53bc4a9a9ea3134f5db4a5"
+    },
+    {
+      "id": "ART-007",
+      "role": "finding-evidence",
+      "path": "evidence/codex-security-findings.json",
+      "sha256": "360c77440a8277fc01736426b09373a524ef6518780eb94eeb03080f59330625"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-002",
+      "status": "CURRENT",
+      "artifact_path": "evidence/codex-security-findings.json",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-003",
+      "status": "CURRENT",
+      "artifact_path": "evidence/codex-security-scan-summary.json",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-004",
+      "status": "CURRENT",
+      "artifact_path": "01-FINDINGS-AND-OVERLAP-RECONCILIATION.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-005",
+      "status": "CURRENT",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "affected_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ]
+    },
+    {
+      "id": "SRC-006",
+      "status": "CURRENT",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "affected_ids": [
+        "REQ-007",
+        "REQ-008"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-003",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-005",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005"
+      ],
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-002",
+        "EVID-004",
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-004",
+        "EVID-005",
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "status": "ACCEPTED",
+      "completion_role": "CORE",
+      "artifact_path": "00-PLAN.md",
+      "source_ids": [
+        "SRC-001",
+        "SRC-002",
+        "SRC-003",
+        "SRC-004",
+        "SRC-005",
+        "SRC-006"
+      ],
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-005",
+        "EVID-006",
+        "EVID-007"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "ASSUMP-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "AC-001"
+      ]
+    },
+    {
+      "id": "ASSUMP-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "ASSUMP-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-008",
+        "GATE-OPS-01",
+        "AUTH-001"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "RISK-002",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-002",
+        "AC-003",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-003",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-004",
+        "AC-005",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-004",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-006",
+        "UNIT-007"
+      ],
+      "criterion_ids": [
+        "AC-006",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "RISK-005",
+      "status": "OPEN",
+      "artifact_path": "00-PLAN.md",
+      "unit_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008"
+      ],
+      "criterion_ids": [
+        "AC-001",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Every cloud finding and security pull request needs exactly one evidence-backed disposition and implementation owner before product edits begin.",
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-002",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-002"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Authorization, identity, session, and realtime boundaries require explicit negative-path, revocation, tenant-isolation, and replay tests.",
+      "test_ids": [
+        "TEST-002"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-003",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-003"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Anonymous, bearer-link, browser, API, and Worker surfaces require privacy, origin, size, rate, and cross-recipient regression evidence.",
+      "test_ids": [
+        "TEST-003"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-004",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-004"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Upload, R2, queue, email, and external-effect repairs require failure, idempotency, authorization, recovery, and Workers-runtime evidence.",
+      "test_ids": [
+        "TEST-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-005",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-005"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "D1 privacy, pagination, retention, audit, and tenant-data changes require migration rehearsal, lifecycle, denial, and integrity evidence.",
+      "test_ids": [
+        "TEST-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-006",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-006"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Supply-chain, CI, configuration, dependency, MCP, and local-tooling changes require provenance, containment, token, origin, and workflow tests.",
+      "test_ids": [
+        "TEST-006"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-007",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-007"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "The cumulative fixed candidate must pass the Q2 aggregate with changed and critical mutation evidence plus independent quality and security reviews.",
+      "test_ids": [
+        "TEST-007"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "AC-008",
+      "status": "FAIL",
+      "artifact_path": "00-PLAN.md",
+      "requirement_ids": [
+        "REQ-008"
+      ],
+      "test_requirement": "TEST_TASK",
+      "test_trigger": "EXPLICIT_TEST_TASK",
+      "test_rationale": "Closeout requires a final Codex Security rerun, 200-row reconciliation, validated manifest, and no hosted or release overclaim.",
+      "test_ids": [
+        "TEST-008"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-002"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-003"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-004"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-006"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-007"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "TEST-008",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-RECONCILIATION",
+      "status": "FAIL",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-001",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-003"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-AUTH",
+      "status": "FAIL",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-002"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-PUBLIC",
+      "status": "FAIL",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-003"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-DATA-ASYNC",
+      "status": "FAIL",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-004",
+        "AC-005"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-SUPPLY",
+      "status": "FAIL",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-006"
+      ],
+      "evidence_ids": [
+        "EVID-005"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-Q2",
+      "status": "FAIL",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "criterion_ids": [
+        "AC-007",
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-006"
+      ],
+      "authorization_boundary_id": null
+    },
+    {
+      "id": "GATE-OPS-01",
+      "status": "BOUNDARY",
+      "artifact_path": "00-PLAN.md",
+      "criterion_ids": [
+        "AC-008"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ],
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003"
+      ],
+      "owner_capability": "security-reconciliation-lead",
+      "write_scope": "plan-pack and private read-only evidence only; no product-source writes",
+      "barrier": "Code-Improvement UNIT-024 admission/absorption receipt; this manifest remains permanently non-runnable",
+      "recovery": "preserve the last-good ledger and fingerprints, repair reconciliation forward, and keep this pack NOT_READY until Code-Improvement UNIT-024 reissues its admission receipt",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-002",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "owner_capability": "authorization-engineer",
+      "write_scope": "exact auth, identity, session, and realtime paths assigned by UNIT-001",
+      "barrier": "UNIT-001 exact-owner reconciliation",
+      "recovery": "preserve the failing role-resource matrix and last-good candidate, remove duplicate authorization paths by fix-forward repair, and resume from the receipt's focused denial command",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-003",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-003",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "owner_capability": "public-security-engineer",
+      "write_scope": "exact public, privacy, API, browser, and Worker paths assigned by UNIT-001",
+      "barrier": "UNIT-001 exact-owner reconciliation",
+      "recovery": "preserve the failing request-identity fixture and last-good browser/runtime fingerprint, clean only unit-owned fixtures, and resume from the receipt's focused route/browser command",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-004",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-004",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "owner_capability": "async-integrity-engineer",
+      "write_scope": "exact upload, R2, queue, email, and external-effect paths assigned by UNIT-001",
+      "barrier": "UNIT-001 exact-owner reconciliation",
+      "recovery": "do not replay external effects; quarantine unit-owned local objects/messages, preserve idempotency and partial-state evidence, repair forward, and resume from the exact failing command",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-005",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-005",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-003",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "owner_capability": "data-integrity-engineer",
+      "write_scope": "exact D1, privacy, retention, audit, and tenant-data paths assigned by UNIT-001",
+      "barrier": "UNIT-001 exact-owner reconciliation",
+      "recovery": "stop beyond-local migration work, preserve the failing database and evidence fingerprint, create a deterministic forward repair, and resume from the exact rehearsal command",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-006",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-001"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-004",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "owner_capability": "supply-chain-security-engineer",
+      "write_scope": "exact CI, configuration, dependency, MCP, and local-tooling paths assigned by UNIT-001",
+      "barrier": "UNIT-001 exact-owner reconciliation",
+      "recovery": "preserve tool versions, integrity records, failing command, and last-good workflow fingerprint; fix forward with pinned artifacts and resume from the exact focused tooling command",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-007",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-003",
+        "RISK-004",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-005",
+        "EVID-006"
+      ],
+      "owner_capability": "lead-verifier",
+      "write_scope": "gitignored aggregate and review evidence only; no new product-source ownership",
+      "barrier": "every candidate cluster is verified by mapped Code-Improvement evidence or a no-change receipt on one fixed candidate",
+      "recovery": "preserve the integrated candidate fingerprint and reopen only the failed target owner; a zero-delta path verifies through a no-change receipt",
+      "handoff": "full structured handoff with machine-readable evidence"
+    },
+    {
+      "id": "UNIT-008",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "depends_on": [
+        "UNIT-007"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-001",
+        "EVID-002",
+        "EVID-003",
+        "EVID-005",
+        "EVID-006",
+        "EVID-007"
+      ],
+      "owner_capability": "closeout-verifier",
+      "write_scope": "plan-pack, sanitized reconciliation, and private scan/export evidence only",
+      "barrier": "UNIT-007 is VERIFIED from mapped implementation or no-change evidence and Code-Improvement UNIT-020 owns the terminal absorption receipt",
+      "recovery": "preserve private scan logs and the final candidate fingerprint, use the documented deterministic scan fallback once, and reopen the exact failed owner when fallback coverage is incomplete",
+      "handoff": "full structured handoff with machine-readable evidence"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "UNIT-008"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-002",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "UNIT-008",
+        "RISK-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-003",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "AC-001",
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-004",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "AC-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-005",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-006",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-008",
+        "UNIT-008",
+        "GATE-OPS-01",
+        "AUTH-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "UNIT-001",
+        "UNIT-007",
+        "UNIT-008",
+        "RISK-001"
+      ]
+    }
+  ],
+  "authorization_boundaries": [
+    {
+      "id": "AUTH-001",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-008",
+        "AC-008",
+        "GATE-OPS-01"
+      ]
+    }
+  ],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PLANNED",
+      "artifact_path": "evidence/codex-security-findings.json",
+      "claim_ids": [
+        "REQ-001",
+        "REQ-008",
+        "AC-001",
+        "AC-008",
+        "TEST-001",
+        "UNIT-001",
+        "UNIT-008",
+        "GATE-RECONCILIATION"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "360c77440a8277fc01736426b09373a524ef6518780eb94eeb03080f59330625",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "evidence/codex-security-scan-summary.json",
+      "claim_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-008",
+        "AC-001",
+        "TEST-002",
+        "UNIT-001",
+        "UNIT-008"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "e3ab8368be83721b9ec7f354eabebb0b73e8dcbe8b53bc4a9a9ea3134f5db4a5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-003",
+      "status": "PLANNED",
+      "artifact_path": "01-FINDINGS-AND-OVERLAP-RECONCILIATION.md",
+      "claim_ids": [
+        "REQ-001",
+        "REQ-008",
+        "AC-001",
+        "TEST-003",
+        "UNIT-001",
+        "UNIT-008",
+        "GATE-RECONCILIATION"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "efd702a4bba4ff1289644e041ea6e943e923a026c97b19804e7459c66903fc8e",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-004",
+      "status": "PLANNED",
+      "artifact_path": "02-IMPLEMENTATION-UNITS.md",
+      "claim_ids": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "TEST-004",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "1dd815d326ed7c51ae49e62adcdd92dbd60a588719644c45045e6f2da4511249",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-005",
+      "status": "PLANNED",
+      "artifact_path": "03-VERIFICATION-AND-REVIEWS.md",
+      "claim_ids": [
+        "REQ-002",
+        "REQ-003",
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "AC-002",
+        "AC-003",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "AC-007",
+        "AC-008",
+        "TEST-005",
+        "UNIT-007",
+        "UNIT-008",
+        "GATE-AUTH",
+        "GATE-PUBLIC",
+        "GATE-DATA-ASYNC",
+        "GATE-SUPPLY",
+        "GATE-Q2"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "fa79e3fd0a043c8b0d0bb228593569f749d851234d2499399c59db369254457f",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-006",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "REQ-007",
+        "REQ-008",
+        "AC-007",
+        "TEST-006",
+        "UNIT-007",
+        "UNIT-008",
+        "GATE-Q2"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "c966ff28dd891075b589dd37359fbb046d2b5dfee0c206c7176c516e1751017c",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-007",
+      "status": "PLANNED",
+      "artifact_path": "00-PLAN.md",
+      "claim_ids": [
+        "REQ-008",
+        "AC-008",
+        "TEST-007",
+        "TEST-008",
+        "UNIT-008",
+        "GATE-OPS-01",
+        "AUTH-001"
+      ],
+      "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
+      "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "c966ff28dd891075b589dd37359fbb046d2b5dfee0c206c7176c516e1751017c",
+      "valid_until": null
+    }
+  ],
+  "ready_slices": [],
+  "manifest_sha256": "d6777261f3df233e5ab618f5ab6090ae4ea81a0d9e99d245dfc74f7376251a41"
+}

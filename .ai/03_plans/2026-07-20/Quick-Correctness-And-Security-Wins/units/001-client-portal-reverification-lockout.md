@@ -1,5 +1,9 @@
 # UNIT-001 — Fix Client Portal recipient re-verification lockout
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here and absorbed by successor `UNIT-002` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 ## Goal
 
 Stop permanently locking Client Portal recipients out after their first
@@ -10,7 +14,7 @@ matches zero rows once a recipient has verified once, and
 
 ## Status
 
-`READY` · depends on: (none) · requirement: `SEC-001` · risks: (none)
+`SUPERSEDED` · historical dependency: (none) · requirement: `SEC-001` · risks: (none)
 
 ## Why this matters
 

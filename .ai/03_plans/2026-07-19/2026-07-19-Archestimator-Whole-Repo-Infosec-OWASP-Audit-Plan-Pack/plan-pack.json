@@ -5,14 +5,14 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "BOUNDARY",
-  "plan_lifecycle": "ACTIVE",
-  "terminal_status": "ACTIVE",
-  "updated_at": "2026-07-19T16:10:40.000Z",
+  "plan_lifecycle": "N/A",
+  "terminal_status": "CANCELLED",
+  "updated_at": "2026-08-01T05:23:14.490Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-001",
+  "next_unit": null,
   "baseline": {
     "head": "7f9a484b42b0d951f219e3c4ce1bfbb4364e8847",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -23,145 +23,145 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "a806880bbd37ec0031a8651d6f8ac9c2f53d94e2e5a7aec810a357f17b68ec03"
+      "sha256": "d83e3ebf7a4653dd3b16a7c5f9c91927ab5c9acd1cda0f12e15e6a967b497130"
     },
     {
       "id": "ART-002",
       "role": "narrative",
       "path": "README.md",
-      "sha256": "68b2567f7dc7f9198b61b7dc2599aee51a4fa3cdbd0784d773ffc20008949204"
+      "sha256": "b85a28f8d4ed10e2cb2f7ef6f350161f83dd369e34329629d478bff5dd28d11a"
     },
     {
       "id": "ART-003",
       "role": "narrative",
       "path": "01-AUDIT-IDENTITY-AND-COVERAGE.md",
-      "sha256": "d6181f742e4214d1195073f2eef9f6730cae83b74695a1a28ebb8ee1e7805e16"
+      "sha256": "36aeac500c1812e08b59dce15e672c1368f5ccd1ab5ced5610057b50902f9257"
     },
     {
       "id": "ART-004",
       "role": "narrative",
       "path": "02-ARCHITECTURE-THREAT-MODEL-AND-ATTACK-SURFACE.md",
-      "sha256": "e99e5ba57e87406a74b87e4396e4d6af8bd99975fd73594a3c672d21358a418b"
+      "sha256": "51459f837b01d1285b7258fcb60fe7d6343ae1231a8c32f01a3244785da9f148"
     },
     {
       "id": "ART-005",
       "role": "narrative",
       "path": "03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md",
-      "sha256": "918b95f9c8ea1549544411ceb6e0bd50740e4b8053a6b654d3bc31772b8f952e"
+      "sha256": "dc6a5254f326f32fe8efcc2a5b367d21d6c6c6b40a47cfaaafc7dd7c6d0c545b"
     },
     {
       "id": "ART-006",
       "role": "narrative",
       "path": "04-FINDINGS-REGISTER.md",
-      "sha256": "79af731102cc4ea2d526d2be67496a79d5a74f0ac952c748c84ae6d949232890"
+      "sha256": "98c511b65cf52d8718cc4bef3c77eedbd38a918f326d4f56346cddabd19c3ced"
     },
     {
       "id": "ART-007",
       "role": "narrative",
       "path": "05-OWASP-ASVS-API-AI-CROSSWALK.md",
-      "sha256": "748893f97daeb0b6a442b407bc6b00ccd6e756205ac72e3de10034e043657761"
+      "sha256": "f540e2d8eed9b4f69f8af5d4c98828fe3c9fbe285dd7e4959702ce553148a24a"
     },
     {
       "id": "ART-008",
       "role": "narrative",
       "path": "06-REMEDIATION-ROADMAP-AND-SECURITY-GATES.md",
-      "sha256": "a7ea1b56cbdba0803eec6a281a85398d3b81d4d293e8a47a877e4e7555c56d1a"
+      "sha256": "4f66706aae2826aba88053c3813b141b704ddc5eb260ea777c37112f019dbc02"
     },
     {
       "id": "ART-009",
       "role": "narrative",
       "path": "07-BLOCKED-EVIDENCE-AND-AUTHORIZATION.md",
-      "sha256": "3cee48e5ed966d57af5c0542babb1d46d0b886442c23c4be4bc99e250080600b"
+      "sha256": "c960f5b2eca67267fc55d878a247113075be9fdd663e0dfff20313db5c770d5a"
     },
     {
       "id": "ART-010",
       "role": "narrative",
       "path": "08-SECOND-PASS-CHALLENGE-AND-DRIFT-RECONCILIATION.md",
-      "sha256": "26aea52f7ddf6d0b806a21f979d9fdc2da2716c689c47661c59bbba26bccd0c4"
+      "sha256": "06909954b86944e5690aa46c136ed740555f4007b80f1855602f86e7912e44bb"
     },
     {
       "id": "ART-011",
       "role": "unit",
       "path": "units/README.md",
-      "sha256": "15b966d08468429ce89b3af0bfa55540a5c7c74b1f8fc77d0a065e2f381d853e"
+      "sha256": "479b397840ddfde23c5da128ea5ac3d160e1cd346d73ad2dffa2f7fad8c9ea47"
     },
     {
       "id": "ART-012",
       "role": "unit",
       "path": "units/001-realtime-token-revocation.md",
-      "sha256": "f1987ad5f89437c86585dcedcc24b61363d1e597c2a2cdcd59ec8e4d4641ffa6"
+      "sha256": "33f5f71f5c8afa658d4413608ecdc91cc40d9abb2640fc6effdc724848fb379e"
     },
     {
       "id": "ART-013",
       "role": "unit",
       "path": "units/002-worker-edge-seam.md",
-      "sha256": "b54e08c01d921dbfa16500f38ac7c7333cdc2164b54cda488688d0cc57342d23"
+      "sha256": "d006583440cf0262dbceaa533f41f591d8ddf5f57824fe805e9444f7de6ed958"
     },
     {
       "id": "ART-014",
       "role": "unit",
       "path": "units/003-constant-time-bearer-and-secret-cleanup.md",
-      "sha256": "14cfe69f1b6ab973a9a4e58802032913e41aa3f69d558d05fd0808a66ff79492"
+      "sha256": "3ac0eb611b97c5da89f861a592fa86de16bee666a6ccda9e64ac2bdd3aab7540"
     },
     {
       "id": "ART-015",
       "role": "unit",
       "path": "units/004-email-boundary-chokepoint.md",
-      "sha256": "3355fd28ad85b9dae4a67df6e4885fc58cd0d9b415391d3cd6caf5e2707149fb"
+      "sha256": "991a4a4848f539c817b868d6b072db9507c06316d8b5dc0c4b55d2f466d2ca2b"
     },
     {
       "id": "ART-016",
       "role": "unit",
       "path": "units/005-scan-bind-invariant.md",
-      "sha256": "83d4c26a9087e18f2a7dbc3d7a4dd3b2fd8759c8d002fe3125a0eafa567793bb"
+      "sha256": "94613b99d0922302f4bc44f22ee442c03b88a483b7dd6a0523c571478b72792f"
     },
     {
       "id": "ART-017",
       "role": "unit",
       "path": "units/006-direct-upload-finalize-integrity.md",
-      "sha256": "6102e6b59b82a43de9ac8233d454f5320d9c035f04ce5be7025904940fc6e024"
+      "sha256": "2a7de85b1c907b886fba7f68410442800ea9b0b2ecb640f7d77572a98529cb1e"
     },
     {
       "id": "ART-018",
       "role": "unit",
       "path": "units/007-scan-byte-ceiling.md",
-      "sha256": "46da1225a576a1e42c888f9088d28fb49f38714d46e0242c08845dd94cfe096b"
+      "sha256": "6244904250610443a64657e7e8285382e6e4dee39aa511f755f5015cecc69489"
     },
     {
       "id": "ART-019",
       "role": "unit",
       "path": "units/008-queue-message-signing.md",
-      "sha256": "1a6383415abab3d0f77e3c621b4f91796205a57b3bd44293c560061d88c8d387"
+      "sha256": "f8d9d3b720e6d5474d1ff59dc6f7661bc8643560e426a5c6968674cd74a7f5ab"
     },
     {
       "id": "ART-020",
       "role": "unit",
       "path": "units/009-browser-hardening.md",
-      "sha256": "1968b1f898f4df34399e9aef5de2ad892e4c0c635d85c84fb0e7abf109e5e9e5"
+      "sha256": "ee52f6bc8bc842e756e5ca2f581bc30ce463d22eaac36125399d4e094f1499f6"
     },
     {
       "id": "ART-021",
       "role": "unit",
       "path": "units/010-cron-redaction-and-audit-pii.md",
-      "sha256": "af7dfca063594fb609ac74f2167ca3e85e48214056467a86f0189f1097938cbd"
+      "sha256": "668fe0f335d6772d60e82c21c6ce573af299bb60d8d180cc50b96f1c4d65bcef"
     },
     {
       "id": "ART-022",
       "role": "unit",
       "path": "units/011-retention-registry.md",
-      "sha256": "428daf55be844ec1a1aeabc24957ad76eb488ec668712c5bde869e3c148d5919"
+      "sha256": "09c0dc6cf8453349513c7a10916abffdce8e4e5531050188f83e622d06cdbebf"
     },
     {
       "id": "ART-023",
       "role": "unit",
       "path": "units/012-ci-and-branch-protection.md",
-      "sha256": "ef4bc290d5da9193cdbda2d43e8689c5b372f56fb53191f81594da5ff4312105"
+      "sha256": "24b525aea8a1a5e1890b5b4fab1ed2784f9531271c2c99f98b0de20fef48b3bf"
     },
     {
       "id": "ART-024",
       "role": "unit",
       "path": "units/013-defense-in-depth-backlog.md",
-      "sha256": "c099d218e68a0d403328288245ddebb9f8112eaf6d90cecfb79abfc10e2883a1"
+      "sha256": "df636d519f5b29ad50aef9d66f8e6a3389d48c62268864974a14499d3ee62c8b"
     },
     {
       "id": "ART-025",
@@ -227,13 +227,13 @@
       "id": "ART-035",
       "role": "evidence",
       "path": "artifacts/commands-run.log",
-      "sha256": "9df19ec0369ac8280121f68ebe9e74ee4471022e2cfce16cadd1af08f2f150da"
+      "sha256": "cf8cd0869ac28a0109b385764023f69b914dd2d7a0ad86fe4150b2f55c4b6f50"
     },
     {
       "id": "ART-036",
       "role": "manifest",
       "path": "PACK-MANIFEST.md",
-      "sha256": "d946e4e26bc659e4f55bf3ffb0ff772c56803830b813d32f14fadbd0ccf7eeac"
+      "sha256": "dfaa798ec8afb31a6581de4e1d5137c64aa5de0d899d5579093452451d65f6d1"
     }
   ],
   "sources": [
@@ -525,6 +525,26 @@
       "affected_ids": [
         "SEC-007",
         "UNIT-012"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "00-PLAN.md",
+      "affected_ids": [
+        "UNIT-001",
+        "UNIT-002",
+        "UNIT-003",
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007",
+        "UNIT-008",
+        "UNIT-009",
+        "UNIT-010",
+        "UNIT-011",
+        "UNIT-012",
+        "UNIT-013"
       ]
     }
   ],
@@ -888,7 +908,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/001-realtime-token-revocation.md",
       "depends_on": [],
       "requirement_ids": [
@@ -901,7 +921,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/002-worker-edge-seam.md",
       "depends_on": [],
       "requirement_ids": [
@@ -916,7 +936,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/003-constant-time-bearer-and-secret-cleanup.md",
       "depends_on": [],
       "requirement_ids": [
@@ -931,7 +951,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/004-email-boundary-chokepoint.md",
       "depends_on": [],
       "requirement_ids": [
@@ -946,7 +966,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/005-scan-bind-invariant.md",
       "depends_on": [],
       "requirement_ids": [
@@ -961,7 +981,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/006-direct-upload-finalize-integrity.md",
       "depends_on": [],
       "requirement_ids": [
@@ -977,7 +997,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/007-scan-byte-ceiling.md",
       "depends_on": [],
       "requirement_ids": [
@@ -992,7 +1012,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/008-queue-message-signing.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1007,7 +1027,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/009-browser-hardening.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1022,7 +1042,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/010-cron-redaction-and-audit-pii.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1037,7 +1057,7 @@
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/011-retention-registry.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1052,7 +1072,7 @@
     },
     {
       "id": "UNIT-012",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/012-ci-and-branch-protection.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1067,7 +1087,7 @@
     },
     {
       "id": "UNIT-013",
-      "status": "READY",
+      "status": "SUPERSEDED",
       "artifact_path": "units/013-defense-in-depth-backlog.md",
       "depends_on": [],
       "requirement_ids": [
@@ -1086,32 +1106,13 @@
       ]
     }
   ],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011",
-        "UNIT-012",
-        "UNIT-013"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
       "status": "PLANNED",
       "artifact_path": "units/001-realtime-token-revocation.md",
-      "sha256": "f1987ad5f89437c86585dcedcc24b61363d1e597c2a2cdcd59ec8e4d4641ffa6",
+      "sha256": "33f5f71f5c8afa658d4413608ecdc91cc40d9abb2640fc6effdc724848fb379e",
       "claim_ids": [
         "UNIT-001",
         "AC-001"
@@ -1123,7 +1124,7 @@
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "units/002-worker-edge-seam.md",
-      "sha256": "b54e08c01d921dbfa16500f38ac7c7333cdc2164b54cda488688d0cc57342d23",
+      "sha256": "d006583440cf0262dbceaa533f41f591d8ddf5f57824fe805e9444f7de6ed958",
       "claim_ids": [
         "UNIT-002",
         "UNIT-003",
@@ -1137,7 +1138,7 @@
       "id": "EVID-003",
       "status": "PASS",
       "artifact_path": "units/004-email-boundary-chokepoint.md",
-      "sha256": "3355fd28ad85b9dae4a67df6e4885fc58cd0d9b415391d3cd6caf5e2707149fb",
+      "sha256": "991a4a4848f539c817b868d6b072db9507c06316d8b5dc0c4b55d2f466d2ca2b",
       "claim_ids": [
         "UNIT-004",
         "AC-003"
@@ -1149,7 +1150,7 @@
       "id": "EVID-004",
       "status": "PLANNED",
       "artifact_path": "units/005-scan-bind-invariant.md",
-      "sha256": "83d4c26a9087e18f2a7dbc3d7a4dd3b2fd8759c8d002fe3125a0eafa567793bb",
+      "sha256": "94613b99d0922302f4bc44f22ee442c03b88a483b7dd6a0523c571478b72792f",
       "claim_ids": [
         "UNIT-005",
         "UNIT-007",
@@ -1162,7 +1163,7 @@
       "id": "EVID-005",
       "status": "PASS",
       "artifact_path": "units/006-direct-upload-finalize-integrity.md",
-      "sha256": "6102e6b59b82a43de9ac8233d454f5320d9c035f04ce5be7025904940fc6e024",
+      "sha256": "2a7de85b1c907b886fba7f68410442800ea9b0b2ecb640f7d77572a98529cb1e",
       "claim_ids": [
         "UNIT-006",
         "AC-005"
@@ -1174,7 +1175,7 @@
       "id": "EVID-006",
       "status": "PASS",
       "artifact_path": "units/010-cron-redaction-and-audit-pii.md",
-      "sha256": "af7dfca063594fb609ac74f2167ca3e85e48214056467a86f0189f1097938cbd",
+      "sha256": "668fe0f335d6772d60e82c21c6ce573af299bb60d8d180cc50b96f1c4d65bcef",
       "claim_ids": [
         "UNIT-010",
         "AC-006"
@@ -1186,7 +1187,7 @@
       "id": "EVID-007",
       "status": "PLANNED",
       "artifact_path": "units/012-ci-and-branch-protection.md",
-      "sha256": "ef4bc290d5da9193cdbda2d43e8689c5b372f56fb53191f81594da5ff4312105",
+      "sha256": "24b525aea8a1a5e1890b5b4fab1ed2784f9531271c2c99f98b0de20fef48b3bf",
       "claim_ids": [
         "UNIT-012",
         "AC-007",
@@ -1199,7 +1200,7 @@
       "id": "EVID-008",
       "status": "PASS",
       "artifact_path": "units/008-queue-message-signing.md",
-      "sha256": "1a6383415abab3d0f77e3c621b4f91796205a57b3bd44293c560061d88c8d387",
+      "sha256": "f8d9d3b720e6d5474d1ff59dc6f7661bc8643560e426a5c6968674cd74a7f5ab",
       "claim_ids": [
         "UNIT-008",
         "AC-008"
@@ -1211,7 +1212,7 @@
       "id": "EVID-009",
       "status": "PASS",
       "artifact_path": "units/009-browser-hardening.md",
-      "sha256": "1968b1f898f4df34399e9aef5de2ad892e4c0c635d85c84fb0e7abf109e5e9e5",
+      "sha256": "ee52f6bc8bc842e756e5ca2f581bc30ce463d22eaac36125399d4e094f1499f6",
       "claim_ids": [
         "UNIT-009",
         "UNIT-013",
@@ -1224,7 +1225,7 @@
       "id": "EVID-010",
       "status": "PLANNED",
       "artifact_path": "units/011-retention-registry.md",
-      "sha256": "428daf55be844ec1a1aeabc24957ad76eb488ec668712c5bde869e3c148d5919",
+      "sha256": "09c0dc6cf8453349513c7a10916abffdce8e4e5531050188f83e622d06cdbebf",
       "claim_ids": [
         "UNIT-011",
         "AC-010",
@@ -1237,7 +1238,7 @@
       "id": "EVID-011",
       "status": "PASS",
       "artifact_path": "03-HISTORICAL-AND-ACTIVE-PLAN-RECONCILIATION.md",
-      "sha256": "918b95f9c8ea1549544411ceb6e0bd50740e4b8053a6b654d3bc31772b8f952e",
+      "sha256": "dc6a5254f326f32fe8efcc2a5b367d21d6c6c6b40a47cfaaafc7dd7c6d0c545b",
       "claim_ids": [
         "AC-011",
         "GATE-SEC-01",
@@ -1256,5 +1257,5 @@
     "cloudflare/*-proof-router.ts edits",
     "retention-core.ts edits"
   ],
-  "manifest_sha256": "f8c3162ed3620cd4b0f10f1b217d281dad5b074e94ea548a4e1d321786940bde"
+  "manifest_sha256": "1b3dbbb5fbd1056202c1bbd90b6ae57ed3c721db73069e41b754b80dba10e813"
 }

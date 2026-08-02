@@ -1,5 +1,9 @@
 # 05 — OWASP / ASVS / API / AI Crosswalk
 
+> **Historical audit provenance.** Current execution authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`; this crosswalk preserves the July
+> 19 assessment and makes no remediation or certification claim.
+
 Per master prompt §3, this is a **coverage map**, not a certification. Each framework category ends in exactly one of: `VERIFIED_NO_ACCEPTED_FINDING` · `ACCEPTED_FINDING` · `PARTIALLY_VERIFIED` · `NOT_APPLICABLE` · `EVIDENCE_BLOCKED`.
 
 ## 5.1 OWASP Top 10:2025

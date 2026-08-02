@@ -1,5 +1,11 @@
 # UNIT-002 — Flip 4 float-fed surfaces to the oracle; resolve ARCH-08; route AI budget
 
+> **Historical provenance only — do not execute.** This unit is `SUPERSEDED`
+> without implementation here. Only its confirmed external aggregate subset is
+> absorbed by successor `UNIT-029` in
+> `.ai/03_plans/2026-07-31/Code-Improvement/`; the quantity-free AI draft
+> subclaim is not promoted.
+
 ## Goal
 
 Flip the 4 user-facing surfaces that display float-derived totals so they call
@@ -9,7 +15,7 @@ through the oracle.
 
 ## Status
 
-`READY` · depends on: `UNIT-001` · requirement: `DATA-002` · risks: `RISK-001`, `RISK-002`
+`SUPERSEDED` · historical dependency: `UNIT-001` · requirement: `DATA-002` · risks: `RISK-001`, `RISK-002`
 
 ## Why this matters
 

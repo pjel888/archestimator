@@ -1,6 +1,10 @@
 # 001 — Realtime Token Revocation via DO SQLite Denylist + ≤60s TTL
 
-> Closes the only accepted **High**: `SEC-COLLAB-003`. This is `next_unit`.
+> **Historical provenance only.** `UNIT-001` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
+> Originally proposed to close the only accepted **High**: `SEC-COLLAB-003`.
 
 ## unit_id
 `UNIT-001`
@@ -9,7 +13,7 @@
 Realtime token revocation via DO SQLite denylist + ≤60s TTL.
 
 ## status
-`READY`
+`SUPERSEDED`
 
 ## priority
 `P0` (launch blocker for realtime collaboration with external users)
@@ -130,7 +134,9 @@ If the denylist table causes DO SQLite errors in production, the fail-closed beh
 The `CollaborationRoom` DO is single-threaded per instance; concurrent revoke + authorize serialize through the DO event loop. No additional locking needed.
 
 ## completion_signal
-`UNIT-001` is `DONE` when all five acceptance criteria are evidenced. The pack's `next_unit` then advances to `UNIT-002` (or whichever unit the executor picks next; all are independent).
+The original completion proposal required all five acceptance criteria. This
+predecessor did not execute or complete the unit.
 
-## next_unit_on_success
-Any of `UNIT-002` through `UNIT-013` (all are dependency-free). Recommended: `UNIT-005` (next-highest user-impact — see `06-REMEDIATION-ROADMAP-AND-SECURITY-GATES.md` §6.5).
+## historical_next_unit_on_success
+The original proposal recommended `UNIT-005`. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

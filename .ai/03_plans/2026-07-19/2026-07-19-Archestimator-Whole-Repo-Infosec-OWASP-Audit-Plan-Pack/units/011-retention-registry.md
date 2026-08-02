@@ -1,9 +1,13 @@
 # 011 — Retention Registry: Cover All PII/Event Tables
 
+> **Historical provenance only.** `UNIT-011` is `SUPERSEDED` by `DEC-AUTO-007`.
+> This predecessor did not implement the unit; current authority is
+> `.ai/03_plans/2026-07-31/Code-Improvement/`.
+
 > Closes `SEC-PRIV-002`.
 
 ## unit_id
-`UNIT-011` · **status:** `READY` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED` (hosted backup-side purge is `AUTH-002`).
+`UNIT-011` · **status:** `SUPERSEDED` · **priority:** P2 · **effort:** S · **implementation_risk:** LOW · **local_implementation_status:** `NOT_STARTED` · **external_lifecycle_status:** `NOT_REQUIRED` (hosted backup-side purge is `AUTH-002`).
 
 ## requirements / findings
 - Requirements: `SEC-010`.
@@ -80,5 +84,6 @@ Coordinate with `UNIT-010`.
 ## completion_signal
 All three acceptance criteria evidenced. `DONE`.
 
-## next_unit_on_success
-Any other unit.
+## historical_next_unit_on_success
+The original proposal allowed any other unit. The retired pack now has
+`next_unit=null`; use `.ai/03_plans/2026-07-31/Code-Improvement/`.

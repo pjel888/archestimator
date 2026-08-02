@@ -1,0 +1,4024 @@
+{
+  "schema_version": "1.0",
+  "source_sha256": "1f609590acd7edd1597bbb59d2a0ae96ecef3cd302a68828fecf29833f1c99f0",
+  "source_order": "Exact CSV row order from the private 2026-08-01 Codex cloud export.",
+  "finding_count": 200,
+  "cloud_summary": {
+    "severity_counts": {
+      "high": 14,
+      "informational": 73,
+      "low": 33,
+      "medium": 80
+    },
+    "status_counts": {
+      "new": 200
+    },
+    "patch_available": 43,
+    "patch_unavailable": 157
+  },
+  "disposition_counts": {
+    "ACTIVE_EXISTING_UNIT": 7,
+    "DUPLICATE_CURRENT_FINDING": 6,
+    "MIGRATED_BUT_REQUIRES_REAUDIT": 1,
+    "MISDIAGNOSED_OR_REFUTED": 4,
+    "NEEDS_RUNTIME_OR_HOSTED_EVIDENCE": 4,
+    "OBSOLETE_PROVIDER": 20,
+    "REGRESSED": 1,
+    "REMEDIATED_AND_VERIFIED": 54,
+    "STILL_PRESENT": 103
+  },
+  "findings": [
+    {
+      "id": "CSF-001",
+      "title": "Commercial terms bypass private estimate-sheet access",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-30T07:09:02.016009Z",
+      "commit_hash": "3b35b714ae37ecc715587e97b18472d678a3c10a",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/commercial-terms/actions.ts",
+        "src/lib/commercial-terms/repository.ts",
+        "src/lib/authz/d1-access.ts"
+      ],
+      "disposition": "MISDIAGNOSED_OR_REFUTED",
+      "cluster": "commercial-terms authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/commercial-terms/repository.ts",
+        "src/lib/estimates/d1-intents/intent-context.ts",
+        "src/lib/authz/d1-access.ts",
+        "Codex Security validation f53b2642e3f8f48e7c64ab10699e58ed9083d3b45c0dc450c36669ec6a8961b1"
+      ]
+    },
+    {
+      "id": "CSF-002",
+      "title": "Client portal manifest leaks hidden row-level change details",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T19:29:29.607860Z",
+      "commit_hash": "44138fe55030036abab2da30e6e96e4c1220c5bf",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/client-portal/publish-service.ts",
+        "src/lib/client-portal/change-set-repository.ts",
+        "src/lib/client-portal/change-set.ts",
+        "src/lib/client-portal/issue-builder.ts",
+        "src/lib/client-portal/public-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "client-portal disclosure",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/client-portal/change-set.ts",
+        "src/lib/client-portal/public-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-003",
+      "title": "Release workflow attests arbitrary untrusted commits",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-25T01:21:51.407601Z",
+      "commit_hash": "399b4e669567f1477053eb20e100f2af00c67033",
+      "has_patch": true,
+      "relevant_paths": [
+        "github/workflows/release-evidence.yml"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "release supply chain",
+      "confidence": "high",
+      "evidence": [
+        ".github/workflows/release-evidence.yml"
+      ]
+    },
+    {
+      "id": "CSF-004",
+      "title": "Deleted-account gate is bypassed and may crash D1 auth",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T20:07:09.484919Z",
+      "commit_hash": "5a76fc0a34463219983be87d7e2aceeb78b99d54",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/auth/profile-d1-store.ts",
+        "src/lib/auth/session.ts",
+        "migrations/0003_profiles.sql",
+        "src/lib/auth/account-membership.ts",
+        "src/lib/repositories/workspace-repository.ts",
+        "migrations/0007_collaboration_invitations.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "account lifecycle",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/auth/profile-d1-store.ts",
+        "src/lib/auth/session.ts"
+      ]
+    },
+    {
+      "id": "CSF-005",
+      "title": "Agent bootstrap installs mutable third-party code",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-19T06:36:23.619672Z",
+      "commit_hash": "b2a934919ce499c0404e5b9f9a5644f22757c78a",
+      "has_patch": true,
+      "relevant_paths": [
+        "ai/08_prompts/MacBook-Pro-Agentic-Workflow-Bootstrap-Prompt.md"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "agent supply chain",
+      "confidence": "high",
+      "evidence": [
+        ".ai/09_archive/08_prompts/MacBook-Pro-Agentic-Workflow-Bootstrap-Prompt.md",
+        "PR 124"
+      ]
+    },
+    {
+      "id": "CSF-006",
+      "title": "Component delete bypasses estimate edit authorization",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-15T15:33:23.239519Z",
+      "commit_hash": "62a58e923588ea14d2cc55a9cf0ea6b1ae39262d",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/component-permanent-delete.ts"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "component-library authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/component-mutation-d1.ts",
+        "PR 125"
+      ]
+    },
+    {
+      "id": "CSF-007",
+      "title": "Library delete can remove rows from restricted estimates",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-15T07:21:13.734244Z",
+      "commit_hash": "1614ffdcc5f1d0fe5eea2869aeab28aabfcd70d8",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/authz/d1-access.ts",
+        "migrations/0008_estimate_sheet_user_preferences.sql"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "component-library authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/component-permanent-delete.ts",
+        "PR 126"
+      ]
+    },
+    {
+      "id": "CSF-008",
+      "title": "Library edits bypass restricted estimate permissions",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-13T07:38:09.841421Z",
+      "commit_hash": "489d35ddf2c63c7254379ba1906df73cc167e048",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/authz/d1-access.ts",
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "component propagation authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/actions.ts",
+        "PR 127"
+      ]
+    },
+    {
+      "id": "CSF-009",
+      "title": "Corporate suspension does not revoke workspace access",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T01:06:03.752319Z",
+      "commit_hash": "99b9e923d14023f295e128b2b10059a26d02ee4e",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/components/admin/AdminAccountStatusControls.tsx",
+        "src/lib/admin/corporate-account-actions.ts",
+        "src/lib/admin/corporate-account-repository.ts",
+        "src/lib/auth/session.ts",
+        "src/lib/auth/account-membership.ts"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "corporate-account authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/authz/d1-access.ts",
+        "PR 128"
+      ]
+    },
+    {
+      "id": "CSF-010",
+      "title": "Estimate row updates bypass sheet edit permissions",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-07T17:16:51.839412Z",
+      "commit_hash": "bbedf4177a491eb3d269f828028a26961a9f2cbd",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/estimates/actions.ts",
+        "src/lib/estimates/d1-action-client.ts",
+        "src/lib/authz/d1-access.ts"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "estimate mutation authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/d1-intents/rows.ts",
+        "PR 129"
+      ]
+    },
+    {
+      "id": "CSF-011",
+      "title": "Unpinned npm exec in agent workflow enables supply-chain RCE",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-07-02T07:16:17.716915Z",
+      "commit_hash": "7a5fd21f55f1db556b00127731ad008552e55acc",
+      "has_patch": true,
+      "relevant_paths": [
+        "ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
+        "ai/08_prompts/templates/codebase-ai-loop-task.md",
+        "AGENTS.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "agent supply chain",
+      "confidence": "high",
+      "evidence": [
+        "AGENTS.md",
+        ".agents/skills/gitnexus/gitnexus-cli/SKILL.md"
+      ]
+    },
+    {
+      "id": "CSF-012",
+      "title": "Opaque origins trusted for live-server token script",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:56:28.131225Z",
+      "commit_hash": "7d061cdf4a74761a4ee9e77a745351e1aa7f844d",
+      "has_patch": true,
+      "relevant_paths": [
+        "agents/skills/impeccable/scripts/live-server.mjs",
+        "claude/skills/impeccable/scripts/live-server.mjs",
+        "cursor/skills/impeccable/scripts/live-server.mjs",
+        "github/skills/impeccable/scripts/live-server.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "local tooling security",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/impeccable/scripts/live-server.mjs"
+      ]
+    },
+    {
+      "id": "CSF-013",
+      "title": "Seed repair can clone tenant-supplied components to all workspaces",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:37:09.552573Z",
+      "commit_hash": "0bc928219296257f10ddec03123705ed9a20b907",
+      "has_patch": true,
+      "relevant_paths": [
+        "supabase/migrations/20260605123000_workspace_scoped_component_seed_ids.sql",
+        "supabase/migrations/20260523120957_component_library_item_versioning.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/",
+        "wrangler.jsonc"
+      ]
+    },
+    {
+      "id": "CSF-014",
+      "title": "Workspace viewers can mutate component library versions",
+      "cloud_severity": "high",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:58:08.811072Z",
+      "commit_hash": "3009bf40ef6997571ed9af215dd83acb45665324",
+      "has_patch": true,
+      "relevant_paths": [
+        "supabase/migrations/20260523120957_component_library_item_versioning.sql",
+        "src/lib/component-library/actions.ts"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/",
+        "wrangler.jsonc"
+      ]
+    },
+    {
+      "id": "CSF-015",
+      "title": "Static gate logs previous source contents",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-30T10:39:20.759319Z",
+      "commit_hash": "8945f01a979dc122c1a92bad82f9e47372d4ce75",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/quality/static.ts",
+        "scripts/quality/common.ts",
+        "github/workflows/quality.yml"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "quality tooling disclosure",
+      "confidence": "high",
+      "evidence": [
+        "scripts/quality/static.ts",
+        "scripts/quality/common.ts"
+      ]
+    },
+    {
+      "id": "CSF-016",
+      "title": "Expired portal issue decisions remain readable",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T06:27:39.373673Z",
+      "commit_hash": "b0678a4d68afd4a4c5968ba5921af394c435f5dd",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/client-portal/public-decision-handlers.ts",
+        "src/lib/client-portal/decision-service.ts",
+        "src/lib/client-portal/public-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "portal expiry enforcement",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/client-portal/decision-service.ts"
+      ]
+    },
+    {
+      "id": "CSF-017",
+      "title": "Artifact archive audit events misattribute users as system",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T05:01:09.798167Z",
+      "commit_hash": "1eb803f8f4f239673df8582333204bd777120f67",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/project-artifacts/service.ts",
+        "src/app/api/projects/[projectId]/artifacts/_route-core.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "audit integrity",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/projects/[projectId]/artifacts/_route-core.ts",
+        "src/lib/artifacts/service.ts"
+      ]
+    },
+    {
+      "id": "CSF-018",
+      "title": "Public share summary leaks portal cost metadata",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T05:03:28.634090Z",
+      "commit_hash": "8bde1335f8314d8ce36d90b4da66f563336f36eb",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/share/[token]/summary/route.ts",
+        "src/lib/client-portal/public-route-handlers.ts",
+        "src/lib/client-portal/public-repository.ts",
+        "src/lib/client-portal/timeline-repository.ts",
+        "src/lib/client-portal/policy.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "portal metadata disclosure",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/client-portal/timeline-repository.ts",
+        "src/lib/client-portal/public-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-019",
+      "title": "Editors can view restricted client portal commitment data",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T05:03:34.759273Z",
+      "commit_hash": "6d53a0bc5530000ee80d2dbd60c1fa757e34c6e1",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/workshop/publisher/page.tsx",
+        "src/lib/publisher/commitment-center-repository.ts",
+        "src/components/workshop/publisher/CommitmentCenterClient.tsx",
+        "src/lib/client-portal/policy.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "publisher authorization",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/publisher/commitment-center-repository.ts",
+        "src/app/publisher/page.tsx"
+      ]
+    },
+    {
+      "id": "CSF-020",
+      "title": "Section-restricted portal discussions leak via timeline",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T05:01:56.449424Z",
+      "commit_hash": "c653ae8a70f5a2109e3c49a08dd62bc5fbfaaab4",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/client-portal/public-thread-handlers.ts",
+        "src/lib/client-portal/thread-repository.ts",
+        "src/lib/client-portal/issued-target-resolver.ts",
+        "src/lib/client-portal/timeline-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "portal visibility policy",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/client-portal/policy.ts",
+        "src/lib/client-portal/timeline-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-021",
+      "title": "Client portal manifest leaks restricted issue artifacts",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T18:56:39.103641Z",
+      "commit_hash": "6e36060058b46a1b1914b5641e07032a6e81c01f",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/client-portal/issue-builder.ts",
+        "src/lib/client-portal/public-repository.ts",
+        "src/app/api/share/[token]/artifacts/[publicArtifactId]/_route-core.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "portal artifact disclosure",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/client-portal/public-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-022",
+      "title": "Unpinned GitNexus install path enables supply-chain RCE",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-24T09:43:50.962502Z",
+      "commit_hash": "df647d205b52891830ebc425caecd82586f4d719",
+      "has_patch": false,
+      "relevant_paths": [
+        "agents/skills/gitnexus/gitnexus-cli/SKILL.md",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/run-safe-gitnexus-command.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "agent supply chain",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/gitnexus/gitnexus-cli/SKILL.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "id": "CSF-023",
+      "title": "CSRF can create auto-verified privacy requests",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-22T12:27:45.525885Z",
+      "commit_hash": "13e168e1d5bde9a15bc48aeb7ae58db893641d08",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/auth/request-proxy.ts",
+        "src/app/api/compliance/privacy-requests/route.ts",
+        "src/lib/compliance/privacy-request-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "privacy-request CSRF",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/compliance/privacy-requests/route.ts",
+        "src/lib/compliance/privacy-request-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-024",
+      "title": "Dev auth bypass can target production D1/R2",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T14:38:31.439174Z",
+      "commit_hash": "c0098e0909f2d27c08d42e100f6b4452c9711446",
+      "has_patch": false,
+      "relevant_paths": [
+        "next.config.ts",
+        "wrangler.next-dev.remote.jsonc",
+        "src/lib/auth/dev-auth-gate.ts",
+        "src/lib/auth/request-proxy.ts",
+        "src/lib/auth/session.ts",
+        "src/lib/auth/dev-auth.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "development safety",
+      "confidence": "high",
+      "evidence": [
+        "next.config.ts",
+        "src/lib/auth/dev-auth-gate.ts"
+      ]
+    },
+    {
+      "id": "CSF-025",
+      "title": "Maintenance mode can be bypassed by estimate write actions",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T18:59:28.731404Z",
+      "commit_hash": "0ec5a9fda16bae8381f5bad0a0b88ec14a33117c",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/feature-gates/catalog.ts",
+        "src/lib/auth/session.ts",
+        "src/lib/feature-gates/enforce.ts",
+        "src/components/workshop/WorkshopShell.tsx",
+        "src/lib/estimates/actions.ts",
+        "src/lib/projects/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "maintenance write gate",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/actions.ts",
+        "src/lib/auth/session.ts"
+      ]
+    },
+    {
+      "id": "CSF-026",
+      "title": "Magic-link requests can falsely activate beta invites",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T17:53:02.980879Z",
+      "commit_hash": "5f8feb80ed0d9b65b0ad5663e90c44979512749a",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/auth/better-auth-cloudflare.ts",
+        "src/lib/auth/closed-beta-auth-gate.ts",
+        "src/lib/auth/closed-beta-d1-store.ts",
+        "src/components/admin/AdminAllowlistManager.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "closed-beta authentication",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/auth/better-auth-cloudflare.ts",
+        "src/lib/auth/closed-beta-d1-store.ts"
+      ]
+    },
+    {
+      "id": "CSF-027",
+      "title": "Inbound support email lacks abuse rate limiting",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-20T17:51:28.840220Z",
+      "commit_hash": "e34f29cd9ed05942464e3e21b65021c83c148614",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/email/inbound-support-email.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "email abuse controls",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/email/inbound-support-email.ts"
+      ]
+    },
+    {
+      "id": "CSF-028",
+      "title": "Linked template panel leaks restricted estimate names",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-18T10:26:05.773780Z",
+      "commit_hash": "a693c071f8d8ed39793246ca21fb670d7b4f17ee",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/components/workshop/library/template-editor/TemplateEditorClient.tsx",
+        "src/lib/component-library/template-editor-actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "template disclosure",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/template-editor-actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-029",
+      "title": "Archived templates remain insertable via copy mode",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-18T10:26:41.893827Z",
+      "commit_hash": "e05173061682a089fbef05253bc035135871e253",
+      "has_patch": true,
+      "relevant_paths": [
+        "migrations/0092_linked_estimate_template_instances.sql",
+        "src/lib/component-library/actions.ts",
+        "src/lib/repositories/component-library-repository.ts",
+        "src/lib/estimates/d1-intents/templates.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "template lifecycle",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/d1-intents/templates.ts"
+      ]
+    },
+    {
+      "id": "CSF-030",
+      "title": "Unscoped D1 library reads allow foreign source links",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T06:06:06.689162Z",
+      "commit_hash": "df7bd4b5b51ca06eb1738fa23242eebd6e813975",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/estimates/d1-action-client.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "D1 tenant isolation",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/d1-intents/rows.ts"
+      ]
+    },
+    {
+      "id": "CSF-031",
+      "title": "Unpinned MCP server executes shadcn@latest via npx",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T06:04:45.040431Z",
+      "commit_hash": "01b9a507225c0552ab7291c2c62ebdc2ef7f938c",
+      "has_patch": true,
+      "relevant_paths": [
+        "cursor/mcp.json",
+        "mcp.json",
+        "opencode.json"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "MCP supply chain",
+      "confidence": "high",
+      "evidence": [
+        ".mcp.json",
+        ".cursor/mcp.json",
+        "opencode.json"
+      ]
+    },
+    {
+      "id": "CSF-032",
+      "title": "Admin communications page lacks local admin authorization",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T05:58:26.959868Z",
+      "commit_hash": "f86fc15df8928fa1045fd6f1b3d59f60c16fbd29",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/app/admin/communications/page.tsx",
+        "src/lib/admin/communications-repository.ts",
+        "src/app/admin/layout.tsx",
+        "src/lib/auth/request-proxy.ts"
+      ],
+      "disposition": "MISDIAGNOSED_OR_REFUTED",
+      "cluster": "admin authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/app/admin/layout.tsx"
+      ]
+    },
+    {
+      "id": "CSF-033",
+      "title": "Deleted component images remain accessible by path",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T03:11:59.507326Z",
+      "commit_hash": "fb042f80577287cb9fd8633381654e46aeeb8d66",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/component-permanent-delete.ts",
+        "src/lib/uploads/removal-claims.ts",
+        "src/app/api/component-library/images/route.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "upload lifecycle",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/component-library/component-permanent-delete.ts",
+        "src/app/api/component-library/images/route.ts"
+      ]
+    },
+    {
+      "id": "CSF-034",
+      "title": "Cross-tenant JSON references can block upload cleanup",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T03:13:51.388242Z",
+      "commit_hash": "a8efc82be9b30308acfdd1b253c71db85d4a5785",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/uploads/removal-claims.ts",
+        "src/lib/uploads/cleanup-job.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "upload tenant isolation",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/uploads/removal-claims.ts"
+      ]
+    },
+    {
+      "id": "CSF-035",
+      "title": "Expired attachment holds can still be restored",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-14T12:06:49.621282Z",
+      "commit_hash": "9637c4963c70259cdfdb997db52a93582ddc110d",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/estimates/project-component-attachment-retention.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "attachment retention",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/project-component-attachment-retention.ts"
+      ]
+    },
+    {
+      "id": "CSF-036",
+      "title": "Recovery receipt verifies only a small table subset",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-13T01:07:46.874247Z",
+      "commit_hash": "afe5bf0345af431b9f9f373179e378f23b3730e6",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/run-cloudflare-d1-hosted-recovery-rehearsal.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "D1 recovery integrity",
+      "confidence": "high",
+      "evidence": [
+        "scripts/"
+      ]
+    },
+    {
+      "id": "CSF-037",
+      "title": "D1 recovery exports excluded credential tables",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T16:05:18.439821Z",
+      "commit_hash": "235b4703fc811ba533fe3877c4fa0d76ef54944b",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/run-cloudflare-d1-hosted-recovery-rehearsal.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "recovery credential handling",
+      "confidence": "high",
+      "evidence": [
+        "scripts/"
+      ]
+    },
+    {
+      "id": "CSF-038",
+      "title": "Public replies can reopen archived portal threads",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T14:48:15.316553Z",
+      "commit_hash": "d9a02eff407ddeb7cb8200c6dfa2dd3ba983b9f2",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/client-portal/[token]/threads/[threadId]/messages/route.ts",
+        "src/lib/client-portal/public-thread-handlers.ts",
+        "src/lib/client-portal/thread-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "portal thread lifecycle",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/client-portal/thread-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-039",
+      "title": "Raw public share token committed in audit docs",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T07:51:16.103352Z",
+      "commit_hash": "a6f61bc1184d0fccf27099b10e2f77d97198f7b5",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-07-12/Shared-Estimate-Page/README.md"
+      ],
+      "disposition": "NEEDS_RUNTIME_OR_HOSTED_EVIDENCE",
+      "cluster": "credential exposure",
+      "confidence": "high",
+      "evidence": [
+        ".ai/09_archive/store/2026-07-12-Shared-Estimate-Page-superseded/README.md"
+      ]
+    },
+    {
+      "id": "CSF-040",
+      "title": "Estimate rows now persist full variant pricing snapshots",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T03:53:56.413157Z",
+      "commit_hash": "44f0c1dbf066f13aa832a69eaaafa598d4a6a2fd",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/estimates/actions.ts",
+        "src/lib/repositories/component-library-repository.ts",
+        "supabase/migrations/20260627123000_signed_quantity_and_row_adjustments.sql",
+        "supabase/migrations/20260614144136_command_split_core_public_policies.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate data minimization",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/estimates/d1-intents/rows.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-041",
+      "title": "Sheet viewers can read team access roster and invite emails",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T05:26:08.379074Z",
+      "commit_hash": "fd9498d6a4475646105ea582ad002c61407b55fc",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/workshop/projects/[projectId]/team/page.tsx",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "collaboration privacy",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-042",
+      "title": "Activity retention anonymization never advances past first batch",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T05:27:16.296030Z",
+      "commit_hash": "4254bf4f39c667f179b5779eb2fb5f73c611245e",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/compliance/retention-core.ts",
+        "src/lib/repositories/project-activity-feed-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "retention processing",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/retention/retention-core.ts"
+      ]
+    },
+    {
+      "id": "CSF-043",
+      "title": "Project viewers can see pending invite details",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T05:30:29.851204Z",
+      "commit_hash": "d12a07da8ea57bcc6584d83a7f33c63133d9cc5a",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/publisher/PublisherProjectMembersPanel.tsx",
+        "src/lib/repositories/workspace-repository.ts",
+        "src/components/workshop/ProjectChromeAsync.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "collaboration privacy",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-044",
+      "title": "Project removal can revoke restricted estimate grants",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T05:36:04.314472Z",
+      "commit_hash": "16912bfb8e223585fcb5221297d045fb2776594f",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/collaboration/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "collaboration authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/collaboration/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-045",
+      "title": "Unauthenticated web-vitals endpoint can spam D1 writes",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-10T19:37:34.623177Z",
+      "commit_hash": "736d07a0e95576f519b669e4506ee9214e67a203",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/auth/request-proxy.ts",
+        "src/app/api/internal/web-vitals/route.ts",
+        "src/lib/admin/observability-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "telemetry abuse",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/internal/web-vitals/route.ts",
+        "src/lib/admin/observability-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-046",
+      "title": "Codex workspace sandbox now allows network access",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-10T04:11:47.281121Z",
+      "commit_hash": "e9b2c970930a03f58bce57b667b16f686117714c",
+      "has_patch": false,
+      "relevant_paths": [
+        "codex/config.toml"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "agent sandbox",
+      "confidence": "high",
+      "evidence": [
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "id": "CSF-047",
+      "title": "Unbounded component draft saves enable storage DoS",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-06T22:33:59.189009Z",
+      "commit_hash": "37892a00b35233373e90ff3a2b3adef287b1e1c3",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/component-library/actions.ts",
+        "migrations/0036_cost_library_component_drafts.sql"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "component storage limits",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/actions.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts",
+        "commit 5f694c246"
+      ]
+    },
+    {
+      "id": "CSF-048",
+      "title": "Proof cleanup can delete real tenant rows by public prefixes",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-07-02T11:09:13.188092Z",
+      "commit_hash": "c42a32974b4ace341f099a38e11e40ac76defcc9",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/internal/collaboration-invitation-proof/route.ts",
+        "src/lib/cloudflare/collaboration-invitation-proof-router.ts",
+        "src/app/api/internal/upload-lifecycle-proof/route.ts",
+        "src/lib/cloudflare/upload-lifecycle-proof-router.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "hosted-proof safety",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/cloudflare/collaboration-invitation-proof-router.ts",
+        "src/lib/cloudflare/upload-lifecycle-proof-router.ts"
+      ]
+    },
+    {
+      "id": "CSF-049",
+      "title": "Unauthenticated Cloudflare collaboration rooms",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-30T05:15:59.306028Z",
+      "commit_hash": "ee6872d5c7584b089e211e405b3376e6c61e4d7d",
+      "has_patch": false,
+      "relevant_paths": [
+        "worker.ts",
+        "src/lib/cloudflare/collaboration-room-router.ts",
+        "src/lib/cloudflare/collaboration-room.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "realtime authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/cloudflare/collaboration-room.ts",
+        "tests/vitest/cloudflare-collaboration-room-auth.test.ts"
+      ]
+    },
+    {
+      "id": "CSF-050",
+      "title": "Public client-error endpoint permits resource exhaustion",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-29T03:18:10.583808Z",
+      "commit_hash": "92d28336800be7f7fdfaf0cbfc9ad95068052bd9",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/internal/client-error/route.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "observability abuse",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/internal/client-error/route.ts",
+        "tests/vitest/client-error.test.ts"
+      ]
+    },
+    {
+      "id": "CSF-051",
+      "title": "Proof script can leak Supabase sessions to arbitrary URL",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-29T01:48:12.407646Z",
+      "commit_hash": "e27fce4ac560961b582279f73f8b7e260ac513ab",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/prove-recipient-proposals-browser.mjs"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase proof",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migration-evidence/provider-parity-proofs/prove-recipient-proposals-browser.mjs",
+        "wrangler.jsonc"
+      ]
+    },
+    {
+      "id": "CSF-052",
+      "title": "Spoofable proxy gate headers can bypass workshop auth layout",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-28T18:21:28.578429Z",
+      "commit_hash": "eb7a8674a500921e125a4b6f08602f32f1f32226",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/proxy.ts",
+        "src/lib/auth/protected-route-gate.ts",
+        "src/app/workshop/layout.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "edge authentication",
+      "confidence": "high",
+      "evidence": [
+        "src/middleware.ts",
+        "tests/vitest/proxy-file-convention.test.ts",
+        "commit 5558c5fa"
+      ]
+    },
+    {
+      "id": "CSF-053",
+      "title": "Activity RPC exposes raw collaboration audit metadata",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-28T18:19:54.558547Z",
+      "commit_hash": "bfad74f262630f2aaca4efe8dba7e997f8697286",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260628224500_project_activity_collaboration_audit_rpc_cursor_qualification.sql",
+        "src/lib/repositories/project-activity-feed-repository.ts",
+        "src/lib/activity/activity-composer.ts",
+        "src/app/api/projects/[projectId]/activity/route.ts",
+        "src/lib/collaboration/actions.ts"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy activity provider",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/",
+        "src/lib/activity/activity-composer.ts"
+      ]
+    },
+    {
+      "id": "CSF-054",
+      "title": "Cron scan can mark uploads clean without AV",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-27T11:37:19.461363Z",
+      "commit_hash": "a559a6395a2ad578ef09c89f6b122c6594b70e3c",
+      "has_patch": false,
+      "relevant_paths": [
+        "vercel.json",
+        "src/app/api/internal/upload-scan/route.ts",
+        "src/lib/uploads/clamd-scanner.ts",
+        "src/lib/uploads/policy-scanner.ts",
+        "src/lib/uploads/scanning.ts",
+        "src/app/api/component-library/attachments/route.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "malware scanning",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/uploads/clamd-scanner.ts",
+        "src/lib/uploads/policy-scanner.ts"
+      ]
+    },
+    {
+      "id": "CSF-055",
+      "title": "Admin scan override endpoint lacks CSRF protection",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-27T11:40:17.368188Z",
+      "commit_hash": "58a948c6152f88a5d79e183ca72af7e2c25a0221",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/component-library/attachments/scan-override/route.ts",
+        "src/lib/uploads/scan-override.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "upload-admin CSRF",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/component-library/attachments/scan-override/route.ts",
+        "src/lib/uploads/scan-override.ts"
+      ]
+    },
+    {
+      "id": "CSF-056",
+      "title": "Telemetry action allows unscoped durable event injection",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-26T01:09:53.153867Z",
+      "commit_hash": "092eab1a672855bb961f9c759b0ed0f49b68db09",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/library-telemetry.ts",
+        "src/components/workshop/component-library/index.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "telemetry integrity",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/library-telemetry.ts"
+      ]
+    },
+    {
+      "id": "CSF-057",
+      "title": "Unbounded library seed RPCs enable DB DoS",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-25T03:22:22.141784Z",
+      "commit_hash": "f16b187f25e9fa8b6b06c9df2eae8a6eef11ef46",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260625023000_library_component_rows_seed_browse_projection.sql",
+        "supabase/migrations/20260625021500_library_templates_seed.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/",
+        "wrangler.jsonc"
+      ]
+    },
+    {
+      "id": "CSF-058",
+      "title": "Project cards leak private locations to Google Static Maps",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-24T12:30:57.883768Z",
+      "commit_hash": "d7e0cd937d6a20c058407b435a884549e471d1db",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/LiveProjectCard.tsx",
+        "src/components/workshop/ProjectCardThumbnail.tsx",
+        "src/components/workshop/projects-page-client.tsx",
+        "src/components/workshop/ProjectDetailsModal.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "third-party location privacy",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/LiveProjectCard.tsx"
+      ]
+    },
+    {
+      "id": "CSF-059",
+      "title": "Server Google Maps key is sent to project-page clients",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-24T04:57:46.304822Z",
+      "commit_hash": "bfc38eed266ec5d764ef35799bf799d1f8cfbb13",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/workshop/projects/page.tsx",
+        "src/components/workshop/projects-page-client.tsx",
+        "src/components/workshop/NewProjectModal.tsx",
+        "src/lib/google-maps/loader.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "client secret exposure",
+      "confidence": "high",
+      "evidence": [
+        "src/app/workshop/projects/page.tsx"
+      ]
+    },
+    {
+      "id": "CSF-060",
+      "title": "Recipient decision cached across share sessions",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-24T01:05:56.890052Z",
+      "commit_hash": "6f3f1b529ffb73ed68eccdb0bde153f023a8c481",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/share/SharePageDecision.tsx",
+        "src/app/providers.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "shared-link cache isolation",
+      "confidence": "medium",
+      "evidence": [
+        "SharePageDecision.tsx"
+      ]
+    },
+    {
+      "id": "CSF-061",
+      "title": "CSRFable GET route fixes shared-link recipient sessions",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-21T17:44:41.495278Z",
+      "commit_hash": "f1982120a869729da5c844e7bd2ad19b2374369c",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/share/[token]/session/route.ts",
+        "src/app/share/[token]/page.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "shared-link session CSRF",
+      "confidence": "high",
+      "evidence": [
+        "src/app/share/[token]/page.tsx"
+      ]
+    },
+    {
+      "id": "CSF-062",
+      "title": "Server-only Google Maps key is exposed to clients",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-19T17:05:52.076383Z",
+      "commit_hash": "3f0901ee35e4126417d3a75fd64bcbb9ca8d8536",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/workshop/projects/[projectId]/page.tsx",
+        "src/components/workshop/ProjectDashboardClient.tsx",
+        "src/lib/google-maps/loader.ts"
+      ],
+      "disposition": "DUPLICATE_CURRENT_FINDING",
+      "cluster": "client secret exposure",
+      "confidence": "high",
+      "evidence": [
+        "src/app/workshop/projects/[projectId]/page.tsx",
+        "CSF-059"
+      ]
+    },
+    {
+      "id": "CSF-063",
+      "title": "Predictable /tmp SQL file can be swapped before DB query",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-19T06:31:25.239360Z",
+      "commit_hash": "8b9ba9900eb12a2064100e4588f21be56675f8e4",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/collect-live-db-performance-evidence.ts"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy provider tooling",
+      "confidence": "medium",
+      "evidence": [
+        "scripts/collect-live-db-performance-evidence.ts"
+      ]
+    },
+    {
+      "id": "CSF-064",
+      "title": "Sensitive Git blob IDs committed before purge",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T10:26:03.116354Z",
+      "commit_hash": "18746132799a959a4a0ab1354f999b64c84f9b60",
+      "has_patch": true,
+      "relevant_paths": [
+        "ai/03_plans/2026-06-16-github-codex-comments/pr50-history-purge-runbook.md",
+        "ai/03_plans/2026-06-16-github-codex-comments/scripts/purge-boq-history.sh"
+      ],
+      "disposition": "NEEDS_RUNTIME_OR_HOSTED_EVIDENCE",
+      "cluster": "repository secret purge",
+      "confidence": "high",
+      "evidence": [
+        ".ai/09_archive/2026-06-16-github-codex-comments/"
+      ]
+    },
+    {
+      "id": "CSF-065",
+      "title": "Sensitive BOQ blob identifiers committed to repo log",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:00:16.269409Z",
+      "commit_hash": "c7d9b96d49f71ffac19edbecf67b60951ac1289d",
+      "has_patch": true,
+      "relevant_paths": [
+        "ai/05_logs/2026-06-16-github-codex-comments/run-log.md"
+      ],
+      "disposition": "DUPLICATE_CURRENT_FINDING",
+      "cluster": "repository secret purge",
+      "confidence": "high",
+      "evidence": [
+        ".ai/05_logs/2026-06-16-github-codex-comments/run-log.md",
+        "CSF-064"
+      ]
+    },
+    {
+      "id": "CSF-066",
+      "title": "Reusable source search fans out costly estimate reads",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T10:09:40.181963Z",
+      "commit_hash": "bd95f2cdfe5997542177f7ad1e8e298eaea8b6a4",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/reusable-sources/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "reusable-source performance",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/reusable-sources/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-067",
+      "title": "Reusable source search fans out excessive DB reads",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:03:22.894500Z",
+      "commit_hash": "d0e919c2951a5fac22cb7ecfdc85bf4f9c46983b",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/reusable-sources/actions.ts",
+        "src/lib/repositories/project-estimate-sheets-repository.ts"
+      ],
+      "disposition": "DUPLICATE_CURRENT_FINDING",
+      "cluster": "reusable-source performance",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/reusable-sources/actions.ts",
+        "CSF-066"
+      ]
+    },
+    {
+      "id": "CSF-068",
+      "title": "Reusable-source search can overrun bounded DB caps",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:14:05.017347Z",
+      "commit_hash": "b88c73d185c6875bf2d193dd7a2c59a99a57b5d9",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/reusable-sources/actions.ts",
+        "src/lib/repositories/workspace-repository.ts",
+        "src/lib/repositories/project-estimate-sheets-repository.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "reusable-sources",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/reusable-sources/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-069",
+      "title": "Optional view tokens bypass viewed-snapshot binding",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:50:19.772990Z",
+      "commit_hash": "392334b125ebdbc10cacc148edeaa527670ae31e",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/share/[token]/comment/route.ts",
+        "src/app/api/share/[token]/decision/route.ts",
+        "supabase/migrations/20260616094500_shared_link_rotation_and_viewed_snapshot_rpc.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "legacy-shares",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/share/[token]/decision/route.ts"
+      ]
+    },
+    {
+      "id": "CSF-070",
+      "title": "Stale shared-link sessions can approve republished content",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T14:17:06.051596Z",
+      "commit_hash": "905ae41b28fb1f95fbec3865ab54a9f15626bf18",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/security.ts",
+        "src/app/api/share/[token]/comment/route.ts",
+        "src/app/api/share/[token]/decision/route.ts",
+        "supabase/migrations/20260603214151_lock_shared_link_comment_snapshot_version.sql",
+        "supabase/migrations/20260603210653_lock_shared_link_response_snapshot_version.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "legacy-shares",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/publication/security.ts"
+      ]
+    },
+    {
+      "id": "CSF-071",
+      "title": "Quadratic project-source summaries can cause DoS",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T14:38:09.635070Z",
+      "commit_hash": "17990ed42b4992644f325e61f39dfc659a3391d4",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/reusable-sources/actions.ts",
+        "src/lib/reusable-sources/source-collectors.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "reusable-sources",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/reusable-sources/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-072",
+      "title": "Unbounded project-source search can be spammed for DoS",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-13T01:16:20.793946Z",
+      "commit_hash": "e4d93458251b0099fab4c229c538e3bd84c7c907",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/components/workshop/component-library/index.tsx",
+        "src/lib/reusable-sources/actions.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "reusable-sources",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/component-library/index.tsx"
+      ]
+    },
+    {
+      "id": "CSF-073",
+      "title": "Search action can exhaust app and database resources",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-13T01:15:15.816490Z",
+      "commit_hash": "b10ae200a5814eceeaa2bccf005387005e51a4b4",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/reusable-sources/actions.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "reusable-sources",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/reusable-sources/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-074",
+      "title": "Unthrottled wildcard library search can stress the database",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-11T17:55:27.210187Z",
+      "commit_hash": "4f59e67d2e2322d190c53e2a3d4a4d355b1acb39",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/components/workshop/library/overview/LibraryOverviewSearch.tsx",
+        "src/lib/component-library/actions.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "component-library",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-075",
+      "title": "Unbounded recursive landing-node scan can crash overview pages",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-12T01:16:42.271912Z",
+      "commit_hash": "3548eab4c70d23a3476a57fb5a3ef0a637437651",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/estimates/tree-hierarchy.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate-tree",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/tree-hierarchy.ts"
+      ]
+    },
+    {
+      "id": "CSF-076",
+      "title": "Unbounded recursive estimate-node selection can DoS pages",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T15:37:12.173358Z",
+      "commit_hash": "506e3e7074ea5121d07ea2b1994784dc903a0765",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/estimates/tree-hierarchy.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate-tree",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/tree-hierarchy.ts"
+      ]
+    },
+    {
+      "id": "CSF-077",
+      "title": "Committed Playwright artifacts leak authenticated audit data",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T15:33:57.038216Z",
+      "commit_hash": "3db4811a4196d3c67b6987e2bf4bb49a1e5d6b4e",
+      "has_patch": false,
+      "relevant_paths": [
+        "playwright-mcp/console-2026-06-11T01-59-31-211Z.log",
+        "playwright-mcp/page-2026-06-11T03-28-17-154Z.yml",
+        "playwright-mcp/page-2026-06-11T03-29-51-520Z.yml"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "archived-evidence",
+      "confidence": "high",
+      "evidence": [
+        ".gitignore"
+      ]
+    },
+    {
+      "id": "CSF-078",
+      "title": "Terms gate is bypassable through API/data endpoints",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-06T11:10:56.477876Z",
+      "commit_hash": "58382d4c8232c39c0e97cd0bd43d641b1adb57d7",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/app/workshop/layout.tsx",
+        "src/proxy.ts",
+        "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "legal-terms",
+      "confidence": "high",
+      "evidence": [
+        "src/middleware.ts"
+      ]
+    },
+    {
+      "id": "CSF-079",
+      "title": "Terms gate is bypassable through route handlers and APIs",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:15:39.845745Z",
+      "commit_hash": "65b55d55eea662263b5f230af9a6af409aa3313f",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/workshop/layout.tsx",
+        "src/proxy.ts",
+        "src/app/workshop/pending-invite/route.ts",
+        "src/lib/collaboration/workshop-pending-invite.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "legal-terms",
+      "confidence": "high",
+      "evidence": [
+        "src/middleware.ts"
+      ]
+    },
+    {
+      "id": "CSF-080",
+      "title": "Raw notification payloads exposed via direct Supabase reads",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:12:49.613149Z",
+      "commit_hash": "06eb1f1542dcbcf8326e2f1a29cc2e1d8c7f87a1",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260606090000_notification_system.sql",
+        "src/lib/notifications/repository.ts"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "46854452"
+      ]
+    },
+    {
+      "id": "CSF-081",
+      "title": "Hosted export proof leaks estimate metadata",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:57:43.751002Z",
+      "commit_hash": "abd834a3002d9091cd9508e2abe669b06d5c95e8",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json",
+        "ai/03_plans/mvp-launch-readiness-2026-06-01/14-evidence-index.md"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "archived-evidence",
+      "confidence": "high",
+      "evidence": [
+        "2537b5c0"
+      ]
+    },
+    {
+      "id": "CSF-082",
+      "title": "Support DNS gate accepts non-enforcing DMARC",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T17:07:24.456450Z",
+      "commit_hash": "fdc43aa85e710c0e1930a43311ab3482e1ef2239",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/mvp-launch-readiness-2026-06-01/14-evidence-index.md",
+        "ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-cheap-refresh-2026-06-04T0348Z.json",
+        "scripts/check-support-email-dns.ts",
+        "tests/vitest/support-email-dns-script.test.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "support-email",
+      "confidence": "high",
+      "evidence": [
+        "scripts/check-support-email-dns.ts"
+      ]
+    },
+    {
+      "id": "CSF-083",
+      "title": "Comment GET trusts stale recipient session cookies",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T17:27:00.956425Z",
+      "commit_hash": "4b54f24b5fb6b3ba8cd76f3674be9f0e3e589259",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/share/[token]/comment/route.ts",
+        "src/lib/publication/public-repository.ts",
+        "src/lib/publication/security.ts",
+        "src/lib/publication/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "legacy-shares",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/share/[token]/comment/route.ts"
+      ]
+    },
+    {
+      "id": "CSF-084",
+      "title": "Mass deletion RPCs leak names and allow audit spoofing",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T17:35:08.324379Z",
+      "commit_hash": "75841cd9e47366c8d7e0f23c512b9f1b0ae711f0",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260603160000_mass_deletion_governance.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "396aa975"
+      ]
+    },
+    {
+      "id": "CSF-085",
+      "title": "Runbook can leak Vercel environment secrets",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T18:06:28.562917Z",
+      "commit_hash": "d187ac574f39f1e6ccc3a8d2b5d39a1a4705534a",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/activity-history-overhaul-v1/64-access-telemetry-production-evidence-ledger.md",
+        "ai/03_plans/activity-history-overhaul-v1/65-production-enablement-execution-runbook.md",
+        "gitignore"
+      ],
+      "disposition": "MIGRATED_BUT_REQUIRES_REAUDIT",
+      "cluster": "archived-evidence",
+      "confidence": "medium",
+      "evidence": [
+        "9abb9458"
+      ]
+    },
+    {
+      "id": "CSF-086",
+      "title": "Unredacted tenant metadata committed in perf evidence",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:08:37.352454Z",
+      "commit_hash": "43d511ec0571cc59b4e20275649930bc9ed38270",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/prefetch-proof-page-inventory-dev-3034.txt",
+        "ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/prefetch-proof-project-estimate-inventory-dev-3034.txt"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "archived-evidence",
+      "confidence": "high",
+      "evidence": [
+        "b5d4efa7"
+      ]
+    },
+    {
+      "id": "CSF-087",
+      "title": "bfcache restore skips auth revalidation",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:20:20.009128Z",
+      "commit_hash": "6e532e067965267187186f2bfbfd4c6898635087",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/providers.tsx",
+        "src/components/bfcache-handler.tsx",
+        "src/stores/navigation-ui-store.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "auth-session",
+      "confidence": "high",
+      "evidence": [
+        "src/components/bfcache-handler.tsx"
+      ]
+    },
+    {
+      "id": "CSF-088",
+      "title": "Untrusted data injected into recipient email HTML",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:26:19.406482Z",
+      "commit_hash": "5c8afbfbe585be565078ff0cac66cb93607561a2",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/actions.ts",
+        "src/components/workshop/ProjectPublicationHeader.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "publication-email",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/publication/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-089",
+      "title": "Unauthenticated auth callback can flood audit table",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:49:09.561312Z",
+      "commit_hash": "57031a7c948291b8c9f72b7e2575308878be11da",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/auth/callback/route.ts",
+        "src/lib/auth/account-audit.ts",
+        "supabase/migrations/20260527072220_auth_account_data.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "auth-audit",
+      "confidence": "high",
+      "evidence": [
+        "src/app/auth/callback/route.ts"
+      ]
+    },
+    {
+      "id": "CSF-090",
+      "title": "Unscoped data repair rewrites tenant component libraries",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:50:38.172352Z",
+      "commit_hash": "65843cd6f0d5f0c83c0d2e624432551ecb6fc91f",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260525095729_component_library_name_category_variant_cleanup.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "41e4162a"
+      ]
+    },
+    {
+      "id": "CSF-091",
+      "title": "AI ask endpoint lacks request limits and rate limiting",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:55:59.189699Z",
+      "commit_hash": "5f848255bf97c99f9249a4e802587b1229a7a890",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/ai/ask/route.ts",
+        "src/lib/ai/deepseek.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "ai-api",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/ai/ask/handler.ts"
+      ]
+    },
+    {
+      "id": "CSF-092",
+      "title": "Row-level tree validation enables database DoS",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T20:19:08.276115Z",
+      "commit_hash": "eb65d288752f16a0e7b7bd823bd219c209002d6f",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260519192045_atomic_estimate_node_moves.sql",
+        "supabase/migrations/20260518090000_archestimator_core_schema.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/20260519192045_atomic_estimate_node_moves.sql"
+      ]
+    },
+    {
+      "id": "CSF-093",
+      "title": "Unpinned MCP tooling auto-executes developer commands",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T20:23:51.456803Z",
+      "commit_hash": "d61877267a13948f0ef2e8d526cbfaabc71f7ae2",
+      "has_patch": false,
+      "relevant_paths": [
+        "mcp.json",
+        "cursor/mcp.json",
+        "opencode.json",
+        "claude/settings.json",
+        "claude/skills/gitnexus/gitnexus-cli/SKILL.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "developer-tooling",
+      "confidence": "high",
+      "evidence": [
+        "opencode.json"
+      ]
+    },
+    {
+      "id": "CSF-094",
+      "title": "Seed migration can overwrite fixed-UUID tenant data",
+      "cloud_severity": "medium",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T20:25:10.254243Z",
+      "commit_hash": "394289eb7b25c58d80e1950cbc6cabd6b462e950",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260518110000_attach_philip_seed_data.sql",
+        "supabase/migrations/20260518111000_refresh_luna_heights_seed_data.sql",
+        "supabase/migrations/20260518151743_reset_luna_heights_estimate_contents.sql",
+        "supabase/migrations/20260518090000_archestimator_core_schema.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/20260518110000_attach_philip_seed_data.sql"
+      ]
+    },
+    {
+      "id": "CSF-095",
+      "title": "Backfill exposes internal change request notes",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T05:00:04.337443Z",
+      "commit_hash": "6df080c989630b75e1d249aacbb85424f9910836",
+      "has_patch": false,
+      "relevant_paths": [
+        "migrations/0120_project_commitment_event_backfill.sql",
+        "src/lib/change-requests/internal-handlers.ts",
+        "src/lib/change-requests/service.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "client-portal",
+      "confidence": "medium",
+      "evidence": [
+        "migrations/0120_project_commitment_event_backfill.sql"
+      ]
+    },
+    {
+      "id": "CSF-096",
+      "title": "Cross-portal issue comparison references lack scope checks",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T17:49:09.137805Z",
+      "commit_hash": "cc4d230fea6869b3d03328bd3f712bc88bd6c005",
+      "has_patch": false,
+      "relevant_paths": [
+        "migrations/0109_client_portal_issue_packages.sql"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "client-portal",
+      "confidence": "high",
+      "evidence": [
+        "migrations/0109_client_portal_issue_packages.sql"
+      ]
+    },
+    {
+      "id": "CSF-097",
+      "title": "Starter lease can be taken before authorization",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T15:08:01.452965Z",
+      "commit_hash": "1947ca53cca5e921f8db7da7777ebac59f62a2c7",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/onboarding/starter-pack-actions.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "onboarding",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/onboarding/starter-pack-actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-098",
+      "title": "API download link migrated to prefetching Next Link",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T13:43:13.714339Z",
+      "commit_hash": "4fc748a61736f365a7dbd14e9f0c98b4a7f41fef",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx",
+        "src/components/ui/button.tsx",
+        "src/app/api/component-library/attachments/route.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "component-library",
+      "confidence": "high",
+      "evidence": [
+        "src/components/ui/button.tsx"
+      ]
+    },
+    {
+      "id": "CSF-099",
+      "title": "Onboarding cleanup can skip collaboration revocation",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-24T07:07:26.704852Z",
+      "commit_hash": "74f68447468a32bed7aea3a2bbc5f2ab17bf4783",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/collaboration/actions.ts",
+        "src/lib/onboarding/flow-retention.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "onboarding-collaboration",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/onboarding/flow-retention.ts"
+      ]
+    },
+    {
+      "id": "CSF-100",
+      "title": "Duplicate feedback query crashes admin feedback page",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-22T12:26:37.550567Z",
+      "commit_hash": "1b0cebe559dedc02b6aa73ac0cf028bfc0a66ae9",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/workshop/settings/feedback/page.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "admin-feedback",
+      "confidence": "high",
+      "evidence": [
+        "d5f5c693"
+      ]
+    },
+    {
+      "id": "CSF-101",
+      "title": "Internal Notion page URL exposed in plan pack",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T06:44:40.578180Z",
+      "commit_hash": "ee9cde24c659b06f3786f96ad7b63a1eb66922ec",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-07-21/archestimator-new-landing-plan-pack/01-evidence-and-source-of-truth.md"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "planning-evidence",
+      "confidence": "medium",
+      "evidence": [
+        ".ai/03_plans/2026-07-21/archestimator-new-landing-plan-pack/01-evidence-and-source-of-truth.md"
+      ]
+    },
+    {
+      "id": "CSF-102",
+      "title": "Cloudflare account metadata committed in evidence files",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T06:43:51.797119Z",
+      "commit_hash": "cfb77138d1370d96d23edb7122ee64d86fca2f59",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
+        "ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "provider-evidence",
+      "confidence": "high",
+      "evidence": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json"
+      ]
+    },
+    {
+      "id": "CSF-103",
+      "title": "Public share snapshots leak source revision and semantic hash",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T03:13:02.132808Z",
+      "commit_hash": "e5817640a93e264a71ab4981ef1273748c523bfc",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/authoring-projection.ts",
+        "src/lib/publication/actions.ts",
+        "src/lib/publication/snapshot.ts",
+        "src/lib/publication/public-repository.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "publication-public-read",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/publication/snapshot.ts"
+      ]
+    },
+    {
+      "id": "CSF-104",
+      "title": "Variant usage counts can crash on __proto__ option IDs",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-15T02:00:52.101393Z",
+      "commit_hash": "3871a3a978b326cc0456cc4894ae3b2d9f89772d",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/estimates/d1-action-client.ts",
+        "src/components/workshop/EstimateSheetContent.tsx",
+        "src/lib/estimates/source-snapshot-price-options.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "estimate-rows",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/d1-intents/rows.ts"
+      ]
+    },
+    {
+      "id": "CSF-105",
+      "title": "Worker cleanup failure can leave restored D1 data behind",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T14:53:44.018024Z",
+      "commit_hash": "9d3173db8f52d54483d97054b107212c37b75143",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/run-cloudflare-d1-hosted-recovery-rehearsal.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "recovery-ops",
+      "confidence": "high",
+      "evidence": [
+        "scripts/run-cloudflare-d1-hosted-recovery-rehearsal.ts"
+      ]
+    },
+    {
+      "id": "CSF-106",
+      "title": "Hosted discovery artifact can leak command-line secrets",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T14:42:11.393008Z",
+      "commit_hash": "0365c8b6bc88648d9bb7cc36eb0327ee43de2eac",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/lib/release-hosted-discovery.ts",
+        "scripts/collect-release-hosted-discovery.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "release-ops",
+      "confidence": "medium",
+      "evidence": [
+        "scripts/lib/release-hosted-discovery.ts"
+      ]
+    },
+    {
+      "id": "CSF-107",
+      "title": "Activity lifecycle tables allow cross-tenant event links",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T05:34:57.482344Z",
+      "commit_hash": "235a4422fdbce29edbc941c5cae6e5ce150426b8",
+      "has_patch": false,
+      "relevant_paths": [
+        "migrations/0065_activity_history_lifecycle.sql",
+        "migrations/0025_reusable_source_insert_support.sql"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "activity",
+      "confidence": "high",
+      "evidence": [
+        "migrations/0065_activity_history_lifecycle.sql"
+      ]
+    },
+    {
+      "id": "CSF-108",
+      "title": "Unverified Better Auth cookie can trap users in login loop",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-08T11:04:26.865914Z",
+      "commit_hash": "5558c5fa42b22f0fd6b0f18184c0767b152f20f9",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/auth/request-proxy.ts",
+        "src/app/workshop/layout.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "auth-session",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/auth/request-proxy.ts"
+      ]
+    },
+    {
+      "id": "CSF-109",
+      "title": "Account preference cache is not scoped to user/workspace",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-07T05:07:57.586563Z",
+      "commit_hash": "dea878532cafff5f8fc7139edcd3bf6e239a22de",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/component-library/account-preferences-client.ts",
+        "src/components/workshop/component-library/index.tsx",
+        "src/lib/component-library/actions.ts",
+        "src/components/workshop/estimate-sheet/account-preferences-client.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "client-cache",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/component-library/account-preferences-client.ts"
+      ]
+    },
+    {
+      "id": "CSF-110",
+      "title": "OAuth reset URLs allow forced session clearing",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-07-02T02:27:49.817589Z",
+      "commit_hash": "a1225fe8679fddb6cfe2f4aaeedddb67aa5f43b6",
+      "has_patch": false,
+      "relevant_paths": [
+        "wrangler.auth-callback-normalizer.jsonc",
+        "cloudflare/auth-callback-normalizer.ts",
+        "src/lib/cloudflare/worker-route-optimizations.ts",
+        "src/lib/auth/request-proxy.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "auth-session",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/auth/request-proxy.ts"
+      ]
+    },
+    {
+      "id": "CSF-111",
+      "title": "Email-derived password for temporary proof users",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-27T01:55:22.336863Z",
+      "commit_hash": "2f25c87ff785e5e4ea1f66ab5f1950722d8bdcb5",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/prove-upload-storage-denial-postgres.mjs"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "9abb9458"
+      ]
+    },
+    {
+      "id": "CSF-112",
+      "title": "Upload proof can pass without member-scoped testing",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-27T01:55:44.647745Z",
+      "commit_hash": "393bc9f3ef72b2ce5fd15da2c8daaaec7cbbd8b8",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/prove-upload-storage-denial-postgres.mjs"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "9abb9458"
+      ]
+    },
+    {
+      "id": "CSF-113",
+      "title": "Missing CSRF check on row image upload API",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-27T02:12:38.205918Z",
+      "commit_hash": "d542817f3ee1697b5c71840a44f77f7bf096442b",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/estimate-row-images/route.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "uploads",
+      "confidence": "high",
+      "evidence": [
+        "dad38431"
+      ]
+    },
+    {
+      "id": "CSF-114",
+      "title": "Stale share feedback can leak raw internal UUIDs",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-21T11:05:52.721594Z",
+      "commit_hash": "b098229bb5eb54729242ee7d0e8e2763c2f0225e",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/public-repository.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "publication-public-read",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/publication/public-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-115",
+      "title": "Project image cards can load attacker-controlled URLs",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-19T09:52:28.340403Z",
+      "commit_hash": "d00d26306a79fd669551d70d91d27141f771ca93",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/LiveProjectCard.tsx",
+        "src/lib/projects/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "project-images",
+      "confidence": "medium",
+      "evidence": [
+        "src/components/workshop/LiveProjectCard.tsx"
+      ]
+    },
+    {
+      "id": "CSF-116",
+      "title": "Live DB evidence may be written to tracked repo paths",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-19T06:17:52.873778Z",
+      "commit_hash": "b275d8984599339f176f649278d848998126ec96",
+      "has_patch": false,
+      "relevant_paths": [
+        "package.json",
+        "scripts/collect-live-db-performance-evidence.ts",
+        "gitignore"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "operational-evidence",
+      "confidence": "high",
+      "evidence": [
+        ".gitignore"
+      ]
+    },
+    {
+      "id": "CSF-117",
+      "title": "Pending RLS grant exposes share telemetry hashes",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-19T06:15:47.859387Z",
+      "commit_hash": "9aec4121523911c3f3507dde5a3057c8d5a38a06",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations-pending-review/AC-MOD-T4-P3_project_publication_events_manager_rls.sql",
+        "supabase/migrations/20260527120000_project_client_publication.sql",
+        "src/lib/publication/actions.ts",
+        "src/lib/publication/public-repository.ts"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "provider-exit",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations-pending-review/AC-MOD-T4-P3_project_publication_events_manager_rls.sql"
+      ]
+    },
+    {
+      "id": "CSF-118",
+      "title": "Sensitive BOQ blob locators committed to log",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T10:26:28.797655Z",
+      "commit_hash": "7cb19b4b011650f86fba41bedb16392612913831",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/05_logs/2026-06-16-github-codex-comments/run-log.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "archived-evidence",
+      "confidence": "medium",
+      "evidence": [
+        ".ai/05_logs/2026-06-16-github-codex-comments/run-log.md"
+      ]
+    },
+    {
+      "id": "CSF-119",
+      "title": "Column resize commits can discard prior widths",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:56:44.671944Z",
+      "commit_hash": "b1bf0a9411597aa5db9ce7dbe7c58a2fa1a4ac88",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/EstimateSheetContent.tsx",
+        "src/components/workshop/estimate-sheet/rows/row-table.tsx",
+        "src/components/workshop/estimate-sheet/columns/use-estimate-column-resize-controller.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate-sheet-ui",
+      "confidence": "medium",
+      "evidence": [
+        "src/components/workshop/estimate-sheet/columns/use-estimate-column-resize-controller.ts"
+      ]
+    },
+    {
+      "id": "CSF-120",
+      "title": "All-tabs export can include newly archived tabs",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-13T15:19:11.482297Z",
+      "commit_hash": "757a777c9b1203e94f98b4ec1180fb3fb5627949",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "proposal-export",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts"
+      ]
+    },
+    {
+      "id": "CSF-121",
+      "title": "Playwright artifacts disclose user PII and OAuth flow data",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-11T05:19:15.374845Z",
+      "commit_hash": "8f004a70066807471f0d2f970da47fac7ae29f57",
+      "has_patch": true,
+      "relevant_paths": [
+        "playwright-mcp/page-2026-06-11T03-29-51-520Z.yml",
+        "playwright-mcp/page-2026-06-11T03-28-17-154Z.yml",
+        "playwright-mcp/console-2026-06-11T01-59-31-211Z.log"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "archived-evidence",
+      "confidence": "high",
+      "evidence": [
+        ".gitignore"
+      ]
+    },
+    {
+      "id": "CSF-122",
+      "title": "Notification links can escape /workshop via dot segments",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-06T11:28:03.867316Z",
+      "commit_hash": "777f7bad300f45ff96e4a8f684b3565a29cede42",
+      "has_patch": true,
+      "relevant_paths": [
+        "supabase/migrations/20260606090000_notification_system.sql",
+        "src/lib/notifications/release-announcements.ts",
+        "src/features/notifications/components/ReleaseAnnouncementModal.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "notifications",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/notifications/release-announcements.ts"
+      ]
+    },
+    {
+      "id": "CSF-123",
+      "title": "Local worktree path leaked in committed state",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:28:58.859988Z",
+      "commit_hash": "fd0bdea221fb533f52f769d3c4366b576b447a3c",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/10_state/current-state.md"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "planning-evidence",
+      "confidence": "high",
+      "evidence": [
+        ".ai/10_state/current-state.md"
+      ]
+    },
+    {
+      "id": "CSF-124",
+      "title": "Hosted probe JSON can leak supplied share tokens",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-06T07:04:08.378945Z",
+      "commit_hash": "e55d29178cc751f3791cc37740a043a1616a3cbe",
+      "has_patch": true,
+      "relevant_paths": [
+        "scripts/verify-hosted-sensitive-route-fail-closed.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "hosted-proof-tools",
+      "confidence": "high",
+      "evidence": [
+        "scripts/verify-hosted-sensitive-route-fail-closed.ts"
+      ]
+    },
+    {
+      "id": "CSF-125",
+      "title": "Committed proof artifact leaks private project metadata",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:50:19.104598Z",
+      "commit_hash": "b54c6bd4aad2e7ea3ad9aacda10cb9b3e73e0f13",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json",
+        "ai/10_state/current-state.md"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "archived-evidence",
+      "confidence": "high",
+      "evidence": [
+        "b5d4efa7"
+      ]
+    },
+    {
+      "id": "CSF-126",
+      "title": "Client activity output leaks IDs and metadata hashes",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T17:55:22.743779Z",
+      "commit_hash": "a51cc372acc1d95c267ebed524026cda33ca14b6",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/activity/activity-visibility.ts",
+        "src/lib/activity/activity-composer.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "activity",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/activity/activity-visibility.ts"
+      ]
+    },
+    {
+      "id": "CSF-127",
+      "title": "Email readiness guard is only enforced in the client",
+      "cloud_severity": "low",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T18:34:47.380697Z",
+      "commit_hash": "49124dcab1d47e4e0939a491aff536d8cb5e4a10",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/actions.ts",
+        "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "src/lib/email/resend-client.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "publication-email",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/publication/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-128",
+      "title": "Commercial terms receipt guard is misbound",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-30T10:36:59.585963Z",
+      "commit_hash": "16c5d4960a5c23bfd51c43963a3abe4cc37def59",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/commercial-terms/repository.ts",
+        "src/lib/estimates/mutation-receipts.ts",
+        "src/lib/commercial-terms/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "commercial-terms",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/commercial-terms/repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-129",
+      "title": "Bootstrap baseline validation self-invalidates",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-30T07:28:44.777670Z",
+      "commit_hash": "8f24aeba594a6c1e234d0baa9cff8a5e65724500",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/quality/component-core.ts",
+        "quality/baseline.json",
+        "quality/baselines/component/admission.json"
+      ],
+      "disposition": "ACTIVE_EXISTING_UNIT",
+      "cluster": "quality-system",
+      "confidence": "high",
+      "evidence": [
+        "scripts/quality/component-core.ts"
+      ]
+    },
+    {
+      "id": "CSF-130",
+      "title": "Mutation test selection contract regressed",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-27T05:00:05.514293Z",
+      "commit_hash": "5529e9fc4c16707a61f6e911c454822b9ae38769",
+      "has_patch": false,
+      "relevant_paths": [
+        "vitest.mutation.config.ts",
+        "scripts/quality/mutation-core.ts",
+        "tests/vitest/quality/mutation-selector.test.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "quality-system",
+      "confidence": "medium",
+      "evidence": [
+        "scripts/quality/mutation-core.ts"
+      ]
+    },
+    {
+      "id": "CSF-131",
+      "title": "Starter idempotency skips member-scope reconciliation",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T15:04:31.456510Z",
+      "commit_hash": "efa25a00413185aed6de64ad040d8b473c81a6ac",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/onboarding/starter-pack-actions.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "onboarding",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/onboarding/starter-pack-actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-132",
+      "title": "SQLite dump helper emits invalid INSERTs for keyword tables",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T09:56:46.826394Z",
+      "commit_hash": "da0a266c265e494c90b647ca2f90f0203d180e49",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/lib/local-sqlite-proof.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "quality-ops",
+      "confidence": "high",
+      "evidence": [
+        "scripts/lib/local-sqlite-proof.ts"
+      ]
+    },
+    {
+      "id": "CSF-133",
+      "title": "In-process SQLite runner breaks D1 rollback proofs",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T09:23:00.736759Z",
+      "commit_hash": "03c3afab790a0a12b94f9a7dd5c39bb5477c25db",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/lib/local-sqlite-proof.ts",
+        "scripts/generate-cloudflare-d1-rpc-transaction-proof.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "quality-ops",
+      "confidence": "medium",
+      "evidence": [
+        "scripts/generate-cloudflare-d1-rpc-transaction-proof.ts"
+      ]
+    },
+    {
+      "id": "CSF-134",
+      "title": "Local quality verify rejects classify artifact",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-26T09:23:35.655211Z",
+      "commit_hash": "8e9738a72373a1c2b4c77c40239412a2ea15971c",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/quality/verify.ts",
+        "scripts/quality/report-core.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "quality-system",
+      "confidence": "high",
+      "evidence": [
+        "scripts/quality/verify.ts"
+      ]
+    },
+    {
+      "id": "CSF-135",
+      "title": "Sources panel is inaccessible at medium viewport widths",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-22T12:24:00.107764Z",
+      "commit_hash": "0500b76c53b327937ff67ee37b4991919a9575c2",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/ResizableSidePanel.tsx",
+        "src/components/workshop/component-library/index.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "workshop responsive shell",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/ResizableSidePanel.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx",
+        "commit 3b35b714"
+      ]
+    },
+    {
+      "id": "CSF-136",
+      "title": "Allowlist status filters only inspect latest 100 rows",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-22T05:50:04.088464Z",
+      "commit_hash": "2194e56dbd1ee04e11d06059d095edbc09cf49c2",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/admin/allowlist/page.tsx",
+        "src/lib/auth/beta-allowlist-admin.ts",
+        "src/lib/auth/closed-beta-d1-store.ts",
+        "src/components/admin/AdminAllowlistManager.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "beta allowlist administration",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/auth/closed-beta-d1-store.ts"
+      ]
+    },
+    {
+      "id": "CSF-137",
+      "title": "Pending beta invite scan stalls after 200 sent rows",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-21T17:51:07.305663Z",
+      "commit_hash": "33606737e06934e33d9c4979deee76fffa855da7",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/auth/closed-beta-d1-store.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "beta invitation delivery",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/auth/closed-beta-d1-store.ts"
+      ]
+    },
+    {
+      "id": "CSF-138",
+      "title": "Stale plan-pack hashes break validation",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-20T03:53:07.142787Z",
+      "commit_hash": "bf9b160a3b8a2777f536a06a777f27db3e1bbc55",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/plan-pack.json"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "plan-pack integrity",
+      "confidence": "high",
+      "evidence": [
+        ".ai/03_plans/2026-07-19/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/plan-pack.json",
+        "current-worktree validator PASS"
+      ]
+    },
+    {
+      "id": "CSF-139",
+      "title": "Audit plan metadata integrity regressions",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-19T19:16:55.875735Z",
+      "commit_hash": "5c820c4c5b217e0f6e32d9c220eee0f559e616ce",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-07-19-Archestimator-Live-Design-Partner-Journey-UX-Audit-Plan-Pack/plan-pack.json",
+        "ai/03_plans/2026-07-19-Archestimator-Live-Design-Partner-Journey-UX-Audit-Plan-Pack/LOOP_LEDGER.md",
+        "ai/03_plans/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/artifacts/findings.json",
+        "ai/03_plans/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/artifacts/existing-pack-overlap.json"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "plan-pack integrity",
+      "confidence": "high",
+      "evidence": [
+        ".ai/03_plans/2026-07-19/2026-07-19-Archestimator-Live-Design-Partner-Journey-UX-Audit-Plan-Pack/plan-pack.json",
+        "current-worktree validator PASS"
+      ]
+    },
+    {
+      "id": "CSF-140",
+      "title": "Plan pack artifact hashes were not refreshed",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-19T17:07:48.245627Z",
+      "commit_hash": "5928d7217e68bb64510c6402684d90f8c1b2e3e2",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/README.md",
+        "ai/03_plans/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/plan-pack.json",
+        "scripts/lib/plan-pack-validator.mjs"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "plan-pack integrity",
+      "confidence": "high",
+      "evidence": [
+        ".ai/03_plans/2026-07-19/2026-07-19-ASIA-MANILA-Archestimator-Commercial-Estimate-Truth-Data-Integrity-Audit-Plan-Pack/plan-pack.json",
+        "current-worktree validator PASS"
+      ]
+    },
+    {
+      "id": "CSF-141",
+      "title": "Labor metadata no longer included in estimate totals",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-18T18:42:32.073592Z",
+      "commit_hash": "d9cf5b18e80aa2508feab806bb657639546a35d6",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/estimates/estimate-row-total.ts",
+        "src/lib/estimates/estimate-tree-read-repository.ts",
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "src/lib/publication/authoring-projection.ts",
+        "src/lib/project-charts/aggregate-project-charts.ts"
+      ],
+      "disposition": "MISDIAGNOSED_OR_REFUTED",
+      "cluster": "estimate money model",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/estimates/estimate-row-total.ts",
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "commit d9cf5b18"
+      ]
+    },
+    {
+      "id": "CSF-142",
+      "title": "Admin copilot action can 500 on non-string input",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T05:57:13.783969Z",
+      "commit_hash": "12c65dc8cafe1c3a8358c524795583b3cbd2d96a",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/admin/copilot-action.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "admin copilot",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/admin/copilot-action.ts"
+      ]
+    },
+    {
+      "id": "CSF-143",
+      "title": "Data-quality orphan checks can miss corrupted rows",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T05:57:40.620152Z",
+      "commit_hash": "f6cafe881e41ec47d5ca3fcee841e5f06e153267",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/admin/data-quality-repository.ts",
+        "migrations/0007_collaboration_invitations.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "admin data quality",
+      "confidence": "medium",
+      "evidence": [
+        "src/lib/admin/data-quality-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-144",
+      "title": "E2E failed-row polling does not latch failures",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T03:24:12.873503Z",
+      "commit_hash": "392675af144f480cca1af055884aeccb720f3e7b",
+      "has_patch": false,
+      "relevant_paths": [
+        "e2e/estimate-sheet-mvp.spec.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "estimate E2E reliability",
+      "confidence": "high",
+      "evidence": [
+        "e2e/estimate-sheet-mvp.spec.ts",
+        "commit 68b869c8"
+      ]
+    },
+    {
+      "id": "CSF-145",
+      "title": "Customer notes reject non-UUID user IDs",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T03:28:19.738622Z",
+      "commit_hash": "b986713fe26df324be959638c00e16a59982a2c0",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/admin/customer-notes-actions.ts",
+        "migrations/0003_profiles.sql",
+        "src/lib/admin/corporate-account-actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "admin customer records",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/admin/customer-notes-actions.ts",
+        "src/lib/auth/better-auth-cloudflare.ts"
+      ]
+    },
+    {
+      "id": "CSF-146",
+      "title": "Detached D1 batch method can break admin broadcasts",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-16T02:33:03.927544Z",
+      "commit_hash": "c350f8bf85597cfa59008a488b49acdd73d90076",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/admin/notification-actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "admin notifications",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/admin/notification-actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-147",
+      "title": "Row duplication appends instead of preserving row position",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-15T07:24:36.897351Z",
+      "commit_hash": "cf9bbd7e0e721c30e78fb9d82568a03902e18d53",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/estimate-sheet/rows/row-table.tsx",
+        "src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts",
+        "src/lib/estimates/actions.ts",
+        "src/lib/estimates/d1-action-client.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate row mutations",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts",
+        "PR #129"
+      ]
+    },
+    {
+      "id": "CSF-148",
+      "title": "Stale selected node ID breaks Add Area fallback",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-13T06:35:37.256010Z",
+      "commit_hash": "0dfdf19429ea392798af6362a1e05e0abffc62fa",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/EstimateSheetTree.tsx",
+        "src/components/workshop/estimate-tree/use-estimate-tree-crud.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate tree CRUD",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/estimate-tree/use-estimate-tree-crud.ts"
+      ]
+    },
+    {
+      "id": "CSF-149",
+      "title": "Archived plan pack fails metadata validation",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T16:05:03.528242Z",
+      "commit_hash": "15dce5883f24f6d5625b3b9c1c7d84632c1b11a3",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/09_archive/store/2026-07-12-Proposals-Page-Audit-unresolved/plan-pack.json",
+        "scripts/lib/plan-pack-validator.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "archived plan-pack integrity",
+      "confidence": "high",
+      "evidence": [
+        ".ai/09_archive/store/2026-07-12-Proposals-Page-Audit-unresolved/plan-pack.json",
+        "current validator FAIL"
+      ]
+    },
+    {
+      "id": "CSF-150",
+      "title": "Unsupported project currencies break publish/export",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-12T14:47:55.156455Z",
+      "commit_hash": "89232a0500ea052a9d9632b256f0ee28dd03a730",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "src/lib/publication/snapshot.ts",
+        "src/lib/estimates/estimate-row-total.ts",
+        "src/components/workshop/new-project-form-currency-options.ts",
+        "src/lib/projects/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "project currency and export",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/estimates/estimate-row-total.ts",
+        "src/components/workshop/new-project-form-currency-options.ts",
+        "PR #138"
+      ]
+    },
+    {
+      "id": "CSF-151",
+      "title": "Actor-filtered publication activity can be dropped",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-11T05:33:14.412687Z",
+      "commit_hash": "7b0548d6f11cd177023c43998f27b133076a1ece",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/repositories/project-activity-feed-repository.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "project activity feed",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/repositories/project-activity-feed-repository.ts"
+      ]
+    },
+    {
+      "id": "CSF-152",
+      "title": "Committed fingerprint verification cannot pass",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-10T08:32:11.966760Z",
+      "commit_hash": "2d484d6769f29cef8bbb6325b95d3fff976d8837",
+      "has_patch": false,
+      "relevant_paths": [
+        "ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/12_TEST_AND_VALIDATION_STRATEGY.md",
+        "ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/plan-pack.json",
+        "ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/source-fingerprint-v1.mjs"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "archived performance plan",
+      "confidence": "high",
+      "evidence": [
+        "commit ba2c25ca"
+      ]
+    },
+    {
+      "id": "CSF-153",
+      "title": "Loopback Supermemory CLI leaks bearer to port squatters",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-10T05:19:03.477146Z",
+      "commit_hash": "0b3895885fa8a49bcdba011153ced906b1ca0234",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/supermemory-memory.mjs",
+        "scripts/lib/supermemory-config.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "Supermemory local security",
+      "confidence": "medium",
+      "evidence": [
+        "scripts/supermemory-memory.mjs",
+        "scripts/lib/supermemory-config.mjs",
+        "commit da0a266c"
+      ]
+    },
+    {
+      "id": "CSF-154",
+      "title": "Agent docs rely on incomplete GitNexus guard",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-07T05:03:19.879627Z",
+      "commit_hash": "91ca70045d486e6459c07831a2480c0555fa6ba7",
+      "has_patch": false,
+      "relevant_paths": [
+        "agents/skills/gitnexus/gitnexus-cli/SKILL.md",
+        "package.json",
+        "scripts/run-safe-gitnexus-command.mjs",
+        "AGENTS.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "agent tooling security",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/gitnexus/gitnexus-cli/SKILL.md",
+        "scripts/run-safe-gitnexus-command.mjs",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "id": "CSF-155",
+      "title": "Category taxonomy selection is dropped in Add Component",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-07T05:03:43.559866Z",
+      "commit_hash": "1fb1582126b8d81a3d050583fd2bb012bc8f979a",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "component-library CRUD",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx",
+        "PR #140"
+      ]
+    },
+    {
+      "id": "CSF-156",
+      "title": "Add-component route can reopen modal after saving",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-06T20:34:30.624971Z",
+      "commit_hash": "8cb05eadad4f010180e8781311bbe12ae42cfdba",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx",
+        "src/components/workshop/library/component-route-state.ts",
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "component-library routing",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx",
+        "src/components/workshop/library/component-route-state.ts",
+        "PR #140"
+      ]
+    },
+    {
+      "id": "CSF-157",
+      "title": "Better Auth actor filters are dropped by URL parser",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-06T23:05:59.071230Z",
+      "commit_hash": "e19a6a21248edae0ad18200579da568ba8fbe51c",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/repositories/project-activity-feed-repository.ts",
+        "src/components/workshop/project-activity/ProjectActivityClient.tsx",
+        "src/components/workshop/project-activity/url-state.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "project activity filters",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/project-activity/url-state.ts",
+        "src/lib/auth/better-auth-cloudflare.ts"
+      ]
+    },
+    {
+      "id": "CSF-158",
+      "title": "Closed variant drawer remains visibly rendered",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-06T02:36:51.440274Z",
+      "commit_hash": "cfccaa2449dcaff9dd16a8df2bb8b482bbb335f1",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "component variant UI",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/component-library-manager/AddComponentModal.tsx",
+        "PR #140"
+      ]
+    },
+    {
+      "id": "CSF-159",
+      "title": "D1 image auth may reject intended workspace editors",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-01T02:02:45.652729Z",
+      "commit_hash": "45f814c04e8b0a55c6b2389d4ae143d9232a25c7",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/component-library/images/route.ts",
+        "src/lib/authz/d1-access.ts",
+        "scripts/generate-cloudflare-d1-component-library-proof.ts"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "component image authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/app/api/component-library/images/route.ts",
+        "src/lib/authz/d1-access.ts",
+        "PR #128"
+      ]
+    },
+    {
+      "id": "CSF-160",
+      "title": "Account settings D1 backfill omits pagination",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-07-01T02:01:30.237845Z",
+      "commit_hash": "00084822864728ac5f68d27aa15f8d5e448dcfc3",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/migrate-account-settings-to-d1.ts"
+      ],
+      "disposition": "NEEDS_RUNTIME_OR_HOSTED_EVIDENCE",
+      "cluster": "account settings migration",
+      "confidence": "medium",
+      "evidence": [
+        "commit 9abb9458"
+      ]
+    },
+    {
+      "id": "CSF-161",
+      "title": "Quantity expressions hidden after blur in estimate grid",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-28T09:10:15.357681Z",
+      "commit_hash": "afb7d59f12abc2f6ce8ad50c1778c46961921005",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/estimate-sheet/rows/row-table.tsx",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate row editing",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/estimate-sheet/rows/row-table.tsx"
+      ]
+    },
+    {
+      "id": "CSF-162",
+      "title": "Upload RLS proof seeds the wrong asset type",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-27T02:04:11.060438Z",
+      "commit_hash": "8cdb15c02448e5cbc1af9901ff147a07cc582c0e",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/prove-upload-domain-rls-postgres.mjs",
+        "supabase/migrations/20260626190000_upload_domain_tables.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase upload proof",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migration-evidence/provider-parity-proofs/prove-upload-domain-rls-postgres.mjs"
+      ]
+    },
+    {
+      "id": "CSF-163",
+      "title": "Payload validator ignores text before H1",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-26T17:55:43.664114Z",
+      "commit_hash": "9019d2809a42ced36b88eaf8ab095434a0936f2d",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/validate-ai-workflow-adapters.mjs"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "agent payload validation",
+      "confidence": "high",
+      "evidence": [
+        "scripts/validate-ai-workflow-adapters.mjs",
+        "commit 29cd66d9"
+      ]
+    },
+    {
+      "id": "CSF-164",
+      "title": "Mobile-to-larger resize leaves hero mockup hidden",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-25T09:03:28.667113Z",
+      "commit_hash": "5c5bcec086ed936cf838a49455f0f367a56b8bc2",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/landing-v3/HeroMountMotion.tsx",
+        "src/components/landing-v3/landing-v3.module.css"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "public landing motion",
+      "confidence": "high",
+      "evidence": [
+        "src/components/landing-v3/HeroMountMotion.tsx",
+        "src/components/landing-v3/landing-v3.module.css"
+      ]
+    },
+    {
+      "id": "CSF-165",
+      "title": "Signup request form posts to unhandled /contact route",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-23T06:09:52.649444Z",
+      "commit_hash": "51aa95d6c3770c6c670d99a20914b1a0da5a1447",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/signup/page.tsx",
+        "src/components/auth/ClosedBetaGate.tsx",
+        "src/app/contact/page.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "closed-beta signup",
+      "confidence": "high",
+      "evidence": [
+        "src/components/auth/ClosedBetaGate.tsx",
+        "src/app/contact/page.tsx"
+      ]
+    },
+    {
+      "id": "CSF-166",
+      "title": "Live mode now incorrectly requires DESIGN.md",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-21T11:05:59.015744Z",
+      "commit_hash": "9169fa2360ed0b26336206415f3d37de1dce5567",
+      "has_patch": false,
+      "relevant_paths": [
+        "agents/skills/impeccable/scripts/live.mjs",
+        "agents/skills/impeccable/reference/live.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "design tooling",
+      "confidence": "medium",
+      "evidence": [
+        ".agents/skills/impeccable/scripts/live.mjs",
+        ".agents/skills/impeccable/reference/live.md"
+      ]
+    },
+    {
+      "id": "CSF-167",
+      "title": "Center header is not hidden on compact layouts",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-20T12:18:12.152104Z",
+      "commit_hash": "e7ca25f4e56f4eade5f6de9fd1f83b8dfc5fa67a",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/EstimateCenterColumnBoundary.tsx",
+        "src/components/workshop/WorkshopTitleHeader.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "workshop responsive shell",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/EstimateCenterColumnBoundary.tsx",
+        "src/components/workshop/WorkshopTitleHeader.tsx"
+      ]
+    },
+    {
+      "id": "CSF-168",
+      "title": "Screenshot tool can leak Supabase session cookies",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-20T09:32:16.104052Z",
+      "commit_hash": "f7be01fd3c4d8f57a3c29d75eaa1d2af98e555b4",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/shot-glass-newdesign.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "local screenshot tooling",
+      "confidence": "high",
+      "evidence": [
+        "scripts/shot-glass-newdesign.mjs"
+      ]
+    },
+    {
+      "id": "CSF-169",
+      "title": "Benchmark script can leak stored auth cookies",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-20T09:29:59.177933Z",
+      "commit_hash": "ad0ba34a9b43f72517108166936f9a28447a3201",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/bench-hero-server.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "performance tooling",
+      "confidence": "high",
+      "evidence": [
+        "scripts/bench-hero-server.mjs"
+      ]
+    },
+    {
+      "id": "CSF-170",
+      "title": "Dev visual verifier allows path traversal reads",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-19T14:07:44.790812Z",
+      "commit_hash": "37b542bc840d85e2432c70a016ee5adc661e6ca7",
+      "has_patch": false,
+      "relevant_paths": [
+        "design-sync/verify-render.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "visual verification tooling",
+      "confidence": "high",
+      "evidence": [
+        ".design-sync/verify-render.mjs"
+      ]
+    },
+    {
+      "id": "CSF-171",
+      "title": "Dashboard quick-create can create duplicate sheets",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-18T13:03:12.005529Z",
+      "commit_hash": "fb412848bdf1dccf43353359b028c2000045532a",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/dashboard/LibraryHubCard.tsx",
+        "src/lib/estimates/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "workshop dashboard",
+      "confidence": "medium",
+      "evidence": [
+        "src/components/workshop/dashboard/LibraryHubCard.tsx"
+      ]
+    },
+    {
+      "id": "CSF-172",
+      "title": "graph:reindex fails on clean checkouts",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-18T07:07:07.279047Z",
+      "commit_hash": "708b68bfc44c5e82825b53d23d43bce3ac49a5be",
+      "has_patch": false,
+      "relevant_paths": [
+        "package.json",
+        "gitignore",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "GitNexus tooling",
+      "confidence": "high",
+      "evidence": [
+        "package.json",
+        "scripts/run-safe-gitnexus-command.mjs",
+        ".gitignore"
+      ]
+    },
+    {
+      "id": "CSF-173",
+      "title": "Glass radius lint exception is globally scoped",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-17T13:35:29.247506Z",
+      "commit_hash": "26908a2ae2c0df335369b363956f30bb3672c022",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/enforce-app-design-system.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "authenticated design lint",
+      "confidence": "high",
+      "evidence": [
+        "scripts/enforce-app-design-system.mjs"
+      ]
+    },
+    {
+      "id": "CSF-174",
+      "title": "Polite live-region clear is batched away",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-17T08:26:17.167588Z",
+      "commit_hash": "29ad2b79bce74e219b15f56f57a312d711d56916",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/hooks/use-sidebar-favorites-announcer.ts",
+        "src/components/workshop/ProjectEstimateFavoriteButton.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "sidebar accessibility",
+      "confidence": "high",
+      "evidence": [
+        "src/hooks/use-sidebar-favorites-announcer.ts"
+      ]
+    },
+    {
+      "id": "CSF-175",
+      "title": "Concurrent favorite failures can leave stale UI state",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-17T08:27:07.277972Z",
+      "commit_hash": "b23b139d3b78c942855ed2ead637e85e6b6c08cd",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/hooks/use-toggle-estimate-favorite.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate favorites",
+      "confidence": "high",
+      "evidence": [
+        "src/hooks/use-toggle-estimate-favorite.ts"
+      ]
+    },
+    {
+      "id": "CSF-176",
+      "title": "Null-origin CORS exposes live-server token",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T10:10:51.544014Z",
+      "commit_hash": "3fc5f718bac623c7a49f781eadb83191d1f909ec",
+      "has_patch": false,
+      "relevant_paths": [
+        "agents/skills/impeccable/scripts/live-server.mjs"
+      ],
+      "disposition": "DUPLICATE_CURRENT_FINDING",
+      "cluster": "Impeccable live server",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/impeccable/scripts/live-server.mjs",
+        "CSF-177"
+      ]
+    },
+    {
+      "id": "CSF-177",
+      "title": "Null-origin CORS leaks live-server token",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:02:17.873929Z",
+      "commit_hash": "f88d50bf82a657d47953179ff745cc592c88df1a",
+      "has_patch": false,
+      "relevant_paths": [
+        "agents/skills/impeccable/scripts/live-server.mjs"
+      ],
+      "disposition": "REGRESSED",
+      "cluster": "Impeccable live server",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/impeccable/scripts/live-server.mjs",
+        "commit 6e846065",
+        "commit 9169fa23"
+      ]
+    },
+    {
+      "id": "CSF-178",
+      "title": "Small tile sheet links are covered by card link",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T11:46:46.310014Z",
+      "commit_hash": "67cd01a33f6617e84a335c982bed4e1371e9d48f",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/LiveProjectCard.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "workshop project cards",
+      "confidence": "medium",
+      "evidence": [
+        "src/components/workshop/LiveProjectCard.tsx"
+      ]
+    },
+    {
+      "id": "CSF-179",
+      "title": "Null-origin live.js requests can expose live-server token",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T01:38:07.970870Z",
+      "commit_hash": "04ec57de1d22f4e72ec8efc9e9d7b899e31c60b1",
+      "has_patch": true,
+      "relevant_paths": [
+        "agents/skills/impeccable/scripts/live-server.mjs",
+        "claude/skills/impeccable/scripts/live-server.mjs",
+        "cursor/skills/impeccable/scripts/live-server.mjs",
+        "github/skills/impeccable/scripts/live-server.mjs"
+      ],
+      "disposition": "DUPLICATE_CURRENT_FINDING",
+      "cluster": "Impeccable live server",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/impeccable/scripts/live-server.mjs",
+        "CSF-177"
+      ]
+    },
+    {
+      "id": "CSF-180",
+      "title": "No security vulnerability found in column resizing commit",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T01:19:31.802000Z",
+      "commit_hash": "2a9e976487fe29653bec070099f31c0faa66ce3d",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/components/workshop/estimate-sheet/rows/row-table.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx"
+      ],
+      "disposition": "MISDIAGNOSED_OR_REFUTED",
+      "cluster": "estimate grid resizing",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/estimate-sheet/rows/row-table.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx"
+      ]
+    },
+    {
+      "id": "CSF-181",
+      "title": "Supabase PAT leaked by helper command and curl argv",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-14T16:52:10.936860Z",
+      "commit_hash": "e30580b16579246586cd545b45b84ccedb7a73fd",
+      "has_patch": true,
+      "relevant_paths": [
+        "ai/03_plans/2026-06-14-Database-Migration-Check/evidence/enable-leaked-password-protection.sh"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase tooling",
+      "confidence": "high",
+      "evidence": [
+        "enable-leaked-password-protection.sh",
+        ".ai/09_archive/2026-06-14-Database-Migration-Check/evidence/enable-leaked-password-protection.sh"
+      ]
+    },
+    {
+      "id": "CSF-182",
+      "title": "Hide-empty filter hides newly added areas",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T12:49:30.027358Z",
+      "commit_hash": "c35c20d69b15eca4bf7da0e0138525a8c58e1df2",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/EstimateSheetTree.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate tree filtering",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/EstimateSheetTree.tsx"
+      ]
+    },
+    {
+      "id": "CSF-183",
+      "title": "Relocated New-tab button can race pending tab actions",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T12:50:29.615639Z",
+      "commit_hash": "a57619f65346d10a495a3517a8c3a078e8d487af",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/estimate-sheet/EstimateTabStrip.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "estimate tabs",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/estimate-sheet/EstimateTabStrip.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx"
+      ]
+    },
+    {
+      "id": "CSF-184",
+      "title": "Busy unfavorite control clicks through to project link",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T12:58:35.013994Z",
+      "commit_hash": "15ef798944829ba110f4bbae2c2cb0cdd22389ce",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/LiveProjectCard.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "workshop project cards",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/ProjectCardFavoriteControl.tsx",
+        "src/components/workshop/LiveProjectCard.tsx"
+      ]
+    },
+    {
+      "id": "CSF-185",
+      "title": "Search prefilter truncates matches at Supabase row cap",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-13T13:37:51.620034Z",
+      "commit_hash": "b843ef233a6a30186ad3b6d2d605913ffc1c4103",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/reusable-sources/actions.ts",
+        "supabase/config.toml"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy reusable-source search",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/reusable-sources/actions.ts",
+        "supabase/config.toml"
+      ]
+    },
+    {
+      "id": "CSF-186",
+      "title": "Amount-in-words omits scales above trillion",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T13:45:05.245591Z",
+      "commit_hash": "afc7178c7c13499468a9272a737c343929a426b4",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/proposal-export/create-proposal-workbook.ts",
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "supabase/migrations/20260518090000_archestimator_core_schema.sql"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "proposal export",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/proposal-export/create-proposal-workbook.ts",
+        "PR #138"
+      ]
+    },
+    {
+      "id": "CSF-187",
+      "title": "Duplicate recipient chips stay pending and resendable",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T14:13:47.306639Z",
+      "commit_hash": "273bcb020864f9166340afb8b4a83a5a80fc5e8c",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/actions.ts",
+        "src/components/workshop/publication/RecipientEmailComposer.tsx"
+      ],
+      "disposition": "DUPLICATE_CURRENT_FINDING",
+      "cluster": "publication recipients",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "CSF-188"
+      ]
+    },
+    {
+      "id": "CSF-188",
+      "title": "Duplicate recipients remain sendable after neutral chip update",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-13T15:42:51.848066Z",
+      "commit_hash": "5994c5e62f92baa17b64e8c8cfbc5be41def29f5",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "src/lib/publication/actions.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "publication recipients",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "src/lib/publication/actions.ts"
+      ]
+    },
+    {
+      "id": "CSF-189",
+      "title": "Values-only exports still include formula for empty tabs",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T13:47:28.240875Z",
+      "commit_hash": "d79274c172c9212fe331f775991abfa1f5b29604",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
+        "src/lib/proposal-export/create-proposal-workbook.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "proposal XLSX export",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/proposal-export/create-proposal-workbook.ts",
+        "PR #138"
+      ]
+    },
+    {
+      "id": "CSF-190",
+      "title": "Workbook tax formulas omit rounding and can change totals",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T13:41:38.426760Z",
+      "commit_hash": "b72df039e97b6ca623d7e1981107dccc6214a756",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "src/lib/proposal-export/create-proposal-workbook.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "proposal XLSX money math",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/proposal-export/create-proposal-workbook.ts",
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "PR #138"
+      ]
+    },
+    {
+      "id": "CSF-191",
+      "title": "Server action leaks shared-link tokens to non-managers",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T14:16:18.435749Z",
+      "commit_hash": "f2bfd4eb8b65f43e6bfdc9a54d2b26f910f4070c",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/lib/publication/actions.ts",
+        "src/lib/repositories/workspace-repository.ts",
+        "src/components/workshop/ProjectPublicationHeader.tsx"
+      ],
+      "disposition": "REMEDIATED_AND_VERIFIED",
+      "cluster": "publication authorization",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/repositories/workspace-repository.ts",
+        "src/lib/publication/actions.ts",
+        "commit 3b35b714"
+      ]
+    },
+    {
+      "id": "CSF-192",
+      "title": "Single-tab export formula breaks with many sections",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-13T15:20:20.500061Z",
+      "commit_hash": "f73ae300dd4899d5f52a31ad04ce81ab90f8710a",
+      "has_patch": true,
+      "relevant_paths": [
+        "src/lib/proposal-export/create-proposal-workbook.ts",
+        "src/lib/proposal-export/build-proposal-export-model.ts",
+        "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "proposal XLSX export",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/proposal-export/create-proposal-workbook.ts",
+        "PR #138"
+      ]
+    },
+    {
+      "id": "CSF-193",
+      "title": "Legacy tab fallback exposes broken lifecycle controls",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T14:00:31.205563Z",
+      "commit_hash": "7b55706eca7307dfa7f4e7398dc09fe67703c938",
+      "has_patch": false,
+      "relevant_paths": [
+        "src/components/workshop/EstimateWorkspaceClient.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx",
+        "src/components/workshop/estimate-sheet/EstimateTabStrip.tsx"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "estimate tab compatibility",
+      "confidence": "high",
+      "evidence": [
+        "src/components/workshop/EstimateWorkspaceClient.tsx",
+        "src/components/workshop/EstimateSheetContent.tsx",
+        "src/components/workshop/estimate-sheet/EstimateTabStrip.tsx"
+      ]
+    },
+    {
+      "id": "CSF-194",
+      "title": "Live-mode token leak exposes local project files",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:02:09.402459Z",
+      "commit_hash": "8c14c286072adbdcef12c19c5ebb530c006524a8",
+      "has_patch": false,
+      "relevant_paths": [
+        "agents/skills/impeccable/scripts/live-server.mjs"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "Impeccable live server",
+      "confidence": "high",
+      "evidence": [
+        ".agents/skills/impeccable/scripts/live-server.mjs"
+      ]
+    },
+    {
+      "id": "CSF-195",
+      "title": "Resend readiness accepts a false enable flag",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T16:53:43.487775Z",
+      "commit_hash": "0448c988899c9d028043c1343568255eb0ca591c",
+      "has_patch": false,
+      "relevant_paths": [
+        "env.example",
+        "src/lib/email/resend-client.ts",
+        "scripts/check-resend-readiness.ts"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy email provider",
+      "confidence": "high",
+      "evidence": [
+        "src/lib/email/transactional-email-client.ts",
+        "src/lib/email/cloudflare-email-client.ts"
+      ]
+    },
+    {
+      "id": "CSF-196",
+      "title": "Vercel config disables all Git deployments",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T17:33:57.629737Z",
+      "commit_hash": "bcc129c60bdfd9721a9337eb4edee1f9fc0f2821",
+      "has_patch": false,
+      "relevant_paths": [
+        "vercel.json"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy deployment provider",
+      "confidence": "high",
+      "evidence": [
+        "vercel.json",
+        "wrangler.jsonc"
+      ]
+    },
+    {
+      "id": "CSF-197",
+      "title": "Route benchmark checker trusts forgeable aggregate fields",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T18:03:36.794938Z",
+      "commit_hash": "227c8814abc8157b227799b7c350fbf9f375df08",
+      "has_patch": false,
+      "relevant_paths": [
+        "scripts/check-route-transition-readiness.ts"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "performance evidence",
+      "confidence": "high",
+      "evidence": [
+        "scripts/check-route-transition-readiness.ts"
+      ]
+    },
+    {
+      "id": "CSF-198",
+      "title": "Local filesystem paths embedded in new artifacts",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:09:56.526314Z",
+      "commit_hash": "6d872df176968d15037da7d328048845fe1bd3dc",
+      "has_patch": false,
+      "relevant_paths": [
+        "archestimator_pitch deck/Archestimator Deck.pdf",
+        "philip-lewis-cv/README.md"
+      ],
+      "disposition": "STILL_PRESENT",
+      "cluster": "artifact privacy",
+      "confidence": "medium",
+      "evidence": [
+        "archestimator_pitch deck/Archestimator Deck.pdf",
+        "philip-lewis-cv/README.md",
+        "commit 0f0d6827"
+      ]
+    },
+    {
+      "id": "CSF-199",
+      "title": "Shared-link E2E spec fails when the gate is enabled",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T19:33:46.867582Z",
+      "commit_hash": "300a85c052cd6e03489bfbd916666a452788e3ff",
+      "has_patch": false,
+      "relevant_paths": [
+        "e2e/shared-link-receiver.spec.ts",
+        "src/proxy.ts"
+      ],
+      "disposition": "NEEDS_RUNTIME_OR_HOSTED_EVIDENCE",
+      "cluster": "shared-link E2E",
+      "confidence": "medium",
+      "evidence": [
+        "e2e/shared-link-receiver.spec.ts",
+        "src/lib/auth/request-proxy.ts",
+        "commit 51e2e11a"
+      ]
+    },
+    {
+      "id": "CSF-200",
+      "title": "Migration cross-links library items across tenants",
+      "cloud_severity": "informational",
+      "cloud_status": "new",
+      "detected_at": "2026-06-16T20:05:42.569986Z",
+      "commit_hash": "debbd01a855410afa2a4f96687b3ae23cc799c04",
+      "has_patch": false,
+      "relevant_paths": [
+        "supabase/migrations/20260518090000_archestimator_core_schema.sql",
+        "supabase/migrations/20260522064018_component_library_taxonomy_source.sql"
+      ],
+      "disposition": "OBSOLETE_PROVIDER",
+      "cluster": "legacy Supabase migration",
+      "confidence": "high",
+      "evidence": [
+        "supabase/migrations/20260518090000_archestimator_core_schema.sql",
+        "supabase/migrations/20260522064018_component_library_taxonomy_source.sql"
+      ]
+    }
+  ]
+}
