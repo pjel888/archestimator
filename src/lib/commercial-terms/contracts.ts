@@ -14,6 +14,9 @@ export const QUOTATION_STATUSES = [
   "available",
   "unavailable",
 ] as const;
+Object.freeze(VAT_TREATMENTS);
+Object.freeze(QUOTATION_REQUIREMENTS);
+Object.freeze(QUOTATION_STATUSES);
 type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
 
 export type QuotationFacts = {

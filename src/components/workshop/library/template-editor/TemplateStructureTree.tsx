@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Blueprint, FolderSimple, MapPin, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { Circle, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -27,7 +27,7 @@ function NodeKindIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (kind === "group") {
     return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
   }
-  return <MapPin size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+  return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function toStructureUiNode(node: EstimateTreeNode): UiTreeNode {
@@ -99,7 +99,7 @@ export function TemplateStructureTree({
         label: template.name,
         ariaLabel: `${template.name} template root`,
         isLeaf: template.nodes.length === 0,
-        icon: <Blueprint size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+        icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
         draggable: false,
         children: template.nodes.map(toStructureUiNode),
       },
@@ -178,7 +178,6 @@ export function TemplateStructureTree({
             {
               id: "add-root-group",
               label: "Add group",
-              icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
               onSelect: () => handlers.onAddNode(null, "group"),
             },
           ],
@@ -196,14 +195,12 @@ export function TemplateStructureTree({
             {
               id: "add-group",
               label: "Add group",
-              icon: <FolderSimple size={16} weight="regular" aria-hidden="true" />,
               disabled: isTemporary,
               onSelect: () => handlers.onAddNode(node.id, "group"),
             },
             {
               id: "add-area",
               label: "Add area",
-              icon: <Plus size={16} weight="regular" aria-hidden="true" />,
               disabled: isTemporary,
               onSelect: () => handlers.onAddNode(node.id, "area"),
             },
@@ -228,14 +225,12 @@ export function TemplateStructureTree({
       {
         id: "move-up",
         label: "Move up",
-        icon: <ArrowUp size={16} weight="regular" aria-hidden="true" />,
         disabled: isTemporary || moveIndex <= 0,
         onSelect: () => reorderNode(-1),
       },
       {
         id: "move-down",
         label: "Move down",
-        icon: <ArrowDown size={16} weight="regular" aria-hidden="true" />,
         disabled: isTemporary || moveIndex === -1 || moveIndex >= moveSiblings.length - 1,
         onSelect: () => reorderNode(1),
       },
@@ -250,7 +245,6 @@ export function TemplateStructureTree({
           {
             id: "rename-node",
             label: "Rename",
-            icon: <PencilSimple size={16} weight="regular" aria-hidden="true" />,
             disabled: isTemporary,
             onSelect: () => handlers.onRenameNode(node),
           },
@@ -262,7 +256,6 @@ export function TemplateStructureTree({
           {
             id: "delete-node",
             label: "Delete",
-            icon: <Trash size={16} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
             disabled: isTemporary,
             onSelect: () => handlers.onDeleteNode(node),

@@ -42,6 +42,7 @@ const SEVERITY_BY_LEVEL: Record<AppLogLevel, number> = {
   warn: 13,
   error: 17,
 };
+Object.freeze(SEVERITY_BY_LEVEL);
 const sessionStartedPaths = new Set<string>();
 let processCounter = 0;
 

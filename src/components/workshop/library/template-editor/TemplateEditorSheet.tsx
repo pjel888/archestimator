@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
-import { CaretDown, FolderSimple, MapPin, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { CaretRight, Circle, FolderSimple, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -210,7 +210,7 @@ function TemplateEditableRow({
           disabled={isTemporary}
           onClick={() => onRemoveRow(item.id)}
         >
-          <Trash size={16} weight="regular" aria-hidden="true" />
+          <X size={16} weight="regular" aria-hidden="true" />
         </Button>
         ) : null}
       </span>
@@ -231,7 +231,7 @@ function TemplateGhostRow({
 
   return (
     <div className="flex min-h-[28px] items-center gap-1.5 px-1">
-      <Plus size={11} weight="regular" aria-hidden="true" className="shrink-0 text-tertiary" />
+      <X size={11} weight="regular" aria-hidden="true" className="shrink-0 rotate-45 text-tertiary" />
       <ControlInput
         value={value}
         placeholder="Add row from library, or type to create an allowance row"
@@ -360,7 +360,7 @@ function TemplateSheetBranch({
           className="size-6 rounded-xs p-0 text-tertiary"
           onClick={() => onToggleCollapsed(node.id)}
         >
-          <CaretDown size={16} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
+          <CaretRight size={16} weight="regular" aria-hidden="true" className={collapsed ? "" : "rotate-90"} />
         </Button>
         <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
           <NodeIcon />
@@ -398,7 +398,7 @@ function TemplateSheetBranch({
                 disabled={isTemporary}
                 onClick={() => handlers.onAddNode(node.id, "area")}
               >
-                <MapPin size={16} weight="regular" aria-hidden="true" />
+                <Circle size={16} weight="regular" aria-hidden="true" />
               </Button>
             </>
           ) : null}
@@ -411,7 +411,7 @@ function TemplateSheetBranch({
             disabled={isTemporary}
             onClick={() => handlers.onDeleteNode(node)}
           >
-            <Trash size={16} weight="regular" aria-hidden="true" />
+            <X size={16} weight="regular" aria-hidden="true" />
           </Button>
         </span>
         ) : null}
@@ -608,7 +608,7 @@ export function TemplateEditorSheet({
               label: "Add area",
               visibleLabel: "Add area",
               showVisibleLabel: true,
-              icon: <MapPin size={16} weight="regular" aria-hidden="true" />,
+              icon: <Circle size={16} weight="regular" aria-hidden="true" />,
               className: "text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
               disabled: !areaTargetGroup,
               onClick: () => {

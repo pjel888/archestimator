@@ -52,7 +52,7 @@ export function CommercialCell({
       <label className="sr-only" htmlFor={remarksId}>Remarks for {rowLabel}</label>
       <textarea
         id={remarksId}
-        key={value.remarks}
+        key={`remarks:${value.remarks}`}
         defaultValue={value.remarks}
         disabled={controlsDisabled}
         aria-describedby={error ? errorId : undefined}
@@ -100,7 +100,7 @@ export function CommercialCell({
       <label className="sr-only" htmlFor={quotationReferenceId}>Quotation reference for {rowLabel}</label>
       <input
         id={quotationReferenceId}
-        key={value.quotationReference}
+        key={`quotation-reference:${value.quotationReference}`}
         defaultValue={value.quotationReference}
         disabled={controlsDisabled}
         aria-describedby={error ? errorId : undefined}

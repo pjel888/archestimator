@@ -2,15 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
+import { CaretRight, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
-import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import {
@@ -21,10 +17,6 @@ import { librarySurfaceClass } from "@/components/workshop/library/library-surfa
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
-import {
-  loadEstimateTemplateLinkedInstanceStatus,
-  retryEstimateTemplateLinkedInstances,
-} from "@/lib/component-library/template-editor-actions";
 import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
@@ -35,8 +27,24 @@ import {
   TEMPLATE_EDITOR_ROOT_NODE_ID,
 } from "./template-structure-tree-model";
 import { TemplateStructureTree } from "./TemplateStructureTree";
+import type { TemplateEditorTextPrompt } from "./TemplateEditorDialogs";
 import { TemplateEditorSheet, type TemplateSheetHandlers } from "./TemplateEditorSheet";
 import { useTemplateEditor } from "./use-template-editor";
+
+const TemplateEditorDialogs = dynamic(
+  () => import("./TemplateEditorDialogs").then((module) => module.TemplateEditorDialogs),
+  { ssr: false },
+);
+
+const TemplateLinkedInstancesStatus = dynamic(
+  () => import("./TemplateLinkedInstancesStatus").then((module) => module.TemplateLinkedInstancesStatus),
+  {
+    ssr: false,
+    loading: () => (
+      <Skeleton className="mx-2 mt-2 h-9 shrink-0" aria-label="Loading linked instance status" />
+    ),
+  },
+);
 
 const EstimateRightSidebar = dynamic(
   () => import("../../component-library").then((module) => module.EstimateRightSidebar),
@@ -139,114 +147,6 @@ function TemplateEditorReadOnlySourceDock() {
     </ResizableSidePanel>
   );
 }
-
-function TemplateLinkedInstancesStatus({ templateId, canEdit }: { templateId: string; canEdit: boolean }) {
-  const queryClient = useQueryClient();
-  const queryKey = ["estimate-template-linked-instances", templateId] as const;
-  const statusQuery = useQuery({
-    queryKey,
-    queryFn: () => loadEstimateTemplateLinkedInstanceStatus({ templateId }),
-    refetchInterval: (query) => query.state.data?.updatingCount ? 4_000 : false,
-  });
-  const [retrying, setRetrying] = useState(false);
-  const status = statusQuery.data;
-  if (statusQuery.isPending && !status) {
-    return <Skeleton className="mx-2 mt-2 h-9 shrink-0" aria-label="Loading linked instance status" />;
-  }
-  if (!status) {
-    return (
-      <section className="mx-2 mt-2 shrink-0 rounded-xs border border-dangerSoft p-2 text-[9px] text-danger">
-        <p>Couldn&apos;t load linked-instance status.</p>
-        <Button type="button" variant="secondary" size="xs" className="mt-1" onClick={() => void statusQuery.refetch()}>Retry</Button>
-      </section>
-    );
-  }
-  if (status.activeCount === 0) return null;
-  const stale = statusQuery.isError;
-  return (
-    <section className="mx-2 mt-2 shrink-0 rounded-xs border border-hairline bg-surfaceMuted/35 px-2 py-1.5" aria-label="Linked instances">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[9px] font-medium text-ink">Linked instances · v{status.currentVersionNumber}</p>
-          <p className="truncate text-[8px] text-tertiary">
-            {status.failedCount > 0
-              ? `${status.failedCount} of ${status.activeCount} need attention`
-              : status.updatingCount > 0
-                ? `${status.updatingCount} updating · ${status.currentCount} current`
-                : `All ${status.activeCount} linked instances updated`}
-            {stale ? " · Status may be outdated" : ""}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {status.retryableCount > 0 && canEdit ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              disabled={retrying}
-              onClick={() => {
-                setRetrying(true);
-                void retryEstimateTemplateLinkedInstances({ templateId })
-                  .then(() => queryClient.invalidateQueries({ queryKey }))
-                  .finally(() => setRetrying(false));
-              }}
-            >
-              {retrying ? "Retrying…" : `Retry ${status.retryableCount}`}
-            </Button>
-          ) : null}
-          <Button type="button" variant="ghost" size="xs" onClick={() => void statusQuery.refetch()}>Refresh</Button>
-        </div>
-      </div>
-      <details className="mt-1 text-[8px] text-secondary">
-        <summary className="cursor-pointer select-none">View affected Estimates</summary>
-        <VirtualizedLinkedInstanceList items={status.items} />
-      </details>
-    </section>
-  );
-}
-
-type LinkedInstanceStatusItem = Awaited<ReturnType<typeof loadEstimateTemplateLinkedInstanceStatus>>["items"][number];
-
-function VirtualizedLinkedInstanceList({ items }: { items: LinkedInstanceStatusItem[] }) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const virtualizer = useVirtualizer({
-    count: items.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 24,
-    overscan: 5,
-  });
-  return (
-    <div ref={scrollRef} className="mt-1 max-h-32 overflow-auto" data-template-linked-instance-virtual-list="true">
-      <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-        {virtualizer.getVirtualItems().map((virtualItem) => {
-          const item = items[virtualItem.index];
-          if (!item) return null;
-          return (
-            <Link
-              key={item.instanceId}
-              href={`/workshop/projects/${item.projectId}/estimates/${item.estimateId}`}
-              className="absolute left-0 top-0 flex h-6 w-full items-center justify-between gap-2 rounded-xs px-1 hover:bg-surfaceMuted"
-              style={{ transform: `translateY(${virtualItem.start}px)` }}
-            >
-              <span className="min-w-0 truncate">{item.projectName} · {item.estimateName}</span>
-              <span className={item.linkState === "failed" ? "text-danger" : "text-tertiary"}>
-                {item.linkState === "linked" ? `v${item.appliedVersionNumber}` : item.linkState === "updating" ? `v${item.appliedVersionNumber}→${item.targetVersionNumber}` : "Failed"}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-type TemplateEditorTextPrompt = {
-  title: string;
-  label: string;
-  confirmLabel: string;
-  initialValue: string;
-  onSubmit: (value: string) => void;
-};
 
 type TemplateEditorUiState = {
   selectedNodeId: string | null;
@@ -569,7 +469,7 @@ function TemplateEditorSurface({
               librarySurfaceClass(surfaceVariant, "railPanelHeader"),
             )}
           >
-            <CaretLeft size={11} weight="regular" aria-hidden="true" />
+            <CaretRight size={11} weight="regular" className="rotate-180" aria-hidden="true" />
             All templates
           </ButtonLink>
           <TreePanelHeader
@@ -675,66 +575,20 @@ function TemplateEditorSurface({
         <TemplateEditorDockFallback onActivate={requestDock} />
       )}
 
-      {deleteNodeTarget ? (
-        <ConfirmDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) dispatchUi({ type: "setDeleteNodeTarget", node: null });
-          }}
-          title={`Delete ${deleteNodeTarget.kind === "group" ? "group" : "area"}?`}
-          description={`"${deleteNodeTarget.name}" and its rows and child nodes are removed from this template.`}
-          tone="destructive"
-          confirmLabel="Delete"
-          onConfirm={confirmDeleteNode}
+      {deleteNodeTarget || editor.pendingSharedMutation || textPrompt ? (
+        <TemplateEditorDialogs
+          deleteNodeTarget={deleteNodeTarget}
+          onCloseDeleteNode={() => dispatchUi({ type: "setDeleteNodeTarget", node: null })}
+          onConfirmDeleteNode={confirmDeleteNode}
+          pendingSharedMutation={editor.pendingSharedMutation}
+          onCancelSharedMutation={editor.cancelSharedMutation}
+          onConfirmSharedMutation={editor.confirmSharedMutation}
+          textPrompt={textPrompt}
+          textPromptValue={textPromptValue}
+          onCloseTextPrompt={() => dispatchUi({ type: "closeTextPrompt" })}
+          onTextPromptValueChange={(value) => dispatchUi({ type: "textPromptValue", value })}
+          onSubmitTextPrompt={submitTextPrompt}
         />
-      ) : null}
-
-      {editor.pendingSharedMutation ? (
-        <ConfirmDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) editor.cancelSharedMutation();
-          }}
-          title={`${editor.pendingSharedMutation.actionLabel}?`}
-          description={
-            `${editor.pendingSharedMutation.impact.activeInstanceCount} linked ${editor.pendingSharedMutation.impact.activeInstanceCount === 1 ? "instance" : "instances"} `
-            + `across ${editor.pendingSharedMutation.impact.affectedProjectCount} ${editor.pendingSharedMutation.impact.affectedProjectCount === 1 ? "project" : "projects"} `
-            + `and ${editor.pendingSharedMutation.impact.affectedEstimateCount} ${editor.pendingSharedMutation.impact.affectedEstimateCount === 1 ? "estimate" : "estimates"} will update.`
-          }
-          confirmLabel="Update linked instances"
-          onConfirm={() => {
-            void editor.confirmSharedMutation();
-          }}
-        />
-      ) : null}
-
-      {textPrompt ? (
-        <ConfirmDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) dispatchUi({ type: "closeTextPrompt" });
-          }}
-          title={textPrompt.title}
-          description="Enter a name and confirm to apply."
-          confirmLabel={textPrompt.confirmLabel}
-          onConfirm={submitTextPrompt}
-        >
-          <label className="grid gap-1">
-            <span className="text-[9px] font-medium text-tertiary">{textPrompt.label}</span>
-            <ControlInput
-              aria-label={textPrompt.label}
-              autoFocus
-              value={textPromptValue}
-              onChange={(event) => dispatchUi({ type: "textPromptValue", value: event.target.value })}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  submitTextPrompt();
-                }
-              }}
-            />
-          </label>
-        </ConfirmDialog>
       ) : null}
     </div>
   );

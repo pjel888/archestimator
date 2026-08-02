@@ -21,6 +21,7 @@ const WAVE_FIXED_STEP_SECONDS = 1 / 120;
 const MAX_PHYSICS_STEPS_PER_FRAME = 6;
 const WAVE_TIME_SCALE = 0.75;
 const WAVE_SETTLE_TIME_MS = 6_933;
+const POINTER_MOVING_STATE_MS = 1_000;
 const WAVE_DAMPING = 0.995;
 const WAVE_TENSION = 0.11;
 const WAVE_BRUSH_CELLS = 3.1;
@@ -916,7 +917,7 @@ function createVoxelRippleScene(
   };
 
   const renderSurface = (time: number) => {
-    const isMoving = time - lastMotionTime < 96;
+    const isMoving = time - lastMotionTime < POINTER_MOVING_STATE_MS;
     canvas.dataset.rippleState = isMoving ? "moving" : "settling";
     canvas.dataset.rippleSegments = String(pointerSegments.length);
     renderer.setRenderTarget(null);
