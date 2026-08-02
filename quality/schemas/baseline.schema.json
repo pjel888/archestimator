@@ -190,6 +190,7 @@
       "properties": {
         "path": { "type": "string", "minLength": 1 },
         "sha256": { "$ref": "#/$defs/sha256" },
+        "line_ending_neutral_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
         "deleted": { "type": "boolean" },
         "sources": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["committed", "staged", "unstaged", "untracked"] } }
       }

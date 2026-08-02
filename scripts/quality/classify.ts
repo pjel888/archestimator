@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -24,10 +25,14 @@ import {
 function gitChangedFiles(baseSha: string): { files: string[]; error?: string } {
   const diff = spawnSync(
     "git",
-    ["diff", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB", baseSha],
+    gitArgsWithoutReplacementObjects([
+      "diff", "--no-renames", "--name-only", "--diff-filter=ACDMRTUXB", baseSha,
+    ]),
     { encoding: "utf8", cwd: qualityRoot() },
   );
-  const untracked = spawnSync("git", ["ls-files", "--others", "--exclude-standard"], {
+  const untracked = spawnSync("git", gitArgsWithoutReplacementObjects([
+    "ls-files", "--others", "--exclude-standard",
+  ]), {
     encoding: "utf8",
     cwd: qualityRoot(),
   });

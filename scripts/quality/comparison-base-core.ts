@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { gitArgsWithoutReplacementObjects } from "./common";
 
 export interface ComparisonBase {
   input_ref: string;
@@ -42,7 +43,7 @@ export async function resolveComparisonBase(input: {
     }
     return { input_ref: input.input_ref, resolved_sha: input.resolved_sha };
   }
-  const run = spawnSync("git", ["rev-parse", "--verify", `${input.input_ref}^{commit}`], {
+  const run = spawnSync("git", gitArgsWithoutReplacementObjects(["rev-parse", "--verify", `${input.input_ref}^{commit}`]), {
     cwd: input.root,
     encoding: "utf8",
   });

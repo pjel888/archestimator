@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -86,9 +87,9 @@ try {
     diff = await readFile(resolve(root, diffPath), "utf8");
   } else {
     if (!comparisonBase) throw new Error("comparison base is unavailable");
-    const generated = spawnSync("git", [
+    const generated = spawnSync("git", gitArgsWithoutReplacementObjects([
       "diff", "--no-renames", "--unified=0", comparisonBase.resolved_sha,
-    ], {
+    ]), {
       cwd: root,
       encoding: "utf8",
       maxBuffer: 30 * 1024 * 1024,

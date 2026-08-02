@@ -4,6 +4,7 @@ import { relative, resolve } from "node:path";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -121,18 +122,18 @@ async function deriveChangedScope(baseSha: string): Promise<{
   mergeBase?: string;
 }> {
   const mergeBase = baseSha;
-  const diffRun = runCommand("git", [
+  const diffRun = runCommand("git", gitArgsWithoutReplacementObjects([
     "diff",
     "--no-renames",
     "--unified=0",
     "--diff-filter=ACDMRTUXB",
     mergeBase,
-  ]);
-  const untrackedRun = runCommand("git", [
+  ]));
+  const untrackedRun = runCommand("git", gitArgsWithoutReplacementObjects([
     "ls-files",
     "--others",
     "--exclude-standard",
-  ]);
+  ]));
   if (diffRun.status !== 0 || untrackedRun.status !== 0) {
     findings.push({
       code: "STATIC_DIFF_SCOPE",
@@ -159,7 +160,7 @@ async function deriveChangedScope(baseSha: string): Promise<{
 }
 
 function readSourceAtRevision(revision: string, path: string): string | undefined {
-  const run = runCommand("git", ["show", `${revision}:${path}`]);
+  const run = runCommand("git", gitArgsWithoutReplacementObjects(["show", `${revision}:${path}`]));
   return run.status === 0 ? run.stdout ?? "" : undefined;
 }
 
@@ -193,7 +194,7 @@ async function readChangedSources(
 }
 
 async function readBusinessSources(): Promise<Array<{ path: string; text: string }>> {
-  const tracked = runCommand("git", ["ls-files", "src"]);
+  const tracked = runCommand("git", gitArgsWithoutReplacementObjects(["ls-files", "src"]));
   if (tracked.status !== 0) {
     findings.push({
       code: "STATIC_BUSINESS_SCOPE",

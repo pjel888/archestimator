@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { sha256 } from "./common";
+import { gitArgsWithoutReplacementObjects, sha256 } from "./common";
 
 interface PreflightEntry {
   path: string;
@@ -54,7 +54,7 @@ export async function buildAttribution(
     preflight = [];
   }
   const inherited = new Set(preflight.map((entry) => entry.path));
-  const mergeBase = spawnSync("git", ["merge-base", mergeBaseRef, "HEAD"], {
+  const mergeBase = spawnSync("git", gitArgsWithoutReplacementObjects(["merge-base", mergeBaseRef, "HEAD"]), {
     cwd: root,
     encoding: "utf8",
   }).stdout.trim();

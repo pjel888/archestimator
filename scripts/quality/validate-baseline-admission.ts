@@ -4,7 +4,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import baselineAdmissionSchema from "../../quality/schemas/baseline-admission.schema.json";
 import {
-  finishCli, flagString, makeResult, parseArgs, qualityRoot, sha256,
+  finishCli, flagString, gitArgsWithoutReplacementObjects, makeResult, parseArgs, qualityRoot, sha256,
   type QualityFinding,
 } from "./common";
 import {
@@ -29,6 +29,7 @@ import {
   compareComponentRatchet,
   normalizeComponentCoveragePaths,
   parseBaselineReviewDecision,
+  validateSuccessorCoverageDenominators,
   type ComponentBaseline,
   type ComponentEvidenceMap,
   type CoverageSummary,
@@ -331,15 +332,27 @@ function validCandidateSources(value: unknown): boolean {
     new Set(value).size === value.length && value.every((source) => candidateSources.has(source));
 }
 
+function validOptionalSha256(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === "string" && shaPattern.test(value));
+}
+
+function validCandidateFile(item: unknown): boolean {
+  if (!isObject(item) || typeof item.path !== "string" || item.path.length === 0) return false;
+  if (typeof item.sha256 !== "string" || !shaPattern.test(item.sha256)) return false;
+  if (typeof item.deleted !== "boolean" || !validOptionalSha256(item.line_ending_neutral_sha256)) return false;
+  if (item.deleted && item.line_ending_neutral_sha256 != null) return false;
+  return validCandidateSources(item.sources);
+}
+
 function validCandidateFiles(value: unknown): boolean {
-  return Array.isArray(value) && value.every((item) =>
-    isObject(item) && typeof item.path === "string" && item.path.length > 0 &&
-    typeof item.sha256 === "string" && shaPattern.test(item.sha256) &&
-    typeof item.deleted === "boolean" && validCandidateSources(item.sources));
+  return Array.isArray(value) && value.every(validCandidateFile);
 }
 
 function currentHead(root: string): string | null {
-  const run = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" });
+  const run = spawnSync("git", gitArgsWithoutReplacementObjects(["rev-parse", "HEAD"]), {
+    cwd: root,
+    encoding: "utf8",
+  });
   const head = run.status === 0 ? run.stdout.trim().toLowerCase() : "";
   return commitPattern.test(head) ? head : null;
 }
@@ -538,20 +551,22 @@ function measurementMatchesInventory(measurement: ComponentMeasurementEnvelope, 
 }
 
 function readImmutableFile(root: string, commitSha: string, path: string): string | null {
-  const reference = spawnSync("git", ["show", `${commitSha}:${path}`], {
+  const reference = spawnSync("git", gitArgsWithoutReplacementObjects(["show", `${commitSha}:${path}`]), {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 50 * 1024 * 1024,
   });
   if (reference.error) throw reference.error;
   if (reference.status === 0) return reference.stdout;
-  const commit = spawnSync("git", ["cat-file", "-e", `${commitSha}^{commit}`], { cwd: root });
+  const commit = spawnSync("git", gitArgsWithoutReplacementObjects(["cat-file", "-e", `${commitSha}^{commit}`]), { cwd: root });
   if (commit.status !== 0) throw new Error(`Comparison base ${commitSha} is unavailable`);
   return null;
 }
 
 function baselineExistsInHeadHistory(root: string, baselinePath: string): boolean {
-  const establishedOnHead = spawnSync("git", ["log", "-1", "--format=%H", "--diff-filter=A", "HEAD", "--", baselinePath], {
+  const establishedOnHead = spawnSync("git", gitArgsWithoutReplacementObjects([
+    "log", "-1", "--format=%H", "--diff-filter=A", "HEAD", "--", baselinePath,
+  ]), {
     cwd: root,
     encoding: "utf8",
   });
@@ -648,7 +663,9 @@ async function validateEstablishedBaselineRatchet(
     throw new Error("Predecessor embedded coverage does not match its hash-bound source coverage");
   }
   binding.sha256 = sha256(referenceRaw);
-  findings.push(...compareComponentRatchet(report, normalizeComponentCoveragePaths(coverage, root), baseline, root));
+  const normalizedCoverage = normalizeComponentCoveragePaths(coverage, root);
+  findings.push(...compareComponentRatchet(report, normalizedCoverage, baseline, root));
+  findings.push(...validateSuccessorCoverageDenominators(normalizedCoverage, baseline.coverage));
 }
 
 async function validateExistingBaselineRatchet(

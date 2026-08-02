@@ -15,6 +15,18 @@ const TEST_BYPASS_PATTERNS: [RegExp, string, string][] = [
   [/\|\|\s*true\b/gmu, "SHELL_FAILURE_HIDDEN", "shell failure suppression"],
 ];
 
+const COVERAGE_COMMENT_IGNORE_HINT =
+  /(?:\/\/|\/\*)[\s*]*(?:istanbul|[cv]8|node:coverage)\s+ignore\s+(?:if|else|next|file)(?=\W|$)/giu;
+const COVERAGE_RANGE_IGNORE_HINT =
+  /(?:istanbul|[cv]8|node:coverage)\s+ignore\s+(?:start|stop)(?=\W|$)/giu;
+
+function isCoverageInstrumentedSource(path: string): boolean {
+  if (!/\.[cm]?[jt]sx?$/u.test(path)) return false;
+  if (/^(?:e2e|tests)\//u.test(path)) return false;
+  if (/\.(?:d|stories)\.[cm]?[jt]sx?$/u.test(path)) return false;
+  return true;
+}
+
 export function scanAntiBypass(files: ScannableFile[]): QualityFinding[] {
   const findings: QualityFinding[] = [];
   for (const file of files) {
@@ -23,6 +35,18 @@ export function scanAntiBypass(files: ScannableFile[]): QualityFinding[] {
       if (pattern.test(file.text)) {
         findings.push({ code, message: `${file.path} contains ${label}`, path: file.path });
       }
+    }
+    COVERAGE_COMMENT_IGNORE_HINT.lastIndex = 0;
+    COVERAGE_RANGE_IGNORE_HINT.lastIndex = 0;
+    if (
+      isCoverageInstrumentedSource(file.path) &&
+      (COVERAGE_COMMENT_IGNORE_HINT.test(file.text) || COVERAGE_RANGE_IGNORE_HINT.test(file.text))
+    ) {
+      findings.push({
+        code: "COVERAGE_IGNORE_HINT",
+        message: `${file.path} contains a coverage-ignore directive`,
+        path: file.path,
+      });
     }
     if (
       /(?:vitest|playwright|stryker|coverage|quality).*\.(?:[cm]?[jt]s|json)$/u.test(file.path) &&

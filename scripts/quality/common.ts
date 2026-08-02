@@ -53,6 +53,10 @@ export function sha256(text: string | Buffer): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
+export function gitArgsWithoutReplacementObjects(args: readonly string[]): string[] {
+  return ["--no-replace-objects", ...args];
+}
+
 export function parseArgs(argv = process.argv.slice(2)): {
   positionals: string[];
   flags: Map<string, string | boolean>;

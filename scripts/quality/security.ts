@@ -4,6 +4,7 @@ import { relative, resolve } from "node:path";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -79,7 +80,9 @@ try {
 async function collectSecretInputs(): Promise<SecurityTextInput[]> {
   const listed = spawnSync(
     "git",
-    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    gitArgsWithoutReplacementObjects([
+      "ls-files", "--cached", "--others", "--exclude-standard", "-z",
+    ]),
     {
       cwd: root,
       encoding: "utf8",

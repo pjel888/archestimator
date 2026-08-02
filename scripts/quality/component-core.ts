@@ -1,11 +1,20 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, posix, relative, resolve, sep } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import baselineSchema from "../../quality/schemas/baseline.schema.json";
-import { readJson, sha256, type QualityFinding } from "./common";
-import { candidateDigest, type CandidateRecord } from "./candidate-core";
+import {
+  gitArgsWithoutReplacementObjects,
+  readJson,
+  sha256,
+  type QualityFinding,
+} from "./common";
+import {
+  candidateDigest,
+  lineEndingNeutralSourceDigest,
+  readContainedRegularFile,
+  type CandidateRecord,
+} from "./candidate-core";
 
 export const COMPONENT_PROFILES = [
   "Q1_CHANGE_GATE",
@@ -506,8 +515,18 @@ function normalizedIdentityList(value: unknown): value is string[] {
   return sortedUniqueStrings(value) && value.every((identity) => /^[A-Za-z0-9_-]+$/u.test(identity));
 }
 
+function optionalSha256IsNormalized(value: unknown): boolean {
+  return value === undefined || value === null || isSha256(value);
+}
+
+function candidateFileCoreIsNormalized(value: Record<string, unknown>): boolean {
+  return typeof value.path === "string" && Boolean(value.path) && isSha256(value.sha256) && typeof value.deleted === "boolean";
+}
+
 function candidateFileIsNormalized(value: unknown): boolean {
-  if (!isRecord(value) || typeof value.path !== "string" || !value.path || !isSha256(value.sha256) || typeof value.deleted !== "boolean") return false;
+  if (!isRecord(value) || !candidateFileCoreIsNormalized(value)) return false;
+  if (!optionalSha256IsNormalized(value.line_ending_neutral_sha256)) return false;
+  if (value.deleted && value.line_ending_neutral_sha256 != null) return false;
   const sources = value.sources;
   return sortedUniqueStrings(sources) && sources.every((source) => ["committed", "staged", "unstaged", "untracked"].includes(source));
 }
@@ -1395,20 +1414,20 @@ function validateBaselineReviews(
 }
 
 function readImmutableGitFile(root: string, commitSha: string, path: string): string | null {
-  const reference = spawnSync("git", ["show", `${commitSha}:${path}`], {
+  const reference = spawnSync("git", gitArgsWithoutReplacementObjects(["show", `${commitSha}:${path}`]), {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 50 * 1024 * 1024,
   });
   if (reference.error) throw reference.error;
   if (reference.status === 0) return reference.stdout;
-  const commit = spawnSync("git", ["cat-file", "-e", `${commitSha}^{commit}`], { cwd: root });
+  const commit = spawnSync("git", gitArgsWithoutReplacementObjects(["cat-file", "-e", `${commitSha}^{commit}`]), { cwd: root });
   if (commit.status !== 0) throw new Error(`Comparison base ${commitSha} is unavailable`);
   return null;
 }
 
 function readGitOutput(root: string, args: string[], failureMessage: string): string {
-  const result = spawnSync("git", args, {
+  const result = spawnSync("git", gitArgsWithoutReplacementObjects(args), {
     cwd: root,
     encoding: "utf8",
   });
@@ -1489,7 +1508,10 @@ function validateEstablishedPredecessor(
   if (JSON.stringify(reconstructed) !== JSON.stringify(predecessor.coverage)) {
     return [{ code: "COMPONENT_BASELINE_PREDECESSOR_COVERAGE_INVALID", message: "Predecessor embedded coverage does not match its immutable source" }];
   }
-  return compareComponentRatchet(report, coverage, predecessor, root);
+  return [
+    ...compareComponentRatchet(report, coverage, predecessor, root),
+    ...validateSuccessorCoverageDenominators(coverage, predecessor.coverage),
+  ];
 }
 
 export async function validateImmutablePredecessorAdmission(root: string, baseline: ComponentBaseline): Promise<QualityFinding[]> {
@@ -1798,6 +1820,34 @@ function findComponentTestCountRegression(
   }];
 }
 
+export function validateSuccessorCoverageDenominators(
+  coverage: CoverageSummary,
+  predecessorCoverage: CoverageSummary,
+): QualityFinding[] {
+  if (!coverageSummaryIsComplete(coverage) || !coverageSummaryIsComplete(predecessorCoverage)) {
+    return [{
+      code: "COMPONENT_SUCCESSOR_COVERAGE_EVIDENCE_MALFORMED",
+      message: "Successor denominator admission requires structurally complete current and predecessor coverage",
+    }];
+  }
+
+  return Object.keys(predecessorCoverage)
+    .filter((file) => file !== "total")
+    .sort()
+    .flatMap((file) => coverageMetrics.flatMap((metric) => {
+      const predecessorTotal = predecessorCoverage[file]![metric].total;
+      const currentTotal = coverage[file]?.[metric].total;
+      if (currentTotal !== undefined && currentTotal >= predecessorTotal) return [];
+      return [{
+        code: "COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION",
+        message: currentTotal === undefined
+          ? `${file} ${metric} is missing; predecessor total is ${predecessorTotal}`
+          : `${file} ${metric} total ${currentTotal} is below predecessor ${predecessorTotal}`,
+        path: file,
+      }];
+    }));
+}
+
 function findComponentCoverageRegressions(
   coverage: CoverageSummary,
   baselineCoverage: CoverageSummary,
@@ -1835,14 +1885,44 @@ function componentCoverageFileRegressions(
   ));
 }
 
-function readGitObjectId(root: string, args: string[]): string | null {
-  try {
-    const objectId = readGitOutput(root, args, "Git object ID is unavailable").toLowerCase();
-    if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u.test(objectId)) return null;
-    return objectId;
-  } catch {
-    return null;
-  }
+function readGitBlob(root: string, objectId: string): Buffer | null {
+  const result = spawnSync("git", gitArgsWithoutReplacementObjects(["cat-file", "blob", objectId]), {
+    cwd: root,
+    maxBuffer: 50 * 1024 * 1024,
+  });
+  if (result.error || result.status !== 0 || !Buffer.isBuffer(result.stdout)) return null;
+  return result.stdout;
+}
+
+function readRegularGitBlobObjectId(
+  root: string,
+  commitSha: string,
+  normalizedPath: string,
+): string | null {
+  const result = spawnSync(
+    "git",
+    gitArgsWithoutReplacementObjects([
+      "--literal-pathspecs", "ls-tree", "-z", "--full-tree", commitSha, "--", normalizedPath,
+    ]),
+    { cwd: root, encoding: "utf8" },
+  );
+  if (result.error || result.status !== 0) return null;
+  const record = singleNullTerminatedRecord(result.stdout);
+  return record ? regularGitBlobObjectId(record, normalizedPath) : null;
+}
+
+function singleNullTerminatedRecord(output: string): string | null {
+  const records = output.split("\0");
+  return records.length === 2 && records[1] === "" ? records[0]! : null;
+}
+
+function regularGitBlobObjectId(record: string, normalizedPath: string): string | null {
+  const separatorIndex = record.indexOf("\t");
+  if (separatorIndex < 0 || record.slice(separatorIndex + 1) !== normalizedPath) return null;
+  const match = /^(?:100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})$/iu.exec(
+    record.slice(0, separatorIndex),
+  );
+  return match?.[1]?.toLowerCase() ?? null;
 }
 
 function cleanFilteredSourceChangedSinceCommit(
@@ -1850,16 +1930,14 @@ function cleanFilteredSourceChangedSinceCommit(
   commitSha: string,
   normalizedPath: string,
 ): boolean {
-  const admittedObjectId = readGitObjectId(
-    root,
-    ["rev-parse", "--verify", `${commitSha}:${normalizedPath}`],
-  );
+  const admittedObjectId = readRegularGitBlobObjectId(root, commitSha, normalizedPath);
   if (!admittedObjectId) return false;
-  const currentObjectId = readGitObjectId(
-    root,
-    ["hash-object", `--path=${normalizedPath}`, "--", normalizedPath],
-  );
-  return currentObjectId !== null && currentObjectId !== admittedObjectId;
+  const admittedBytes = readGitBlob(root, admittedObjectId);
+  const currentBytes = readContainedRegularFile(root, normalizedPath);
+  if (!admittedBytes || !currentBytes) return false;
+  const admittedDigest = lineEndingNeutralSourceDigest(admittedBytes);
+  const currentDigest = lineEndingNeutralSourceDigest(currentBytes);
+  return admittedDigest !== null && currentDigest !== null && currentDigest !== admittedDigest;
 }
 
 function componentSourceChangedSinceBaseline(
@@ -1874,16 +1952,18 @@ function componentSourceChangedSinceBaseline(
   } catch {
     return false;
   }
+  const currentBytes = readContainedRegularFile(root, normalizedPath);
+  if (!currentBytes) return false;
   const admittedFile = baseline.source.candidate.record.changed_files.find(
     (candidateFile) => candidateFile.path === normalizedPath,
   );
   if (admittedFile) {
     if (admittedFile.deleted) return false;
-    try {
-      return sha256(readFileSync(resolve(root, normalizedPath))) !== admittedFile.sha256;
-    } catch {
-      return false;
-    }
+    if (sha256(currentBytes) === admittedFile.sha256) return false;
+    const admittedDigest = admittedFile.line_ending_neutral_sha256;
+    if (admittedDigest === undefined) return false;
+    const currentDigest = lineEndingNeutralSourceDigest(currentBytes);
+    return isSha256(admittedDigest) && currentDigest !== null && currentDigest !== admittedDigest;
   }
   return cleanFilteredSourceChangedSinceCommit(
     root,
@@ -1909,17 +1989,15 @@ function existingCoverageFileMetricRegression(
   baseline: CoverageValue,
   sourceChangedSinceBaseline: boolean,
 ): QualityFinding[] {
-  const currentUncovered = current.total - current.covered;
+  const effectiveTotal = file !== "total" && !sourceChangedSinceBaseline
+    ? Math.max(current.total, baseline.total)
+    : current.total;
+  const currentUncovered = effectiveTotal - current.covered;
   const baselineUncovered = baseline.total - baseline.covered;
-  const uncoveredRegressed = currentUncovered > baselineUncovered;
-  const unsafeDenominatorShrink = file !== "total" &&
-    current.total < baseline.total &&
-    currentUncovered !== baselineUncovered &&
-    !sourceChangedSinceBaseline;
-  if (!uncoveredRegressed && !unsafeDenominatorShrink) return [];
+  if (currentUncovered <= baselineUncovered) return [];
   return [{
     code: "COMPONENT_COVERAGE_REGRESSION",
-    message: `${file} ${metric} uncovered count ${currentUncovered} is worse or less trustworthy than baseline ${baselineUncovered}`,
+    message: `${file} ${metric} effective uncovered count ${currentUncovered} is worse than baseline ${baselineUncovered}`,
     path: file,
   }];
 }

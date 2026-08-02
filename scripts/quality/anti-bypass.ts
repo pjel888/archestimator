@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -36,13 +37,15 @@ if (scanPaths.length === 0 && !flagString(flags, "fixture") && comparisonBase) {
   try {
     const changed = spawnSync(
       "git",
-      [
+      gitArgsWithoutReplacementObjects([
         "diff", "--no-renames", "--name-only", "--diff-filter=ACMRTUXB",
         comparisonBase.resolved_sha,
-      ],
+      ]),
       { cwd: root, encoding: "utf8" },
     );
-    const untracked = spawnSync("git", ["ls-files", "--others", "--exclude-standard"], {
+    const untracked = spawnSync("git", gitArgsWithoutReplacementObjects([
+      "ls-files", "--others", "--exclude-standard",
+    ]), {
       cwd: root,
       encoding: "utf8",
     });

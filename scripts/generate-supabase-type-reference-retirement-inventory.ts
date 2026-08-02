@@ -392,13 +392,28 @@ function writeText(path: string, value: string) {
   writeFileSync(resolved, value.endsWith("\n") ? value : `${value}\n`);
 }
 
+export function writeSupabaseTypeReferenceRetirementInventoryArtifacts(params: {
+  report: SupabaseTypeReferenceRetirementInventory;
+  outputFile: string;
+  markdownFile: string;
+}) {
+  writeJson(params.outputFile, params.report);
+  writeText(
+    params.markdownFile,
+    renderSupabaseTypeReferenceRetirementMarkdown(params.report),
+  );
+}
+
 function runCli() {
   const outputFile = readEnv("OUTPUT_FILE") ?? DEFAULT_OUTPUT_FILE;
   const markdownFile = readEnv("MARKDOWN_FILE") ?? DEFAULT_MARKDOWN_FILE;
   const strictTypeReferenceExit = envFlag("STRICT_TYPE_REFERENCE_EXIT");
   const report = buildSupabaseTypeReferenceRetirementInventory();
-  writeJson(outputFile, report);
-  writeText(markdownFile, renderSupabaseTypeReferenceRetirementMarkdown(report));
+  writeSupabaseTypeReferenceRetirementInventoryArtifacts({
+    report,
+    outputFile,
+    markdownFile,
+  });
 
   const exitCode = strictTypeReferenceExit && !report.readiness.typeReferenceDeletionReady ? 1 : 0;
   console.log(JSON.stringify({

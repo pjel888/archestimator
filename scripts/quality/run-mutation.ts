@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -51,7 +52,7 @@ try {
 const mergeBase = comparisonBase?.resolved_sha ?? "";
 
 function gitPaths(args: string[], findingCode: string): string[] {
-  const run = spawnSync("git", args, {
+  const run = spawnSync("git", gitArgsWithoutReplacementObjects(args), {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 30 * 1024 * 1024,

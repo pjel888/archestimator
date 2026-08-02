@@ -13,6 +13,7 @@ import {
 import {
   validateCanonicalGenerationBindings,
   COMPONENT_BASELINE_MEASUREMENT_COMMAND,
+  validateImmutablePredecessorAdmission,
   type ComponentEvidenceMap,
   type CoverageSummary,
   type VitestJsonReport,
@@ -329,7 +330,7 @@ async function canonicalFromFiles(root: string, inventoryPath: string, validatio
   }
   if (findings.length > 0 || !secondValidation.qualityReviewer || !secondValidation.securityReviewer) return { findings };
   const candidateRecord = (JSON.parse(second.candidateRaw.toString()) as { data: { record: CandidateRecord } }).data.record;
-  return { findings: [], baseline: buildCanonicalBaseline({
+  const baseline = buildCanonicalBaseline({
     root, inventory: second.inventory, inventoryPath: normalizedRelative(root, inventoryPath), inventorySha256: expectedInventorySha,
     report: JSON.parse(second.reportRaw.toString()) as VitestJsonReport, reportPath: second.inventory.source.artifact, reportSha256: second.inventory.source.artifact_sha256,
     coverage: JSON.parse(second.coverageRaw.toString()) as CoverageSummary, coveragePath: second.inventory.source.coverage_artifact, coverageSha256: second.inventory.source.coverage_sha256,
@@ -339,7 +340,13 @@ async function canonicalFromFiles(root: string, inventoryPath: string, validatio
     candidateRecord, authorIds: second.inventory.admission.author_ids,
     bootstrap: second.validation.data?.bootstrap === true,
     predecessorBaselineSha256: second.validation.data?.predecessor_baseline_sha256 ?? null,
-  }) };
+  });
+  const predecessorFindings = baseline.admission.bootstrap
+    ? []
+    : await validateImmutablePredecessorAdmission(root, baseline);
+  return predecessorFindings.length === 0
+    ? { findings: [], baseline }
+    : { findings: predecessorFindings };
 }
 
 async function recomputeAdmissionForGeneration(

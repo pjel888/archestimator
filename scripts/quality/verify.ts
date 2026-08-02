@@ -44,6 +44,8 @@ import {
 const { flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
+const defaultCommandTimeoutMs = 30 * 60_000;
+const componentCommandTimeoutMs = 60 * 60_000;
 const requestedProfile = flagString(flags, "profile") as QualityProfile | undefined;
 const reviewsInput = flagString(flags, "reviews");
 const authorIdsInput = flagString(flags, "author-ids");
@@ -257,10 +259,13 @@ if (
     });
     const startedAt = Date.now();
     const started = performance.now();
+    const timeout = command.startsWith("bun run test:component:")
+      ? componentCommandTimeoutMs
+      : defaultCommandTimeoutMs;
     const run = spawnSync(executable, forwardedArgs, {
       cwd: root,
       encoding: "utf8",
-      timeout: 30 * 60_000,
+      timeout,
       maxBuffer: 20 * 1024 * 1024,
     });
     const result = {

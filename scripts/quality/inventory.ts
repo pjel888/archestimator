@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import {
   finishCli,
   flagString,
+  gitArgsWithoutReplacementObjects,
   makeResult,
   parseArgs,
   qualityRoot,
@@ -15,7 +16,10 @@ const { flags } = parseArgs();
 const root = qualityRoot();
 const findings: QualityFinding[] = [];
 const packageJson = await readJson<{ scripts?: Record<string, string> }>(resolve(root, "package.json"));
-const tracked = spawnSync("git", ["ls-files"], { cwd: root, encoding: "utf8" });
+const tracked = spawnSync("git", gitArgsWithoutReplacementObjects(["ls-files"]), {
+  cwd: root,
+  encoding: "utf8",
+});
 if (tracked.status !== 0) findings.push({ code: "GIT_INVENTORY", message: "Cannot list tracked files" });
 const files = tracked.stdout.split(/\r?\n/u).filter(Boolean);
 const current = {
