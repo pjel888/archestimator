@@ -106,6 +106,80 @@ describe("anti-bypass", () => {
     );
   });
 
+  it.each([
+    ["test.skip   ('x', () => {})", "TEST_SKIP_OR_FOCUS", "skip/focus test API"],
+    ["fit   ('x', () => {})", "TEST_SKIP_OR_FOCUS", "skip/focus test alias"],
+    ["@wip", "CUCUMBER_SKIP", "Cucumber skip tag"],
+    ["retries  =  10", "HIDDEN_RETRY", "nonzero retry configuration"],
+    ["timeout ( 60000", "TIMEOUT_INCREASE", "timeout above 60 seconds"],
+    ["continue-on-error  :  true", "CONTINUE_ON_ERROR", "required job continue-on-error"],
+    ["run ||  true", "SHELL_FAILURE_HIDDEN", "shell failure suppression"],
+  ])("reports the exact anti-bypass finding for %s", (text, code, label) => {
+    expect(scanAntiBypass([{ path: "fixture.test.ts", text }])).toEqual([{
+      code,
+      message: `fixture.test.ts contains ${label}`,
+      path: "fixture.test.ts",
+    }]);
+  });
+
+  it.each([
+    "test.skipper ('x')",
+    "prefix fitValue ('x')",
+    "@work-in-progress",
+    "retry: 0",
+    "retries = none",
+    "timeoutX: 60000",
+    "timeout: 59999",
+    "continue-on-errors: true",
+    "continue-on-error: false",
+    "run || truthy",
+  ])("does not report the near-miss bypass syntax %s", (text) => {
+    expect(scanAntiBypass([{ path: "fixture.test.ts", text }])).toEqual([]);
+  });
+
+  it.each([
+    ["timeout: 99999", "fixture.ts"],
+    ["timeout=100000", "fixture.ts"],
+    ["timeout( 600000", "fixture.ts"],
+  ])("detects every supported high timeout shape: %s", (text, path) => {
+    expect(scanAntiBypass([{ path, text }])).toEqual([{
+      code: "TIMEOUT_INCREASE",
+      message: `${path} contains timeout above 60 seconds`,
+      path,
+    }]);
+  });
+
+  it("compares numeric and nested threshold boundaries exactly", () => {
+    expect(compareThresholds(100, 99)).toEqual([{
+      code: "THRESHOLD_LOWERED",
+      message: "threshold lowered from 100 to 99",
+    }]);
+    expect(compareThresholds(100, 100)).toEqual([]);
+    expect(compareThresholds(100, 101)).toEqual([]);
+    expect(compareThresholds("100", 99)).toEqual([]);
+    expect(compareThresholds(100, "99")).toEqual([]);
+    expect(compareThresholds(null, {})).toEqual([]);
+    expect(compareThresholds([], [])).toEqual([]);
+    expect(compareThresholds(
+      { coverage: { branches: 100, lines: 100 } },
+      { coverage: { branches: 99 } },
+      "quality",
+    )).toEqual([
+      {
+        code: "THRESHOLD_LOWERED",
+        message: "quality.coverage.branches lowered from 100 to 99",
+      },
+      {
+        code: "THRESHOLD_REMOVED",
+        message: "quality.coverage.lines was removed",
+      },
+    ]);
+    expect(compareThresholds({ branches: 100 }, {})).toEqual([{
+      code: "THRESHOLD_REMOVED",
+      message: "branches was removed",
+    }]);
+  });
+
   it("does not confuse documented product retry behavior with test retry configuration", () => {
     expect(
       scanAntiBypass([
@@ -138,14 +212,31 @@ describe("anti-bypass", () => {
         },
       ]),
     ).toEqual([]);
-    expect(
-      scanAntiBypass([
-        {
-          path: "vitest.config.ts",
-          text: 'export default { coverage: { exclude: ["src/**"] } }',
-        },
-      ]).map((finding) => finding.code),
-    ).toContain("BUSINESS_LOGIC_EXCLUSION");
+    expect(scanAntiBypass([{
+      path: "vitest.config.ts",
+      text: 'export default { coverage: { "exclude"  : ["src/**"] } }',
+    }])).toEqual([{
+      code: "BUSINESS_LOGIC_EXCLUSION",
+      message: "vitest.config.ts broadens an exclusion into application code",
+      path: "vitest.config.ts",
+    }]);
+    expect(scanAntiBypass([{
+      path: "quality.config.mts",
+      text: 'export default { coveragePathIgnorePatterns: ["app/**"] }',
+    }])).toEqual([{
+      code: "BUSINESS_LOGIC_EXCLUSION",
+      message: "quality.config.mts broadens an exclusion into application code",
+      path: "quality.config.mts",
+    }]);
+    for (const file of [
+      { path: "vitest.config.ts", text: 'exclude: ["fixtures/**"]' },
+      { path: "vitest.config.ts", text: 'include: ["src/**"]' },
+      { path: "src/config.ts", text: 'exclude: ["src/**"]' },
+      { path: "vitest.config.ts.bak", text: 'exclude: ["src/**"]' },
+      { path: "quality.config.ts", text: 'excluded: ["src/**"]' },
+    ]) {
+      expect(scanAntiBypass([file])).toEqual([]);
+    }
   });
 
   it("rejects every supported coverage-ignore directive in instrumented source", () => {
@@ -165,6 +256,35 @@ describe("anti-bypass", () => {
         code: "COVERAGE_IGNORE_HINT",
         message: "src/example.ts contains a coverage-ignore directive",
         path: "src/example.ts",
+      }]);
+    }
+
+    for (const directive of [
+      "//  c8   ignore   next",
+      "/*   istanbul   ignore   else */",
+      "c8   ignore   start",
+      "node:coverage   ignore   stop",
+    ]) {
+      expect(scanAntiBypass([{ path: "src/example.mts", text: directive }])).toEqual([{
+        code: "COVERAGE_IGNORE_HINT",
+        message: "src/example.mts contains a coverage-ignore directive",
+        path: "src/example.mts",
+      }]);
+    }
+
+    for (const path of [
+      "src/example.js",
+      "src/example.jsx",
+      "src/example.cts",
+      "src/example.tsx",
+      "src/example.stories.tsx.helper.ts",
+      "contest/tests/example.ts",
+      "tests-extra/example.ts",
+    ]) {
+      expect(scanAntiBypass([{ path, text: "// c8 ignore next" }])).toEqual([{
+        code: "COVERAGE_IGNORE_HINT",
+        message: `${path} contains a coverage-ignore directive`,
+        path,
       }]);
     }
 
@@ -192,18 +312,71 @@ describe("anti-bypass", () => {
       text: "/* c8 ignore next */",
     }])).toEqual([]);
     expect(scanAntiBypass([{
+      path: "src/example.ts.bak",
+      text: "/* c8 ignore next */",
+    }])).toEqual([]);
+    expect(scanAntiBypass([{
+      path: "src/example.d.tsx",
+      text: "/* c8 ignore next */",
+    }])).toEqual([]);
+    for (const path of [
+      "src/example.stories.ts",
+      "src/example.stories.mts",
+      "src/example.d.cts",
+      "src/example.stories.tsx.bak",
+    ]) {
+      expect(scanAntiBypass([{ path, text: "/* c8 ignore next */" }])).toEqual([]);
+    }
+    expect(scanAntiBypass([{
       path: "src/example.ts",
       text: 'const documentation = "c8 ignore next";',
     }])).toEqual([]);
   });
 
   it("rejects expired and agent-authored waivers", () => {
-    const findings = validateWaiver({
+    expect(validateWaiver({
       author_type: "agent",
       approvals: ["one"],
       expires_at: "2020-01-01T00:00:00Z",
-    });
-    expect(findings).toHaveLength(3);
+    }, new Date("2026-01-01T00:00:00.000Z"))).toEqual([
+      { code: "AGENT_AUTHORED_WAIVER", message: "Agents cannot author waivers" },
+      { code: "WAIVER_APPROVALS", message: "Waiver requires two independent approvals" },
+      { code: "WAIVER_EXPIRED", message: "Waiver is expired or malformed" },
+    ]);
+  });
+
+  it("accepts only human, independently approved, unexpired waivers", () => {
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const valid = {
+      author_type: "human",
+      approvals: ["one", "two"],
+      expires_at: "2026-01-01T00:00:00.001Z",
+    };
+    expect(validateWaiver(valid, now)).toEqual([]);
+    expect(validateWaiver({ ...valid, author_type: "agent" }, now)).toEqual([{
+      code: "AGENT_AUTHORED_WAIVER",
+      message: "Agents cannot author waivers",
+    }]);
+    expect(validateWaiver({ ...valid, approvals: ["one"] }, now)).toEqual([{
+      code: "WAIVER_APPROVALS",
+      message: "Waiver requires two independent approvals",
+    }]);
+    expect(validateWaiver({ ...valid, approvals: "one,two" }, now)).toEqual([{
+      code: "WAIVER_APPROVALS",
+      message: "Waiver requires two independent approvals",
+    }]);
+    expect(validateWaiver({ ...valid, expires_at: now.toISOString() }, now)).toEqual([{
+      code: "WAIVER_EXPIRED",
+      message: "Waiver is expired or malformed",
+    }]);
+    expect(validateWaiver({ ...valid, expires_at: "not-a-date" }, now)).toEqual([{
+      code: "WAIVER_EXPIRED",
+      message: "Waiver is expired or malformed",
+    }]);
+    expect(validateWaiver({ ...valid, expires_at: 1 }, now)).toEqual([{
+      code: "WAIVER_EXPIRED",
+      message: "Waiver is expired or malformed",
+    }]);
   });
 });
 

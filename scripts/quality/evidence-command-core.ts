@@ -5,7 +5,7 @@ export interface ResolvedEvidenceCommand {
   error: string | null;
 }
 
-const ENV_ASSIGNMENT_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/s;
+const ENV_ASSIGNMENT_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)/;
 const UNHANDLED_COMMAND_DIAGNOSTIC_PATTERNS = [
   /\buncaughtException\b/iu,
   /\bunhandledRejection\b/iu,
@@ -48,10 +48,11 @@ function applyEnvironmentAssignments(
 ) {
   const environment = copyEnvironment(baseEnvironment);
   let commandIndex = 1;
-  for (; commandIndex < command.length; commandIndex += 1) {
-    const assignment = ENV_ASSIGNMENT_PATTERN.exec(command[commandIndex]!);
+  for (const argument of command.slice(1)) {
+    const assignment = ENV_ASSIGNMENT_PATTERN.exec(argument);
     if (!assignment) break;
     setEnvironmentValue(environment, assignment[1]!, assignment[2]!, platform);
+    commandIndex += 1;
   }
   return { commandIndex, environment };
 }

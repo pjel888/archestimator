@@ -32,6 +32,8 @@ const strykerConfig = {
     "!css-modules.d.ts",
     "!next-env.d.ts",
     "!image-loader.ts",
+    "!.ai/03_plans/2026-07-31/Code-Improvement/03-VERIFICATION-MATRIX.md",
+    "!.github/workflows/quality.yml",
     "!public/**",
     "!migrations/**",
     "!quality/**",

@@ -54,6 +54,34 @@ const inventory: MutationChangeInventory = {
 };
 
 describe("mutation target selection", () => {
+  it("binds canonical quality-gate mutation targets to focused tests", () => {
+    const canonicalRegistry = JSON.parse(
+      readFileSync(resolve(root, "quality/mutation-registry.json"), "utf8"),
+    ) as MutationRegistry;
+    const qualityEntry = canonicalRegistry.entries.find(
+      (entry) => entry.id === "MUT-QUALITY-GATE-CORE",
+    );
+
+    expect(qualityEntry?.targets).toEqual([
+      "scripts/quality/anti-bypass-core.ts",
+      "scripts/quality/candidate-core.ts",
+      "scripts/quality/comparison-base-core.ts",
+      "scripts/quality/component-core.ts",
+      "scripts/quality/evidence-command-core.ts",
+    ]);
+    expect(qualityEntry?.tests).toEqual([
+      "tests/vitest/quality/candidate-digest.test.ts",
+      "tests/vitest/quality/comparison-base-lineage.test.ts",
+      "tests/vitest/quality/component-baseline.test.ts",
+      "tests/vitest/quality/component-baseline-integrity.test.ts",
+      "tests/vitest/quality/component-gate.test.ts",
+      "tests/vitest/quality/evidence-command-core.test.ts",
+      "tests/vitest/quality/quality-core.test.ts",
+      "tests/vitest/quality/review-manifest.test.ts",
+      "tests/vitest/quality/verify-forwarding.test.ts",
+    ]);
+  });
+
   it("includes every changed-state source and excludes tests and prose", () => {
     expect(changedExecutableFiles(inventory)).toEqual([
       "scripts/quality/new-gate.ts",
@@ -380,6 +408,10 @@ describe("mutation runner configuration", () => {
     expect(stryker).toContain("mutate: mutationTargets");
     expect(stryker).toContain('"!scripts/quality/**"');
     expect(stryker).toContain('"!src/**"');
+    expect(stryker).toContain(
+      '"!.ai/03_plans/2026-07-31/Code-Improvement/03-VERIFICATION-MATRIX.md"',
+    );
+    expect(stryker).toContain('"!.github/workflows/quality.yml"');
     expect(stryker).toContain("break: 80");
     expect(vitest).toContain('"tests/vitest/**/*.test.{ts,tsx}"');
     expect(vitest).toContain("ARCHESTIMATOR_MUTATION_EXACT_TESTS");

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export type QualityStatus = "PASS" | "FAIL" | "QUALITY_BLOCKED";
 
@@ -95,7 +96,7 @@ export function flagString(
 }
 
 export function qualityRoot(): string {
-  return resolve(import.meta.dir, "../..");
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 }
 
 export async function finishCli(

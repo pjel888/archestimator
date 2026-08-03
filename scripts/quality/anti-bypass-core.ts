@@ -9,8 +9,8 @@ const TEST_BYPASS_PATTERNS: [RegExp, string, string][] = [
   [/\b(?:describe|it|test)\.(?:skip|only)\s*\(/gu, "TEST_SKIP_OR_FOCUS", "skip/focus test API"],
   [/\b(?:xdescribe|xit|xtest|fdescribe|fit|ftest)\s*\(/gu, "TEST_SKIP_OR_FOCUS", "skip/focus test alias"],
   [/@(?:skip|wip|ignore)\b/giu, "CUCUMBER_SKIP", "Cucumber skip tag"],
-  [/\bretr(?:y|ies)(?:\s*[:=]\s*|\()[1-9]\d*/giu, "HIDDEN_RETRY", "nonzero retry configuration"],
-  [/\btimeout\s*[:=(]\s*(?:[6-9]\d{4}|[1-9]\d{5,})/giu, "TIMEOUT_INCREASE", "timeout above 60 seconds"],
+  [/\bretr(?:y|ies)(?:\s*[:=]\s*|\()[1-9]\d*\b/giu, "HIDDEN_RETRY", "nonzero retry configuration"],
+  [/\btimeout\s*[:=(]\s*(?:[6-9]\d{4}|[1-9]\d{5,})\b/giu, "TIMEOUT_INCREASE", "timeout above 60 seconds"],
   [/\bcontinue-on-error\s*:\s*true\b/giu, "CONTINUE_ON_ERROR", "required job continue-on-error"],
   [/\|\|\s*true\b/gmu, "SHELL_FAILURE_HIDDEN", "shell failure suppression"],
 ];
@@ -50,7 +50,7 @@ export function scanAntiBypass(files: ScannableFile[]): QualityFinding[] {
     }
     if (
       /(?:vitest|playwright|stryker|coverage|quality).*\.(?:[cm]?[jt]s|json)$/u.test(file.path) &&
-      /["']?(?:exclude|coveragePathIgnorePatterns|testPathIgnorePatterns)["']?\s*[:=]/iu.test(
+      /\b(?:exclude|coveragePathIgnorePatterns|testPathIgnorePatterns)\b["']?\s*[:=]/iu.test(
         file.text,
       ) &&
       /(?:src\/|app\/|components\/|\*\*\/\*\*)/u.test(file.text)

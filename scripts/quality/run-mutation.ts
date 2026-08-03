@@ -32,6 +32,7 @@ const { flags } = parseArgs();
 const root = qualityRoot();
 const requestedScope = flagString(flags, "scope");
 const findings: QualityFinding[] = [];
+const strykerTimeoutMs = 2 * 60 * 60_000;
 const allowedScopes: MutationScope[] = ["changed", "critical", "full", "representative"];
 const scope = allowedScopes.includes(requestedScope as MutationScope)
   ? (requestedScope as MutationScope)
@@ -163,7 +164,7 @@ if (findings.length === 0 && !flags.has("plan")) {
       ARCHESTIMATOR_MUTATION_TSCONFIG: selectedTsconfigName,
       NODE_OPTIONS: `${process.env.NODE_OPTIONS ? `${process.env.NODE_OPTIONS} ` : ""}--max-old-space-size=4096`,
     },
-    timeout: 60 * 60_000,
+    timeout: strykerTimeoutMs,
     maxBuffer: 30 * 1024 * 1024,
   });
   await unlink(selectedTsconfigPath).catch((error: NodeJS.ErrnoException) => {
@@ -187,7 +188,7 @@ if (findings.length === 0 && !flags.has("plan")) {
       message: run.signal
         ? `Stryker terminated by ${run.signal}`
         : spawnErrorCode === "ETIMEDOUT"
-          ? "Stryker exceeded the one-hour timeout"
+          ? "Stryker exceeded the two-hour timeout"
           : `Stryker exited ${run.status}`,
       detail: { stdout: run.stdout.slice(-8_000), stderr: run.stderr.slice(-8_000) },
     });

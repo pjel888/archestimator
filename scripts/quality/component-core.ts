@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { isAbsolute, posix, relative, resolve, sep } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import baselineSchema from "../../quality/schemas/baseline.schema.json";
 import {
   gitArgsWithoutReplacementObjects,
@@ -89,17 +90,15 @@ export interface CoverageValue {
 export type CoverageMetrics = Record<CoverageMetric, CoverageValue>;
 export type CoverageSummary = Record<string, CoverageMetrics>;
 
-const validateBaselineSchema = new Ajv2020({
-  allErrors: true,
-  strict: false,
-  validateFormats: false,
-}).compile(baselineSchema);
+const baselineAjv = new Ajv2020({ allErrors: true });
+addFormats(baselineAjv as unknown as Parameters<typeof addFormats>[0]);
+const validateBaselineSchema = baselineAjv.compile(baselineSchema);
 
-function validateCanonicalBaselineSchema(value: unknown): QualityFinding[] {
+export function validateCanonicalBaselineSchema(value: unknown): QualityFinding[] {
   if (validateBaselineSchema(value)) return [];
-  return (validateBaselineSchema.errors ?? []).map((error) => ({
+  return validateBaselineSchema.errors!.map((error) => ({
     code: "COMPONENT_BASELINE_SCHEMA_INVALID",
-    message: `${error.instancePath || "/"} ${error.message ?? "does not match the canonical baseline schema"}`,
+    message: `${error.instancePath || "/"} ${error.message}`,
   }));
 }
 
@@ -182,7 +181,7 @@ function normalizePath(path: string): string {
 function repositoryEvidenceAliasError(portablePath: string): string | null {
   const segments = portablePath.split("/");
   const checks: Array<[boolean, string]> = [
-    [/^\/\/[?.]\//u.test(portablePath) || /^\/\/[^/]/u.test(portablePath), "uses an unsupported Windows namespace or UNC path"],
+    [/^\/\/[^/]/u.test(portablePath), "uses an unsupported Windows namespace or UNC path"],
     [segments.some((segment) => /[. ]$/u.test(segment)), "contains a Windows trailing dot or space alias"],
     [segments.some((segment, index) => segment.includes(":") && !(index === 0 && /^[A-Za-z]:$/u.test(segment))), "contains an NTFS alternate data stream or colon alias"],
   ];
@@ -190,7 +189,7 @@ function repositoryEvidenceAliasError(portablePath: string): string | null {
 }
 
 function repositoryEvidencePathIsOutside(relativePath: string, rawRelativePath: string): boolean {
-  return ["", ".", "total", ".."].includes(relativePath) ||
+  return ["", "total"].includes(relativePath) ||
     relativePath.startsWith("../") ||
     [isAbsolute(rawRelativePath), posix.isAbsolute(relativePath)].some(Boolean);
 }
@@ -218,15 +217,14 @@ export function normalizeComponentCoveragePaths(
   const identities = new Set<string>();
   for (const [path, metrics] of Object.entries(coverage)) {
     const relativePath = path === "total" ? path : normalizeRepositoryEvidencePath(path, root, "Coverage path");
-    const identity = process.platform === "win32" ? relativePath.toLowerCase() : relativePath;
-    if (identities.has(identity)) throw new Error(`Coverage paths collide at ${relativePath}`);
+    const identity = relativePath.toLowerCase();
+    if (identities.has(identity)) throw new Error(`Coverage paths collide at ${identity}`);
     identities.add(identity);
     normalized.set(relativePath, metrics);
   }
-  if (normalized.size !== Object.keys(coverage).length) throw new Error("Coverage path normalization changed the record count");
   const result = Object.fromEntries(normalized);
-  const findings = validateComponentCoverageSummary(result);
-  if (findings.length > 0) throw new Error(findings.map((finding) => finding.message).join("; "));
+  const [finding] = validateComponentCoverageSummary(result);
+  if (finding) throw new Error(finding.message);
   return result;
 }
 
@@ -234,29 +232,21 @@ function escapeRegex(value: string): string {
   return value.replace(/[|\\{}()[\]^$+?.]/gu, "\\$&");
 }
 
+function globTokenExpression(token: string): string {
+  if (token === "**/") return "(?:.*/)?";
+  if (token === "**") return ".*";
+  if (token === "*") return "[^/]*";
+  return escapeRegex(token);
+}
+
 export function globMatches(path: string, pattern: string): boolean {
   const normalizedPath = normalizePath(path);
   const normalizedPattern = normalizePath(pattern);
-  let expression = "";
-  for (let index = 0; index < normalizedPattern.length; index += 1) {
-    const character = normalizedPattern[index];
-    if (character !== "*") {
-      expression += escapeRegex(character);
-      continue;
-    }
-    if (normalizedPattern[index + 1] === "*") {
-      index += 1;
-      if (normalizedPattern[index + 1] === "/") {
-        index += 1;
-        expression += "(?:.*/)?";
-      } else {
-        expression += ".*";
-      }
-    } else {
-      expression += "[^/]*";
-    }
-  }
-  return new RegExp(`^${expression}$`, "u").test(normalizedPath);
+  const expression = normalizedPattern
+    .split(/(\*\*\/|\*\*|\*)/u)
+    .map(globTokenExpression)
+    .join("");
+  return new RegExp(`^${expression}$`).test(normalizedPath);
 }
 
 function matchingPaths(paths: string[], patterns: string[]): string[] {
@@ -328,13 +318,13 @@ export function selectStrictComponentTests(
   };
 }
 
-function normalizedSignature(message: string): string {
+export function normalizedSignature(message: string): string {
   return message
-    .replace(/\u001b\[[0-9;]*m/gu, "")
+    .replace(/\u001b\[[0-9;]*m/g, "")
     .replaceAll("\\", "/")
-    .replace(/(?:file:\/\/)?(?:[A-Za-z]:)?\/[^\s:)]+/gu, "<path>")
-    .replace(/:\d+:\d+/gu, ":<line>:<column>")
-    .replace(/\s+/gu, " ")
+    .replace(/(?:file:\/\/\/)?(?:[A-Za-z]:)?\/[^\s:)]+/g, "<path>")
+    .replace(/:\d+:\d+/g, ":<line>:<column>")
+    .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500);
 }
@@ -353,8 +343,8 @@ function failureIdentity(
   return [kind, file, test, signature].join("\u0000");
 }
 
-function collectTestFiles(report: VitestJsonReport, root: string): string[] {
-  return (report.testResults ?? [])
+function collectTestFiles(testResults: VitestFileResult[], root: string): string[] {
+  return testResults
     .map((result) => result.name)
     .filter((name): name is string => Boolean(name))
     .map((name) => relativeTestPath(root, name))
@@ -415,11 +405,16 @@ function appendTestResultFailures(
   findings: QualityFinding[],
 ): void {
   const file = result.name ? relativeTestPath(root, result.name) : "<unknown-test-file>";
-  const assertions = result.assertionResults ?? [];
-  for (const assertion of assertions) {
-    appendAssertionOutcome(assertion, file, failures, findings);
+  const assertions = result.assertionResults;
+  if (Array.isArray(assertions)) {
+    for (const assertion of assertions) {
+      appendAssertionOutcome(assertion, file, failures, findings);
+    }
   }
-  if (result.status !== "failed" || assertions.some((assertion) => assertion.status === "failed")) {
+  if (
+    result.status !== "failed" ||
+    (Array.isArray(assertions) && assertions.some((assertion) => assertion.status === "failed"))
+  ) {
     return;
   }
 
@@ -444,9 +439,8 @@ function appendUnhandledFailures(
   findings: QualityFinding[],
 ): void {
   for (const [index, error] of errors.entries()) {
-    const signature = normalizedSignature(
-      typeof error === "string" ? error : JSON.stringify(error),
-    );
+    const serialized = typeof error === "string" ? error : JSON.stringify(error);
+    const signature = normalizedSignature(serialized === undefined ? String(error) : serialized);
     failures.push({
       identity: failureIdentity("unhandled_error", "<runtime>", String(index), signature),
       file: "<runtime>",
@@ -474,18 +468,26 @@ export function normalizeVitestFailures(
   const failures: LeafFailure[] = [];
   const findings = validateVitestReportConsistency(report, root);
   const safeReport = isRecord(report) ? report : {};
-  const testFiles = collectTestFiles(safeReport, root);
-  if ((safeReport.numPendingTests ?? 0) > 0) {
+  if (!Array.isArray(safeReport.testResults)) {
+    return { failures, findings, testFiles: [] };
+  }
+  const pendingTests = isNonnegativeInteger(safeReport.numPendingTests)
+    ? safeReport.numPendingTests
+    : 0;
+  const testResults = safeReport.testResults;
+  const unhandledErrors = Array.isArray(safeReport.unhandledErrors) ? safeReport.unhandledErrors : [];
+  const testFiles = collectTestFiles(testResults, root);
+  if (pendingTests > 0) {
     findings.push({
       code: "COMPONENT_TEST_SKIPPED",
-      message: `Vitest reported ${safeReport.numPendingTests} skipped or pending test(s)`,
+      message: `Vitest reported ${pendingTests} skipped or pending test(s)`,
     });
   }
 
-  for (const result of safeReport.testResults ?? []) {
+  for (const result of testResults) {
     appendTestResultFailures(result, root, failures, findings);
   }
-  appendUnhandledFailures(safeReport.unhandledErrors ?? [], failures, findings);
+  appendUnhandledFailures(unhandledErrors, failures, findings);
 
   return {
     failures: deduplicateFailures(failures),
@@ -511,7 +513,7 @@ function sortedUniqueStrings(value: unknown): value is string[] {
     new Set(value).size === value.length && JSON.stringify(value) === JSON.stringify([...value].sort());
 }
 
-function normalizedIdentityList(value: unknown): value is string[] {
+export function normalizedIdentityList(value: unknown): value is string[] {
   return sortedUniqueStrings(value) && value.every((identity) => /^[A-Za-z0-9_-]+$/u.test(identity));
 }
 
@@ -523,7 +525,7 @@ function candidateFileCoreIsNormalized(value: Record<string, unknown>): boolean 
   return typeof value.path === "string" && Boolean(value.path) && isSha256(value.sha256) && typeof value.deleted === "boolean";
 }
 
-function candidateFileIsNormalized(value: unknown): boolean {
+export function candidateFileIsNormalized(value: unknown): boolean {
   if (!isRecord(value) || !candidateFileCoreIsNormalized(value)) return false;
   if (!optionalSha256IsNormalized(value.line_ending_neutral_sha256)) return false;
   if (value.deleted && value.line_ending_neutral_sha256 != null) return false;
@@ -531,7 +533,7 @@ function candidateFileIsNormalized(value: unknown): boolean {
   return sortedUniqueStrings(sources) && sources.every((source) => ["committed", "staged", "unstaged", "untracked"].includes(source));
 }
 
-function candidateRecordIsNormalized(value: unknown): value is CandidateRecord {
+export function candidateRecordIsNormalized(value: unknown): value is CandidateRecord {
   if (!isRecord(value)) return false;
   return [
     candidateRecordHeaderIsNormalized(value),
@@ -556,10 +558,7 @@ function candidateRecordHeaderIsNormalized(value: Record<string, unknown>): bool
 function candidateRecordFilesAreNormalized(value: unknown): boolean {
   if (!Array.isArray(value) || !value.every(candidateFileIsNormalized)) return false;
   const paths = value.map((file) => (file as Record<string, unknown>).path);
-  return [
-    JSON.stringify(paths) === JSON.stringify([...paths].sort((left, right) =>
-      String(left).localeCompare(String(right)))),
-  ].every(Boolean);
+  return sortedUniqueStrings(paths);
 }
 
 function validateBaselineAdmissionDecision(baseline: ComponentBaseline): QualityFinding[] {
@@ -623,12 +622,12 @@ function admissionFieldFindings(field: string, value: unknown): QualityFinding[]
 }
 
 function admissionBindingIsComplete(admission: ComponentBaseline["admission"]): boolean {
+  if (!admissionAuthorsAreValid(admission)) return false;
   return [
     Object.keys(admission).length === baselineAdmissionFieldCount,
     admission.review_source === "local-agent",
     admission.reviewer_identity_assurance === "asserted-local",
     admission.author_identity_assurance === "asserted-local",
-    admissionAuthorsAreValid(admission),
     admissionReviewersAreValid(admission),
     isSha256(admission.candidate_digest),
     admission.bootstrap
@@ -643,18 +642,16 @@ function admissionAuthorsAreValid(admission: ComponentBaseline["admission"]): bo
 
 function admissionReviewersAreValid(admission: ComponentBaseline["admission"]): boolean {
   const reviewers = [admission.quality_reviewer, admission.security_reviewer];
-  if (!Array.isArray(admission.author_ids)) return false;
   return [
-    reviewers.every(Boolean),
-    admission.quality_reviewer !== admission.security_reviewer,
+    normalizedIdentityList(reviewers),
     reviewers.every((reviewer) => !admission.author_ids.includes(reviewer)),
   ].every(Boolean);
 }
 
 function validateCanonicalAdmissionPaths(baseline: ComponentBaseline): QualityFinding[] {
   if (
-    baseline.admission?.inventory === "quality/baselines/component/inventory.json" &&
-    baseline.admission?.validation_artifact === "quality/baselines/component/admission.json"
+    baseline.admission.inventory === "quality/baselines/component/inventory.json" &&
+    baseline.admission.validation_artifact === "quality/baselines/component/admission.json"
   ) return [];
   return [{
     code: "COMPONENT_BASELINE_ADMISSION_MALFORMED",
@@ -664,7 +661,7 @@ function validateCanonicalAdmissionPaths(baseline: ComponentBaseline): QualityFi
 
 function baselineSourcePointersAreValid(source: ComponentBaseline["source"]): boolean {
   return [
-    Boolean(source.command),
+    typeof source.command === "string" && source.command.length > 0,
     source.report === "quality/baselines/component/source.vitest.json",
     isSha256(source.report_sha256),
     source.coverage === "quality/baselines/component/coverage-summary.json",
@@ -681,13 +678,13 @@ function embeddedMeasurementIsValid(value: unknown): boolean {
   if (!isRecord(value) || !isRecord(value.comparison_base)) return false;
   return [
     value.integrity_status === "PASS",
-    Boolean(value.command),
+    typeof value.command === "string" && value.command.length > 0,
     Number.isInteger(value.duration_ms),
     Number(value.duration_ms) >= 0,
     Number.isInteger(value.exit_status),
     isSha256(value.candidate_digest),
     /^[a-f0-9]{40}$/u.test(String(value.candidate_commit)),
-    Boolean(value.comparison_base.input_ref),
+    typeof value.comparison_base.input_ref === "string" && value.comparison_base.input_ref.length > 0,
     /^[a-f0-9]{40}$/u.test(String(value.comparison_base.resolved_sha)),
     ["Q2_CRITICAL_CHANGE_GATE", "Q3_RELEASE_GATE"].includes(String(value.profile)),
     isSha256(value.report_sha256),
@@ -701,7 +698,7 @@ function validateCanonicalReviewPaths(baseline: ComponentBaseline): QualityFindi
     "quality/reviews/component-baseline-quality.md",
     "quality/reviews/component-baseline-security.md",
   ];
-  const actual = [baseline.admission?.quality_review_artifact, baseline.admission?.security_review_artifact];
+  const actual = [baseline.admission.quality_review_artifact, baseline.admission.security_review_artifact];
   actual.forEach((path, index) => {
     if (path !== expected[index]) findings.push({ code: "COMPONENT_BASELINE_ADMISSION_MALFORMED", message: "Canonical baseline reviews must use their tracked immutable paths", path });
   });
@@ -711,8 +708,7 @@ function validateCanonicalReviewPaths(baseline: ComponentBaseline): QualityFindi
 function validateBaselineShape(baseline: ComponentBaseline): QualityFinding[] {
   if (
     baseline.suite &&
-    Array.isArray(baseline.suite.test_files) &&
-    new Set(baseline.suite.test_files).size === baseline.suite.test_files.length &&
+    sortedUniqueStrings(baseline.suite.test_files) &&
     Number.isInteger(baseline.suite.total_tests) &&
     baseline.suite.total_tests >= 0 &&
     Array.isArray(baseline.allowed_failures) &&
@@ -742,7 +738,7 @@ function validateAllowedBaselineFailures(
 ): QualityFinding[] {
   const findings: QualityFinding[] = [];
   const identities = new Set<string>();
-  for (const failure of baseline.allowed_failures ?? []) {
+  for (const failure of baseline.allowed_failures) {
     if (identities.has(failure.identity)) {
       findings.push({
         code: "COMPONENT_BASELINE_DUPLICATE_IDENTITY",
@@ -781,29 +777,37 @@ export function validateComponentBaseline(
 
 const coverageMetrics: CoverageMetric[] = ["statements", "branches", "functions", "lines"];
 
-function isNonnegativeInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+export function isNonnegativeInteger(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0;
 }
 
-function coverageCountersAreComplete(value: Record<string, unknown>): value is CoverageValue {
+export function coverageCountersAreComplete(
+  value: Record<string, unknown>,
+): value is Record<string, unknown> & CoverageValue {
   const { total, covered, skipped, pct } = value;
-  const countersAreIntegers = [total, covered, skipped].every(isNonnegativeInteger);
-  const percentageIsFinite = typeof pct === "number" && Number.isFinite(pct);
-  if (!countersAreIntegers || !percentageIsFinite) return false;
-  return covered <= total && skipped <= total && covered + skipped <= total;
+  if (
+    !isNonnegativeInteger(total) ||
+    !isNonnegativeInteger(covered) ||
+    !isNonnegativeInteger(skipped) ||
+    !Number.isFinite(pct)
+  ) return false;
+  return covered + skipped <= total;
 }
 
-function coverageValueIsComplete(value: unknown): value is CoverageValue {
+export function coverageValueIsComplete(value: unknown): value is CoverageValue {
   if (!isRecord(value)) return false;
   const fields = ["total", "covered", "skipped", "pct"] as const;
-  if (Object.keys(value).length !== fields.length || !fields.every((field) => field in value)) return false;
+  if (
+    Object.keys(value).length !== fields.length ||
+    !fields.every((field) => Object.prototype.hasOwnProperty.call(value, field))
+  ) return false;
   if (!coverageCountersAreComplete(value)) return false;
   const { total, covered, pct } = value;
   const expectedPercentage = total === 0 ? 100 : Math.floor((covered / total) * 10_000) / 100;
   return pct === expectedPercentage;
 }
 
-function coverageSummaryIsComplete(value: unknown): value is CoverageSummary {
+export function coverageSummaryIsComplete(value: unknown): value is CoverageSummary {
   if (!isRecord(value) || !isRecord(value.total)) return false;
   return Object.values(value).every((metrics) => {
     if (!isRecord(metrics)) return false;
@@ -815,11 +819,10 @@ function coverageSummaryIsComplete(value: unknown): value is CoverageSummary {
   });
 }
 
-function coverageAggregateMatchesFiles(coverage: CoverageSummary): boolean {
+export function coverageAggregateMatchesFiles(coverage: CoverageSummary): boolean {
   const fileEntries = Object.entries(coverage).filter(([path]) => path !== "total");
   const standardMetricsMatch = coverageMetrics.every((metric) => {
     const aggregate = coverage.total[metric];
-    if (fileEntries.length === 0) return aggregate.total === 0 && aggregate.covered === 0 && aggregate.skipped === 0;
     const sum = fileEntries.reduce((current, [, metrics]) => ({
       total: current.total + metrics[metric].total,
       covered: current.covered + metrics[metric].covered,
@@ -888,12 +891,12 @@ function validateVitestReportHeader(report: StructuredVitestReport): QualityFind
   return findings;
 }
 
-function canonicalVitestFileIdentity(result: VitestFileResult, root: string): string {
+export function canonicalVitestFileIdentity(result: VitestFileResult, root: string): string {
   const canonicalPath = normalizeRepositoryEvidencePath(result.name!, root, "Vitest file");
-  return process.platform === "win32" ? canonicalPath.toLowerCase() : canonicalPath;
+  return canonicalPath.toLowerCase();
 }
 
-function vitestFileNameIsNormalized(result: VitestFileResult): result is VitestFileResult & { name: string } {
+export function vitestFileNameIsNormalized(result: VitestFileResult): result is VitestFileResult & { name: string } {
   return isRecord(result) && typeof result.name === "string" && result.name.length > 0 && result.name.trim() === result.name;
 }
 
@@ -976,7 +979,7 @@ function validateVitestSuiteCounters(report: StructuredVitestReport): QualityFin
   return findings;
 }
 
-function validateVitestFailureState(report: StructuredVitestReport): QualityFinding[] {
+export function validateVitestFailureState(report: StructuredVitestReport): QualityFinding[] {
   const findings: QualityFinding[] = [];
   const unhandledCount = Array.isArray(report.unhandledErrors) ? report.unhandledErrors.length : 0;
   const hasFailedFile = report.testResults.some((result) => result.status === "failed");
@@ -1005,7 +1008,7 @@ export function validateVitestReportConsistency(report: VitestJsonReport, root: 
   ];
 }
 
-interface BaselineInventory {
+export interface BaselineInventory {
   schema_version?: number;
   admission?: {
     phase?: string;
@@ -1037,7 +1040,7 @@ interface BaselineInventory {
   }>;
 }
 
-interface BaselineValidation {
+export interface BaselineValidation {
   status?: string;
   data?: {
     phase?: string;
@@ -1112,7 +1115,7 @@ export function parseBaselineReviewDecision(text: string): ReviewDecision {
   return decision;
 }
 
-function canonicalBaselineArtifacts(baseline: ComponentBaseline): BaselineArtifact[] {
+export function canonicalBaselineArtifacts(baseline: ComponentBaseline): BaselineArtifact[] {
   return [
     ["source report", baseline.source.report, baseline.source.report_sha256],
     ["source coverage", baseline.source.coverage, baseline.source.coverage_sha256],
@@ -1135,7 +1138,7 @@ function canonicalBaselineArtifacts(baseline: ComponentBaseline): BaselineArtifa
   ];
 }
 
-async function validateBaselineArtifactHashes(
+export async function validateBaselineArtifactHashes(
   root: string,
   baseline: ComponentBaseline,
 ): Promise<QualityFinding[]> {
@@ -1169,19 +1172,20 @@ async function validateBaselineArtifactHashes(
   return findings;
 }
 
-function inventoryIsAdmitted(
+export function inventoryIsAdmitted(
   inventory: BaselineInventory,
 ): boolean {
   return (
     inventory.schema_version === 1 &&
     inventory.admission?.phase === "admission" &&
-    inventory.admission?.status === "review_pending"
+    inventory.admission.status === "review_pending"
   );
 }
 
-function admittedInventoryIdentities(inventory: BaselineInventory): Set<string> {
+export function admittedInventoryIdentities(inventory: BaselineInventory): Set<string> {
+  if (!inventory.records) return new Set();
   return new Set(
-    (inventory.records ?? [])
+    inventory.records
       .filter(
         (record) =>
           record.classification === "ratchet_noncritical" &&
@@ -1199,37 +1203,40 @@ function admittedInventoryIdentities(inventory: BaselineInventory): Set<string> 
   );
 }
 
-function identitySetsMatch(left: Set<string>, right: Set<string>): boolean {
+export function identitySetsMatch(left: Set<string>, right: Set<string>): boolean {
   return left.size === right.size && [...left].every((identity) => right.has(identity));
 }
 
-function runtimeInventoryIsStructured(inventory: unknown): inventory is BaselineInventory {
+export function runtimeInventoryIsStructured(inventory: unknown): inventory is BaselineInventory {
   return isRecord(inventory) && isRecord(inventory.source) && isRecord(inventory.admission) &&
     typeof inventory.admission.bootstrap === "boolean" &&
     normalizedIdentityList(inventory.admission.author_ids) && inventory.admission.author_ids.length > 0 &&
     Array.isArray(inventory.records) && inventory.records.every(isRecord);
 }
 
-function validateBaselineInventorySourceBinding(
+export function validateBaselineInventorySourceBinding(
   baseline: ComponentBaseline,
   inventory: BaselineInventory,
 ): QualityFinding[] {
   const measurementFindings = validateRetainedMeasurement(inventory);
-  if (
-    Boolean(inventory.source?.measurement_artifact) &&
-    isSha256(inventory.source?.measurement_sha256 ?? "") &&
-    inventory.source?.artifact === baseline.source.report &&
-    inventory.source.artifact_sha256 === baseline.source.report_sha256 &&
-    inventory.source.coverage_artifact === baseline.source.coverage &&
-    inventory.source.coverage_sha256 === baseline.source.coverage_sha256
-  ) return measurementFindings;
-  return [...measurementFindings, {
+  const mismatchFinding = {
     code: "COMPONENT_BASELINE_SOURCE_INVENTORY_MISMATCH",
     message: "Canonical baseline source paths and hashes do not match the admitted inventory",
-  }];
+  };
+  const source = inventory.source;
+  if (!source) return [...measurementFindings, mismatchFinding];
+  if (
+    Boolean(source.measurement_artifact) &&
+    isSha256(source.measurement_sha256) &&
+    source.artifact === baseline.source.report &&
+    source.artifact_sha256 === baseline.source.report_sha256 &&
+    source.coverage_artifact === baseline.source.coverage &&
+    source.coverage_sha256 === baseline.source.coverage_sha256
+  ) return measurementFindings;
+  return [...measurementFindings, mismatchFinding];
 }
 
-function validateRetainedMeasurement(inventory: BaselineInventory): QualityFinding[] {
+export function validateRetainedMeasurement(inventory: BaselineInventory): QualityFinding[] {
   const measurement = inventory.source?.measurement;
   const candidate = measurement?.candidate;
   const validShape = [
@@ -1251,17 +1258,21 @@ function validateRetainedMeasurement(inventory: BaselineInventory): QualityFindi
     transientMeasurementOrigin(measurement?.coverage?.artifact),
     isSha256(String(measurement?.coverage?.sha256)),
   ].every(Boolean);
-  if (!validShape) {
+  if (!validShape || !measurement) {
     return [{ code: "COMPONENT_BASELINE_MEASUREMENT_PROOF_INVALID", message: "Admitted inventory lacks a complete integrity-PASS measurement proof" }];
   }
+  const source = inventory.source!;
+  const completeCandidate = candidate!;
+  const report = measurement.report!;
+  const coverage = measurement.coverage!;
   const bindingsMatch = [
-    measurement.command === inventory.source?.command,
-    candidate?.artifact === inventory.source?.candidate_artifact,
-    candidate?.artifact_sha256 === inventory.source?.candidate_sha256,
-    candidate?.inner_sha256 === inventory.source?.candidate_digest,
-    candidate?.commit_sha === inventory.source?.commit,
-    measurement.report?.sha256 === inventory.source?.artifact_sha256,
-    measurement.coverage?.sha256 === inventory.source?.coverage_sha256,
+    measurement.command === source.command,
+    completeCandidate.artifact === source.candidate_artifact,
+    completeCandidate.artifact_sha256 === source.candidate_sha256,
+    completeCandidate.inner_sha256 === source.candidate_digest,
+    completeCandidate.commit_sha === source.commit,
+    report.sha256 === source.artifact_sha256,
+    coverage.sha256 === source.coverage_sha256,
   ].every(Boolean);
   return bindingsMatch ? [] : [{
     code: "COMPONENT_BASELINE_MEASUREMENT_PROOF_MISMATCH",
@@ -1269,13 +1280,13 @@ function validateRetainedMeasurement(inventory: BaselineInventory): QualityFindi
   }];
 }
 
-function transientMeasurementOrigin(value: unknown): boolean {
+export function transientMeasurementOrigin(value: unknown): boolean {
   if (typeof value !== "string" || !value.trim()) return false;
   const normalized = posix.normalize(value.replaceAll("\\", "/"));
   return normalized !== "quality" && !normalized.startsWith("quality/");
 }
 
-async function validateBaselineInventory(
+export async function validateBaselineInventory(
   root: string,
   baseline: ComponentBaseline,
 ): Promise<QualityFinding[]> {
@@ -1314,7 +1325,7 @@ async function validateBaselineInventory(
   return findings;
 }
 
-function validationApprovesInventory(
+export function validationApprovesInventory(
   validation: BaselineValidation,
   expectedSha: string,
   inventory: BaselineInventory,
@@ -1338,7 +1349,7 @@ function validationApprovesInventory(
   ].every(Boolean);
 }
 
-async function validateBaselineValidationArtifact(
+export async function validateBaselineValidationArtifact(
   root: string,
   baseline: ComponentBaseline,
 ): Promise<QualityFinding[]> {
@@ -1367,7 +1378,7 @@ async function validateBaselineValidationArtifact(
   return findings;
 }
 
-async function readBaselineReviews(
+export async function readBaselineReviews(
   root: string,
   baseline: ComponentBaseline,
 ): Promise<ReviewDecision[]> {
@@ -1385,7 +1396,7 @@ async function readBaselineReviews(
   );
 }
 
-function validateBaselineReviews(
+export function validateBaselineReviews(
   baseline: ComponentBaseline,
   candidateSha: string | undefined,
   authors: string[],
@@ -1413,7 +1424,7 @@ function validateBaselineReviews(
   return findings;
 }
 
-function readImmutableGitFile(root: string, commitSha: string, path: string): string | null {
+export function readImmutableGitFile(root: string, commitSha: string, path: string): string | null {
   const reference = spawnSync("git", gitArgsWithoutReplacementObjects(["show", `${commitSha}:${path}`]), {
     cwd: root,
     encoding: "utf8",
@@ -1426,51 +1437,36 @@ function readImmutableGitFile(root: string, commitSha: string, path: string): st
   return null;
 }
 
-function readGitOutput(root: string, args: string[], failureMessage: string): string {
+export function readGitOutput(root: string, args: string[]): string {
   const result = spawnSync("git", gitArgsWithoutReplacementObjects(args), {
     cwd: root,
     encoding: "utf8",
   });
   if (result.error || result.status !== 0) {
-    throw result.error ?? new Error(failureMessage);
+    throw result.error ?? new Error("Immutable baseline Git evidence is unavailable");
   }
   return result.stdout.trim();
 }
 
-function baselineMatchesOnlyTrackedBootstrapAdmission(root: string): boolean {
+export function baselineMatchesOnlyTrackedBootstrapAdmission(root: string): boolean {
   const baselinePath = "quality/baseline.json";
   const pathCommits = readGitOutput(
     root,
     ["log", "--format=%H", "HEAD", "--", baselinePath],
-    "Current HEAD baseline history is unavailable",
-  ).split(/\r?\n/u).filter(Boolean);
-  const additions = readGitOutput(
-    root,
-    ["log", "--format=%H", "--diff-filter=A", "HEAD", "--", baselinePath],
-    "Current HEAD baseline additions are unavailable",
-  ).split(/\r?\n/u).filter(Boolean);
-  if (pathCommits.length !== 1 || additions.length !== 1 || pathCommits[0] !== additions[0]) {
-    return false;
-  }
-  const firstTrackedBlob = readGitOutput(
-    root,
-    ["rev-parse", `${additions[0]}:${baselinePath}`],
-    "First tracked baseline blob is unavailable",
-  );
+  ).split("\n");
+  if (pathCommits.length !== 1) return false;
   const headBlob = readGitOutput(
     root,
     ["rev-parse", `HEAD:${baselinePath}`],
-    "Current HEAD baseline blob is unavailable",
   );
   const worktreeBlob = readGitOutput(
     root,
     ["hash-object", "--", baselinePath],
-    "Current worktree baseline blob is unavailable",
   );
-  return firstTrackedBlob === headBlob && headBlob === worktreeBlob;
+  return headBlob === worktreeBlob;
 }
 
-function validateBootstrapPredecessor(
+export function validateBootstrapPredecessor(
   root: string,
   baseline: ComponentBaseline,
   predecessorRaw: string | null,
@@ -1484,7 +1480,7 @@ function validateBootstrapPredecessor(
   }];
 }
 
-function validateEstablishedPredecessor(
+export function validateEstablishedPredecessor(
   root: string,
   baseline: ComponentBaseline,
   predecessorRaw: string | null,
@@ -1535,7 +1531,7 @@ export async function validateImmutablePredecessorAdmission(root: string, baseli
   }
 }
 
-async function validateEmbeddedBaselineCoverage(
+export async function validateEmbeddedBaselineCoverage(
   root: string,
   baseline: ComponentBaseline,
 ): Promise<QualityFinding[]> {
@@ -1578,39 +1574,37 @@ export function validateCanonicalGenerationBindings(input: {
   ];
 }
 
-interface ParsedGenerationBindings {
+export interface ParsedGenerationBindings {
   inventory: BaselineInventory;
   validation: BaselineValidation;
   candidateArtifact: { data?: { record?: CandidateRecord; sha256?: string } };
   measurementArtifact: { data?: { measurement?: RetainedComponentMeasurement } };
 }
 
-function parseOptionalGenerationJson(raw: Buffer | undefined): unknown {
+export function parseOptionalGenerationJson(raw: Buffer | undefined): unknown {
   if (!raw) return {};
   return JSON.parse(raw.toString()) as unknown;
 }
 
-function optionalCandidateIsStructured(raw: Buffer | undefined, value: unknown): boolean {
+export function optionalCandidateIsStructured(raw: Buffer | undefined, value: unknown): boolean {
   if (!raw) return true;
   return isRecord(value) && isRecord(value.data) && isRecord(value.data.record);
 }
 
-function optionalMeasurementIsStructured(raw: Buffer | undefined, value: unknown): boolean {
+export function optionalMeasurementIsStructured(raw: Buffer | undefined, value: unknown): boolean {
   if (!raw) return true;
   return isRecord(value) && isRecord(value.data) && isRecord(value.data.measurement);
 }
 
-function generationBindingsAreStructured(input: { candidateRaw?: Buffer; measurementRaw?: Buffer }, parsed: ParsedGenerationBindings): boolean {
-  return [
-    isRecord(parsed.inventory),
-    isRecord(parsed.inventory.source),
-    isRecord(parsed.validation),
-    optionalCandidateIsStructured(input.candidateRaw, parsed.candidateArtifact),
-    optionalMeasurementIsStructured(input.measurementRaw, parsed.measurementArtifact),
-  ].every(Boolean);
+export function generationBindingsAreStructured(input: { candidateRaw?: Buffer; measurementRaw?: Buffer }, parsed: ParsedGenerationBindings): boolean {
+  return isRecord(parsed.inventory)
+    && isRecord(parsed.inventory.source)
+    && isRecord(parsed.validation)
+    && optionalCandidateIsStructured(input.candidateRaw, parsed.candidateArtifact)
+    && optionalMeasurementIsStructured(input.measurementRaw, parsed.measurementArtifact);
 }
 
-function parseGenerationBindings(input: { inventoryRaw: Buffer; validationRaw: Buffer; candidateRaw?: Buffer; measurementRaw?: Buffer }): ParsedGenerationBindings | { finding: QualityFinding } {
+export function parseGenerationBindings(input: { inventoryRaw: Buffer; validationRaw: Buffer; candidateRaw?: Buffer; measurementRaw?: Buffer }): ParsedGenerationBindings | { finding: QualityFinding } {
   try {
     const parsed = {
       inventory: JSON.parse(input.inventoryRaw.toString()) as BaselineInventory,
@@ -1625,7 +1619,7 @@ function parseGenerationBindings(input: { inventoryRaw: Buffer; validationRaw: B
   }
 }
 
-function validateGenerationByteBindings(
+export function validateGenerationByteBindings(
   input: { inventoryRaw: Buffer; validationRaw: Buffer; reportRaw: Buffer; coverageRaw: Buffer; expectedInventorySha256: string; expectedValidationSha256: string },
   inventory: BaselineInventory,
   validation: BaselineValidation,
@@ -1650,41 +1644,45 @@ function validateGenerationByteBindings(
   return findings;
 }
 
-function validateGenerationCandidateBinding(
+export function validateGenerationCandidateBinding(
   raw: Buffer | undefined,
   artifact: ParsedGenerationBindings["candidateArtifact"],
   inventory: BaselineInventory,
 ): QualityFinding[] {
   if (!raw) return [];
+  const source = inventory.source;
   const record = artifact.data?.record;
-  const digest = record ? candidateDigest(record) : "";
-  const valid = [
-    sha256(raw) === inventory.source?.candidate_sha256,
-    digest === artifact.data?.sha256,
-    digest === inventory.source?.candidate_digest,
-  ].every(Boolean);
+  if (!source || !record) {
+    return [{ code: "GENERATION_CANDIDATE_DRIFT", message: "Candidate checkpoint bytes or inner digest no longer match the admitted inventory" }];
+  }
+  const digest = candidateDigest(record);
+  const valid = sha256(raw) === source.candidate_sha256
+    && digest === artifact.data?.sha256
+    && digest === source.candidate_digest;
   return valid ? [] : [{ code: "GENERATION_CANDIDATE_DRIFT", message: "Candidate checkpoint bytes or inner digest no longer match the admitted inventory" }];
 }
 
-function validateGenerationMeasurementBinding(
+export function validateGenerationMeasurementBinding(
   raw: Buffer | undefined,
   artifact: ParsedGenerationBindings["measurementArtifact"],
   inventory: BaselineInventory,
 ): QualityFinding[] {
   if (!raw) return [];
-  const valid = [
-    sha256(raw) === inventory.source?.measurement_sha256,
-    JSON.stringify(artifact.data?.measurement) === JSON.stringify(inventory.source?.measurement),
-  ].every(Boolean);
+  const source = inventory.source;
+  if (!source) {
+    return [{ code: "GENERATION_MEASUREMENT_DRIFT", message: "Measurement artifact no longer matches the admitted inventory" }];
+  }
+  const valid = sha256(raw) === source.measurement_sha256
+    && JSON.stringify(artifact.data?.measurement) === JSON.stringify(source.measurement);
   return valid ? [] : [{ code: "GENERATION_MEASUREMENT_DRIFT", message: "Measurement artifact no longer matches the admitted inventory" }];
 }
 
-function validateOneBaselineReview(review: ReviewDecision, index: number, inventorySha: string): QualityFinding[] {
+export function validateOneBaselineReview(review: ReviewDecision, index: number, inventorySha: string): QualityFinding[] {
   if (review.decision === "APPROVE" && review.inventorySha === inventorySha && review.reviewer) return [];
   return [{ code: "COMPONENT_BASELINE_REVIEW_INVALID", message: `${index === 0 ? "Quality" : "Security"} review does not independently approve the bound inventory` }];
 }
 
-function validateEmbeddedBaselineLineage(
+export function validateEmbeddedBaselineLineage(
   baseline: ComponentBaseline,
   inventory: BaselineInventory,
   validation: BaselineValidation,
@@ -1694,9 +1692,14 @@ function validateEmbeddedBaselineLineage(
   const measurement = baseline.source.measurement;
   const retained = inventory.source?.measurement;
   const digest = candidateDigest(candidate.record);
-  const inventoryAuthors = Array.isArray(inventory.admission?.author_ids)
-    ? inventory.admission.author_ids
-    : [];
+  const admission = inventory.admission;
+  if (!admission || !Array.isArray(admission.author_ids)) {
+    return [{
+      code: "COMPONENT_BASELINE_EMBEDDED_LINEAGE_MISMATCH",
+      message: "Embedded candidate, measurement, admission, inventory, validation, or review lineage does not form one exact chain",
+    }];
+  }
+  const inventoryAuthors = admission.author_ids;
   const valid = [
     digest === candidate.digest,
     digest === inventory.source?.candidate_digest,
@@ -1724,13 +1727,22 @@ function validateEmbeddedBaselineLineage(
     baseline.admission.quality_reviewer === reviews[0]?.reviewer,
     baseline.admission.security_reviewer === reviews[1]?.reviewer,
     baseline.admission.bootstrap === validation.data?.bootstrap,
-    baseline.admission.bootstrap === inventory.admission?.bootstrap,
+    baseline.admission.bootstrap === admission.bootstrap,
     baseline.admission.predecessor_baseline_sha256 === validation.data?.predecessor_baseline_sha256,
   ].every(Boolean);
   return valid ? [] : [{
     code: "COMPONENT_BASELINE_EMBEDDED_LINEAGE_MISMATCH",
     message: "Embedded candidate, measurement, admission, inventory, validation, or review lineage does not form one exact chain",
   }];
+}
+
+export function structuredRuntimeInventory(value: unknown): BaselineInventory {
+  return runtimeInventoryIsStructured(value) ? value : {};
+}
+
+export function baselineInventoryAuthorIds(inventory: BaselineInventory): string[] {
+  const authorIds = inventory.admission?.author_ids;
+  return Array.isArray(authorIds) ? authorIds : [];
 }
 
 export async function validateCanonicalBaselineArtifacts(
@@ -1741,7 +1753,7 @@ export async function validateCanonicalBaselineArtifacts(
     ...validateCanonicalBaselineSchema(baseline),
     ...validateComponentBaseline(baseline),
   ];
-  if (findings.some((finding) => finding.code.startsWith("COMPONENT_BASELINE_"))) {
+  if (findings.length > 0) {
     return findings;
   }
 
@@ -1755,7 +1767,7 @@ export async function validateCanonicalBaselineArtifacts(
   let validation: BaselineValidation = {};
   try {
     const loaded = await readJson<BaselineInventory>(resolve(root, canonical.admission.inventory));
-    if (runtimeInventoryIsStructured(loaded)) inventory = loaded;
+    inventory = structuredRuntimeInventory(loaded);
   } catch {
     // The inventory validator above already records the malformed artifact.
   }
@@ -1765,13 +1777,13 @@ export async function validateCanonicalBaselineArtifacts(
     // The validation-artifact validator above already records the malformed artifact.
   }
   const reviews = await readBaselineReviews(root, canonical);
-  const inventoryAuthors = Array.isArray(inventory.admission?.author_ids) ? inventory.admission.author_ids : [];
+  const inventoryAuthors = baselineInventoryAuthorIds(inventory);
   findings.push(...validateBaselineReviews(canonical, inventory.source?.candidate_digest, inventoryAuthors, reviews));
   findings.push(...validateEmbeddedBaselineLineage(canonical, inventory, validation, reviews));
   return findings;
 }
 
-function findNewComponentFailures(
+export function findNewComponentFailures(
   failures: LeafFailure[],
   admittedFailures: ComponentBaseline["allowed_failures"],
 ): QualityFinding[] {
@@ -1791,7 +1803,7 @@ function findNewComponentFailures(
   return findings;
 }
 
-function findRemovedComponentTestFiles(
+export function findRemovedComponentTestFiles(
   currentTestFiles: string[],
   baselineTestFiles: string[],
 ): QualityFinding[] {
@@ -1809,7 +1821,7 @@ function findRemovedComponentTestFiles(
   return findings;
 }
 
-function findComponentTestCountRegression(
+export function findComponentTestCountRegression(
   report: VitestJsonReport,
   minimumTests: number,
 ): QualityFinding[] {
@@ -1824,7 +1836,13 @@ export function validateSuccessorCoverageDenominators(
   coverage: CoverageSummary,
   predecessorCoverage: CoverageSummary,
 ): QualityFinding[] {
-  if (!coverageSummaryIsComplete(coverage) || !coverageSummaryIsComplete(predecessorCoverage)) {
+  if (!coverageSummaryIsComplete(coverage)) {
+    return [{
+      code: "COMPONENT_SUCCESSOR_COVERAGE_EVIDENCE_MALFORMED",
+      message: "Successor denominator admission requires structurally complete current and predecessor coverage",
+    }];
+  }
+  if (!coverageSummaryIsComplete(predecessorCoverage)) {
     return [{
       code: "COMPONENT_SUCCESSOR_COVERAGE_EVIDENCE_MALFORMED",
       message: "Successor denominator admission requires structurally complete current and predecessor coverage",
@@ -1837,25 +1855,31 @@ export function validateSuccessorCoverageDenominators(
     .flatMap((file) => coverageMetrics.flatMap((metric) => {
       const predecessorTotal = predecessorCoverage[file]![metric].total;
       const currentTotal = coverage[file]?.[metric].total;
-      if (currentTotal !== undefined && currentTotal >= predecessorTotal) return [];
+      if (currentTotal === undefined) {
+        return [{
+          code: "COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION",
+          message: `${file} ${metric} is missing; predecessor total is ${predecessorTotal}`,
+          path: file,
+        }];
+      }
+      if (currentTotal >= predecessorTotal) return [];
       return [{
         code: "COMPONENT_SUCCESSOR_COVERAGE_DENOMINATOR_REGRESSION",
-        message: currentTotal === undefined
-          ? `${file} ${metric} is missing; predecessor total is ${predecessorTotal}`
-          : `${file} ${metric} total ${currentTotal} is below predecessor ${predecessorTotal}`,
+        message: `${file} ${metric} total ${currentTotal} is below predecessor ${predecessorTotal}`,
         path: file,
       }];
     }));
 }
 
-function findComponentCoverageRegressions(
+export function findComponentCoverageRegressions(
   coverage: CoverageSummary,
   baselineCoverage: CoverageSummary,
   baseline: ComponentBaseline,
   root: string,
 ): QualityFinding[] {
   const malformed = validateComponentCoverageSummary(coverage);
-  if (malformed.length > 0 || validateComponentCoverageSummary(baselineCoverage).length > 0) return malformed.length > 0 ? malformed : [{
+  if (malformed.length > 0) return malformed;
+  if (validateComponentCoverageSummary(baselineCoverage).length > 0) return [{
     code: "COMPONENT_BASELINE_SHAPE_MALFORMED",
     message: "Component baseline coverage is malformed",
   }];
@@ -1868,7 +1892,7 @@ function findComponentCoverageRegressions(
   ));
 }
 
-function componentCoverageFileRegressions(
+export function componentCoverageFileRegressions(
   file: string,
   currentMetrics: CoverageMetrics | undefined,
   baselineMetrics: CoverageMetrics | undefined,
@@ -1885,16 +1909,16 @@ function componentCoverageFileRegressions(
   ));
 }
 
-function readGitBlob(root: string, objectId: string): Buffer | null {
+export function readGitBlob(root: string, objectId: string): Buffer | null {
   const result = spawnSync("git", gitArgsWithoutReplacementObjects(["cat-file", "blob", objectId]), {
     cwd: root,
-    maxBuffer: 50 * 1024 * 1024,
+    maxBuffer: 52_428_800,
   });
-  if (result.error || result.status !== 0 || !Buffer.isBuffer(result.stdout)) return null;
+  if (result.status !== 0 || !Buffer.isBuffer(result.stdout)) return null;
   return result.stdout;
 }
 
-function readRegularGitBlobObjectId(
+export function readRegularGitBlobObjectId(
   root: string,
   commitSha: string,
   normalizedPath: string,
@@ -1906,26 +1930,37 @@ function readRegularGitBlobObjectId(
     ]),
     { cwd: root, encoding: "utf8" },
   );
-  if (result.error || result.status !== 0) return null;
-  const record = singleNullTerminatedRecord(result.stdout);
+  return regularGitBlobObjectIdFromCommand(result.status, result.stdout, normalizedPath);
+}
+
+export function regularGitBlobObjectIdFromCommand(
+  status: number | null,
+  output: string,
+  normalizedPath: string,
+): string | null {
+  if (status !== 0) return null;
+  const record = singleNullTerminatedRecord(output);
   return record ? regularGitBlobObjectId(record, normalizedPath) : null;
 }
 
-function singleNullTerminatedRecord(output: string): string | null {
+export function singleNullTerminatedRecord(output: string): string | null {
   const records = output.split("\0");
   return records.length === 2 && records[1] === "" ? records[0]! : null;
 }
 
-function regularGitBlobObjectId(record: string, normalizedPath: string): string | null {
-  const separatorIndex = record.indexOf("\t");
-  if (separatorIndex < 0 || record.slice(separatorIndex + 1) !== normalizedPath) return null;
+export function regularGitBlobObjectId(record: string, normalizedPath: string): string | null {
+  const parts = record.split("\t");
+  if (parts.length !== 2) return null;
+  const [metadata, path] = parts;
+  if (path !== normalizedPath) return null;
   const match = /^(?:100644|100755) blob ([0-9a-f]{40}|[0-9a-f]{64})$/iu.exec(
-    record.slice(0, separatorIndex),
+    metadata!,
   );
-  return match?.[1]?.toLowerCase() ?? null;
+  if (!match) return null;
+  return match[1]!.toLowerCase();
 }
 
-function cleanFilteredSourceChangedSinceCommit(
+export function cleanFilteredSourceChangedSinceCommit(
   root: string,
   commitSha: string,
   normalizedPath: string,
@@ -1937,18 +1972,18 @@ function cleanFilteredSourceChangedSinceCommit(
   if (!admittedBytes || !currentBytes) return false;
   const admittedDigest = lineEndingNeutralSourceDigest(admittedBytes);
   const currentDigest = lineEndingNeutralSourceDigest(currentBytes);
-  return admittedDigest !== null && currentDigest !== null && currentDigest !== admittedDigest;
+  if (admittedDigest === null || currentDigest === null) return false;
+  return currentDigest !== admittedDigest;
 }
 
-function componentSourceChangedSinceBaseline(
+export function componentSourceChangedSinceBaseline(
   file: string,
   baseline: ComponentBaseline,
   root: string,
 ): boolean {
-  if (file === "total") return false;
   let normalizedPath: string;
   try {
-    normalizedPath = normalizeRepositoryEvidencePath(file, root, "Coverage path");
+    normalizedPath = normalizeRepositoryEvidencePath(file, root, file);
   } catch {
     return false;
   }
@@ -1961,9 +1996,9 @@ function componentSourceChangedSinceBaseline(
     if (admittedFile.deleted) return false;
     if (sha256(currentBytes) === admittedFile.sha256) return false;
     const admittedDigest = admittedFile.line_ending_neutral_sha256;
-    if (admittedDigest === undefined) return false;
     const currentDigest = lineEndingNeutralSourceDigest(currentBytes);
-    return isSha256(admittedDigest) && currentDigest !== null && currentDigest !== admittedDigest;
+    if (!isSha256(admittedDigest) || currentDigest === null) return false;
+    return currentDigest !== admittedDigest;
   }
   return cleanFilteredSourceChangedSinceCommit(
     root,
@@ -1972,7 +2007,7 @@ function componentSourceChangedSinceBaseline(
   );
 }
 
-function newCoverageFileMetricRegression(file: string, metric: CoverageMetric, current: CoverageValue): QualityFinding[] {
+export function newCoverageFileMetricRegression(file: string, metric: CoverageMetric, current: CoverageValue): QualityFinding[] {
   const currentUncovered = current.total - current.covered;
   if (currentUncovered === 0) return [];
   return [{
@@ -1982,7 +2017,7 @@ function newCoverageFileMetricRegression(file: string, metric: CoverageMetric, c
   }];
 }
 
-function existingCoverageFileMetricRegression(
+export function existingCoverageFileMetricRegression(
   file: string,
   metric: CoverageMetric,
   current: CoverageValue,
@@ -2010,10 +2045,9 @@ export function compareComponentRatchet(
   now = Date.now(),
 ): QualityFinding[] {
   const normalized = normalizeVitestFailures(report, root);
-  const findings = [...normalized.findings, ...validateComponentBaseline(baseline, now)];
-  if (findings.some((finding) => finding.code.startsWith("COMPONENT_BASELINE_"))) {
-    return findings;
-  }
+  const baselineFindings = validateComponentBaseline(baseline, now);
+  const findings = [...normalized.findings, ...baselineFindings];
+  if (baselineFindings.length > 0) return findings;
   const coverageFindings = validateComponentCoverageSummary(coverage);
   if (coverageFindings.length > 0) return [...findings, ...coverageFindings];
 

@@ -1,6 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { gitArgsWithoutReplacementObjects } from "./common";
 
+const LOWERCASE_COMMIT_SHA = /^[a-f0-9]{40}$/u;
+const REVIEW_RECEIPT_VALUE = /^[A-Za-z0-9_./\\-]+$/u;
+const AUTHOR_ID_VALUE = /^[A-Za-z0-9_-]+$/u;
+
 export interface ComparisonBase {
   input_ref: string;
   resolved_sha: string;
@@ -29,14 +33,14 @@ export async function resolveComparisonBase(input: {
   input_ref: string;
   resolved_sha?: string;
 }): Promise<ComparisonBase> {
-  if (!input.input_ref || input.input_ref.trim() !== input.input_ref) {
+  if (input.input_ref.length === 0 || input.input_ref.trim() !== input.input_ref) {
     throw new Error("Comparison base ref is missing or malformed");
   }
-  if (input.resolved_sha !== undefined && !/^[a-f0-9]{40}$/u.test(input.resolved_sha)) {
-    throw new Error("Forwarded comparison base SHA must be 40 lowercase hexadecimal characters");
-  }
-  if (input.resolved_sha) {
-    if (/^[a-f0-9]{40}$/u.test(input.input_ref) && input.input_ref !== input.resolved_sha) {
+  if (input.resolved_sha !== undefined) {
+    if (!LOWERCASE_COMMIT_SHA.test(input.resolved_sha)) {
+      throw new Error("Forwarded comparison base SHA must be 40 lowercase hexadecimal characters");
+    }
+    if (LOWERCASE_COMMIT_SHA.test(input.input_ref) && input.input_ref !== input.resolved_sha) {
       throw new Error(
         `Forwarded comparison base SHA ${input.resolved_sha} does not match ${input.input_ref}`,
       );
@@ -47,8 +51,8 @@ export async function resolveComparisonBase(input: {
     cwd: input.root,
     encoding: "utf8",
   });
-  const resolved = run.status === 0 ? run.stdout.trim().toLowerCase() : "";
-  if (!/^[a-f0-9]{40}$/u.test(resolved)) {
+  const resolved = run.stdout.trim().toLowerCase();
+  if (!LOWERCASE_COMMIT_SHA.test(resolved)) {
     throw new Error(`Cannot resolve comparison base ${input.input_ref} to a commit`);
   }
   return { input_ref: input.input_ref, resolved_sha: resolved };
@@ -59,13 +63,11 @@ export async function comparisonBaseFromFlags(input: {
   flags: Map<string, string | boolean>;
   environment?: Record<string, string | undefined>;
 }): Promise<ComparisonBase> {
+  const resolvedSha = input.flags.get("base-sha");
   return resolveComparisonBase({
     root: input.root,
     input_ref: comparisonBaseInput(input.flags, input.environment),
-    resolved_sha:
-      typeof input.flags.get("base-sha") === "string"
-        ? String(input.flags.get("base-sha"))
-        : undefined,
+    resolved_sha: typeof resolvedSha === "string" ? resolvedSha : undefined,
   });
 }
 
@@ -78,15 +80,8 @@ export function validateReviewForwarding(
   const reviewParts = reviews.split(",");
   const authorParts = authorIds.split(",");
   if (
-    reviewParts.some(
-      (value) =>
-        !value ||
-        value.trim() !== value ||
-        !/^[A-Za-z0-9_./\\-]+$/u.test(value),
-    ) ||
-    authorParts.some(
-      (value) => !value || value.trim() !== value || !/^[A-Za-z0-9_-]+$/u.test(value),
-    )
+    !reviewParts.every((value) => REVIEW_RECEIPT_VALUE.test(value)) ||
+    !authorParts.every((value) => AUTHOR_ID_VALUE.test(value))
   ) {
     throw new Error("--reviews or --author-ids is malformed");
   }
@@ -114,9 +109,10 @@ export function forwardedQualityArgs(
     expected?: string;
   },
 ): string[] {
-  const [executable, runToken, script, ...rest] = command.split(/\s+/u);
+  const commandParts = command.split(/\s+/u);
+  const [executable, runToken, script, ...rest] = commandParts;
   if (executable !== "bun" || runToken !== "run" || !script) {
-    return command.split(/\s+/u).slice(1);
+    return commandParts.slice(1);
   }
   const args = [runToken, script, ...rest];
   if (BASE_AWARE.has(script)) {

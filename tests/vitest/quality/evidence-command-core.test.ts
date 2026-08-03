@@ -8,7 +8,9 @@ describe("hasUnhandledCommandDiagnostic", () => {
   it.each([
     "[WebServer] uncaughtException: Error: aborted",
     "unhandledRejection: Error: failed",
+    "UnhandledPromiseRejection: rejected",
     "UnhandledPromiseRejectionWarning: rejected",
+    "Vitest caught 12 unhandled error during the test run.",
     "Vitest caught 2 unhandled errors during the test run.",
   ])("detects unhandled stderr diagnostics: %s", (output) => {
     expect(hasUnhandledCommandDiagnostic(output)).toBe(true);
@@ -65,6 +67,23 @@ describe("resolveEvidenceCommand", () => {
     expect(environment).toEqual({ EXISTING: "value", OVERRIDE: "old" });
   });
 
+  it("preserves empty and multiline environment values", () => {
+    expect(
+      resolveEvidenceCommand(
+        ["env", "EMPTY=", "MULTILINE=line one\nline two", "bun", "test"],
+        {},
+      ),
+    ).toMatchObject({
+      executable: "bun",
+      args: ["test"],
+      environment: {
+        EMPTY: "",
+        MULTILINE: "line one\nline two",
+      },
+      error: null,
+    });
+  });
+
   it("replaces Windows environment keys case-insensitively with last assignment winning", () => {
     const result = resolveEvidenceCommand(
       ["env", "feature=first", "FEATURE=second", "FeAtUrE=final", "playwright", "test"],
@@ -105,6 +124,8 @@ describe("resolveEvidenceCommand", () => {
 
   it.each([
     [["env", "playwright", "test"], "env requires at least one KEY=VALUE assignment"],
+    [["env", "9FEATURE=1", "bun", "test"], "env requires at least one KEY=VALUE assignment"],
+    [["env", "prefix FEATURE=1", "bun", "test"], "env requires at least one KEY=VALUE assignment"],
     [["env", "FEATURE=1"], "env requires a command after its assignments"],
   ])("fails closed for malformed env commands", (command, error) => {
     expect(resolveEvidenceCommand(command, {})).toMatchObject({

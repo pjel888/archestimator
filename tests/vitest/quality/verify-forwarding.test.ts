@@ -23,15 +23,24 @@ function gitCandidateFiles(root: string): string[] {
 }
 
 describe("Q2 verify forwarding", () => {
-  it("gives complete component gates more time without relaxing other commands", () => {
+  it("gives component and mutation gates enough time without relaxing other commands", () => {
     const source = readFileSync(
       resolve(import.meta.dirname, "../../../scripts/quality/verify.ts"),
       "utf8",
     );
+    const mutationSource = readFileSync(
+      resolve(import.meta.dirname, "../../../scripts/quality/run-mutation.ts"),
+      "utf8",
+    );
     expect(source).toContain("const defaultCommandTimeoutMs = 30 * 60_000;");
     expect(source).toContain("const componentCommandTimeoutMs = 60 * 60_000;");
+    expect(source).toContain("const mutationCommandTimeoutMs = 2 * 60 * 60_000;");
     expect(source).toContain('command.startsWith("bun run test:component:")');
+    expect(source).toContain('command.startsWith("bun run test:mutation:")');
     expect(source).toContain("timeout,");
+    expect(mutationSource).toContain("const strykerTimeoutMs = 2 * 60 * 60_000;");
+    expect(mutationSource).toContain("timeout: strykerTimeoutMs,");
+    expect(mutationSource).toContain("Stryker exceeded the two-hour timeout");
   });
 
   it("rejects a caller-selected profiles file before executing classification", () => {
@@ -80,11 +89,110 @@ describe("Q2 verify forwarding", () => {
     ]);
   });
 
-  it("rejects missing or malformed review inputs before command construction", () => {
-    expect(() => validateReviewForwarding(undefined, "root")).toThrow(/reviews/i);
-    expect(() => validateReviewForwarding("a.json", undefined)).toThrow(/author/i);
-    expect(() => validateReviewForwarding("a.json,,b.json", "root")).toThrow(/malformed/i);
-    expect(() => validateReviewForwarding("a.json", "root, bad")).toThrow(/malformed/i);
+  it("accepts canonical review inputs and rejects every malformed boundary", () => {
+    expect(
+      validateReviewForwarding("artifacts/q_1-2.json,.\\artifacts\\s.json", "root,b0-s1"),
+    ).toEqual({
+      reviews: "artifacts/q_1-2.json,.\\artifacts\\s.json",
+      author_ids: "root,b0-s1",
+    });
+    expect(() => validateReviewForwarding(undefined, "root")).toThrowError(
+      new Error("--reviews is required for critical verification"),
+    );
+    expect(() => validateReviewForwarding("a.json", undefined)).toThrowError(
+      new Error("--author-ids is required for critical verification"),
+    );
+    for (const reviews of [
+      "a.json,,b.json",
+      ",a.json",
+      "a.json,",
+      " a.json",
+      "a.json ",
+      "@a.json",
+      "a.json@",
+    ]) {
+      expect(() => validateReviewForwarding(reviews, "root")).toThrowError(
+        new Error("--reviews or --author-ids is malformed"),
+      );
+    }
+    for (const authors of [
+      "root,,bot",
+      ",root",
+      "root,",
+      " root",
+      "root ",
+      "@root",
+      "root@",
+      "root.bot",
+    ]) {
+      expect(() => validateReviewForwarding("a.json", authors)).toThrowError(
+        new Error("--reviews or --author-ids is malformed"),
+      );
+    }
+  });
+
+  it("forwards comparison lineage for every base-aware quality script", () => {
+    const comparisonBase = { input_ref: "refs/heads/topic", resolved_sha: "a".repeat(40) };
+    const baseAwareScripts = [
+      "quality:classify",
+      "quality:static",
+      "quality:anti-bypass",
+      "quality:diff-coverage",
+      "quality:reviews",
+      "quality:operations",
+      "test:mutation:changed",
+      "test:mutation:critical",
+      "test:mutation:full",
+    ];
+    for (const script of baseAwareScripts) {
+      const args = forwardedQualityArgs(`bun run ${script} --output result.json`, {
+        comparison_base: comparisonBase,
+        reviews: "q.json,s.json",
+        author_ids: "root,reviewer",
+      });
+      const expected = [
+        "run",
+        script,
+        "--output",
+        "result.json",
+        "--base",
+        comparisonBase.input_ref,
+        "--base-sha",
+        comparisonBase.resolved_sha,
+      ];
+      if (script === "quality:reviews") {
+        expected.push("--reviews", "q.json,s.json", "--author-ids", "root,reviewer");
+      }
+      expect(args).toEqual(expected);
+    }
+  });
+
+  it("parses whitespace canonically and leaves non-bun commands unforwarded", () => {
+    const input = {
+      comparison_base: { input_ref: "HEAD", resolved_sha: "a".repeat(40) },
+      reviews: "q.json,s.json",
+      author_ids: "root,reviewer",
+    };
+    expect(forwardedQualityArgs("bun   run\tquality:static   --flag", input)).toEqual([
+      "run",
+      "quality:static",
+      "--flag",
+      "--base",
+      "HEAD",
+      "--base-sha",
+      "a".repeat(40),
+    ]);
+    expect(forwardedQualityArgs("bun run lint --fix", input)).toEqual(["run", "lint", "--fix"]);
+    expect(forwardedQualityArgs("npm   run   quality:static", input)).toEqual([
+      "run",
+      "quality:static",
+    ]);
+    expect(forwardedQualityArgs("bun exec quality:static", input)).toEqual([
+      "exec",
+      "quality:static",
+    ]);
+    expect(forwardedQualityArgs("bun run", input)).toEqual(["run"]);
+    expect(forwardedQualityArgs("", input)).toEqual([]);
   });
 
   it("fails the real verify CLI before executing any profile job", () => {

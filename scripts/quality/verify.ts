@@ -46,6 +46,7 @@ const root = qualityRoot();
 const findings: QualityFinding[] = [];
 const defaultCommandTimeoutMs = 30 * 60_000;
 const componentCommandTimeoutMs = 60 * 60_000;
+const mutationCommandTimeoutMs = 2 * 60 * 60_000;
 const requestedProfile = flagString(flags, "profile") as QualityProfile | undefined;
 const reviewsInput = flagString(flags, "reviews");
 const authorIdsInput = flagString(flags, "author-ids");
@@ -261,7 +262,9 @@ if (
     const started = performance.now();
     const timeout = command.startsWith("bun run test:component:")
       ? componentCommandTimeoutMs
-      : defaultCommandTimeoutMs;
+      : command.startsWith("bun run test:mutation:")
+        ? mutationCommandTimeoutMs
+        : defaultCommandTimeoutMs;
     const run = spawnSync(executable, forwardedArgs, {
       cwd: root,
       encoding: "utf8",

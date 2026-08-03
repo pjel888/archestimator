@@ -2,6 +2,28 @@
   "schema_version": 1,
   "entries": [
     {
+      "id": "MUT-QUALITY-GATE-CORE",
+      "targets": [
+        "scripts/quality/anti-bypass-core.ts",
+        "scripts/quality/candidate-core.ts",
+        "scripts/quality/comparison-base-core.ts",
+        "scripts/quality/component-core.ts",
+        "scripts/quality/evidence-command-core.ts"
+      ],
+      "tests": [
+        "tests/vitest/quality/candidate-digest.test.ts",
+        "tests/vitest/quality/comparison-base-lineage.test.ts",
+        "tests/vitest/quality/component-baseline.test.ts",
+        "tests/vitest/quality/component-baseline-integrity.test.ts",
+        "tests/vitest/quality/component-gate.test.ts",
+        "tests/vitest/quality/evidence-command-core.test.ts",
+        "tests/vitest/quality/quality-core.test.ts",
+        "tests/vitest/quality/review-manifest.test.ts",
+        "tests/vitest/quality/verify-forwarding.test.ts"
+      ],
+      "reason": "Quality-system candidate binding, anti-bypass, component evidence, and command execution protect every repository gate."
+    },
+    {
       "id": "MUT-CALCULATION-RESULTS",
       "targets": [
         "src/lib/ab-testing/results-calculator.ts"

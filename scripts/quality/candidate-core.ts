@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { resolve, sep } from "node:path";
 import { gitArgsWithoutReplacementObjects } from "./common";
 import type { QualityProfile } from "./classifier-core";
 import type { ComparisonBase } from "./comparison-base-core";
@@ -132,53 +132,61 @@ function validateCandidateScope(
   return inventoryPaths;
 }
 
-function candidateCommitSha(root: string): string {
+export function candidateCommitSha(root: string): string {
   const run = spawnSync("git", gitArgsWithoutReplacementObjects(["rev-parse", "HEAD"]), {
     cwd: root,
     encoding: "utf8",
   });
-  const commitSha = run.status === 0 ? run.stdout.trim().toLowerCase() : "";
+  if (run.status !== 0) {
+    throw new Error("Candidate HEAD commit SHA cannot be resolved");
+  }
+  const commitSha = run.stdout.trim().toLowerCase();
   if (!/^[a-f0-9]{40}$/u.test(commitSha)) {
-    throw new Error("Candidate HEAD commit SHA is missing or malformed");
+    throw new Error("Candidate HEAD commit SHA is malformed");
   }
   return commitSha;
 }
 
-type ContainedRegularFile =
+export type ContainedRegularFile =
   | { kind: "file"; bytes: Buffer }
   | { kind: "missing" }
   | { kind: "unsafe" };
 
-function normalizedPathSegments(normalizedPath: string): string[] | null {
+export function normalizedPathSegments(normalizedPath: string): string[] | null {
   const segments = normalizedPath.split("/");
-  return segments.length > 0 && segments.every((segment) => segment && segment !== "." && segment !== "..")
+  return segments.every((segment) => segment && segment !== "." && segment !== "..")
     ? segments
     : null;
 }
 
-function canonicalPathIsContained(root: string, absolutePath: string): boolean {
+export function canonicalPathIsContained(root: string, absolutePath: string): boolean {
   const canonicalRoot = realpathSync.native(resolve(root));
   const canonicalPath = realpathSync.native(absolutePath);
-  const canonicalRelativePath = relative(canonicalRoot, canonicalPath);
-  return Boolean(canonicalRelativePath) &&
-    canonicalRelativePath !== ".." &&
-    !canonicalRelativePath.startsWith(`..${sep}`) &&
-    !isAbsolute(canonicalRelativePath);
+  return canonicalPath.startsWith(`${canonicalRoot}${sep}`);
 }
 
-function resolveContainedRegularFilePath(root: string, segments: string[]): string | null {
+export function resolveContainedRegularFilePath(
+  root: string,
+  segments: string[],
+): string | null {
   let absolutePath = resolve(root);
   for (let index = 0; index < segments.length; index += 1) {
     absolutePath = resolve(absolutePath, segments[index]!);
     const stat = lstatSync(absolutePath);
-    if (stat.isSymbolicLink()) return null;
     const isLeaf = index === segments.length - 1;
     if (isLeaf ? !stat.isFile() : !stat.isDirectory()) return null;
   }
   return canonicalPathIsContained(root, absolutePath) ? absolutePath : null;
 }
 
-function inspectContainedRegularFile(root: string, normalizedPath: string): ContainedRegularFile {
+export function containedRegularFileError(code: string | undefined): ContainedRegularFile {
+  return code === "ENOENT" || code === "ENOTDIR" ? { kind: "missing" } : { kind: "unsafe" };
+}
+
+export function inspectContainedRegularFile(
+  root: string,
+  normalizedPath: string,
+): ContainedRegularFile {
   const segments = normalizedPathSegments(normalizedPath);
   if (!segments) return { kind: "unsafe" };
   try {
@@ -186,8 +194,7 @@ function inspectContainedRegularFile(root: string, normalizedPath: string): Cont
     if (!absolutePath) return { kind: "unsafe" };
     return { kind: "file", bytes: readFileSync(absolutePath) };
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    return code === "ENOENT" || code === "ENOTDIR" ? { kind: "missing" } : { kind: "unsafe" };
+    return containedRegularFileError((error as NodeJS.ErrnoException).code);
   }
 }
 
@@ -213,7 +220,7 @@ async function candidateFiles(
       sha256: bytes === null ? sha256("DELETED") : sha256(bytes),
       line_ending_neutral_sha256: bytes === null ? null : lineEndingNeutralSourceDigest(bytes),
       deleted,
-      sources: [...sources.get(path)!].sort((left, right) => left.localeCompare(right)),
+      sources: [...sources.get(path)!],
     };
   }));
 }
@@ -231,10 +238,7 @@ export async function candidateFileInventory(
 }
 
 function validateExpectedCandidate(digest: string, expected: string | undefined): void {
-  if (
-    expected !== undefined &&
-    (!/^[a-f0-9]{64}$/u.test(expected) || expected !== digest)
-  ) {
+  if (expected !== undefined && expected !== digest) {
     throw new Error(`Candidate digest does not match --expected ${expected}`);
   }
 }

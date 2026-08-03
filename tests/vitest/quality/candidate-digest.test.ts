@@ -1,13 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildCandidate,
+  candidateCommitSha,
   candidateFileInventory,
+  canonicalPathIsContained,
+  containedRegularFileError,
+  inspectContainedRegularFile,
   lineEndingNeutralSourceDigest,
+  normalizedPathSegments,
   readContainedRegularFile,
+  resolveContainedRegularFilePath,
 } from "../../../scripts/quality/candidate-core";
 import { sha256 } from "../../../scripts/quality/common";
 
@@ -42,7 +48,7 @@ describe("canonical whole-candidate digest", () => {
       classification: {
         profile: "Q2_CRITICAL_CHANGE_GATE",
         files,
-        affected_capabilities: ["CAP-UNKNOWN"],
+        affected_capabilities: ["CAP-Z", "CAP-A", "CAP-Z"],
       },
     });
     const second = await buildCandidate({
@@ -51,11 +57,12 @@ describe("canonical whole-candidate digest", () => {
       classification: {
         profile: "Q2_CRITICAL_CHANGE_GATE",
         files: [...files].reverse(),
-        affected_capabilities: ["CAP-UNKNOWN"],
+        affected_capabilities: ["CAP-A", "CAP-Z"],
       },
       expected: first.sha256,
     });
     expect(second).toEqual(first);
+    expect(first.record.affected_capabilities).toEqual(["CAP-A", "CAP-Z"]);
     expect(first.record.changed_files.map((file) => [file.path, file.sources])).toEqual([
       ["committed.txt", ["committed", "unstaged"]],
       ["deleted.txt", ["unstaged"]],
@@ -88,6 +95,24 @@ describe("canonical whole-candidate digest", () => {
       ...input,
       classification: {
         ...input.classification,
+        files: ["committed.txt", "deleted.txt", "staged.txt", "untracked.txt", "zzzz.txt"],
+      },
+    })).rejects.toThrow(
+      "Candidate classification does not equal the whole Git candidate: classified=committed.txt,deleted.txt,staged.txt,untracked.txt,zzzz.txt inventory=committed.txt,deleted.txt,staged.txt,untracked.txt",
+    );
+    await expect(buildCandidate({
+      ...input,
+      classification: {
+        ...input.classification,
+        files: ["committed.txt", "deleted.txt", "staged.txt", "wrong.txt"],
+      },
+    })).rejects.toThrow(
+      "Candidate classification does not equal the whole Git candidate: classified=committed.txt,deleted.txt,staged.txt,wrong.txt inventory=committed.txt,deleted.txt,staged.txt,untracked.txt",
+    );
+    await expect(buildCandidate({
+      ...input,
+      classification: {
+        ...input.classification,
         comparison_base: { input_ref: "different", resolved_sha: base },
       },
     })).rejects.toThrow(/comparison base/i);
@@ -99,14 +124,25 @@ describe("canonical whole-candidate digest", () => {
       },
     })).rejects.toThrow(/comparison base/i);
     await expect(buildCandidate({ ...input, expected: "0".repeat(64) })).rejects.toThrow(/expected/i);
+    await expect(buildCandidate({ ...input, expected: `${"0".repeat(64)}0` })).rejects.toThrow(
+      `Candidate digest does not match --expected ${"0".repeat(64)}0`,
+    );
   });
 
   it("fails closed when Git scope or HEAD identity cannot be trusted", async () => {
     const { root, base } = await repository();
     const sha256Root = await mkdtemp(join(tmpdir(), "archestimator-candidate-sha256-"));
+    const emptyRoot = await mkdtemp(join(tmpdir(), "archestimator-candidate-empty-"));
     try {
-      await expect(candidateFileInventory(root, "0".repeat(40))).rejects.toThrow(/git diff/i);
+      await expect(candidateFileInventory(root, "0".repeat(40))).rejects.toThrow(
+        `Cannot construct candidate with git diff -z --no-renames --name-only --diff-filter=ACDMRTUXB ${"0".repeat(40)} HEAD`,
+      );
       expect(lineEndingNeutralSourceDigest(Buffer.from([0]))).toBeNull();
+
+      execFileSync("git", ["init", "-q"], { cwd: emptyRoot });
+      expect(() => candidateCommitSha(emptyRoot)).toThrow(
+        "Candidate HEAD commit SHA cannot be resolved",
+      );
 
       execFileSync("git", ["init", "-q", "--object-format=sha256"], { cwd: sha256Root });
       execFileSync("git", ["config", "user.email", "quality@example.invalid"], { cwd: sha256Root });
@@ -119,19 +155,14 @@ describe("canonical whole-candidate digest", () => {
         encoding: "utf8",
       }).trim();
       expect(sha256Head).toHaveLength(64);
-      await expect(buildCandidate({
-        root: sha256Root,
-        comparison_base: { input_ref: sha256Head, resolved_sha: sha256Head },
-        classification: {
-          profile: "Q2_CRITICAL_CHANGE_GATE",
-          files: [],
-          affected_capabilities: [],
-        },
-      })).rejects.toThrow(/HEAD commit SHA/i);
+      expect(() => candidateCommitSha(sha256Root)).toThrow(
+        "Candidate HEAD commit SHA is malformed",
+      );
       expect(base).toHaveLength(40);
     } finally {
       await rm(root, { recursive: true, force: true });
       await rm(sha256Root, { recursive: true, force: true });
+      await rm(emptyRoot, { recursive: true, force: true });
     }
   });
 
@@ -159,10 +190,13 @@ describe("canonical whole-candidate digest", () => {
 
   it("reads only repository-contained regular files", async () => {
     const root = await mkdtemp(join(tmpdir(), "archestimator-candidate-reader-"));
+    const outside = await mkdtemp(join(tmpdir(), "archestimator-candidate-reader-outside-"));
     try {
       await mkdir(join(root, "nested"));
       await writeFile(join(root, "nested/example.ts"), "contained bytes\n");
       await writeFile(join(root, "ancestor-file"), "not a directory\n");
+      await writeFile(join(outside, "outside.ts"), "outside bytes\n");
+      await symlink(join(root, "nested"), join(root, "linked-inside"), process.platform === "win32" ? "junction" : "dir");
 
       expect(readContainedRegularFile(root, "nested/example.ts")?.toString("utf8")).toBe("contained bytes\n");
       expect(readContainedRegularFile(root, "missing.ts")).toBeNull();
@@ -170,6 +204,48 @@ describe("canonical whole-candidate digest", () => {
       expect(readContainedRegularFile(root, "nested")).toBeNull();
       expect(readContainedRegularFile(root, "ancestor-file/child.ts")).toBeNull();
       expect(readContainedRegularFile(join(root, "ancestor-file"), "child.ts")).toBeNull();
+      expect(normalizedPathSegments("nested/example.ts")).toEqual(["nested", "example.ts"]);
+      for (const path of ["", ".", "..", "./nested/example.ts", "nested/../example.ts", "nested//example.ts"]) {
+        expect(normalizedPathSegments(path)).toBeNull();
+        expect(inspectContainedRegularFile(root, path)).toEqual({ kind: "unsafe" });
+      }
+      expect(inspectContainedRegularFile(root, "missing.ts")).toEqual({ kind: "missing" });
+      expect(inspectContainedRegularFile(root, "ancestor-file/child.ts")).toEqual({ kind: "unsafe" });
+      expect(inspectContainedRegularFile(join(root, "ancestor-file"), "child.ts")).toEqual({
+        kind: "missing",
+      });
+      expect(inspectContainedRegularFile(root, "nested")).toEqual({ kind: "unsafe" });
+      expect(containedRegularFileError("ENOENT")).toEqual({ kind: "missing" });
+      expect(containedRegularFileError("ENOTDIR")).toEqual({ kind: "missing" });
+      expect(containedRegularFileError("EACCES")).toEqual({ kind: "unsafe" });
+      expect(containedRegularFileError(undefined)).toEqual({ kind: "unsafe" });
+      expect(resolveContainedRegularFilePath(root, ["nested", "example.ts"])).toBe(
+        resolve(root, "nested/example.ts"),
+      );
+      expect(resolveContainedRegularFilePath(root, ["nested"])).toBeNull();
+      expect(resolveContainedRegularFilePath(root, ["ancestor-file", "child.ts"])).toBeNull();
+      expect(resolveContainedRegularFilePath(root, ["linked-inside", "example.ts"])).toBeNull();
+      expect(canonicalPathIsContained(root, join(root, "nested/example.ts"))).toBe(true);
+      expect(canonicalPathIsContained(root, root)).toBe(false);
+      expect(canonicalPathIsContained(root, dirname(root))).toBe(false);
+      expect(canonicalPathIsContained(root, join(outside, "outside.ts"))).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("sorts candidate inventory paths across Git source categories", async () => {
+    const { root, base } = await repository();
+    try {
+      await writeFile(join(root, "aaa-untracked.txt"), "first\n");
+      expect((await candidateFileInventory(root, base)).map((file) => file.path)).toEqual([
+        "aaa-untracked.txt",
+        "committed.txt",
+        "deleted.txt",
+        "staged.txt",
+        "untracked.txt",
+      ]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
