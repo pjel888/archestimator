@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-039",
+  "observed_at": "2026-08-03T06:14:57.2238849Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-041",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Project and sheet viewers receive empty collaborator/member identity arrays; manager-scoped responses retain the required roster controls."
+    },
+    {
+      "source_id": "CSF-043",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Pending invitation identities are serialized only for managers of the matching project or estimate scope."
+    },
+    {
+      "source_id": "CSF-044",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Project-member removal defaults to retain_sheet_grants; direct estimate grants are deleted only after an explicit remove_all_direct_grants selection."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "src/lib/repositories/workspace-repository.ts",
+      "sha256": "dda82324fe8942762c0c018a931aa0329d5a72671e3765833aa227ce7b2f4ea6"
+    },
+    {
+      "path": "src/components/workshop/teamwork/ProjectMembersAccessPanel.tsx",
+      "sha256": "46895d9be4dce7b9436f9da6fa86f16170b2c5ff720314ece3b908dcd8ce39e3"
+    },
+    {
+      "path": "tests/vitest/workspace-collaboration-summary-authz.test.ts",
+      "sha256": "ec578673cbd295ade7b9d6722030165dd75404059a4adb5e16256c798a6e560a"
+    },
+    {
+      "path": "tests/vitest/project-collaboration-actions.test.ts",
+      "sha256": "a3edd7b92a2bbe937c6f9331802430229038f54590dac624a902229d26277aa3"
+    },
+    {
+      "path": "e2e/project-team-access.spec.ts",
+      "sha256": "5f9a451d07b751358cb90308157be08baaa738b55a64b6096d770dcbdd77d4cd"
+    },
+    {
+      "path": ".ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-039-focused-vitest.json",
+      "sha256": "e718ccff9126a3c9dbbc289ebadd351acabacb9681225661d6c0f7166dd86cc3"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bunx vitest run tests/vitest/workspace-collaboration-summary-authz.test.ts tests/vitest/project-collaboration-actions.test.ts --reporter=json --outputFile=.ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-039-focused-vitest.json",
+      "result": "PASS",
+      "tests_passed": 21
+    },
+    {
+      "command": "git diff --check -- src/lib/repositories/workspace-repository.ts src/components/workshop/teamwork/ProjectMembersAccessPanel.tsx tests/vitest/workspace-collaboration-summary-authz.test.ts tests/vitest/project-collaboration-actions.test.ts",
+      "result": "PASS"
+    },
+    {
+      "command": "bunx playwright test e2e/project-team-access.spec.ts --project=chromium --workers=1 --grep \"defaults project removal to retaining direct estimate access\" --reporter=json",
+      "result": "PASS",
+      "tests_passed": 1,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "artifact": ".tmp/code-improvement/evidence/unit-039-playwright-focused.json",
+      "artifact_sha256": "d94f1026f23d6344647f74b081b20bc66f843703f23d59350c0120ae06a145f9"
+    }
+  ],
+  "gitnexus": {
+    "targets": [
+      "getProjectCollaborationSummary",
+      "ProjectMembersAccessPanel",
+      "canReadProjectCollaborationRoster",
+      "requestRemoveProjectMember"
+    ],
+    "risk": "UNKNOWN",
+    "reason": "The symbols were not present in the current GitNexus index."
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}

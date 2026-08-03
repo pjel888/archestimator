@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-030",
+  "observed_at": "2026-08-03T06:31:58.9257465Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_STATIC_AND_FOCUSED_PASS_Q2_REVIEW_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "UNIT-030-STATIC",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "The keyset pagination implementation now uses explicit D1 statement, result, page, and cursor-row types and passes full TypeScript validation."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "src/lib/auth/closed-beta-d1-store.ts",
+      "sha256": "1b76b8ea059cd1ffd2a4aa5972eab777c65e5e389f11ffbc938c0b3263cb2f10"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bunx vitest run tests/vitest/closed-beta-d1-store.test.ts tests/vitest/closed-beta-allowlist-admin.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 7
+    },
+    {
+      "command": "bun run type-check",
+      "result": "PASS",
+      "artifact": ".tmp/code-improvement/evidence/priority-security-typecheck.json",
+      "artifact_sha256": "f1300bd81e8bbeaa0768c0254e32165b1e06accee995b2378e93fbe164dd1d25"
+    }
+  ],
+  "gitnexus": {
+    "targets": [
+      "readClosedBetaAllowlistQueueFromD1",
+      "listPendingClosedBetaInviteEmailsFromD1"
+    ],
+    "risk": "UNKNOWN",
+    "reason": "The symbols were not present in the current GitNexus index."
+  },
+  "remaining_evidence": [
+    "candidate-bound independent quality and security reviews"
+  ]
+}

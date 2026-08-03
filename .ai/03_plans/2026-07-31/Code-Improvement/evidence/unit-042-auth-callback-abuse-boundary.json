@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-042",
+  "observed_at": "2026-08-03T06:45:40.0694407Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-089",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "The legacy auth callback uses only trusted cf-connecting-ip for its hard durable limiter key, sends requests without that trusted header to one unattributed fail-closed bucket, skips audit writes when limited or unavailable, and preserves the stable redirect response."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "src/app/auth/callback/route.ts",
+      "sha256": "d50eacc5e931759b89ccc3e20a8ed0d52547de16606c2d7a2149ee0129b865a7"
+    },
+    {
+      "path": "src/lib/auth/callback-abuse-control.ts",
+      "sha256": "1b918b679051cea78cc59c226db8257a2746a42227fbb698b9c2e82632782374"
+    },
+    {
+      "path": "tests/vitest/auth-callback-route.test.ts",
+      "sha256": "7255877f36c29f292cef72fd2250ca778d74f7d777fde518141a00f95d94d8e8"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/auth-callback-route.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 7
+    },
+    {
+      "command": "git diff --check -- src/app/auth/callback/route.ts src/lib/auth/callback-abuse-control.ts tests/vitest/auth-callback-route.test.ts",
+      "result": "PASS"
+    }
+  ],
+  "gitnexus": {
+    "risk": "UNKNOWN",
+    "reason": "The callback route and focused test were absent from the current GitNexus index."
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}

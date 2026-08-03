@@ -1,5 +1,8 @@
 # Archestimator MacBook Pro Agentic Workflow Bootstrap Prompt
 
+> Historical archive only. Do not execute this prompt as current authority;
+> follow `AGENTS.md` and the active `.ai/00_system/` contracts instead.
+
 You are Codex running on Philip's MacBook Pro. Execute this prompt autonomously from start to finish.
 
 ## Objective
@@ -53,12 +56,12 @@ You are authorized to:
 
 - install or update free local developer tools on this MacBook;
 - write machine-local configuration under Philip's home directory;
-- install user-level skills and Codex plugins;
+- install user-level skills and Codex plugins only from transferred local payloads, committed lockfiles, OpenAI-bundled/curated sources, or sources pinned to immutable commits/versions with documented integrity review;
 - install repository dependencies from the committed lockfile;
 - create ignored local configuration files from committed examples;
 - create or repair local-only Supermemory, Wrangler, GitNexus, ChunkHound, and OMX state;
 - apply the repository's active D1 migrations only to the local Wrangler database;
-- use network access for official package registries, Git repositories, and local tool installation.
+- use network access for official package registries, Git repositories, and local tool installation, but do not install mutable third-party skill/plugin payloads from unpinned branches, tags, marketplaces, or package channels.
 
 Do not:
 
@@ -206,19 +209,7 @@ The canonical shared catalog is machine-local at `~/.agents/skills/`, with its l
    - copy it into `~/.agents/` without overwriting unrelated existing files blindly;
    - preserve or tighten file permissions;
    - run `bun run skills:update`.
-5. If no transfer is available, rebuild the catalog from the known managed source set using `npx -y skills@1.5.16 add <source> --global --all --full-depth`, one source at a time, preserving already-installed skills:
-   - `affaan-m/everything-claude-code`
-   - `MengTo/Skills`
-   - `mattpocock/skills`
-   - `obra/superpowers`
-   - `Leonxlnx/taste-skill`
-   - `cloudflare/skills`
-   - `emilkowalski/skills`
-   - `supabase/agent-skills`
-   - `mattbx/shadcn-skills`
-   - `vercel-labs/skills`
-   - `shadcn/improve`
-   - `nutlope/hallmark`
+5. If no transfer is available, do not rebuild the shared catalog from mutable GitHub source names. Instead, create `~/.agents/SOURCE-MACHINE-ARTIFACT-REQUIRED.md` with the missing catalog path and report `SOURCE_MACHINE_ARTIFACT_REQUIRED: GLOBAL_SKILL_CATALOG`. Rebuild only from a Philip-supplied manifest that pins every source to an immutable commit SHA or version and includes the expected checksum/signature or an explicit manual-review note for each payload. When such a manifest is available, run `npx -y skills@1.5.16 add <pinned-source> --global --all --full-depth`, one source at a time, preserving already-installed skills.
 6. Treat duplicate-name or already-installed results as reconciliation signals, not permission to delete arbitrary user customizations.
 7. Run:
    - `bun run skills:consolidate`
@@ -228,10 +219,10 @@ The canonical shared catalog is machine-local at `~/.agents/skills/`, with its l
 ### Phase 5: Configure Codex, OMX, And Plugins
 
 1. Verify Codex CLI authentication status without exposing account tokens.
-2. If OMX is missing and npm is healthy, install the current stable official `oh-my-codex` package. Then run:
+2. If OMX is missing and npm is healthy, install only a version-pinned official `oh-my-codex` package from Philip's approved version or a committed manifest. Then run:
    - `omx setup --scope user --plugin`
-   - `omx update --stable`
    - `omx doctor`
+   Do not run mutable update commands such as `omx update --stable` unless a pinned, reviewed target version and integrity note are available.
 3. Preserve the repository's `AGENTS.md`. If OMX setup needs an AGENTS merge policy, use the non-destructive merge behavior rather than replacing the project contract.
 4. Inspect current Codex plugin state with:
    - `codex plugin marketplace list --json`
@@ -258,10 +249,7 @@ The canonical shared catalog is machine-local at `~/.agents/skills/`, with its l
    - `vercel@openai-curated`
    - `visualize@openai-bundled`
 7. OpenAI-bundled, primary-runtime, and curated plugin availability may be controlled by the installed Codex runtime. Do not fabricate marketplace URLs or bypass Codex's supported plugin mechanism.
-8. If the external Compound Engineering or Ponytail marketplaces are missing, use the supported Codex marketplace commands after checking `codex plugin marketplace add --help`:
-   - source `everyinc/compound-engineering-plugin`
-   - source `DietrichGebert/ponytail`
-   Then install their named plugins through `codex plugin add`.
+8. If the external Compound Engineering or Ponytail marketplaces are missing, do not add them from mutable source names. Add third-party marketplaces or install their plugins only from a Philip-supplied manifest that pins each marketplace/plugin to an immutable commit SHA or version and records the expected checksum/signature or explicit manual-review note. Otherwise report `SOURCE_MACHINE_ARTIFACT_REQUIRED: THIRD_PARTY_PLUGIN_MANIFEST`.
 9. Plugin-specific account connections such as Gmail, Notion, GitHub, or Vercel are credential boundaries. Install the plugin when safe, but do not request, print, or invent credentials.
 10. Run `omx doctor` again after repairs. A warning is acceptable only when it is explicitly understood and no checks fail.
 

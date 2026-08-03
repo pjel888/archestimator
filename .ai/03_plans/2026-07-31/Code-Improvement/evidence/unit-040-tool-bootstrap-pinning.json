@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-040",
+  "observed_at": "2026-08-03T05:47:15.2226184Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-093",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "All active shadcn MCP entries execute the workspace binary through Bun instead of resolving shadcn@latest; bun.lock binds shadcn 4.13.1 to an integrity hash."
+    },
+    {
+      "source_id": "PR-124",
+      "disposition": "STILL_OPEN_REIMPLEMENTED_LOCALLY",
+      "head_sha": "5c3588dad7adcc35633314e8a0704be26b4667cf",
+      "title": "docs(ai): pin agent bootstrap installs"
+    }
+  ],
+  "changed_files": [
+    {
+      "path": ".mcp.json",
+      "sha256": "fcf9e5763bd9c058dc9c9436da5e5a37b3f129e05fff1ae751b40061371ad23c"
+    },
+    {
+      "path": ".cursor/mcp.json",
+      "sha256": "08a7cc002ef3edb3a580443d7e4e3e46d28b10b1e7f662a0d5e4ccff0d99fc41"
+    },
+    {
+      "path": "opencode.json",
+      "sha256": "a878947bef4214b2a28396687640995ad65f746c6705127507fb384be9b8f0a7"
+    },
+    {
+      "path": ".ai/09_archive/08_prompts/MacBook-Pro-Agentic-Workflow-Bootstrap-Prompt.md",
+      "sha256": "dfef661534e54799557058be1b6815ddb9d1cd71ef2ed9910e0e80d39ea8cdc4"
+    },
+    {
+      "path": "tests/vitest/security-findings-library-tooling-contracts.test.ts",
+      "sha256": "6288c520f557cbb4f557861ee9f70f4a5027bbf5f3a53a9fe347a4255d399263"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/security-findings-library-tooling-contracts.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 6
+    },
+    {
+      "command": "PowerShell ConvertFrom-Json for .mcp.json, .cursor/mcp.json, and opencode.json",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check -- <UNIT-040 files>",
+      "result": "PASS"
+    }
+  ],
+  "gitnexus": {
+    "risk": "MIXED_LOW_UNKNOWN",
+    "details": [
+      "opencode.json resolved LOW with zero callers or processes",
+      ".mcp.json, .cursor/mcp.json, the archived bootstrap, and the focused test were not indexed and remain UNKNOWN",
+      "package.json resolved CRITICAL and was intentionally not changed"
+    ]
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}

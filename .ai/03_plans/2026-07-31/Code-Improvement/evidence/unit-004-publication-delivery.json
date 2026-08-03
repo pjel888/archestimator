@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-004",
+  "observed_at": "2026-08-03T06:39:10.3734477Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "COR-005",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Add and resend actions now persist a versioned delivery intent and return queued/pending. Only the queue consumer writes sent after provider acceptance is persisted and the recipient token/status CAS succeeds."
+    },
+    {
+      "source_id": "PERF-006",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Legacy recipient provider calls moved out of the server-action request path into the existing Cloudflare notification queue; the five-minute drain discovers pending and expired-processing intents."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "src/lib/publication/actions.ts",
+      "sha256": "7e6e26920eb3c99af5e5fb0c4511f16ddc24030ea7ff641a7d8b55fd9f1d37bc"
+    },
+    {
+      "path": "src/lib/publication/admin-d1-client.ts",
+      "sha256": "9f024b70345144dcf417f4463098a9a91af0d953fc6e7b223d9c6471a9a6c815"
+    },
+    {
+      "path": "src/lib/cloudflare/client-portal-notification-queue.ts",
+      "sha256": "4f6e91b1de0fd1202fb9ca0373473e5cfd1cb7749170d64331630948b422134b"
+    },
+    {
+      "path": "tests/vitest/publication-recipient-delivery-intents.test.ts",
+      "sha256": "6fbd1ba53563e71fd06139e6a8d3c01e61b890b7baff15f8c92bcf7b24321a25"
+    },
+    {
+      "path": "tests/vitest/client-portal-notification-queue.test.ts",
+      "sha256": "f600ab7dc089058599087809896aa3e5c1b9a78740724850e9bb018aa97fec73"
+    },
+    {
+      "path": "tests/vitest/project-publication-actions.test.ts",
+      "sha256": "3e7255952665e3cab18beaeb5710e57d9760ae1022076b92d9ad8feae0153364"
+    },
+    {
+      "path": "tests/vitest/project-publication-rotate-resend.test.ts",
+      "sha256": "35e62c75a2ca9d153d61ca4237e108b54b9ea200b848cf146c59f32d72b18148"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/publication-recipient-delivery-intents.test.ts tests/vitest/client-portal-notification-queue.test.ts --reporter=dot",
+      "result": "RED_BASELINE",
+      "tests_failed": 4,
+      "tests_passed": 8
+    },
+    {
+      "command": "bun x eslint src/lib/publication/actions.ts src/lib/publication/admin-d1-client.ts src/lib/cloudflare/client-portal-notification-queue.ts tests/vitest/publication-recipient-delivery-intents.test.ts tests/vitest/client-portal-notification-queue.test.ts tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-rotate-resend.test.ts && bun x vitest run tests/vitest/publication-recipient-delivery-intents.test.ts tests/vitest/client-portal-notification-queue.test.ts tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-rotate-resend.test.ts --reporter=dot",
+      "result": "PASS",
+      "tests_passed": 63
+    },
+    {
+      "command": "bun run type-check",
+      "result": "PASS"
+    }
+  ],
+  "gitnexus": {
+    "targets": [
+      "addSharedLinkRecipients",
+      "resendSharedLinkRecipientEmail",
+      "sendSharedLinkRecipientInvitationEmail",
+      "enqueuePendingClientPortalNotifications",
+      "runClientPortalNotificationQueueBatch",
+      "processMessage"
+    ],
+    "risk": "UNKNOWN",
+    "reason": "The exact symbols were not present in the current GitNexus index; current-source callers and focused tests were used as degraded evidence."
+  },
+  "remaining_evidence": [
+    "Cloudflare Email exposes no documented provider idempotency key; provider acceptance followed by failure to persist the provider-accepted marker retains a narrow duplicate-send risk on retry.",
+    "Q2 aggregate validation and independent review remain pending.",
+    "No hosted queue, email-provider, deployment, or production delivery proof was performed."
+  ]
+}

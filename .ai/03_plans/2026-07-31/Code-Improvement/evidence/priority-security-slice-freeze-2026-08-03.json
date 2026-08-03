@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-08-03T06:48:05.6223939Z",
+  "scope": "priority-security-slice-pre-review-freeze",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "units": [
+    "UNIT-029",
+    "UNIT-030",
+    "UNIT-031",
+    "UNIT-032",
+    "UNIT-033",
+    "UNIT-039",
+    "UNIT-040",
+    "UNIT-042",
+    "UNIT-045"
+  ],
+  "provisional_disposition": "VERIFIED_PENDING_EXACT_CANDIDATE_REVIEWS",
+  "evidence": {
+    "vitest": {
+      "files_passed": 25,
+      "tests_passed": 126,
+      "failed": 0,
+      "skipped": 0,
+      "artifact": ".tmp/code-improvement/evidence/priority-security-aggregate-vitest.json",
+      "artifact_sha256": "af74a1af0b16250e04fb24bd9a4fcbd76b919b40b346d9c7021cc9dcee327836"
+    },
+    "typecheck": {
+      "result": "PASS",
+      "artifact": ".tmp/code-improvement/evidence/priority-security-typecheck.json",
+      "artifact_sha256": "6bda64c4873c6aad0615cc87d503bbc914fac070081c167506beb7d90c1c1bde"
+    },
+    "eslint": {
+      "errors": 0,
+      "warnings": 7,
+      "warning_disposition": "pre-existing unused-symbol warnings in src/lib/repositories/workspace-repository.ts",
+      "artifact": ".tmp/code-improvement/evidence/priority-security-final-eslint.json",
+      "artifact_sha256": "4b531537ee3f9757b5eefd8c8ca894e77c0e2d92bb1c96c3a35925e3bc840e09"
+    },
+    "browser": {
+      "tests_passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "artifact": ".tmp/code-improvement/evidence/unit-039-playwright-focused.json",
+      "artifact_sha256": "d94f1026f23d6344647f74b081b20bc66f843703f23d59350c0120ae06a145f9"
+    },
+    "focused_eslint": {
+      "result": "PASS",
+      "errors": 0,
+      "scope": "UNIT-042 and UNIT-045 source plus focused tests"
+    },
+    "review_rejection_remediation": [
+      "UNIT-042 hard limiter no longer accepts spoofable forwarding headers or attacker-controlled user agents as partition keys",
+      "UNIT-045 success audit now commits atomically with notification definition and deliveries, with unsuccessful and throwing batch coverage"
+    ],
+    "plan_pack_validation": "PASS"
+  },
+  "remaining": [
+    "exact-candidate independent quality review",
+    "exact-candidate independent security review",
+    "GitNexus detect_changes scope reconciliation"
+  ]
+}

@@ -44,7 +44,7 @@
       "id": "ART-003",
       "role": "unit-catalog",
       "path": "02-UNIT-CATALOG.md",
-      "sha256": "a2215cd132c5c224597f98dff3a85ba2b970420b94ab506016a37a3eb8ab69ad"
+      "sha256": "8118d57cb2e6300a758653c6ccf8be681e830d9f365e9affc26a8dcf2bc784c4"
     },
     {
       "id": "ART-004",
@@ -826,7 +826,7 @@
     },
     {
       "id": "UNIT-001",
-      "status": "PLANNED",
+      "status": "DONE",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
@@ -845,7 +845,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "PLANNED",
+      "status": "DONE",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
@@ -864,7 +864,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
@@ -884,7 +884,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "PLANNED",
+      "status": "DONE",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-002"
@@ -945,7 +945,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
@@ -1462,7 +1462,7 @@
     },
     {
       "id": "UNIT-029",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
@@ -1481,7 +1481,7 @@
     },
     {
       "id": "UNIT-030",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1500,7 +1500,7 @@
     },
     {
       "id": "UNIT-031",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1519,7 +1519,7 @@
     },
     {
       "id": "UNIT-032",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1538,7 +1538,7 @@
     },
     {
       "id": "UNIT-033",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1653,7 +1653,7 @@
     },
     {
       "id": "UNIT-039",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024",
@@ -1673,7 +1673,7 @@
     },
     {
       "id": "UNIT-040",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1711,7 +1711,7 @@
     },
     {
       "id": "UNIT-042",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -1765,7 +1765,7 @@
     },
     {
       "id": "UNIT-045",
-      "status": "PLANNED",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-024"
@@ -2134,6 +2134,7 @@
         "AC-006",
         "AUTH-001",
         "DEC-AUTO-005",
+        "GATE-HOSTED",
         "UNIT-024",
         "UNIT-025"
       ],
@@ -2152,5 +2153,5 @@
       ]
     }
   ],
-  "manifest_sha256": "3a0e96d664a67d13140bca1fcf15bf9c8d35446321a48961495cd9f84abc84b2"
+  "manifest_sha256": "415596ebf6024204284978b9eb791455bc3ff2220dfda53b75a0d6eb47b7022c"
 }

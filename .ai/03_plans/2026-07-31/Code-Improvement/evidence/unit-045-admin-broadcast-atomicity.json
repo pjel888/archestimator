@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-045",
+  "observed_at": "2026-08-03T06:45:40.0694407Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-146",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "broadcastNotification invokes db.batch through the database receiver and submits the definition, deliveries, and success audit in one D1 transaction; unsuccessful or throwing batches fail without revalidation."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "src/lib/admin/notification-actions.ts",
+      "sha256": "0a9760a3d6acd68a8a89e1775955e03ec31c11a6ce3dfe0a31afcc9ae69b6d29"
+    },
+    {
+      "path": "tests/vitest/admin-notification-broadcast.test.ts",
+      "sha256": "cd44c72269a48f3fadeae9110de3bc4c2bee96f763de388ac58aec51ff3d8d29"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/admin-notification-broadcast.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 3
+    },
+    {
+      "command": "git diff --check -- src/lib/admin/notification-actions.ts tests/vitest/admin-notification-broadcast.test.ts",
+      "result": "PASS"
+    }
+  ],
+  "gitnexus": {
+    "target": "broadcastNotification",
+    "risk": "UNKNOWN",
+    "reason": "The symbol was not present in the current GitNexus index."
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}

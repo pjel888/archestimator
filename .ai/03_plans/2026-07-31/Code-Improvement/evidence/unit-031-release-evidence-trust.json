@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-031",
+  "observed_at": "2026-08-03T05:39:03.8556797Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-003",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Release evidence now requires refs/heads/main and binds the supplied candidate SHA, checkout ref, checkout verification, concurrency key, and artifact name to github.sha."
+    },
+    {
+      "source_id": "PR-142",
+      "disposition": "STILL_OPEN",
+      "head_sha": "b10106c03c83234406f9ee666b577b7fa86cb723",
+      "title": "ci: bump actions/upload-artifact from 4.6.2 to 7.0.1"
+    },
+    {
+      "source_id": "PR-143",
+      "disposition": "STILL_OPEN",
+      "head_sha": "57660a60f3531b8890097b9e78888fca5740a6ac",
+      "title": "ci: bump github/codeql-action/analyze from adfda868f108ac4222129de456ea554034a27db7 to e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81"
+    },
+    {
+      "source_id": "PR-144",
+      "disposition": "STILL_OPEN",
+      "head_sha": "11d8ad48d120bf3e0978945ea856ec055ba6895e",
+      "title": "ci: bump actions/attest-build-provenance from 43d14bc2b83dec42d39ecae14e916627a18bb661 to 977bb373ede98d70efdf65b84cb5f73e068dcc2a"
+    },
+    {
+      "source_id": "PR-145",
+      "disposition": "STILL_OPEN",
+      "head_sha": "eb6699b60fbe5ab04a54c5cce8f9a85fb9b44b64",
+      "title": "ci: bump actions/download-artifact from 5.0.0 to 8.0.1"
+    },
+    {
+      "source_id": "PR-146",
+      "disposition": "STILL_OPEN",
+      "head_sha": "0855c661769f3042f59e959a4163e2c2aea33edb",
+      "title": "ci: bump actions/checkout from 5.1.0 to 7.0.1"
+    }
+  ],
+  "changed_files": [
+    {
+      "path": ".github/workflows/release-evidence.yml",
+      "sha256": "ee0f7a31c288453b624d792c6bc144a18be0b2c31554b46efdea5488f1769cca"
+    },
+    {
+      "path": "tests/vitest/ci-workflow-pinning.test.ts",
+      "sha256": "93d6fdd619c580e2485af76af512d23b5b63cfc902ef488cf0b9c5bae595e6b0"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/ci-workflow-pinning.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 4
+    },
+    {
+      "command": "bun -e <parse .github/workflows/release-evidence.yml with yaml>",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check -- .github/workflows/release-evidence.yml tests/vitest/ci-workflow-pinning.test.ts",
+      "result": "PASS"
+    }
+  ],
+  "gitnexus": {
+    "target": ".github/workflows/release-evidence.yml",
+    "risk": "UNKNOWN",
+    "reason": "Workflow YAML is not indexed as a GitNexus symbol."
+  },
+  "hosted_boundary": {
+    "authorization_boundary_id": "AUTH-001",
+    "status": "BOUNDARY",
+    "reason": "Hosted branch protection and workflow enforcement were not mutated or claimed by this local unit."
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}

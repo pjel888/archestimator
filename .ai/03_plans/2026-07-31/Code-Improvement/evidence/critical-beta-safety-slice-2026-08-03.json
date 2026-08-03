@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-08-03T13:47:00+08:00",
+  "scope": "reassessed-critical-beta-safety-slice",
+  "units": ["UNIT-001", "UNIT-029", "UNIT-030"],
+  "result": "PASS",
+  "status_disposition": "IMPLEMENTED_WITH_FOCUSED_EVIDENCE_FULL_HISTORICAL_Q2_DEFERRED",
+  "evidence": {
+    "eslint": {
+      "errors": 0,
+      "warnings": 7,
+      "warning_disposition": "pre-existing unused-symbol warnings in src/lib/repositories/workspace-repository.ts"
+    },
+    "vitest": {
+      "files_passed": 16,
+      "tests_passed": 74,
+      "failed": 0,
+      "max_workers": 1
+    },
+    "regressions_proven": [
+      "deleted profiles remain visible to the session lifecycle denial gate",
+      "suspended corporate workspaces are denied across canonical membership and project/estimate access",
+      "closed-beta user existence cannot promote an invite and keyset traversal exceeds prior fixed caps",
+      "commercial mutations use inherited strict estimate authorization and guarded receipts bind the actor once",
+      "proposal identity changes for quantityBase-only and quantityContingencyAmount-only edits",
+      "external and duplication aggregates independently round canonical minor-unit row totals so 0.335 + 0.335 equals 0.68"
+    ],
+    "gitnexus": {
+      "result": "DEGRADED_UNKNOWN",
+      "fallback": "current-source direct callers and focused adjacent tests"
+    }
+  },
+  "deferred": "All Code-Improvement units outside UNIT-001, UNIT-029, and UNIT-030, plus the historical full-pack browser/reviewer/release ceremony."
+}

@@ -243,7 +243,8 @@ assign current execution ownership remain byte-preserved.
 
 ## `UNIT-001` - Commercial and proposal truth integrity
 
-Status: `PLANNED`
+Status: `DONE`
+Focused implementation evidence: `evidence/critical-beta-safety-slice-2026-08-03.json`; the reassessed goal intentionally defers the historical full-pack Q2 evidence ceremony.
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-001`, `COR-002`, `COR-008`  
 Depends on: `UNIT-000`, `UNIT-024`
@@ -272,7 +273,8 @@ identity.
 
 ## `UNIT-002` - Portal credential re-verification
 
-Status: `PLANNED`  
+Status: `DONE`
+Focused implementation evidence: `evidence/priority-beta-safety-batch-2026-08-03.json`; the reassessed goal intentionally defers the historical full-pack Q2 evidence ceremony.
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-003`  
 Depends on: `UNIT-000`, `UNIT-024`
@@ -298,7 +300,8 @@ reaches the intended portal.
 
 ## `UNIT-003` - Notification keyset traversal and UI paging
 
-Status: `PLANNED`  
+Status: `IN_PROGRESS`
+Focused implementation evidence: `evidence/priority-beta-safety-batch-2026-08-03.json`; the reassessed goal intentionally defers the historical full-pack Q2 evidence ceremony.
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-004`  
 Depends on: `UNIT-000`, `UNIT-024`
@@ -324,7 +327,8 @@ read/dismiss/ack reconciles every cached page.
 
 ## `UNIT-004` - Truthful and durable publication delivery
 
-Status: `PLANNED`  
+Status: `DONE`
+Focused implementation evidence: `evidence/unit-004-publication-delivery.json`; historical Q2 aggregate ceremony remains deferred by the reassessed goal.
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `COR-005`, `PERF-006`  
 Depends on: `UNIT-002`
@@ -408,7 +412,8 @@ an inactive/missing selection; replay and stale revision remain idempotent.
 
 ## `UNIT-007` - Durable realtime revocation
 
-Status: `PLANNED`  
+Status: `IN_PROGRESS`
+Focused implementation evidence: `evidence/priority-beta-safety-batch-2026-08-03.json`; the reassessed goal intentionally defers the historical full-pack Q2 evidence ceremony.
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `SEC-001`  
 Depends on: `UNIT-000`, `UNIT-024`
@@ -1091,7 +1096,8 @@ unit is `VERIFIED`.
 
 ## `UNIT-029` - Canonical external row-total aggregation
 
-Status: `PLANNED`
+Status: `VERIFIED`
+Focused implementation evidence: `evidence/critical-beta-safety-slice-2026-08-03.json`; the reassessed goal intentionally defers the historical full-pack Q2 evidence ceremony.
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `COR-010`
 Depends on: `UNIT-000`, `UNIT-024`
@@ -1122,7 +1128,8 @@ oracle; repository source has zero callers of `computeEstimateRowLineTotal`.
 
 ## `UNIT-030` - Identity lifecycle and beta admission
 
-Status: `PLANNED`
+Status: `VERIFIED`
+Focused implementation evidence: `evidence/critical-beta-safety-slice-2026-08-03.json` and `evidence/unit-030-static-closure.json`; the reassessed goal intentionally defers the historical full-pack Q2 evidence ceremony.
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-004`, `CSF-009`, `CSF-026`, `CSF-136`, `CSF-137`, `PR-128`
 Depends on: `UNIT-024`
@@ -1151,7 +1158,7 @@ stable results beyond 200 rows with bounded keyset traversal.
 
 ## `UNIT-031` - Release workflow and GitHub Action supply chain
 
-Status: `PLANNED`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-003`, `PR-142` through `PR-146`
 Depends on: `UNIT-024`
@@ -1177,7 +1184,7 @@ still-open disposition. Hosted enforcement remains `AUTH-001`.
 
 ## `UNIT-032` - Local developer and verification-tool security
 
-Status: `PLANNED`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-153`, `CSF-154`, `CSF-168`, `CSF-169`, `CSF-170`, `CSF-177`, `CSF-194`
 Depends on: `UNIT-024`
@@ -1206,7 +1213,7 @@ and live-server guards reject malformed or bypassed invocations.
 
 ## `UNIT-033` - Global maintenance write gate
 
-Status: `PLANNED`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-025`
 Depends on: `UNIT-024`
@@ -1232,7 +1239,8 @@ zero mutation statements.
 
 ## `UNIT-034` - Bounded estimate-tree behavior
 
-Status: `PLANNED`
+Status: `DONE`
+Focused implementation evidence: `evidence/unit-039-collaboration-privacy-and-grant-retention.json`. Pre-review aggregate freeze: `evidence/priority-security-slice-freeze-2026-08-03.json`; exact-candidate review receipts are generated under the ignored runtime evidence root.
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-075`, `CSF-076`, `CSF-148`
 Depends on: `UNIT-024`
@@ -1358,7 +1366,8 @@ explicit checks; the radius exception applies only to its named owned surface.
 
 ## `UNIT-039` - Collaboration roster privacy and grant revocation
 
-Status: `PLANNED`
+Status: `VERIFIED`
+Focused implementation evidence: `evidence/unit-039-collaboration-privacy-and-grant-retention.json`; final Q2 aggregate and candidate-bound reviews remain deferred until the priority source slice is closed.
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-041`, `CSF-043`, `CSF-044`
 Depends on: `UNIT-024`, `UNIT-029`
@@ -1385,7 +1394,7 @@ negative paths are explicit.
 
 ## `UNIT-040` - MCP and agent-bootstrap pinning
 
-Status: `PLANNED`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-093`, `PR-124`
 Depends on: `UNIT-024`
@@ -1440,7 +1449,7 @@ contracts pass; `@firecms/neat` bytes are untouched by this unit.
 
 ## `UNIT-042` - Callback abuse boundary
 
-Status: `PLANNED`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-089`
 Depends on: `UNIT-024`
@@ -1514,7 +1523,7 @@ valid intent is not suppressed; navigation targets the sole created sheet.
 
 ## `UNIT-045` - Atomic admin broadcast persistence
 
-Status: `PLANNED`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`
 Findings: `CSF-146`
 Depends on: `UNIT-024`

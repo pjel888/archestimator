@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-08-03T14:06:51+08:00",
+  "scope": "reassessed-priority-beta-safety-batch",
+  "units": ["UNIT-002", "UNIT-003", "UNIT-007"],
+  "result": "PASS",
+  "status_disposition": "IMPLEMENTED_WITH_FOCUSED_EVIDENCE_FULL_HISTORICAL_Q2_DEFERRED",
+  "evidence": {
+    "eslint": {
+      "errors": 0,
+      "warnings": 2,
+      "warning_disposition": "pre-existing unused-symbol warnings in src/lib/cloudflare/collaboration-room.ts"
+    },
+    "vitest": {
+      "files_passed": 6,
+      "tests_passed": 40,
+      "failed": 0,
+      "max_workers": 1
+    },
+    "regressions_proven": [
+      "a fresh second portal credential succeeds for an already-verified recipient while replay still fails",
+      "notification keyset pagination traverses equal delivery timestamps exactly once and cached mutations reconcile older pages",
+      "the notification center exposes a native accessible load-older control",
+      "a per-room subject revocation survives Durable Object restart, closes active sockets, rejects pre-watermark tokens, and admits a post-watermark token"
+    ],
+    "gitnexus": {
+      "unit_002_and_unit_003": "DEGRADED_UNKNOWN_WITH_CURRENT_SOURCE_CALLER_FALLBACK",
+      "unit_007": "EXPORTED_CLASS_CRITICAL_EXACT_METHODS_LOW",
+      "unit_007_scope": "authorizeSocket and handleControlRequest only"
+    },
+    "provider_reference": "Cloudflare Durable Object Storage API persists state that must survive eviction or restart"
+  },
+  "deferred": "All Code-Improvement units outside UNIT-002, UNIT-003, and UNIT-007, plus the historical full-pack browser/reviewer/release ceremony."
+}

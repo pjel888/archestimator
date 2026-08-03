@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-032",
+  "observed_at": "2026-08-03T06:06:55.5969334Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-153",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Supermemory verifies the configured checksum-bound process owns the loopback port before reading or sending the bearer."
+    },
+    {
+      "source_id": "CSF-154",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "The GitNexus wrapper allowlists commands and rejects mutable fallbacks, malformed arguments, and duplicate neutralization flags; active guidance routes through the wrapper only."
+    },
+    {
+      "source_id": "CSF-168",
+      "disposition": "REMEDIATED_BY_DELETION",
+      "evidence": "The obsolete Supabase-cookie screenshot script was deleted."
+    },
+    {
+      "source_id": "CSF-169",
+      "disposition": "REMEDIATED_BY_DELETION",
+      "evidence": "The obsolete stored-cookie benchmark script was deleted."
+    },
+    {
+      "source_id": "CSF-170",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "The visual verifier resolves request paths canonically and rejects reads outside its staging root."
+    },
+    {
+      "source_id": "CSF-177",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "The live server rejects null and non-loopback browser origins and no longer emits wildcard CORS."
+    },
+    {
+      "source_id": "CSF-194",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Live-server source reads use canonical repository containment and startup output no longer prints the session token."
+    }
+  ],
+  "changed_file_hashes": {
+    "scripts/supermemory-memory.mjs": "b5bab6f25c73d63ad571db2ee8ba4ecbb169d5eb160b30ba38cb7b3f3174f64e",
+    "scripts/run-safe-gitnexus-command.mjs": "f1b804afee91a79ad75fa0022c99e08d15219932ebeb6a54efcbc49e0018f51e",
+    ".design-sync/verify-render.mjs": "213d3951ea7c631c5a38abe504028a24c95aa8734c9d105992bae94975a8a688",
+    ".agents/skills/impeccable/scripts/live-server.mjs": "e1faedc9d64cc8844cd408d636a4516711f2578f84e5d189e1e5c6a89cad48cd",
+    "AGENTS.md": "4ab22761adacd7c76ceb83539c361f4655168a4be70fe0af4bee60fc347e3892",
+    ".agents/skills/gitnexus/gitnexus-cli/SKILL.md": "f02ff35e1636d0f8289d4649afa0905a0520c6b621f0aeef3893584b11b0625b",
+    ".agents/skills/gitnexus/gitnexus-debugging/SKILL.md": "61c71ef6e91d296dc9732b73a9994edf25f87c77f56654e5f843ffcdb56f2cd0",
+    ".agents/skills/gitnexus/gitnexus-exploring/SKILL.md": "2148634b9b026622c0128acfbd8af5489d72795fe294a7929b750410461bc0e4",
+    ".agents/skills/gitnexus/gitnexus-guide/SKILL.md": "ae299c074854c103e8131961bde4d3f3425d848305fc0b0a0eba187695c795a3",
+    ".agents/skills/gitnexus/gitnexus-impact-analysis/SKILL.md": "1a6ffb0911e096c857b129697cf2a1a6d3a43dff49bacb52145a252391cbdd79",
+    ".agents/skills/gitnexus/gitnexus-refactoring/SKILL.md": "a12a9136c2acb9c5bd3d6350efad5e947e67d3a9fe817f88598d2e4352000e25",
+    "tests/vitest/supermemory-memory-script.test.ts": "7324a53120131ec91a5b538f260d2360512e571a23ff196c4a5ebab20ad992df",
+    "tests/vitest/local-tool-security-boundaries.test.ts": "34b469b3d7312901b97d49b15fee7c776e5fa203caa2959d84c53b3e1ad8dd0c"
+  },
+  "deleted_files": [
+    "scripts/shot-glass-newdesign.mjs",
+    "scripts/bench-hero-server.mjs"
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/supermemory-memory-script.test.ts tests/vitest/local-tool-security-boundaries.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 8
+    },
+    {
+      "command": "bun x vitest run tests/vitest/local-tool-security-boundaries.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 3
+    }
+  ],
+  "gitnexus": {
+    "risk": "UNKNOWN",
+    "reason": "The local scripts, active guidance, and tests were absent from the current GitNexus index."
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}

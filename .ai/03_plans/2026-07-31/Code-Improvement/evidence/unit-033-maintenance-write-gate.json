@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "unit_id": "UNIT-033",
+  "observed_at": "2026-08-03T05:56:11.5811143Z",
+  "candidate_base_revision": "f33b131f23e4e7bfdf0ef705d29fed1a9ae57f12",
+  "outcome": "IMPLEMENTED_FOCUSED_PASS_Q2_PENDING",
+  "finding_dispositions": [
+    {
+      "source_id": "CSF-025",
+      "disposition": "REMEDIATED_LOCALLY",
+      "evidence": "Every exported estimate and project mutation now reaches requireWorkshopWriteContext before its first database side effect; read and deletion-preview actions remain available."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "src/lib/estimates/actions.ts",
+      "sha256": "241fec5bf7801f3932e62de094489a7f9e401dea407e8599838f7785612bb1d2"
+    },
+    {
+      "path": "src/lib/projects/actions.ts",
+      "sha256": "844607cc3b9057af612a0ee1bd53bbd8a0228437e95648f11fd226f6da1ad639"
+    },
+    {
+      "path": "tests/vitest/maintenance-write-gate.test.ts",
+      "sha256": "5d9c36470ffc675c364e0e3cfe35d6d9ba9be423c78a907d54a4d42dc0425ecf"
+    }
+  ],
+  "focused_validation": [
+    {
+      "command": "bun x vitest run tests/vitest/maintenance-write-gate.test.ts --maxWorkers=1",
+      "result": "PASS",
+      "tests_passed": 2
+    },
+    {
+      "command": "git diff --check -- src/lib/estimates/actions.ts src/lib/projects/actions.ts tests/vitest/maintenance-write-gate.test.ts",
+      "result": "PASS"
+    }
+  ],
+  "gitnexus": {
+    "risk": "UNKNOWN",
+    "reason": "The edited action symbols were absent from the current GitNexus index; none returned a HIGH or CRITICAL result."
+  },
+  "remaining_evidence": [
+    "Q2 aggregate validation after all priority security source units are complete",
+    "final candidate fingerprint and independent reviews"
+  ]
+}
