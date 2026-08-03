@@ -13,6 +13,7 @@ const runnerPath = '.gitnexus/run.cjs';
 const rawArgs = process.argv.slice(2);
 const neutralizeAfter = rawArgs.includes('--neutralize-after');
 const gitnexusArgs = rawArgs.filter((arg) => arg !== '--neutralize-after');
+const allowedCommands = new Set(['analyze', 'clean', 'list', 'status', 'wiki']);
 
 const forbidden = [
   ['gitnexus@latest', /gitnexus@latest/],
@@ -36,6 +37,15 @@ if (!existsSync(runnerPath)) {
 
 if (!gitnexusArgs.length) {
   fail('missing GitNexus command arguments');
+}
+if (!allowedCommands.has(gitnexusArgs[0])) {
+  fail(`unsupported GitNexus command ${JSON.stringify(gitnexusArgs[0])}`);
+}
+if (rawArgs.filter((arg) => arg === '--neutralize-after').length > 1) {
+  fail('duplicate --neutralize-after flags are not allowed');
+}
+if (gitnexusArgs.some((arg) => /[\0\r\n]/u.test(arg))) {
+  fail('GitNexus arguments must not contain control characters');
 }
 
 const runnerSource = readFileSync(runnerPath, 'utf8');

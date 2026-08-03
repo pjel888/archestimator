@@ -17,8 +17,9 @@
     "shadcn": {
       "type": "local",
       "command": [
-        "npx",
-        "shadcn@latest",
+        "bun",
+        "run",
+        "shadcn",
         "mcp"
       ],
       "enabled": true

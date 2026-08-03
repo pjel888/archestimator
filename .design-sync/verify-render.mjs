@@ -20,8 +20,21 @@ const MIME = {
 const { chromium } = await import("playwright").catch(() => import("playwright-core"));
 
 const server = http.createServer((req, res) => {
-  const rel = decodeURIComponent(req.url.split("?")[0]);
-  const fp = path.join(ROOT, rel);
+  let rel;
+  try {
+    rel = decodeURIComponent(req.url.split("?")[0]).replace(/^[/\\]+/u, "");
+  } catch {
+    res.writeHead(400);
+    res.end("bad request");
+    return;
+  }
+  const fp = path.resolve(ROOT, rel);
+  const relative = path.relative(ROOT, fp);
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    res.writeHead(403);
+    res.end("forbidden");
+    return;
+  }
   fs.readFile(fp, (err, data) => {
     if (err) {
       res.writeHead(404);

@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-evidence-${{ inputs.commit_sha }}
+  group: release-evidence-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -25,23 +25,27 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Validate immutable SHA input
+      - name: Bind candidate to trusted main dispatch commit
         env:
           CANDIDATE_SHA: ${{ inputs.commit_sha }}
+          TRUSTED_REF: ${{ github.ref }}
+          TRUSTED_SHA: ${{ github.sha }}
         run: |
+          test "$TRUSTED_REF" = "refs/heads/main"
           test "${#CANDIDATE_SHA}" = 40
           case "$CANDIDATE_SHA" in
             *[!0-9a-fA-F]*) exit 1 ;;
           esac
-      - name: Checkout candidate
+          test "${CANDIDATE_SHA,,}" = "${TRUSTED_SHA,,}"
+      - name: Checkout trusted candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ inputs.commit_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - name: Verify checkout identity
         env:
-          CANDIDATE_SHA: ${{ inputs.commit_sha }}
-        run: test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA,,}"
+          TRUSTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "${TRUSTED_SHA,,}"
       - uses: ./.github/actions/setup-quality
       - name: Install Playwright browsers
         run: bunx playwright install chromium firefox webkit --with-deps
@@ -80,7 +84,7 @@ jobs:
       - name: Upload candidate evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-evidence-${{ inputs.commit_sha }}
+          name: release-evidence-${{ github.sha }}
           path: |
             release-candidate.tgz
             release-candidate.tgz.sha256

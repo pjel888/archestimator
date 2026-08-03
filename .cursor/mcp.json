@@ -15,9 +15,10 @@
       ]
     },
     "shadcn": {
-      "command": "npx",
+      "command": "bun",
       "args": [
-        "shadcn@latest",
+        "run",
+        "shadcn",
         "mcp"
       ]
     },

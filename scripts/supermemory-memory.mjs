@@ -4,7 +4,12 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseLoopbackHttpUrl } from "./lib/supermemory-config.mjs";
+import {
+  parseLoopbackHttpUrl,
+  readPersistentServerConfig,
+  readRuntimeState,
+  runtimeStateMatches,
+} from "./lib/supermemory-config.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..");
@@ -25,6 +30,19 @@ function loadConfiguration() {
     );
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
+  }
+  if (apiUrl.pathname !== "/" || apiUrl.search || apiUrl.hash) {
+    fail("SUPERMEMORY_API_URL must identify the loopback server root.");
+  }
+  const serverConfig = readPersistentServerConfig();
+  const port = Number.parseInt(apiUrl.port || "80", 10);
+  const attestation = {
+    bin: serverConfig.SUPERMEMORY_SERVER_BIN,
+    expectedHash: serverConfig.SUPERMEMORY_SERVER_SHA256,
+    port,
+  };
+  if (!attestation.bin || !attestation.expectedHash || !runtimeStateMatches(readRuntimeState(), attestation)) {
+    fail("refusing to send the API bearer to an unattested loopback process; run bun run supermemory:ensure.");
   }
   keyPath = resolve(
     process.env.SUPERMEMORY_API_KEY_FILE?.trim() || join(REPO_ROOT, ".supermemory", "api-key"),
