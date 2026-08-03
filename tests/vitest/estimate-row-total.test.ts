@@ -4,7 +4,6 @@ import {
   applyProposalCharges,
   applySheetAdjustment,
   computeEstimateRowCostParts,
-  computeEstimateRowLineTotal,
   computeEstimateTotals,
   validateEstimateCalculationInput,
 } from "@/lib/estimates/estimate-row-total";
@@ -39,10 +38,14 @@ describe("estimate row canonical calculation", () => {
     expect(computeEstimateRowCostParts({ quantity: Number.MAX_VALUE, unit_cost: 1, misc_cost: 0 })).toMatchObject({ ok: false, code: "amount_out_of_range" });
   });
 
-  it("retains the legacy line-total API for current callers", () => {
-    expect(computeEstimateRowLineTotal({ quantity: 2, unit_cost: 100, contingency_percentage: 5, misc_cost: 10 })).toBe(220);
-    expect(computeEstimateRowLineTotal({ quantity: 2, quantity_base: 1, quantity_contingency_amount: 1, unit_cost: 100, contingency_percentage: 5, misc_cost: 10 })).toBe(210);
-    expect(computeEstimateRowLineTotal({ quantity: 2, unit_cost: 3.333, misc_cost: 0 })).toBe(6.666);
+  it("aggregates independently rounded canonical row totals", () => {
+    expect(computeEstimateTotals([
+      { quantity: 1, unit_cost: 0.335, misc_cost: 0 },
+      { quantity: 1, unit_cost: 0.335, misc_cost: 0 },
+    ], "working_estimate")).toMatchObject({
+      ok: true,
+      value: { rowTotalMinorUnits: 68, total: 0.68 },
+    });
   });
 
   it("applies sheet and proposal charges once at named total boundaries", () => {

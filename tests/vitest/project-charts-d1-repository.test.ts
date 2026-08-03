@@ -162,6 +162,41 @@ describe("project charts D1 repository", () => {
     expect(result?.seriesByEstimateId["estimate-1"]?.supplier.allBuckets[0]?.label).toBe("Acme Supply");
   });
 
+  it("aggregates independently rounded row totals for estimate options", async () => {
+    const database = new FakeProjectChartsD1Database();
+    database.estimates = [{
+      id: "estimate-1",
+      name: "Rounding Estimate",
+      sheet_code: "ROUND-001",
+      updated_at: "2026-06-20T10:00:00.000Z",
+    }];
+    database.rowItems = ["row-1", "row-2"].map((id) => ({
+      id,
+      estimate_id: "estimate-1",
+      node_id: null,
+      source_snapshot_json: null,
+      metadata_json: null,
+      quantity: 1,
+      quantity_base: null,
+      quantity_contingency_amount: null,
+      unit_cost: 0.335,
+      contingency_percentage: 0,
+      adjustment_percentage: 0,
+      misc_cost: 0,
+    }));
+
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    workspaceRepositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({
+      workspace: { id: "workspace-1" },
+      project: { id: "project-1", name: "Luna Heights", currency_code: "PHP" },
+    });
+
+    const { getProjectChartsData } = await import("@/lib/repositories/project-charts-repository");
+    const result = await getProjectChartsData("project-1");
+
+    expect(result?.estimateOptions[0]?.totalCost).toBe(0.68);
+  });
+
   it("keeps project charts off Supabase clients", () => {
     const source = readFileSync("src/lib/repositories/project-charts-repository.ts", "utf8");
     expect(source).not.toMatch(/createSupabaseServerClient|@\/lib\/supabase/);

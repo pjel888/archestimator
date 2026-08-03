@@ -13,12 +13,17 @@ const accountAuditMocks = vi.hoisted(() => ({
   recordAccountSecurityEvent: vi.fn(),
 }));
 
+const rateLimitMocks = vi.hoisted(() => ({
+  checkRecordedDurableRateLimit: vi.fn(),
+}));
+
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
 vi.mock("@/lib/auth/account-setup", () => accountSetupMocks);
 vi.mock("@/lib/auth/account-audit", () => accountAuditMocks);
+vi.mock("@/lib/security/durable-rate-limits", () => rateLimitMocks);
 
-function request(url: string) {
-  return new NextRequest(new URL(url));
+function request(url: string, headers?: HeadersInit) {
+  return new NextRequest(new URL(url), { headers });
 }
 
 describe("auth callback route", () => {
@@ -27,6 +32,7 @@ describe("auth callback route", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
     vi.stubEnv("ARCHESTIMATOR_ALLOWED_APP_ORIGINS", "http://localhost:3000");
     vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "false");
+    rateLimitMocks.checkRecordedDurableRateLimit.mockResolvedValue({ allowed: true });
   });
 
   it("maps missing auth code to a stable public error and sanitized next", async () => {
@@ -97,5 +103,74 @@ describe("auth callback route", () => {
     expect(response.headers.get("location")).toBe(
       "http://localhost:3000/login?error=callback_exchange_failed&next=%2Fworkshop",
     );
+  });
+
+  it("bounds callback audit writes per client without changing the public redirect", async () => {
+    rateLimitMocks.checkRecordedDurableRateLimit.mockResolvedValue({
+      allowed: false,
+      message: "Auth callback audit limit reached.",
+      retryAfter: 60,
+    });
+    const { GET } = await import("@/app/auth/callback/route");
+
+    const response = await GET(request(
+      "http://localhost:3000/auth/callback?code=abc&next=/workshop",
+      {
+        "cf-connecting-ip": "203.0.113.8",
+        "user-agent": "callback-test-agent",
+      },
+    ));
+
+    expect(rateLimitMocks.checkRecordedDurableRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: "auth_callback_audit",
+        keyParts: ["203.0.113.8"],
+      }),
+    );
+    expect(accountAuditMocks.recordAccountSecurityEvent).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?error=callback_exchange_failed&next=%2Fworkshop",
+    );
+  });
+
+  it("uses one fail-closed bucket when the trusted Cloudflare client IP is absent", async () => {
+    const { GET } = await import("@/app/auth/callback/route");
+
+    await GET(request(
+      "http://localhost:3000/auth/callback?code=abc&next=/workshop",
+      {
+        "user-agent": "attacker-agent-a",
+        "x-forwarded-for": "203.0.113.10",
+        "x-real-ip": "203.0.113.11",
+      },
+    ));
+    await GET(request(
+      "http://localhost:3000/auth/callback?code=abc&next=/workshop",
+      {
+        "user-agent": "attacker-agent-b",
+        "x-forwarded-for": "198.51.100.10",
+        "x-real-ip": "198.51.100.11",
+      },
+    ));
+
+    expect(rateLimitMocks.checkRecordedDurableRateLimit).toHaveBeenCalledTimes(2);
+    expect(rateLimitMocks.checkRecordedDurableRateLimit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ keyParts: ["unattributed"] }),
+    );
+    expect(rateLimitMocks.checkRecordedDurableRateLimit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ keyParts: ["unattributed"] }),
+    );
+  });
+
+  it("fails closed for audit persistence when durable abuse control is unavailable", async () => {
+    rateLimitMocks.checkRecordedDurableRateLimit.mockRejectedValue(new Error("D1 unavailable"));
+    const { GET } = await import("@/app/auth/callback/route");
+
+    const response = await GET(request("http://localhost:3000/auth/callback?next=/workshop"));
+
+    expect(accountAuditMocks.recordAccountSecurityEvent).not.toHaveBeenCalled();
+    expect(response.status).toBe(307);
   });
 });

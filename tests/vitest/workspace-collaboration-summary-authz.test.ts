@@ -52,6 +52,8 @@ class FakeD1Statement {
 
 class FakeD1Database {
   canAccessWholeProject = false;
+  currentProjectRole: "admin" | "viewer" | null = null;
+  currentSheetRole: "admin" | "viewer" = "admin";
 
   prepare(sql: string) {
     return new FakeD1Statement(this, sql);
@@ -137,12 +139,15 @@ class FakeD1Database {
     if (sql.includes("FROM project_members") && sql.includes("WHERE project_id = ?")) {
       return [
         { project_id: PROJECT_ID, workspace_id: PROJECT_WORKSPACE_ID, user_id: PROJECT_EDITOR_ID, role: "editor" },
+        ...(this.currentProjectRole
+          ? [{ project_id: PROJECT_ID, workspace_id: PROJECT_WORKSPACE_ID, user_id: USER_ID, role: this.currentProjectRole }]
+          : []),
       ];
     }
     if (sql.includes("FROM estimate_sheet_members") && sql.includes("WHERE estimate_id IN")) {
       expect(values).toEqual([ACCESSIBLE_ESTIMATE_ID]);
       return [
-        { estimate_id: ACCESSIBLE_ESTIMATE_ID, project_id: PROJECT_ID, user_id: USER_ID, role: "admin" },
+        { estimate_id: ACCESSIBLE_ESTIMATE_ID, project_id: PROJECT_ID, user_id: USER_ID, role: this.currentSheetRole },
         { estimate_id: ACCESSIBLE_ESTIMATE_ID, project_id: PROJECT_ID, user_id: SHEET_COLLABORATOR_ID, role: "viewer" },
       ];
     }
@@ -194,6 +199,8 @@ class FakeD1Database {
 }
 
 describe("project collaboration summary D1 authorization", () => {
+  let database: FakeD1Database;
+
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
@@ -212,7 +219,8 @@ describe("project collaboration summary D1 authorization", () => {
         updated_at: "2026-01-01T00:00:00Z",
       },
     });
-    getCloudflareD1Database.mockResolvedValue(new FakeD1Database());
+    database = new FakeD1Database();
+    getCloudflareD1Database.mockResolvedValue(database);
   });
 
   it("limits sheet-only users to accessible sheet collaborators and estimate invitations", async () => {
@@ -230,5 +238,56 @@ describe("project collaboration summary D1 authorization", () => {
     expect(summary?.pendingInvitations.map((invitation) => invitation.id)).toEqual(["allowed-estimate-invite"]);
     expect(summary?.collaborators.every((collaborator) => collaborator.online === false)).toBe(true);
     expect(summary?.estimateSheets[0]?.members.every((member) => member.online === false)).toBe(true);
+  });
+
+  it("omits roster and invitation identities from sheet viewer responses", async () => {
+    database.currentSheetRole = "viewer";
+    const { getProjectCollaborationSummary } = await import("@/lib/repositories/workspace-repository");
+
+    const summary = await getProjectCollaborationSummary(PROJECT_ID);
+
+    expect(summary?.canManageAccess).toBe(false);
+    expect(summary?.collaborators).toEqual([]);
+    expect(summary?.pendingInvitations).toEqual([]);
+    expect(summary?.estimateSheets[0]?.canManageAccess).toBe(false);
+    expect(summary?.estimateSheets[0]?.members).toEqual([]);
+  });
+
+  it("omits roster and pending invitation identities from project viewer responses", async () => {
+    database.canAccessWholeProject = true;
+    database.currentProjectRole = "viewer";
+    database.currentSheetRole = "viewer";
+    const { getProjectCollaborationSummary } = await import("@/lib/repositories/workspace-repository");
+
+    const summary = await getProjectCollaborationSummary(PROJECT_ID);
+
+    expect(summary?.currentUserRole).toBe("viewer");
+    expect(summary?.canManageAccess).toBe(false);
+    expect(summary?.collaborators).toEqual([]);
+    expect(summary?.pendingInvitations).toEqual([]);
+    expect(summary?.estimateSheets[0]?.members).toEqual([]);
+  });
+
+  it("retains project roster and invitation controls for project managers", async () => {
+    database.canAccessWholeProject = true;
+    database.currentProjectRole = "admin";
+    database.currentSheetRole = "viewer";
+    const { getProjectCollaborationSummary } = await import("@/lib/repositories/workspace-repository");
+
+    const summary = await getProjectCollaborationSummary(PROJECT_ID);
+
+    expect(summary?.currentUserRole).toBe("admin");
+    expect(summary?.canManageAccess).toBe(true);
+    expect(summary?.collaborators.map((collaborator) => collaborator.id)).toEqual(expect.arrayContaining([
+      USER_ID,
+      WORKSPACE_OWNER_ID,
+      PROJECT_EDITOR_ID,
+      SHEET_COLLABORATOR_ID,
+    ]));
+    expect(summary?.pendingInvitations.map((invitation) => invitation.id)).toEqual([
+      "project-invite",
+      "allowed-estimate-invite",
+    ]);
+    expect(summary?.estimateSheets[0]?.members).toHaveLength(2);
   });
 });

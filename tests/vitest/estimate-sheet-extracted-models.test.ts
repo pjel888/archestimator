@@ -5,6 +5,7 @@ import {
   DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS,
   appendProposalExportSettingsParams,
   countUnsavedEditableRows,
+  createProposalPreviewSignature,
   proposalPreviewModelSettings,
 } from "@/components/workshop/estimate-sheet/proposal-preview-model";
 import {
@@ -121,6 +122,20 @@ describe("estimate sheet extracted models", () => {
 
     expect(countUnsavedEditableRows(tree, {})).toBe(0);
     expect(countUnsavedEditableRows(tree, { [item.id]: edited })).toBe(1);
+  });
+
+  it("changes proposal identity when either quantity sidecar changes", () => {
+    const item = row({ quantityBase: 100, quantityContingencyAmount: 20 });
+    const tree = [node({ estimateRowItems: [item] })];
+    const initial = getInitialEditableRow(item);
+    const signature = createProposalPreviewSignature(tree, { [item.id]: initial }, null);
+
+    expect(createProposalPreviewSignature(tree, {
+      [item.id]: { ...initial, quantityBase: "110" },
+    }, null)).not.toBe(signature);
+    expect(createProposalPreviewSignature(tree, {
+      [item.id]: { ...initial, quantityContingencyAmount: "25" },
+    }, null)).not.toBe(signature);
   });
 
   it("clones template subtrees with fresh ids and recalculated row totals", () => {

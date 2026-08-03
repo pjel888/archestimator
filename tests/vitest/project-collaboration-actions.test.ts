@@ -165,7 +165,9 @@ describe("project collaboration management actions", () => {
     expect(projectRemoval).toContain("await context.db.batch(removalStatements)");
     expect(projectRemoval).toContain("prepareCollaborationAuditEvent");
     expect(projectRemoval).toContain("remove_all_direct_grants");
+    expect(projectRemoval).toContain("DELETE FROM estimate_sheet_members");
     expect(actions).toContain("retain_sheet_grants");
+    expect(teamworkMembersPanel).toContain('removalMode: "retain_sheet_grants"');
     expect(estimateRemoval).toContain("assertEstimateSheetRemovalAllowed(context, userId)");
     expect(estimateRemovalGuard).toContain("assertTargetRoleCanBeMutated(context.estimateActorRank");
     expect(actions).toContain("canAssignCollaborationRole");

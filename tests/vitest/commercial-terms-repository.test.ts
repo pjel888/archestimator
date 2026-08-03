@@ -92,7 +92,7 @@ describe("commercial terms repository", () => {
             return statement;
           },
           async first() {
-            if (sql.includes("SELECT CASE WHEN EXISTS")) return { allowed: 1 };
+            if (sql.includes("SELECT 1 AS allowed")) return { allowed: 1 };
             if (sql.includes("SELECT terms.*")) return { row_revision: 7, terms_revision: 4, node_id: "node-1" };
             return null;
           },
@@ -153,6 +153,14 @@ describe("commercial terms repository", () => {
       "version-1", "user-1", baseInput.now, "row-1", "workspace-1", "project-1", "estimate-1", 4,
     ]);
     expect(updates[1]?.values[0]).toBeNull();
+
+    const authorization = statements.find(({ sql }) => sql.includes("SELECT 1 AS allowed"));
+    expect(authorization?.sql).toContain("FROM workspace_members");
+    expect(authorization?.values).toEqual(["estimate-1", "user-1", "user-1", "user-1"]);
+
+    const receipt = statements.find(({ sql }) => sql.includes("INSERT INTO estimate_mutation_receipts"));
+    expect(receipt?.values.filter((value) => value === "user-1")).toHaveLength(1);
+    expect(receipt?.values).toHaveLength(receipt?.sql.match(/\?/gu)?.length ?? 0);
   });
 
   it("round-trips normalized quotation requirement, status, and reference", async () => {
@@ -165,7 +173,7 @@ describe("commercial terms repository", () => {
             return this;
           },
           async first() {
-            if (sql.includes("SELECT CASE WHEN EXISTS")) return { allowed: 1 };
+            if (sql.includes("SELECT 1 AS allowed")) return { allowed: 1 };
             if (sql.includes("SELECT terms.*")) return { row_revision: 7, terms_revision: 4, node_id: "node-1" };
             return null;
           },

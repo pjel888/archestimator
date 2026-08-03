@@ -137,6 +137,7 @@ describe("project estimate sheet repository", () => {
         project_id: "project-1",
         name: "Lobby Estimate",
         sheet_code: "EST-002",
+        currency_code: "PHP",
         project_budget: null,
         updated_at: "2026-06-12T08:00:00.000Z",
       },
@@ -166,6 +167,26 @@ describe("project estimate sheet repository", () => {
         contingency_percentage: 0,
         adjustment_percentage: 0,
         misc_cost: 345.6,
+      },
+      {
+        estimate_id: "estimate-1",
+        quantity: 1,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 0.335,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+      },
+      {
+        estimate_id: "estimate-1",
+        quantity: 1,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 0.335,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
       },
     ];
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
@@ -202,7 +223,7 @@ describe("project estimate sheet repository", () => {
         sheetCode: "EST-002",
         updatedAt: "2026-06-12T08:00:00.000Z",
         firstNodeId: "area-1",
-        totalCost: 12345.6,
+        totalCost: 12346.28,
         projectBudget: null,
       },
     ]);

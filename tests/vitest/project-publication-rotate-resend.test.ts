@@ -116,10 +116,6 @@ function makeAdminClient({
   return { callProcedure, from };
 }
 
-function findFilter(query: RecordedQuery, column: string) {
-  return query.filters.find((filter) => filter.column === column);
-}
-
 afterEach(() => {
   vi.doUnmock("@/lib/publication/admin-d1-client");
   vi.doUnmock("@/lib/auth/session");
@@ -721,9 +717,11 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
           recorded,
           recordedRpc,
           resolveRpc: (call) => {
-            if (call.functionName === "persist_shared_link_recipient_resend") {
-              callOrder.push("recipient-update");
-              return { data: true, error: null };
+            if (call.functionName === "reserve_shared_link_recipient_resend_intent") {
+              callOrder.push("intent-reserved");
+              return sendOk
+                ? { data: { intentId: "legacy_delivery_12345678", recipientId: RECIPIENT_ID, status: "queued" }, error: null }
+                : { data: { status: "conflict" }, error: null };
             }
             return { data: true, error: null };
           },
@@ -766,6 +764,7 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
                   email: "client@example.com",
                   display_name: null,
                   email_unsubscribed_at: null,
+                  recipient_token_hash: "previous-token-hash",
                 },
                 error: null,
               };
@@ -780,7 +779,7 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
     return { resendSharedLinkRecipientEmail, recorded, recordedRpc, sendEmail, callOrder };
   }
 
-  it("does NOT overwrite recipient_token_hash when the email send fails", async () => {
+  it("does not call the provider or overwrite the prior token when queue reservation conflicts", async () => {
     const { resendSharedLinkRecipientEmail, recorded, sendEmail, callOrder } = await setupResend({ sendOk: false });
 
     const result = await resendSharedLinkRecipientEmail({
@@ -790,17 +789,16 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
     });
 
     expect(result.ok).toBe(false);
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).not.toHaveBeenCalled();
 
     const recipientUpdates = recorded.filter(
       (query) => query.table === "shared_link_recipients" && query.operation === "update",
     );
-    // No write at all on failure → the previously emailed link stays valid.
     expect(recipientUpdates).toHaveLength(0);
-    expect(callOrder).toEqual(["send"]);
+    expect(callOrder).toEqual(["intent-reserved"]);
   });
 
-  it("persists the new hash, sent status, and resend id only after a successful send", async () => {
+  it("queues a resend intent and defers provider work plus token replacement", async () => {
     const { resendSharedLinkRecipientEmail, recorded, recordedRpc, sendEmail, callOrder } = await setupResend({ sendOk: true });
 
     const result = await resendSharedLinkRecipientEmail({
@@ -810,23 +808,22 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
     });
 
     expect(result.ok).toBe(true);
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).not.toHaveBeenCalled();
 
     const recipientUpdates = recorded.filter(
       (query) => query.table === "shared_link_recipients" && query.operation === "update",
     );
     expect(recipientUpdates).toHaveLength(0);
-    expect(callOrder).toEqual(["send", "recipient-update"]);
+    expect(callOrder).toEqual(["intent-reserved"]);
 
-    const persistCalls = recordedRpc.filter((call) => call.functionName === "persist_shared_link_recipient_resend");
+    const persistCalls = recordedRpc.filter((call) => call.functionName === "reserve_shared_link_recipient_resend_intent");
     expect(persistCalls).toHaveLength(1);
     expect(persistCalls[0].args).toEqual(
       expect.objectContaining({
         target_publication_id: PUBLICATION_ID,
         target_recipient_id: RECIPIENT_ID,
         expected_encrypted_token: "encrypted-token",
-        p_recipient_token_hash: expect.any(String),
-        p_resend_email_id: "resend-message-1",
+        p_proposed_recipient_token_hash: expect.any(String),
         p_invited_by: "user-1",
       }),
     );
@@ -848,6 +845,7 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     sendEmail?: ReturnType<typeof vi.fn>;
   }) {
     const recorded: RecordedQuery[] = [];
+    const recordedRpc: RecordedRpc[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
       requireAuth: vi.fn().mockResolvedValue(undefined),
@@ -883,6 +881,21 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
       createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
+          recordedRpc,
+          resolveRpc: (call) => {
+            if (call.functionName !== "create_shared_link_recipient_delivery_intent") return { data: true, error: null };
+            if (duplicate) return { data: { recipientId: NEW_RECIPIENT_ID, status: "duplicate" }, error: null };
+            return {
+              data: {
+                intentId: "legacy_delivery_12345678",
+                recipientId: call.args.p_email === "second@example.com"
+                  ? "66666666-6666-4666-8666-666666666666"
+                  : NEW_RECIPIENT_ID,
+                status: "queued",
+              },
+              error: null,
+            };
+          },
           resolveResult: (query) => {
             if (query.table === "project_publications" && query.operation === "select") {
               return {
@@ -928,10 +941,10 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     }));
 
     const { addSharedLinkRecipients } = await import("@/lib/publication/actions");
-    return { addSharedLinkRecipients, recorded, sendEmail };
+    return { addSharedLinkRecipients, recorded, recordedRpc, sendEmail };
   }
 
-  it("returns the inserted recipient id (and status 'sent') on a successful add", async () => {
+  it("returns the inserted recipient id with pending status after queueing", async () => {
     const { addSharedLinkRecipients, sendEmail } = await setupAdd({ duplicate: false });
 
     const result = await addSharedLinkRecipients({
@@ -940,14 +953,14 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
       baseClientLink: "/share/client-token",
     });
 
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).not.toHaveBeenCalled();
     expect(result.added).toBe(1);
     const entry = result.emailResults.find((r) => r.email === "fresh@example.com");
     expect(entry).toBeDefined();
     // The id flows back so a just-added chip can Resend/Remove server-side without a remount.
     expect(entry?.id).toBe(NEW_RECIPIENT_ID);
     expect(entry?.ok).toBe(true);
-    expect(entry?.status).toBe("sent");
+    expect(entry?.status).toBe("pending");
   });
 
   it("tags a duplicate (unique violation) as status 'duplicate', not a green success", async () => {
@@ -974,36 +987,19 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     expect(result.message).toMatch(/No new recipients added/i);
   });
 
-  it("sends multiple new recipient invitations with bounded overlap instead of strict serial waits", async () => {
-    const startedSends: string[] = [];
-    let releaseFirstSend!: () => void;
-    const firstSendGate = new Promise<void>((resolve) => {
-      releaseFirstSend = resolve;
-    });
-    const sendEmail = vi.fn(async ({ to }: { to: string }) => {
-      startedSends.push(to);
-      if (to === "first@example.com") await firstSendGate;
-      return { ok: true, messageId: `invite-${to}` };
-    });
-    const { addSharedLinkRecipients } = await setupAdd({ duplicate: false, sendEmail });
+  it("queues multiple new recipient invitations without provider calls", async () => {
+    const { addSharedLinkRecipients, recordedRpc, sendEmail } = await setupAdd({ duplicate: false });
 
-    const resultPromise = addSharedLinkRecipients({
+    const result = await addSharedLinkRecipients({
       publicationId: PUBLICATION_ID,
       recipients: [{ email: "first@example.com" }, { email: "second@example.com" }],
       baseClientLink: "/share/client-token",
     });
 
-    for (let attempts = 0; attempts < 10 && startedSends.length < 2; attempts += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    expect(startedSends).toEqual(["first@example.com", "second@example.com"]);
-
-    releaseFirstSend();
-    const result = await resultPromise;
-
     expect(result.added).toBe(2);
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    expect(result.emailResults.filter((entry) => entry.status === "sent")).toHaveLength(2);
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(recordedRpc.filter((call) => call.functionName === "create_shared_link_recipient_delivery_intent")).toHaveLength(2);
+    expect(result.emailResults.filter((entry) => entry.status === "pending")).toHaveLength(2);
   });
 });
 
@@ -1047,6 +1043,9 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
       createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
+          resolveRpc: (call) => call.functionName === "reserve_shared_link_recipient_resend_intent"
+            ? { data: { intentId: "legacy_delivery_12345678", recipientId: RECIPIENT_ID, status: "queued" }, error: null }
+            : { data: true, error: null },
           resolveResult: (query) => {
             if (query.table === "project_publications" && query.operation === "select") {
               return {
@@ -1085,6 +1084,7 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
                   email: "client@example.com",
                   display_name: null,
                   email_unsubscribed_at: null,
+                  recipient_token_hash: "previous-token-hash",
                 },
                 error: null,
               };
@@ -1166,7 +1166,7 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
     expect(result.failedEmails).toContain("fresh@example.com");
   });
 
-  it("still sends when a usable baseClientLink is provided (guards the abort tests)", async () => {
+  it("still queues when a usable baseClientLink is provided (guards the abort tests)", async () => {
     const recorded: RecordedQuery[] = [];
     const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "resend-message-1" });
     mockSharedEnv(recorded, sendEmail);
@@ -1180,6 +1180,6 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
     });
 
     expect(result.ok).toBe(true);
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

@@ -285,4 +285,245 @@ describe("Client Portal notification queue", () => {
     expect(retry?.values).toContain("pending");
     expect(retry?.values).toContain("CLOUDFLARE_EMAIL_SEND_ERROR");
   });
+
+  it("enqueues pending legacy publication recipient intents on the existing queue", async () => {
+    const sent: unknown[] = [];
+    const database = {
+      prepare(sql: string) {
+        return {
+          bind() {
+            return {
+              async all() {
+                if (sql.includes("FROM shared_link_recipients")) {
+                  return {
+                    results: [{
+                      id: "44444444-4444-4444-8444-444444444444",
+                      intent_id: "legacy_delivery_12345678",
+                      publication_id: "33333333-3333-4333-8333-333333333333",
+                    }],
+                    success: true,
+                  };
+                }
+                return { results: [], success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const result = await enqueuePendingClientPortalNotifications({
+      ARCH_DB: database,
+      CLIENT_PORTAL_NOTIFICATIONS_QUEUE: {
+        sendBatch(messages) {
+          sent.push(...Array.from(messages));
+        },
+      },
+    }, new Date("2026-07-12T03:30:00.000Z"));
+
+    expect(result).toEqual({ enqueued: 1, skipped: false });
+    expect(sent).toEqual([{
+      body: {
+        intentId: "legacy_delivery_12345678",
+        kind: "legacy-publication-recipient",
+        publicationId: "33333333-3333-4333-8333-333333333333",
+        recipientId: "44444444-4444-4444-8444-444444444444",
+        version: 2,
+      },
+      contentType: "json",
+    }]);
+  });
+
+  it("finalizes a provider-accepted legacy intent without sending the email again", async () => {
+    const secret = "legacy-delivery-secret";
+    const deliveryIntent = {
+      attemptCount: 0,
+      encryptedRawToken: encryptPublicationToken("r".repeat(43), secret),
+      expectedPublicationEncryptedToken: "encrypted-publication-token",
+      expectedRecipientTokenHash: "previous-token-hash",
+      intentId: "legacy_delivery_12345678",
+      kind: "resend",
+      linkBase: "/share/current-token",
+      nextAttemptAt: "2026-07-12T03:30:00.000Z",
+      projectName: "Harbor House",
+      proposedRecipientTokenHash: "next-token-hash",
+      providerAcceptedAt: "2026-07-12T03:31:00.000Z",
+      providerMessageId: "provider-message-1",
+      recipientEmail: "client@example.com",
+      senderEmail: "owner@example.com",
+      senderLabel: "Owner",
+      state: "pending",
+      version: 1,
+    };
+    const calls: StatementCall[] = [];
+    const database = {
+      prepare(sql: string) {
+        return {
+          bind(...values: unknown[]) {
+            return {
+              async all() {
+                calls.push({ sql, values });
+                if (sql.includes("current_publication_encrypted_token")) {
+                  return {
+                    results: [{
+                      current_publication_encrypted_token: "encrypted-publication-token",
+                      delivery_status: "sent",
+                      email: "client@example.com",
+                      publication_id: "33333333-3333-4333-8333-333333333333",
+                      recipient_id: "44444444-4444-4444-8444-444444444444",
+                      recipient_token_hash: "previous-token-hash",
+                      resend_delivery_metadata: JSON.stringify(deliveryIntent),
+                    }],
+                    success: true,
+                  };
+                }
+                return { results: [], success: true };
+              },
+              async run() {
+                calls.push({ sql, values });
+                return { meta: { changes: 1 }, success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+    const emailSend = vi.fn(async () => ({ messageId: "must-not-send" }));
+    const queueMessage = new FakeMessage({
+      intentId: "legacy_delivery_12345678",
+      kind: "legacy-publication-recipient",
+      publicationId: "33333333-3333-4333-8333-333333333333",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      version: 2,
+    });
+
+    const summary = await runClientPortalNotificationQueueBatch({
+      batch: { messages: [queueMessage], queue: CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME },
+      env: { ...EMAIL_ENV, ARCH_DB: database, EMAIL: { send: emailSend }, PUBLICATION_TOKEN_ENCRYPTION_SECRET: secret },
+    });
+
+    expect(summary).toEqual({ acked: 1, retried: 0 });
+    expect(emailSend).not.toHaveBeenCalled();
+    const finalize = calls.find((call) => call.sql.includes("recipient_token_hash = ?") && call.sql.includes("state', 'delivered'"));
+    expect(finalize?.values).toContain("next-token-hash");
+    expect(finalize?.values).toContain("provider-message-1");
+  });
+
+  it("retries an active legacy intent instead of acknowledging its unexpired lease", async () => {
+    const database = {
+      prepare(sql: string) {
+        return {
+          bind() {
+            return {
+              async all() {
+                if (sql.includes("AS intent_id") && sql.includes("AS state")) {
+                  return { results: [{ intent_id: "legacy_delivery_12345678", state: "processing" }], success: true };
+                }
+                return { results: [], success: true };
+              },
+              async run() {
+                return { meta: { changes: 0 }, success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+    const emailSend = vi.fn(async () => ({ messageId: "must-not-send" }));
+    const queueMessage = new FakeMessage({
+      intentId: "legacy_delivery_12345678",
+      kind: "legacy-publication-recipient",
+      publicationId: "33333333-3333-4333-8333-333333333333",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      version: 2,
+    });
+
+    const summary = await runClientPortalNotificationQueueBatch({
+      batch: { messages: [queueMessage], queue: CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME },
+      env: { ...EMAIL_ENV, ARCH_DB: database, EMAIL: { send: emailSend } },
+    });
+
+    expect(summary).toEqual({ acked: 0, retried: 1 });
+    expect(queueMessage.retried).toBe(true);
+    expect(emailSend).not.toHaveBeenCalled();
+  });
+
+  it("keeps the prior resend token active when legacy provider delivery fails", async () => {
+    vi.stubEnv("ARCHESTIMATOR_DEV_LOG_DISABLED", "1");
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const secret = "legacy-delivery-secret";
+    const intent = {
+      attemptCount: 0,
+      encryptedRawToken: encryptPublicationToken("r".repeat(43), secret),
+      expectedPublicationEncryptedToken: "encrypted-publication-token",
+      expectedRecipientTokenHash: "previous-token-hash",
+      intentId: "legacy_delivery_12345678",
+      kind: "resend",
+      linkBase: "/share/current-token",
+      nextAttemptAt: "2026-07-12T03:30:00.000Z",
+      projectName: "Harbor House",
+      proposedRecipientTokenHash: "next-token-hash",
+      recipientEmail: "client@example.com",
+      senderEmail: "owner@example.com",
+      senderLabel: "Owner",
+      state: "processing",
+      version: 1,
+    };
+    const calls: StatementCall[] = [];
+    const database = {
+      prepare(sql: string) {
+        return {
+          bind(...values: unknown[]) {
+            return {
+              async all() {
+                calls.push({ sql, values });
+                if (sql.includes("current_publication_encrypted_token")) {
+                  return {
+                    results: [{
+                      current_publication_encrypted_token: "encrypted-publication-token",
+                      delivery_status: "sent",
+                      email: "client@example.com",
+                      publication_id: "33333333-3333-4333-8333-333333333333",
+                      recipient_id: "44444444-4444-4444-8444-444444444444",
+                      recipient_token_hash: "previous-token-hash",
+                      resend_delivery_metadata: JSON.stringify(intent),
+                    }],
+                    success: true,
+                  };
+                }
+                return { results: [], success: true };
+              },
+              async run() {
+                calls.push({ sql, values });
+                return { meta: { changes: 1 }, success: true };
+              },
+            };
+          },
+        };
+      },
+    };
+    const queueMessage = new FakeMessage({
+      intentId: "legacy_delivery_12345678",
+      kind: "legacy-publication-recipient",
+      publicationId: "33333333-3333-4333-8333-333333333333",
+      recipientId: "44444444-4444-4444-8444-444444444444",
+      version: 2,
+    });
+
+    const summary = await runClientPortalNotificationQueueBatch({
+      batch: { messages: [queueMessage], queue: CLIENT_PORTAL_NOTIFICATION_QUEUE_NAME },
+      env: {
+        ...EMAIL_ENV,
+        ARCH_DB: database,
+        EMAIL: { async send() { throw new Error("provider unavailable"); } },
+        PUBLICATION_TOKEN_ENCRYPTION_SECRET: secret,
+      },
+    });
+
+    expect(summary).toEqual({ acked: 0, retried: 1 });
+    expect(calls.some((call) => call.sql.includes("recipient_token_hash = ?") && call.sql.includes("state', 'delivered'"))).toBe(false);
+    const retryWrite = calls.find((call) => call.sql.includes("'$.attemptCount'"));
+    expect(retryWrite?.sql).not.toContain("SET recipient_token_hash");
+    expect(retryWrite?.values).toContain("pending");
+  });
 });

@@ -10,8 +10,11 @@ const hookState = vi.hoisted(() => ({
   feedCalls: [] as unknown[][],
   unreadCalls: [] as unknown[][],
   feed: {
-    data: null as typeof notificationFeedResult | null,
+    data: null as { pages: typeof notificationFeedResult[]; pageParams: Array<string | null> } | null,
+    fetchNextPage: vi.fn(),
+    hasNextPage: false,
     isError: false,
+    isFetchingNextPage: false,
     isLoading: false,
     refetch: vi.fn(),
   },
@@ -46,8 +49,11 @@ vi.mock("@/features/notifications/hooks/useNotificationsQuery", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  hookState.feed.data = notificationFeedResult;
+  hookState.feed.data = { pages: [notificationFeedResult], pageParams: [null] };
+  hookState.feed.fetchNextPage = vi.fn();
+  hookState.feed.hasNextPage = false;
   hookState.feed.isError = false;
+  hookState.feed.isFetchingNextPage = false;
   hookState.feed.isLoading = false;
   hookState.feed.refetch = vi.fn();
   hookState.feedCalls = [];
@@ -99,6 +105,17 @@ describe("NotificationCenter", () => {
     expect(hookState.dismiss.mutate).toHaveBeenCalledWith(notificationFixtureIds.userASecurityDelivery);
   });
 
+  it("loads older notification pages with an accessible button", async () => {
+    const user = userEvent.setup();
+    hookState.feed.hasNextPage = true;
+    render(<NotificationCenter />);
+
+    await user.click(screen.getByRole("button", { name: "Notifications, 1 unread" }));
+    await user.click(screen.getByRole("button", { name: "Load older notifications" }));
+
+    expect(hookState.feed.fetchNextPage).toHaveBeenCalledTimes(1);
+  });
+
   it("closes when the user clicks outside the notification panel", async () => {
     const user = userEvent.setup();
     render(
@@ -126,7 +143,7 @@ describe("NotificationCenter", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Loading notifications...");
 
     hookState.feed.isLoading = false;
-    hookState.feed.data = { items: [], nextCursor: null };
+    hookState.feed.data = { pages: [{ items: [], nextCursor: null }], pageParams: [null] };
     rerender(<NotificationCenter />);
     expect(screen.getByText("No notifications")).toBeInTheDocument();
 

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, type InfiniteData } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -52,8 +52,7 @@ describe("notification query hooks", () => {
     const hooks = await import("@/features/notifications/hooks/useNotificationsQuery");
 
     expect(hooks.notificationQueryKeys.all).toEqual(["notifications"]);
-    expect(hooks.notificationQueryKeys.feed()).toEqual(["notifications", "feed", null]);
-    expect(hooks.notificationQueryKeys.feed("cursor-1")).toEqual(["notifications", "feed", "cursor-1"]);
+    expect(hooks.notificationQueryKeys.feed()).toEqual(["notifications", "feed"]);
     expect(hooks.notificationQueryKeys.unreadCount()).toEqual(["notifications", "unread-count"]);
     expect(hooks.notificationQueryKeys.releaseModal()).toEqual(["notifications", "release-modal"]);
     expect(hooks.NOTIFICATION_UNREAD_STALE_TIME_MS).toBe(30_000);
@@ -70,10 +69,10 @@ describe("notification query hooks", () => {
     const unread = renderHook(() => hooks.useUnreadNotificationCountQuery(), { wrapper: makeWrapper(queryClient) });
     const modal = renderHook(() => hooks.useReleaseAnnouncementQuery(), { wrapper: makeWrapper(queryClient) });
 
-    await waitFor(() => expect(feed.result.current.data).toEqual(notificationFeedResult));
+    await waitFor(() => expect(feed.result.current.data?.pages).toEqual([notificationFeedResult]));
     await waitFor(() => expect(unread.result.current.data).toBe(1));
     await waitFor(() => expect(modal.result.current.data).toEqual(releaseAnnouncementView));
-    expect(actionMocks.loadCurrentUserNotifications).toHaveBeenCalledWith({ limit: 10 });
+    expect(actionMocks.loadCurrentUserNotifications).toHaveBeenCalledWith({ cursor: null, limit: 10 });
     expect(actionMocks.loadCurrentUserUnreadNotificationCount).toHaveBeenCalledTimes(1);
     expect(actionMocks.loadCurrentUserReleaseAnnouncement).toHaveBeenCalledTimes(1);
   });
@@ -112,7 +111,14 @@ describe("notification query hooks", () => {
   it("updates cached feed/count/modal state after release acknowledgement", async () => {
     const queryClient = makeQueryClient();
     const hooks = await import("@/features/notifications/hooks/useNotificationsQuery");
-    queryClient.setQueryData(hooks.notificationQueryKeys.feed(null), notificationFeedResult);
+    const feedData: InfiniteData<typeof notificationFeedResult, string | null> = {
+      pages: [
+        { items: [notificationFeedResult.items[1]!], nextCursor: "older-page" },
+        { items: [notificationFeedResult.items[0]!], nextCursor: null },
+      ],
+      pageParams: [null, "older-page"],
+    };
+    queryClient.setQueryData(hooks.notificationQueryKeys.feed(), feedData);
     queryClient.setQueryData(hooks.notificationQueryKeys.unreadCount(), 1);
     queryClient.setQueryData(hooks.notificationQueryKeys.releaseModal(), releaseAnnouncementView);
 
@@ -125,7 +131,7 @@ describe("notification query hooks", () => {
     expect(actionMocks.acknowledgeReleaseAnnouncementAction).toHaveBeenCalledWith(notificationFixtureIds.userAReleaseDelivery);
     expect(queryClient.getQueryData(hooks.notificationQueryKeys.unreadCount())).toBe(0);
     expect(queryClient.getQueryData(hooks.notificationQueryKeys.releaseModal())).toBeNull();
-    expect(queryClient.getQueryData<typeof notificationFeedResult>(hooks.notificationQueryKeys.feed(null))?.items[0]).toMatchObject({
+    expect(queryClient.getQueryData<typeof feedData>(hooks.notificationQueryKeys.feed())?.pages[1]?.items[0]).toMatchObject({
       id: notificationFixtureIds.userAReleaseDelivery,
       modalAcknowledgedAt: expect.any(String),
       readAt: expect.any(String),
@@ -137,7 +143,11 @@ describe("notification query hooks", () => {
     const queryClient = makeQueryClient();
     const hooks = await import("@/features/notifications/hooks/useNotificationsQuery");
     actionMocks.dismissNotificationAction.mockResolvedValue({ ok: false, code: "unavailable" });
-    queryClient.setQueryData(hooks.notificationQueryKeys.feed(null), notificationFeedResult);
+    const feedData: InfiniteData<typeof notificationFeedResult, string | null> = {
+      pages: [notificationFeedResult],
+      pageParams: [null],
+    };
+    queryClient.setQueryData(hooks.notificationQueryKeys.feed(), feedData);
     queryClient.setQueryData(hooks.notificationQueryKeys.unreadCount(), 1);
 
     const { result } = renderHook(() => hooks.useDismissNotificationMutation(), {
@@ -146,8 +156,43 @@ describe("notification query hooks", () => {
 
     await result.current.mutateAsync(notificationFixtureIds.userAReleaseDelivery);
 
-    expect(queryClient.getQueryData(hooks.notificationQueryKeys.feed(null))).toEqual(notificationFeedResult);
+    expect(queryClient.getQueryData(hooks.notificationQueryKeys.feed())).toEqual(feedData);
     expect(queryClient.getQueryData(hooks.notificationQueryKeys.unreadCount())).toBe(1);
+  });
+
+  it("updates read and dismiss state in older cached pages", async () => {
+    const queryClient = makeQueryClient();
+    const hooks = await import("@/features/notifications/hooks/useNotificationsQuery");
+    const feedData: InfiniteData<typeof notificationFeedResult, string | null> = {
+      pages: [
+        { items: [notificationFeedResult.items[1]!], nextCursor: "older-page" },
+        { items: [notificationFeedResult.items[0]!], nextCursor: null },
+      ],
+      pageParams: [null, "older-page"],
+    };
+    queryClient.setQueryData(hooks.notificationQueryKeys.feed(), feedData);
+    queryClient.setQueryData(hooks.notificationQueryKeys.unreadCount(), 1);
+
+    const readMutation = renderHook(() => hooks.useMarkNotificationReadMutation(), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await readMutation.result.current.mutateAsync(notificationFixtureIds.userAReleaseDelivery);
+
+    expect(queryClient.getQueryData<typeof feedData>(hooks.notificationQueryKeys.feed())?.pages[1]?.items[0]).toMatchObject({
+      readAt: expect.any(String),
+      seenAt: expect.any(String),
+    });
+    expect(queryClient.getQueryData(hooks.notificationQueryKeys.unreadCount())).toBe(0);
+
+    queryClient.setQueryData(hooks.notificationQueryKeys.feed(), feedData);
+    queryClient.setQueryData(hooks.notificationQueryKeys.unreadCount(), 1);
+    const dismissMutation = renderHook(() => hooks.useDismissNotificationMutation(), {
+      wrapper: makeWrapper(queryClient),
+    });
+    await dismissMutation.result.current.mutateAsync(notificationFixtureIds.userAReleaseDelivery);
+
+    expect(queryClient.getQueryData<typeof feedData>(hooks.notificationQueryKeys.feed())?.pages[1]?.items).toEqual([]);
+    expect(queryClient.getQueryData(hooks.notificationQueryKeys.unreadCount())).toBe(0);
   });
 
   it("does not introduce a second notification state owner", () => {

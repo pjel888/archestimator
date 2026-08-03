@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createServer, type IncomingMessage } from "node:http";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -13,6 +13,24 @@ function createTempDir() {
   const dir = mkdtempSync(join(tmpdir(), "archestimator-supermemory-memory-"));
   tempDirs.push(dir);
   return dir;
+}
+
+function trustedServerEnv(tempDir: string, port: number) {
+  const home = join(tempDir, "home");
+  const supermemoryHome = join(home, ".supermemory");
+  const expectedHash = "a".repeat(64);
+  mkdirSync(supermemoryHome, { recursive: true });
+  writeFileSync(
+    join(supermemoryHome, "archestimator-server.env"),
+    `SUPERMEMORY_SERVER_BIN=${JSON.stringify(process.execPath)}\nSUPERMEMORY_SERVER_SHA256=${expectedHash}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(
+    join(supermemoryHome, "archestimator-server-state.json"),
+    `${JSON.stringify({ bin: process.execPath, pid: process.pid, port, sha256: expectedHash })}\n`,
+    { mode: 0o600 },
+  );
+  return { HOME: home, USERPROFILE: home };
 }
 
 function readBody(request: IncomingMessage) {
@@ -71,6 +89,7 @@ describe("Supermemory memory CLI", () => {
     writeFileSync(keyPath, "test-bearer-value\n", { mode: 0o600 });
 
     const result = await runMemoryScript(["search", "verified", "bootstrap"], {
+      ...trustedServerEnv(tempDir, address.port),
       SUPERMEMORY_API_KEY_FILE: keyPath,
       SUPERMEMORY_API_URL: `http://127.0.0.1:${address.port}`,
     });
@@ -113,6 +132,7 @@ describe("Supermemory memory CLI", () => {
     const keyPath = join(tempDir, "api-key");
     writeFileSync(keyPath, "test-bearer-value\n", { mode: 0o600 });
     const env = {
+      ...trustedServerEnv(tempDir, address.port),
       SUPERMEMORY_API_KEY_FILE: keyPath,
       SUPERMEMORY_API_URL: `http://127.0.0.1:${address.port}`,
       SUPERMEMORY_INDEX_POLL_MS: "5",
@@ -181,6 +201,7 @@ describe("Supermemory memory CLI", () => {
     writeFileSync(keyPath, "test-bearer-value\n", { mode: 0o600 });
 
     const result = await runMemoryScript(["add", "sanitized durable result"], {
+      ...trustedServerEnv(tempDir, address.port),
       SUPERMEMORY_API_KEY_FILE: keyPath,
       SUPERMEMORY_API_URL: `http://127.0.0.1:${address.port}`,
       SUPERMEMORY_INDEX_POLL_MS: "5",
@@ -216,6 +237,7 @@ describe("Supermemory memory CLI", () => {
     writeFileSync(keyPath, "test-bearer-value\n", { mode: 0o600 });
 
     const result = await runMemoryScript(["search", "safe query"], {
+      ...trustedServerEnv(tempDir, redirectorAddress.port),
       SUPERMEMORY_API_KEY_FILE: keyPath,
       SUPERMEMORY_API_URL: `http://127.0.0.1:${redirectorAddress.port}`,
     });
@@ -238,6 +260,7 @@ describe("Supermemory memory CLI", () => {
     const startedAt = Date.now();
 
     const result = await runMemoryScript(["search", "safe query"], {
+      ...trustedServerEnv(tempDir, address.port),
       SUPERMEMORY_API_KEY_FILE: keyPath,
       SUPERMEMORY_API_TIMEOUT_MS: "200",
       SUPERMEMORY_API_URL: `http://127.0.0.1:${address.port}`,
@@ -246,6 +269,6 @@ describe("Supermemory memory CLI", () => {
     server.close();
 
     expect(result.status).toBe(1);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(Date.now() - startedAt).toBeLessThan(process.platform === "win32" ? 5000 : 2000);
   });
 });

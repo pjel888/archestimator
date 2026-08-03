@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const actions = readFileSync("src/lib/publication/actions.ts", "utf8");
 const emailLinks = readFileSync("src/lib/publication/email-links.ts", "utf8");
+const recipientQueue = readFileSync("src/lib/cloudflare/client-portal-notification-queue.ts", "utf8");
 const publisherDrawer = readFileSync("src/components/workshop/publisher/PublisherDrawer.tsx", "utf8");
 const publisherDrawerHook = readFileSync("src/components/workshop/publisher/usePublisherDrawer.ts", "utf8");
 const recipientLimits = readFileSync("src/lib/publication/recipient-limits.ts", "utf8");
@@ -656,20 +657,23 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("imageUrl: row.imageUrl");
   });
 
-  it("processes recipient invitation sends with bounded concurrency", () => {
+  it("creates recipient delivery intents with bounded concurrency and no provider work", () => {
     expect(actions).toContain("SHARED_LINK_RECIPIENT_ADD_CONCURRENCY");
     expect(recipientLimits).toContain("SHARED_LINK_RECIPIENT_ACTION_LIMIT = 50");
     expect(actions).toContain("inputs.length > SHARED_LINK_RECIPIENT_ACTION_LIMIT");
     expect(actions).toContain("mapWithBoundedConcurrency(allowedRecipients");
-    expect(actions).toContain("sendSharedLinkRecipientInvitationEmail");
+    expect(actions).toContain("create_shared_link_recipient_delivery_intent");
 
     const addActionStart = actions.indexOf("export async function addSharedLinkRecipients");
+    const addActionEnd = actions.indexOf("export async function resendSharedLinkRecipientEmail", addActionStart);
+    const addAction = actions.slice(addActionStart, addActionEnd);
     const managerGate = actions.indexOf("assertProjectPublicationManager(pubCtx.projectId)", addActionStart);
     const limitCheck = actions.indexOf("inputs.length > SHARED_LINK_RECIPIENT_ACTION_LIMIT", addActionStart);
-    const emailWork = actions.indexOf("mapWithBoundedConcurrency(allowedRecipients", addActionStart);
+    const intentWork = actions.indexOf("mapWithBoundedConcurrency(allowedRecipients", addActionStart);
     expect(managerGate).toBeGreaterThan(addActionStart);
     expect(limitCheck).toBeGreaterThan(managerGate);
-    expect(limitCheck).toBeLessThan(emailWork);
+    expect(limitCheck).toBeLessThan(intentWork);
+    expect(addAction).not.toContain("sendEmail(");
   });
 
   it("rejects recipient batches above the per-action cap before inserts or email work", async () => {
@@ -727,11 +731,9 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("recipient_token_hash");
     expect(actions).toContain("delivery_status");
     expect(actions).toContain('RecipientDeliveryStatus = "pending" | "sent" | "bounced" | "opened" | "responded"');
-    // Uses the Cloudflare-native transactional email client with unique recipient token link.
-    expect(actions).toContain("sendEmail");
-    expect(actions).toContain("from \"@/lib/email/transactional-email-client\"");
-    // Graceful: publication create/republish succeed even if email fails/bounces (no throw, status may stay pending)
-    expect(actions).toMatch(/sendEmail|TransactionalEmailClient|ok:\s*false/);
+    expect(actions).toContain("create_shared_link_recipient_delivery_intent");
+    expect(recipientQueue).toContain("sendCloudflareEmail");
+    expect(recipientQueue).toContain("legacy-publication-recipient");
   });
 
   it("P4 recipient actions generate secure per-recipient tokens and insert with invited_by", () => {
@@ -762,7 +764,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("recipient emails emit the same canonical query parameter that the share page accepts", () => {
     const pageSrc = readFileSync("src/app/share/[token]/page.tsx", "utf8");
 
-    expect(actions).toContain("buildSharedLinkRecipientEmailLinks");
+    expect(recipientQueue).toContain("buildSharedLinkRecipientEmailLinks");
     expect(emailLinks).toContain('searchParams.set("recipient", rawToken)');
     expect(emailLinks).not.toContain("rt=");
     expect(pageSrc).toContain("searchParamsData.recipient");
@@ -782,7 +784,8 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   });
 
   it("recipient emails include a compliance unsubscribe footer", () => {
-    expect(actions).toContain("buildPublicationEmailComplianceFooter");
+    expect(recipientQueue).toContain("unsubscribeHref");
+    expect(recipientQueue).toContain("Unsubscribe from follow-up emails");
     expect(actions).toContain("unsubscribe");
     expect(actions).toContain("mailto:");
     expect(emailLinks).toContain("/unsubscribe");

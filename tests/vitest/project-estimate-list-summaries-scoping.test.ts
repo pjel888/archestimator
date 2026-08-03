@@ -142,7 +142,8 @@ describe("project estimate summary D1 scoping guard", () => {
   it("does not keep the old Supabase RPC call site in the repository", () => {
     const source = readFileSync("src/lib/repositories/project-estimate-sheets-repository.ts", "utf8");
     expect(source).toContain("getCloudflareD1Database");
-    expect(source).toContain("computeEstimateRowLineTotal");
+    expect(source).toContain("computeEstimateTotals");
+    expect(source).not.toContain("computeEstimateRowLineTotal");
     expect(source).not.toContain(["createSupabase", "ServerClient"].join(""));
     expect(source).not.toContain(["project_estimate_list", "_summaries_for_estimates"].join(""));
     expect(source).not.toContain([".", "rpc("].join(""));

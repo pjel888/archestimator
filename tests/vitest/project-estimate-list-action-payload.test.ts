@@ -4,7 +4,7 @@ import {
   buildProjectEstimateListRow,
   projectEstimateListRowSource,
 } from "@/lib/estimates/project-estimate-list-row";
-import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
+import { computeEstimateRowCostParts, computeEstimateTotals } from "@/lib/estimates/estimate-row-total";
 
 const SENSITIVE_FIELDS = ["metadata", "created_by", "workspace_id", "assumptions"] as const;
 
@@ -58,20 +58,26 @@ describe("estimate action reconciliation payloads", () => {
     expect(estimate.name).toBe("Ground Floor");
   });
 
-  it("computes line totals matching the SQL estimate_row_line_total formula", () => {
-    // quantity*unit_cost + misc_cost + subtotal*contingency/100
-    expect(computeEstimateRowLineTotal({ quantity: 2, unit_cost: 100, contingency_percentage: 5, misc_cost: 10 })).toBe(
-      2 * 100 + 10 + (2 * 100 * 5) / 100,
-    );
-    expect(computeEstimateRowLineTotal({ quantity: 1, unit_cost: 100, contingency_percentage: null, misc_cost: 0 })).toBe(100);
-    expect(computeEstimateRowLineTotal({ quantity: null, unit_cost: null, misc_cost: 25 })).toBe(25);
+  it("computes canonical independently rounded row totals", () => {
+    expect(computeEstimateRowCostParts({ quantity: 2, unit_cost: 100, contingency_percentage: 5, misc_cost: 10 })).toMatchObject({
+      ok: true,
+      value: { total: 220 },
+    });
+    expect(computeEstimateRowCostParts({ quantity: 1, unit_cost: 100, contingency_percentage: null, misc_cost: 0 })).toMatchObject({
+      ok: true,
+      value: { total: 100 },
+    });
+    expect(computeEstimateRowCostParts({ quantity: null, unit_cost: null, misc_cost: 25 })).toMatchObject({
+      ok: true,
+      value: { total: 25 },
+    });
   });
 
   it("sums duplicated rows into a single optimistic total", () => {
-    const total = sumEstimateRowLineTotals([
+    const total = computeEstimateTotals([
       { quantity: 2, unit_cost: 100, contingency_percentage: 5, misc_cost: 10 },
       { quantity: 1, unit_cost: 50, contingency_percentage: 0, misc_cost: 0 },
-    ]);
-    expect(total).toBe(220 + 50);
+    ], "working_estimate");
+    expect(total).toMatchObject({ ok: true, value: { total: 220 + 50 } });
   });
 });

@@ -37,13 +37,16 @@ describe("Codex component-library and tooling hardening contracts", () => {
     );
   });
 
-  it("pins MCP tooling package specs instead of auto-resolving floating uvx packages", () => {
+  it("pins MCP tooling and runs shadcn from the integrity-locked workspace", () => {
     const expectedPackage = "code-review-graph==2.3.5";
     const rootMcp = JSON.parse(read(".mcp.json"));
     const cursorMcp = JSON.parse(read(".cursor/mcp.json"));
+    const openCode = JSON.parse(read("opencode.json"));
     const codexHooks = JSON.parse(read(".codex/hooks.json"));
     const codexConfig = read(".codex/config.toml");
     const claudeSettings = JSON.parse(read(".claude/settings.json"));
+    const bunLock = read("bun.lock");
+    const archivedBootstrap = read(".ai/09_archive/08_prompts/MacBook-Pro-Agentic-Workflow-Bootstrap-Prompt.md");
     const hookCommands = Object.values(codexHooks.hooks)
       .flatMap((entries) => entries as Array<{ hooks?: Array<{ command?: string }> }>)
       .flatMap((entry) => entry.hooks ?? [])
@@ -54,6 +57,17 @@ describe("Codex component-library and tooling hardening contracts", () => {
       expect(server.args).toEqual([expectedPackage, "serve"]);
       expect(server.args).not.toContain("code-review-graph");
     }
+
+    const expectedShadcnCommand = ["bun", "run", "shadcn", "mcp"];
+    expect([rootMcp.mcpServers.shadcn.command, ...rootMcp.mcpServers.shadcn.args]).toEqual(expectedShadcnCommand);
+    expect([cursorMcp.mcpServers.shadcn.command, ...cursorMcp.mcpServers.shadcn.args]).toEqual(expectedShadcnCommand);
+    expect(openCode.mcp.shadcn.command).toEqual(expectedShadcnCommand);
+    expect(JSON.stringify({ rootMcp, cursorMcp, openCode })).not.toContain("@latest");
+    expect(bunLock).toMatch(/"shadcn": \["shadcn@4\.13\.1".*"sha512-[^"]+"\]/);
+    expect(archivedBootstrap).toContain("Historical archive only");
+    expect(archivedBootstrap).toContain("pins every source to an immutable commit SHA or version");
+    expect(archivedBootstrap).not.toContain("install the current stable official `oh-my-codex` package");
+    expect(archivedBootstrap).not.toContain("source `everyinc/compound-engineering-plugin`");
 
     expect(codexConfig).toContain(`"${expectedPackage}"`);
     expect(codexConfig).toContain("hooks = false");

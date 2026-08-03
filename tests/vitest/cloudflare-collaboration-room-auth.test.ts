@@ -30,13 +30,25 @@ function createSocket(): FakeSocket {
   } as FakeSocket;
 }
 
-function createRoom(sockets: FakeSocket[], env: Record<string, unknown> = {}) {
+function createRoom(
+  sockets: FakeSocket[],
+  env: Record<string, unknown> = {},
+  storageValues = new Map<string, unknown>(),
+) {
   const ctx = {
     acceptWebSocket: vi.fn(),
     getWebSockets: vi.fn(() => sockets),
-    storage: { setAlarm: vi.fn().mockResolvedValue(undefined) },
+    storage: {
+      async get<T>(key: string) {
+        return storageValues.get(key) as T | undefined;
+      },
+      async put(key: string, value: unknown) {
+        storageValues.set(key, value);
+      },
+      setAlarm: vi.fn().mockResolvedValue(undefined),
+    },
   };
-  return { room: new CollaborationRoom(ctx, env), ctx };
+  return { room: new CollaborationRoom(ctx, env), ctx, storageValues };
 }
 
 describe("CollaborationRoom authorization", () => {
@@ -448,6 +460,67 @@ describe("CollaborationRoom authorization", () => {
       reason: "subject_revoked",
     });
     expect(other.__closed).toEqual([]);
+  });
+
+  it("persists a subject revocation across restart while admitting a post-watermark token", async () => {
+    const now = 1_800_000_000_500;
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
+    const subject = "22222222-2222-4222-8222-222222222222";
+    const storageValues = new Map<string, unknown>();
+    const current = createSocket();
+    current.__attachment = { roomName };
+    const env = {
+      COLLABORATION_ROOM_CONTROL_SECRET: "control-secret",
+      REALTIME_ROOM_TOKEN_SECRET: secret,
+    };
+
+    try {
+      const oldToken = await issueRealtimeRoomToken({
+        capabilities: ["presence:read"],
+        nowMs: now - 1_000,
+        secret,
+        sub: subject,
+        topic: roomName,
+      });
+      const activeRoom = createRoom([current], env, storageValues).room;
+      await activeRoom.webSocketMessage(current, JSON.stringify({ type: "authorize", token: oldToken }));
+
+      const response = await activeRoom.fetch(new Request(
+        `https://example.test/__cloudflare/collaboration-room/${roomName}`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-collaboration-room-control-secret": "control-secret",
+          },
+          body: JSON.stringify({ type: "revoke-subject", sub: subject }),
+        },
+      ));
+      await expect(response.json()).resolves.toEqual({ ok: true, closed: 1 });
+      expect(current.__closed).toContainEqual({ code: 4403, reason: "subject_revoked" });
+
+      const oldReconnect = createSocket();
+      const newReconnect = createSocket();
+      oldReconnect.__attachment = { roomName };
+      newReconnect.__attachment = { roomName };
+      const restartedRoom = createRoom([oldReconnect, newReconnect], env, storageValues).room;
+
+      await restartedRoom.webSocketMessage(oldReconnect, JSON.stringify({ type: "authorize", token: oldToken }));
+      expect(oldReconnect.__sent).toContainEqual({ type: "revoked", code: "access_revoked" });
+      expect(oldReconnect.__closed).toContainEqual({ code: 4403, reason: "subject_revoked" });
+
+      const postWatermarkToken = await issueRealtimeRoomToken({
+        capabilities: ["presence:read"],
+        nowMs: now + 1_000,
+        secret,
+        sub: subject,
+        topic: roomName,
+      });
+      await restartedRoom.webSocketMessage(newReconnect, JSON.stringify({ type: "authorize", token: postWatermarkToken }));
+      expect(newReconnect.__sent).toContainEqual(expect.objectContaining({ type: "authorized", sub: subject }));
+    } finally {
+      dateNow.mockRestore();
+    }
   });
 
   it("rejects a room connection when its bounded capacity is full", async () => {

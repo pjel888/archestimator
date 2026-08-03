@@ -13,7 +13,14 @@ import { readClientPortalRecipientSession, resolveClientPortalRecipientActor } f
 const stableToken = "s".repeat(43);
 const recipientToken = "r".repeat(43);
 
-function recipientDatabase(options: { currentIssueId?: string | null; recipientPortalId?: string; roleTemplate?: "viewer" | "commenter" | "reviewer" | "approver" | "requester" } = {}) {
+function recipientDatabase(options: {
+  credentialUpdateChanges?: number;
+  currentIssueId?: string | null;
+  recipientPortalId?: string;
+  recipientUpdateChanges?: number;
+  recipientVerificationState?: "unverified" | "verified";
+  roleTemplate?: "viewer" | "commenter" | "reviewer" | "approver" | "requester";
+} = {}) {
   const statements: Array<{ sql: string; values: D1Value[] }> = [];
   const database: D1DatabaseLike = {
     prepare(sql: string): D1PreparedStatementLike {
@@ -26,7 +33,7 @@ function recipientDatabase(options: { currentIssueId?: string | null; recipientP
           if (sql.includes("SELECT status, valid_through FROM client_portal_issues")) return { status: "issued", valid_through: "2099-01-01T00:00:00.000Z" } as T;
           if (sql.includes("FROM client_portal_recipient_credentials c")) {
             if ((options.recipientPortalId ?? "portal_1") !== values[2]) return null;
-            return { client_organization: null, credential_id: "credential_1", display_name: "Avery", id: "recipient_1", is_required_approver: 1, recipient_credential_version: 4, role_template: options.roleTemplate ?? "approver", status: "active", verification_state: "unverified" } as T;
+            return { client_organization: null, credential_id: "credential_1", display_name: "Avery", id: "recipient_1", is_required_approver: 1, recipient_credential_version: 4, role_template: options.roleTemplate ?? "approver", status: "active", verification_state: options.recipientVerificationState ?? "unverified" } as T;
           }
           return null;
         },
@@ -35,7 +42,13 @@ function recipientDatabase(options: { currentIssueId?: string | null; recipientP
       };
       return prepared;
     },
-    async batch(batchStatements) { return batchStatements.map(() => ({ meta: { changes: 1 }, success: true })); },
+    async batch() {
+      return [
+        { meta: { changes: options.credentialUpdateChanges ?? 1 }, success: true },
+        { meta: { changes: options.recipientUpdateChanges ?? 1 }, success: true },
+        { meta: { changes: options.recipientUpdateChanges ?? 1 }, success: true },
+      ];
+    },
   };
   return { database, statements };
 }
@@ -74,6 +87,29 @@ describe("Client Portal recipient access", () => {
     expect(statements.some((entry) => entry.sql.includes("status = 'used'"))).toBe(true);
     expect(statements.some((entry) => entry.sql.includes("portal.recipient.verified"))).toBe(true);
     expect(JSON.stringify(statements)).not.toContain(recipientToken);
+  });
+
+  it("accepts a fresh second credential when recipient verification is already complete", async () => {
+    const { database } = recipientDatabase({
+      recipientUpdateChanges: 0,
+      recipientVerificationState: "verified",
+    });
+    mocks.getDatabase.mockResolvedValue(database);
+
+    await expect(resolveClientPortalRecipientActor(stableToken, recipientToken)).resolves.toMatchObject({
+      actor: { recipientId: "recipient_1", verificationState: "verified" },
+    });
+  });
+
+  it("rejects a replay when the credential was not freshly consumed", async () => {
+    const { database } = recipientDatabase({
+      credentialUpdateChanges: 0,
+      recipientUpdateChanges: 0,
+      recipientVerificationState: "verified",
+    });
+    mocks.getDatabase.mockResolvedValue(database);
+
+    await expect(resolveClientPortalRecipientActor(stableToken, recipientToken)).resolves.toBeNull();
   });
 
   it("allows recipient redemption and sessions before the first issue exists", async () => {

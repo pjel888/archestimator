@@ -8,6 +8,7 @@ import {
 } from "./support/local-dev-auth";
 
 const projectId = process.env.ARCHESTIMATOR_E2E_TEAM_PROJECT_ID?.trim() ?? "";
+const removalTarget = process.env.ARCHESTIMATOR_E2E_TEAM_REMOVAL_TARGET?.trim() ?? "";
 const auth = getProtectedRouteE2eAuth();
 const teamRouteEnabled = isProtectedRouteE2eAuthReady(auth) && Boolean(projectId);
 
@@ -43,5 +44,18 @@ test.describe("project Team access route", () => {
     await expect(
       page.getByRole("heading", { name: "Team access" }),
     ).toBeVisible();
+  });
+
+  test("defaults project removal to retaining direct estimate access", async ({ page }) => {
+    test.skip(!removalTarget, "Requires ARCHESTIMATOR_E2E_TEAM_REMOVAL_TARGET.");
+    await page.goto(`/workshop/projects/${projectId}/team`, { waitUntil: "domcontentloaded" });
+
+    await page.getByRole("button", { name: `Remove ${removalTarget} from project` }).click();
+
+    const retainDirectEstimateAccess = page.getByRole("radio", {
+      name: "Remove project access only and retain direct estimate access",
+    });
+    await expect(retainDirectEstimateAccess).toBeChecked();
+    await expect(page.getByRole("radio", { name: /Remove project access and \d+ direct estimate grant/ })).not.toBeChecked();
   });
 });

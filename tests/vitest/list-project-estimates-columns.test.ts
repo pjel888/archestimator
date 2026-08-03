@@ -127,16 +127,28 @@ function createD1Fixture() {
               if (sql.includes("FROM estimate_row_items") && sql.includes("quantity_base")) {
                 expect(values).toEqual([ESTIMATE_ID]);
                 return {
-                  results: [{
-                    estimate_id: ESTIMATE_ID,
-                    quantity: 1,
-                    quantity_base: null,
-                    quantity_contingency_amount: null,
-                    unit_cost: 1234.5,
-                    contingency_percentage: 0,
-                    adjustment_percentage: 0,
-                    misc_cost: 0,
-                  }],
+                  results: [
+                    {
+                      estimate_id: ESTIMATE_ID,
+                      quantity: 1,
+                      quantity_base: null,
+                      quantity_contingency_amount: null,
+                      unit_cost: 0.335,
+                      contingency_percentage: 0,
+                      adjustment_percentage: 0,
+                      misc_cost: 0,
+                    },
+                    {
+                      estimate_id: ESTIMATE_ID,
+                      quantity: 1,
+                      quantity_base: null,
+                      quantity_contingency_amount: null,
+                      unit_cost: 0.335,
+                      contingency_percentage: 0,
+                      adjustment_percentage: 0,
+                      misc_cost: 0,
+                    },
+                  ],
                 };
               }
               return { results: [] };
@@ -194,7 +206,7 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     expect(result.estimates.map((estimate) => estimate.id)).toEqual([ESTIMATE_ID]);
     expect(result.nodeCountByEstimateId.get(ESTIMATE_ID)).toBe(7);
     expect(result.rowCountByEstimateId.get(ESTIMATE_ID)).toBe(3);
-    expect(result.totalCostByEstimateId.get(ESTIMATE_ID)).toBe(1234.5);
+    expect(result.totalCostByEstimateId.get(ESTIMATE_ID)).toBe(0.68);
     expect(result.nodeCountByEstimateId.has(BLOCKED_ESTIMATE_ID)).toBe(false);
     // first node still selected by the depth-first/area-first JS oracle (Path A).
     expect(result.firstNodeByEstimateId.get(ESTIMATE_ID)).toBe(AREA_NODE_ID);
