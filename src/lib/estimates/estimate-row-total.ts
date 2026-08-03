@@ -1,9 +1,8 @@
 /**
  * The canonical, dependency-free calculation oracle for estimate rows.
  *
- * `computeEstimateRowLineTotal` remains the compatibility surface for existing
- * list and repository callers. New consumers should use the typed helpers so
- * invalid or unsafe inputs cannot become an output total.
+ * Consumers use the typed helpers so invalid or unsafe inputs cannot become an
+ * output total.
  */
 export const ESTIMATE_CALCULATION_VERSION = 1;
 export const ESTIMATE_CALCULATION_CURRENCY_SCALE = 2;
@@ -303,20 +302,4 @@ export function computeEstimateTotals(
       total: charges.value.totalMinorUnits / MINOR_UNIT_FACTOR,
     },
   };
-}
-
-/** Compatibility wrapper for callers that have not migrated to typed refusals. */
-export function computeEstimateRowLineTotal(row: EstimateRowCostInput): number {
-  const quantity = Number(row.quantity ?? 0);
-  const unitCost = Number(row.unit_cost ?? 0);
-  const quantityBase = row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base);
-  const legacyAdjustmentPercentage = quantityBase === null ? Number(row.contingency_percentage ?? 0) : 0;
-  const adjustmentPercentage = Number(row.adjustment_percentage ?? legacyAdjustmentPercentage);
-  const miscCost = Number(row.misc_cost ?? 0);
-  const subTotal = quantity * unitCost;
-  return subTotal + miscCost + (subTotal * adjustmentPercentage) / 100;
-}
-
-export function sumEstimateRowLineTotals(rows: readonly EstimateRowCostInput[]): number {
-  return rows.reduce((total, row) => total + computeEstimateRowLineTotal(row), 0);
 }

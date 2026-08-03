@@ -49,7 +49,6 @@ import {
   resolveSharedLinkStoredTargetMetadata,
   sharedLinkActivityCursorFilter,
 } from "@/lib/publication/activity-helpers";
-import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
 import { getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
 import { withActionErrors } from "@/lib/observability/with-action-errors";
 import type { ActionResult } from "@/lib/observability/action-result";
@@ -199,14 +198,12 @@ type PublicationProjectContextRow = {
   project_id: string;
   workspace_id: string;
 };
-type RecipientIdRow = {
-  id: string;
-};
 type RecipientResendRow = {
   display_name: string | null;
   email: string | null;
   email_unsubscribed_at: string | null;
   id: string;
+  recipient_token_hash: string;
 };
 type SharedLinkRecipientDisplayRow = {
   display_name: string | null;
@@ -1202,6 +1199,11 @@ type SharedLinkRecipientEmailResult = {
   id?: string;
   status?: "sent" | "pending" | "duplicate" | "failed";
 };
+type RecipientDeliveryIntentProcedureResult = {
+  intentId?: string;
+  recipientId?: string;
+  status: "conflict" | "duplicate" | "queued";
+};
 type AddSharedLinkRecipientsResult = {
   ok: boolean;
   message: string;
@@ -1379,49 +1381,6 @@ async function checkSharedLinkRecipientResendRateLimit({
   });
 }
 
-async function sendSharedLinkRecipientInvitationEmail({
-  linkBase,
-  projectName,
-  publicationId,
-  rawToken,
-  recipientEmail,
-  recipientId,
-  senderIdentity,
-}: {
-  linkBase: string;
-  projectName: string;
-  publicationId: string;
-  rawToken: string;
-  recipientEmail: string;
-  recipientId: string;
-  senderIdentity: PublicationEmailIdentity;
-}) {
-  const { recipientLink, unsubscribeHref } = buildSharedLinkRecipientEmailLinks({ linkBase, rawToken });
-  const sender = senderIdentity.label;
-  const subject = `Project Estimate: ${projectName} shared by ${sender}`;
-  const complianceFooter = buildPublicationEmailComplianceFooter({
-    recipientEmail,
-    sender,
-    senderEmail: senderIdentity.email,
-    projectName,
-    unsubscribeHref,
-  });
-  const textBody = `Hello,\n\n${sender} has shared a view-only estimate for the project "${projectName}" with you.\n\nYou can view the estimate using the following link:\n${recipientLink}\n\nIf you have any questions, please contact ${sender} at ${senderIdentity.email}.\n\nBest regards,\nThe Archestimator Team${complianceFooter.text}`;
-  const htmlBody = `<!doctype html><html><body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#333; line-height:1.5; font-size:14px;"><p>Hello,</p><p><strong>${escapePublicationEmailHtml(sender)}</strong> has shared a view-only estimate for the project <strong>${escapePublicationEmailHtml(projectName)}</strong> with you.</p><p style="margin:16px 0;"><a href="${escapePublicationEmailHtml(recipientLink)}" style="background:#292929;color:#fff;padding:10px 16px;text-decoration:none;border-radius:3px;display:inline-block;font-weight:500;">View Project Estimate</a></p><p>If you have any questions, please contact ${escapePublicationEmailHtml(sender)} directly.</p><p>Best regards,<br>The Archestimator Team</p>${complianceFooter.html}</body></html>`;
-
-  return sendEmail({
-    to: recipientEmail,
-    subject,
-    text: textBody,
-    html: htmlBody,
-    tags: [
-      { name: "archestimator_surface", value: "shared_link" },
-      { name: "publication_id", value: publicationId },
-      { name: "shared_link_recipient_id", value: recipientId },
-    ],
-  });
-}
-
 async function getPublicationProjectId(admin: ReturnType<typeof createPublicationAdminClient>, publicationId: string): Promise<{ projectId: string; workspaceId: string; encryptedToken?: string | null; clientLinkPath?: string | null }> {
   const { data, error } = await admin
     .from<PublicationProjectContextRow>("project_publications")
@@ -1536,6 +1495,7 @@ export async function addSharedLinkRecipients({
   const failedEmails: string[] = [...blockedSelfEmails];
   const secret = readPublicationTokenHashSecret();
   const senderIdentity = readPublicationSenderIdentity(context);
+  const tokenEncryptionSecret = readPublicationTokenEncryptionSecret();
 
   // Fetch project name for email copy (best effort)
   let projectName = "your project";
@@ -1571,64 +1531,38 @@ export async function addSharedLinkRecipients({
       const tokenHash = hashPublicationToken(rawToken, secret);
 
       // Insert (idempotent per unique pub+lower(email) index)
-      const { data: insertedRecipient, error: insertErr } = await admin
-        .from<RecipientIdRow>("shared_link_recipients")
-        .insert({
-          publication_id: publicationId,
-          email: r.email,
-          display_name: r.displayName,
-          invited_by: context.currentUserId,
-          recipient_token_hash: tokenHash,
-          delivery_status: "pending",
-        })
-        .select("id")
-        .single();
+      const { data: intent, error: intentError } = await callPublicationD1Procedure<RecipientDeliveryIntentProcedureResult>(
+        admin,
+        "create_shared_link_recipient_delivery_intent",
+        {
+          expected_encrypted_token: pubCtx.encryptedToken ?? null,
+          p_delivery_payload: {
+            encryptedRawToken: encryptPublicationToken(rawToken, tokenEncryptionSecret),
+            linkBase,
+            projectName,
+            recipientEmail: r.email,
+            senderEmail: senderIdentity.email,
+            senderLabel: senderIdentity.label,
+          },
+          p_display_name: r.displayName,
+          p_email: r.email,
+          p_invited_by: context.currentUserId,
+          p_recipient_token_hash: tokenHash,
+          target_publication_id: publicationId,
+        },
+      );
 
-      if (insertErr) {
-        // Likely duplicate (unique constraint) — treat as non-fatal for this recipient
-        if (insertErr.code === "23505" || /duplicate/i.test(insertErr.message || "")) {
-          // AC-MOD-17 (MOD-REC-05): a duplicate keeps ok:true so the `added`/aggregate logic is
-          // unaffected, but the explicit status lets the UI render it neutrally instead of as a
-          // misleading green "sent" chip (the old `error: "already invited"` drove a success chip
-          // while the headline said "No new recipients added").
-          return { added: 0, emailResult: { email: r.email, ok: true, status: "duplicate" as const } };
-        }
-        throw insertErr;
+      if (intentError) throw intentError;
+      if (intent?.status === "duplicate") {
+        return { added: 0, emailResult: { email: r.email, ok: true, id: intent.recipientId, status: "duplicate" as const } };
       }
-      const recipientId = insertedRecipient?.id;
-      if (!recipientId) throw new Error("Recipient insert did not return an id.");
-
-      const sendResult = await sendSharedLinkRecipientInvitationEmail({
-        linkBase,
-        projectName,
-        publicationId,
-        rawToken,
-        recipientEmail: r.email,
-        recipientId,
-        senderIdentity,
-      });
-
-      if (sendResult.ok) {
-        // Mark sent optimistically; provider delivery receipts are future work.
-        await admin.from("shared_link_recipients")
-          .update({
-            delivery_status: "sent",
-            resend_email_id: sendResult.messageId ?? null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", recipientId);
-        // AC-MOD-17 (MOD-ACT-04): surface the inserted recipient id (and explicit status) so a
-        // just-added chip immediately supports resend/remove without remounting the modal.
-        return { added: 1, emailResult: { email: r.email, ok: true, id: recipientId, status: "sent" as const } };
-      } else {
-        // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
-        console.warn("[P4] recipient email send non-fatal failure", { error: sendResult.error, publicationId, recipientId });
-        return {
-          added: 1,
-          emailResult: { email: r.email, ok: false, error: sendResult.error, id: recipientId, status: "pending" as const },
-        };
-        // keep pending
+      if (intent?.status !== "queued" || !intent.recipientId) {
+        throw new Error("Shared link changed before recipient delivery could be queued.");
       }
+      return {
+        added: 1,
+        emailResult: { email: r.email, ok: true, id: intent.recipientId, status: "pending" as const },
+      };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "unknown error";
       return { added: 0, failedEmail: r.email, emailResult: { email: r.email, ok: false, error: msg, status: "failed" as const } };
@@ -1642,9 +1576,9 @@ export async function addSharedLinkRecipients({
     emailResults.push(result.emailResult);
   }
 
-  const successCount = emailResults.filter((e) => e.ok).length;
+  const queuedCount = emailResults.filter((entry) => entry.status === "pending").length;
   const baseMessage = added > 0
-    ? `Added ${added} recipient(s). ${successCount} email(s) dispatched (failures are non-fatal).`
+    ? `Added ${added} recipient(s). ${queuedCount} email(s) queued for delivery.`
     : "No new recipients added (duplicates or invalid).";
   const message = blockedSelfEmails.length > 0
     ? `${baseMessage} ${selfInviteMessage}`
@@ -1657,14 +1591,14 @@ export async function addSharedLinkRecipients({
       added_count: added,
       attempted_count: inputs.length,
       blocked_self_count: blockedSelfEmails.length,
-      email_success_count: successCount,
+      email_queued_count: queuedCount,
       failed_count: failedEmails.length,
       normalized_count: normalized.length,
       publication_id: publicationId,
     },
   });
 
-  return { ok: added > 0 || successCount > 0, message, added, failedEmails, emailResults };
+  return { ok: added > 0 || queuedCount > 0, message, added, failedEmails, emailResults };
 }
 
 export async function resendSharedLinkRecipientEmail({
@@ -1695,7 +1629,7 @@ export async function resendSharedLinkRecipientEmail({
 
   const { data: recipient, error: recipientError } = await admin
     .from<RecipientResendRow>("shared_link_recipients")
-    .select("id, email, display_name, email_unsubscribed_at")
+    .select("id, email, display_name, email_unsubscribed_at, recipient_token_hash")
     .eq("publication_id", publicationId)
     .eq("id", recipientId)
     .maybeSingle();
@@ -1720,39 +1654,29 @@ export async function resendSharedLinkRecipientEmail({
 
   const rawToken = createPublicationToken();
   const tokenHash = hashPublicationToken(rawToken, readPublicationTokenHashSecret());
-
-  // MOD-REC-02: generate token -> SEND -> persist only on success. We must send the email with
-  // the new rawToken BEFORE overwriting recipient_token_hash so a send failure leaves the
-  // recipient's previously-emailed link intact (the new hash is never written, so the old link
-  // still resolves). The earlier pre-send "pending" write stranded recipients on send failure.
-  const sendResult = await sendSharedLinkRecipientInvitationEmail({
-    linkBase,
-    projectName: context.project.name || "your project",
-    publicationId,
-    rawToken,
-    recipientEmail: recipient.email,
-    recipientId,
-    senderIdentity: readPublicationSenderIdentity(context),
-  });
-
-  if (!sendResult.ok) {
-    console.warn("[P4] recipient email resend non-fatal failure", { error: sendResult.error, publicationId, recipientId });
-    // No DB write happened: the prior recipient_token_hash and delivery_status are untouched and
-    // the previously-emailed link still works.
-    return { ok: false, message: "Recipient email resend failed. The previous link is still active." };
-  }
-
-  const { data: persisted, error: sentUpdateError } = await callPublicationD1Procedure<boolean>(admin, "persist_shared_link_recipient_resend", {
-    target_publication_id: publicationId,
-    target_recipient_id: recipientId,
-    expected_encrypted_token: pubCtx.encryptedToken ?? null,
-    p_recipient_token_hash: tokenHash,
-    p_resend_email_id: sendResult.messageId ?? null,
-    p_invited_by: context.currentUserId,
-  });
-  if (sentUpdateError) throw sentUpdateError;
-  if (!persisted) {
-    return { ok: false, message: "Shared link changed while resending. Send the recipient email again from the current link." };
+  const senderIdentity = readPublicationSenderIdentity(context);
+  const { data: intent, error: intentError } = await callPublicationD1Procedure<RecipientDeliveryIntentProcedureResult>(
+    admin,
+    "reserve_shared_link_recipient_resend_intent",
+    {
+      expected_encrypted_token: pubCtx.encryptedToken ?? null,
+      p_delivery_payload: {
+        encryptedRawToken: encryptPublicationToken(rawToken, readPublicationTokenEncryptionSecret()),
+        linkBase,
+        projectName: context.project.name || "your project",
+        recipientEmail: recipient.email,
+        senderEmail: senderIdentity.email,
+        senderLabel: senderIdentity.label,
+      },
+      p_invited_by: context.currentUserId,
+      p_proposed_recipient_token_hash: tokenHash,
+      target_publication_id: publicationId,
+      target_recipient_id: recipientId,
+    },
+  );
+  if (intentError) throw intentError;
+  if (intent?.status !== "queued") {
+    return { ok: false, message: "Shared link changed while queueing the resend. Try again from the current link." };
   }
 
   await recordPublisherAuditEvent({
@@ -1763,8 +1687,7 @@ export async function resendSharedLinkRecipientEmail({
       recipient_id: recipient.id,
     },
   });
-  revalidatePublicationRoutes(pubCtx.projectId, linkBase);
-  return { ok: true, message: "Recipient email resent." };
+  return { ok: true, message: "Recipient email queued. The previous link remains active until delivery succeeds." };
 }
 
 export async function removeSharedLinkRecipient({

@@ -13,7 +13,7 @@ import {
 import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import type { EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
-import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
+import { computeEstimateTotals } from "@/lib/estimates/estimate-row-total";
 import {
   isEstimateTabsSchemaMissing,
   readDefaultEstimateTabD1,
@@ -1385,13 +1385,18 @@ function canReadProjectCollaborationRoster({
   context: Pick<CurrentUserContext, "role">;
   profileId: string;
   project: Pick<Tables<"projects">, "created_by">;
-  projectMembers: Array<Pick<Tables<"project_members">, "user_id">>;
-  workspaceMembers: Array<Pick<Tables<"workspace_members">, "user_id">>;
+  projectMembers: Array<Pick<Tables<"project_members">, "role" | "user_id">>;
+  workspaceMembers: Array<Pick<Tables<"workspace_members">, "role" | "user_id">>;
 }) {
   if (isPlatformAdminContext(context)) return true;
   if (project.created_by === profileId) return true;
-  return workspaceMembers.some((member) => member.user_id === profileId)
-    || projectMembers.some((member) => member.user_id === profileId);
+  return workspaceMembers.some((member) => (
+    member.user_id === profileId
+    && canManageCollaborationRole(mapWorkspaceRoleToCollaborationRole(member.role))
+  )) || projectMembers.some((member) => (
+    member.user_id === profileId
+    && canManageCollaborationRole(member.role)
+  ));
 }
 
 function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
@@ -2855,7 +2860,20 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     }
   }
 
+  const currentUserSheetRoleByEstimateId = new Map<string, CollaborationRole>();
   for (const member of sheetMembers) {
+    if (member.user_id === profile.id) {
+      currentUserSheetRoleByEstimateId.set(member.estimate_id, member.role);
+    }
+  }
+  const canManageAccess = Boolean(currentUserProjectLevelRole && canManageCollaborationRole(currentUserProjectLevelRole));
+  const manageableEstimateIds = new Set(estimateIds.filter((estimateId) => (
+    canManageAccess
+    || canManageCollaborationRole(currentUserSheetRoleByEstimateId.get(estimateId) ?? "viewer")
+  )));
+
+  for (const member of sheetMembers) {
+    if (!manageableEstimateIds.has(member.estimate_id)) continue;
     const existing = collaboratorRoles.get(member.user_id);
     const role = readHighestCollaborationRole(existing?.role, member.role);
     collaboratorRoles.set(member.user_id, {
@@ -2900,16 +2918,13 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
 
   const sheetMemberCountByEstimateId = new Map<string, number>();
   const directSheetMemberIdsByEstimateId = new Map<string, Set<string>>();
-  const currentUserSheetRoleByEstimateId = new Map<string, CollaborationRole>();
   const sheetMembersByEstimateId = new Map<string, EstimateSheetMemberSummary[]>();
   for (const member of sheetMembers) {
     sheetMemberCountByEstimateId.set(member.estimate_id, (sheetMemberCountByEstimateId.get(member.estimate_id) ?? 0) + 1);
     const memberIds = directSheetMemberIdsByEstimateId.get(member.estimate_id) ?? new Set<string>();
     memberIds.add(member.user_id);
     directSheetMemberIdsByEstimateId.set(member.estimate_id, memberIds);
-    if (member.user_id === profile.id) {
-      currentUserSheetRoleByEstimateId.set(member.estimate_id, member.role);
-    }
+    if (!manageableEstimateIds.has(member.estimate_id)) continue;
     const collaboratorProfile = profiles.get(member.user_id);
     const summary: EstimateSheetMemberSummary = {
       id: member.user_id,
@@ -2930,7 +2945,6 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
 
   const sheetInheritanceByEstimateId = new Map(sheetSettings.map((settings) => [settings.estimate_id, settings.inherit_project_access]));
   const currentUserRole = collaboratorRoles.get(profile.id)?.role ?? "viewer";
-  const canManageAccess = Boolean(currentUserProjectLevelRole && canManageCollaborationRole(currentUserProjectLevelRole));
   const eligibleProjectMemberCandidates: EligibleProjectMemberCandidate[] = canManageAccess
     ? (workspaceMembers ?? [])
       .filter((member) => member.user_id !== profile.id && !directProjectRoleByUserId.has(member.user_id))
@@ -2957,7 +2971,7 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     const currentUserRoleAtEstimate = inheritsProjectAccess
       ? readHighestCollaborationRole(currentUserProjectLevelRole, currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer") ?? "viewer"
       : currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer";
-    const canManageEstimateAccess = canManageAccess || canManageCollaborationRole(currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer");
+    const canManageEstimateAccess = manageableEstimateIds.has(estimate.id);
     const eligibleMemberCandidates: EligibleProjectMemberCandidate[] = canManageEstimateAccess && canReadProjectRoster
       ? collaboratorIds
         .filter((userId) => userId !== profile.id && !directSheetMemberIdsByEstimateId.get(estimate.id)?.has(userId))
@@ -2982,14 +2996,18 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       canManageAccess: canManageEstimateAccess,
       currentUserRole: currentUserRoleAtEstimate,
       eligibleMemberCandidates,
-      members: sheetMembersByEstimateId.get(estimate.id) ?? [],
+      members: canManageEstimateAccess ? sheetMembersByEstimateId.get(estimate.id) ?? [] : [],
     };
   });
   const pendingInvitations: CollaborationInvitationSummary[] = pendingInvitationRows
     .filter((invitation) => {
       const scope = normalizePendingInviteScope(invitation.scope);
-      if (canReadProjectRoster && scope === "project") return true;
-      return scope === "estimate" && Boolean(invitation.estimate_id && accessibleEstimateIds.has(invitation.estimate_id));
+      if (canManageAccess && scope === "project") return true;
+      return scope === "estimate" && Boolean(
+        invitation.estimate_id
+        && accessibleEstimateIds.has(invitation.estimate_id)
+        && manageableEstimateIds.has(invitation.estimate_id)
+      );
     })
     .filter((invitation): invitation is CollaborationInvitationRow & { scope: "project" | "estimate" } => invitation.scope === "project" || invitation.scope === "estimate")
     .map((invitation) => ({
@@ -3211,13 +3229,22 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   const nodeCountByEstimateId = new Map<string, number>();
   const rowCountByEstimateId = new Map<string, number>();
   const totalCostByEstimateId = new Map<string, number>();
+  const rowCostsByEstimateId = new Map<string, typeof rowCostRows>();
   for (const summary of summaryRows) {
     nodeCountByEstimateId.set(summary.estimate_id, Number(summary.node_count ?? 0));
     rowCountByEstimateId.set(summary.estimate_id, Number(summary.row_count ?? 0));
-    totalCostByEstimateId.set(summary.estimate_id, 0);
   }
   for (const row of rowCostRows) {
-    totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + computeEstimateRowLineTotal(row));
+    const rows = rowCostsByEstimateId.get(row.estimate_id) ?? [];
+    rows.push(row);
+    rowCostsByEstimateId.set(row.estimate_id, rows);
+  }
+  for (const estimate of normalizedEstimates) {
+    const total = computeEstimateTotals(rowCostsByEstimateId.get(estimate.id) ?? [], "working_estimate", {
+      currencyCode: estimate.currency_code,
+    });
+    if (!total.ok) throw new Error("Estimate total could not be calculated.");
+    totalCostByEstimateId.set(estimate.id, total.value.total);
   }
 
   return { workspace, project, estimates: normalizedEstimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };

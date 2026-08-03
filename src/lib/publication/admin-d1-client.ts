@@ -821,6 +821,166 @@ async function persistSharedLinkRecipientResend(db: D1DatabaseLike, args: Record
   return (result.meta?.changes ?? 0) > 0;
 }
 
+function deliveryPayload(args: Record<string, unknown>) {
+  const value = args.p_delivery_payload;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Recipient delivery payload is invalid.");
+  }
+  return value as Record<string, unknown>;
+}
+
+function activeRecipientDeliveryIntent(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const intent = value as Record<string, unknown>;
+  if ((intent.state !== "pending" && intent.state !== "processing") || typeof intent.intentId !== "string") return null;
+  return intent;
+}
+
+async function createSharedLinkRecipientDeliveryIntent(db: D1DatabaseLike, args: Record<string, unknown>) {
+  const publicationId = String(args.target_publication_id ?? "");
+  const email = String(args.p_email ?? "").trim().toLowerCase();
+  const recipientTokenHash = String(args.p_recipient_token_hash ?? "");
+  const expectedEncryptedToken = typeof args.expected_encrypted_token === "string" ? args.expected_encrypted_token : null;
+  if (!publicationId || !email || !recipientTokenHash) throw new Error("Recipient delivery intent is invalid.");
+
+  const existing = await first<{ id: string }>(
+    db,
+    "SELECT id FROM shared_link_recipients WHERE publication_id = ? AND lower(email) = ? LIMIT 1",
+    [publicationId, email],
+  );
+  if (existing) return { recipientId: existing.id, status: "duplicate" as const };
+
+  const publication = await first<{ encrypted_token: string | null }>(
+    db,
+    "SELECT encrypted_token FROM project_publications WHERE id = ? LIMIT 1",
+    [publicationId],
+  );
+  if (!publication || publication.encrypted_token !== expectedEncryptedToken) return { status: "conflict" as const };
+
+  const at = nowIso();
+  const recipientId = randomUUID();
+  const intentId = `legacy_delivery_${randomUUID()}`;
+  const metadata = {
+    ...deliveryPayload(args),
+    attemptCount: 0,
+    createdAt: at,
+    expectedPublicationEncryptedToken: expectedEncryptedToken,
+    expectedRecipientTokenHash: recipientTokenHash,
+    intentId,
+    kind: "invitation",
+    nextAttemptAt: at,
+    proposedRecipientTokenHash: recipientTokenHash,
+    state: "pending",
+    updatedAt: at,
+    version: 1,
+  };
+
+  try {
+    const inserted = await run(
+      db,
+      `INSERT INTO shared_link_recipients (
+         id, publication_id, email, display_name, invited_by, invited_at,
+         recipient_token_hash, delivery_status, resend_delivery_metadata, created_at, updated_at
+       )
+       SELECT ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?
+       FROM project_publications publication
+       WHERE publication.id = ? AND publication.encrypted_token IS ?`,
+      [
+        recipientId,
+        publicationId,
+        email,
+        args.p_display_name ?? null,
+        args.p_invited_by ?? null,
+        at,
+        recipientTokenHash,
+        jsonText(metadata),
+        at,
+        at,
+        publicationId,
+        expectedEncryptedToken,
+      ],
+    );
+    if ((inserted.meta?.changes ?? 0) === 0) return { status: "conflict" as const };
+  } catch (error) {
+    if (!/unique constraint failed/i.test(error instanceof Error ? error.message : String(error))) throw error;
+    const raced = await first<{ id: string }>(
+      db,
+      "SELECT id FROM shared_link_recipients WHERE publication_id = ? AND lower(email) = ? LIMIT 1",
+      [publicationId, email],
+    );
+    if (raced) return { recipientId: raced.id, status: "duplicate" as const };
+    throw error;
+  }
+
+  return { intentId, recipientId, status: "queued" as const };
+}
+
+async function reserveSharedLinkRecipientResendIntent(db: D1DatabaseLike, args: Record<string, unknown>) {
+  const publicationId = String(args.target_publication_id ?? "");
+  const recipientId = String(args.target_recipient_id ?? "");
+  const proposedRecipientTokenHash = String(args.p_proposed_recipient_token_hash ?? "");
+  const expectedEncryptedToken = typeof args.expected_encrypted_token === "string" ? args.expected_encrypted_token : null;
+  if (!publicationId || !recipientId || !proposedRecipientTokenHash) throw new Error("Recipient resend intent is invalid.");
+
+  const recipient = await first<{
+    id: string;
+    recipient_token_hash: string;
+    resend_delivery_metadata: PublicationAdminJson;
+  }>(
+    db,
+    `SELECT id, recipient_token_hash, resend_delivery_metadata
+     FROM shared_link_recipients
+     WHERE publication_id = ? AND id = ? AND email_unsubscribed_at IS NULL
+     LIMIT 1`,
+    [publicationId, recipientId],
+  );
+  if (!recipient) return { status: "conflict" as const };
+
+  const activeIntent = activeRecipientDeliveryIntent(recipient.resend_delivery_metadata);
+  if (activeIntent) {
+    return { intentId: activeIntent.intentId as string, recipientId, status: "queued" as const };
+  }
+
+  const publication = await first<{ encrypted_token: string | null }>(
+    db,
+    "SELECT encrypted_token FROM project_publications WHERE id = ? LIMIT 1",
+    [publicationId],
+  );
+  if (!publication || publication.encrypted_token !== expectedEncryptedToken) return { status: "conflict" as const };
+
+  const at = nowIso();
+  const intentId = `legacy_delivery_${randomUUID()}`;
+  const metadata = {
+    ...deliveryPayload(args),
+    attemptCount: 0,
+    createdAt: at,
+    expectedPublicationEncryptedToken: expectedEncryptedToken,
+    expectedRecipientTokenHash: recipient.recipient_token_hash,
+    intentId,
+    kind: "resend",
+    nextAttemptAt: at,
+    proposedRecipientTokenHash,
+    state: "pending",
+    updatedAt: at,
+    version: 1,
+  };
+  const update = await run(
+    db,
+    `UPDATE shared_link_recipients
+     SET resend_delivery_metadata = ?, updated_at = ?
+     WHERE publication_id = ? AND id = ? AND recipient_token_hash = ?
+       AND email_unsubscribed_at IS NULL
+       AND EXISTS (
+         SELECT 1 FROM project_publications publication
+         WHERE publication.id = shared_link_recipients.publication_id
+           AND publication.encrypted_token IS ?
+       )`,
+    [jsonText(metadata), at, publicationId, recipientId, recipient.recipient_token_hash, expectedEncryptedToken],
+  );
+  if ((update.meta?.changes ?? 0) === 0) return { status: "conflict" as const };
+  return { intentId, recipientId, status: "queued" as const };
+}
+
 async function reserveSecurityRateLimitSlot(db: D1DatabaseLike, args: Record<string, unknown>) {
   const existing = await first<{ count: number }>(
     db,
@@ -879,6 +1039,10 @@ export function createPublicationAdminD1Client(databasePromise: Promise<D1Databa
           data = await rotateProjectPublicationCredentials(db, args);
         } else if (functionName === "persist_shared_link_recipient_resend") {
           data = await persistSharedLinkRecipientResend(db, args);
+        } else if (functionName === "create_shared_link_recipient_delivery_intent") {
+          data = await createSharedLinkRecipientDeliveryIntent(db, args);
+        } else if (functionName === "reserve_shared_link_recipient_resend_intent") {
+          data = await reserveSharedLinkRecipientResendIntent(db, args);
         } else if (functionName === "reserve_security_rate_limit_slot") {
           data = await reserveSecurityRateLimitSlot(db, args);
         } else if (functionName === "authorize_recipient_publication_for_current_user") {

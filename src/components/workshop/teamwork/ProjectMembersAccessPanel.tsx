@@ -352,7 +352,7 @@ export function ProjectMembersAccessPanel({
         setPendingProjectRemoval({
           affectedEstimateNames: result.affectedEstimateNames ?? [],
           member,
-          removalMode: "remove_all_direct_grants",
+          removalMode: "retain_sheet_grants",
         });
       } catch (error) {
         setFeedback({

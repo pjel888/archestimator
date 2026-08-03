@@ -43,6 +43,8 @@ export function createProposalPreviewSignature(
         item.unit,
         item.itemCost,
         editableRow.quantity,
+        editableRow.quantityBase,
+        editableRow.quantityContingencyAmount,
         editableRow.contingencyMode,
         editableRow.contingencyPercentage,
         editableRow.adjustmentPercentage,

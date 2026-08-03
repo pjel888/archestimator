@@ -1324,8 +1324,7 @@ export async function updateProjectImageMetadata(
   projectId: string,
   image: ProjectImageMetadataInput,
 ) {
-  await requireAuth();
-  const currentUser = await requireCurrentUserContext();
+  const currentUser = await requireWorkshopWriteContext();
   const database = await requireProjectsD1Database();
   const project = await readProjectFromD1(database, projectId);
   if (!project) throw new Error("Project not found.");

@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
-import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
+import { computeEstimateTotals } from "@/lib/estimates/estimate-row-total";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import {
@@ -324,12 +324,16 @@ export async function duplicateEstimateRecordGraph(
     }] : [];
   });
   const firstNodeId = selectFirstEstimateNodeIds(duplicatedNodeRowsInOrder).get(duplicatedEstimate.id) ?? null;
+  const total = computeEstimateTotals(sourceRows, "working_estimate", {
+    currencyCode: sourceEstimate.currency_code,
+  });
+  if (!total.ok) throw new Error("Estimate total could not be calculated.");
   return {
     estimate: duplicatedEstimate,
     firstNodeId,
     nodeCount: nodeIdBySourceId.size,
     rowCount,
-    totalProjectCost: sumEstimateRowLineTotals(sourceRows),
+    totalProjectCost: total.value.total,
     sheetCode,
   };
 }

@@ -1,7 +1,7 @@
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { canAccessWholeProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
-import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
+import { computeEstimateTotals } from "@/lib/estimates/estimate-row-total";
 import { selectFirstEstimateNodeIds, type EstimateFirstNodeSourceRow } from "@/lib/estimates/tree-hierarchy";
 
 export type ProjectEstimateSheetSummary = {
@@ -37,6 +37,7 @@ type ProjectEstimateSheetD1Row = {
 };
 
 type RecentProjectEstimateSheetD1Row = ProjectEstimateSheetD1Row & {
+  currency_code: string | null;
   project_id: string;
   project_budget: number | string | null;
 };
@@ -168,7 +169,7 @@ export async function listRecentProjectEstimateSheets(
   const db = await requireProjectEstimateSheetsD1Database();
   const scope = await resolveProjectEstimateSheetScope(projectId, db);
   const scoped = appendEstimateScope(`
-      SELECT id, project_id, name, sheet_code, project_budget, updated_at
+      SELECT id, project_id, name, sheet_code, currency_code, project_budget, updated_at
       FROM estimates
       WHERE project_id = ?`, scope.accessibleEstimateIds);
   const { results: estimateRows = [] } = await db
@@ -216,19 +217,27 @@ export async function listRecentProjectEstimateSheets(
   ]);
 
   const firstNodeIds = selectFirstEstimateNodeIds(nodesResult.results ?? []);
-  const totalCostByEstimateId = new Map<string, number>();
+  const rowCostsByEstimateId = new Map<string, EstimateRowCostD1Row[]>();
   for (const row of rowCostsResult.results ?? []) {
-    totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + computeEstimateRowLineTotal(row));
+    const rows = rowCostsByEstimateId.get(row.estimate_id) ?? [];
+    rows.push(row);
+    rowCostsByEstimateId.set(row.estimate_id, rows);
   }
 
-  return estimateRows.map((estimate) => ({
-    id: estimate.id,
-    projectId: estimate.project_id,
-    name: estimate.name,
-    sheetCode: estimate.sheet_code ?? null,
-    updatedAt: estimate.updated_at ?? null,
-    firstNodeId: firstNodeIds.get(estimate.id) ?? null,
-    totalCost: totalCostByEstimateId.get(estimate.id) ?? 0,
-    projectBudget: normalizeNullableNumber(estimate.project_budget),
-  }));
+  return estimateRows.map((estimate) => {
+    const total = computeEstimateTotals(rowCostsByEstimateId.get(estimate.id) ?? [], "working_estimate", {
+      currencyCode: estimate.currency_code,
+    });
+    if (!total.ok) throw new Error("Estimate total could not be calculated.");
+    return {
+      id: estimate.id,
+      projectId: estimate.project_id,
+      name: estimate.name,
+      sheetCode: estimate.sheet_code ?? null,
+      updatedAt: estimate.updated_at ?? null,
+      firstNodeId: firstNodeIds.get(estimate.id) ?? null,
+      totalCost: total.value.total,
+      projectBudget: normalizeNullableNumber(estimate.project_budget),
+    };
+  });
 }

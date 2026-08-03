@@ -1,5 +1,5 @@
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
-import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
+import { computeEstimateTotals } from "@/lib/estimates/estimate-row-total";
 
 import { buildSeriesByEstimate } from "../project-charts/project-comparison-view";
 import { getCurrentWorkspaceProject } from "./workspace-repository";
@@ -125,20 +125,20 @@ export async function getProjectChartsData(
 
   const estimateOptions = estimates.map((estimate) => {
     const estimateRowsForOption = rowFacts.filter((row) => row.estimateId === estimate.id);
+    const total = computeEstimateTotals(estimateRowsForOption.map((row) => ({
+      quantity: row.quantity,
+      quantity_base: row.quantityBase,
+      quantity_contingency_amount: row.quantityContingencyAmount,
+      unit_cost: row.unitCost,
+      contingency_percentage: row.contingencyPercentage,
+      adjustment_percentage: row.adjustmentPercentage,
+      misc_cost: row.miscCost,
+    })), "working_estimate", { currencyCode: estimate.currencyCode });
+    if (!total.ok) throw new Error("Estimate total could not be calculated.");
     return {
       ...estimate,
       rowCount: estimateRowsForOption.length,
-      totalCost: estimateRowsForOption.reduce((sum, row) => {
-        return sum + computeEstimateRowLineTotal({
-          quantity: row.quantity,
-          quantity_base: row.quantityBase,
-          quantity_contingency_amount: row.quantityContingencyAmount,
-          unit_cost: row.unitCost,
-          contingency_percentage: row.contingencyPercentage,
-          adjustment_percentage: row.adjustmentPercentage,
-          misc_cost: row.miscCost,
-        });
-      }, 0),
+      totalCost: total.value.total,
     };
   });
 

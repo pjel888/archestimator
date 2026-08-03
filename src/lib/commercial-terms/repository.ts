@@ -2,6 +2,7 @@ import "server-only";
 
 import type { D1DatabaseLike, D1PreparedStatementLike, D1Value } from "@/lib/cloudflare/d1";
 import { runRequiredD1Batch } from "@/lib/cloudflare/d1-batch";
+import { canEditEstimateStrictInD1 } from "@/lib/authz/d1-access";
 import { assertD1MutationStatementLimit } from "@/lib/estimates/mutation-receipts";
 import { prepareHistoryEventInsert } from "@/lib/estimates/d1-intents/history-events";
 import {
@@ -193,7 +194,7 @@ function buildGuardedCommercialReceiptStatement(input: {
           JOIN estimate_row_commercial_terms AS terms ON terms.row_id = row.id
           WHERE row.id = ? AND row.estimate_id = ? AND row.row_revision = ? AND terms.terms_revision = ?
     `,
-    guardValues: [input.context.actorUserId, input.rowId, input.estimateId, input.rowRevision, input.termsRevision],
+    guardValues: [input.rowId, input.estimateId, input.rowRevision, input.termsRevision],
   });
 }
 
@@ -437,27 +438,9 @@ async function canEditCommercialTerms(input: {
   workspaceId: string;
   projectId: string;
   estimateId: string;
-  actorUserId: string;
+  actor: EstimateD1Actor;
 }) {
-  const row = await input.database.prepare<{ allowed: number }>(`
-    SELECT CASE WHEN EXISTS (
-      SELECT 1 FROM project_members
-      WHERE project_id = ? AND workspace_id = ? AND user_id = ?
-        AND role IN ('owner', 'admin', 'editor')
-    ) OR EXISTS (
-      SELECT 1 FROM estimate_sheet_members
-      WHERE estimate_id = ? AND project_id = ? AND user_id = ?
-        AND role IN ('owner', 'admin', 'editor')
-    ) THEN 1 ELSE 0 END AS allowed
-  `).bind(
-    input.projectId,
-    input.workspaceId,
-    input.actorUserId,
-    input.estimateId,
-    input.projectId,
-    input.actorUserId,
-  ).first<{ allowed: number }>();
-  return Number(row?.allowed) === 1;
+  return canEditEstimateStrictInD1(input.database, input.estimateId, input.actor);
 }
 
 /** Links or unlinks retained quotation provenance behind editor and CAS checks. */
@@ -482,7 +465,7 @@ export async function updateRowQuotationLink(input: {
   ) {
     return { ok: false, code: "invalid_batch" };
   }
-  if (!await canEditCommercialTerms({ ...input, actorUserId: input.actor.userId })) return { ok: false, code: "not_authorized" };
+  if (!await canEditCommercialTerms(input)) return { ok: false, code: "not_authorized" };
 
   if (quotationArtifactVersionId) {
     const policy = await readQuotationAttachmentPolicyBatch({
@@ -548,7 +531,7 @@ export async function updateRowCommercialTerms(input: {
   }
   const quotationFacts = normalizeQuotationFacts(input);
   if (!quotationFacts.ok) return { ok: false, code: "invalid_batch" };
-  if (!await canEditCommercialTerms({ ...input, actorUserId: input.actor.userId })) return { ok: false, code: "not_authorized" };
+  if (!await canEditCommercialTerms(input)) return { ok: false, code: "not_authorized" };
   const result = await commitCommercialMutation({
     ...input,
     commandKind: "estimate.row.commercial.update",
