@@ -398,7 +398,7 @@ async function verifyRecipientCredential(database:D1DatabaseLike, portal:PortalR
   const failed=results.some((result)=>result.success === false);
   const credentialUpdated=(results[0]?.meta?.changes ?? 0) === 1;
   const recipientUpdated=(results[1]?.meta?.changes ?? 0) === 1;
-  return !failed && credentialUpdated && recipientUpdated;
+  return !failed && credentialUpdated && (recipientUpdated || recipient.verification_state === "verified");
 }
 
 function verifiedRecipientActor(portal:PortalRow, recipient:RecipientCredentialRow, overrides:ClientPortalCapabilityOverride[]) {

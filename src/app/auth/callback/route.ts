@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
+import { shouldRecordAuthCallbackAuditEvent } from "@/lib/auth/callback-abuse-control";
 import {
   buildLoginRedirectUrl,
   resolveAuthOrigin,
@@ -22,14 +23,16 @@ export async function GET(request: NextRequest) {
   };
 
   if (!code) {
-    await recordAccountSecurityEvent({
-      eventType: "auth_callback_missing_code",
-      ...auditRequest,
-      metadata: {
-        public_error_code: "callback_missing_code",
-        safe_next: next,
-      },
-    });
+    if (await shouldRecordAuthCallbackAuditEvent(request, "auth_callback_missing_code")) {
+      await recordAccountSecurityEvent({
+        eventType: "auth_callback_missing_code",
+        ...auditRequest,
+        metadata: {
+          public_error_code: "callback_missing_code",
+          safe_next: next,
+        },
+      });
+    }
     return NextResponse.redirect(
       buildLoginRedirectUrl({
         origin,
@@ -39,14 +42,16 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  await recordAccountSecurityEvent({
-    eventType: "auth_callback_legacy_disabled",
-    ...auditRequest,
-    metadata: {
-      public_error_code: "callback_exchange_failed",
-      safe_next: next,
-    },
-  });
+  if (await shouldRecordAuthCallbackAuditEvent(request, "auth_callback_legacy_disabled")) {
+    await recordAccountSecurityEvent({
+      eventType: "auth_callback_legacy_disabled",
+      ...auditRequest,
+      metadata: {
+        public_error_code: "callback_exchange_failed",
+        safe_next: next,
+      },
+    });
+  }
 
   return NextResponse.redirect(
     buildLoginRedirectUrl({

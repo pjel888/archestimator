@@ -71,7 +71,6 @@ export async function getProfileByEmailFromD1(
                deleted_at, deletion_id, created_at, updated_at
         FROM profiles
         WHERE email = ?
-          AND deleted_at IS NULL
         LIMIT 1
       `,
     )

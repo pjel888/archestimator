@@ -1,6 +1,11 @@
 import "server-only";
 
-import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import {
+  getCloudflareD1Database,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+  type D1Result,
+} from "@/lib/cloudflare/d1";
 import type { ClosedBetaAccessResult, ClosedBetaAccessStatus } from "@/lib/auth/closed-beta-access";
 import type { ClosedBetaAllowlistRow, ClosedBetaAllowlistStatus } from "@/lib/auth/beta-allowlist-admin";
 import {
@@ -32,6 +37,12 @@ type PendingInviteRow = {
   metadata_json: string | null;
   normalized_email: string;
 };
+
+type PendingInvitePageRow = PendingInviteRow & {
+  created_at: string;
+};
+
+const CLOSED_BETA_TRAVERSAL_PAGE_SIZE = 200;
 
 function isClosedBetaAccessStatus(value: string): value is Exclude<ClosedBetaAccessStatus, "disabled" | "no-email" | "error"> {
   return value === "missing" || value === "invited" || value === "active" || value === "revoked";
@@ -138,64 +149,53 @@ export async function markClosedBetaAllowlistAcceptedInD1(
   return { promoted: (update.meta?.changes ?? 0) > 0 };
 }
 
-export async function reconcileClosedBetaAllowlistAcceptedFromUsersInD1(
-  db?: D1DatabaseLike | null,
-): Promise<{ promoted: number }> {
-  const database = db ?? (await getCloudflareD1Database());
-  if (!database) return { promoted: 0 };
-
-  const now = new Date().toISOString();
-  const update = await database
-    .prepare(
-      `
-        UPDATE closed_beta_allowed_emails
-        SET
-          status = 'active',
-          accepted_at = COALESCE(accepted_at, ?),
-          updated_at = ?
-        WHERE status = 'invited'
-          AND EXISTS (
-            SELECT 1
-            FROM "user" AS auth_user
-            WHERE lower(trim(auth_user.email)) = closed_beta_allowed_emails.normalized_email
-          )
-      `,
-    )
-    .bind(now, now)
-    .run();
-
-  return { promoted: update.meta?.changes ?? 0 };
-}
-
 export async function readClosedBetaAllowlistQueueFromD1(status: ClosedBetaAllowlistStatus | null): Promise<ClosedBetaAllowlistRow[]> {
   const db = await getCloudflareD1Database();
   if (!db) throw new Error("Something went wrong. Try again in a moment.");
 
-  await reconcileClosedBetaAllowlistAcceptedFromUsersInD1(db);
+  const rows: ClosedBetaAllowlistRow[] = [];
+  let cursor: Pick<ClosedBetaAllowlistD1Row, "created_at" | "id"> | null = null;
 
-  const statusFilter = status ? "WHERE status = ?" : "";
-  const statement = db.prepare<ClosedBetaAllowlistD1Row>(
-    `
-      SELECT
-        id,
-        normalized_email,
-        status,
-        invited_by,
-        invited_at,
-        accepted_at,
-        notes,
-        metadata_json,
-        created_at,
-        updated_at
-      FROM closed_beta_allowed_emails
-      ${statusFilter}
-      ORDER BY created_at DESC
-      LIMIT 100
-    `,
-  );
+  while (true) {
+    const filters: string[] = [
+      ...(status ? ["status = ?"] : []),
+      ...(cursor ? ["(created_at < ? OR (created_at = ? AND id < ?))"] : []),
+    ];
+    const statement: D1PreparedStatementLike<ClosedBetaAllowlistD1Row> = db.prepare<ClosedBetaAllowlistD1Row>(
+      `
+        SELECT
+          id,
+          normalized_email,
+          status,
+          invited_by,
+          invited_at,
+          accepted_at,
+          notes,
+          metadata_json,
+          created_at,
+          updated_at
+        FROM closed_beta_allowed_emails
+        ${filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : ""}
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+      `,
+    );
+    const result: D1Result<ClosedBetaAllowlistD1Row> = await statement
+      .bind(
+        ...(status ? [status] : []),
+        ...(cursor ? [cursor.created_at, cursor.created_at, cursor.id] : []),
+        CLOSED_BETA_TRAVERSAL_PAGE_SIZE,
+      )
+      .all<ClosedBetaAllowlistD1Row>();
+    const page: ClosedBetaAllowlistD1Row[] = result.results ?? [];
+    rows.push(...page.map(toAllowlistRow));
+    if (page.length < CLOSED_BETA_TRAVERSAL_PAGE_SIZE) break;
+    const lastRow: ClosedBetaAllowlistD1Row | undefined = page.at(-1);
+    if (!lastRow) break;
+    cursor = { created_at: lastRow.created_at, id: lastRow.id };
+  }
 
-  const result = status ? await statement.bind(status).all<ClosedBetaAllowlistD1Row>() : await statement.all<ClosedBetaAllowlistD1Row>();
-  return (result.results ?? []).map(toAllowlistRow);
+  return rows;
 }
 
 export async function createClosedBetaAllowlistEntryInD1({
@@ -314,24 +314,43 @@ export async function listPendingClosedBetaInviteEmailsFromD1(
   db: D1DatabaseLike,
   limit = 50,
 ): Promise<PendingInviteRow[]> {
-  const result = await db
-    .prepare<PendingInviteRow>(
-      `
-        SELECT id, normalized_email, metadata_json
-        FROM closed_beta_allowed_emails
-        WHERE status IN ('invited', 'active')
-        ORDER BY created_at ASC
-        LIMIT 200
-      `,
-    )
-    .all<PendingInviteRow>();
+  const requestedLimit = Math.max(0, Math.floor(limit));
+  if (requestedLimit === 0) return [];
 
   const pending: PendingInviteRow[] = [];
-  for (const row of result.results ?? []) {
-    if (readInviteEmailSentAt(parseMetadata(row.metadata_json))) continue;
-    pending.push(row);
-    if (pending.length >= limit) break;
+  let cursor: Pick<PendingInvitePageRow, "created_at" | "id"> | null = null;
+
+  while (true) {
+    const statement: D1PreparedStatementLike<PendingInvitePageRow> = db
+      .prepare<PendingInvitePageRow>(
+      `
+        SELECT id, normalized_email, metadata_json, created_at
+        FROM closed_beta_allowed_emails
+        WHERE status IN ('invited', 'active')
+          ${cursor ? "AND (created_at > ? OR (created_at = ? AND id > ?))" : ""}
+        ORDER BY created_at ASC, id ASC
+        LIMIT ?
+      `,
+      );
+    const result: D1Result<PendingInvitePageRow> = await statement
+      .bind(
+        ...(cursor ? [cursor.created_at, cursor.created_at, cursor.id] : []),
+        CLOSED_BETA_TRAVERSAL_PAGE_SIZE,
+      )
+      .all<PendingInvitePageRow>();
+    const page: PendingInvitePageRow[] = result.results ?? [];
+
+    for (const row of page) {
+      if (readInviteEmailSentAt(parseMetadata(row.metadata_json))) continue;
+      pending.push(row);
+      if (pending.length >= requestedLimit) return pending;
+    }
+    if (page.length < CLOSED_BETA_TRAVERSAL_PAGE_SIZE) break;
+    const lastRow: PendingInvitePageRow | undefined = page.at(-1);
+    if (!lastRow) break;
+    cursor = { created_at: lastRow.created_at, id: lastRow.id };
   }
+
   return pending;
 }
 

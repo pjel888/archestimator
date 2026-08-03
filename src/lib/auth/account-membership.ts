@@ -51,8 +51,11 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
       FROM workspace_members AS membership
       INNER JOIN workspaces AS workspace
         ON workspace.id = membership.workspace_id
+      LEFT JOIN corporate_accounts AS corporate_account
+        ON corporate_account.id = workspace.corporate_account_id
       WHERE membership.user_id = ?
         AND workspace.closed_at IS NULL
+        AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
       ORDER BY membership.created_at ASC
       LIMIT 1
     `)
@@ -74,8 +77,11 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
       FROM project_members AS project_member
       INNER JOIN workspaces AS workspace
         ON workspace.id = project_member.workspace_id
+      LEFT JOIN corporate_accounts AS corporate_account
+        ON corporate_account.id = workspace.corporate_account_id
       WHERE project_member.user_id = ?
         AND workspace.closed_at IS NULL
+        AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
       ORDER BY project_member.created_at ASC
       LIMIT 1
     `,
@@ -92,10 +98,18 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
   const estimateMembership = await firstOptional<EstimateMembershipD1Row>(
     db,
     `
-      SELECT project_id, role
-      FROM estimate_sheet_members
-      WHERE user_id = ?
-      ORDER BY created_at ASC
+      SELECT estimate_member.project_id, estimate_member.role
+      FROM estimate_sheet_members AS estimate_member
+      INNER JOIN projects AS project
+        ON project.id = estimate_member.project_id
+      INNER JOIN workspaces AS workspace
+        ON workspace.id = project.workspace_id
+      LEFT JOIN corporate_accounts AS corporate_account
+        ON corporate_account.id = workspace.corporate_account_id
+      WHERE estimate_member.user_id = ?
+        AND workspace.closed_at IS NULL
+        AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
+      ORDER BY estimate_member.created_at ASC
       LIMIT 1
     `,
     userId,
@@ -110,8 +124,11 @@ export async function readFirstAccountWorkspaceMembership(userId: string): Promi
         FROM projects AS project
         INNER JOIN workspaces AS workspace
           ON workspace.id = project.workspace_id
+        LEFT JOIN corporate_accounts AS corporate_account
+          ON corporate_account.id = workspace.corporate_account_id
         WHERE project.id = ?
           AND workspace.closed_at IS NULL
+          AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
         LIMIT 1
       `,
     )

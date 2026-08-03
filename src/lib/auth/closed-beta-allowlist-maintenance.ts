@@ -1,8 +1,5 @@
 import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
-import {
-  deliverPendingClosedBetaInviteEmailsFromD1,
-  reconcileClosedBetaAllowlistAcceptedFromUsersInD1,
-} from "@/lib/auth/closed-beta-d1-store";
+import { deliverPendingClosedBetaInviteEmailsFromD1 } from "@/lib/auth/closed-beta-d1-store";
 import type { CloudflareEmailClientOptions } from "@/lib/email/cloudflare-email-client";
 
 export type ClosedBetaAllowlistMaintenanceEnv = {
@@ -27,7 +24,6 @@ export async function runClosedBetaAllowlistMaintenance(env: ClosedBetaAllowlist
     };
   }
 
-  const reconciled = await reconcileClosedBetaAllowlistAcceptedFromUsersInD1(db);
   const inviteDelivery = await deliverPendingClosedBetaInviteEmailsFromD1({
     db,
     cloudflareOptions: {
@@ -39,7 +35,7 @@ export async function runClosedBetaAllowlistMaintenance(env: ClosedBetaAllowlist
   });
 
   return {
-    promoted: reconciled.promoted,
+    promoted: 0,
     inviteDelivery,
   };
 }

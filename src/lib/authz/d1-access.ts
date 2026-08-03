@@ -46,6 +46,24 @@ function isPlatformAdmin(user: CurrentUserAccessContext) {
   return isPlatformAdminRole(user.role);
 }
 
+const ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE = `
+          AND (
+            NOT EXISTS (
+              SELECT 1
+              FROM workspaces AS workspace
+              WHERE workspace.id = project.workspace_id
+                AND workspace.corporate_account_id IS NOT NULL
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM workspaces AS workspace
+              INNER JOIN corporate_accounts AS corporate_account
+                ON corporate_account.id = workspace.corporate_account_id
+              WHERE workspace.id = project.workspace_id
+                AND corporate_account.status = 'active'
+            )
+          )`;
+
 function toCollaborationRole(value: string | null | undefined): ProjectEstimateCollaborationRole | null {
   return isProjectEstimateCollaborationRole(value) ? value : null;
 }
@@ -92,6 +110,7 @@ export async function readCollaborationTopicAccessInD1(
              ON project_member.project_id = project.id
              AND project_member.user_id = ?
            WHERE project.id = ?
+             ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
            LIMIT 1`,
         )
         .bind(user.userId, user.userId, topic.resourceId)
@@ -116,6 +135,7 @@ export async function readCollaborationTopicAccessInD1(
              ON sheet_member.estimate_id = estimate.id
              AND sheet_member.user_id = ?
            WHERE estimate.id = ?
+             ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
            LIMIT 1`,
         )
         .bind(user.userId, user.userId, user.userId, topic.resourceId)
@@ -239,6 +259,7 @@ export async function canAccessProjectInD1(
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -280,6 +301,7 @@ export async function canAccessWholeProjectInD1(
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -314,6 +336,7 @@ async function readProjectEditAllowedInD1(
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -370,6 +393,7 @@ export async function canAccessEstimateInD1(
         LEFT JOIN estimate_sheet_access_settings access
           ON access.estimate_id = estimate.id
         WHERE estimate.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -418,6 +442,7 @@ async function readEstimateEditAllowedInD1(
         LEFT JOIN estimate_sheet_access_settings access
           ON access.estimate_id = estimate.id
         WHERE estimate.id = ?
+          ${ACTIVE_WORKSPACE_CORPORATE_ACCOUNT_PREDICATE}
           AND (
             EXISTS (
               SELECT 1
@@ -482,9 +507,12 @@ export async function isWorkspaceEditorInD1(
         `
         SELECT 1 AS allowed
         FROM workspace_members workspace_member
+        INNER JOIN workspaces workspace ON workspace.id = workspace_member.workspace_id
+        LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
         WHERE workspace_member.workspace_id = ?
           AND workspace_member.user_id = ?
           AND workspace_member.role IN ('owner', 'admin', 'member')
+          AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
         LIMIT 1
       `,
       )
@@ -504,9 +532,12 @@ export async function isWorkspaceMemberInD1(
         `
         SELECT 1 AS allowed
         FROM workspace_members workspace_member
+        INNER JOIN workspaces workspace ON workspace.id = workspace_member.workspace_id
+        LEFT JOIN corporate_accounts corporate_account ON corporate_account.id = workspace.corporate_account_id
         WHERE workspace_member.workspace_id = ?
           AND workspace_member.user_id = ?
           AND workspace_member.role IN ('owner', 'admin', 'member')
+          AND (workspace.corporate_account_id IS NULL OR corporate_account.status = 'active')
         LIMIT 1
       `,
       )
