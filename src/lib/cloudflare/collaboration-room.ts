@@ -21,11 +21,14 @@ const INBOUND_FRAME_WINDOW_MS = 1_000;
 const COLLABORATION_ROOM_PATH_PREFIX = "/__cloudflare/collaboration-room/";
 const AUTHORIZATION_TIMEOUT_MS = 10_000;
 const CONTROL_SECRET_HEADER = "x-collaboration-room-control-secret";
+const SUBJECT_REVOCATION_KEY_PREFIX = "subject-revoked-at:";
 
 type DurableObjectStateLike = {
   acceptWebSocket(ws: WebSocket, tags?: string[]): void;
   getWebSockets(tag?: string): WebSocket[];
   storage?: {
+    get?<T>(key: string): Promise<T | undefined>;
+    put?(key: string, value: unknown): Promise<void>;
     setAlarm(scheduledTime: number | Date): Promise<void>;
   };
 };
@@ -416,6 +419,16 @@ export class CollaborationRoom {
       sendJson(ws, { type: "error", code: "unsupported_token_version" });
       return;
     }
+    try {
+      if (await this.isSubjectTokenRevoked(authorized)) {
+        sendJson(ws, { type: "revoked", code: "access_revoked" });
+        ws.close(4403, "subject_revoked");
+        return;
+      }
+    } catch {
+      sendJson(ws, { type: "error", code: "auth_failed" });
+      return;
+    }
 
     const {
       authorizationDeadlineAt: _authorizationDeadlineAt,
@@ -450,6 +463,17 @@ export class CollaborationRoom {
     return this.isSocketAuthorized(ws)
       ? (attachment?.authorized ?? null)
       : null;
+  }
+
+  private async isSubjectTokenRevoked(claims: RealtimeRoomTokenClaims) {
+    const storage = this.ctx.storage;
+    if (!storage?.get) return false;
+    const revokedAt = await storage.get<number>(
+      `${SUBJECT_REVOCATION_KEY_PREFIX}${claims.sub}`,
+    );
+    return typeof revokedAt === "number" && Number.isFinite(revokedAt)
+      ? claims.iat <= revokedAt
+      : false;
   }
 
   private validateBroadcastCapability(
@@ -629,6 +653,28 @@ export class CollaborationRoom {
       return Response.json(
         { ok: false, error: "invalid_control_payload" },
         { status: 400 },
+      );
+    }
+
+    const storage = this.ctx.storage;
+    if (!storage?.get || !storage.put) {
+      return Response.json(
+        { ok: false, error: "control_storage_unavailable" },
+        { status: 503 },
+      );
+    }
+    const revocationKey = `${SUBJECT_REVOCATION_KEY_PREFIX}${payload.sub}`;
+    try {
+      const previous = await storage.get<number>(revocationKey);
+      const revokedAt = Math.max(
+        typeof previous === "number" && Number.isFinite(previous) ? previous : 0,
+        Math.floor(Date.now() / 1000),
+      );
+      await storage.put(revocationKey, revokedAt);
+    } catch {
+      return Response.json(
+        { ok: false, error: "control_storage_unavailable" },
+        { status: 503 },
       );
     }
 

@@ -83,8 +83,7 @@ export async function broadcastNotification(input: {
   // transaction so a delivery failure can no longer leave an orphaned
   // definition with no deliveries. (batch is optional on the local type but
   // always present on real D1; guard keeps it type-safe.)
-  const runInBatch = db.batch;
-  if (!runInBatch) return { ok: false, error: "d1_unavailable" };
+  if (!db.batch) return { ok: false, error: "d1_unavailable" };
 
   try {
     const notificationId = crypto.randomUUID();
@@ -138,24 +137,62 @@ export async function broadcastNotification(input: {
       )
       .bind(notificationId, now, now, now);
 
-    const [definitionResult, deliveryResult] = await runInBatch([
+    const auditStatement = db
+      .prepare(
+        `
+          INSERT INTO admin_audit_events (
+            id,
+            actor_user_id,
+            actor_email,
+            action,
+            target_type,
+            target_id,
+            summary_json,
+            request_id,
+            created_at
+          )
+          VALUES (
+            ?, ?, ?, 'notification.broadcast', 'notification', ?,
+            json_object(
+              'kind', ?,
+              'title', ?,
+              'deliveryCount', (
+                SELECT COUNT(*)
+                FROM notification_deliveries
+                WHERE notification_id = ?
+              ),
+              'severity', ?
+            ),
+            NULL, ?
+          )
+        `,
+      )
+      .bind(
+        crypto.randomUUID(),
+        admin.userId,
+        admin.email,
+        notificationId,
+        kind,
+        title,
+        notificationId,
+        severity,
+        now,
+      );
+
+    const [definitionResult, deliveryResult, auditResult] = await db.batch([
       definitionStatement,
       deliveryStatement,
+      auditStatement,
     ]);
-    if (definitionResult.success === false || deliveryResult.success === false) {
+    if (
+      definitionResult.success === false
+      || deliveryResult.success === false
+      || auditResult.success === false
+    ) {
       throw new Error("notification_batch_unsuccessful");
     }
 
     const deliveryCount = deliveryResult.meta?.changes ?? 0;
-
-    await writeAdminAuditEvent({
-      actorUserId: admin.userId,
-      actorEmail: admin.email,
-      action: "notification.broadcast",
-      targetType: "notification",
-      targetId: notificationId,
-      summary: { kind, title, deliveryCount, severity },
-    });
 
     revalidatePath("/admin");
     return { ok: true, notificationId, deliveryCount };

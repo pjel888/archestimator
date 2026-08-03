@@ -38,6 +38,11 @@ type CountRow = {
   count: number;
 };
 
+type NotificationCursor = {
+  deliveredAt: string;
+  id: string;
+};
+
 const DELIVERY_WITH_DEFINITION_SELECT = `
   SELECT
     deliveries.id,
@@ -66,6 +71,27 @@ const DELIVERY_WITH_DEFINITION_SELECT = `
 function clampNotificationLimit(limit: number | undefined) {
   if (!Number.isFinite(limit)) return 20;
   return Math.min(Math.max(Math.trunc(limit ?? 20), 1), 50);
+}
+
+function decodeNotificationCursor(value: string | null | undefined): NotificationCursor | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as {
+      deliveredAt?: unknown;
+      id?: unknown;
+    };
+    return typeof parsed.deliveredAt === "string" && typeof parsed.id === "string"
+      ? { deliveredAt: parsed.deliveredAt, id: parsed.id }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function encodeNotificationCursor(row: NotificationJoinedD1Row | undefined) {
+  return row
+    ? Buffer.from(JSON.stringify({ deliveredAt: row.delivered_at, id: row.id })).toString("base64url")
+    : null;
 }
 
 async function requireNotificationsD1() {
@@ -115,7 +141,14 @@ export async function listCurrentUserNotificationsFromD1(
   input: { limit?: number; cursor?: string | null } = {},
 ): Promise<NotificationFeedResult> {
   const limit = clampNotificationLimit(input.limit);
-  const cursorFilter = input.cursor ? "AND deliveries.delivered_at < ?" : "";
+  const cursor = decodeNotificationCursor(input.cursor);
+  if (input.cursor && !cursor) return { items: [], nextCursor: null };
+  const cursorFilter = cursor
+    ? `AND (
+        deliveries.delivered_at < ?
+        OR (deliveries.delivered_at = ? AND deliveries.id < ?)
+      )`
+    : "";
   const statement = db
     .prepare<NotificationJoinedD1Row>(
       `
@@ -124,12 +157,12 @@ export async function listCurrentUserNotificationsFromD1(
           AND deliveries.dismissed_at IS NULL
           AND deliveries.archived_at IS NULL
           ${cursorFilter}
-        ORDER BY deliveries.delivered_at DESC
+        ORDER BY deliveries.delivered_at DESC, deliveries.id DESC
         LIMIT ?
       `,
     );
-  const boundStatement = input.cursor
-    ? statement.bind(userId, input.cursor, limit + 1)
+  const boundStatement = cursor
+    ? statement.bind(userId, cursor.deliveredAt, cursor.deliveredAt, cursor.id, limit + 1)
     : statement.bind(userId, limit + 1);
   const { results } = await boundStatement.all<NotificationJoinedD1Row>();
   const rows = results ?? [];
@@ -137,7 +170,7 @@ export async function listCurrentUserNotificationsFromD1(
   const items = visibleRows
     .map((row) => coerceNotificationDeliveryView(toDeliveryWithDefinition(row)))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  const nextCursor = rows.length > limit ? rows[limit]?.delivered_at ?? null : null;
+  const nextCursor = rows.length > limit ? encodeNotificationCursor(visibleRows.at(-1)) : null;
   return { items, nextCursor };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type InfiniteData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import {
@@ -24,7 +24,12 @@ type NotificationQueryOptions = {
 
 export const notificationQueryKeys = {
   all: ["notifications"] as const,
-  feed: (cursor?: string | null) => ["notifications", "feed", cursor ?? null] as const,
+  feed: () => ["notifications", "feed"] as const,
+  feedPage: (input: { limit?: number; cursor?: string | null } = {}) => [
+    ...notificationQueryKeys.feed(),
+    input.limit ?? null,
+    input.cursor ?? null,
+  ] as const,
   unreadCount: () => ["notifications", "unread-count"] as const,
   releaseModal: () => ["notifications", "release-modal"] as const,
 };
@@ -34,16 +39,19 @@ function updateUnreadCount(current: number | undefined, delta: number) {
 }
 
 function updateNotificationInFeed(
-  current: NotificationFeedResult | undefined,
+  current: InfiniteData<NotificationFeedResult, string | null> | undefined,
   deliveryId: string,
   updater: (item: NotificationDeliveryView) => NotificationDeliveryView | null,
 ) {
   if (!current) return current;
   return {
     ...current,
-    items: current.items
-      .map((item) => (item.id === deliveryId ? updater(item) : item))
-      .filter((item): item is NotificationDeliveryView => Boolean(item)),
+    pages: current.pages.map((page) => ({
+      ...page,
+      items: page.items
+        .map((item) => (item.id === deliveryId ? updater(item) : item))
+        .filter((item): item is NotificationDeliveryView => Boolean(item)),
+    })),
   };
 }
 
@@ -93,10 +101,12 @@ export function useDeferredNotificationQueryEnabled(force = false) {
 }
 
 export function useNotificationsQuery(input: { limit?: number; cursor?: string | null } = {}, options: NotificationQueryOptions = {}) {
-  return useQuery({
-    queryKey: notificationQueryKeys.feed(input.cursor),
-    queryFn: () => loadCurrentUserNotifications(input),
+  return useInfiniteQuery({
+    queryKey: notificationQueryKeys.feedPage(input),
+    queryFn: ({ pageParam }) => loadCurrentUserNotifications({ ...input, cursor: pageParam }),
     enabled: options.enabled ?? true,
+    initialPageParam: input.cursor ?? null as string | null,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
     staleTime: NOTIFICATION_FEED_STALE_TIME_MS,
     retry: 1,
   });
@@ -132,7 +142,7 @@ export function useMarkNotificationReadMutation() {
       if (!result.ok) return;
       const timestamp = new Date().toISOString();
       let unreadWasDecremented = false;
-      queryClient.setQueryData<NotificationFeedResult>(notificationQueryKeys.feed(null), (current) =>
+      queryClient.setQueriesData<InfiniteData<NotificationFeedResult, string | null>>({ queryKey: notificationQueryKeys.feed() }, (current) =>
         updateNotificationInFeed(current, deliveryId, (item) => {
           if (!item.readAt) unreadWasDecremented = true;
           return setReadState(item, timestamp);
@@ -158,7 +168,7 @@ export function useDismissNotificationMutation() {
     onSuccess: (result, deliveryId) => {
       if (!result.ok) return;
       let unreadWasDecremented = false;
-      queryClient.setQueryData<NotificationFeedResult>(notificationQueryKeys.feed(null), (current) =>
+      queryClient.setQueriesData<InfiniteData<NotificationFeedResult, string | null>>({ queryKey: notificationQueryKeys.feed() }, (current) =>
         updateNotificationInFeed(current, deliveryId, (item) => {
           if (!item.readAt) unreadWasDecremented = true;
           return null;
@@ -185,7 +195,7 @@ export function useAcknowledgeReleaseAnnouncementMutation() {
       if (!result.ok) return;
       const timestamp = new Date().toISOString();
       let unreadWasDecremented = false;
-      queryClient.setQueryData<NotificationFeedResult>(notificationQueryKeys.feed(null), (current) =>
+      queryClient.setQueriesData<InfiniteData<NotificationFeedResult, string | null>>({ queryKey: notificationQueryKeys.feed() }, (current) =>
         updateNotificationInFeed(current, deliveryId, (item) => {
           if (!item.readAt) unreadWasDecremented = true;
           return {

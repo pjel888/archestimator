@@ -25,7 +25,7 @@ export function NotificationCenter() {
   const markReadMutation = useMarkNotificationReadMutation();
   const dismissMutation = useDismissNotificationMutation();
   const unreadCount = unreadQuery.data ?? 0;
-  const items = feedQuery.data?.items ?? [];
+  const items = feedQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   useEffect(() => {
     if (!open) return;
@@ -107,18 +107,34 @@ export function NotificationCenter() {
           ) : items.length === 0 ? (
             <p className="p-2 text-[10px] leading-4 text-tertiary">No notifications</p>
           ) : (
-            <ul className="min-h-0 overflow-y-auto" aria-label="Notification list">
-              {items.map((item) => (
-                <NotificationListItem
-                  key={item.id}
-                  notification={item}
-                  isDismissing={dismissMutation.isPending && dismissMutation.variables === item.id}
-                  isMarkingRead={markReadMutation.isPending && markReadMutation.variables === item.id}
-                  onDismiss={(deliveryId) => dismissMutation.mutate(deliveryId)}
-                  onMarkRead={(deliveryId) => markReadMutation.mutate(deliveryId)}
-                />
-              ))}
-            </ul>
+            <div className="min-h-0 overflow-y-auto">
+              <ul aria-label="Notification list">
+                {items.map((item) => (
+                  <NotificationListItem
+                    key={item.id}
+                    notification={item}
+                    isDismissing={dismissMutation.isPending && dismissMutation.variables === item.id}
+                    isMarkingRead={markReadMutation.isPending && markReadMutation.variables === item.id}
+                    onDismiss={(deliveryId) => dismissMutation.mutate(deliveryId)}
+                    onMarkRead={(deliveryId) => markReadMutation.mutate(deliveryId)}
+                  />
+                ))}
+              </ul>
+              {feedQuery.hasNextPage ? (
+                <div className="border-t border-hairline p-2 text-center">
+                  <Button
+                    type="button"
+                    variant="plain"
+                    size="xs"
+                    className="min-h-7 cursor-pointer rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    disabled={feedQuery.isFetchingNextPage}
+                    onClick={() => void feedQuery.fetchNextPage()}
+                  >
+                    {feedQuery.isFetchingNextPage ? "Loading older notifications..." : "Load older notifications"}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           )}
         </section>
       ) : null}
