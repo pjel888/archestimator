@@ -178,6 +178,22 @@ describe("D1 access role boundaries", () => {
     await expect(canAccessEstimateInD1(inheritDisabledProbe.db, "estimate-1", user)).resolves.toBe(false);
   });
 
+  it("denies canonical workspace, project, and estimate access for suspended corporate workspaces", async () => {
+    const suspendedCorporateAccount = ({ sql }: AuthzQuery) =>
+      !sql.includes("corporate_account.status = 'active'");
+    const projectReadProbe = createAuthzRoleDatabase({ allowWhen: suspendedCorporateAccount });
+    const projectEditProbe = createAuthzRoleDatabase({ allowWhen: suspendedCorporateAccount });
+    const estimateReadProbe = createAuthzRoleDatabase({ allowWhen: suspendedCorporateAccount });
+    const estimateEditProbe = createAuthzRoleDatabase({ allowWhen: suspendedCorporateAccount });
+    const workspaceProbe = createAuthzRoleDatabase({ allowWhen: suspendedCorporateAccount });
+
+    await expect(canAccessProjectInD1(projectReadProbe.db, "project-1", user)).resolves.toBe(false);
+    await expect(canEditProjectInD1(projectEditProbe.db, "project-1", user)).resolves.toBe(false);
+    await expect(canAccessEstimateInD1(estimateReadProbe.db, "estimate-1", user)).resolves.toBe(false);
+    await expect(canEditEstimateInD1(estimateEditProbe.db, "estimate-1", user)).resolves.toBe(false);
+    await expect(isWorkspaceMemberInD1(workspaceProbe.db, "workspace-1", user)).resolves.toBe(false);
+  });
+
   it("fails closed when D1 read probes throw", async () => {
     const db = createThrowingDatabase();
 

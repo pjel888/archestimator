@@ -173,6 +173,7 @@ describe("corporate account local D1 integration", () => {
         addCorporateAccountMember,
         listUserCorporateAccounts,
         removeCorporateAccountMember,
+        updateCorporateAccountStatus,
         updateCorporateAccountMemberRole,
       } = await import("@/lib/admin/corporate-account-repository");
 
@@ -206,6 +207,16 @@ describe("corporate account local D1 integration", () => {
             role: "team_leader",
           }),
         ],
+        error: null,
+      });
+
+      await expect(updateCorporateAccountStatus("account-members", "suspended")).resolves.toEqual({
+        data: { ok: true },
+        error: null,
+      });
+      await expect(listUserCorporateAccounts("member-1")).resolves.toEqual({ data: [], error: null });
+      await expect(updateCorporateAccountStatus("account-members", "active")).resolves.toEqual({
+        data: { ok: true },
         error: null,
       });
 

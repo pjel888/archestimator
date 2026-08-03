@@ -13,13 +13,14 @@ function databaseWithRow(row: Record<string, unknown> | null) {
 
 describe("collaboration realtime topic access", () => {
   it("maps a workspace member to editor authority for a whole-project topic", async () => {
-    const { database, bind } = databaseWithRow({ workspace_role: "member", project_role: null });
+    const { database, bind, prepare } = databaseWithRow({ workspace_role: "member", project_role: null });
 
     await expect(readCollaborationTopicAccessInD1(database, {
       kind: "project",
       resourceId: "project-1",
     }, member)).resolves.toMatchObject({ role: "editor", source: "workspace" });
     expect(bind).toHaveBeenCalledWith("member-1", "member-1", "project-1");
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining("corporate_account.status = 'active'"));
   });
 
   it("denies a project topic when the caller has no whole-project grant", async () => {
@@ -32,7 +33,7 @@ describe("collaboration realtime topic access", () => {
   });
 
   it("admits a direct estimate member only to its estimate topic when inheritance is restricted", async () => {
-    const { database, bind } = databaseWithRow({
+    const { database, bind, prepare } = databaseWithRow({
       workspace_role: null,
       project_role: null,
       estimate_role: "editor",
@@ -48,6 +49,7 @@ describe("collaboration realtime topic access", () => {
       authorizedEstimateIds: ["estimate-1"],
     });
     expect(bind).toHaveBeenCalledWith("member-1", "member-1", "member-1", "estimate-1");
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining("corporate_account.status = 'active'"));
   });
 
   it("fails closed when the D1 lookup fails", async () => {

@@ -27,15 +27,26 @@ class FakeD1Statement {
   }
 
   async first() {
-    if (this.sql.includes("FROM workspace_members")) return this.database.workspaceMembership;
-    if (this.sql.includes("FROM project_members")) return this.database.projectMembership;
+    const corporateAccountBlocksWorkspace =
+      this.database.corporateAccountStatus !== null &&
+      this.database.corporateAccountStatus !== "active" &&
+      this.sql.includes("corporate_accounts");
+    if (this.sql.includes("FROM workspace_members")) {
+      return corporateAccountBlocksWorkspace ? null : this.database.workspaceMembership;
+    }
+    if (this.sql.includes("FROM project_members")) {
+      return corporateAccountBlocksWorkspace ? null : this.database.projectMembership;
+    }
     if (this.sql.includes("FROM estimate_sheet_members")) return this.database.estimateMembership;
-    if (this.sql.includes("FROM projects")) return this.database.project;
+    if (this.sql.includes("FROM projects")) {
+      return corporateAccountBlocksWorkspace ? null : this.database.project;
+    }
     throw new Error(`Unexpected D1 first query: ${this.sql}`);
   }
 }
 
 class FakeD1Database {
+  corporateAccountStatus: "active" | "suspended" | "archived" | null = null;
   prepared: PreparedD1Statement[] = [];
   workspaceMembership: unknown = null;
   projectMembership: unknown = null;
@@ -85,6 +96,16 @@ describe("account membership D1 lookup", () => {
       expect.stringContaining("FROM workspace_members"),
       expect.stringContaining("FROM project_members"),
     ]);
+  });
+
+  it("does not resolve memberships through a suspended corporate workspace", async () => {
+    const database = new FakeD1Database();
+    database.corporateAccountStatus = "suspended";
+    database.workspaceMembership = { workspace_id: "workspace-1", role: "owner" };
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { readFirstAccountWorkspaceMembership } = await import("@/lib/auth/account-membership");
+    await expect(readFirstAccountWorkspaceMembership("user-1")).resolves.toBeNull();
   });
 
   it("resolves an estimate membership through the parent project workspace", async () => {
