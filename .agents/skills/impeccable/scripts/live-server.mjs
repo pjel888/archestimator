@@ -382,15 +382,44 @@ function statOrNull(filePath) {
   try { return fs.statSync(filePath); } catch { return null; }
 }
 
+function isAllowedBrowserOrigin(origin) {
+  if (!origin) return true;
+  if (origin === 'null') return false;
+  try {
+    const parsed = new URL(origin);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+      && ['127.0.0.1', '::1', 'localhost'].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function resolveProjectFile(filePath) {
+  const root = path.resolve(process.cwd());
+  const candidate = path.resolve(root, filePath);
+  const relative = path.relative(root, candidate);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  return candidate;
+}
+
 // HTTP request handler
 // ---------------------------------------------------------------------------
 
 function createRequestHandler({ detectScript, liveScriptParts }) {
   return (req, res) => {
     const url = new URL(req.url, `http://localhost:${state.port}`);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    const origin = req.headers.origin;
+    if (!isAllowedBrowserOrigin(origin)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden origin');
+      return;
+    }
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
     const p = url.pathname;
@@ -601,9 +630,9 @@ function createRequestHandler({ detectScript, liveScriptParts }) {
       const token = url.searchParams.get('token');
       if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
       const filePath = url.searchParams.get('path');
-      if (!filePath || filePath.includes('..')) { res.writeHead(400); res.end('Bad path'); return; }
-      const absPath = path.resolve(process.cwd(), filePath);
-      if (!absPath.startsWith(process.cwd())) { res.writeHead(403); res.end('Forbidden'); return; }
+      if (!filePath) { res.writeHead(400); res.end('Bad path'); return; }
+      const absPath = resolveProjectFile(filePath);
+      if (!absPath) { res.writeHead(403); res.end('Forbidden'); return; }
       let content;
       try { content = fs.readFileSync(absPath, 'utf-8'); }
       catch { res.writeHead(404); res.end('File not found'); return; }
@@ -1125,7 +1154,6 @@ httpServer.listen(state.port, '127.0.0.1', () => {
   writeLiveServerInfo(process.cwd(), { pid: process.pid, port: state.port, token: state.token });
   const url = `http://localhost:${state.port}`;
   console.log(`\nImpeccable live server running on ${url}`);
-  console.log(`Token: ${state.token}\n`);
   console.log(`Script: ${url}/live.js`);
   console.log('Inject: managed by live-inject.mjs; Astro source tags use is:inline automatically.');
   console.log(`Stop:   node ${path.basename(fileURLToPath(import.meta.url))} stop`);
