@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "decision_id": "DEC-AUTO-005",
+  "outcome": "EXTERNAL_PROVIDER_AUTH_REQUIRED",
+  "candidate_revision": "335439534e59b63e5ce4084d1b90ba51c398641b",
+  "evidence_paths": [
+    {
+      "path": ".ai/03_plans/2026-07-31/Code-Improvement/evidence/unit-024-scanner-topology.json",
+      "sha256": "fad9f923d142a6052273400ecb3fc60b0f780b11e7e02279e7c05d26ec114af5",
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b"
+    },
+    {
+      "path": "wrangler.jsonc",
+      "sha256": "2ee34fd64f84c661d6ee17005267fac3ca58c88aa220c201014a69f5785d0d74",
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b"
+    },
+    {
+      "path": "src/lib/uploads/clamd-scanner.ts",
+      "sha256": "505218474c37265ae64b198e16451bb04256882bafea76b189d22bf49c58d847",
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b"
+    },
+    {
+      "path": "src/lib/uploads/policy-scanner.ts",
+      "sha256": "b01852716999ac6b944094c966cabf3efac0647fe9dee1229ca40224485dfb8d",
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b"
+    },
+    {
+      "path": "scripts/prove-upload-clamd-live.ts",
+      "sha256": "c6c565098bbefd04354d077e0f5ea2e2db5b0a1c8603addeb88e09d4ebdfd76b",
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b"
+    }
+  ],
+  "fallbacks": [],
+  "unit_transitions": [
+    {
+      "unit_id": "UNIT-025",
+      "from_status": "PLANNED",
+      "to_status": "SUPERSEDED"
+    }
+  ],
+  "requirement_transitions": [],
+  "criterion_transitions": [
+    {
+      "criterion_id": "AC-002",
+      "from_status": "FAIL",
+      "to_status": "BOUNDARY",
+      "authorization_boundary_id": "AUTH-001"
+    },
+    {
+      "criterion_id": "AC-006",
+      "from_status": "FAIL",
+      "to_status": "BOUNDARY",
+      "authorization_boundary_id": "AUTH-001"
+    }
+  ],
+  "terminal_effect": "AUTH_BLOCKED"
+}

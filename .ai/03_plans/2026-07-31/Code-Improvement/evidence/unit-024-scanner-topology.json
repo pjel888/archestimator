@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "decision_unit_id": "UNIT-024",
+  "candidate_revision": "335439534e59b63e5ce4084d1b90ba51c398641b",
+  "outcome": "EXTERNAL_PROVIDER_AUTH_REQUIRED",
+  "authoritative_provider_configured": false,
+  "authoritative_clean_result_count": 0,
+  "observations": [
+    {
+      "id": "OBS-001",
+      "result": "NO_BOUND_RESOURCE",
+      "evidence_path": "wrangler.jsonc",
+      "detail": "The bound Cloudflare resources contain no malware-scanner service or endpoint."
+    },
+    {
+      "id": "OBS-002",
+      "result": "ENV_ONLY_EXTERNAL_ENDPOINT",
+      "evidence_path": "src/lib/uploads/clamd-scanner.ts",
+      "detail": "Authoritative ClamD operation requires externally supplied host and port configuration."
+    },
+    {
+      "id": "OBS-003",
+      "result": "POLICY_RESULT_NOT_AUTHORITATIVE",
+      "evidence_path": "src/lib/uploads/policy-scanner.ts",
+      "detail": "The local fallback performs policy and EICAR checks, not authoritative malware-engine classification."
+    },
+    {
+      "id": "OBS-004",
+      "result": "LIVE_PROOF_CREDENTIAL_GATED",
+      "evidence_path": "scripts/prove-upload-clamd-live.ts",
+      "detail": "Clean and EICAR live proof requires explicit provider configuration and an available ClamD-compatible service."
+    }
+  ],
+  "fail_closed_product_impact": "Scan-required uploads cannot be represented as authoritatively clean until an external provider is separately authorized, configured, and observed.",
+  "authorization_boundary_id": "AUTH-001"
+}

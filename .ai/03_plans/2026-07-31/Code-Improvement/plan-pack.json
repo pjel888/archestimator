@@ -10,9 +10,9 @@
   "release_status": "BOUNDARY",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
-  "updated_at": "2026-08-01T22:15:45.249Z",
+  "updated_at": "2026-08-03T02:03:18.388Z",
   "canonical_execution_artifact": "00-PLAN.md",
-  "next_unit": "UNIT-024",
+  "next_unit": "UNIT-013",
   "baseline": {
     "head": "93d5124d268a1b6016f63f8a8e5e69e118630d13",
     "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -32,25 +32,25 @@
       "id": "ART-001",
       "role": "canonical-execution",
       "path": "00-PLAN.md",
-      "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b"
+      "sha256": "94928b2a35b4940f2a11e21df15ae0e17de6ea57e7a82c7f7a624aee4e18deb0"
     },
     {
       "id": "ART-002",
       "role": "audit-register",
       "path": "01-AUDIT-REGISTER.md",
-      "sha256": "0e28c06fd2fb295a46e02c98f8a5caa415648169237bfefe3e0c172449a773bc"
+      "sha256": "635fec16529fc24cb01e80672e8cfe6f31d8f81f2f98d8282e7fe3b5655d6cc5"
     },
     {
       "id": "ART-003",
       "role": "unit-catalog",
       "path": "02-UNIT-CATALOG.md",
-      "sha256": "94c87c434a14026a92c3b8aadce42ebd529d4d078e96005a0b9e136e0f8c6a51"
+      "sha256": "a2215cd132c5c224597f98dff3a85ba2b970420b94ab506016a37a3eb8ab69ad"
     },
     {
       "id": "ART-004",
       "role": "pack-readme",
       "path": "README.md",
-      "sha256": "92ab5f6db21c1c1e88d6ccc69b66da4d9ad43b1b4c05af1b9c0869e225c59fda"
+      "sha256": "787f526a73174e423698a9f483e9b7d5c0d1fdea36381d7b2ff05213f736e5e0"
     },
     {
       "id": "ART-005",
@@ -62,7 +62,7 @@
       "id": "ART-006",
       "role": "verification-matrix",
       "path": "03-VERIFICATION-MATRIX.md",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b"
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212"
     },
     {
       "id": "ART-007",
@@ -75,6 +75,24 @@
       "role": "predecessor-dispositions",
       "path": "evidence/unit-000-predecessor-dispositions.json",
       "sha256": "32868b40913aa280290650efc38b45af258e95ba9364628bc3df5ce1855f0402"
+    },
+    {
+      "id": "ART-009",
+      "role": "security-supplement-admission",
+      "path": "evidence/unit-024-codex-security-supplement-disposition.json",
+      "sha256": "25afe58f3c21faef86f8bd7e0113644b3cbb86f2802503ba3de1eda3411f0c07"
+    },
+    {
+      "id": "ART-010",
+      "role": "scanner-topology",
+      "path": "evidence/unit-024-scanner-topology.json",
+      "sha256": "fad9f923d142a6052273400ecb3fc60b0f780b11e7e02279e7c05d26ec114af5"
+    },
+    {
+      "id": "ART-011",
+      "role": "scanner-decision",
+      "path": "evidence/unit-024-scanner-viability-decision.json",
+      "sha256": "b88c1975160e7512437d55ff3c6cf8244c33f370df1a60a0581d18c88514f73e"
     }
   ],
   "sources": [
@@ -142,7 +160,15 @@
         "UNIT-004",
         "UNIT-005",
         "UNIT-006",
-        "UNIT-029"
+        "UNIT-029",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ],
       "criterion_ids": [
         "AC-001"
@@ -169,7 +195,13 @@
         "UNIT-014",
         "UNIT-024",
         "UNIT-025",
-        "UNIT-026"
+        "UNIT-026",
+        "UNIT-030",
+        "UNIT-033",
+        "UNIT-035",
+        "UNIT-039",
+        "UNIT-042",
+        "UNIT-045"
       ],
       "criterion_ids": [
         "AC-002"
@@ -193,7 +225,9 @@
         "UNIT-018",
         "UNIT-019",
         "UNIT-022",
-        "UNIT-023"
+        "UNIT-023",
+        "UNIT-034",
+        "UNIT-036"
       ],
       "criterion_ids": [
         "AC-003"
@@ -257,7 +291,12 @@
         "UNIT-024",
         "UNIT-025",
         "UNIT-026",
-        "UNIT-028"
+        "UNIT-028",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-038",
+        "UNIT-040",
+        "UNIT-041"
       ],
       "criterion_ids": [
         "AC-006"
@@ -304,7 +343,24 @@
         "UNIT-026",
         "UNIT-027",
         "UNIT-028",
-        "UNIT-029"
+        "UNIT-029",
+        "UNIT-030",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-033",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-038",
+        "UNIT-039",
+        "UNIT-040",
+        "UNIT-041",
+        "UNIT-042",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ],
       "criterion_ids": [
         "AC-007"
@@ -374,7 +430,18 @@
         "UNIT-006",
         "UNIT-007",
         "UNIT-008",
-        "UNIT-029"
+        "UNIT-029",
+        "UNIT-030",
+        "UNIT-033",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-039",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ],
       "criterion_ids": [
         "AC-001",
@@ -392,7 +459,18 @@
         "UNIT-012",
         "UNIT-014",
         "UNIT-024",
-        "UNIT-025"
+        "UNIT-025",
+        "UNIT-030",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-033",
+        "UNIT-035",
+        "UNIT-038",
+        "UNIT-039",
+        "UNIT-040",
+        "UNIT-041",
+        "UNIT-042",
+        "UNIT-045"
       ],
       "criterion_ids": [
         "AC-002",
@@ -413,7 +491,9 @@
         "UNIT-019",
         "UNIT-021",
         "UNIT-022",
-        "UNIT-023"
+        "UNIT-023",
+        "UNIT-034",
+        "UNIT-036"
       ],
       "criterion_ids": [
         "AC-001",
@@ -431,7 +511,8 @@
         "UNIT-024",
         "UNIT-025",
         "UNIT-026",
-        "UNIT-027"
+        "UNIT-027",
+        "UNIT-032"
       ],
       "criterion_ids": [
         "AC-002",
@@ -447,7 +528,10 @@
         "UNIT-000",
         "UNIT-020",
         "UNIT-027",
-        "UNIT-028"
+        "UNIT-028",
+        "UNIT-031",
+        "UNIT-040",
+        "UNIT-041"
       ],
       "criterion_ids": [
         "AC-005",
@@ -477,7 +561,7 @@
     },
     {
       "id": "AC-002",
-      "status": "FAIL",
+      "status": "BOUNDARY",
       "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "REQ-002"
@@ -489,9 +573,10 @@
         "TEST-002"
       ],
       "evidence_ids": [
-        "EVID-002"
+        "EVID-002",
+        "EVID-013"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": "AUTH-001"
     },
     {
       "id": "AC-003",
@@ -549,7 +634,7 @@
     },
     {
       "id": "AC-006",
-      "status": "FAIL",
+      "status": "BOUNDARY",
       "artifact_path": "00-PLAN.md",
       "requirement_ids": [
         "REQ-006"
@@ -561,9 +646,10 @@
         "TEST-006"
       ],
       "evidence_ids": [
-        "EVID-006"
+        "EVID-006",
+        "EVID-013"
       ],
-      "authorization_boundary_id": null
+      "authorization_boundary_id": "AUTH-001"
     },
     {
       "id": "AC-007",
@@ -702,7 +788,8 @@
         "AC-006"
       ],
       "evidence_ids": [
-        "EVID-009"
+        "EVID-009",
+        "EVID-013"
       ],
       "authorization_boundary_id": "AUTH-001"
     },
@@ -973,7 +1060,7 @@
     },
     {
       "id": "UNIT-013",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
@@ -1138,7 +1225,24 @@
         "UNIT-024",
         "UNIT-027",
         "UNIT-028",
-        "UNIT-029"
+        "UNIT-029",
+        "UNIT-030",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-033",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-038",
+        "UNIT-039",
+        "UNIT-040",
+        "UNIT-041",
+        "UNIT-042",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ],
       "requirement_ids": [
         "REQ-005",
@@ -1196,7 +1300,8 @@
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
-        "UNIT-024"
+        "UNIT-024",
+        "UNIT-041"
       ],
       "requirement_ids": [
         "REQ-003",
@@ -1211,7 +1316,7 @@
     },
     {
       "id": "UNIT-024",
-      "status": "READY",
+      "status": "VERIFIED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000"
@@ -1226,12 +1331,15 @@
         "RISK-004"
       ],
       "evidence_ids": [
-        "EVID-007"
+        "EVID-007",
+        "EVID-011",
+        "EVID-012",
+        "EVID-013"
       ]
     },
     {
       "id": "UNIT-025",
-      "status": "PLANNED",
+      "status": "SUPERSEDED",
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-009",
@@ -1247,7 +1355,8 @@
         "RISK-004"
       ],
       "evidence_ids": [
-        "EVID-007"
+        "EVID-007",
+        "EVID-013"
       ]
     },
     {
@@ -1320,7 +1429,24 @@
         "UNIT-023",
         "UNIT-024",
         "UNIT-027",
-        "UNIT-029"
+        "UNIT-029",
+        "UNIT-030",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-033",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-038",
+        "UNIT-039",
+        "UNIT-040",
+        "UNIT-041",
+        "UNIT-042",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ],
       "requirement_ids": [
         "REQ-006",
@@ -1340,6 +1466,328 @@
       "artifact_path": "02-UNIT-CATALOG.md",
       "depends_on": [
         "UNIT-000",
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-030",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-031",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-032",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-004"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-033",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-034",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-035",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-036",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-003",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-003"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-037",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-038",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-039",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024",
+        "UNIT-029"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-040",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-041",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002",
+        "RISK-005"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-042",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-043",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-044",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-045",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
+        "UNIT-024"
+      ],
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-007"
+      ],
+      "risk_ids": [
+        "RISK-001",
+        "RISK-002"
+      ],
+      "evidence_ids": [
+        "EVID-007"
+      ]
+    },
+    {
+      "id": "UNIT-046",
+      "status": "PLANNED",
+      "artifact_path": "02-UNIT-CATALOG.md",
+      "depends_on": [
         "UNIT-024"
       ],
       "requirement_ids": [
@@ -1404,11 +1852,30 @@
       "status": "ACTIVE",
       "artifact_path": "00-PLAN.md",
       "affected_ids": [
+        "AC-002",
+        "AC-006",
+        "AUTH-001",
+        "GATE-020",
         "UNIT-009",
         "UNIT-024",
         "UNIT-025",
-        "GATE-020",
-        "AUTH-001"
+        "UNIT-030",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-033",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-038",
+        "UNIT-039",
+        "UNIT-040",
+        "UNIT-041",
+        "UNIT-042",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ]
     },
     {
@@ -1459,7 +1926,10 @@
       "status": "ACTIVE",
       "artifact_path": "00-PLAN.md",
       "affected_ids": [
-        "GATE-HOSTED"
+        "AC-002",
+        "AC-006",
+        "GATE-HOSTED",
+        "UNIT-025"
       ]
     }
   ],
@@ -1473,7 +1943,7 @@
         "TEST-001"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1485,7 +1955,7 @@
         "TEST-002"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1497,7 +1967,7 @@
         "TEST-003"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1509,7 +1979,7 @@
         "TEST-004"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1521,7 +1991,7 @@
         "TEST-005"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1533,7 +2003,7 @@
         "TEST-006"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1542,6 +2012,7 @@
       "artifact_path": "03-VERIFICATION-MATRIX.md",
       "claim_ids": [
         "AC-007",
+        "GATE-020",
         "TEST-007",
         "UNIT-000",
         "UNIT-001",
@@ -1573,10 +2044,26 @@
         "UNIT-027",
         "UNIT-028",
         "UNIT-029",
-        "GATE-020"
+        "UNIT-030",
+        "UNIT-031",
+        "UNIT-032",
+        "UNIT-033",
+        "UNIT-034",
+        "UNIT-035",
+        "UNIT-036",
+        "UNIT-037",
+        "UNIT-038",
+        "UNIT-039",
+        "UNIT-040",
+        "UNIT-041",
+        "UNIT-042",
+        "UNIT-043",
+        "UNIT-044",
+        "UNIT-045",
+        "UNIT-046"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1588,7 +2075,7 @@
         "TEST-008"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "9c385ca6c4755b4b4e1767962375e4837805fcc45bfdb600c48a54f73596395b",
+      "sha256": "46ed05991b9dcd7da3253966c4797cd90206d79b01d323c68eade191d84a8212",
       "valid_until": null
     },
     {
@@ -1599,7 +2086,7 @@
         "GATE-HOSTED"
       ],
       "source_revision": "3e9a2d1e0bc529ac89d98d16233c603886b7b038",
-      "sha256": "4c24666c1c2b5be63e8112d1369141ebf73f17735f119f4fee2613e3d164793b",
+      "sha256": "94928b2a35b4940f2a11e21df15ae0e17de6ea57e7a82c7f7a624aee4e18deb0",
       "valid_until": null
     },
     {
@@ -1612,6 +2099,47 @@
       "source_revision": "93d5124d268a1b6016f63f8a8e5e69e118630d13",
       "sha256": "07b6080df20614b2651b7bee4bae02b0d702a1f38e6c433d30451a143972994c",
       "valid_until": null
+    },
+    {
+      "id": "EVID-011",
+      "status": "PASS",
+      "artifact_path": "evidence/unit-024-codex-security-supplement-disposition.json",
+      "claim_ids": [
+        "DEC-AUTO-005",
+        "UNIT-024"
+      ],
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b",
+      "sha256": "25afe58f3c21faef86f8bd7e0113644b3cbb86f2802503ba3de1eda3411f0c07",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-012",
+      "status": "PASS",
+      "artifact_path": "evidence/unit-024-scanner-topology.json",
+      "claim_ids": [
+        "AUTH-001",
+        "DEC-AUTO-005",
+        "UNIT-024"
+      ],
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b",
+      "sha256": "fad9f923d142a6052273400ecb3fc60b0f780b11e7e02279e7c05d26ec114af5",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-013",
+      "status": "PASS",
+      "artifact_path": "evidence/unit-024-scanner-viability-decision.json",
+      "claim_ids": [
+        "AC-002",
+        "AC-006",
+        "AUTH-001",
+        "DEC-AUTO-005",
+        "UNIT-024",
+        "UNIT-025"
+      ],
+      "source_revision": "335439534e59b63e5ce4084d1b90ba51c398641b",
+      "sha256": "b88c1975160e7512437d55ff3c6cf8244c33f370df1a60a0581d18c88514f73e",
+      "valid_until": null
     }
   ],
   "ready_slices": [
@@ -1619,9 +2147,10 @@
       "id": "SLICE-000",
       "unit_ids": [
         "UNIT-000",
+        "UNIT-013",
         "UNIT-024"
       ]
     }
   ],
-  "manifest_sha256": "4fcd1f15a7e963e74b94cb07f328f085952c4ce3d76c3b9621716fc118db4702"
+  "manifest_sha256": "3a0e96d664a67d13140bca1fcf15bf9c8d35446321a48961495cd9f84abc84b2"
 }

@@ -321,6 +321,23 @@ table position and `reviewed_at` an ISO-8601 timestamp:
 | `UNIT-027` | `evidence/unit-027-review-quality.json,evidence/unit-027-review-security.json` | `evidence/unit-027-candidate-authors.json` |
 | `UNIT-028` | `evidence/unit-028-review-quality.json,evidence/unit-028-review-security.json` | `evidence/unit-028-candidate-authors.json` |
 | `UNIT-029` | `evidence/unit-029-review-quality.json,evidence/unit-029-review-security.json` | `evidence/unit-029-candidate-authors.json` |
+| `UNIT-030` | `evidence/unit-030-review-quality.json,evidence/unit-030-review-security.json` | `evidence/unit-030-candidate-authors.json` |
+| `UNIT-031` | `evidence/unit-031-review-quality.json,evidence/unit-031-review-security.json` | `evidence/unit-031-candidate-authors.json` |
+| `UNIT-032` | `evidence/unit-032-review-quality.json,evidence/unit-032-review-security.json` | `evidence/unit-032-candidate-authors.json` |
+| `UNIT-033` | `evidence/unit-033-review-quality.json,evidence/unit-033-review-security.json` | `evidence/unit-033-candidate-authors.json` |
+| `UNIT-034` | `evidence/unit-034-review-quality.json,evidence/unit-034-review-security.json` | `evidence/unit-034-candidate-authors.json` |
+| `UNIT-035` | `evidence/unit-035-review-quality.json,evidence/unit-035-review-security.json` | `evidence/unit-035-candidate-authors.json` |
+| `UNIT-036` | `evidence/unit-036-review-quality.json,evidence/unit-036-review-security.json` | `evidence/unit-036-candidate-authors.json` |
+| `UNIT-037` | `evidence/unit-037-review-quality.json,evidence/unit-037-review-security.json` | `evidence/unit-037-candidate-authors.json` |
+| `UNIT-038` | `evidence/unit-038-review-quality.json,evidence/unit-038-review-security.json` | `evidence/unit-038-candidate-authors.json` |
+| `UNIT-039` | `evidence/unit-039-review-quality.json,evidence/unit-039-review-security.json` | `evidence/unit-039-candidate-authors.json` |
+| `UNIT-040` | `evidence/unit-040-review-quality.json,evidence/unit-040-review-security.json` | `evidence/unit-040-candidate-authors.json` |
+| `UNIT-041` | `evidence/unit-041-review-quality.json,evidence/unit-041-review-security.json` | `evidence/unit-041-candidate-authors.json` |
+| `UNIT-042` | `evidence/unit-042-review-quality.json,evidence/unit-042-review-security.json` | `evidence/unit-042-candidate-authors.json` |
+| `UNIT-043` | `evidence/unit-043-review-quality.json,evidence/unit-043-review-security.json` | `evidence/unit-043-candidate-authors.json` |
+| `UNIT-044` | `evidence/unit-044-review-quality.json,evidence/unit-044-review-security.json` | `evidence/unit-044-candidate-authors.json` |
+| `UNIT-045` | `evidence/unit-045-review-quality.json,evidence/unit-045-review-security.json` | `evidence/unit-045-candidate-authors.json` |
+| `UNIT-046` | `evidence/unit-046-review-quality.json,evidence/unit-046-review-security.json` | `evidence/unit-046-candidate-authors.json` |
 | `TECH-BLOCKED` | `evidence/tech-blocked-review-quality.json,evidence/tech-blocked-review-security.json` | `evidence/tech-blocked-candidate-authors.json` |
 | `INTEGRATED` | `evidence/integrated-review-quality.json,evidence/integrated-review-security.json` | `evidence/integrated-candidate-authors.json` |
 
@@ -403,6 +420,23 @@ explicitly prefixed by `$pack/` in their separate contracts.
 | `UNIT-027` | N/A | N/A | `evidence/unit-027-q2.json` | 3/3 archive domains have one explicit disposition, no unowned activated implementation, and `terminal_effect=NONE` |
 | `UNIT-028` | `tests/vitest/code-improvement/unit-028-safe-cleanup-docs.test.ts` | `evidence/unit-028-vitest.json` | `evidence/unit-028-q2.json` | Dead production importers = 0, including Neat background/dependency; maintained architecture matches bound Cloudflare/D1 truth; stale active predecessor authorities = 0 |
 | `UNIT-029` | `tests/vitest/code-improvement/unit-029-row-total-aggregation.test.ts` | `evidence/unit-029-vitest.json` | `evidence/unit-029-q2.json` | All 3 external aggregate repositories use canonical minor-unit row totals; two `0.335` rows total `0.68`; legacy line-total source callers = 0 |
+| `UNIT-030` | `tests/vitest/code-improvement/unit-030-identity-lifecycle.test.ts` | `evidence/unit-030-vitest.json` | `evidence/unit-030-q2.json` | Deleted/suspended access accepts = 0; false invite activations = 0; 1,000-row allowlist/invite traversal has 0 omissions |
+| `UNIT-031` | `tests/vitest/code-improvement/unit-031-release-supply-chain.test.ts` | `evidence/unit-031-vitest.json` | `evidence/unit-031-q2.json` | Arbitrary attested commits = 0; mutable action refs = 0; 6/6 mapped records have exact dispositions |
+| `UNIT-032` | `tests/vitest/code-improvement/unit-032-local-tool-security.test.ts` | `evidence/unit-032-vitest.json` | `evidence/unit-032-q2.json` | Token/cookie disclosures = 0; null-origin accepts = 0; path escapes = 0; guard bypasses = 0 |
+| `UNIT-033` | `tests/vitest/code-improvement/unit-033-maintenance-write-gate.test.ts` | `evidence/unit-033-vitest.json` | `evidence/unit-033-q2.json` | Maintenance-mode mutation statements = 0 across all mapped actions |
+| `UNIT-034` | `tests/vitest/code-improvement/unit-034-estimate-tree-bounds.test.ts` | `evidence/unit-034-vitest.json` | `evidence/unit-034-q2.json` | Deep/cyclic traversal terminates within budget; stale selection Add Area success = 1 |
+| `UNIT-035` | `tests/vitest/code-improvement/unit-035-admin-integrity.test.ts` | `evidence/unit-035-vitest.json` | `evidence/unit-035-q2.json` | Malformed copilot 500s = 0; corrupt rows detected = 100%; supported non-UUID notes succeed |
+| `UNIT-036` | `tests/vitest/code-improvement/unit-036-activity-filter-state.test.ts` | `evidence/unit-036-vitest.json` | `evidence/unit-036-q2.json` | Actor-filter omissions = 0; supported URL-state round trips = 100% |
+| `UNIT-037` | `tests/vitest/code-improvement/unit-037-public-signup.test.tsx` | `evidence/unit-037-vitest.json` | `evidence/unit-037-q2.json` | Resize reveal succeeds; unhandled signup posts = 0; accessible result states = 100% |
+| `UNIT-038` | `tests/vitest/code-improvement/unit-038-design-tool-policy.test.ts` | `evidence/unit-038-vitest.json` | `evidence/unit-038-q2.json` | Public `DESIGN.md` requirements = 0; global exception matches = 0 |
+| `UNIT-039` | `tests/vitest/code-improvement/unit-039-collaboration-privacy.test.ts` | `evidence/unit-039-vitest.json` | `evidence/unit-039-q2.json` | Viewer roster/invite PII fields = 0; unrelated restricted-grant revocations = 0 |
+| `UNIT-040` | `tests/vitest/code-improvement/unit-040-tool-bootstrap-pinning.test.ts` | `evidence/unit-040-vitest.json` | `evidence/unit-040-q2.json` | Mutable active tool refs = 0; executable bootstrap provenance coverage = 100% |
+| `UNIT-041` | `tests/vitest/code-improvement/unit-041-dependency-reconciliation.test.ts` | `evidence/unit-041-vitest.json` | `evidence/unit-041-q2.json` | 5/5 PR records disposed; lockfile reproducible; `@firecms/neat` candidate changes = 0 |
+| `UNIT-042` | `tests/vitest/code-improvement/unit-042-callback-abuse.test.ts` | `evidence/unit-042-vitest.json` | `evidence/unit-042-q2.json` | Flood audit writes remain within configured bound; legitimate callback success = 100% |
+| `UNIT-043` | `tests/vitest/code-improvement/unit-043-row-duplication-expression.test.tsx` | `evidence/unit-043-vitest.json` | `evidence/unit-043-q2.json` | Duplicates follow source exactly once; expression round-trip parity = 100% |
+| `UNIT-044` | `tests/vitest/code-improvement/unit-044-quick-create-idempotency.test.tsx` | `evidence/unit-044-vitest.json` | `evidence/unit-044-q2.json` | Sheet creates per intent <= 1; failed intent remains retryable |
+| `UNIT-045` | `tests/vitest/code-improvement/unit-045-admin-broadcast-atomicity.test.ts` | `evidence/unit-045-vitest.json` | `evidence/unit-045-q2.json` | Detached batch calls = 0; partial commits = 0; successful deliveries duplicate = 0 |
+| `UNIT-046` | `tests/vitest/code-improvement/unit-046-live-region.test.tsx` | `evidence/unit-046-vitest.json` | `evidence/unit-046-q2.json` | Repeated identical messages re-announce; stale announcements and leaked timers = 0 |
 
 ## Browser Evidence
 
@@ -425,6 +459,15 @@ explicitly prefixed by `$pack/` in their separate contracts.
 | `UNIT-023` | `e2e/code-improvement/unit-023-query-subscriptions.spec.ts` | `evidence/unit-023-browser.json` | Four changed surfaces refresh and mutate once without stale UI |
 | `UNIT-025` | `e2e/code-improvement/unit-025-upload-clean.spec.ts` | `evidence/unit-025-browser.json` | Authoritatively clean upload attaches once; infected never attaches |
 | `UNIT-026` | `e2e/code-improvement/unit-026-session-continuity.spec.ts` | `evidence/unit-026-browser.json` | Pre-cutover active session remains valid and revocable |
+| `UNIT-030` | `e2e/code-improvement/unit-030-account-lifecycle.spec.ts` | `evidence/unit-030-browser.json` | Deleted/suspended/invite states deny or recover exactly as specified |
+| `UNIT-034` | `e2e/code-improvement/unit-034-estimate-tree.spec.ts` | `evidence/unit-034-browser.json` | Deep tree remains usable and stale-selection Add Area succeeds once |
+| `UNIT-035` | `e2e/code-improvement/unit-035-admin-records.spec.ts` | `evidence/unit-035-browser.json` | Controlled validation and supported customer-note identities remain usable |
+| `UNIT-036` | `e2e/code-improvement/unit-036-activity-filters.spec.ts` | `evidence/unit-036-browser.json` | Actor filter survives navigation, refresh, and pagination |
+| `UNIT-037` | `e2e/code-improvement/unit-037-public-signup.spec.ts` | `evidence/unit-037-browser.json` | Resize reveals hero and signup reaches handled accessible states |
+| `UNIT-039` | `e2e/code-improvement/unit-039-collaboration-privacy.spec.ts` | `evidence/unit-039-browser.json` | Viewers see no roster/invite PII; manager controls remain usable |
+| `UNIT-043` | `e2e/code-improvement/unit-043-row-editing.spec.ts` | `evidence/unit-043-browser.json` | Duplicate position and quantity expression survive save/reload |
+| `UNIT-044` | `e2e/code-improvement/unit-044-quick-create.spec.ts` | `evidence/unit-044-browser.json` | Rapid/retried quick-create produces and navigates to one sheet |
+| `UNIT-046` | `e2e/code-improvement/unit-046-live-region.spec.ts` | `evidence/unit-046-browser.json` | Repeated favorite action produces a fresh accessible announcement |
 
 ### Server-only Q2 rationale
 
@@ -439,10 +482,18 @@ explicitly prefixed by `$pack/` in their separate contracts.
 | `UNIT-018` | Idempotent D1 restore replay changes read shape, not user interaction | 100-row replay integration with statement/write/order assertions |
 | `UNIT-020` | Completion-only ledger and terminal reconciliation have no rendered journey | Manifest promotion guard, closeout-contract test, plan validators, GitNexus detection, and integrated Q2 review |
 | `UNIT-022` | Scheduled outbox reconciliation has no browser boundary | 500-row D1 integration with statement, retry, and result assertions |
-| `UNIT-024` | This is provider viability classification; activated upload UX is exercised by `UNIT-025` | Authoritative EICAR/clean/unavailable/timeout/oversize provider receipt and Q2 security review |
+| `UNIT-024` | This is provider viability classification; the selected branch has no authorized provider-backed UX | Complete 221-record admission test, sanitized topology receipt, zero authoritative policy-clean results, exact `AUTH-001` transition, and Q2 security review |
 | `UNIT-027` | This is a lifecycle decision; any resulting product behavior must be added as a separate browser-tested Q2 unit | Three-domain disposition receipt, active-policy scan, promotion guard, and Q2 independent review |
 | `UNIT-028` | Dead-code deletion, architecture correction, and authority reconciliation have no user journey | Dead-import scan, maintained-doc/provider-truth scan, touched-pack validators, and Q2 independent review |
 | `UNIT-029` | Repository summary/chart aggregation changes server-side data projection rather than interaction | Canonical rounding fixtures across all three repositories, legacy-caller scan, and Q2 independent review |
+| `UNIT-031` | Release workflow and action-reference policy execute in CI | Commit-provenance and immutable action-reference contract tests plus Q2 review |
+| `UNIT-032` | Local CLI/server/path hardening is outside the product browser | Process, origin, credential-redaction, containment, and guard-bypass fixtures |
+| `UNIT-033` | Maintenance enforcement is a server-action boundary | Zero-write denial integration across every mapped mutation |
+| `UNIT-038` | Design-tool policy is a source/configuration contract | Public/authenticated route fixtures and scope-exact lint assertions |
+| `UNIT-040` | MCP/bootstrap pinning is developer tooling | Active-config mutable-reference scan and provenance validation |
+| `UNIT-041` | Dependency reconciliation changes package/runtime inputs | Lockfile reproducibility, type/build/runtime compatibility, and PR-disposition receipt |
+| `UNIT-042` | Callback abuse limiting occurs before rendered auth state | Rate-limit/audit-write integration and legitimate callback recovery fixtures |
+| `UNIT-045` | Broadcast atomicity is a D1 transaction boundary | Detached-call and partial-failure integration with exact write counts |
 
 ## Conditional Closeout Promotion
 
@@ -1185,6 +1236,19 @@ foreach ($fingerprint in $authority.disposition_evidence) {
 Any failure restages `UNIT-000` as `IN_PROGRESS`, reseals the manifest, and starts
 a new candidate/review cycle. No tracked write follows a passing Q2/Q3 verifier
 and post-verification containment check.
+
+`UNIT-024` stages its two durable decision receipts, scanner-topology evidence,
+47-unit manifest, and exact Markdown catalogue before candidate freeze. Its
+focused test recomputes all 200 `CSF-*` and 21 PR identities, verifies one owner
+per record, proves the 48 newly assigned records equal the `UNIT-030` through
+`UNIT-046` union, validates the supplement remains non-runnable, rehashes every
+sealed evidence leaf, and requires the exact
+`EXTERNAL_PROVIDER_AUTH_REQUIRED` transition. The manifest state is
+`UNIT-024=VERIFIED`, `UNIT-025=SUPERSEDED`, `AC-002/AC-006=BOUNDARY` under
+`AUTH-001`, and `UNIT-013=READY`; the package terminal state remains `ACTIVE`
+while independent local work exists. Run the focused test, both touched plan-pack
+validators, `git diff --check`, and the shared exact-candidate Q2 block using the
+`UNIT-024` review/author row. No browser receipt applies to this decision unit.
 
 `UNIT-027` stores its three lifecycle dispositions in
 `evidence/unit-027-lifecycle.json`, then runs the current-pack validator,

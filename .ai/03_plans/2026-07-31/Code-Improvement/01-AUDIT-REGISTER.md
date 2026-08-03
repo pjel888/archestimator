@@ -22,6 +22,37 @@ reconciliation. GitNexus results were navigation hints, not proof.
 | Dependencies | installed lockfile advisory scan | No High/Critical advisory reported |
 | Documentation | current product/runtime guides and deep architecture overview | Deep overview is materially stale |
 
+### Codex Security supplement absorption
+
+`UNIT-024` reconciled all 200 cloud records and 21 PR records from the August 1
+supplement. Every record has one owner or evidence-backed no-change/hosted
+boundary disposition. The 48 records that lacked an exact implementation owner
+were assigned once across these deliberately bounded units:
+
+| Unit | Absorbed records |
+| --- | --- |
+| `UNIT-030` | `CSF-004`, `CSF-009`, `CSF-026`, `CSF-136`, `CSF-137`, `PR-128` |
+| `UNIT-031` | `CSF-003`, `PR-142` through `PR-146` |
+| `UNIT-032` | `CSF-153`, `CSF-154`, `CSF-168`, `CSF-169`, `CSF-170`, `CSF-177`, `CSF-194` |
+| `UNIT-033` | `CSF-025` |
+| `UNIT-034` | `CSF-075`, `CSF-076`, `CSF-148` |
+| `UNIT-035` | `CSF-142`, `CSF-143`, `CSF-145` |
+| `UNIT-036` | `CSF-151`, `CSF-157` |
+| `UNIT-037` | `CSF-164`, `CSF-165` |
+| `UNIT-038` | `CSF-166`, `CSF-173` |
+| `UNIT-039` | `CSF-041`, `CSF-043`, `CSF-044` |
+| `UNIT-040` | `CSF-093`, `PR-124` |
+| `UNIT-041` | `PR-141`, `PR-149`, `PR-150`, `PR-152`, `PR-153` |
+| `UNIT-042` | `CSF-089` |
+| `UNIT-043` | `CSF-147`, `CSF-161` |
+| `UNIT-044` | `CSF-171` |
+| `UNIT-045` | `CSF-146` |
+| `UNIT-046` | `CSF-174` |
+
+The scanner decision is `EXTERNAL_PROVIDER_AUTH_REQUIRED`. The policy fallback
+is not authoritative clean evidence; `UNIT-025` is `SUPERSEDED`, and the hosted
+provider gap remains `AUTH-001` without blocking independent local work.
+
 ## 2. CRUD and Lifecycle Matrix
 
 `Sound` means the expected operation and authorization/lifecycle transition were

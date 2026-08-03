@@ -5,7 +5,7 @@ Baseline: `93d5124d268a1b6016f63f8a8e5e69e118630d13`
 Profile: `high-blast-radius` plan; every unit is Q2-or-higher  
 Action ceiling: `IMPLEMENT_LOCAL`  
 Package status: `CONDITIONALLY_READY`  
-Canonical next unit: `UNIT-024`
+Canonical next unit: `UNIT-013`
 
 ## 1. Target Result
 
@@ -98,7 +98,7 @@ Q2 evidence; the planning-time failure is retained as the red receipt.
 #### Option A - Current-source consolidated successor pack
 
 Recheck inherited findings, retire stale ones, group active defects by invariant,
-and execute a 30-unit decision-gated dependency graph.
+and execute a 47-unit decision-gated dependency graph.
 
 Advantages:
 
@@ -310,8 +310,8 @@ than reimplemented.
 
 1. `UNIT-000` repair quality-baseline lineage, then retire duplicate runnable
    predecessor authority
-2. `UNIT-024` absorb the Codex Security supplement, then decide authoritative
-   scanner viability
+2. `UNIT-024` absorb the Codex Security supplement and classify scanner
+   viability (`VERIFIED`; external provider authorization required)
 3. `UNIT-013` decide Better Auth session-token compatibility
 4. `UNIT-027` decide archive lifecycle policy
 
@@ -320,7 +320,8 @@ than reimplemented.
 5. `UNIT-007` durable realtime revocation
 6. `UNIT-008` realtime admission and remaining support/presence secret boundary
 7. `UNIT-009` upload admission/finalize fail-closed integrity
-8. `UNIT-025` conditional authoritative scanner implementation
+8. `UNIT-025` conditional authoritative scanner implementation (`SUPERSEDED` by
+   `AUTH-001` unless separately authorized)
 9. `UNIT-001` commercial/proposal truth integrity
 10. `UNIT-002` portal credential re-verification
 11. `UNIT-003` notification keyset traversal and UI paging
@@ -329,29 +330,46 @@ than reimplemented.
 14. `UNIT-006` component/template referential integrity
 15. `UNIT-026` conditional session-token-at-rest migration
 16. `UNIT-029` canonical external row-total aggregation
+17. `UNIT-030` identity lifecycle and beta admission
+18. `UNIT-033` global maintenance write gate
+19. `UNIT-039` collaboration roster privacy and grant revocation
+20. `UNIT-042` callback abuse boundary
+21. `UNIT-045` atomic admin broadcast persistence
 
-### Phase B - Operational and privacy hardening
+### Phase B - Operational and supply-chain hardening
 
-17. `UNIT-011` authenticated queue envelope and dedupe identity
-18. `UNIT-010` operational endpoint/origin isolation
-19. `UNIT-012` browser/share/cache/password-intake boundary
-20. `UNIT-014` operational logging, minimization, and retention
+22. `UNIT-011` authenticated queue envelope and dedupe identity
+23. `UNIT-010` operational endpoint/origin isolation
+24. `UNIT-012` browser/share/cache/password-intake boundary
+25. `UNIT-014` operational logging, minimization, and retention
+26. `UNIT-031` release workflow and GitHub Action supply chain
+27. `UNIT-032` local developer and verification-tool security
+28. `UNIT-040` MCP and agent-bootstrap pinning
+29. `UNIT-041` dependency-update reconciliation
 
 ### Phase C - Bounded data paths and deep modules
 
-21. `UNIT-015` workspace context/onboarding seam
-22. `UNIT-016` paged project catalogue
-23. `UNIT-017` AI evidence snapshot and parallel reads
-24. `UNIT-018` restore replay batch read
-25. `UNIT-019` estimate display projection model
-26. `UNIT-021` component editor domain model
-27. `UNIT-022` set-wise activity outbox
-28. `UNIT-023` scoped TanStack Query subscriptions
+30. `UNIT-015` workspace context/onboarding seam
+31. `UNIT-016` paged project catalogue
+32. `UNIT-017` AI evidence snapshot and parallel reads
+33. `UNIT-018` restore replay batch read
+34. `UNIT-019` estimate display projection model
+35. `UNIT-021` component editor domain model
+36. `UNIT-022` set-wise activity outbox
+37. `UNIT-023` scoped TanStack Query subscriptions
+38. `UNIT-034` bounded estimate-tree behavior
+39. `UNIT-035` admin record and data-quality integrity
+40. `UNIT-036` activity-filter and URL-state integrity
+41. `UNIT-037` public landing and signup correctness
+42. `UNIT-038` public-route design-tool enforcement
+43. `UNIT-043` estimate-row duplication and expression correctness
+44. `UNIT-044` dashboard quick-create idempotency
+45. `UNIT-046` reliable live-region announcements
 
 ### Phase D - Reconciliation and deletion
 
-29. `UNIT-028` safe dead-code deletion, architecture docs, and predecessor-drift revalidation
-30. `UNIT-020` final ledger and terminal-state closeout
+46. `UNIT-028` safe dead-code deletion, architecture docs, and predecessor-drift revalidation
+47. `UNIT-020` final ledger and terminal-state closeout
 
 Dependencies in `02-UNIT-CATALOG.md` are authoritative. `UNIT-000` is the sole
 initial ready slice. Conditional units are activated only by their decision
@@ -544,10 +562,13 @@ Assumptions under active validation:
   durable adapter rather than sharing payload semantics implicitly.
 - `DEC-AUTO-004`: component, portal, and tab archive gaps remain
   investigation-only until `UNIT-027` proves lifecycle intent.
-- `DEC-AUTO-005`: `UNIT-024` first absorbs the non-runnable Codex Security
-  supplement into exact units with a complete 200-finding/21-PR receipt, then
-  alone activates, supersedes, or blocks `UNIT-025` using the named scanner
-  outcomes and conditional transition protocol in `02-UNIT-CATALOG.md`.
+- `DEC-AUTO-005`: `UNIT-024` absorbed the non-runnable Codex Security supplement
+  into exact units with a complete 200-finding/21-PR receipt. No authoritative
+  scanner is bound in `wrangler.jsonc`; live ClamD proof needs a separately
+  configured service. The selected outcome is
+  `EXTERNAL_PROVIDER_AUTH_REQUIRED`: `UNIT-025` is `SUPERSEDED`, `AC-002` and
+  `AC-006` are `BOUNDARY` under `AUTH-001`, and policy-only results never count
+  as malware-clean.
 - `DEC-AUTO-006`: `UNIT-013` alone activates or blocks `UNIT-026` using the
   named Better Auth compatibility outcomes; accepted risk is not completion.
 - `DEC-AUTO-007`: retain `src/lib/cloudflare/d1.ts` as D1 acquisition authority

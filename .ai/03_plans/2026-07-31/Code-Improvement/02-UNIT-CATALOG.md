@@ -1,10 +1,9 @@
 # Implementation Unit Catalog
 
-Current package state: `CONDITIONALLY_READY`. `UNIT-000` is staged as verified
-for its replacement exact-candidate Q2 cycle; `UNIT-024` is the sole ready
-successor but remains product-work gated until that Q2 receipt passes. Every
-unit starts with current-source reconciliation and GitNexus upstream impact for
-each symbol to be edited.
+Current package state: `CONDITIONALLY_READY`. `UNIT-000` and `UNIT-024` are
+`VERIFIED`; `UNIT-025` is authorization-backed `SUPERSEDED`; `UNIT-013` is the
+sole ready successor. Every unit starts with current-source reconciliation and
+GitNexus upstream impact for each symbol to be edited.
 
 Tests are part of the owning unit. Exact commands, report paths, and thresholds
 are in `03-VERIFICATION-MATRIX.md`.
@@ -16,6 +15,10 @@ UNIT-000 -> UNIT-024
 UNIT-024 -> UNIT-001 + UNIT-002 + UNIT-003 + UNIT-005 + UNIT-006 + UNIT-007
 UNIT-024 -> UNIT-011 + UNIT-013 + UNIT-014 + UNIT-015 + UNIT-018
 UNIT-024 -> UNIT-022 + UNIT-023 + UNIT-027 + UNIT-029
+UNIT-024 -> UNIT-030 + UNIT-031 + UNIT-032 + UNIT-033 + UNIT-034 + UNIT-035
+UNIT-024 -> UNIT-036 + UNIT-037 + UNIT-038 + UNIT-040 + UNIT-041 + UNIT-042
+UNIT-024 -> UNIT-043 + UNIT-044 + UNIT-045 + UNIT-046
+UNIT-024 + UNIT-029 -> UNIT-039
 UNIT-002 -> UNIT-004 -> UNIT-012
 UNIT-007 -> UNIT-008
 UNIT-007 + UNIT-011 -> UNIT-010
@@ -24,7 +27,8 @@ UNIT-013 -> UNIT-026
 UNIT-015 -> UNIT-016 + UNIT-017
 UNIT-018 -> UNIT-019
 UNIT-006 -> UNIT-021
-UNIT-001..UNIT-019 + UNIT-021..UNIT-024 + UNIT-027 + UNIT-029 -> UNIT-028
+UNIT-041 -> UNIT-023
+UNIT-001..UNIT-019 + UNIT-021..UNIT-024 + UNIT-027 + UNIT-029..UNIT-046 -> UNIT-028
 UNIT-028 -> UNIT-020
 ```
 
@@ -789,8 +793,8 @@ forwarding facade.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: terminal reconciliation only  
-Depends on: `UNIT-001` through `UNIT-019`, plus `UNIT-021` through `UNIT-024`
-and `UNIT-027` through `UNIT-029`
+Depends on: `UNIT-001` through `UNIT-019`, plus `UNIT-021` through `UNIT-024`,
+`UNIT-027` through `UNIT-046`
 
 ### Target
 
@@ -870,7 +874,7 @@ modal; duplicate mappings are deleted; accessibility and browser behavior hold.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `PERF-005`  
-Depends on: `UNIT-000`, `UNIT-024`
+Depends on: `UNIT-000`, `UNIT-024`, `UNIT-041`
 
 ### Target
 
@@ -918,7 +922,7 @@ covers each changed surface.
 
 ## `UNIT-024` - Security-supplement intake and malware-scanner viability
 
-Status: `READY`
+Status: `VERIFIED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: Codex Security delta reconciliation and scanner/provider decision gate
 for `SEC-006`
@@ -959,15 +963,19 @@ whether a new external/provider boundary is required.
   permits `TECH_BLOCKED` only after no runnable local work remains;
 - no policy-only result is accepted as malware-clean.
 
-No product-source work may begin until the admission receipt and sole-runnable
-authority check pass. No paid scanner or new unbound resource is authorized by
-this decision unit.
+The admission receipt reports 200/200 cloud rows and 21/21 PR records, with zero
+missing, duplicate-owner, or unowned records. Forty-eight uncovered deltas are
+assigned once to `UNIT-030` through `UNIT-046`. The selected scanner outcome is
+`EXTERNAL_PROVIDER_AUTH_REQUIRED`: no authoritative scanner binding exists,
+policy-only clean results count as zero, and scan-required uploads remain
+fail-closed pending separate provider authorization. No paid scanner or new
+unbound resource is authorized by this decision unit.
 
 ---
 
 ## `UNIT-025` - Authoritative scanner state and clean usability
 
-Status: `PLANNED`  
+Status: `SUPERSEDED`
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `SEC-006` conditional implementation  
 Depends on: `UNIT-009`, `UNIT-024`
@@ -984,9 +992,9 @@ Known clean binds once; EICAR never binds; unavailable/timeout stays
 inconclusive; retry/override/expiry are audited and bounded; scanner provisioning
 or hosted readback remains `AUTH-001` until explicitly authorized.
 
-This unit may enter `READY` only through
-`UNIT-024=AUTHORITATIVE_PROVIDER_VIABLE`. The authorization-bounded outcome
-supersedes it; the technical-failure outcome blocks it.
+`UNIT-024=EXTERNAL_PROVIDER_AUTH_REQUIRED` supersedes this unit. `AC-002` and
+`AC-006` remain `BOUNDARY` under `AUTH-001`; no local policy result substitutes
+for authoritative provider proof.
 
 ---
 
@@ -1050,8 +1058,8 @@ a fourth lifecycle state. Symmetry alone is not a product requirement.
 Status: `PLANNED`  
 Profile: `Q2_CRITICAL_CHANGE_GATE`  
 Findings: `CLEAN-001`, `CLEAN-002`, `DOC-001`
-Depends on: `UNIT-001` through `UNIT-019`, plus `UNIT-021` through `UNIT-024`
-and `UNIT-027`, plus `UNIT-029`
+Depends on: `UNIT-001` through `UNIT-019`, plus `UNIT-021` through `UNIT-024`,
+`UNIT-027`, and `UNIT-029` through `UNIT-046`
 
 ### Target
 
@@ -1109,6 +1117,446 @@ Every external aggregate uses canonical row cost parts/minor units; two `0.335`
 rows aggregate to `0.68`, not `0.67`; quantity-base, contingency, adjustment,
 misc, archived/scope, invalid-input, and currency behavior match the canonical
 oracle; repository source has zero callers of `computeEstimateRowLineTotal`.
+
+---
+
+## `UNIT-030` - Identity lifecycle and beta admission
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-004`, `CSF-009`, `CSF-026`, `CSF-136`, `CSF-137`, `PR-128`
+Depends on: `UNIT-024`
+
+### Target
+
+Fail closed for deleted or suspended accounts, prevent false invite activation,
+and traverse the complete allowlist and pending-invite set without fixed caps.
+
+### Primary files
+
+- `src/lib/auth/profile-d1-store.ts`
+- `src/lib/auth/session.ts`
+- `src/lib/auth/account-membership.ts`
+- `src/lib/auth/better-auth-cloudflare.ts`
+- `src/lib/auth/closed-beta-d1-store.ts`
+- `src/lib/admin/corporate-account-repository.ts`
+
+### Acceptance
+
+Deleted and suspended accounts retain no workspace access; magic-link requests
+cannot activate an invite; allowlist and pending-invite scans return complete,
+stable results beyond 200 rows with bounded keyset traversal.
+
+---
+
+## `UNIT-031` - Release workflow and GitHub Action supply chain
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-003`, `PR-142` through `PR-146`
+Depends on: `UNIT-024`
+
+### Target
+
+Bind release evidence to a trusted repository commit and reconcile every open
+GitHub Action update without treating PR intent as landed remediation.
+
+### Primary files
+
+- `.github/workflows/release-evidence.yml`
+- other touched `.github/workflows/*.yml` files
+- repository action-version policy tests
+
+### Acceptance
+
+Release attestation rejects arbitrary supplied commits; action references are
+immutable and policy-valid; each PR record has an exact landed, superseded, or
+still-open disposition. Hosted enforcement remains `AUTH-001`.
+
+---
+
+## `UNIT-032` - Local developer and verification-tool security
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-153`, `CSF-154`, `CSF-168`, `CSF-169`, `CSF-170`, `CSF-177`, `CSF-194`
+Depends on: `UNIT-024`
+
+### Target
+
+Prevent reusable credential disclosure, enforce local peer/origin boundaries,
+contain repository-path reads, and make safety guards fail closed.
+
+### Primary files
+
+- `scripts/supermemory-memory.mjs`
+- `scripts/run-safe-gitnexus-command.mjs`
+- `scripts/shot-glass-newdesign.mjs`
+- `scripts/bench-hero-server.mjs`
+- `.design-sync/verify-render.mjs`
+- `.agents/skills/impeccable/scripts/live-server.mjs`
+
+### Acceptance
+
+Port squatters and null origins receive no bearer/token; stored cookies are not
+reused across untrusted targets; reads cannot escape the repository; GitNexus
+and live-server guards reject malformed or bypassed invocations.
+
+---
+
+## `UNIT-033` - Global maintenance write gate
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-025`
+Depends on: `UNIT-024`
+
+### Target
+
+Apply the canonical maintenance-mode decision to every estimate and project
+mutation before any database side effect.
+
+### Primary files
+
+- `src/lib/feature-gates/enforce.ts`
+- `src/lib/estimates/actions.ts`
+- `src/lib/projects/actions.ts`
+
+### Acceptance
+
+Every covered write is denied consistently while maintenance mode is active;
+read paths and authorized recovery controls remain available; denial produces
+zero mutation statements.
+
+---
+
+## `UNIT-034` - Bounded estimate-tree behavior
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-075`, `CSF-076`, `CSF-148`
+Depends on: `UNIT-024`
+
+### Target
+
+Replace unbounded recursive selection with cycle-safe bounded traversal and
+reconcile stale selected-node state before Add Area chooses a target.
+
+### Primary files
+
+- `src/lib/estimates/tree-hierarchy.ts`
+- `src/components/workshop/estimate-tree/use-estimate-tree-crud.ts`
+- adjacent estimate-tree tests
+
+### Acceptance
+
+Deep, cyclic, and malformed trees terminate within an explicit budget; valid
+ordering remains stable; a stale selection falls back to a current permitted
+node and Add Area succeeds exactly once.
+
+---
+
+## `UNIT-035` - Admin record and data-quality integrity
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-142`, `CSF-143`, `CSF-145`
+Depends on: `UNIT-024`
+
+### Target
+
+Validate copilot inputs, detect corrupt orphan rows, and preserve every valid
+Better Auth identity format in customer notes.
+
+### Primary files
+
+- `src/lib/admin/copilot-action.ts`
+- `src/lib/admin/data-quality-repository.ts`
+- `src/lib/admin/customer-notes-actions.ts`
+
+### Acceptance
+
+Malformed input returns controlled errors rather than 500s; corrupted rows are
+reported deterministically; valid non-UUID user IDs can create and read notes
+without weakening tenant or admin authorization.
+
+---
+
+## `UNIT-036` - Activity-filter and URL-state integrity
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-151`, `CSF-157`
+Depends on: `UNIT-024`
+
+### Target
+
+Preserve actor filters across repository queries and URL parse/serialize round
+trips without dropping publication activity.
+
+### Primary files
+
+- `src/lib/repositories/project-activity-feed-repository.ts`
+- `src/components/workshop/project-activity/url-state.ts`
+
+### Acceptance
+
+Actor-filtered events remain visible, every supported filter round-trips
+byte-for-byte through URL state, and pagination and tenant bounds remain exact.
+
+---
+
+## `UNIT-037` - Public landing and signup correctness
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-164`, `CSF-165`
+Depends on: `UNIT-024`
+
+### Target
+
+Restore landing motion after viewport expansion and route public signup requests
+to an implemented, accessible submission boundary.
+
+### Primary files
+
+- `src/components/landing-v3/HeroMountMotion.tsx`
+- `src/app/signup/page.tsx`
+- the selected public contact/signup handler
+
+### Acceptance
+
+Mobile-to-desktop resizing reveals the hero exactly once; signup never posts to
+an unhandled route; success, validation, and failure states are keyboard and
+screen-reader observable.
+
+---
+
+## `UNIT-038` - Public-route design-tool enforcement
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-166`, `CSF-173`
+Depends on: `UNIT-024`
+
+### Target
+
+Align live design tooling and design enforcement with the public-route freedom
+contract while keeping authenticated exceptions narrowly scoped.
+
+### Primary files
+
+- `.agents/skills/impeccable/scripts/live.mjs`
+- `scripts/enforce-app-design-system.mjs`
+
+### Acceptance
+
+Public routes do not require `DESIGN.md`; authenticated routes retain their
+explicit checks; the radius exception applies only to its named owned surface.
+
+---
+
+## `UNIT-039` - Collaboration roster privacy and grant revocation
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-041`, `CSF-043`, `CSF-044`
+Depends on: `UNIT-024`, `UNIT-029`
+
+### Target
+
+Prevent viewers from reading team or pending-invite identity details and make
+restricted estimate grants survive unrelated project-member removal.
+
+### Primary files
+
+- `src/app/workshop/projects/[projectId]/team/page.tsx`
+- `src/lib/repositories/workspace-repository.ts`
+- `src/components/workshop/PublisherProjectMembersPanel.tsx`
+- `src/lib/collaboration/actions.ts`
+
+### Acceptance
+
+Viewer responses omit roster and invite PII; managers retain required controls;
+project removal revokes only grants it owns; cross-tenant and restricted-grant
+negative paths are explicit.
+
+---
+
+## `UNIT-040` - MCP and agent-bootstrap pinning
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-093`, `PR-124`
+Depends on: `UNIT-024`
+
+### Target
+
+Remove mutable auto-execution from MCP and agent bootstrap configuration and
+bind every executable dependency to reviewable immutable provenance.
+
+### Primary files
+
+- `.mcp.json`
+- `.cursor/mcp.json`
+- `opencode.json`
+- `AGENTS.md` and active bootstrap documentation
+
+### Acceptance
+
+No active configuration executes an unpinned latest tag; bootstrap commands are
+versioned and checksum/provenance bound; archived examples cannot become active
+authority.
+
+---
+
+## `UNIT-041` - Dependency-update reconciliation
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `PR-141`, `PR-149`, `PR-150`, `PR-152`, `PR-153`
+Depends on: `UNIT-024`
+
+### Target
+
+Reconcile overlapping OpenNext, TanStack Query, TypeScript, development, and
+production dependency PRs against current source and lockfile compatibility.
+`@firecms/neat` is excluded because its deletion belongs exclusively to
+`UNIT-028`.
+
+### Primary files
+
+- `package.json`
+- `bun.lock`
+- current Next.js 16 compatibility documentation and affected tests
+
+### Acceptance
+
+Every included PR is landed, superseded, or rejected with evidence; the lockfile
+is singular and reproducible; type, build, runtime, and `UNIT-023` subscription
+contracts pass; `@firecms/neat` bytes are untouched by this unit.
+
+---
+
+## `UNIT-042` - Callback abuse boundary
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-089`
+Depends on: `UNIT-024`
+
+### Target
+
+Bound unauthenticated auth-callback attempts before audit persistence without
+breaking legitimate Better Auth completion and recovery.
+
+### Primary files
+
+- `src/app/auth/callback/route.ts`
+- `src/lib/auth/account-audit.ts`
+- the existing bounded abuse-control utility
+
+### Acceptance
+
+Flood fixtures create bounded audit writes; legitimate callbacks complete;
+limits are keyed without cross-user denial and expose no credential material.
+
+---
+
+## `UNIT-043` - Estimate-row duplication and expression correctness
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-147`, `CSF-161`
+Depends on: `UNIT-024`
+
+### Target
+
+Preserve duplicated-row position and keep quantity expressions visible after
+blur without changing persisted numeric truth.
+
+### Primary files
+
+- `src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts`
+- `src/components/workshop/estimate-sheet/rows/row-table.tsx`
+
+### Acceptance
+
+Duplication inserts immediately after the source with stable concurrent order;
+expression text survives blur/reopen while calculations and plain quantities
+remain unchanged.
+
+---
+
+## `UNIT-044` - Dashboard quick-create idempotency
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-171`
+Depends on: `UNIT-024`
+
+### Target
+
+Give dashboard quick-create one single-flight/idempotency boundary across rapid
+clicks, remounts, retries, and delayed navigation.
+
+### Primary files
+
+- `src/components/workshop/dashboard/LibraryHubCard.tsx`
+- the owned estimate-sheet creation action
+
+### Acceptance
+
+Each user intent creates at most one sheet; failure remains retryable; a later
+valid intent is not suppressed; navigation targets the sole created sheet.
+
+---
+
+## `UNIT-045` - Atomic admin broadcast persistence
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-146`
+Depends on: `UNIT-024`
+
+### Target
+
+Keep the D1 batch method bound to its database object and make broadcast state
+changes atomic with their delivery rows.
+
+### Primary files
+
+- `src/lib/admin/notification-actions.ts`
+- adjacent admin notification repository tests
+
+### Acceptance
+
+Detached-method execution cannot occur; partial batch failure commits nothing;
+successful broadcast state and delivery rows appear exactly once.
+
+---
+
+## `UNIT-046` - Reliable live-region announcements
+
+Status: `PLANNED`
+Profile: `Q2_CRITICAL_CHANGE_GATE`
+Findings: `CSF-174`
+Depends on: `UNIT-024`
+
+### Target
+
+Separate live-region clear and announce phases so repeated favorite actions are
+observable to assistive technology under React batching.
+
+### Primary files
+
+- `src/hooks/use-sidebar-favorites-announcer.ts`
+- adjacent DOM and browser accessibility tests
+
+### Acceptance
+
+Repeated identical messages re-announce; timers clean up on unmount; rapid
+updates announce only the current result without stale or duplicate speech.
 
 ## Handoff Receipt
 

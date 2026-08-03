@@ -1,9 +1,9 @@
 # Archestimator Code Improvement Plan Pack
 
-Status: `CONDITIONALLY_READY`; `UNIT-000` is staged as `VERIFIED` for its
-replacement exact-candidate Q2 cycle after the component coverage-ratchet
-repairs. `UNIT-024` is `READY` but remains product-work gated until that fresh
-Q2 cycle passes.
+Status: `CONDITIONALLY_READY`; `UNIT-000` and `UNIT-024` are `VERIFIED`.
+`UNIT-024` absorbed all 200 Codex Security findings and 21 PR records, created
+17 exact delta units, and selected `EXTERNAL_PROVIDER_AUTH_REQUIRED` for the
+malware-scanner branch. `UNIT-013` is the sole ready successor.
 
 This pack is the current-source successor and sole runnable authority for whole-repository
 correctness, security, performance, architecture, CRUD-lifecycle, test,
@@ -34,6 +34,11 @@ with the Cloudflare/D1 runtime.
   candidate-author independence checks
 - `evidence/unit-000-predecessor-dispositions.json` - exact predecessor-unit
   retirement ledger with raw-evidence bindings
+- `evidence/unit-024-codex-security-supplement-disposition.json` - complete
+  200-finding/21-PR ownership receipt
+- `evidence/unit-024-scanner-topology.json` and
+  `evidence/unit-024-scanner-viability-decision.json` - sanitized topology and
+  authorization-bound scanner decision
 - `plan-pack.json` - machine-readable traceability manifest
 
 ## Execution Rule
@@ -53,12 +58,12 @@ candidate, author, review, quality, and GitNexus receipts use the ignored
 `.tmp/code-improvement` root so proof cannot change the candidate it binds.
 
 `UNIT-000` repaired the confirmed bootstrap-baseline lineage defects, ancestor
-link traversal, and Git replacement-object bypass, and reconciled predecessor
-authority, including the non-runnable security supplement. The current target
-is the replacement exact-candidate Q2 cycle for `UNIT-000`; after it passes,
-`UNIT-024` becomes the current security-supplement intake and scanner viability
-decision. Independent correctness units may proceed in parallel afterward only
-when their file ownership does not overlap.
+link traversal, and Git replacement-object bypass. `UNIT-024` then preserved the
+security supplement as non-runnable, assigned every record to exactly one
+current unit or evidence-backed disposition, and proved that authoritative
+malware scanning needs a separately authorized external provider. The policy
+scanner is not accepted as malware-clean. Independent units may proceed only
+when their dependencies and file ownership permit it.
 
 ## Completion Rule
 
