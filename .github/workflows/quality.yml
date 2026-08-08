@@ -1,17 +1,19 @@
 name: Quality
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Optional base commit SHA (defaults to the selected commit's parent)
+        required: false
+        type: string
 
 permissions:
   contents: read
   pull-requests: read
 
 env:
-  QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+  QUALITY_BASE: ${{ inputs.base_sha }}
 
 concurrency:
   group: quality-${{ github.event.pull_request.number || github.ref }}
@@ -34,7 +36,7 @@ jobs:
         uses: ./.github/actions/setup-quality
       - name: Classify the complete change
         run: |
-          test -n "$QUALITY_BASE"
+          QUALITY_BASE="${QUALITY_BASE:-$(git rev-parse HEAD^)}"
           bun scripts/quality/classify.ts \
             --base "$QUALITY_BASE" \
             --output artifacts/quality/classification.json

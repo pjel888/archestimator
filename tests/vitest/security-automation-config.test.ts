@@ -16,6 +16,11 @@ describe("security automation config", () => {
   });
 
   it("keeps pinned CodeQL analysis split between pull-request proof and authorized upload", () => {
+    expect(codeqlPullRequestWorkflow).toContain("  workflow_dispatch:");
+    expect(codeqlUploadWorkflow).toContain("  workflow_dispatch:");
+    expect(codeqlPullRequestWorkflow).not.toContain("  pull_request:");
+    expect(codeqlUploadWorkflow).not.toContain("  push:");
+    expect(codeqlUploadWorkflow).not.toContain("  schedule:");
     expect(codeqlPullRequestWorkflow).toContain("upload: never");
     expect(codeqlPullRequestWorkflow).not.toContain("security-events: write");
     expect(codeqlUploadWorkflow).toContain("security-events: write");

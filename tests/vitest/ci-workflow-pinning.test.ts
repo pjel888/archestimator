@@ -19,13 +19,26 @@ describe("CI workflow source", () => {
     expect(references.every((match) => /^[0-9a-f]{40}$/u.test(match[2] ?? ""))).toBe(true);
   });
 
-  it("classifies pull-request and main changes before running the quality matrix", () => {
-    expect(qualityWorkflow).toContain("  pull_request:");
-    expect(qualityWorkflow).toContain("  push:");
+  it("runs the quality matrix only when manually dispatched", () => {
+    expect(qualityWorkflow).toContain("  workflow_dispatch:");
+    expect(qualityWorkflow).not.toContain("  pull_request:");
+    expect(qualityWorkflow).not.toContain("  push:");
+    expect(qualityWorkflow).not.toContain("  schedule:");
     expect(qualityWorkflow).not.toContain("pull_request_target");
     expect(qualityWorkflow).toContain("bun scripts/quality/classify.ts");
     expect(qualityWorkflow).toContain("Q2_CRITICAL_CHANGE_GATE");
     expect(qualityWorkflow).toContain("Q3_RELEASE_GATE");
+  });
+
+  it("keeps every repository workflow manual-only", () => {
+    for (const workflow of workflowSources) {
+      expect(workflow).toContain("  workflow_dispatch:");
+      expect(workflow).not.toContain("  pull_request:");
+      expect(workflow).not.toContain("  push:");
+      expect(workflow).not.toContain("  schedule:");
+      expect(workflow).not.toContain("  repository_dispatch:");
+      expect(workflow).not.toContain("  workflow_call:");
+    }
   });
 
   it("fails closed through one aggregate quality gate", () => {
