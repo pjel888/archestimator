@@ -133,7 +133,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ./.github/actions/setup-quality
       - name: Download classification
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/quality
@@ -211,7 +211,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: ./.github/actions/setup-quality
       - name: Download classification
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/quality
@@ -457,12 +457,12 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: ./.github/actions/setup-quality
       - name: Download classification
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-classification-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/quality
       - name: Download compact build evidence
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-build-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/quality
@@ -489,18 +489,18 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-quality
       - name: Download unit coverage
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-unit-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts
       - name: Download component coverage
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-component-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts
       - name: Download Workers coverage
         if: ${{ needs.classify.outputs.profile == 'Q2_CRITICAL_CHANGE_GATE' || needs.classify.outputs.profile == 'Q3_RELEASE_GATE' }}
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: quality-workers-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts
@@ -545,7 +545,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ./.github/actions/setup-quality
       - name: Download all available quality reports
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: quality-*-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/quality-downloads
