@@ -47,8 +47,8 @@
       "stateCookiesAfterRecovery": [],
       "afterGoogleClickHost": "accounts.google.com",
       "googleRedirectUri": "https://archestimator.com/api/auth/callback/google",
-      "googleState": "6xEuQ4DpGzC6isVQbuR7DSojJPbM0AY3",
-      "betterAuthStateCookieState": "6xEuQ4DpGzC6isVQbuR7DSojJPbM0AY3",
+      "googleState": "REDACTED_OAUTH_STATE",
+      "betterAuthStateCookieState": "REDACTED_OAUTH_STATE",
       "stateCookieMatchesGoogleState": true
     },
     "deploymentReadback": {
